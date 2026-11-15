@@ -41,7 +41,12 @@ const testLayer = ScheduledTaskService.layer.pipe(
 );
 
 const model: ModelSelection = { instanceId: "codex", model: "gpt-5.4" } as ModelSelection;
-const layout = { memory: "memory.md", dailyFolder: "daily", inboxFolder: "drop" };
+const layout = {
+  memory: "memory.md",
+  dailyFolder: "daily",
+  inboxFolder: "drop",
+  projectsFolder: "projects",
+};
 
 const setUp = Effect.fn("test.setUp")(function* (
   ledgerPath: string,

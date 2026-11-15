@@ -68,6 +68,7 @@ export * from "./scheduledTask.ts";
 export * from "./majordome.ts";
 export * from "./majordomePhone.ts";
 export * from "./majordomeBackup.ts";
+export * from "./majordomeTopics.ts";
 export * from "./worktreeMcp.ts";
 export * from "./resourceTelemetry.ts";
 export * from "./rpc.ts";

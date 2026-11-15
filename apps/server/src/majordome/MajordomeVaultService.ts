@@ -82,7 +82,12 @@ const make = Effect.gen(function* () {
           Effect.provideService(FileSystem.FileSystem, fileSystem),
           Effect.provideService(Path.Path, path),
         ),
-        () => ({ memory: "memory.md", dailyFolder: "daily", inboxFolder: "inbox" }),
+        () => ({
+          memory: "memory.md",
+          dailyFolder: "daily",
+          inboxFolder: "inbox",
+          projectsFolder: "projects",
+        }),
       );
       const { entries, notes } = yield* describeVaultHistory({
         cwd,

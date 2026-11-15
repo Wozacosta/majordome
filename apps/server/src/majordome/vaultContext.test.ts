@@ -93,6 +93,38 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
     }),
   );
 
+  it.effect("adds the topic's folder in the thread that holds a topic, and only there", () =>
+    Effect.gen(function* () {
+      const root = yield* makeVault({
+        ".majordome/config.json": "{}",
+        ".majordome/topics.json": JSON.stringify({
+          topics: [{ id: "fitness", title: "Fitness", folder: "personal/fitness" }],
+        }),
+        "personal/fitness/log.md": "- Ran 5k",
+      });
+      const stateDir = yield* makeVault({
+        "majordome/topics.json": JSON.stringify({
+          projects: { "vault-project": { threads: { fitness: "thread-fitness" } } },
+        }),
+      });
+      const inTopic = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        topicOf: { threadId: "thread-fitness", stateDir },
+      });
+      assert.isTrue(inTopic.startsWith("<vault_context>"));
+      assert.include(inTopic, '<topic title="Fitness" folder="personal/fitness">');
+      assert.include(inTopic, "keep its running log in personal/fitness/log.md");
+      assert.include(inTopic, "- Ran 5k");
+      const elsewhere = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        topicOf: { threadId: "thread-other", stateDir },
+      });
+      assert.equal(elsewhere, "");
+    }),
+  );
+
   it.effect("returns nothing for an empty vault", () =>
     Effect.gen(function* () {
       const root = yield* makeVault({ ".majordome/config.json": "{}" });

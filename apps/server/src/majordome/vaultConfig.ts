@@ -18,6 +18,7 @@ const VaultConfig = Schema.Struct({
     Schema.Struct({
       daily: Schema.optional(Schema.String),
       inbox: Schema.optional(Schema.String),
+      projects: Schema.optional(Schema.String),
     }),
   ),
 });
@@ -29,6 +30,8 @@ export interface VaultLayout {
   readonly memory: string;
   readonly dailyFolder: string;
   readonly inboxFolder: string;
+  /** Where new topic folders go. */
+  readonly projectsFolder: string;
 }
 
 function layoutOf(config: VaultConfig): VaultLayout {
@@ -36,6 +39,7 @@ function layoutOf(config: VaultConfig): VaultLayout {
     memory: config.memory ?? "memory.md",
     dailyFolder: config.folders?.daily ?? "daily",
     inboxFolder: config.folders?.inbox ?? "inbox",
+    projectsFolder: config.folders?.projects ?? "projects",
   };
 }
 

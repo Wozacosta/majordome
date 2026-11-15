@@ -192,6 +192,7 @@ export const layer: Layer.Layer<
     const idAllocator = yield* IdAllocator.IdAllocatorV2;
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
+    const serverConfig = yield* ServerConfig.ServerConfig;
     const projects = yield* ProjectService.ProjectService;
     const providerAuth = yield* ProviderAuthService.ProviderAuthService;
     const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
@@ -1538,6 +1539,7 @@ export const layer: Layer.Layer<
           : yield* readVaultContext({
               vaultRoot: resolvedRuntimePolicy.cwd,
               nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+              topicOf: { threadId: projection.thread.id, stateDir: serverConfig.stateDir },
             }).pipe(
               Effect.provideService(FileSystem.FileSystem, fileSystem),
               Effect.provideService(Path.Path, path),
