@@ -1,13 +1,45 @@
 # Release Checklist
 
-> For maintainers. Using T3 Code? See [docs/user](../user/).
+> For maintainers. Using Majordome? See [docs/user](../user/).
 
-This document covers the unified release workflow for stable and nightly desktop releases.
+## Majordome releases
 
-Beta is the product label, not a release channel or version suffix. Release channels
-remain stable and nightly. To ship 0.1.0 Beta, use `channel=stable` and
-`version=0.1.0`. Removing the Beta label later is a branding change independent of
-the version.
+`.github/workflows/majordome-release.yml` builds the macOS app for Apple silicon and Intel, signs
+and notarizes it, and publishes `Majordome-<version>-<arch>.dmg`, the zips and the update feed
+(`latest-mac.yml`) as a GitHub Release of `Wozacosta/majordome`. Installed apps check that
+repository's latest release for updates. Nothing else is published: no npm package, web app,
+Windows or Linux build.
+
+To cut a release, push a tag, or run **Majordome release** from the Actions tab with a version:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The tag sets the app's version; nothing is committed back. Installed apps only move to a higher
+version, and a version with a suffix (`0.2.0-beta.1`) becomes a prerelease they never see. For a
+build on your own Mac, see [Desktop artifacts](./development.md#desktop-artifacts).
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+- `CSC_LINK`: your Developer ID Application certificate with its private key, exported from
+  Keychain Access as a `.p12`, then `base64 -i certificate.p12 | pbcopy`. Creating the
+  certificate needs the Account Holder role of a paid Apple Developer membership.
+- `CSC_KEY_PASSWORD`: the password you chose for that `.p12`.
+- `APPLE_API_KEY`: the text of the `.p8` file of an App Store Connect API team key (Users and
+  Access → Integrations → Team Keys, Developer access), used to notarize.
+- `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`: that key's ID and the issuer ID above the list.
+- `MAJORDOME_GOOGLE_CLIENT_ID` and `MAJORDOME_GOOGLE_CLIENT_SECRET` (optional): the Google OAuth
+  client (TVs and limited-input devices) baked into the build for Google Drive backup. Without
+  them, Drive backup says it isn't set up; a server's environment still overrides them.
+
+Set all five signing secrets or none. With none, the build is signed ad hoc and the release stays
+a draft, which is enough to test the workflow. Majordome needs no `APPLE_TEAM_ID` and no
+`MACOS_PROVISIONING_PROFILE`: those only add T3 Connect's passkey entitlements, and the build
+signs with Developer ID alone when neither is set.
+
+The rest of this page describes T3 Code's own pipeline (`release.yml` and the workflows it
+calls), kept for upstream merges. It skips itself outside `pingdotgg/t3code`.
 
 ## What the workflow does
 
