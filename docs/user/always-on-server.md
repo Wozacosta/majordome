@@ -31,7 +31,12 @@ Tailscale account (the one **Your phone** set up).
    ```
 
    To have routines follow your clock, add your time zone to `.env`, such as
-   `TZ=Europe/Paris`, and run `docker compose up -d` again.
+   `TZ=Europe/Paris`. To get pairing links that open from your other devices, add the server's
+   address, `MAJORDOME_PUBLIC_URL=https://majordome.<your-tailnet>.ts.net` (shown in Tailscale's
+   admin page). Then run `docker compose up -d` again.
+
+   To use Claude without signing in on the server, run `claude setup-token` on any computer and add
+   the token it prints as `CLAUDE_CODE_OAUTH_TOKEN=…` in the same file.
 
 5. **Bring your notes** from your GitHub backup:
 
