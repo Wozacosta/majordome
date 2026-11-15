@@ -42,6 +42,8 @@ import { cn } from "~/lib/utils";
 import { textDirection } from "~/textDirection";
 import { useClientSettings } from "../../hooks/useSettings";
 import { GuestShareIndicator } from "./GuestShareControls";
+import { isMajordome } from "../../env";
+import { MakeTopicAction } from "../majordome/MakeTopicAction";
 
 interface ChatHeaderProps {
   activeThreadEnvironmentId: EnvironmentId;
@@ -258,7 +260,8 @@ export const ChatHeader = memo(function ChatHeader({
         ariaLabel="Thread breadcrumb"
         className="flex-1 overflow-clip [overflow-clip-margin:2px]"
       >
-        {activeProject ? (
+        {/* Majordome shows notes folders, not projects. */}
+        {activeProject && !isMajordome ? (
           <>
             <WorkspaceBreadcrumbItem className="shrink">
               <Tooltip>
@@ -394,6 +397,14 @@ export const ChatHeader = memo(function ChatHeader({
           ) : null}
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
+      {isMajordome && isServerThread && renamingTitle === null ? (
+        <MakeTopicAction
+          environmentId={activeThreadEnvironmentId}
+          projectId={activeProject?.id ?? null}
+          threadId={activeThreadId}
+          title={activeThreadTitle}
+        />
+      ) : null}
       {isServerThread ? <GuestShareIndicator threadRef={activeThreadRef} /> : null}
     </div>
   );

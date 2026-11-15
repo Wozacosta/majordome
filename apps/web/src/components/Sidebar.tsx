@@ -251,6 +251,9 @@ import {
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
+import { MajordomeTopicsSection } from "./majordome/MajordomeTopics";
+import { selectRecentThreads, topicThreadKeys } from "./majordome/topics.logic";
+import { useMajordomeVaults } from "./majordome/useMajordomeVaults";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import {
@@ -404,6 +407,9 @@ function resolveDraggedOrders(input: {
       : undefined,
   };
 }
+
+// Majordome rows name no project.
+const EMPTY_PROJECT_MAP: ReadonlyMap<string, never> = new Map<string, never>();
 
 function routeThreadOnly(
   threads: readonly EnvironmentThreadShell[],
@@ -1098,7 +1104,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         );
   const threads = useQuietThreadShells();
   const promotingDraftThreadKeys = usePromotingDraftThreadKeys();
-  const listedThreads =
+  const promotedThreads =
     promotingDraftThreadKeys.length === 0
       ? threads
       : threads.map((thread) =>
@@ -1106,6 +1112,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             ? asLaunchingThread(thread)
             : thread,
         );
+  // Majordome lists only the shown vault's one-off chats here; its topics have their own list.
+  const majordomeVaults = useMajordomeVaults();
+  const listedThreads = isMajordome
+    ? selectRecentThreads(promotedThreads, {
+        vault: majordomeVaults.activeVault,
+        topicKeys: topicThreadKeys(majordomeVaults.vaults),
+      })
+    : promotedThreads;
   const routeRowThreadKey =
     routeThreadRef === null
       ? null
@@ -2927,6 +2941,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const showJumpHints = useThreadJumpHintsVisible(keybindings, routeThreadRef);
 
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
+    const vault = majordomeVaults.activeVault;
+    if (isMajordome && vault !== null) {
+      if (isMobile) setOpenMobile(false);
+      void handleNewThread(scopeProjectRef(vault.environmentId, vault.projectId));
+      return;
+    }
     if (
       shouldCreateNewThreadInCurrentProject(
         event?.shiftKey ?? false,
@@ -2965,7 +2985,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         fixedHeader={
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
-              hasProjects={projectGroups.length > 0}
+              hasProjects={!isMajordome && projectGroups.length > 0}
               projectScope={
                 <Combobox
                   items={projectScopeItems}
@@ -3169,7 +3189,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               }
               onNewProject={openAddProjectCommandPalette}
               onNewThread={handleNewThreadClick}
-              newThreadDisabled={projects.length === 0}
+              newThreadDisabled={
+                isMajordome ? majordomeVaults.activeVault === null : projects.length === 0
+              }
               newThreadShortcutLabel={newThreadShortcutLabel}
               newThreadInProjectShortcutLabel={newThreadInProjectShortcutLabel}
               showNewThreadInProjectHint={
@@ -3196,6 +3218,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         }
       >
         <SidebarGroup className="flex-1" role="presentation">
+          {isMajordome && !isSearchingThreads ? <MajordomeTopicsSection /> : null}
           {isSearchingThreads ? (
             threadSearchResults.length > 0 ? (
               <TooltipProvider
@@ -3228,12 +3251,17 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           key={threadKey}
                           thread={thread}
                           project={
-                            projectByKey.get(`${thread.environmentId}:${thread.projectId}`) ?? null
+                            isMajordome
+                              ? null
+                              : (projectByKey.get(`${thread.environmentId}:${thread.projectId}`) ??
+                                null)
                           }
                           projectDisplayName={
-                            projectDisplayNameByKey.get(
-                              `${thread.environmentId}:${thread.projectId}`,
-                            ) ?? null
+                            isMajordome
+                              ? null
+                              : (projectDisplayNameByKey.get(
+                                  `${thread.environmentId}:${thread.projectId}`,
+                                ) ?? null)
                           }
                           environmentLabel={environmentLabelById.get(thread.environmentId) ?? null}
                           environmentMachine={
@@ -3285,7 +3313,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             0 &&
           (settledCount === 0 || scopedProjectGroups.length > 0) ? (
             <div className="flex flex-col items-center gap-2 px-2 py-6 text-center text-xs text-muted-foreground/60">
-              {projects.length === 0 ? (
+              {isMajordome ? (
+                "No recent chats"
+              ) : projects.length === 0 ? (
                 <>
                   <span>No projects yet</span>
                   <button
@@ -3438,13 +3468,18 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             }
                             scratchMachineLabel={scratchMachineLabelFor(thread)}
                             project={
-                              projectByKey.get(`${thread.environmentId}:${thread.projectId}`) ??
-                              null
+                              isMajordome
+                                ? null
+                                : (projectByKey.get(
+                                    `${thread.environmentId}:${thread.projectId}`,
+                                  ) ?? null)
                             }
                             projectDisplayName={
-                              projectDisplayNameByKey.get(
-                                `${thread.environmentId}:${thread.projectId}`,
-                              ) ?? null
+                              isMajordome
+                                ? null
+                                : (projectDisplayNameByKey.get(
+                                    `${thread.environmentId}:${thread.projectId}`,
+                                  ) ?? null)
                             }
                             providerEntryByInstanceId={
                               providerEntriesByEnvironment.get(thread.environmentId) ??
@@ -3475,8 +3510,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       const items: ReactNode[] = [
                         <SidebarDraftBlock
                           key="draft-sessions"
-                          projectByKey={projectByKey}
-                          projectDisplayNameByKey={projectDisplayNameByKey}
+                          projectByKey={isMajordome ? EMPTY_PROJECT_MAP : projectByKey}
+                          projectDisplayNameByKey={
+                            isMajordome ? EMPTY_PROJECT_MAP : projectDisplayNameByKey
+                          }
                           scopedProjectKeys={scopedProjectKeys}
                           routeDraftId={routeDraftIdForRows}
                           onNavigateToDraft={navigateToDraft}

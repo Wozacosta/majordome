@@ -34,3 +34,13 @@ export const vaultBackupStatusesAtom = Atom.family((key: string) => {
     ),
   ).pipe(Atom.withLabel(`majordome:vault-backup-statuses:${key}`));
 });
+
+/** Every listed project's topics, which also says which projects are vaults; keyed like `vaultHistoriesAtom`. */
+export const vaultTopicsAtom = Atom.family((key: string) => {
+  const refs = JSON.parse(key) as ReadonlyArray<VaultProjectRef>;
+  return Atom.make((get) =>
+    refs.map(([environmentId, projectId]) =>
+      get(majordomeEnvironment.topics({ environmentId, input: { projectId } })),
+    ),
+  ).pipe(Atom.withLabel(`majordome:vault-topics:${key}`));
+});

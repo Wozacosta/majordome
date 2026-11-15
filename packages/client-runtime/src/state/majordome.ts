@@ -119,8 +119,55 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:connect-google-drive-cancel",
       tag: WS_METHODS.majordomeConnectGoogleDriveCancel,
     }),
+    topics: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:topics",
+      tag: WS_METHODS.majordomeListTopics,
+      staleTimeMs: 30_000,
+      refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
+    }),
+    createTopic: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:create-topic",
+      tag: WS_METHODS.majordomeCreateTopic,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
+    updateTopic: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:update-topic",
+      tag: WS_METHODS.majordomeUpdateTopic,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
+    reorderTopics: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:reorder-topics",
+      tag: WS_METHODS.majordomeReorderTopics,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
+    removeTopic: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-topic",
+      tag: WS_METHODS.majordomeRemoveTopic,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
+    openTopic: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:open-topic",
+      tag: WS_METHODS.majordomeOpenTopic,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
+    dismissTopicSuggestions: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:dismiss-topic-suggestions",
+      tag: WS_METHODS.majordomeDismissTopicSuggestions,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
   };
 }
+
+/** Bumped after any topic change so every topic list in that environment reads again. */
+const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:topics-revision:${environmentId}`),
+  ),
+);
+
+const bumpTopics = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(topicsRevision(environmentId), (value) => value + 1));
 
 /** Bumped when a device turns notifications on or off, so the device list reads again. */
 const pushDevicesRevision = Atom.family((environmentId: EnvironmentId) =>
