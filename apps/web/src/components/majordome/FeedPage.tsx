@@ -27,11 +27,10 @@ import {
   SunriseIcon,
   Undo2Icon,
 } from "lucide-react";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
-import { useRightPanelStore } from "../../rightPanelStore";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
@@ -78,9 +77,9 @@ import {
   ownDayLine,
   type FeedRunItem,
   type FeedVault,
-  summarizeFeedFiles,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
+import { notesLink } from "./notes.logic";
 
 interface FeedVaultState extends FeedVault {
   readonly routinesRunner: MajordomeRoutinesRunner;
@@ -135,7 +134,6 @@ export function FeedPage() {
   const timeline = includeOwnChanges ? null : foldOwnChanges(changes);
   const grouped = includeOwnChanges ? groupFeedItems(changes) : null;
   const itemCount = timeline?.length ?? grouped?.length ?? 0;
-  const knownThreads = new Set(threads.map((thread) => `${thread.environmentId}:${thread.id}`));
   const showVaultName = histories.length > 1;
   const renderChange = (item: FeedItem) =>
     item.entry.byMajordome ? (
@@ -145,10 +143,6 @@ export function FeedPage() {
         nowMs={nowMs}
         showVaultName={showVaultName}
         vaultNotes={vaultNotes.get(vaultKey(item.vault))}
-        threadKnown={
-          item.entry.threadId !== null &&
-          knownThreads.has(`${item.vault.environmentId}:${item.entry.threadId}`)
-        }
         onUndo={() => setPendingUndo(item)}
       />
     ) : (
@@ -156,106 +150,108 @@ export function FeedPage() {
     );
 
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Feed</h1>
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 [-webkit-app-region:no-drag]">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Switch
-                size="sm"
-                checked={includeOwnChanges}
-                onCheckedChange={(checked) => setIncludeOwnChanges(checked)}
-              />
-              Show my own changes
-            </label>
-          </div>
-        </WorkspacePageHeader>
+    <FeedVaultNotesContext value={vaultNotes}>
+      <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
+          <WorkspacePageHeader electron={isElectron} className="border-b border-border">
+            <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Feed</h1>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 [-webkit-app-region:no-drag]">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Switch
+                  size="sm"
+                  checked={includeOwnChanges}
+                  onCheckedChange={(checked) => setIncludeOwnChanges(checked)}
+                />
+                Show my own changes
+              </label>
+            </div>
+          </WorkspacePageHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <WorkspacePageContainer>
-            {errors.map((error) => (
-              <p key={error} className="text-sm text-destructive-foreground">
-                {error}
-              </p>
-            ))}
-            {vaults.length > 0 ? (
-              <div className="mb-3 flex flex-col gap-1" aria-label="Routines">
-                {vaults.map((vault) => (
-                  <RoutinesRunnerLine
-                    key={`${vault.environmentId}:${vault.projectId}`}
-                    vault={vault}
-                    showVaultName={vaults.length > 1}
-                    onMove={() => setPendingMove(vault)}
-                  />
-                ))}
-                {vaults.map((vault) => (
-                  <BackupStatusLine
-                    key={`backup:${vault.environmentId}:${vault.projectId}`}
-                    vault={vault}
-                    showVaultName={vaults.length > 1}
-                  />
-                ))}
-              </div>
-            ) : null}
-            {runItems.length > 0 ? (
-              <ul className="m-0 mb-1 flex list-none flex-col gap-1 p-0" aria-label="Needs you">
-                {runItems.map((item) => (
-                  <FeedRunRow
-                    key={item.key}
-                    item={item}
-                    nowMs={nowMs}
-                    showVaultName={showVaultName}
-                  />
-                ))}
-              </ul>
-            ) : null}
-            {itemCount > 0 ? (
-              <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label="Feed">
-                {timeline?.map((row) =>
-                  row.kind === "own-day" ? (
-                    <FeedOwnDayRow
-                      key={row.key}
-                      day={row}
+          <ScrollArea className="min-h-0 flex-1">
+            <WorkspacePageContainer>
+              {errors.map((error) => (
+                <p key={error} className="text-sm text-destructive-foreground">
+                  {error}
+                </p>
+              ))}
+              {vaults.length > 0 ? (
+                <div className="mb-3 flex flex-col gap-1" aria-label="Routines">
+                  {vaults.map((vault) => (
+                    <RoutinesRunnerLine
+                      key={`${vault.environmentId}:${vault.projectId}`}
+                      vault={vault}
+                      showVaultName={vaults.length > 1}
+                      onMove={() => setPendingMove(vault)}
+                    />
+                  ))}
+                  {vaults.map((vault) => (
+                    <BackupStatusLine
+                      key={`backup:${vault.environmentId}:${vault.projectId}`}
+                      vault={vault}
+                      showVaultName={vaults.length > 1}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {runItems.length > 0 ? (
+                <ul className="m-0 mb-1 flex list-none flex-col gap-1 p-0" aria-label="Needs you">
+                  {runItems.map((item) => (
+                    <FeedRunRow
+                      key={item.key}
+                      item={item}
                       nowMs={nowMs}
                       showVaultName={showVaultName}
                     />
-                  ) : (
-                    renderChange(row.item)
-                  ),
-                )}
-                {grouped?.map((row) =>
-                  row.kind === "edits" ? (
-                    <FeedEditGroupRow
-                      key={row.key}
-                      group={row}
-                      nowMs={nowMs}
-                      showVaultName={showVaultName}
-                    />
-                  ) : (
-                    renderChange(row.item)
-                  ),
-                )}
-              </ul>
-            ) : runItems.length > 0 ? null : loading ? (
-              <FeedSkeleton />
-            ) : histories.length === 0 ? (
-              <FeedEmpty
-                title="No notes folder yet"
-                description="Open your notes folder in Majordome. Everything it changes there will show up here."
-              />
-            ) : (
-              <FeedEmpty
-                title="Nothing here yet"
-                description="Each time Majordome changes your notes, you'll see what it did here, and you can undo it."
-              />
-            )}
-          </WorkspacePageContainer>
-        </ScrollArea>
-      </div>
-      <UndoRunDialog item={pendingUndo} onClose={() => setPendingUndo(null)} />
-      <MoveRoutinesDialog vault={pendingMove} onClose={() => setPendingMove(null)} />
-    </SidebarInset>
+                  ))}
+                </ul>
+              ) : null}
+              {itemCount > 0 ? (
+                <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label="Feed">
+                  {timeline?.map((row) =>
+                    row.kind === "own-day" ? (
+                      <FeedOwnDayRow
+                        key={row.key}
+                        day={row}
+                        nowMs={nowMs}
+                        showVaultName={showVaultName}
+                      />
+                    ) : (
+                      renderChange(row.item)
+                    ),
+                  )}
+                  {grouped?.map((row) =>
+                    row.kind === "edits" ? (
+                      <FeedEditGroupRow
+                        key={row.key}
+                        group={row}
+                        nowMs={nowMs}
+                        showVaultName={showVaultName}
+                      />
+                    ) : (
+                      renderChange(row.item)
+                    ),
+                  )}
+                </ul>
+              ) : runItems.length > 0 ? null : loading ? (
+                <FeedSkeleton />
+              ) : histories.length === 0 ? (
+                <FeedEmpty
+                  title="No notes folder yet"
+                  description="Open your notes folder in Majordome. Everything it changes there will show up here."
+                />
+              ) : (
+                <FeedEmpty
+                  title="Nothing here yet"
+                  description="Each time Majordome changes your notes, you'll see what it did here, and you can undo it."
+                />
+              )}
+            </WorkspacePageContainer>
+          </ScrollArea>
+        </div>
+        <UndoRunDialog item={pendingUndo} onClose={() => setPendingUndo(null)} />
+        <MoveRoutinesDialog vault={pendingMove} onClose={() => setPendingMove(null)} />
+      </SidebarInset>
+    </FeedVaultNotesContext>
   );
 }
 
@@ -275,7 +271,6 @@ function FeedRow({
     majordomeEnvironment.undoVaultRun.permissionAtom(item.vault.environmentId),
   );
   const { entry } = item;
-  const files = summarizeFeedFiles(entry.files);
   const threadId = entry.threadId === null ? null : ThreadId.make(entry.threadId);
   const meta = [
     entry.byMajordome ? "Majordome" : entry.authorName,
@@ -312,12 +307,7 @@ function FeedRow({
           {item.undone ? <Badge variant="secondary">Undone</Badge> : null}
         </div>
         <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
-        {files.shown.length > 0 ? (
-          <p className="mt-1 text-xs break-words text-muted-foreground">
-            {files.shown.join(", ")}
-            {files.more > 0 ? ` and ${files.more} more` : ""}
-          </p>
-        ) : null}
+        <FeedNoteLinks vault={item.vault} files={entry.files} nowMs={nowMs} className="mt-1" />
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {threadId !== null ? (
@@ -345,7 +335,6 @@ function FeedEditGroupRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [newest] = group.saves;
-  const files = summarizeFeedFiles(group.files);
   const listId = `feed-saves-${group.key}`;
   const meta = [
     newest?.entry.authorName ?? null,
@@ -363,12 +352,7 @@ function FeedEditGroupRow({
             Your edits · {group.saves.length} saves
           </p>
           <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
-          {files.shown.length > 0 ? (
-            <p className="mt-1 text-xs break-words text-muted-foreground">
-              {files.shown.join(", ")}
-              {files.more > 0 ? ` and ${files.more} more` : ""}
-            </p>
-          ) : null}
+          <FeedNoteLinks vault={group.vault} files={group.files} nowMs={nowMs} className="mt-1" />
         </div>
         <Button
           size="xs"
@@ -394,6 +378,61 @@ function FeedEditGroupRow({
 
 const vaultKey = (vault: FeedVault) => `${vault.environmentId}:${vault.projectId}`;
 
+/** What the Feed knows about each vault's notes (titles, which still exist), by vault. */
+const FeedVaultNotesContext = createContext<ReadonlyMap<string, FeedVaultNotes>>(new Map());
+
+/** The notes a change touched, by title; each one that still exists opens in Notes. */
+function FeedNoteLinks({
+  vault,
+  files,
+  nowMs,
+  className,
+  withIcon = false,
+}: {
+  readonly vault: FeedVault;
+  readonly files: ReadonlyArray<string>;
+  readonly nowMs: number;
+  readonly className?: string;
+  readonly withIcon?: boolean;
+}) {
+  const notesByVault = useContext(FeedVaultNotesContext);
+  const notes = feedNotes(files, notesByVault.get(vaultKey(vault)) ?? feedVaultNotes({}), nowMs);
+  if (notes.shown.length === 0) return null;
+  return (
+    <p
+      className={cn(
+        "flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground",
+        className,
+      )}
+    >
+      {withIcon ? <NotebookPenIcon className="me-0.5 size-3.5 shrink-0" aria-hidden /> : null}
+      {notes.shown.map((note, index) => (
+        <span key={note.path} className="inline-flex min-w-0 items-center gap-x-1">
+          {index > 0 ? <span aria-hidden>·</span> : null}
+          {note.openable ? (
+            <Link
+              {...notesLink({
+                projectId: vault.projectId,
+                environmentId: vault.environmentId,
+                path: note.path,
+              })}
+              className="max-w-56 truncate text-foreground underline-offset-2 hover:underline"
+              data-feed-note={note.path}
+            >
+              {note.title}
+            </Link>
+          ) : (
+            <span className="max-w-56 truncate" data-feed-note={note.path}>
+              {note.title}
+            </span>
+          )}
+        </span>
+      ))}
+      {notes.more > 0 ? <span>and {notes.more} more</span> : null}
+    </p>
+  );
+}
+
 const ROUTINE_ICONS = {
   "start-my-day": SunriseIcon,
   "review-my-week": CalendarRangeIcon,
@@ -406,7 +445,6 @@ function FeedRunCard({
   nowMs,
   showVaultName,
   vaultNotes,
-  threadKnown,
   onUndo,
 }: {
   readonly item: FeedItem;
@@ -414,7 +452,6 @@ function FeedRunCard({
   readonly showVaultName: boolean;
   readonly vaultNotes: FeedVaultNotes | undefined;
   /** The run's chat is still there, so its notes can open beside it. */
-  readonly threadKnown: boolean;
   readonly onUndo: () => void;
 }) {
   const canUndo = useAtomValue(
@@ -425,7 +462,6 @@ function FeedRunCard({
   const notesInfo = vaultNotes ?? feedVaultNotes({});
   const kind = classifyFeedEntry(entry);
   const summary = kind === "run" ? feedRunSummary(entry, notesInfo) : null;
-  const notes = feedNotes(entry.files, notesInfo, nowMs);
   const threadRef =
     entry.threadId === null
       ? null
@@ -443,12 +479,6 @@ function FeedRunCard({
     showVaultName ? item.vault.title : null,
   ].filter((part) => part !== null && part !== "");
   const undoable = !item.undone && canUndo;
-
-  const openNote = (path: string) => {
-    if (threadRef === null) return;
-    useRightPanelStore.getState().openFile(threadRef, path);
-    void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(threadRef) });
-  };
 
   return (
     <li
@@ -512,31 +542,13 @@ function FeedRunCard({
         </p>
       ) : null}
 
-      {notes.shown.length > 0 ? (
-        <p className="ms-7 flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
-          <NotebookPenIcon className="me-0.5 size-3.5 shrink-0" aria-hidden />
-          {notes.shown.map((note, index) => (
-            <span key={note.path} className="inline-flex min-w-0 items-center gap-x-1">
-              {index > 0 ? <span aria-hidden>·</span> : null}
-              {note.openable && threadKnown ? (
-                <button
-                  type="button"
-                  className="max-w-56 cursor-pointer truncate text-foreground underline-offset-2 hover:underline"
-                  data-feed-note={note.path}
-                  onClick={() => openNote(note.path)}
-                >
-                  {note.title}
-                </button>
-              ) : (
-                <span className="max-w-56 truncate" data-feed-note={note.path}>
-                  {note.title}
-                </span>
-              )}
-            </span>
-          ))}
-          {notes.more > 0 ? <span>and {notes.more} more</span> : null}
-        </p>
-      ) : null}
+      <FeedNoteLinks
+        vault={item.vault}
+        files={entry.files}
+        nowMs={nowMs}
+        className="ms-7"
+        withIcon
+      />
 
       <Collapsible className="ms-7">
         <CollapsibleTrigger className="group inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
