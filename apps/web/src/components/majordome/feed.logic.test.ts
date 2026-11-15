@@ -101,6 +101,53 @@ describe("buildFeedItems", () => {
       buildFeedItems(histories, { includeOwnChanges: false }).map((item) => item.entry.commit),
     ).toEqual(["c3c3c3c", "e1e1e1e", "c1c1c1c"]);
   });
+
+  it("shows a change once per brain, from the server that ran it, named by machine", () => {
+    const copyOn = (environmentId: string, machine: string) => ({
+      environmentId: EnvironmentId.make(environmentId),
+      projectId: ProjectId.make(`brain-${environmentId}`),
+      title: "brain",
+      brainKey: "brain:root",
+      machine,
+    });
+    const mac = copyOn("mac", "This Mac");
+    const vps = copyOn("vps", "Always-on server");
+    const shared = [
+      entry({
+        commit: "undo",
+        subject: "Undo: majordome: Start my day",
+        body: "Reverts d1d1d1d.",
+        committedAt: "2026-11-15T10:00:00Z",
+        threadId: "mac-chat",
+      }),
+      entry({ commit: "edit", subject: "Your edits", byMajordome: false, authorName: "Me" }),
+      entry({ commit: "day2", threadId: "vps-run-2", committedAt: "2026-11-15T09:00:00Z" }),
+      entry({ commit: "d1d1d1d", threadId: "vps-run-1", committedAt: "2026-11-14T08:00:00Z" }),
+    ];
+    const items = buildFeedItems(
+      [
+        { vault: mac, entries: shared },
+        {
+          vault: vps,
+          entries: shared.map((change) =>
+            change.commit === "d1d1d1d" ? { ...change, summary: "Planned the day." } : change,
+          ),
+        },
+      ],
+      {
+        includeOwnChanges: true,
+        knownThreads: new Set(["mac:mac-chat", "vps:vps-run-2"]),
+      },
+    );
+    expect(
+      items.map((item) => [item.entry.commit, item.vault.environmentId, item.machine, item.undone]),
+    ).toEqual([
+      ["undo", "mac", "This Mac", false],
+      ["day2", "vps", "Always-on server", false],
+      ["edit", "mac", null, false],
+      ["d1d1d1d", "vps", "Always-on server", true],
+    ]);
+  });
 });
 
 describe("feedOwnerEdit", () => {

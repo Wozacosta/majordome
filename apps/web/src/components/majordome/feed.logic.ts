@@ -13,6 +13,15 @@ export interface FeedVault {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly title: string;
+  /** `brainKey` of the brain this copy is; without one, the copy is its own brain. */
+  readonly brainKey?: string;
+  /** The server's name, set when the brain is on several servers. */
+  readonly machine?: string | null;
+}
+
+/** One key for every copy of a brain. */
+function feedBrainKey(vault: FeedVault): string {
+  return vault.brainKey ?? `${vault.environmentId}:${vault.projectId}`;
 }
 
 export interface FeedItem {
@@ -24,6 +33,8 @@ export interface FeedItem {
   readonly undone: boolean;
   /** Set when this is one of the owner's saves ("Your edits"), with the computer it came from. */
   readonly ownerEdit: OwnerEdit | null;
+  /** The server a run happened on, when its brain is on several and that server has its chat. */
+  readonly machine: string | null;
 }
 
 export interface OwnerEdit {
@@ -76,35 +87,55 @@ export function feedItemTitle(entry: MajordomeVaultHistoryEntry): string {
     : entry.subject;
 }
 
-/** Every vault's changes in one list, newest first. */
+/**
+ * Every brain's changes in one list, newest first. Copies of one brain share their history, so a
+ * change appears once: from the server that has the run's chat, else from the first copy given.
+ */
 export function buildFeedItems(
   histories: ReadonlyArray<{
     readonly vault: FeedVault;
     readonly entries: ReadonlyArray<MajordomeVaultHistoryEntry>;
   }>,
-  options: { readonly includeOwnChanges: boolean },
+  options: {
+    readonly includeOwnChanges: boolean;
+    /** `${environmentId}:${threadId}` of the chats each server has. */
+    readonly knownThreads?: ReadonlySet<string>;
+  },
 ): ReadonlyArray<FeedItem> {
-  const items: Array<FeedItem & { readonly at: number }> = [];
+  const undoneCommits = new Set<string>();
   for (const { vault, entries } of histories) {
-    const undoneCommits = new Set<string>();
     for (const entry of entries) {
       const reverted = entry.byMajordome ? REVERTS_LINE.exec(entry.body)?.[1] : undefined;
-      if (reverted !== undefined) undoneCommits.add(reverted);
+      if (reverted !== undefined) undoneCommits.add(`${feedBrainKey(vault)}:${reverted}`);
     }
+  }
+  const items = new Map<string, FeedItem & { readonly at: number; readonly ranHere: boolean }>();
+  for (const { vault, entries } of histories) {
     for (const entry of entries) {
       if (!entry.byMajordome && !options.includeOwnChanges) continue;
-      items.push({
-        key: `${vault.environmentId}:${vault.projectId}:${entry.commit}`,
+      const key = `${feedBrainKey(vault)}:${entry.commit}`;
+      const ranHere =
+        entry.threadId !== null &&
+        (entry.summary != null ||
+          options.knownThreads?.has(`${vault.environmentId}:${entry.threadId}`) === true);
+      const seen = items.get(key);
+      if (seen !== undefined && (seen.ranHere || !ranHere)) continue;
+      items.set(key, {
+        key,
         vault,
         entry,
         title: feedItemTitle(entry),
-        undone: undoneCommits.has(entry.commit),
+        undone: undoneCommits.has(key),
         ownerEdit: feedOwnerEdit(entry),
+        machine: ranHere ? (vault.machine ?? null) : null,
         at: Date.parse(entry.committedAt),
+        ranHere,
       });
     }
   }
-  return items.toSorted((left, right) => right.at - left.at);
+  return [...items.values()]
+    .toSorted((left, right) => right.at - left.at)
+    .map(({ at: _at, ranHere: _ranHere, ...item }) => item);
 }
 
 function localDay(iso: string): string {
@@ -113,15 +144,15 @@ function localDay(iso: string): string {
 }
 
 /**
- * Folds the owner's back-to-back saves to one vault on one day into a single row. Any other change
- * to that vault (a run, an undo, a commit of their own) ends the group; other vaults' changes do
+ * Folds the owner's back-to-back saves to one brain on one day into a single row. Any other change
+ * to that brain (a run, an undo, a commit of their own) ends the group; other brains' changes do
  * not. A lone save stays a plain row.
  */
 export function groupFeedItems(items: ReadonlyArray<FeedItem>): ReadonlyArray<FeedListItem> {
   const slots: Array<FeedItem | Array<FeedItem>> = [];
   const open = new Map<string, { readonly day: string; readonly saves: Array<FeedItem> }>();
   for (const item of items) {
-    const vaultKey = `${item.vault.environmentId}:${item.vault.projectId}`;
+    const vaultKey = feedBrainKey(item.vault);
     if (item.ownerEdit === null) {
       open.delete(vaultKey);
       slots.push(item);
@@ -483,11 +514,7 @@ export function foldOwnChanges(items: ReadonlyArray<FeedItem>): ReadonlyArray<Fe
     if (!Array.isArray(slot)) return { kind: "change", key: slot.key, item: slot };
     const [first] = slot as [FeedItem, ...Array<FeedItem>];
     const notes = new Set(
-      slot.flatMap((item) =>
-        item.entry.files.map(
-          (file) => `${item.vault.environmentId}:${item.vault.projectId}:${file}`,
-        ),
-      ),
+      slot.flatMap((item) => item.entry.files.map((file) => `${feedBrainKey(item.vault)}:${file}`)),
     );
     return {
       kind: "own-day",

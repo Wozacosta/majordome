@@ -21,6 +21,7 @@ import * as GoogleDriveAuth from "./GoogleDriveAuth.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
 import { commitVaultRun } from "./VaultCommitReactor.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
+import { readVaultBrainId } from "./vaultBrainId.ts";
 import { decryptFile } from "./vaultFolderBackup.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { findGitleaks } from "./vaultSecretScan.ts";
@@ -241,6 +242,7 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
         assert.equal(yield* lastCommit(root), "Owner|Your edits");
         assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
         const status = yield* backup.getStatus({ projectId });
+        assert.equal(status.brainId, yield* readVaultBrainId(root));
         assert.isNotNull(status.lastSavedAt);
         assert.isNull(status.paused);
         assert.deepInclude(status.remote, {

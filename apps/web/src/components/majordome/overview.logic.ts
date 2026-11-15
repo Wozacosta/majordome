@@ -10,6 +10,7 @@ import type {
 } from "@t3tools/contracts";
 
 import { backupAttention, backupHeadline } from "./backup.logic";
+import { machineInSentence } from "./brains.logic";
 import type { NotesSearch } from "./notes.logic";
 import type { DevicePushSupport } from "./phone.logic";
 
@@ -280,14 +281,26 @@ export function brainBox(input: {
   readonly link: OverviewLink;
   /** Null while the vault's history loads. */
   readonly runner: MajordomeRoutinesRunner | null;
+  /** The name of the server that runs the routines, when the brain is on several. */
+  readonly runsOn?: string | null;
   /** The vault's routines; null while they load. */
   readonly routines: ReadonlyArray<ScheduledTask> | null;
   readonly waiting: number;
   readonly failed: number;
   readonly formatNextRun: (iso: string) => string;
 }): OverviewBox {
-  const runner: Array<OverviewLine> =
-    input.runner === null ? [] : [{ key: "runner", ...RUNNER_LINE[input.runner] }];
+  const runner: Array<OverviewLine> = input.runsOn
+    ? [
+        {
+          key: "runner",
+          text: `Routines run on ${machineInSentence(input.runsOn)}`,
+          tone: "ok",
+          link: { to: "/feed" },
+        },
+      ]
+    : input.runner === null
+      ? []
+      : [{ key: "runner", ...RUNNER_LINE[input.runner] }];
   const routines: Array<OverviewLine> = (input.routines ?? []).map((task) => ({
     key: `routine:${task.id}`,
     text: task.title,

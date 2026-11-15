@@ -48,13 +48,16 @@ import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { backupHeadline, folderFormProblem, restoreCommands } from "./backup.logic";
+import { groupBrains, labelCopies } from "./brains.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import { useMachineNames } from "./useMachineNames";
 
 interface BackupVault {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly title: string;
   readonly folderName: string;
+  readonly brainId?: string | null | undefined;
 }
 
 function reportFailure(title: string, result: AtomCommandResult<unknown, unknown>) {
@@ -77,7 +80,9 @@ export function BackupPage() {
     ),
   );
 
-  const vaults: Array<{ vault: BackupVault; status: MajordomeBackupStatus }> = [];
+  const { primaryEnvironmentId, machineOf } = useMachineNames();
+
+  const copies: Array<BackupVault & { readonly status: MajordomeBackupStatus }> = [];
   const errors: Array<string> = [];
   let loading = false;
   projects.forEach((project, index) => {
@@ -91,17 +96,18 @@ export function BackupPage() {
     }
     const status = AsyncResult.getOrElse(result, () => null);
     if (status?.isVault) {
-      vaults.push({
-        vault: {
-          environmentId: project.environmentId,
-          projectId: project.id,
-          title: project.title,
-          folderName: project.workspaceRoot.split(/[\\/]/).findLast((part) => part !== "") ?? "",
-        },
+      copies.push({
+        environmentId: project.environmentId,
+        projectId: project.id,
+        title: project.title,
+        folderName: project.workspaceRoot.split(/[\\/]/).findLast((part) => part !== "") ?? "",
+        brainId: status.brainId,
         status,
       });
     }
   });
+  // Each server saves and backs up its own copy, so a brain on several shows each, by machine.
+  const vaults = labelCopies(groupBrains(copies, primaryEnvironmentId), machineOf);
 
   return (
     <MajordomeSettingsPage searchId="majordome-backup">
@@ -112,12 +118,12 @@ export function BackupPage() {
       ))}
       {vaults.length > 0 ? (
         <div className="flex flex-col gap-8">
-          {vaults.map(({ vault, status }) => (
+          {vaults.map(({ copy, label }) => (
             <VaultBackup
-              key={`${vault.environmentId}:${vault.projectId}`}
-              vault={vault}
-              status={status}
-              showName={vaults.length > 1}
+              key={`${copy.environmentId}:${copy.projectId}`}
+              vault={copy}
+              status={copy.status}
+              label={label}
               nowMs={nowMs}
             />
           ))}
@@ -154,12 +160,13 @@ function Muted({ children }: { readonly children: ReactNode }) {
 function VaultBackup({
   vault,
   status,
-  showName,
+  label,
   nowMs,
 }: {
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
-  readonly showName: boolean;
+  /** The brain or machine this is, when several are listed. */
+  readonly label: string | null;
   readonly nowMs: number;
 }) {
   const headline = backupHeadline(status);
@@ -202,7 +209,7 @@ function VaultBackup({
 
   return (
     <div className="flex flex-col gap-4" data-backup-vault={vault.projectId}>
-      {showName ? <h2 className="text-base font-medium">{vault.title}</h2> : null}
+      {label !== null ? <h2 className="text-base font-medium">{label}</h2> : null}
       <div className="flex items-start gap-3" data-backup-tone={headline.tone} aria-live="polite">
         {headline.tone === "ok" ? (
           <CircleCheckIcon className="mt-0.5 size-5 shrink-0 text-success-foreground" aria-hidden />

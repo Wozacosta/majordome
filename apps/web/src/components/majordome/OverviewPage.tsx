@@ -38,6 +38,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { Skeleton } from "../ui/skeleton";
 import { BackgroundServiceToggle, useBackgroundService } from "./BackgroundServiceToggle";
+import { copyLabel, groupBrains, routinesMachine } from "./brains.logic";
 import { buildFeedRunItems } from "./feed.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { notesLink, type NotesVault } from "./notes.logic";
@@ -53,6 +54,7 @@ import {
   type OverviewBox,
 } from "./overview.logic";
 import { readDevicePushSupport } from "./pushNotifications";
+import { useMachineNames } from "./useMachineNames";
 
 /** A live map of the setup: devices, this computer's Majordome, each brain and its backups. */
 export function OverviewPage() {
@@ -169,8 +171,13 @@ function Diagram({
 interface OverviewVault extends NotesVault {
   readonly runner: MajordomeRoutinesRunner | null;
   readonly backup: MajordomeBackupStatus;
+  /** The brain's title, with the machine when the brain is on several. */
+  readonly label: string;
+  /** The server that runs the brain's routines, when the brain is on several. */
+  readonly runsOn: string | null;
 }
 
+/** Every server's copy of each brain: each one saves, backs up and runs routines on its own. */
 function useOverviewVaults(): {
   readonly vaults: ReadonlyArray<OverviewVault>;
   readonly loading: boolean;
@@ -179,7 +186,8 @@ function useOverviewVaults(): {
   const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
   const backups = useAtomValue(vaultBackupStatusesAtom(key));
   const histories = useAtomValue(vaultHistoriesAtom(key));
-  const vaults: Array<OverviewVault> = [];
+  const { primaryEnvironmentId, machineOf } = useMachineNames();
+  const copies: Array<Omit<OverviewVault, "label" | "runsOn">> = [];
   let loading = false;
   projects.forEach((project, index) => {
     const backup = backups[index];
@@ -187,11 +195,12 @@ function useOverviewVaults(): {
     const status = backup === undefined ? null : AsyncResult.getOrElse(backup, () => null);
     if (status?.isVault !== true) return;
     const history = histories[index];
-    vaults.push({
+    copies.push({
       environmentId: project.environmentId,
       projectId: project.id,
       title: project.title,
       workspaceRoot: project.workspaceRoot,
+      brainId: status.brainId,
       runner:
         history === undefined
           ? null
@@ -199,6 +208,22 @@ function useOverviewVaults(): {
       backup: status,
     });
   });
+  const brains = groupBrains(
+    copies.map((copy) => ({ ...copy, routinesRunner: copy.runner })),
+    primaryEnvironmentId,
+  );
+  const vaults = brains.flatMap((brain) =>
+    brain.copies.map((copy) => ({
+      ...copy,
+      // "brain on Always-on server" when the brain is on several servers.
+      label: copyLabel({
+        title: copy.title,
+        machine: brain.copies.length > 1 ? machineOf(copy.environmentId) : null,
+        severalBrains: true,
+      })!,
+      runsOn: routinesMachine(brain, machineOf),
+    })),
+  );
   return { vaults, loading };
 }
 
@@ -221,13 +246,14 @@ function BrainColumn({
   const key = `${vault.environmentId}:${vault.projectId}`;
   const brain = brainBox({
     key,
-    title: vault.title,
+    title: vault.label,
     link: notesLink({
       projectId: vault.projectId,
       environmentId: vault.environmentId,
       from: "overview",
     }),
     runner: vault.runner,
+    runsOn: vault.runsOn,
     routines: tasks.data?.tasks.filter((task) => task.projectId === vault.projectId) ?? null,
     waiting,
     failed,

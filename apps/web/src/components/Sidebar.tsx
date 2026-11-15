@@ -1114,12 +1114,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             ? asLaunchingThread(thread)
             : thread,
         );
-  // Majordome lists only the shown vault's one-off chats here; its topics have their own list.
+  // Majordome lists only the shown brain's one-off chats here; its topics have their own list.
   const majordomeVaults = useMajordomeVaults();
   const listedThreads = isMajordome
     ? selectRecentThreads(promotedThreads, {
         vault: majordomeVaults.activeVault,
-        topicKeys: topicThreadKeys(majordomeVaults.vaults),
+        topicKeys: topicThreadKeys(majordomeVaults.copies),
       })
     : promotedThreads;
   const routeRowThreadKey =

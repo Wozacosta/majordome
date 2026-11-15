@@ -18,6 +18,7 @@ export interface NotesVault {
   readonly projectId: ProjectId;
   readonly title: string;
   readonly workspaceRoot: string;
+  readonly brainId?: string | null | undefined;
 }
 
 /** The vault the link asks for when it is one, otherwise the first one. */

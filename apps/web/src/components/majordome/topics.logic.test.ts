@@ -4,6 +4,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   collectVaults,
   defaultTopicFolder,
+  mergeVaultCopies,
   moveTopic,
   pickActiveVault,
   placeTopic,
@@ -101,6 +102,77 @@ describe("selectRecentThreads", () => {
     ]);
     expect(selectTopicThreads(threads, vaults[1]!)).toEqual([]);
     expect(selectTopicThreads(threads, null)).toEqual([]);
+  });
+});
+
+describe("mergeVaultCopies", () => {
+  const mac = EnvironmentId.make("mac");
+  const vps = EnvironmentId.make("vps");
+  const onMac = { ...brain, environmentId: mac, id: ProjectId.make("brain-mac") };
+  const onVps = { ...brain, environmentId: vps, id: ProjectId.make("brain-vps") };
+  const { vaults: copies, loading } = collectVaults(
+    [onVps, onMac, { ...work, environmentId: vps }],
+    [
+      vaultResult([
+        { id: "fitness", threadId: "vps-fitness" },
+        { id: "reading", threadId: "vps-reading" },
+      ]),
+      vaultResult([
+        { id: "fitness", threadId: "mac-fitness" },
+        { id: "reading", threadId: null },
+        { id: "new", threadId: null },
+      ]),
+      vaultResult([]),
+    ],
+    ["root", "root", "work-root"],
+  );
+  const vaults = mergeVaultCopies(copies, mac);
+  const at = (environmentId: EnvironmentId, id: string, projectId: ProjectId) => ({
+    ...thread(id, projectId),
+    environmentId,
+  });
+
+  it("shows one entry per brain, the window's own server's copy", () => {
+    expect(loading).toBe(false);
+    expect(vaults.map((vault) => [vault.title, vault.environmentId])).toEqual([
+      ["brain", mac],
+      ["work", vps],
+    ]);
+    expect(pickActiveVault(vaults, null)?.environmentId).toBe(mac);
+  });
+
+  it("opens a topic's existing conversation, on whichever server has it", () => {
+    expect(
+      vaults[0]!.topics.map((topic) => [topic.id, topic.threadEnvironmentId, topic.threadId]),
+    ).toEqual([
+      ["fitness", mac, "mac-fitness"],
+      ["reading", vps, "vps-reading"],
+      ["new", mac, null],
+    ]);
+  });
+
+  it("lists the brain's one-off chats from every server, without any server's topic chats", () => {
+    const threads = [
+      at(mac, "mac-fitness", onMac.id),
+      at(vps, "vps-fitness", onVps.id),
+      at(vps, "vps-reading", onVps.id),
+      at(mac, "mac-chat", onMac.id),
+      at(vps, "routine-run", onVps.id),
+    ];
+    const recent = selectRecentThreads(threads, {
+      vault: vaults[0]!,
+      topicKeys: topicThreadKeys(copies),
+    });
+    expect(recent.map((candidate) => candidate.id)).toEqual(["mac-chat", "routine-run"]);
+    expect(selectTopicThreads(threads, vaults[0]!).map((candidate) => candidate.id)).toEqual([
+      "mac-fitness",
+      "vps-reading",
+    ]);
+  });
+
+  it("waits for each copy's brain id before showing it", () => {
+    const pending = collectVaults([onMac], [vaultResult([])], [undefined]);
+    expect(pending).toEqual({ vaults: [], loading: true });
   });
 });
 

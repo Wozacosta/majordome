@@ -1,4 +1,3 @@
-import { useAtomSet } from "@effect/atom-react";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { topicsRevision } from "@t3tools/client-runtime/state/majordome";
 import {
@@ -6,7 +5,12 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { MajordomeTopic, MajordomeTopicSuggestion, ThreadId } from "@t3tools/contracts";
+import type {
+  EnvironmentId,
+  MajordomeTopic,
+  MajordomeTopicSuggestion,
+  ThreadId,
+} from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -26,6 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
 import { cn } from "../../lib/utils";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -56,6 +61,7 @@ import {
   topicPreviewStamp,
   topicSubtitle,
   type MajordomeVault,
+  type VaultTopic,
 } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
@@ -75,7 +81,7 @@ function reportFailure(title: string, result: AtomCommandResult<unknown, unknown
 /**
  * The owner's topics, above the recent chats: one continuing conversation each, in the owner's
  * order. Tapping one opens its chat, starting it the first time. Also offers the first topics
- * once, and switches between vaults when there are several.
+ * once, and switches between brains when there are several (one brain on several servers is one).
  */
 export function MajordomeTopicsSection() {
   const { vaults, loading, activeVault, setActiveVaultKey } = useMajordomeVaults();
@@ -153,33 +159,35 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   const ids = vault.topics.map((topic) => topic.id);
   const order = pendingOrder ?? ids;
   const topics = order.flatMap((id) => vault.topics.find((topic) => topic.id === id) ?? []);
-  const topicThread = (topic: MajordomeTopic) =>
+  const topicThread = (topic: VaultTopic) =>
     topic.threadId === null
       ? undefined
-      : threadByKey.get(scopedThreadKey(scopeThreadRef(vault.environmentId, topic.threadId)));
+      : threadByKey.get(scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId)));
 
-  const bumpTopics = useAtomSet(topicsRevision(vault.environmentId));
   const previewStamp = topicPreviewStamp(vault.topics.map(topicThread));
   const seenPreviewStamp = useRef(previewStamp);
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the previews come from the server, so a topic's conversation moving on asks it for them again
+  const copies = vault.copies;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the previews come from the servers, so a topic's conversation moving on asks them again
   useEffect(() => {
     if (seenPreviewStamp.current === previewStamp) return;
     seenPreviewStamp.current = previewStamp;
-    bumpTopics((revision) => revision + 1);
-  }, [previewStamp, bumpTopics, seenPreviewStamp]);
+    for (const copy of copies) {
+      appAtomRegistry.update(topicsRevision(copy.environmentId), (revision) => revision + 1);
+    }
+  }, [previewStamp, copies, seenPreviewStamp]);
 
-  const goToThread = (threadId: ThreadId) => {
+  const goToThread = (environmentId: EnvironmentId, threadId: ThreadId) => {
     if (isMobile) setOpenMobile(false);
     void navigate({
       to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(scopeThreadRef(vault.environmentId, threadId)),
+      params: buildThreadRouteParams(scopeThreadRef(environmentId, threadId)),
     });
   };
 
-  const open = async (topic: MajordomeTopic) => {
+  const open = async (topic: VaultTopic) => {
     setOpening({ topicId: topic.id, fromRouteKey: routeThreadKey });
     if (topic.threadId !== null) {
-      goToThread(topic.threadId);
+      goToThread(topic.threadEnvironmentId, topic.threadId);
       return;
     }
     const result = await openTopic({
@@ -189,7 +197,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
     if (result._tag === "Failure") {
       setOpening(null);
       reportFailure(`Could not open ${topic.title}`, result);
-    } else goToThread(result.value.threadId);
+    } else goToThread(vault.environmentId, result.value.threadId);
   };
 
   const reorder = async (next: ReadonlyArray<string>) => {
@@ -228,7 +236,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
             const threadKey =
               topic.threadId === null
                 ? null
-                : scopedThreadKey(scopeThreadRef(vault.environmentId, topic.threadId));
+                : scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId));
             const thread = topicThread(topic);
             return (
               <TopicRow
@@ -271,7 +279,9 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
           request={dialog}
           onClose={() => setDialog(null)}
           onCreated={(topic) => {
-            if (dialog.kind === "create") void open(topic);
+            if (dialog.kind === "create") {
+              void open({ ...topic, threadEnvironmentId: vault.environmentId });
+            }
           }}
         />
       ) : null}

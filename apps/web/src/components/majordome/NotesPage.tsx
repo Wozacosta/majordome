@@ -6,6 +6,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { isElectron } from "../../env";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProjects } from "../../state/entities";
+import { usePrimaryEnvironmentId } from "../../state/environments";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import FileBrowserPanel from "../files/FileBrowserPanel";
 import { FileExplorerPane } from "../files/FileExplorerPane";
@@ -15,6 +16,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { SidebarInset } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { type Brain, brainKey, groupBrains } from "./brains.logic";
 import { NotePreview } from "./NotePreview";
 import {
   isHiddenVaultPath,
@@ -27,9 +29,14 @@ import {
 
 const vaultKey = (vault: NotesVault) => `${vault.environmentId}:${vault.projectId}`;
 
-/** The vaults among the open projects: those with a `.majordome` folder, as their backup status says. */
+/**
+ * The vaults among the open projects: those with a `.majordome` folder, as their backup status
+ * says. `vaults` holds every server's copy, so a link to any of them opens; `brains` holds the one
+ * copy of each brain the switcher offers.
+ */
 function useNotesVaults(): {
   readonly vaults: ReadonlyArray<NotesVault>;
+  readonly brains: ReadonlyArray<Brain<NotesVault>>;
   readonly loading: boolean;
 } {
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
@@ -38,21 +45,24 @@ function useNotesVaults(): {
       JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
     ),
   );
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
   const vaults: Array<NotesVault> = [];
   let loading = false;
   projects.forEach((project, index) => {
     const result = results[index];
     if (result === undefined || result._tag === "Initial") loading = true;
-    if (AsyncResult.getOrElse(result ?? AsyncResult.initial(), () => null)?.isVault) {
+    const status = AsyncResult.getOrElse(result ?? AsyncResult.initial(), () => null);
+    if (status?.isVault) {
       vaults.push({
         environmentId: project.environmentId,
         projectId: project.id,
         title: project.title,
         workspaceRoot: project.workspaceRoot,
+        brainId: status.brainId,
       });
     }
   });
-  return { vaults, loading };
+  return { vaults, brains: groupBrains(vaults, primaryEnvironmentId), loading };
 }
 
 const NO_VAULT_CHANGES = Atom.make(AsyncResult.initial<number, never>(false)).pipe(
@@ -77,11 +87,15 @@ function useVaultRevision(vault: NotesVault | null): string | null {
 export function NotesPage({ search }: { readonly search: NotesSearch }) {
   const navigate = useNavigate();
   const isPhone = useMediaQuery("max-md");
-  const { vaults, loading } = useNotesVaults();
-  const vault = selectNotesVault(vaults, {
-    projectId: search.project,
-    environmentId: search.environment,
-  });
+  const { vaults, brains, loading } = useNotesVaults();
+  // Each brain's own-server copy first, so a plain link opens that one.
+  const vault = selectNotesVault(
+    brains.flatMap((brain) => brain.copies),
+    {
+      projectId: search.project,
+      environmentId: search.environment,
+    },
+  );
   const path =
     vault !== null && vault.projectId === search.project && search.path !== undefined
       ? search.path
@@ -125,22 +139,22 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
           <h1 className="min-w-0 flex-1 truncate text-sm font-medium">
             {phoneNote ? noteTitle(phoneNote.path) : "Notes"}
           </h1>
-          {vaults.length > 1 && vault !== null && phoneNote === null ? (
+          {brains.length > 1 && vault !== null && phoneNote === null ? (
             <div className="min-w-0 [-webkit-app-region:no-drag]">
               <Select
-                value={vaultKey(vault)}
+                value={brainKey(vault)}
                 onValueChange={(key) => {
-                  const next = vaults.find((candidate) => vaultKey(candidate) === key);
-                  if (next) open({ vault: next });
+                  const next = brains.find((brain) => brain.key === key);
+                  if (next) open({ vault: next.copies[0] });
                 }}
               >
                 <SelectTrigger size="sm" aria-label="Notes folder">
                   <SelectValue>{vault.title}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  {vaults.map((candidate) => (
-                    <SelectItem key={vaultKey(candidate)} value={vaultKey(candidate)}>
-                      {candidate.title}
+                  {brains.map((brain) => (
+                    <SelectItem key={brain.key} value={brain.key}>
+                      {brain.copies[0].title}
                     </SelectItem>
                   ))}
                 </SelectPopup>

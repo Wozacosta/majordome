@@ -70,6 +70,11 @@ export type MajordomeBackupDrive = typeof MajordomeBackupDrive.Type;
 
 export const MajordomeBackupStatus = Schema.Struct({
   isVault: Schema.Boolean,
+  /**
+   * Which brain this vault is: the root commit of its history, shared by every server's copy.
+   * Null before the first commit; absent from older servers.
+   */
+  brainId: Schema.optional(Schema.NullOr(Schema.String)),
   lastSavedAt: Schema.NullOr(Schema.String),
   saveError: Schema.NullOr(Schema.String),
   paused: Schema.NullOr(MajordomeBackupPause),
