@@ -38,6 +38,7 @@ import {
   MissingMacPasskeyProvisioningProfileError,
   packWindowsServerAsar,
   preflightWindowsDesktopBuild,
+  renderMacEntitlements,
   renderMacPasskeyEntitlements,
   resolveMacFileExclusions,
   resolveMacWebAuthnEntitlements,
@@ -54,6 +55,7 @@ import {
   validateLinuxPackagedPayload,
   validateMacPackagedPayload,
   validateWindowsPackagedPayload,
+  usesMacPasskeySigning,
   verifyPackagedBundleIsSelfContained,
   WindowsPrimaryNativeProbeError,
   WindowsDesktopBuildPrerequisitesMissingError,
@@ -617,6 +619,38 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         }
       }
     }),
+  );
+
+  it.effect(
+    "signs macOS builds ad hoc without an identity and without a profile when none is set",
+    () =>
+      Effect.gen(function* () {
+        const macConfig = (signed: boolean, provisioningProfilePath: string | undefined) =>
+          createBuildConfig(
+            "mac",
+            "dmg",
+            "0.1.0",
+            signed,
+            false,
+            undefined,
+            signed
+              ? { entitlementsPath: "/tmp/entitlements.mac.plist", provisioningProfilePath }
+              : undefined,
+          ).pipe(Effect.map((config) => config.mac as Record<string, unknown>));
+
+        const unsigned = yield* macConfig(false, undefined);
+        assert.strictEqual(unsigned.identity, "-");
+        assert.strictEqual(unsigned.notarize, false);
+        assert.notProperty(unsigned, "entitlements");
+
+        const developerId = yield* macConfig(true, undefined);
+        assert.notProperty(developerId, "identity");
+        assert.strictEqual(developerId.entitlements, "/tmp/entitlements.mac.plist");
+        assert.notProperty(developerId, "provisioningProfile");
+
+        const provisioned = yield* macConfig(true, "/tmp/majordome.provisionprofile");
+        assert.strictEqual(provisioned.provisioningProfile, "/tmp/majordome.provisionprofile");
+      }),
   );
 
   // pnpm writes "set this to true or false" placeholders into allowBuilds when a
@@ -1564,7 +1598,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     });
 
     assert.deepStrictEqual(configuration, {
-      appId: "com.t3tools.t3code",
+      appId: "io.github.wozacosta.majordome",
       teamId: "ABC1234567",
       rpDomains: ["example.clerk.accounts.dev"],
       provisioningProfilePath: "/tmp/t3code.provisionprofile",
@@ -1587,7 +1621,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       "clerk.example.com",
       "example.clerk.accounts.dev",
     ]);
-    assert.include(entitlements, "<string>ABC1234567.com.t3tools.t3code</string>");
+    assert.include(entitlements, "<string>ABC1234567.io.github.wozacosta.majordome</string>");
     assert.include(entitlements, "<string>webcredentials:clerk.example.com</string>");
     assert.include(entitlements, "<string>webcredentials:example.clerk.accounts.dev</string>");
     assert.include(entitlements, "<key>com.apple.security.cs.allow-jit</key>");
@@ -1662,6 +1696,24 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       entitlements,
       /<key>com\.apple\.developer\.web-browser\.public-key-credential<\/key>\s*<true\/>/u,
     );
+  });
+
+  it("signs with Developer ID alone when neither a team ID nor a profile is set", () => {
+    assert.isFalse(usesMacPasskeySigning({ T3CODE_MACOS_PROVISIONING_PROFILE: " " }));
+    assert.isTrue(usesMacPasskeySigning({ T3CODE_APPLE_TEAM_ID: "ABC1234567" }));
+    assert.isTrue(usesMacPasskeySigning({ T3CODE_MACOS_PROVISIONING_PROFILE: "/tmp/p" }));
+
+    const entitlements = renderMacEntitlements();
+    assert.include(entitlements, "<key>com.apple.security.cs.allow-jit</key>");
+    assert.match(entitlements, /<key>com\.apple\.security\.device\.camera<\/key>\s*<true\/>/u);
+    for (const restricted of [
+      "com.apple.application-identifier",
+      "com.apple.developer.team-identifier",
+      "com.apple.developer.associated-domains",
+      "keychain-access-groups",
+    ]) {
+      assert.notInclude(entitlements, restricted);
+    }
   });
 
   it("rejects incomplete macOS passkey signing configuration", () => {

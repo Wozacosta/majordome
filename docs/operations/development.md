@@ -257,7 +257,22 @@ Runtime-discovered entrypoints and dependency exceptions belong in [knip.jsonc](
 
 ## Desktop artifacts
 
-Local artifact builds are unsigned by default and write to `release/`:
+To build Majordome's DMG for this Mac, run:
+
+```sh
+vp run dist:mac
+```
+
+It signs with the Developer ID Application identity in your login keychain when there is one,
+bakes in the release update feed (`Wozacosta/majordome`) and notarizes when notarytool
+credentials are set (`APPLE_KEYCHAIN_PROFILE` from `xcrun notarytool store-credentials`, or
+`APPLE_API_KEY`, `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`). Without that identity it signs ad
+hoc: the app runs on this Mac but cannot install updates. Google Drive backup works when
+`MAJORDOME_GOOGLE_CLIENT_ID` and `MAJORDOME_GOOGLE_CLIENT_SECRET` are in your `.env`. Extra
+arguments, such as `--arch x64`, go to `dist:desktop:artifact`.
+
+The other artifact builds sign only with `--signed` (macOS builds are otherwise signed ad hoc).
+All of them write to `release/`:
 
 ```sh
 vp run dist:desktop:dmg
