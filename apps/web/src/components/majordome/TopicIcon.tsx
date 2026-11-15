@@ -45,7 +45,7 @@ import {
   DialogPopup,
   DialogTitle,
 } from "../ui/dialog";
-import { autoTopicIcon, topicIcon } from "./topicIcons.logic";
+import { autoTopicIcon, topicIcon, topicTone, type TopicTone } from "./topicIcons.logic";
 import type { MajordomeVault } from "./topics.logic";
 
 const ICONS: Record<MajordomeTopicIcon, { readonly Icon: LucideIcon; readonly label: string }> = {
@@ -71,7 +71,63 @@ const ICONS: Record<MajordomeTopicIcon, { readonly Icon: LucideIcon; readonly la
   lightbulb: { Icon: LightbulbIcon, label: "Ideas" },
 };
 
-/** The topic's icon, with its conversation's status as a dot on the corner. */
+/** Each tone as a tinted tile for the icon, and a lighter tint for the open topic's row. */
+const TONES: Record<TopicTone, { readonly tile: string; readonly row: string }> = {
+  amber: {
+    tile: "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
+    row: "bg-amber-500/10 dark:bg-amber-400/10",
+  },
+  orange: {
+    tile: "bg-orange-500/15 text-orange-600 dark:bg-orange-400/15 dark:text-orange-300",
+    row: "bg-orange-500/10 dark:bg-orange-400/10",
+  },
+  rose: {
+    tile: "bg-rose-500/15 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300",
+    row: "bg-rose-500/10 dark:bg-rose-400/10",
+  },
+  pink: {
+    tile: "bg-pink-500/15 text-pink-600 dark:bg-pink-400/15 dark:text-pink-300",
+    row: "bg-pink-500/10 dark:bg-pink-400/10",
+  },
+  fuchsia: {
+    tile: "bg-fuchsia-500/15 text-fuchsia-600 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
+    row: "bg-fuchsia-500/10 dark:bg-fuchsia-400/10",
+  },
+  violet: {
+    tile: "bg-violet-500/15 text-violet-600 dark:bg-violet-400/15 dark:text-violet-300",
+    row: "bg-violet-500/10 dark:bg-violet-400/10",
+  },
+  indigo: {
+    tile: "bg-indigo-500/15 text-indigo-600 dark:bg-indigo-400/15 dark:text-indigo-300",
+    row: "bg-indigo-500/10 dark:bg-indigo-400/10",
+  },
+  sky: {
+    tile: "bg-sky-500/15 text-sky-600 dark:bg-sky-400/15 dark:text-sky-300",
+    row: "bg-sky-500/10 dark:bg-sky-400/10",
+  },
+  cyan: {
+    tile: "bg-cyan-500/15 text-cyan-600 dark:bg-cyan-400/15 dark:text-cyan-300",
+    row: "bg-cyan-500/10 dark:bg-cyan-400/10",
+  },
+  teal: {
+    tile: "bg-teal-500/15 text-teal-600 dark:bg-teal-400/15 dark:text-teal-300",
+    row: "bg-teal-500/10 dark:bg-teal-400/10",
+  },
+  emerald: {
+    tile: "bg-emerald-500/15 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
+    row: "bg-emerald-500/10 dark:bg-emerald-400/10",
+  },
+  lime: {
+    tile: "bg-lime-500/20 text-lime-700 dark:bg-lime-400/15 dark:text-lime-300",
+    row: "bg-lime-500/10 dark:bg-lime-400/10",
+  },
+};
+
+export function topicRowTint(topic: MajordomeTopic): string {
+  return TONES[topicTone(topic)].row;
+}
+
+/** The topic's icon on a tile in its colour, with its conversation's status as a dot on the corner. */
 export function TopicIconBadge({
   topic,
   statusDotClass,
@@ -83,12 +139,19 @@ export function TopicIconBadge({
 }) {
   const { Icon } = ICONS[topicIcon(topic)];
   return (
-    <span aria-hidden className={cn("relative inline-flex shrink-0", className)}>
-      <Icon className="size-4 text-sidebar-muted-foreground" />
+    <span
+      aria-hidden
+      className={cn(
+        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg",
+        TONES[topicTone(topic)].tile,
+        className,
+      )}
+    >
+      <Icon className="size-4" />
       {statusDotClass !== null ? (
         <span
           className={cn(
-            "absolute -right-0.5 -bottom-0.5 size-2 rounded-full ring-2 ring-sidebar",
+            "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-sidebar",
             statusDotClass,
           )}
         />

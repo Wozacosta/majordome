@@ -49,7 +49,7 @@ import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { notesLink } from "./notes.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
-import { TopicIconBadge, TopicIconDialog } from "./TopicIcon";
+import { TopicIconBadge, TopicIconDialog, topicRowTint } from "./TopicIcon";
 import {
   moveTopic,
   placeTopic,
@@ -324,16 +324,14 @@ function TopicRow(props: {
         onClick={props.onOpen}
         aria-current={props.isActive ? "page" : undefined}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2.5 rounded-md py-1 pr-9 pl-2.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          props.isActive && "bg-sidebar-row-active",
+          "flex w-full cursor-pointer items-center gap-2.5 rounded-lg py-1.5 pr-9 pl-1.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          props.isActive && topicRowTint(topic),
         )}
       >
         <TopicIconBadge topic={topic} statusDotClass={status?.dotClass ?? null} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
-            <span className={cn("min-w-0 flex-1 truncate", props.isActive && "font-medium")}>
-              {topic.title}
-            </span>
+            <span className="min-w-0 flex-1 truncate font-medium">{topic.title}</span>
             {status !== null ? <span className="sr-only">{status.label}</span> : null}
             {activity !== null ? <ActivityLabel timestamp={activity} /> : null}
           </span>
@@ -342,7 +340,7 @@ function TopicRow(props: {
           </span>
         </span>
       </button>
-      <span className="absolute top-1.5 right-1">
+      <span className="absolute top-2 right-1">
         <Menu>
           <MenuTrigger
             render={

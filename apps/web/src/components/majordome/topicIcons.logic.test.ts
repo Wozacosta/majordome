@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { autoTopicIcon, topicIcon } from "./topicIcons.logic";
+import { autoTopicIcon, topicIcon, topicTone } from "./topicIcons.logic";
 
 describe("autoTopicIcon", () => {
   it("picks an icon from the title's words, in English or French", () => {
@@ -47,5 +47,14 @@ describe("autoTopicIcon", () => {
       "music",
     );
     expect(topicIcon({ title: "Fitness", folder: "projects/fitness" })).toBe("dumbbell");
+  });
+});
+
+describe("topicTone", () => {
+  it("follows the icon, and gives plain topics a colour their title keeps", () => {
+    expect(topicTone({ title: "Fitness", folder: "x" })).toBe("orange");
+    expect(topicTone({ title: "Fitness", folder: "x", icon: "bitcoin" })).toBe("amber");
+    const plain = topicTone({ title: "Atlas", folder: "projects/atlas" });
+    expect(topicTone({ title: "Atlas", folder: "elsewhere" })).toBe(plain);
   });
 });

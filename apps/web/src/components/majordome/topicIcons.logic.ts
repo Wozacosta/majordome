@@ -322,3 +322,50 @@ export function topicIcon(topic: {
 }): MajordomeTopicIcon {
   return topic.icon ?? autoTopicIcon(topic.title, topic.folder);
 }
+
+const TOPIC_TONES = [
+  "amber",
+  "orange",
+  "rose",
+  "pink",
+  "fuchsia",
+  "violet",
+  "indigo",
+  "sky",
+  "cyan",
+  "teal",
+  "emerald",
+  "lime",
+] as const;
+export type TopicTone = (typeof TOPIC_TONES)[number];
+
+const ICON_TONES: Record<Exclude<MajordomeTopicIcon, "hash">, TopicTone> = {
+  dumbbell: "orange",
+  footprints: "lime",
+  wallet: "emerald",
+  receipt: "teal",
+  bitcoin: "amber",
+  plane: "sky",
+  "heart-pulse": "rose",
+  "book-open": "indigo",
+  languages: "violet",
+  briefcase: "cyan",
+  home: "pink",
+  utensils: "orange",
+  music: "fuchsia",
+  code: "indigo",
+  "pen-line": "violet",
+  users: "pink",
+  leaf: "emerald",
+  car: "sky",
+  lightbulb: "amber",
+};
+
+/** The topic's colour: its icon's, or one its title always maps to when the icon is plain `hash`. */
+export function topicTone(topic: Parameters<typeof topicIcon>[0]): TopicTone {
+  const icon = topicIcon(topic);
+  if (icon !== "hash") return ICON_TONES[icon];
+  let hash = 0;
+  for (const char of topic.title) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
+  return TOPIC_TONES[hash % TOPIC_TONES.length] ?? "amber";
+}
