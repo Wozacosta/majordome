@@ -65,7 +65,16 @@ export const commitVaultRun = Effect.fn("majordome.commitVaultRun")(function* (i
   const staged = yield* run(["diff", "--cached", "--quiet"], true);
   if (staged.exitCode === 0) return false;
   // The user's own hooks are for the user's commits.
-  yield* run(["commit", "--quiet", "--no-verify", "--message", input.message]);
+  // Majordome commits on its own, so it can never answer a signing prompt (SSH or GPG agents).
+  yield* run([
+    "-c",
+    "commit.gpgsign=false",
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "--message",
+    input.message,
+  ]);
   return true;
 });
 

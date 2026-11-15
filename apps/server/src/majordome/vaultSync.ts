@@ -137,7 +137,15 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
       (yield* run(["rev-list", "--count", `HEAD..${remoteRef}`])).stdout.trim(),
     );
     if (behind > 0) {
-      const rebase = yield* run(["rebase", "--quiet", "--no-autostash", remoteRef]);
+      // Rebasing re-creates commits; unsigned, so it never waits on a signing prompt.
+      const rebase = yield* run([
+        "-c",
+        "commit.gpgsign=false",
+        "rebase",
+        "--quiet",
+        "--no-autostash",
+        remoteRef,
+      ]);
       if (rebase.exitCode !== 0) {
         const files = listLines((yield* run(["diff", "--name-only", "--diff-filter=U"])).stdout);
         yield* run(["rebase", "--abort"]);

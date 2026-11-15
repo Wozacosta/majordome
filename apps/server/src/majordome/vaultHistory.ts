@@ -146,7 +146,10 @@ export const undoVaultCommit = Effect.fn("majordome.undoVaultCommit")(function* 
     yield* run(["revert", "--abort"]);
     return { status: "conflict", files: conflicted } as VaultUndoResult;
   }
+  // Unsigned: an undo commit can't wait on a signing prompt (SSH or GPG agents).
   yield* run([
+    "-c",
+    "commit.gpgsign=false",
     "commit",
     "--quiet",
     "--no-verify",

@@ -69,6 +69,24 @@ it.layer(testLayer)("commitVaultRun", (it) => {
     }),
   );
 
+  it.effect("commits even when the owner's git signs every commit", () =>
+    Effect.gen(function* () {
+      const { root, run, fs } = yield* makeRepo({ vault: true });
+      // A signer that always fails stands in for an agent waiting on a prompt nobody answers.
+      yield* run(["config", "commit.gpgsign", "true"]);
+      yield* run(["config", "gpg.program", "false"]);
+      yield* fs.writeFileString(`${root}/memory.md`, "- Signed elsewhere\n");
+
+      const committed = yield* commitVaultRun({
+        cwd: root,
+        message: vaultCommitMessage({ threadTitle: "Signing", runOrdinal: 1, threadId: "t" }),
+      });
+
+      assert.isTrue(committed);
+      assert.equal(yield* run(["status", "--porcelain"]), "");
+    }),
+  );
+
   it.effect("makes no commit when nothing changed", () =>
     Effect.gen(function* () {
       const { root, run } = yield* makeRepo({ vault: true });

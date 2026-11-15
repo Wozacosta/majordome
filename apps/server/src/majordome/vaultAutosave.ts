@@ -152,7 +152,10 @@ export const autosaveVault = Effect.fn("majordome.autosaveVault")(function* (inp
   }
 
   // The owner's own hooks run, as they would for a commit the owner made.
+  // Unsigned: an automatic save can never answer a signing prompt (SSH or GPG agents).
   yield* run([
+    "-c",
+    "commit.gpgsign=false",
     "commit",
     "--quiet",
     "--message",
