@@ -2,6 +2,32 @@ import * as Schema from "effect/Schema";
 
 import { ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 
+/** The icons a topic can wear in the sidebar. */
+export const MAJORDOME_TOPIC_ICONS = [
+  "hash",
+  "dumbbell",
+  "footprints",
+  "wallet",
+  "receipt",
+  "bitcoin",
+  "plane",
+  "heart-pulse",
+  "book-open",
+  "languages",
+  "briefcase",
+  "home",
+  "utensils",
+  "music",
+  "code",
+  "pen-line",
+  "users",
+  "leaf",
+  "car",
+  "lightbulb",
+] as const;
+export const MajordomeTopicIcon = Schema.Literals(MAJORDOME_TOPIC_ICONS);
+export type MajordomeTopicIcon = typeof MajordomeTopicIcon.Type;
+
 /**
  * One of the owner's long-running topics, as `.majordome/topics.json` in the vault stores it.
  * `folder` is vault-relative and holds the topic's notes, including its running `log.md`.
@@ -10,8 +36,17 @@ export const MajordomeVaultTopic = Schema.Struct({
   id: TrimmedNonEmptyString,
   title: TrimmedNonEmptyString,
   folder: TrimmedNonEmptyString,
+  /** Chosen by the owner; without one, the sidebar picks one from the title and folder. */
+  icon: Schema.optional(MajordomeTopicIcon),
 });
 export type MajordomeVaultTopic = typeof MajordomeVaultTopic.Type;
+
+/** The gist of a message: one plain line, cut short. */
+export const MajordomeTopicMessagePreview = Schema.Struct({
+  author: Schema.Literals(["you", "agent"]),
+  text: Schema.String,
+});
+export type MajordomeTopicMessagePreview = typeof MajordomeTopicMessagePreview.Type;
 
 /** A topic as this server sees it: with its conversation here, once it has been opened. */
 export const MajordomeTopic = Schema.Struct({
@@ -22,6 +57,8 @@ export const MajordomeTopic = Schema.Struct({
   folderExists: Schema.Boolean,
   /** The note to open the folder at in Notes: its log, else its README or index. */
   keyNote: Schema.NullOr(Schema.String),
+  /** The conversation's latest message; null before there is one. Absent from older servers. */
+  lastMessagePreview: Schema.optional(Schema.NullOr(MajordomeTopicMessagePreview)),
 });
 export type MajordomeTopic = typeof MajordomeTopic.Type;
 
@@ -68,6 +105,8 @@ export const MajordomeUpdateTopicInput = Schema.Struct({
   title: Schema.optional(TrimmedNonEmptyString),
   folder: Schema.optional(TrimmedNonEmptyString),
   createFolder: Schema.optional(Schema.Boolean),
+  /** Null goes back to the icon picked from the title and folder. */
+  icon: Schema.optional(Schema.NullOr(MajordomeTopicIcon)),
 });
 export type MajordomeUpdateTopicInput = typeof MajordomeUpdateTopicInput.Type;
 

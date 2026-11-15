@@ -1,4 +1,5 @@
 import { scopedProjectKey, scopedThreadKey } from "@t3tools/client-runtime/environment";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import type {
   EnvironmentId,
   MajordomeTopic,
@@ -100,6 +101,33 @@ export function selectRecentThreads<
       thread.projectId === vault.projectId &&
       !topicKeys.has(scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id })),
   );
+}
+
+/** The line under a topic: its latest message, or its folder until it has one. */
+export function topicSubtitle(
+  topic: Pick<MajordomeTopic, "folder" | "lastMessagePreview">,
+): string {
+  const preview = topic.lastMessagePreview;
+  if (preview == null) return topic.folder;
+  return preview.author === "you" ? `You: ${preview.text}` : preview.text;
+}
+
+/**
+ * Changes when a topic's conversation gets a new message from the owner or a finished reply, so
+ * the previews are read again then and only then.
+ */
+export function topicPreviewStamp(
+  threads: ReadonlyArray<
+    Pick<EnvironmentThreadShell, "latestUserMessageAt" | "latestRun"> | undefined
+  >,
+): string {
+  return threads
+    .map((thread) =>
+      thread === undefined
+        ? ""
+        : `${thread.latestUserMessageAt ?? ""}/${thread.latestRun?.completedAt ?? ""}`,
+    )
+    .join(",");
 }
 
 /** Where a new topic's folder goes: `<projects folder>/<title as a folder name>`. */

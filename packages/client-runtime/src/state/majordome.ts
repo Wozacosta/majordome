@@ -158,8 +158,11 @@ export function createMajordomeEnvironmentAtoms<R, E>(
   };
 }
 
-/** Bumped after any topic change so every topic list in that environment reads again. */
-const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
+/**
+ * Bumped after any topic change, or when a topic's conversation moves on, so every topic list in
+ * that environment reads again.
+ */
+export const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
   Atom.make(0).pipe(
     Atom.keepAlive,
     Atom.withLabel(`environment-data:majordome:topics-revision:${environmentId}`),

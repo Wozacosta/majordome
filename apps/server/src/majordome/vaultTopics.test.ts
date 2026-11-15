@@ -54,6 +54,21 @@ describe("topics.json", () => {
       { id: "fitness", title: "Fitness", folder: "personal/fitness" },
       { id: "lisbon", title: "Lisbon move", folder: "projects/lisbon-move" },
     ]);
+    // An icon is kept when it is one Majordome knows, and an unknown one keeps the topic.
+    const withIcons = parseVaultTopics(
+      JSON.stringify({
+        topics: [
+          { id: "taxes", title: "Taxes", folder: "admin/taxes", icon: "receipt" },
+          { id: "garden", title: "Garden", folder: "home/garden", icon: "rocket-ship" },
+        ],
+      }),
+    );
+    assert.deepEqual(withIcons, [
+      { id: "taxes", title: "Taxes", folder: "admin/taxes", icon: "receipt" },
+      { id: "garden", title: "Garden", folder: "home/garden" },
+    ]);
+    assert.deepEqual(parseVaultTopics(serializeVaultTopics(withIcons)), withIcons);
+    assert.notInclude(serializeVaultTopics(topics), "icon");
     assert.deepEqual(parseVaultTopics("{ not json"), []);
     assert.deepEqual(parseVaultTopics("[]"), []);
     assert.deepEqual(parseVaultTopics(serializeVaultTopics(topics)), topics);

@@ -1,4 +1,6 @@
+import { useAtomSet } from "@effect/atom-react";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
+import { topicsRevision } from "@t3tools/client-runtime/state/majordome";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -15,10 +17,11 @@ import {
   NotebookTextIcon,
   PencilIcon,
   PlusIcon,
+  ShapesIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
@@ -46,7 +49,14 @@ import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { notesLink } from "./notes.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
-import { moveTopic, placeTopic, type MajordomeVault } from "./topics.logic";
+import { TopicIconBadge, TopicIconDialog } from "./TopicIcon";
+import {
+  moveTopic,
+  placeTopic,
+  topicPreviewStamp,
+  topicSubtitle,
+  type MajordomeVault,
+} from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
 const HEADING_CLASS =
@@ -113,6 +123,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const [dialog, setDialog] = useState<TopicDialogRequest | null>(null);
   const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
+  const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
   const [pendingOrder, setPendingOrder] = useState<ReadonlyArray<string> | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
@@ -137,6 +148,20 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   const ids = vault.topics.map((topic) => topic.id);
   const order = pendingOrder ?? ids;
   const topics = order.flatMap((id) => vault.topics.find((topic) => topic.id === id) ?? []);
+  const topicThread = (topic: MajordomeTopic) =>
+    topic.threadId === null
+      ? undefined
+      : threadByKey.get(scopedThreadKey(scopeThreadRef(vault.environmentId, topic.threadId)));
+
+  const bumpTopics = useAtomSet(topicsRevision(vault.environmentId));
+  const previewStamp = topicPreviewStamp(vault.topics.map(topicThread));
+  const seenPreviewStamp = useRef(previewStamp);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the previews come from the server, so a topic's conversation moving on asks it for them again
+  useEffect(() => {
+    if (seenPreviewStamp.current === previewStamp) return;
+    seenPreviewStamp.current = previewStamp;
+    bumpTopics((revision) => revision + 1);
+  }, [previewStamp, bumpTopics, seenPreviewStamp]);
 
   const goToThread = (threadId: ThreadId) => {
     if (isMobile) setOpenMobile(false);
@@ -196,7 +221,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
               topic.threadId === null
                 ? null
                 : scopedThreadKey(scopeThreadRef(vault.environmentId, topic.threadId));
-            const thread = threadKey === null ? undefined : threadByKey.get(threadKey);
+            const thread = topicThread(topic);
             return (
               <TopicRow
                 key={topic.id}
@@ -217,6 +242,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
                 }}
                 onRename={() => setDialog({ kind: "rename", topic })}
                 onChangeFolder={() => setDialog({ kind: "folder", topic })}
+                onChangeIcon={() => setChoosingIcon(topic)}
                 onRemove={() => setRemoving(topic)}
               />
             );
@@ -240,6 +266,9 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
       {removing !== null ? (
         <RemoveTopicDialog vault={vault} topic={removing} onClose={() => setRemoving(null)} />
       ) : null}
+      {choosingIcon !== null ? (
+        <TopicIconDialog vault={vault} topic={choosingIcon} onClose={() => setChoosingIcon(null)} />
+      ) : null}
     </>
   );
 }
@@ -259,6 +288,7 @@ function TopicRow(props: {
   readonly onDropOn: () => void;
   readonly onRename: () => void;
   readonly onChangeFolder: () => void;
+  readonly onChangeIcon: () => void;
   readonly onRemove: () => void;
 }) {
   const { topic, thread, vault } = props;
@@ -294,22 +324,25 @@ function TopicRow(props: {
         onClick={props.onOpen}
         aria-current={props.isActive ? "page" : undefined}
         className={cn(
-          "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md pr-9 pl-2.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          props.isActive && "bg-sidebar-row-active font-medium",
+          "flex w-full cursor-pointer items-center gap-2.5 rounded-md py-1 pr-9 pl-2.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          props.isActive && "bg-sidebar-row-active",
         )}
       >
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 shrink-0 rounded-full",
-            status === null ? "bg-sidebar-muted-foreground/30" : status.dotClass,
-          )}
-        />
-        <span className="min-w-0 flex-1 truncate">{topic.title}</span>
-        {status !== null ? <span className="sr-only">{status.label}</span> : null}
-        {activity !== null ? <ActivityLabel timestamp={activity} /> : null}
+        <TopicIconBadge topic={topic} statusDotClass={status?.dotClass ?? null} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className={cn("min-w-0 flex-1 truncate", props.isActive && "font-medium")}>
+              {topic.title}
+            </span>
+            {status !== null ? <span className="sr-only">{status.label}</span> : null}
+            {activity !== null ? <ActivityLabel timestamp={activity} /> : null}
+          </span>
+          <span className="truncate text-xs text-sidebar-muted-foreground">
+            {topicSubtitle(topic)}
+          </span>
+        </span>
       </button>
-      <span className="absolute top-1 right-1">
+      <span className="absolute top-1.5 right-1">
         <Menu>
           <MenuTrigger
             render={
@@ -326,6 +359,10 @@ function TopicRow(props: {
             <MenuItem onClick={props.onChangeFolder}>
               <FolderInputIcon />
               Change folder
+            </MenuItem>
+            <MenuItem onClick={props.onChangeIcon}>
+              <ShapesIcon />
+              Change icon
             </MenuItem>
             <MenuItem
               onClick={() => {

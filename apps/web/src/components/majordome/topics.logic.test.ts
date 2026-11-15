@@ -8,6 +8,7 @@ import {
   pickActiveVault,
   placeTopic,
   selectRecentThreads,
+  topicSubtitle,
   topicThreadKeys,
 } from "./topics.logic";
 
@@ -107,5 +108,17 @@ describe("topic order and folders", () => {
     expect(defaultTopicFolder("projects", "Moving to Lisbon")).toBe("projects/moving-to-lisbon");
     expect(defaultTopicFolder("1. Projects/", "Café")).toBe("1. Projects/cafe");
     expect(defaultTopicFolder("projects", "")).toBe("projects");
+  });
+});
+
+describe("topicSubtitle", () => {
+  it("shows the latest message, marking the owner's, and the folder before there is one", () => {
+    const topic = { folder: "projects/fitness" };
+    const agent = { author: "agent", text: "Logged." } as const;
+    const you = { author: "you", text: "5k today" } as const;
+    expect(topicSubtitle({ ...topic, lastMessagePreview: agent })).toBe("Logged.");
+    expect(topicSubtitle({ ...topic, lastMessagePreview: you })).toBe("You: 5k today");
+    expect(topicSubtitle({ ...topic, lastMessagePreview: null })).toBe("projects/fitness");
+    expect(topicSubtitle(topic)).toBe("projects/fitness");
   });
 });

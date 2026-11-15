@@ -49,8 +49,32 @@ const projectRow = (projectId: ProjectId, workspaceRoot: string) =>
 const fakeThreads = () => {
   const threads = new Map<string, FakeThread>();
   const commands: Array<OrchestrationV2ServerCommand> = [];
+  /** Each thread's latest timeline items, oldest first. */
+  const timelines = new Map<string, ReadonlyArray<Record<string, unknown>>>();
+  /** Message bodies the timeline leaves out. */
+  const bodies = new Map<string, string>();
   const service = Layer.mock(ThreadManagementService.ThreadManagementService)({
     getThreadShell: (threadId) => Effect.succeed((threads.get(threadId) ?? null) as never),
+    getTimelinePage: (threadId, options) =>
+      Effect.sync(() => {
+        const items = (timelines.get(threadId) ?? []).slice(-options.limit);
+        return {
+          items: items.map((item, position) => ({
+            position,
+            visibility: "local",
+            sourceThreadId: threadId,
+            sourceItemId: `item-${position}`,
+            item,
+          })),
+          totalItems: items.length,
+          hasMore: false,
+          hasEarlier: false,
+        } as never;
+      }),
+    getMessagesById: (_threadId, messageIds) =>
+      Effect.succeed(
+        new Map(messageIds.map((id) => [id, { id, text: bodies.get(id) ?? "" }])) as never,
+      ),
     listProjectThreads: () => Effect.succeed([]),
     dispatch: (command) =>
       Effect.sync(() => {
@@ -78,7 +102,7 @@ const fakeThreads = () => {
         return { sequence: commands.length } as never;
       }),
   });
-  return { threads, commands, service };
+  return { threads, commands, timelines, bodies, service };
 };
 
 const setUp = Effect.fn("test.setUp")(function* (
@@ -200,6 +224,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         threadId: null,
         folderExists: true,
         keyNote: "projects/quitting-nicotine/README.md",
+        lastMessagePreview: null,
       });
       assert.include(
         yield* fs.readFileString(`${vault}/projects/quitting-nicotine/README.md`),
@@ -265,6 +290,37 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       );
       const listed = yield* service.list({ projectId: vaultProject });
       assert.equal(listed.topics[0]?.threadId, threadId);
+      assert.isNull(listed.topics[0]?.lastMessagePreview);
+
+      // The agent's reply, its body read from the message, then the owner writing after it.
+      const reply = {
+        type: "assistant_message",
+        messageId: "reply",
+        text: "",
+        textOmitted: true,
+        streaming: false,
+      };
+      fake.bodies.set("reply", "## Plan\n\n**Run** 5k on Tuesday.");
+      fake.timelines.set(threadId, [reply]);
+      assert.deepEqual(
+        (yield* service.list({ projectId: vaultProject })).topics[0]?.lastMessagePreview,
+        {
+          author: "agent",
+          text: "Plan",
+        },
+      );
+      fake.timelines.set(threadId, [
+        reply,
+        { type: "user_message", createdBy: "user", messageId: "ask", text: "And Thursday?" },
+        { type: "user_message", createdBy: "system", messageId: "wake", text: "Wake up" },
+      ]);
+      assert.deepEqual(
+        (yield* service.list({ projectId: vaultProject })).topics[0]?.lastMessagePreview,
+        {
+          author: "you",
+          text: "And Thursday?",
+        },
+      );
 
       // A deleted conversation starts over; the topic's memory is its folder.
       fake.threads.delete(threadId);
@@ -382,6 +438,20 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.deepInclude(renamed, { title: "Running", folder: "personal/running", threadId });
       assert.equal(fake.threads.get(threadId)!.title, "Running");
       assert.isTrue(yield* fs.exists(`${vault}/personal/running/README.md`));
+
+      const withIcon = yield* service.update({
+        projectId: vaultProject,
+        topicId: fitness.id,
+        icon: "footprints",
+      });
+      assert.deepInclude(withIcon, { title: "Running", icon: "footprints" });
+      assert.include(yield* fs.readFileString(`${vault}/.majordome/topics.json`), '"footprints"');
+      const automatic = yield* service.update({
+        projectId: vaultProject,
+        topicId: fitness.id,
+        icon: null,
+      });
+      assert.notProperty(automatic, "icon");
 
       yield* service.reorder({ projectId: vaultProject, topicIds: [lisbon.id, fitness.id] });
       assert.deepEqual(

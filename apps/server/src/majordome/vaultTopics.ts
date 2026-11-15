@@ -4,7 +4,11 @@
  * topic's conversation is each server's own business (see MajordomeTopics.ts).
  */
 
-import { type MajordomeTopicSuggestion, MajordomeVaultTopic } from "@t3tools/contracts";
+import {
+  MajordomeTopicIcon,
+  type MajordomeTopicSuggestion,
+  MajordomeVaultTopic,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -19,7 +23,15 @@ const TOPICS_FILENAME = "topics.json";
 const topicsFilePath = (path: Path.Path, vaultRoot: string) =>
   path.join(vaultRoot, VAULT_CONFIG_DIRNAME, TOPICS_FILENAME);
 
-const decodeTopic = Schema.decodeUnknownOption(MajordomeVaultTopic);
+// The icon is checked on its own, so an unknown one (from a newer Majordome) keeps the topic.
+const decodeTopic = Schema.decodeUnknownOption(
+  Schema.Struct({
+    id: MajordomeVaultTopic.fields.id,
+    title: MajordomeVaultTopic.fields.title,
+    folder: MajordomeVaultTopic.fields.folder,
+  }),
+);
+const isTopicIcon = Schema.is(MajordomeTopicIcon);
 
 /**
  * A vault-relative folder with forward slashes, or null when it is empty, absolute, climbs out of
@@ -54,13 +66,22 @@ export function parseVaultTopics(text: string): ReadonlyArray<MajordomeVaultTopi
     const folder = normalizeTopicFolder(topic.folder);
     if (folder === null) continue;
     seen.add(topic.id);
-    topics.push({ id: topic.id, title: topic.title, folder });
+    const icon = (entry as { readonly icon?: unknown }).icon;
+    topics.push({
+      id: topic.id,
+      title: topic.title,
+      folder,
+      ...(isTopicIcon(icon) ? { icon } : {}),
+    });
   }
   return topics;
 }
 
 export function serializeVaultTopics(topics: ReadonlyArray<MajordomeVaultTopic>): string {
-  return `${JSON.stringify({ topics: topics.map(({ id, title, folder }) => ({ id, title, folder })) }, null, 2)}\n`;
+  const entries = topics.map(({ id, title, folder, icon }) =>
+    icon === undefined ? { id, title, folder } : { id, title, folder, icon },
+  );
+  return `${JSON.stringify({ topics: entries }, null, 2)}\n`;
 }
 
 /** `lisbon-move` → `Lisbon move`; a name already written with capitals stays as it is. */

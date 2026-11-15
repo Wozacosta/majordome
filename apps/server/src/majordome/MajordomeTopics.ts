@@ -18,6 +18,7 @@ import {
   type MajordomeTopicsResult,
   type MajordomeUpdateTopicInput,
   type MajordomeVaultTopic,
+  type MessageId,
   type OrchestrationV2ServerCommand,
   ThreadId,
 } from "@t3tools/contracts";
@@ -43,6 +44,7 @@ import {
   topicThreadsStatePath,
   writeTopicThreadsState,
 } from "./topicThreads.ts";
+import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { chooseVaultModel, firstReadyProviderModel } from "./vaultModel.ts";
@@ -86,6 +88,8 @@ export class MajordomeTopics extends Context.Service<
 const isTopicsError = Schema.is(MajordomeTopicsError);
 
 const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
+/** Enough of the latest messages to find one with words in it. */
+const PREVIEW_MESSAGE_WINDOW = 4;
 
 const fail = (message: string) => Effect.fail(new MajordomeTopicsError({ message }));
 
@@ -227,6 +231,50 @@ const make = Effect.gen(function* () {
     }
   });
 
+  /** The gist of the thread's latest message, read from its last few messages only. */
+  const lastMessagePreview = Effect.fn("MajordomeTopics.lastMessagePreview")(
+    function* (threadId: ThreadId) {
+      const page = yield* threads.getTimelinePage(threadId, {
+        beforePosition: Number.POSITIVE_INFINITY,
+        limit: PREVIEW_MESSAGE_WINDOW,
+        view: "messages",
+      });
+      // A message body the timeline left out is read from the message itself.
+      const omitted = new Map<ThreadId, Array<MessageId>>();
+      for (const { sourceThreadId, item } of page.items) {
+        if (
+          (item.type === "user_message" || item.type === "assistant_message") &&
+          item.textOmitted
+        ) {
+          omitted.set(sourceThreadId, [...(omitted.get(sourceThreadId) ?? []), item.messageId]);
+        }
+      }
+      const bodies = new Map<MessageId, string>();
+      for (const [sourceThreadId, messageIds] of omitted) {
+        const messages = yield* threads.getMessagesById(sourceThreadId, messageIds);
+        for (const [id, message] of messages) bodies.set(id, message.text);
+      }
+      return pickTopicPreview(
+        page.items.flatMap(({ item }): ReadonlyArray<TopicPreviewMessage> => {
+          switch (item.type) {
+            case "user_message":
+              // Scheduled prompts and agents' messages are not the owner's words.
+              return item.createdBy === "user"
+                ? [{ author: "you", text: bodies.get(item.messageId) ?? item.text }]
+                : [];
+            case "assistant_message":
+              return [{ author: "agent", text: bodies.get(item.messageId) ?? item.text }];
+            case "proposed_plan":
+              return [{ author: "agent", text: item.markdown }];
+            default:
+              return [];
+          }
+        }),
+      );
+    },
+    Effect.orElseSucceed(() => null),
+  );
+
   const viewOf = Effect.fn("MajordomeTopics.viewOf")(function* (
     vaultRoot: string,
     topic: MajordomeVaultTopic,
@@ -245,6 +293,7 @@ const make = Effect.gen(function* () {
         onNone: () => null,
         onSome: (name) => `${topic.folder}/${name}`,
       }),
+      lastMessagePreview: thread === null ? null : yield* lastMessagePreview(thread.id),
     } satisfies MajordomeTopic;
   });
 
@@ -347,7 +396,14 @@ const make = Effect.gen(function* () {
       if (topics.some((other) => other.id !== topic.id && other.folder === folder)) {
         return yield* fail(`Another topic already uses ${folder}.`);
       }
-      const next = { ...topic, title, folder };
+      const { icon: _previousIcon, ...rest } = topic;
+      const icon = input.icon === undefined ? topic.icon : (input.icon ?? undefined);
+      const next: MajordomeVaultTopic = {
+        ...rest,
+        title,
+        folder,
+        ...(icon === undefined ? {} : { icon }),
+      };
       yield* writeTopics(
         vaultRoot,
         topics.map((candidate) => (candidate.id === topic.id ? next : candidate)),
