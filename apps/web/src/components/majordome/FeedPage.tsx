@@ -19,6 +19,8 @@ import {
   HandIcon,
   MessageSquareIcon,
   NotebookPenIcon,
+  SmartphoneIcon,
+  CloudUploadIcon,
   Undo2Icon,
 } from "lucide-react";
 import { useState } from "react";
@@ -61,6 +63,8 @@ import {
   type FeedVault,
   summarizeFeedFiles,
 } from "./feed.logic";
+import { NotificationsToggle } from "./NotificationsToggle";
+import { BackupStatusLine } from "./BackupStatusLine";
 
 interface FeedVaultState extends FeedVault {
   readonly routinesRunner: MajordomeRoutinesRunner;
@@ -130,6 +134,14 @@ export function FeedPage() {
               <CalendarClockIcon />
               Routines
             </Button>
+            <Button size="xs" variant="outline" render={<Link to="/phone" />}>
+              <SmartphoneIcon />
+              Your phone
+            </Button>
+            <Button size="xs" variant="outline" render={<Link to="/backup" />}>
+              <CloudUploadIcon />
+              Back up
+            </Button>
           </div>
         </WorkspacePageHeader>
 
@@ -150,6 +162,14 @@ export function FeedPage() {
                     onMove={() => setPendingMove(vault)}
                   />
                 ))}
+                {vaults.map((vault) => (
+                  <BackupStatusLine
+                    key={`backup:${vault.environmentId}:${vault.projectId}`}
+                    vault={vault}
+                    showVaultName={vaults.length > 1}
+                  />
+                ))}
+                <NotificationsToggle compact />
               </div>
             ) : null}
             {runItems.length > 0 ? (

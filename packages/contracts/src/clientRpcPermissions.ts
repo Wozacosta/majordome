@@ -69,8 +69,19 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.scheduledTasksDelete]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksRunNow]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksRotateWebhookToken]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeSavePushSubscription]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeRemovePushSubscription]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeSendTestPush]: AuthOrchestrationOperateScope,
+  // Puts this server on the tailnet's HTTPS address, which is how phones pair with it.
+  [WS_METHODS.majordomeEnableSecureAddress]: AuthAccessWriteScope,
   [WS_METHODS.majordomeUndoVaultRun]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRunRoutinesHere]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeBackUpNow]: AuthOrchestrationOperateScope,
+  // Backup settings hold a passphrase and a GitHub sign-in, like credentials saved in Settings.
+  [WS_METHODS.majordomeConfigureBackup]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGitHubStart]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGitHubWait]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGitHubCancel]: AuthSettingsWriteScope,
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: AuthOrchestrationOperateScope,
   // Force stop kills agent processes, as Stop on a terminal does.
   [ORCHESTRATION_V2_WS_METHODS.forceStopThread]: AuthOrchestrationOperateScope,

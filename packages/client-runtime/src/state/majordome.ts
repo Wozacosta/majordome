@@ -1,6 +1,6 @@
 import { type EnvironmentId, WS_METHODS } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
-import { Atom } from "effect/reactivity";
+import { Atom, type AtomRegistry } from "effect/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
 import { createEnvironmentRpcCommand, createEnvironmentRpcQueryAtomFamily } from "./runtime.ts";
@@ -13,10 +13,45 @@ const historyRevision = Atom.family((environmentId: EnvironmentId) =>
   ),
 );
 
+/** Bumped to read the phone setup again, after "Check again" or turning on the secure address. */
+export const phoneSetupRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:phone-setup-revision:${environmentId}`),
+  ),
+);
+
 export function createMajordomeEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | R, E>,
 ) {
   return {
+    pushConfig: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:push-config",
+      tag: WS_METHODS.majordomeGetPushConfig,
+    }),
+    savePushSubscription: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:save-push-subscription",
+      tag: WS_METHODS.majordomeSavePushSubscription,
+    }),
+    removePushSubscription: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-push-subscription",
+      tag: WS_METHODS.majordomeRemovePushSubscription,
+    }),
+    sendTestPush: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:send-test-push",
+      tag: WS_METHODS.majordomeSendTestPush,
+    }),
+    phoneSetup: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:phone-setup",
+      tag: WS_METHODS.majordomeGetPhoneSetup,
+      refreshTrigger: ({ environmentId }) => phoneSetupRevision(environmentId),
+    }),
+    enableSecureAddress: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:enable-secure-address",
+      tag: WS_METHODS.majordomeEnableSecureAddress,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
+    }),
     vaultHistory: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:vault-history",
       tag: WS_METHODS.majordomeListVaultHistory,
@@ -35,5 +70,48 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
     }),
+    backupStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:backup-status",
+      tag: WS_METHODS.majordomeGetBackupStatus,
+      staleTimeMs: 30_000,
+      refreshTrigger: ({ environmentId }) => backupRevision(environmentId),
+    }),
+    backUpNow: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:back-up-now",
+      tag: WS_METHODS.majordomeBackUpNow,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
+    configureBackup: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:configure-backup",
+      tag: WS_METHODS.majordomeConfigureBackup,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
+    connectGitHubStart: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-github-start",
+      tag: WS_METHODS.majordomeConnectGitHubStart,
+    }),
+    connectGitHubWait: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-github-wait",
+      tag: WS_METHODS.majordomeConnectGitHubWait,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
+    connectGitHubCancel: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-github-cancel",
+      tag: WS_METHODS.majordomeConnectGitHubCancel,
+    }),
   };
 }
+
+/** Bumped after a backup action so the backup status, and the feed it may have added to, read again. */
+const backupRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:backup-revision:${environmentId}`),
+  ),
+);
+
+const bumpBackup = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => {
+    registry.update(backupRevision(environmentId), (value) => value + 1);
+    registry.update(historyRevision(environmentId), (value) => value + 1);
+  });

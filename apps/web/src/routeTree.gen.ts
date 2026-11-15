@@ -21,8 +21,10 @@ import { Route as ProjectsProjectKeyRouteImport } from './routes/projects.$proje
 import { Route as ChatUsageRouteImport } from './routes/_chat.usage'
 import { Route as ChatSettingsRouteImport } from './routes/_chat.settings'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
+import { Route as ChatPhoneRouteImport } from './routes/_chat.phone'
 import { Route as ChatNewRouteImport } from './routes/_chat.new'
 import { Route as ChatFeedRouteImport } from './routes/_chat.feed'
+import { Route as ChatBackupRouteImport } from './routes/_chat.backup'
 import { Route as ThreadsEnvironmentIdThreadIdRouteImport } from './routes/threads.$environmentId.$threadId'
 import { Route as ChatSettingsWorktreesRouteImport } from './routes/_chat.settings.worktrees'
 import { Route as ChatSettingsVoiceRouteImport } from './routes/_chat.settings.voice'
@@ -113,6 +115,11 @@ const ChatPullRequestsRoute = ChatPullRequestsRouteImport.update({
   path: '/pull-requests',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatPhoneRoute = ChatPhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ChatNewRoute = ChatNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -121,6 +128,11 @@ const ChatNewRoute = ChatNewRouteImport.update({
 const ChatFeedRoute = ChatFeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatBackupRoute = ChatBackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
   getParentRoute: () => ChatRoute,
 } as any)
 const ThreadsEnvironmentIdThreadIdRoute =
@@ -288,8 +300,10 @@ export interface FileRoutesByFullPath {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/backup': typeof ChatBackupRoute
   '/feed': typeof ChatFeedRoute
   '/new': typeof ChatNewRoute
+  '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
@@ -332,8 +346,10 @@ export interface FileRoutesByTo {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/backup': typeof ChatBackupRoute
   '/feed': typeof ChatFeedRoute
   '/new': typeof ChatNewRoute
+  '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
@@ -379,8 +395,10 @@ export interface FileRoutesById {
   '/guest': typeof GuestRoute
   '/pair': typeof PairRoute
   '/welcome': typeof WelcomeRoute
+  '/_chat/backup': typeof ChatBackupRoute
   '/_chat/feed': typeof ChatFeedRoute
   '/_chat/new': typeof ChatNewRoute
+  '/_chat/phone': typeof ChatPhoneRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
   '/_chat/settings': typeof ChatSettingsRouteWithChildren
   '/_chat/usage': typeof ChatUsageRoute
@@ -427,8 +445,10 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/backup'
     | '/feed'
     | '/new'
+    | '/phone'
     | '/pull-requests'
     | '/settings'
     | '/usage'
@@ -471,8 +491,10 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/backup'
     | '/feed'
     | '/new'
+    | '/phone'
     | '/pull-requests'
     | '/settings'
     | '/usage'
@@ -517,8 +539,10 @@ export interface FileRouteTypes {
     | '/guest'
     | '/pair'
     | '/welcome'
+    | '/_chat/backup'
     | '/_chat/feed'
     | '/_chat/new'
+    | '/_chat/phone'
     | '/_chat/pull-requests'
     | '/_chat/settings'
     | '/_chat/usage'
@@ -654,6 +678,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatPullRequestsRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/_chat/phone': {
+      id: '/_chat/phone'
+      path: '/phone'
+      fullPath: '/phone'
+      preLoaderRoute: typeof ChatPhoneRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/_chat/new': {
       id: '/_chat/new'
       path: '/new'
@@ -666,6 +697,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof ChatFeedRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/backup': {
+      id: '/_chat/backup'
+      path: '/backup'
+      fullPath: '/backup'
+      preLoaderRoute: typeof ChatBackupRouteImport
       parentRoute: typeof ChatRoute
     }
     '/threads/$environmentId/$threadId': {
@@ -946,8 +984,10 @@ const ChatSettingsRouteWithChildren = ChatSettingsRoute._addFileChildren(
 )
 
 interface ChatRouteChildren {
+  ChatBackupRoute: typeof ChatBackupRoute
   ChatFeedRoute: typeof ChatFeedRoute
   ChatNewRoute: typeof ChatNewRoute
+  ChatPhoneRoute: typeof ChatPhoneRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
   ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
   ChatUsageRoute: typeof ChatUsageRoute
@@ -957,8 +997,10 @@ interface ChatRouteChildren {
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
+  ChatBackupRoute: ChatBackupRoute,
   ChatFeedRoute: ChatFeedRoute,
   ChatNewRoute: ChatNewRoute,
+  ChatPhoneRoute: ChatPhoneRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,
   ChatSettingsRoute: ChatSettingsRouteWithChildren,
   ChatUsageRoute: ChatUsageRoute,

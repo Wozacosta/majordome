@@ -94,6 +94,19 @@ import {
   MajordomeVaultUndoResult,
 } from "./majordome.ts";
 import {
+  MajordomePhoneError,
+  MajordomePhoneSetup,
+  MajordomePushConfig,
+  MajordomePushEndpointInput,
+  MajordomeSavePushSubscriptionInput,
+} from "./majordomePhone.ts";
+import {
+  MajordomeBackupInput,
+  MajordomeBackupStatus,
+  MajordomeConfigureBackupInput,
+  MajordomeGitHubConnectPrompt,
+} from "./majordomeBackup.ts";
+import {
   FilesystemGetMetadataInput,
   FilesystemGetMetadataResult,
   FilesystemBrowseInput,
@@ -638,9 +651,21 @@ export const WS_METHODS = {
   subscribeAuthAccess: "subscribeAuthAccess",
   subscribeResourceTelemetry: "subscribeResourceTelemetry",
 
+  majordomeGetPushConfig: "majordome.getPushConfig",
+  majordomeSavePushSubscription: "majordome.savePushSubscription",
+  majordomeRemovePushSubscription: "majordome.removePushSubscription",
+  majordomeSendTestPush: "majordome.sendTestPush",
+  majordomeGetPhoneSetup: "majordome.getPhoneSetup",
+  majordomeEnableSecureAddress: "majordome.enableSecureAddress",
   majordomeListVaultHistory: "majordome.listVaultHistory",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
   majordomeRunRoutinesHere: "majordome.runRoutinesHere",
+  majordomeGetBackupStatus: "majordome.getBackupStatus",
+  majordomeBackUpNow: "majordome.backUpNow",
+  majordomeConfigureBackup: "majordome.configureBackup",
+  majordomeConnectGitHubStart: "majordome.connectGitHubStart",
+  majordomeConnectGitHubWait: "majordome.connectGitHubWait",
+  majordomeConnectGitHubCancel: "majordome.connectGitHubCancel",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2117,6 +2142,39 @@ const WsSubscribeResourceTelemetryRpc = Rpc.make(WS_METHODS.subscribeResourceTel
   stream: true,
 });
 
+const WsMajordomeGetPushConfigRpc = Rpc.make(WS_METHODS.majordomeGetPushConfig, {
+  payload: Schema.Struct({}),
+  success: MajordomePushConfig,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeSavePushSubscriptionRpc = Rpc.make(WS_METHODS.majordomeSavePushSubscription, {
+  payload: MajordomeSavePushSubscriptionInput,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeRemovePushSubscriptionRpc = Rpc.make(WS_METHODS.majordomeRemovePushSubscription, {
+  payload: MajordomePushEndpointInput,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeSendTestPushRpc = Rpc.make(WS_METHODS.majordomeSendTestPush, {
+  payload: MajordomePushEndpointInput,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeGetPhoneSetupRpc = Rpc.make(WS_METHODS.majordomeGetPhoneSetup, {
+  payload: Schema.Struct({}),
+  success: MajordomePhoneSetup,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeEnableSecureAddressRpc = Rpc.make(WS_METHODS.majordomeEnableSecureAddress, {
+  payload: Schema.Struct({}),
+  success: MajordomePhoneSetup,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListVaultHistoryRpc = Rpc.make(WS_METHODS.majordomeListVaultHistory, {
   payload: MajordomeVaultHistoryInput,
   success: MajordomeVaultHistoryResult,
@@ -2131,6 +2189,41 @@ const WsMajordomeUndoVaultRunRpc = Rpc.make(WS_METHODS.majordomeUndoVaultRun, {
 
 const WsMajordomeRunRoutinesHereRpc = Rpc.make(WS_METHODS.majordomeRunRoutinesHere, {
   payload: MajordomeRunRoutinesHereInput,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeGetBackupStatusRpc = Rpc.make(WS_METHODS.majordomeGetBackupStatus, {
+  payload: MajordomeBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeBackUpNowRpc = Rpc.make(WS_METHODS.majordomeBackUpNow, {
+  payload: MajordomeBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeConfigureBackupRpc = Rpc.make(WS_METHODS.majordomeConfigureBackup, {
+  payload: MajordomeConfigureBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeConnectGitHubStartRpc = Rpc.make(WS_METHODS.majordomeConnectGitHubStart, {
+  payload: MajordomeBackupInput,
+  success: MajordomeGitHubConnectPrompt,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeConnectGitHubWaitRpc = Rpc.make(WS_METHODS.majordomeConnectGitHubWait, {
+  payload: MajordomeBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeConnectGitHubCancelRpc = Rpc.make(WS_METHODS.majordomeConnectGitHubCancel, {
+  payload: MajordomeBackupInput,
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
@@ -2361,7 +2454,19 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2SubscribeThreadRpc,
   WsOrchestrationV2SubscribeCommandOutputRpc,
   WsOrchestrationV2SubscribePromptSuggestionRpc,
+  WsMajordomeGetPushConfigRpc,
+  WsMajordomeSavePushSubscriptionRpc,
+  WsMajordomeRemovePushSubscriptionRpc,
+  WsMajordomeSendTestPushRpc,
+  WsMajordomeGetPhoneSetupRpc,
+  WsMajordomeEnableSecureAddressRpc,
   WsMajordomeListVaultHistoryRpc,
   WsMajordomeUndoVaultRunRpc,
   WsMajordomeRunRoutinesHereRpc,
+  WsMajordomeGetBackupStatusRpc,
+  WsMajordomeBackUpNowRpc,
+  WsMajordomeConfigureBackupRpc,
+  WsMajordomeConnectGitHubStartRpc,
+  WsMajordomeConnectGitHubWaitRpc,
+  WsMajordomeConnectGitHubCancelRpc,
 ).middleware(RpcScopeAuthorization);

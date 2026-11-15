@@ -117,7 +117,11 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.serverSignalProcess]: AuthEnvironmentMaintainScope,
   [WS_METHODS.serverReportClientActivity]: AuthOrchestrationReadScope,
   [WS_METHODS.scheduledTasksSubscribe]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeGetPushConfig]: AuthOrchestrationReadScope,
+  // Names this computer's tailnet address, as Connections settings do.
+  [WS_METHODS.majordomeGetPhoneSetup]: AuthAccessReadScope,
   [WS_METHODS.majordomeListVaultHistory]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeGetBackupStatus]: AuthOrchestrationReadScope,
   [WS_METHODS.secretsAnswerRequest]: AuthOrchestrationOperateScope,
   // Delivery logs hold request bodies, so they need the same scope as the URL.
   [WS_METHODS.scheduledTasksListWebhookDeliveries]: AuthOrchestrationOperateScope,

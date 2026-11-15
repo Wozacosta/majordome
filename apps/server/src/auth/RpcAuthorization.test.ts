@@ -4,6 +4,7 @@ import {
   AuthFilesystemReadScope,
   AuthProvidersManageScope,
   AuthSettingsWriteScope,
+  AuthAccessReadScope,
   AuthAccessWriteScope,
   DEFAULT_SERVER_SETTINGS,
   ProviderDriverKind,
@@ -52,13 +53,45 @@ describe("RPC authorization scopes", () => {
     );
   });
 
-  it("lets readers see a vault's history but keeps undoing a run and moving routines behind operate scope", () => {
-    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeListVaultHistory)).toBe(
-      AuthOrchestrationReadScope,
-    );
-    for (const method of [WS_METHODS.majordomeUndoVaultRun, WS_METHODS.majordomeRunRoutinesHere]) {
+  it("lets readers see a vault's history and backup but keeps changes behind operate scope and backup credentials behind settings scope", () => {
+    for (const method of [
+      WS_METHODS.majordomeListVaultHistory,
+      WS_METHODS.majordomeGetBackupStatus,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
+    }
+    for (const method of [
+      WS_METHODS.majordomeUndoVaultRun,
+      WS_METHODS.majordomeRunRoutinesHere,
+      WS_METHODS.majordomeBackUpNow,
+    ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }
+    for (const method of [
+      WS_METHODS.majordomeConfigureBackup,
+      WS_METHODS.majordomeConnectGitHubStart,
+      WS_METHODS.majordomeConnectGitHubWait,
+      WS_METHODS.majordomeConnectGitHubCancel,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthSettingsWriteScope);
+    }
+  });
+
+  it("keeps a device's notifications behind operate scope and the phone's secure address behind access scopes", () => {
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetPushConfig)).toBe(
+      AuthOrchestrationReadScope,
+    );
+    for (const method of [
+      WS_METHODS.majordomeSavePushSubscription,
+      WS_METHODS.majordomeRemovePushSubscription,
+      WS_METHODS.majordomeSendTestPush,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
+    }
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetPhoneSetup)).toBe(AuthAccessReadScope);
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeEnableSecureAddress)).toBe(
+      AuthAccessWriteScope,
+    );
   });
 
   it("separates passive terminal observation from operations that can change a shell", () => {

@@ -24,3 +24,13 @@ export const vaultHistoriesAtom = Atom.family((key: string) => {
     ),
   ).pipe(Atom.withLabel(`majordome:vault-histories:${key}`));
 });
+
+/** Every listed project's backup status, keyed like `vaultHistoriesAtom`. */
+export const vaultBackupStatusesAtom = Atom.family((key: string) => {
+  const refs = JSON.parse(key) as ReadonlyArray<VaultProjectRef>;
+  return Atom.make((get) =>
+    refs.map(([environmentId, projectId]) =>
+      get(majordomeEnvironment.backupStatus({ environmentId, input: { projectId } })),
+    ),
+  ).pipe(Atom.withLabel(`majordome:vault-backup-statuses:${key}`));
+});

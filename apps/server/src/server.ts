@@ -131,8 +131,12 @@ import * as KnownWorkspaces from "./workspace/KnownWorkspaces.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
+import * as MajordomePush from "./majordome/MajordomePush.ts";
+import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
+import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
+import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
 import * as VaultLock from "./majordome/VaultLock.ts";
 import * as VcsAutomaticFetchInterval from "./vcs/VcsAutomaticFetchInterval.ts";
@@ -734,6 +738,24 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     }),
   ).pipe(Layer.provideMerge(MajordomeRoutines.layer)),
   MajordomeVaultService.layer.pipe(Layer.provide(VaultLock.layer)),
+  // provideMerge keeps the backup service in the context, for the backup RPCs.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const service = yield* MajordomeBackup.MajordomeBackup;
+      yield* service.start();
+    }),
+  ).pipe(
+    Layer.provideMerge(MajordomeBackup.layer),
+    Layer.provide(ProjectionStoreV2.layer),
+    Layer.provide(VaultLock.layer),
+  ),
+  // provideMerge keeps the push service in the context, for the notification RPCs.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const service = yield* MajordomePushReactor.PushReactor;
+      yield* service.start();
+    }),
+  ).pipe(Layer.provide(MajordomePushReactor.layer), Layer.provideMerge(MajordomePush.layer)),
   ProviderUsageLimitsIngestion.layer,
   layerProviderInstallationRefresh,
   ProviderInstallation.layer,
@@ -828,6 +850,12 @@ const layerRuntimeDependencies = layerRuntimeCoreDependencies.pipe(
   Layer.provideMerge(AnalyticsService.layer.pipe(Layer.provide(ManagedPolicy.layer))),
   Layer.provideMerge(ExternalLauncher.layer),
   Layer.provideMerge(RemoteOpenTargets.layer),
+  Layer.provideMerge(
+    MajordomePhoneSetup.layer.pipe(
+      Layer.provide(layerServerEnvironment),
+      Layer.provide(ManagedPolicy.layer),
+    ),
+  ),
   Layer.provideMerge(DirectEndpoints.layer.pipe(Layer.provide(layerServerEnvironment))),
   Layer.provideMerge(ServerLifecycleEvents.layer),
   // GitVcsDriver.layer is memoized and some of its build sites live outside this file, so the

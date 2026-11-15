@@ -60,6 +60,8 @@ import {
   BugIcon,
   ChartNoAxesColumnIcon,
   NewspaperIcon,
+  SmartphoneIcon,
+  CloudUploadIcon,
   CheckIcon,
   ChevronRightIcon,
   CornerLeftUpIcon,
@@ -1711,6 +1713,26 @@ function OpenCommandPaletteDialog(props: {
       icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/feed" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:phone",
+      searchTerms: ["phone", "mobile", "notifications", "tailscale", "pair", "qr"],
+      title: "Use on your phone",
+      icon: <SmartphoneIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/phone" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:backup",
+      searchTerms: ["backup", "back up", "github", "sync", "save", "folder", "restore"],
+      title: "Back up my brain",
+      icon: <CloudUploadIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/backup" });
       },
     });
   }

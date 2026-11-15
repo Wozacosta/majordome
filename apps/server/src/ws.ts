@@ -124,8 +124,11 @@ import * as ThreadLaunchService from "./orchestration-v2/ThreadLaunchService.ts"
 import * as ThreadMessageIntake from "./orchestration-v2/ThreadMessageIntake.ts";
 import * as DocumentText from "./provider/DocumentText.ts";
 import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
+import * as MajordomePush from "./majordome/MajordomePush.ts";
+import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
+import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
 import {
@@ -1472,8 +1475,11 @@ export const layerWsRpc = (
       const commandOutputHub = yield* CommandOutputHub.CommandOutputHub;
       const providerSessionManager = yield* ProviderSessionManager.ProviderSessionManagerV2;
       const scheduledTasks = yield* ScheduledTasks.ScheduledTaskService;
+      const majordomePush = yield* MajordomePush.MajordomePush;
+      const majordomePhoneSetup = yield* MajordomePhoneSetup.PhoneSetup;
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
+      const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
       const pullRequests = yield* PullRequestService.PullRequestService;
@@ -2322,6 +2328,15 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "scheduled_task.id": input.id }).pipe(
             Effect.andThen(scheduledTasks.getWebhookDelivery(input)),
           ),
+        [WS_METHODS.majordomeGetPushConfig]: (_input) => majordomePush.getConfig(),
+        [WS_METHODS.majordomeSavePushSubscription]: (input) =>
+          majordomePush.saveSubscription(input.subscription),
+        [WS_METHODS.majordomeRemovePushSubscription]: (input) =>
+          majordomePush.removeSubscription(input.endpoint),
+        [WS_METHODS.majordomeSendTestPush]: (input) => majordomePush.sendTest(input.endpoint),
+        [WS_METHODS.majordomeGetPhoneSetup]: (_input) => majordomePhoneSetup.read(),
+        [WS_METHODS.majordomeEnableSecureAddress]: (_input) =>
+          majordomePhoneSetup.enableSecureAddress(),
         [WS_METHODS.majordomeListVaultHistory]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeVault.listHistory(input)),
@@ -2334,6 +2349,30 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeRoutines.runHere(input.projectId)),
             Effect.mapError((cause) => new MajordomeVaultError({ message: cause.message, cause })),
+          ),
+        [WS_METHODS.majordomeGetBackupStatus]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.getStatus(input)),
+          ),
+        [WS_METHODS.majordomeBackUpNow]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.backUpNow(input)),
+          ),
+        [WS_METHODS.majordomeConfigureBackup]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.configure(input)),
+          ),
+        [WS_METHODS.majordomeConnectGitHubStart]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGitHubStart(input)),
+          ),
+        [WS_METHODS.majordomeConnectGitHubWait]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGitHubWait(input)),
+          ),
+        [WS_METHODS.majordomeConnectGitHubCancel]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGitHubCancel(input)),
           ),
         [WS_METHODS.serverProbe]: (_input) => Effect.succeed({}),
         [WS_METHODS.serverGetConfig]: (_input) =>
