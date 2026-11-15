@@ -87,6 +87,16 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
   };
 }
 
+/**
+ * Saving or a chosen backup is paused or failing. "Not backed up yet" alone does not count: it is
+ * a choice still to make, and a mark that never goes away teaches people to ignore it.
+ */
+export function backupNeedsAttention(status: MajordomeBackupStatus): boolean {
+  if (status.paused !== null || status.saveError !== null) return true;
+  const chosen = status.remote?.syncing === true || status.folder !== null || status.drive !== null;
+  return chosen && backupHeadline(status).tone === "warning";
+}
+
 const MIN_PASSPHRASE_LENGTH = 8;
 
 /** Why the folder or passphrase form can't go on yet, or null when it can. */

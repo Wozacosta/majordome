@@ -13,7 +13,7 @@ import { cn } from "../../lib/utils";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
-import { backupHeadline } from "./backup.logic";
+import { backupNeedsAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 
 type NavPath = "/feed" | "/settings/scheduled-tasks" | "/backup" | "/phone";
@@ -94,7 +94,7 @@ function useFeedHint(): NavHint | null {
   return null;
 }
 
-/** A dot on "Back up my brain" when saving or backing up is paused or failing. */
+/** A dot on "Back up my brain" when saving or a chosen backup is paused or failing. */
 function useBackupHint(): NavHint | null {
   const projects = useVaultProjects();
   const results = useAtomValue(
@@ -104,7 +104,7 @@ function useBackupHint(): NavHint | null {
   );
   const needsAttention = results.some((result) => {
     const status = AsyncResult.getOrElse(result, () => null);
-    return status?.isVault === true && backupHeadline(status).tone === "warning";
+    return status?.isVault === true && backupNeedsAttention(status);
   });
   return needsAttention ? { tone: "warning", label: "Backup needs your attention" } : null;
 }

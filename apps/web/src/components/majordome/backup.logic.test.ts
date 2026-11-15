@@ -1,7 +1,12 @@
 import type { MajordomeBackupStatus } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { backupHeadline, folderFormProblem, restoreCommands } from "./backup.logic";
+import {
+  backupHeadline,
+  backupNeedsAttention,
+  folderFormProblem,
+  restoreCommands,
+} from "./backup.logic";
 
 const base: MajordomeBackupStatus = {
   isVault: true,
@@ -64,6 +69,25 @@ describe("backupHeadline", () => {
     expect(backupHeadline({ ...base, remote: remote({ syncing: false }) }).title).toBe(
       "Not backed up yet",
     );
+  });
+
+  it("flags a pause, a failed save or a failing backup, but not a backup never set up", () => {
+    expect(backupNeedsAttention(base)).toBe(false);
+    expect(backupNeedsAttention({ ...base, remote: remote({ syncing: false }) })).toBe(false);
+    expect(backupNeedsAttention({ ...base, remote: remote({}) })).toBe(false);
+    expect(
+      backupNeedsAttention({
+        ...base,
+        paused: { reason: "secret", files: ["keys.md"], since: "2026-11-15T00:00:00Z" },
+      }),
+    ).toBe(true);
+    expect(backupNeedsAttention({ ...base, saveError: "Disk full." })).toBe(true);
+    expect(
+      backupNeedsAttention({
+        ...base,
+        remote: remote({ backedUp: false, lastError: "Couldn't reach GitHub." }),
+      }),
+    ).toBe(true);
   });
 
   it("names Google Drive, and says plainly when a Drive copy failed", () => {
