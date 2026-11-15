@@ -37,12 +37,24 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
 ## Servers and sync
 
+- **One server owns everything by default.** The vault, its history, big files and sensitive
+  documents live on one Majordome server; the desktop app and the phone are windows onto it, so
+  most people never need sync. It runs on "this computer" by default (background service), with a
+  guided "Move to an always-on server" (one-click deploy guide to a VPS) for 24/7 routines.
+- **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
+  cloud machine. **Hosted Majordome** is a later milestone, built only when people ask: one
+  isolated machine per user, paid, after checking that running people's provider subscriptions on
+  our machines is allowed (their own API keys otherwise).
+- **No forge.** The server's vault already is the git repo. For people who edit in Obsidian on a
+  laptop, the server can expose it as a git remote (advanced).
 - **History is a local git repo, created silently.** No remote and no account by default. "Undo
   what the agent did" is a button.
 - **Back up my brain** offers two choices: connect GitHub (device sign-in, Majordome creates a private
   repo) or choose a folder (iCloud Drive, Dropbox, USB), which gets a nightly `age`-encrypted
-  `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit.
-- **Multi-machine sync is an advanced setting.** Any number of servers (Mac, VPS), auth always on.
+  `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit. Google
+  Drive comes after GitHub and folder: the same encrypted bundle, with the limited `drive.file`
+  permission (needs a Google OAuth app registration).
+- **Multi-machine sync is an advanced setting** (several servers on one vault). Any number of servers (Mac, VPS), auth always on.
   The vault syncs through a git remote. Majordome never force-pushes. When its change conflicts
   with yours, it pushes a `majordome/conflict-*` branch and the feed lets you choose.
 - **Phone access:** a home-screen web app over Tailscale with HTTPS (a `*.ts.net` address), which
@@ -129,9 +141,15 @@ takes over.
 ## Milestones
 
 1. **M1.** Fork, hide the coding UI, open a vault as the workspace, note viewer, chat with the
-   memory layers loaded, one commit per run.
-2. **M2.** Runner lease on top of scheduled tasks, inbox watcher, feed, History with "Undo this".
-3. **M3.** Phone (PWA, web push, QR pairing, guided Tailscale) and "Back up my brain".
-4. **M4.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
-5. **M5.** Dreaming, search index, Overview screen.
-6. **M6.** Multi-machine sync (advanced), session replication, conflict branches.
+   memory layers loaded, one commit per run. _Done._
+2. **M2.** Explicit runner on top of scheduled tasks, default routines, inbox watcher, feed, History
+   with "Undo this". _Done._
+3. **M3.** Phone (PWA, web push, QR pairing, guided Tailscale) and "Back up my brain" (autosave,
+   GitHub, folder), then Google Drive.
+4. **M4.** One server by default: container image, "Move to an always-on server" guide, provider
+   sign-in from the phone or desktop, big files and sensitive documents served by the server.
+5. **M5.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
+6. **M6.** Dreaming, search index, Overview screen, turn caps and daily budget.
+7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
+   Obsidian on a laptop.
+8. **Later.** Hosted Majordome, when people ask for it.
