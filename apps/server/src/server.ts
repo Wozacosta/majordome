@@ -684,6 +684,12 @@ const layerServerRestart = Layer.effect(
   }),
 );
 
+// One instance, shared by reference: the backup RPCs and "Move routines here" use the same ledger.
+const layerMajordomeBackup = MajordomeBackup.layer.pipe(
+  Layer.provide(ProjectionStoreV2.layer),
+  Layer.provide(VaultLock.layer),
+);
+
 const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   AgentAwarenessRelay.layer,
   HeldHooksWaker.layer,
@@ -739,7 +745,11 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       const service = yield* MajordomeRoutines.MajordomeRoutines;
       yield* service.start();
     }),
-  ).pipe(Layer.provideMerge(MajordomeRoutines.layer)),
+  ).pipe(
+    Layer.provideMerge(MajordomeRoutines.layer),
+    Layer.provide(layerMajordomeBackup),
+    Layer.provide(VaultLock.layer),
+  ),
   MajordomeVaultService.layer.pipe(
     Layer.provide(VaultLock.layer),
     Layer.provide(ProjectionStoreV2.layer),
@@ -751,11 +761,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       const service = yield* MajordomeBackup.MajordomeBackup;
       yield* service.start();
     }),
-  ).pipe(
-    Layer.provideMerge(MajordomeBackup.layer),
-    Layer.provide(ProjectionStoreV2.layer),
-    Layer.provide(VaultLock.layer),
-  ),
+  ).pipe(Layer.provideMerge(layerMajordomeBackup)),
   // provideMerge keeps the push service in the context, for the notification RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {

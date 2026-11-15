@@ -29,8 +29,12 @@ import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts
 import * as Scheduler from "../scheduling/Scheduler.ts";
 import * as SecretRequests from "../secrets/SecretRequests.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import * as MajordomeBackup from "./MajordomeBackup.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
+import * as VaultLock from "./VaultLock.ts";
+import { commitAll, gitIn, makeVault } from "./vaultTestRepos.ts";
 
 const settle = Effect.forEach(Array.from({ length: 50 }), () => Effect.yieldNow, {
   discard: true,
@@ -183,9 +187,7 @@ it.effect("skips a scheduled occurrence the gate refuses and fires it once allow
 
 it.effect("moves a vault's routines here and digests files dropped in its inbox", () =>
   Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const vaultRoot = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-vault-" });
-    yield* fs.makeDirectory(`${vaultRoot}/.majordome`);
+    const { root: vaultRoot, fs } = yield* makeVault();
     yield* fs.makeDirectory(`${vaultRoot}/drop`);
     yield* fs.writeFileString(
       `${vaultRoot}/.majordome/config.json`,
@@ -193,6 +195,8 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
     );
     // Another computer runs this vault's routines until they are moved here.
     yield* fs.writeFileString(`${vaultRoot}/.majordome/runner`, "env-elsewhere\n");
+    yield* commitAll(vaultRoot, "Your edits");
+    const backedUp = yield* Deferred.make<string>();
     const projectId = ProjectId.make("project-e2e");
     const vaultRow = {
       projectId,
@@ -228,7 +232,12 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
                 }),
                 Layer.mock(ServerEnvironment.ServerEnvironment)({
                   getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
+                  getDescriptor: Effect.succeed({ label: "vps" } as never),
                 }),
+                Layer.mock(MajordomeBackup.MajordomeBackup)({
+                  runCycle: (root) => Deferred.succeed(backedUp, root).pipe(Effect.asVoid),
+                }),
+                VaultLock.layer,
                 ServerSettings.ServerSettingsService.layerTest(),
                 RoutineRunLedger.layer.pipe(
                   Layer.provide(
@@ -282,6 +291,12 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         assert.equal(missing.message, "That vault was not found.");
         yield* service.runHere(projectId).pipe(withWatchBackend);
         assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-here\n");
+        // Committed and sent at once, so the other computer stops running them.
+        assert.equal(
+          yield* gitIn(vaultRoot, ["log", "-1", "--format=%an|%s"]),
+          "Majordome|majordome: Routines run on vps",
+        );
+        assert.equal(yield* Deferred.await(backedUp), vaultRoot);
         assert.equal(yield* Deferred.await(watching), `${vaultRoot}/drop`);
 
         yield* fs.writeFileString(`${vaultRoot}/drop/receipt.md`, "Paid 12 EUR\n");
@@ -295,5 +310,12 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         assert.equal(yield* Queue.take(launched), "Digest my inbox");
       }),
     );
-  }).pipe(Effect.provide(Layer.merge(SqlitePersistence.layerMemory, NodeServices.layer))),
+  }).pipe(
+    Effect.provide(
+      Layer.mergeAll(SqlitePersistence.layerMemory, GitVcsDriver.layer).pipe(
+        Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-git-" })),
+        Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
+      ),
+    ),
+  ),
 );

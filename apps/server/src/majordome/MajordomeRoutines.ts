@@ -30,12 +30,15 @@ import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
+import * as MajordomeBackup from "./MajordomeBackup.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readVaultLayout, readVaultLimits, type VaultLayout } from "./vaultConfig.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
-import { isVaultRunner, writeVaultRunner } from "./vaultRunner.ts";
+import * as VaultLock from "./VaultLock.ts";
+import { isVaultRunner, moveVaultRunner } from "./vaultRunner.ts";
 
 const RECONCILE_INTERVAL = Duration.minutes(5);
 const MISSING_INBOX_RETRY = Duration.minutes(1);
@@ -79,10 +82,15 @@ const make = Effect.gen(function* () {
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const config = yield* ServerConfig.ServerConfig;
   const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
+  const backup = yield* MajordomeBackup.MajordomeBackup;
+  const vaultLock = yield* VaultLock.VaultLock;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const services = yield* Effect.context<
-    FileSystem.FileSystem | Path.Path | ScheduledTaskService.ScheduledTaskService
+    | FileSystem.FileSystem
+    | Path.Path
+    | ScheduledTaskService.ScheduledTaskService
+    | GitVcsDriver.GitVcsDriver
   >();
   const layerScope = yield* Effect.scope;
   const ledgerPath = path.join(config.stateDir, "majordome", "routines.json");
@@ -308,10 +316,17 @@ const make = Effect.gen(function* () {
       if (Option.isNone(layout)) {
         return yield* new MajordomeRoutinesError({ message: "That project is not a vault." });
       }
-      yield* writeVaultRunner({
+      yield* vaultLock.withLock(
         vaultRoot,
-        environmentId: yield* environment.getEnvironmentId,
-      }).pipe(Effect.provide(services));
+        moveVaultRunner({
+          vaultRoot,
+          environmentId: yield* environment.getEnvironmentId,
+          serverLabel: (yield* environment.getDescriptor).label,
+        }).pipe(Effect.provide(services)),
+      );
+      // The other server runs the routines too until the move reaches it, so it is sent now. A
+      // failed send shows on the backup screen like any other.
+      yield* backup.runCycle(vaultRoot).pipe(Effect.forkIn(layerScope));
       yield* reconcile;
     },
     Effect.mapError((cause) =>

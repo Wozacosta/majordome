@@ -1,8 +1,8 @@
 /**
  * One server runs a vault's routines and inbox watcher: the one whose environment id is in
  * `.majordome/runner`, a one-line text file. A vault without one is claimed by the first server
- * that looks; the claim reaches other machines with the vault's next commit. Moving the runner is
- * explicit. There is no heartbeat and no automatic takeover.
+ * that looks; the claim travels with the next save. Moving the runner is explicit and committed
+ * at once, so it leaves before both servers run routines. No heartbeat, no automatic takeover.
  */
 
 import * as Effect from "effect/Effect";
@@ -10,7 +10,10 @@ import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import { hasUnfinishedMerge } from "./vaultAutosave.ts";
 import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
+import { MAJORDOME_AUTHOR } from "./VaultCommitReactor.ts";
 
 const RUNNER_FILENAME = "runner";
 
@@ -37,6 +40,52 @@ export const writeVaultRunner = Effect.fn("majordome.writeVaultRunner")(function
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   yield* fileSystem.writeFileString(runnerPath(path, input.vaultRoot), `${input.environmentId}\n`);
+});
+
+/**
+ * Makes this server the runner and commits only the runner file, as Majordome. True when it made
+ * a commit. A folder without git history, or in the middle of a merge, keeps the file uncommitted.
+ * Callers hold the vault's lock.
+ */
+export const moveVaultRunner = Effect.fn("majordome.moveVaultRunner")(function* (input: {
+  readonly vaultRoot: string;
+  readonly environmentId: string;
+  /** Names the server in the commit message. */
+  readonly serverLabel: string;
+}) {
+  yield* writeVaultRunner(input);
+  const git = yield* GitVcsDriver.GitVcsDriver;
+  const file = `${VAULT_CONFIG_DIRNAME}/${RUNNER_FILENAME}`;
+  const run = (args: ReadonlyArray<string>, allowNonZeroExit = false) =>
+    git.execute({
+      operation: "majordome.moveVaultRunner",
+      cwd: input.vaultRoot,
+      args,
+      allowNonZeroExit,
+      env: {
+        GIT_AUTHOR_NAME: MAJORDOME_AUTHOR.name,
+        GIT_AUTHOR_EMAIL: MAJORDOME_AUTHOR.email,
+        GIT_COMMITTER_NAME: MAJORDOME_AUTHOR.name,
+        GIT_COMMITTER_EMAIL: MAJORDOME_AUTHOR.email,
+      },
+    });
+  if ((yield* run(["rev-parse", "--verify", "--quiet", "HEAD"], true)).exitCode !== 0) return false;
+  if (yield* hasUnfinishedMerge(input.vaultRoot)) return false;
+  yield* run(["add", "--", file]);
+  if ((yield* run(["diff", "--cached", "--quiet", "--", file], true)).exitCode === 0) return false;
+  // Only this file, whatever else is staged. Unsigned and without hooks, like run commits.
+  yield* run([
+    "-c",
+    "commit.gpgsign=false",
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "--message",
+    `majordome: Routines run on ${input.serverLabel}`,
+    "--",
+    file,
+  ]);
+  return true;
 });
 
 /**
