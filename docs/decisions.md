@@ -47,8 +47,9 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
   with yours, it pushes a `majordome/conflict-*` branch and the feed lets you choose.
 - **Phone access:** QR pairing on the same Wi-Fi, and guided Tailscale setup for anywhere. A hosted
   Majordome relay waits until people ask for it (T3 Connect belongs to T3).
-- One runner lease (`.majordome/runner`, with a heartbeat) decides which server runs cron, the inbox
-  watcher and dreaming. If the runner stops answering, another server takes over.
+- **One runner, chosen explicitly.** `.majordome/runner` names the server that runs routines and the
+  inbox watcher. Moving it is one button; if it is offline, the Overview says so. No heartbeat (it
+  would commit every few minutes through git) and no automatic takeover in v1.
 - Sessions:
   - Each thread has one owner server, and only the owner writes to its event log. Every other
     server keeps a read-only copy.
@@ -73,8 +74,16 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
 ## Always-on
 
-- v1: cron routines (`/morning`, `/weekly`, dreaming) and an inbox watcher, posting to the feed. The
-  Majordome app is the main way in. Telegram, email and other channels come in v2.
+- v1: routines and an inbox watcher, posting to the feed. The Majordome app is the main way in.
+  Telegram, email and other channels come in v2.
+- **Default routines**, created when a vault is opened, on by default and editable in a Routines
+  screen: "Start my day" daily at 8:00, "Review my week" Sundays at 18:00, "Digest my inbox" when
+  files land in the inbox. Built on T3's scheduled tasks, with a turn cap each.
+- **Inbox watcher:** waits for 2 minutes without new files, then starts one run for the batch.
+- **Feed:** one screen, newest first: each routine or thread run with its status (done, failed,
+  waiting for you), the start of the agent's reply, the notes it changed and **Undo this**.
+- **Undo this** reverts that run's commit as a new commit ("Undo: …"), never rewriting history. If
+  later changes touched the same lines, it stops, says so, and leaves the vault untouched.
 - Unattended runs can read and write the vault and read the web. A shell, Tier B, and any outward
   action (sending email, posting) need approval.
 - Approvals go to a queue and send a push. With no answer they are denied after a timeout (24h).
