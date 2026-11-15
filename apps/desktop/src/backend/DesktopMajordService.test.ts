@@ -108,7 +108,7 @@ const withService = <A, E>(
     readonly service: DesktopMajordService.DesktopMajordService["Service"];
     readonly home: string;
   }) => Effect.Effect<A, E, FileSystem.FileSystem>,
-  options: { readonly isPackaged?: boolean } = {},
+  options: { readonly isPackaged?: boolean; readonly executablePath?: string } = {},
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -139,6 +139,7 @@ const withService = <A, E>(
         ),
       ),
       Effect.provideService(HostProcess.UserId, 501),
+      Effect.provideService(HostProcess.ExecutablePath, options.executablePath ?? APP),
     );
     return yield* run({ service, home });
   }).pipe(Effect.scoped, Effect.provide(NodeServices.layer));
@@ -286,7 +287,16 @@ describe("DesktopMajordService", () => {
     );
   });
 
-  it.effect("is never wanted in a development build", () => {
+  it.effect.each([
+    ["a development build", { isPackaged: false }],
+    [
+      "an app macOS runs from a temporary copy",
+      {
+        executablePath:
+          "/private/var/folders/x/AppTranslocation/1234/d/Majordome.app/Contents/MacOS/Majordome",
+      },
+    ],
+  ] as const)("is never wanted in %s", ([_name, options]) => {
     const launchd = fakeLaunchd({ loaded: false });
     return withService(
       launchd,
@@ -295,7 +305,7 @@ describe("DesktopMajordService", () => {
           assert.isFalse(service.supported);
           assert.isFalse(yield* service.wanted);
         }),
-      { isPackaged: false },
+      options,
     );
   });
 });

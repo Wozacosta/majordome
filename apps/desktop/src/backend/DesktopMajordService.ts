@@ -106,8 +106,13 @@ export const make = Effect.gen(function* () {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const uid = yield* HostProcess.UserId;
   const { path } = environment;
+  // An app opened from Downloads runs from a randomized copy that macOS removes once it quits.
+  const translocated = (yield* HostProcess.ExecutablePath).includes("/AppTranslocation/");
   const supported =
-    environment.isPackaged && environment.platform === "darwin" && uid !== undefined;
+    environment.isPackaged &&
+    environment.platform === "darwin" &&
+    uid !== undefined &&
+    !translocated;
   const launchctl = majordLaunchctl(uid ?? 0);
   const plistPath = majordLaunchAgentPath(environment.homeDirectory);
   const bootstrapPath = path.join(environment.stateDir, MAJORD_BOOTSTRAP_FILE);
