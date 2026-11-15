@@ -72,7 +72,9 @@ interface FakeRun {
 }
 
 const fakeProjections = (threads: Readonly<Record<string, ReadonlyArray<FakeRun>>>) => {
-  const runsOf = (threadId: ThreadId) => {
+  const runsOf = (
+    threadId: ThreadId,
+  ): Effect.Effect<ReadonlyArray<FakeRun>, ProjectionStore.ProjectionStoreThreadNotFoundError> => {
     const runs = threads[threadId];
     return runs === undefined
       ? Effect.fail(new ProjectionStore.ProjectionStoreThreadNotFoundError({ threadId }))
