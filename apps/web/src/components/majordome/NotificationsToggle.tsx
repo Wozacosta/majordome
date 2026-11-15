@@ -29,6 +29,16 @@ export const SUPPORT_COPY: Record<Exclude<DevicePushSupport, "supported">, strin
   unsupported: "This browser can't show Majordome's notifications.",
 };
 
+/** Marks the switch busy around `work`. Kept outside hooks: React Compiler can't compile `finally`. */
+async function whileBusy(setBusy: (busy: boolean) => void, work: () => Promise<void>) {
+  setBusy(true);
+  try {
+    await work();
+  } finally {
+    setBusy(false);
+  }
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -72,39 +82,37 @@ export function useDevicePush(environmentId: EnvironmentId, supported: boolean) 
 
   const turnOn = async () => {
     if (publicKey === null) return;
-    setBusy(true);
-    try {
-      const subscription = await subscribeDevice(publicKey);
-      const label = readDeviceLabel();
-      const result = await save({
-        environmentId,
-        input: { subscription, ...(label === undefined ? {} : { label }) },
-      });
-      if (result._tag === "Failure") {
-        if (!isAtomCommandInterrupted(result)) {
-          fail("Could not turn on notifications", squashAtomCommandFailure(result));
+    await whileBusy(setBusy, async () => {
+      try {
+        const subscription = await subscribeDevice(publicKey);
+        const label = readDeviceLabel();
+        const result = await save({
+          environmentId,
+          input: { subscription, ...(label === undefined ? {} : { label }) },
+        });
+        if (result._tag === "Failure") {
+          if (!isAtomCommandInterrupted(result)) {
+            fail("Could not turn on notifications", squashAtomCommandFailure(result));
+          }
+          return;
         }
-        return;
+        setEndpoint(subscription.endpoint);
+      } catch (error) {
+        fail("Could not turn on notifications", error);
       }
-      setEndpoint(subscription.endpoint);
-    } catch (error) {
-      fail("Could not turn on notifications", error);
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const turnOff = async () => {
-    setBusy(true);
-    try {
-      const removed = await unsubscribeDevice();
-      if (removed !== null) await remove({ environmentId, input: { endpoint: removed } });
-      setEndpoint(null);
-    } catch (error) {
-      fail("Could not turn off notifications", error);
-    } finally {
-      setBusy(false);
-    }
+    await whileBusy(setBusy, async () => {
+      try {
+        const removed = await unsubscribeDevice();
+        if (removed !== null) await remove({ environmentId, input: { endpoint: removed } });
+        setEndpoint(null);
+      } catch (error) {
+        fail("Could not turn off notifications", error);
+      }
+    });
   };
 
   const test = async () => {
