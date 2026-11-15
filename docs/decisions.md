@@ -2,6 +2,11 @@
 
 Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
+**Brand.** Majordome is the product. `majord` is its always-on process, in the Unix daemon tradition
+(launchd, systemd, sshd): the CLI command, the launchd and systemd service names and the log prefix.
+The icon is a cloche, the butler's serving dome ("dome" is in the name), whose knob is a green status
+light; the wordmark can show the daemon inside the name: **majord**ome.
+
 ## Product
 
 - A public, open-source second brain and always-on agent app. A hard fork of T3 Code (MIT, T3's
