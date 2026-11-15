@@ -66,8 +66,13 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   iPhone web push needs. Majordome guides the Tailscale setup once and shows a QR code. Same-Wi-Fi
   QR pairing stays as a fallback without notifications. A hosted Majordome relay waits until
   people ask for it (T3 Connect belongs to T3).
-- **Push notifications, only three kinds:** a run is waiting for you, "Start my day" finished (its
-  first line), a run couldn't finish.
+- **Push notifications, only four kinds:** a run is waiting for you, "Start my day" finished (its
+  first line), a run couldn't finish, and an agent's `notify_me` when you asked it to tell you
+  (one per thread every 30 seconds). "Notifications" lists the devices that get them; "Your
+  phone" is setup only.
+- **"Start my day" and "Review my week" run in Auto** (the provider approves routine actions and
+  asks for risky ones), or auto-accept edits where the provider or a policy ceiling has no Auto.
+  "Digest my inbox" auto-accepts edits, since it reads files from outside the vault.
 - **Your edits are saved too.** Every 5 minutes Majordome commits the owner's own edits as "Your
   edits", authored by the owner, after a gitleaks check. It replaces `brain-sync`.
 - **GitHub backup** uses a "Majordome" OAuth app with GitHub's device sign-in (public client id, no

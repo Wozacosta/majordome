@@ -88,6 +88,9 @@ import {
 import * as HtmlHandlers from "./toolkits/html/handlers.ts";
 import { MessageToolkit } from "./toolkits/message/tools.ts";
 import * as MessageHandlers from "./toolkits/message/handlers.ts";
+import { NotifyToolkit } from "./toolkits/notify/tools.ts";
+import * as NotifyHandlers from "./toolkits/notify/handlers.ts";
+import * as AgentNotify from "../majordome/AgentNotify.ts";
 import { HtmlPreviewTool, HtmlPreviewToolkit, HtmlRenderToolkit } from "./toolkits/html/tools.ts";
 import { requestUrl } from "../requestUrl.ts";
 
@@ -1258,6 +1261,10 @@ export const layerThreadToolkit = toolkitRegistration(ThreadToolkit, ThreadHandl
 
 const layerMessageToolkit = toolkitRegistration(MessageToolkit, MessageHandlers.layer);
 
+const layerNotifyToolkit = toolkitRegistration(NotifyToolkit, NotifyHandlers.layer).pipe(
+  Layer.provide(AgentNotify.layer),
+);
+
 const layerWorktreeToolkitRegistration = toolkitRegistration(
   WorktreeToolkit,
   WorktreeHandlers.layer,
@@ -1349,6 +1356,7 @@ export const layerTools = Layer.mergeAll(
   layerDeviceToolkit,
   layerHtmlToolkit,
   layerMessageToolkit,
+  layerNotifyToolkit,
 );
 
 const layerToolExposure = Layer.effect(
