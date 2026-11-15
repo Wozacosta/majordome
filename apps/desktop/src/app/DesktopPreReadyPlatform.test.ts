@@ -169,7 +169,7 @@ describe("DesktopPreReadyPlatform", () => {
         const identity = yield* Effect.promise(() => portalIdentity);
         assert.equal(identity.desktopName, "com.t3tools.T3Code.desktop");
         assert.include(identity.desktopEntry ?? "", "Exec=/Applications/current.AppImage %U");
-        assert.include(identity.desktopEntry ?? "", "Name=Majordome (Beta)");
+        assert.include(identity.desktopEntry ?? "", "Name=Majordome\n");
         assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/majordome;");
         assert.include(
           identity.desktopEntry ?? "",
