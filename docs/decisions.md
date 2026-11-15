@@ -44,8 +44,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Its real memory lives in the folder (e.g. a running `log.md`), so the chat can be compacted or
   restarted without losing anything. Topics stay forever, in the owner's order, and never settle.
   Topics are defined in the vault (`.majordome/topics.json`) so they travel with the brain.
-- **Recent** sits below Topics: one-off chats, which settle after 7 days. Any of them can become a
-  topic in one action.
+- **Recent** sits below Topics: one-off chats, which move to **Done** after 7 days. Any of them can
+  become a topic in one action. Each topic shows an icon (picked from its title, changeable) and the
+  gist of its latest message.
+- **Words.** T3's "settle" is **Done** in Majordome ("Mark as done", the Done section, "Bring
+  back"); **Archive** keeps its name and means out of sight, in Settings.
 - **First topics are suggested** once from the vault's folders; the owner accepts or skips them.
 - **No projects in the interface.** Majordome shows only vaults; with one vault there are no
   project names or badges anywhere and new chats and topics go into it. Several vaults get a small
