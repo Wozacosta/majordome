@@ -179,6 +179,7 @@ export default defineConfig({
   fmt: {
     ignorePatterns: [
       ".repos/**",
+      "packages/obrain/**",
       "infra/task-cache/vendor/**",
       // Macroscope requires one glob per line; Markdown formatting corrupts it.
       ".macroscope/ignore.md",
@@ -215,6 +216,8 @@ export default defineConfig({
     ignorePatterns: [
       ".repos",
       ".repos/**",
+      // obrain is a plain Node CLI with its own conventions and node:test suite.
+      "packages/obrain/**",
       "infra/task-cache/vendor/**",
       "dist",
       "dist-electron",
