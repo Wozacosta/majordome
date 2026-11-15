@@ -14,9 +14,10 @@ export function MakeTopicAction(props: {
   readonly threadId: ThreadId;
   readonly title: string;
 }) {
-  const { vaults } = useMajordomeVaults();
+  // The chat's own server's copy: the topic is made where the chat is.
+  const { copies } = useMajordomeVaults();
   const [open, setOpen] = useState(false);
-  const vault = vaults.find(
+  const vault = copies.find(
     (candidate) =>
       candidate.environmentId === props.environmentId && candidate.projectId === props.projectId,
   );

@@ -11,10 +11,11 @@ import type { FeedVault } from "./feed.logic";
 /** The feed's one line about a vault's backup, linking to "Back up my brain". */
 export function BackupStatusLine({
   vault,
-  showVaultName,
+  label,
 }: {
   readonly vault: FeedVault;
-  readonly showVaultName: boolean;
+  /** The brain or machine the line is about, when several are listed. */
+  readonly label: string | null;
 }) {
   const result = useAtomValue(
     majordomeEnvironment.backupStatus({
@@ -40,7 +41,7 @@ export function BackupStatusLine({
         aria-hidden
       />
       <span className="min-w-0 flex-1 truncate">
-        {showVaultName ? `${vault.title}: ` : ""}
+        {label === null ? "" : `${label}: `}
         {headline.title}
       </span>
     </Link>

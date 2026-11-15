@@ -32,7 +32,11 @@ import { createContext, useContext, useState } from "react";
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
-import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
+import {
+  majordomeEnvironment,
+  vaultBackupStatusesAtom,
+  vaultHistoriesAtom,
+} from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -80,7 +84,16 @@ import {
   stoppedRunKeys,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
+import {
+  copyLabel,
+  groupBrains,
+  machineInSentence,
+  routinesMachine,
+  runnerCopy,
+  statusBrainId,
+} from "./brains.logic";
 import { notesLink } from "./notes.logic";
+import { useMachineNames } from "./useMachineNames";
 
 interface FeedVaultState extends FeedVault {
   readonly routinesRunner: MajordomeRoutinesRunner;
@@ -97,24 +110,25 @@ export function FeedPage() {
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
 
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
-  const results = useAtomValue(
-    vaultHistoriesAtom(
-      JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
-    ),
-  );
+  const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
+  const results = useAtomValue(vaultHistoriesAtom(key));
+  // The backup status says which brain each copy is.
+  const statuses = useAtomValue(vaultBackupStatusesAtom(key));
+  const { primaryEnvironmentId, machineOf } = useMachineNames();
 
   const threads = useQuietThreadShells();
-  const vaults: Array<FeedVaultState> = [];
-  const histories: Array<{
-    vault: FeedVault;
-    entries: MajordomeVaultHistoryResult["entries"];
-  }> = [];
-  const vaultNotes = new Map<string, FeedVaultNotes>();
+  const copies: Array<
+    FeedVaultState & {
+      readonly brainId: string | null;
+      readonly history: MajordomeVaultHistoryResult;
+    }
+  > = [];
   const errors: Array<string> = [];
   let loading = false;
   projects.forEach((project, index) => {
     const result = results[index];
-    if (result === undefined || result._tag === "Initial") {
+    const brainId = statusBrainId(statuses[index]);
+    if (result === undefined || result._tag === "Initial" || brainId === undefined) {
       loading = true;
       return;
     }
@@ -123,27 +137,49 @@ export function FeedPage() {
     }
     const history = AsyncResult.getOrElse(result, () => null);
     if (history?.isVault) {
-      const vault = {
+      copies.push({
         environmentId: project.environmentId,
         projectId: project.id,
         title: project.title,
-      };
-      vaults.push({
-        ...vault,
+        brainId,
         routinesRunner: history.routinesRunner,
         pausedRunsPerDay: history.pausedToday ? (history.routineLimits?.runsPerDay ?? null) : null,
         stoppedRuns: history.stoppedRuns ?? [],
+        history,
       });
-      histories.push({ vault, entries: history.entries });
-      vaultNotes.set(vaultKey(vault), feedVaultNotes(history));
     }
   });
+  const brains = groupBrains(copies, primaryEnvironmentId).map((brain) => {
+    const several = brain.copies.length > 1;
+    const [own] = brain.copies;
+    return {
+      key: brain.key,
+      runner: runnerCopy(brain),
+      runsOn: routinesMachine(brain, machineOf),
+      moveTo: own.routinesRunner === "this-server" ? null : own,
+      copies: brain.copies.map((copy) => ({
+        ...copy,
+        brainKey: brain.key,
+        machine: several ? machineOf(copy.environmentId) : null,
+      })),
+    };
+  });
+  const vaults = brains.flatMap((brain) => brain.copies);
+  const vaultNotes = new Map(
+    vaults.map((vault) => [vaultKey(vault), feedVaultNotes(vault.history)]),
+  );
   const runItems = buildFeedRunItems(threads, vaults, stoppedRunKeys(vaults));
-  const changes = buildFeedItems(histories, { includeOwnChanges: true });
+  const changes = buildFeedItems(
+    vaults.map((vault) => ({ vault, entries: vault.history.entries })),
+    {
+      includeOwnChanges: true,
+      knownThreads: new Set(threads.map((thread) => `${thread.environmentId}:${thread.id}`)),
+    },
+  );
   const timeline = includeOwnChanges ? null : foldOwnChanges(changes);
   const grouped = includeOwnChanges ? groupFeedItems(changes) : null;
   const itemCount = timeline?.length ?? grouped?.length ?? 0;
-  const showVaultName = histories.length > 1;
+  const showVaultName = brains.length > 1;
   const renderChange = (item: FeedItem) =>
     item.entry.byMajordome ? (
       <FeedRunCard
@@ -183,21 +219,27 @@ export function FeedPage() {
                   {error}
                 </p>
               ))}
-              {vaults.length > 0 ? (
+              {brains.length > 0 ? (
                 <div className="mb-3 flex flex-col gap-1" aria-label="Routines">
-                  {vaults.map((vault) => (
+                  {brains.map((brain) => (
                     <RoutinesRunnerLine
-                      key={`${vault.environmentId}:${vault.projectId}`}
-                      vault={vault}
-                      showVaultName={vaults.length > 1}
-                      onMove={() => setPendingMove(vault)}
+                      key={brain.key}
+                      runner={brain.runner}
+                      runsOn={brain.runsOn}
+                      moveTo={brain.moveTo}
+                      title={showVaultName ? brain.runner.title : null}
+                      onMove={setPendingMove}
                     />
                   ))}
                   {vaults.map((vault) => (
                     <BackupStatusLine
                       key={`backup:${vault.environmentId}:${vault.projectId}`}
                       vault={vault}
-                      showVaultName={vaults.length > 1}
+                      label={copyLabel({
+                        title: vault.title,
+                        machine: vault.machine,
+                        severalBrains: showVaultName,
+                      })}
                     />
                   ))}
                 </div>
@@ -243,7 +285,7 @@ export function FeedPage() {
                 </ul>
               ) : runItems.length > 0 ? null : loading ? (
                 <FeedSkeleton />
-              ) : histories.length === 0 ? (
+              ) : vaults.length === 0 ? (
                 <FeedEmpty
                   title="No notes folder yet"
                   description="Open your notes folder in Majordome. Everything it changes there will show up here."
@@ -285,6 +327,7 @@ function FeedRow({
     entry.byMajordome ? "Majordome" : entry.authorName,
     formatRelativeTimeLabel(entry.committedAt, nowMs),
     item.ownerEdit?.host ? `on ${item.ownerEdit.host}` : null,
+    item.machine ? `on ${machineInSentence(item.machine)}` : null,
     showVaultName ? item.vault.title : null,
   ].filter((part) => part !== null && part !== "");
 
@@ -486,6 +529,7 @@ function FeedRunCard({
           : MessageSquareIcon;
   const meta = [
     formatRelativeTimeLabel(entry.committedAt, nowMs),
+    item.machine ? `on ${machineInSentence(item.machine)}` : null,
     showVaultName ? item.vault.title : null,
   ].filter((part) => part !== null && part !== "");
   const undoable = !item.undone && canUndo;
@@ -677,7 +721,11 @@ function FeedRunRow({
   readonly showVaultName: boolean;
 }) {
   const Icon = item.status === "waiting" ? HandIcon : CircleAlertIcon;
-  const meta = [formatRelativeTimeLabel(item.at, nowMs), showVaultName ? item.vault.title : null]
+  const meta = [
+    formatRelativeTimeLabel(item.at, nowMs),
+    item.vault.machine ? `on ${machineInSentence(item.vault.machine)}` : null,
+    showVaultName ? item.vault.title : null,
+  ]
     .filter((part) => part !== null && part !== "")
     .join(" · ");
   return (
@@ -714,37 +762,48 @@ const RUNNER_COPY: Record<MajordomeRoutinesRunner, string> = {
   none: "Routines don't run on any computer yet",
 };
 
+/**
+ * One line per brain about its routines. `runner` is the copy on the server that runs them (or
+ * the brain's first copy); "Move routines here" moves them to `moveTo`, the window's own copy.
+ */
 function RoutinesRunnerLine({
-  vault,
-  showVaultName,
+  runner,
+  runsOn,
+  moveTo,
+  title,
   onMove,
 }: {
-  readonly vault: FeedVaultState;
-  readonly showVaultName: boolean;
-  readonly onMove: () => void;
+  readonly runner: FeedVaultState;
+  /** The runner's name, when the brain is on several servers. */
+  readonly runsOn: string | null;
+  readonly moveTo: FeedVaultState | null;
+  readonly title: string | null;
+  readonly onMove: (vault: FeedVaultState) => void;
 }) {
   const canMove = useAtomValue(
-    majordomeEnvironment.runRoutinesHere.permissionAtom(vault.environmentId),
+    majordomeEnvironment.runRoutinesHere.permissionAtom((moveTo ?? runner).environmentId),
   );
   return (
     <div
       className="flex min-h-7 items-center gap-2 px-3 text-xs text-muted-foreground"
-      data-routines-runner={vault.routinesRunner}
+      data-routines-runner={runner.routinesRunner}
     >
       <CalendarClockIcon className="size-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 truncate">
-        {showVaultName ? `${vault.title}: ` : ""}
-        {vault.pausedRunsPerDay !== null
-          ? `Routines are paused until tomorrow: they used today's ${vault.pausedRunsPerDay} runs`
-          : RUNNER_COPY[vault.routinesRunner]}
+        {title === null ? "" : `${title}: `}
+        {runner.pausedRunsPerDay !== null
+          ? `Routines are paused until tomorrow: they used today's ${runner.pausedRunsPerDay} runs`
+          : runsOn !== null
+            ? `Routines run on ${machineInSentence(runsOn)}`
+            : RUNNER_COPY[runner.routinesRunner]}
       </span>
-      {vault.pausedRunsPerDay !== null ? (
+      {runner.pausedRunsPerDay !== null ? (
         <Button size="xs" variant="outline" render={<Link to="/settings/scheduled-tasks" />}>
           Change limits
         </Button>
       ) : null}
-      {vault.routinesRunner !== "this-server" && canMove ? (
-        <Button size="xs" variant="outline" onClick={onMove}>
+      {moveTo !== null && canMove ? (
+        <Button size="xs" variant="outline" onClick={() => onMove(moveTo)}>
           Move routines here
         </Button>
       ) : null}

@@ -168,6 +168,8 @@ describe("brainBox", () => {
       ["Start my day", "Next tomorrow at 8:00"],
     ]);
     expect(box.tone).toBe("ok");
+    const shared = brainBox({ ...base, runner: "another-server", runsOn: "Always-on server" });
+    expect(shared.lines[1]?.text).toBe("Routines run on Always-on server");
   });
 
   it("matches the Feed's dot: orange when a run waits, red when one couldn't finish", () => {

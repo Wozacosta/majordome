@@ -3,12 +3,23 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId, MajordomeRoutineLimits, ProjectId } from "@t3tools/contracts";
+import type {
+  EnvironmentId,
+  MajordomeRoutineLimits,
+  MajordomeRoutinesRunner,
+  ProjectId,
+} from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
 
 import { useProjects } from "../../state/entities";
-import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
+import { usePrimaryEnvironmentId } from "../../state/environments";
+import {
+  majordomeEnvironment,
+  vaultBackupStatusesAtom,
+  vaultHistoriesAtom,
+} from "../../state/majordome";
+import { groupBrains, runnerCopy, statusBrainId } from "./brains.logic";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -34,23 +45,33 @@ function parseLimit(draft: string, max: number): number | null {
 /** The limits on unattended runs of each vault, on the Routines screen. */
 export function RoutineLimitsSection() {
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
-  const results = useAtomValue(
-    vaultHistoriesAtom(
-      JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
-    ),
-  );
-  const vaults: Array<LimitsVault> = [];
+  const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
+  const results = useAtomValue(vaultHistoriesAtom(key));
+  // The backup status says which brain each copy is.
+  const statuses = useAtomValue(vaultBackupStatusesAtom(key));
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const copies: Array<
+    LimitsVault & {
+      readonly brainId: string | null;
+      readonly routinesRunner: MajordomeRoutinesRunner;
+    }
+  > = [];
   projects.forEach((project, index) => {
     const result = results[index];
     const history = result === undefined ? null : AsyncResult.getOrElse(result, () => null);
-    if (!history?.isVault || history.routineLimits === undefined) return;
-    vaults.push({
+    const brainId = statusBrainId(statuses[index]);
+    if (!history?.isVault || history.routineLimits === undefined || brainId === undefined) return;
+    copies.push({
       environmentId: project.environmentId,
       projectId: project.id,
       title: project.title,
       limits: history.routineLimits,
+      brainId,
+      routinesRunner: history.routinesRunner,
     });
   });
+  // The limits live in the brain's notes, so each brain shows once, from the server that runs it.
+  const vaults = groupBrains(copies, primaryEnvironmentId).map(runnerCopy);
   if (vaults.length === 0) return null;
 
   return (
