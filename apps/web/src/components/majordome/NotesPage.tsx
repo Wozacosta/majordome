@@ -88,15 +88,15 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
       : null;
   const revision = useVaultRevision(vault);
 
-  const open = (next: { vault: NotesVault; path?: string | undefined }) =>
-    void navigate({
-      ...notesLink({
-        projectId: next.vault.projectId,
-        environmentId: vaults.length > 1 ? next.vault.environmentId : undefined,
-        path: next.path,
-        from: search.from,
-      }),
+  const linkTo = (next: { vault: NotesVault; path?: string | undefined }) =>
+    notesLink({
+      projectId: next.vault.projectId,
+      environmentId: vaults.length > 1 ? next.vault.environmentId : undefined,
+      path: next.path,
+      from: search.from,
     });
+  const open = (next: { vault: NotesVault; path?: string | undefined }) =>
+    void navigate(linkTo(next));
 
   const showNote = vault !== null && path !== null;
   const returnScreen = search.from === undefined ? null : NOTES_RETURN_SCREENS[search.from];
@@ -173,7 +173,7 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                 path={path}
                 revision={revision}
                 showTitle={!isPhone}
-                onOpenNote={(target) => open({ vault, path: target })}
+                noteLink={(target) => linkTo({ vault, path: target })}
               />
             ) : null}
             {showTree ? (

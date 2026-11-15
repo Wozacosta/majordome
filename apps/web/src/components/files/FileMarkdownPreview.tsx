@@ -1,6 +1,7 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
+import type { ReactNode } from "react";
 
-import ChatMarkdown from "~/components/ChatMarkdown";
+import ChatMarkdown, { type ChatMarkdownContextReference } from "~/components/ChatMarkdown";
 import { resolvePathLinkTarget } from "@t3tools/shared/fileLinks";
 import { maskMarkdownFrontmatter } from "@t3tools/shared/markdownFrontmatter";
 
@@ -12,6 +13,9 @@ export function FileMarkdownPreview(props: {
   readonly workspaceMutationId: string | null;
   readonly onTaskListChange?:
     | ((input: { readonly markerOffset: number; readonly checked: boolean }) => void)
+    | undefined;
+  readonly renderContextReference?:
+    | ((reference: ChatMarkdownContextReference) => ReactNode)
     | undefined;
 }) {
   const lastSeparator = Math.max(
@@ -32,6 +36,7 @@ export function FileMarkdownPreview(props: {
       workspaceMutationId={props.workspaceMutationId}
       className="mx-auto max-w-4xl px-6 py-5"
       onTaskListChange={props.onTaskListChange}
+      renderContextReference={props.renderContextReference}
     />
   );
 }

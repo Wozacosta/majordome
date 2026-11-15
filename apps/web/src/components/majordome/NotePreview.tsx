@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { type EnvironmentId, type ProjectEntry, ThreadId } from "@t3tools/contracts";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 
@@ -10,15 +11,16 @@ import { FileMarkdownPreview } from "../files/FileMarkdownPreview";
 import { FILE_SURFACE_SUBHEADER_CLASS, FileSurfaceLoading } from "../files/fileSurfaceChrome";
 import { PreviewImage } from "../files/PreviewImage";
 import { useProjectFileQuery } from "../files/projectFilesQueryState";
+import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { Spinner } from "../ui/spinner";
+import { type notesLink, noteKind, type NotesVault, vaultLinkTarget } from "./notes.logic";
 import {
-  noteKind,
-  type NotesVault,
-  pickWikiEmbedPath,
-  rewriteWikiImageEmbeds,
-  vaultLinkTarget,
-  wikiImageEmbeds,
-} from "./notes.logic";
+  resolveWikiTarget,
+  rewriteWikiLinks,
+  WIKI_LINK_KIND,
+  wikiLinkTargets,
+  wikiSearchName,
+} from "./wikiLinks.logic";
 
 const WorkspaceBrowserPreview = lazy(() =>
   import("../files/FilePreviewPanel").then((module) => ({
@@ -37,6 +39,8 @@ function absoluteVaultPath(vault: NotesVault, path: string): string {
   return `${vault.workspaceRoot.replace(/[\\/]+$/, "")}/${path}`;
 }
 
+type NoteLink = (path: string) => ReturnType<typeof notesLink>;
+
 /**
  * One note, image or document from the vault, shown as it reads; nothing here edits it. A new
  * `revision` (the vault changed on disk) reads a note or text file again.
@@ -46,13 +50,13 @@ export function NotePreview({
   path,
   revision,
   showTitle,
-  onOpenNote,
+  noteLink,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly revision: string | null;
   readonly showTitle: boolean;
-  readonly onOpenNote: (path: string) => void;
+  readonly noteLink: NoteLink;
 }) {
   const kind = noteKind(path);
   const parts = path.split("/");
@@ -67,7 +71,7 @@ export function NotePreview({
         </div>
       ) : null}
       {kind === "markdown" ? (
-        <MarkdownNote vault={vault} path={path} revision={revision} onOpenNote={onOpenNote} />
+        <MarkdownNote vault={vault} path={path} revision={revision} noteLink={noteLink} />
       ) : kind === "image" ? (
         <ImageNote vault={vault} path={path} />
       ) : kind === "pdf" ? (
@@ -97,8 +101,8 @@ function Centered({ children }: { readonly children: ReactNode }) {
   );
 }
 
-/** Each bare `![[image.png]]` name's vault search, keyed by `JSON.stringify([env, root, names])`. */
-const embedSearchesAtom = Atom.family((key: string) => {
+/** Each wiki link name's vault search, keyed by `JSON.stringify([env, root, names])`. */
+const wikiSearchesAtom = Atom.family((key: string) => {
   const [environmentId, cwd, names] = JSON.parse(key) as [
     EnvironmentId,
     string,
@@ -116,33 +120,57 @@ const embedSearchesAtom = Atom.family((key: string) => {
         () => null,
       ),
     ),
-  ).pipe(Atom.withLabel(`majordome:notes-embed-searches:${key}`));
+  ).pipe(Atom.withLabel(`majordome:notes-wiki-searches:${key}`));
 });
 
 function MarkdownNote({
   vault,
   path,
   revision,
-  onOpenNote,
+  noteLink,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly revision: string | null;
-  readonly onOpenNote: (path: string) => void;
+  readonly noteLink: NoteLink;
 }) {
+  const navigate = useNavigate();
   const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
   const text = file.data?.contents ?? "";
-  const bareNames = wikiImageEmbeds(text).filter((name) => !name.includes("/"));
+  const targets = wikiLinkTargets(text);
+  const names = [...new Set(targets.map(wikiSearchName))];
   const searches = useAtomValue(
-    embedSearchesAtom(JSON.stringify([vault.environmentId, vault.workspaceRoot, bareNames])),
+    wikiSearchesAtom(JSON.stringify([vault.environmentId, vault.workspaceRoot, names])),
   );
   const foundByName = new Map<string, ReadonlyArray<ProjectEntry>>(
-    bareNames.map((name, index) => [name, searches[index]?.entries ?? []]),
+    names.flatMap((name, index) => {
+      const found = searches[index];
+      return found ? [[name, found.entries] as const] : [];
+    }),
   );
-  const rendered = rewriteWikiImageEmbeds(text, (name) => {
-    const found = pickWikiEmbedPath(name, foundByName.get(name) ?? []);
-    return found === null ? null : absoluteVaultPath(vault, found);
+  // Undefined while the name's search is still out.
+  const resolve = (target: string) => {
+    const entries = foundByName.get(wikiSearchName(target));
+    return entries === undefined ? undefined : resolveWikiTarget(target, entries);
+  };
+  const rendered = rewriteWikiLinks(text, (target) => {
+    const found = resolve(target);
+    return typeof found === "string" ? absoluteVaultPath(vault, found) : found;
   });
+
+  const renderWikiLink = ({ kind, contextId, label }: ChatMarkdownContextReference) => {
+    const target = kind === WIKI_LINK_KIND ? targets[Number(contextId)] : undefined;
+    const found = target === undefined ? undefined : resolve(target);
+    if (typeof found === "string") return <Link {...noteLink(found)}>{label}</Link>;
+    if (found === null) {
+      return (
+        <span className="text-muted-foreground underline decoration-dashed underline-offset-2">
+          {label}
+        </span>
+      );
+    }
+    return <span>{label}</span>;
+  };
 
   // Links between notes open here, not in the chat's file panel.
   const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
@@ -154,7 +182,7 @@ function MarkdownNote({
     if (target === null) return;
     event.preventDefault();
     event.stopPropagation();
-    onOpenNote(target);
+    void navigate(noteLink(target));
   };
 
   if (file.data === null) {
@@ -174,6 +202,7 @@ function MarkdownNote({
         text={rendered}
         threadRef={scopeThreadRef(vault.environmentId, NOTES_THREAD_ID)}
         workspaceMutationId={null}
+        renderContextReference={renderWikiLink}
       />
     </div>
   );
