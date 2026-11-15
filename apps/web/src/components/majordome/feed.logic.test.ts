@@ -21,6 +21,7 @@ import {
   foldOwnChanges,
   groupFeedItems,
   ownDayLine,
+  stoppedRunKeys,
   summarizeFeedFiles,
 } from "./feed.logic";
 
@@ -188,7 +189,9 @@ type FeedThread = Parameters<typeof buildFeedRunItems>[0][number];
 
 const thread = (
   id: string,
-  overrides: Partial<FeedThread> & { readonly run?: "failed" | "completed" | "running" } = {},
+  overrides: Partial<FeedThread> & {
+    readonly run?: "failed" | "completed" | "running" | "interrupted";
+  } = {},
 ): FeedThread => {
   const { run, ...rest } = overrides;
   const at = "2026-11-15T09:00:00.000Z";
@@ -236,7 +239,7 @@ const thread = (
 };
 
 describe("buildFeedRunItems", () => {
-  it("lists vault runs that wait on the person or failed, newest first, one per thread", () => {
+  it("lists vault runs that wait on the person, failed or ran too long, newest first, one per thread", () => {
     const vaults = [vault("Notes")];
     const items = buildFeedRunItems(
       [
@@ -272,13 +275,24 @@ describe("buildFeedRunItems", () => {
           },
         }),
         thread("code-project", { run: "failed", projectId: ProjectId.make("Code") }),
+        thread("too-long", { run: "interrupted" }),
+        // Stopped by the person, not the time limit.
+        thread("stopped-by-owner", { run: "interrupted" }),
+        thread("seen-stop", { run: "interrupted", lastVisitedAt: "2026-11-15T09:30:00.000Z" }),
       ],
       vaults,
+      stoppedRunKeys([
+        {
+          environmentId: EnvironmentId.make("env-1"),
+          stoppedRuns: [{ runId: "too-long-run" }, { runId: "seen-stop-run" }],
+        },
+      ]),
     );
     expect(items.map((item) => [item.title, item.status, item.at])).toEqual([
       ["question", "waiting", "2026-11-15T11:00:00.000Z"],
       ["approval", "waiting", "2026-11-15T10:00:01.000Z"],
       ["failed", "failed", "2026-11-15T09:00:00.000Z"],
+      ["too-long", "stopped", "2026-11-15T09:00:00.000Z"],
     ]);
     expect(items[0]?.vault).toBe(vaults[0]);
   });

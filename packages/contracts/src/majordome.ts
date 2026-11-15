@@ -38,6 +38,23 @@ export const MajordomeVaultHistoryEntry = Schema.Struct({
 });
 export type MajordomeVaultHistoryEntry = typeof MajordomeVaultHistoryEntry.Type;
 
+/** Limits on unattended runs (routines and inbox digests), kept in the vault's config. */
+export const MajordomeRoutineLimits = Schema.Struct({
+  /** A run that works longer than this is stopped. Time waiting for the owner doesn't count. */
+  runMinutes: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 24 * 60 })),
+  /** Unattended runs started per day before routines pause until the next day. */
+  runsPerDay: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 1_000 })),
+});
+export type MajordomeRoutineLimits = typeof MajordomeRoutineLimits.Type;
+
+/** A run the time limit stopped. */
+export const MajordomeStoppedRun = Schema.Struct({
+  threadId: Schema.String,
+  runId: Schema.String,
+  stoppedAt: Schema.String,
+});
+export type MajordomeStoppedRun = typeof MajordomeStoppedRun.Type;
+
 /** Which server runs the vault's routines: this one, another one, or none yet. */
 export const MajordomeRoutinesRunner = Schema.Literals(["this-server", "another-server", "none"]);
 export type MajordomeRoutinesRunner = typeof MajordomeRoutinesRunner.Type;
@@ -53,6 +70,11 @@ export const MajordomeVaultHistoryResult = Schema.Struct({
    * (null when it has none).
    */
   notes: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
+  routineLimits: Schema.optional(MajordomeRoutineLimits),
+  /** This server skipped a run today because the vault reached its runs per day. */
+  pausedToday: Schema.optional(Schema.Boolean),
+  /** Recent runs on this server that the time limit stopped, newest first. */
+  stoppedRuns: Schema.optional(Schema.Array(MajordomeStoppedRun)),
 });
 export type MajordomeVaultHistoryResult = typeof MajordomeVaultHistoryResult.Type;
 
@@ -74,6 +96,12 @@ export const MajordomeRunRoutinesHereInput = Schema.Struct({
   projectId: ProjectId,
 });
 export type MajordomeRunRoutinesHereInput = typeof MajordomeRunRoutinesHereInput.Type;
+
+export const MajordomeSetRoutineLimitsInput = Schema.Struct({
+  projectId: ProjectId,
+  limits: MajordomeRoutineLimits,
+});
+export type MajordomeSetRoutineLimitsInput = typeof MajordomeSetRoutineLimitsInput.Type;
 
 export class MajordomeVaultError extends Schema.TaggedError<MajordomeVaultError>()(
   "MajordomeVaultError",

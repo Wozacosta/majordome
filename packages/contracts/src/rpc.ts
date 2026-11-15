@@ -86,8 +86,10 @@ import {
 } from "./auth.ts";
 import { ClientActivityReportInput } from "./background.ts";
 import {
+  MajordomeRoutineLimits,
   MajordomeRunRoutinesHereInput,
   MajordomeVaultChangesInput,
+  MajordomeSetRoutineLimitsInput,
   MajordomeVaultError,
   MajordomeVaultHistoryInput,
   MajordomeVaultHistoryResult,
@@ -676,6 +678,7 @@ export const WS_METHODS = {
   majordomeSubscribeVaultChanges: "majordome.subscribeVaultChanges",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
   majordomeRunRoutinesHere: "majordome.runRoutinesHere",
+  majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
   majordomeBackUpNow: "majordome.backUpNow",
   majordomeConfigureBackup: "majordome.configureBackup",
@@ -2232,6 +2235,12 @@ const WsMajordomeRunRoutinesHereRpc = Rpc.make(WS_METHODS.majordomeRunRoutinesHe
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeSetRoutineLimitsRpc = Rpc.make(WS_METHODS.majordomeSetRoutineLimits, {
+  payload: MajordomeSetRoutineLimitsInput,
+  success: MajordomeRoutineLimits,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
   payload: MajordomeTopicsInput,
   success: MajordomeTopicsResult,
@@ -2570,6 +2579,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeSubscribeVaultChangesRpc,
   WsMajordomeUndoVaultRunRpc,
   WsMajordomeRunRoutinesHereRpc,
+  WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeGetBackupStatusRpc,
   WsMajordomeBackUpNowRpc,
   WsMajordomeConfigureBackupRpc,

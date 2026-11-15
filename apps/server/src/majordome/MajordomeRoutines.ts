@@ -32,7 +32,8 @@ import { forkParked } from "../serverActivation.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
-import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import * as RoutineRunLedger from "./RoutineRunLedger.ts";
+import { readVaultLayout, readVaultLimits, type VaultLayout } from "./vaultConfig.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
 import { isVaultRunner, writeVaultRunner } from "./vaultRunner.ts";
 
@@ -77,6 +78,7 @@ const make = Effect.gen(function* () {
   const providerInstances = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const config = yield* ServerConfig.ServerConfig;
+  const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const services = yield* Effect.context<
@@ -158,6 +160,12 @@ const make = Effect.gen(function* () {
     function* (projectId: ProjectId, vaultRoot: string) {
       // The runner may have moved since the watch started.
       if (!(yield* isRunner(vaultRoot))) return;
+      const { runsPerDay } = yield* readVaultLimits(vaultRoot).pipe(Effect.provide(services));
+      if (!(yield* runLedger.take(projectId, runsPerDay))) {
+        return yield* Effect.logInfo("Majordome's routines are paused for today; no digest.", {
+          projectId,
+        });
+      }
       const { threadId } = yield* scheduledTasks.runNow({
         id: routineTaskId(projectId, "digest-my-inbox"),
       });
@@ -319,14 +327,15 @@ const make = Effect.gen(function* () {
 export const layer = Layer.effect(MajordomeRoutines, make);
 
 /**
- * Lets a scheduled task fire only on its vault's runner. Tasks outside vaults are not affected,
- * and neither are manual runs.
+ * Lets a scheduled task fire only on its vault's runner, and only while the vault has runs left
+ * today. Tasks outside vaults are not affected, and neither are manual runs.
  */
 export const layerRunGate = Layer.effect(
   ScheduledTaskService.ScheduledTaskRunGate,
   Effect.gen(function* () {
     const projects = yield* ProjectStore.ProjectStoreV2;
     const environment = yield* ServerEnvironment.ServerEnvironment;
+    const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
     const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     return (task) =>
       Effect.gen(function* () {
@@ -334,10 +343,13 @@ export const layerRunGate = Layer.effect(
         if (Option.isNone(project)) return true;
         const vaultRoot = project.value.workspaceRoot;
         if (Option.isNone(yield* readVaultLayout(vaultRoot))) return true;
-        return yield* isVaultRunner({
+        const runner = yield* isVaultRunner({
           vaultRoot,
           environmentId: yield* environment.getEnvironmentId,
         });
+        if (!runner) return false;
+        const { runsPerDay } = yield* readVaultLimits(vaultRoot);
+        return yield* runLedger.take(task.projectId, runsPerDay);
       }).pipe(
         Effect.provide(services),
         Effect.catchCause((cause) =>
