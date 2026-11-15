@@ -239,6 +239,23 @@ describe("DesktopBackendManager", () => {
     }),
   );
 
+  it.effect("connects to the background service's server without spawning or stopping one", () =>
+    Effect.gen(function* () {
+      const instance = yield* makeTestInstance({
+        spawnerLayer: Layer.succeed(
+          ChildProcessSpawner.ChildProcessSpawner,
+          ChildProcessSpawner.make(() => Effect.die("the service's server must not be spawned")),
+        ),
+        config: { ...baseConfig, attachToService: true },
+      });
+      yield* instance.start;
+      assert.isTrue(yield* instance.waitForReady(Duration.seconds(15)));
+      // Closing the window ends only its own run; launchd keeps the server.
+      yield* instance.stop();
+      assert.isFalse((yield* instance.snapshot).desiredRunning);
+    }),
+  );
+
   it.effect("spawns the backend with fd3 bootstrap and fd4 telemetry", () =>
     Effect.gen(function* () {
       let spawnedCommand: ChildProcess.Command | undefined;

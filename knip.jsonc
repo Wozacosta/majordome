@@ -62,8 +62,12 @@
         // graphqlgen reads its config.
         "graphql.config.ts",
       ],
-      // The generated operations export every selection's class.
-      "ignoreIssues": { "**/*.graphql.ts": ["exports", "types", "namespaceMembers"] },
+      // The generated operations export every selection's class. Majordome does not register
+      // T3 Code's `update`, which installs T3 Code's releases; it stays for upstream merges.
+      "ignoreIssues": {
+        "**/*.graphql.ts": ["exports", "types", "namespaceMembers"],
+        "src/cli/update.ts": ["exports"],
+      },
       // Keep the transitive Effect runtime pinned for standalone npm installs.
       // The Vite+ web build prerequisite.
       // Native and disk-loaded provider packages stay external to the bundle; the

@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import type {
+  DesktopBackgroundServiceState,
   EnvironmentId,
   MajordomeBackupStatus,
   MajordomeRoutinesRunner,
@@ -29,14 +30,20 @@ import {
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
-import { formatRelativeTimeLabel, formatUpcomingTimestamp } from "../../timestampFormat";
+import {
+  formatDayAwareTimestamp,
+  formatRelativeTimeLabel,
+  formatUpcomingTimestamp,
+} from "../../timestampFormat";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { Skeleton } from "../ui/skeleton";
+import { BackgroundServiceToggle, useBackgroundService } from "./BackgroundServiceToggle";
 import { buildFeedRunItems } from "./feed.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { notesLink, type NotesVault } from "./notes.logic";
 import { useDevicePush } from "./NotificationsToggle";
 import {
+  backgroundRunningLine,
   backupBox,
   brainBox,
   devicesBox,
@@ -50,6 +57,7 @@ import { readDevicePushSupport } from "./pushNotifications";
 /** A live map of the setup: devices, this computer's Majordome, each brain and its backups. */
 export function OverviewPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const background = useBackgroundService();
   return (
     <MajordomeSettingsPage searchId="majordome-overview" width="expanded">
       <p className="text-sm text-muted-foreground">
@@ -58,13 +66,20 @@ export function OverviewPage() {
       {environmentId === null ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <Diagram environmentId={environmentId} />
+        <Diagram environmentId={environmentId} background={background} />
       )}
+      <BackgroundServiceToggle state={background} />
     </MajordomeSettingsPage>
   );
 }
 
-function Diagram({ environmentId }: { readonly environmentId: EnvironmentId }) {
+function Diagram({
+  environmentId,
+  background,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly background: DesktopBackgroundServiceState | null;
+}) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
@@ -90,6 +105,9 @@ function Diagram({ environmentId }: { readonly environmentId: EnvironmentId }) {
   });
   const majordome = majordomeBox({
     connected,
+    running: backgroundRunningLine(background, (iso) =>
+      formatDayAwareTimestamp(iso, timestampFormat, nowMs),
+    ),
     providers,
     phone: AsyncResult.getOrElse(phoneResult, () => null),
   });

@@ -1,10 +1,16 @@
-import type { MajordomeBackupStatus, ScheduledTask, ServerProvider } from "@t3tools/contracts";
+import type {
+  DesktopBackgroundServiceState,
+  MajordomeBackupStatus,
+  ScheduledTask,
+  ServerProvider,
+} from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   backupBox,
   brainBox,
   devicesBox,
+  backgroundRunningLine,
   majordomeBox,
   OVERVIEW_TONE_DOT_CLASS,
   type OverviewBox,
@@ -97,6 +103,37 @@ describe("majordomeBox", () => {
     expect(signedOut.tone).toBe("warning");
     expect(lineTones(signedOut)["no-ai"]).toBe("warning");
     expect(majordomeBox({ connected: false, providers: null, phone }).tone).toBe("error");
+  });
+
+  it("says whether it keeps running once the window closes", () => {
+    const since = (iso: string) => iso.slice(11, 16);
+    const background: DesktopBackgroundServiceState = {
+      supported: true,
+      enabled: true,
+      running: true,
+      runningSince: "2026-11-15T08:00:00.000Z",
+      logPath: "/Users/alice/.majordome/userdata/logs/majord.log",
+    };
+    const text = (state: DesktopBackgroundServiceState | null) => {
+      const line = backgroundRunningLine(state, since);
+      return [line.text, line.tone];
+    };
+    expect(text(background)).toEqual(["Running in the background since 08:00", "ok"]);
+    expect(text({ ...background, runningSince: null })).toEqual([
+      "Running in the background",
+      "ok",
+    ]);
+    expect(text({ ...background, running: false, runningSince: null })).toEqual([
+      "Stopped",
+      "warning",
+    ]);
+    expect(text({ ...background, enabled: false })).toEqual([
+      "Running while the window is open",
+      "neutral",
+    ]);
+    // A browser or the phone has no background service to report.
+    expect(text(null)).toEqual(["Running", "ok"]);
+    expect(text({ ...background, supported: false })).toEqual(["Running", "ok"]);
   });
 });
 

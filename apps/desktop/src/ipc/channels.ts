@@ -34,6 +34,10 @@ export const CLI_COMMAND_GET_STATE_CHANNEL = "desktop:cli-command-get-state";
 export const CLI_COMMAND_INSTALL_CHANNEL = "desktop:cli-command-install";
 export const CLI_COMMAND_UNINSTALL_CHANNEL = "desktop:cli-command-uninstall";
 export const CLI_COMMAND_ADD_TO_PATH_CHANNEL = "desktop:cli-command-add-to-path";
+export const BACKGROUND_SERVICE_GET_STATE_CHANNEL = "desktop:background-service-get-state";
+export const BACKGROUND_SERVICE_SET_ENABLED_CHANNEL = "desktop:background-service-set-enabled";
+export const BACKGROUND_SERVICE_QUIT_COMPLETELY_CHANNEL =
+  "desktop:background-service-quit-completely";
 export const GET_APP_BRANDING_CHANNEL = "desktop:get-app-branding";
 export const GET_RELAY_TELEMETRY_ENABLED_CHANNEL = "desktop:get-relay-telemetry-enabled";
 export const GET_SYSTEM_LOCALE_CHANNEL = "desktop:get-system-locale";

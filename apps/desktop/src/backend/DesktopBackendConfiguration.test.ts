@@ -16,6 +16,7 @@ import { ChildProcessSpawner } from "effect/process";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopManagedPolicy from "../app/DesktopManagedPolicy.ts";
 import * as DesktopBackendConfiguration from "./DesktopBackendConfiguration.ts";
+import * as DesktopMajordService from "./DesktopMajordService.ts";
 import * as DesktopShellEnvironment from "../shell/DesktopShellEnvironment.ts";
 import * as DesktopConfig from "../app/DesktopConfig.ts";
 import * as DesktopServerExposure from "./DesktopServerExposure.ts";
@@ -34,6 +35,7 @@ const layerShellEnvironment = (prepared = true) =>
 
 const layerBackendConfiguration = (prepared = true) =>
   DesktopBackendConfiguration.layer.pipe(
+    Layer.provide(DesktopMajordService.layerTest()),
     Layer.provide(layerShellEnvironment(prepared)),
     Layer.provide(DesktopState.layer),
   );

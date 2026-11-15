@@ -349,6 +349,17 @@ export const DesktopCliCommandStateSchema = Schema.Struct({
 });
 export type DesktopCliCommandState = typeof DesktopCliCommandStateSchema.Type;
 
+/** `majord`, the login service that keeps Majordome running with its window closed (macOS). */
+export const DesktopBackgroundServiceStateSchema = Schema.Struct({
+  supported: Schema.Boolean,
+  enabled: Schema.Boolean,
+  running: Schema.Boolean,
+  /** When the running server started, once it has said so. */
+  runningSince: Schema.NullOr(Schema.String),
+  logPath: Schema.NullOr(Schema.String),
+});
+export type DesktopBackgroundServiceState = typeof DesktopBackgroundServiceStateSchema.Type;
+
 export interface DesktopUpdateActionResult {
   accepted: boolean;
   completed: boolean;
@@ -1178,6 +1189,13 @@ export interface DesktopBridge {
     install: () => Promise<DesktopCliCommandState>;
     uninstall: () => Promise<DesktopCliCommandState>;
     addToPath: () => Promise<DesktopCliCommandState>;
+  };
+  backgroundService: {
+    getState: () => Promise<DesktopBackgroundServiceState>;
+    /** Relaunches the app, whose window then runs its own server or connects to the service. */
+    setEnabled: (enabled: boolean) => Promise<void>;
+    /** Stops the service too, then quits. */
+    quitCompletely: () => Promise<void>;
   };
   webLinks: {
     setReady: (ready: boolean) => Promise<void>;

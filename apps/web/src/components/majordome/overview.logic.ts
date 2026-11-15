@@ -1,5 +1,6 @@
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 import type {
+  DesktopBackgroundServiceState,
   MajordomeBackupStatus,
   MajordomePhoneSetup,
   MajordomePushDevice,
@@ -142,8 +143,47 @@ function providerDetail(provider: ServerProvider): string {
   return "Needs attention";
 }
 
+const RUNNING_LINE: OverviewLine = { key: "running", text: "Running", tone: "ok" };
+
+/**
+ * Whether Majordome keeps running once its window closes. Only the Mac app can tell; elsewhere
+ * (null, or unsupported) it is just running.
+ */
+export function backgroundRunningLine(
+  background: DesktopBackgroundServiceState | null,
+  formatSince: (iso: string) => string,
+): OverviewLine {
+  if (background === null || !background.supported) return RUNNING_LINE;
+  if (!background.enabled) {
+    return {
+      key: "running",
+      text: "Running while the window is open",
+      detail: "Routines stop when you close it.",
+      tone: "neutral",
+    };
+  }
+  if (!background.running) {
+    return {
+      key: "running",
+      text: "Stopped",
+      detail: "It starts again when you open Majordome or log in.",
+      tone: "warning",
+    };
+  }
+  return {
+    key: "running",
+    text:
+      background.runningSince === null
+        ? "Running in the background"
+        : `Running in the background since ${formatSince(background.runningSince)}`,
+    tone: "ok",
+  };
+}
+
 export function majordomeBox(input: {
   readonly connected: boolean;
+  /** The first line; plain "Running" unless the app knows about its background service. */
+  readonly running?: OverviewLine;
   /** Null until the server's providers are known. */
   readonly providers: ReadonlyArray<ServerProvider> | null;
   readonly phone: MajordomePhoneSetup | null;
@@ -209,7 +249,7 @@ export function majordomeBox(input: {
     key: "majordome",
     title: "Majordome on this computer",
     link: { to: "/settings/providers" },
-    lines: [{ key: "running", text: "Running", tone: "ok" }, ...providerLines, ...noAi, ...phone],
+    lines: [input.running ?? RUNNING_LINE, ...providerLines, ...noAi, ...phone],
   });
 }
 
