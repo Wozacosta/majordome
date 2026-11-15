@@ -88,7 +88,7 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
-import { isElectron } from "../env";
+import { isElectron, isMajordome } from "../env";
 import {
   resolveShortcutCommand,
   shortcutLabelForCommand,
@@ -250,6 +250,7 @@ import {
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
+import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import {
@@ -3190,6 +3191,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               activeSearchResultIndex={activeSearchResultIndex}
               onClearSearch={clearThreadSearch}
             />
+            {isMajordome ? <MajordomeSidebarNav /> : null}
           </SidebarGroup>
         }
       >
