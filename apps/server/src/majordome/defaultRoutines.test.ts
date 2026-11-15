@@ -1,7 +1,12 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { type ModelSelection, ProjectId } from "@t3tools/contracts";
+import {
+  type ModelSelection,
+  ProjectId,
+  type RuntimeMode,
+  type ScheduledTask,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -14,7 +19,7 @@ import * as ManagedProjectFolders from "../project/ManagedProjectFolders.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as Scheduler from "../scheduling/Scheduler.ts";
 import * as SecretRequests from "../secrets/SecretRequests.ts";
-import { ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
+import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
 
 const testLayer = ScheduledTaskService.layer.pipe(
   Layer.provide(
@@ -38,13 +43,39 @@ const testLayer = ScheduledTaskService.layer.pipe(
 const model: ModelSelection = { instanceId: "codex", model: "gpt-5.4" } as ModelSelection;
 const layout = { memory: "memory.md", dailyFolder: "daily", inboxFolder: "drop" };
 
-const setUp = Effect.fn("test.setUp")(function* (ledgerPath: string, projectId: ProjectId) {
+const setUp = Effect.fn("test.setUp")(function* (
+  ledgerPath: string,
+  projectId: ProjectId,
+  autoMode: RuntimeMode | null = "auto",
+) {
   return yield* ensureDefaultRoutines({
     ledgerPath,
     projectId,
     layout,
     modelSelection: Effect.succeed(model),
+    autoMode: () => Effect.succeed(autoMode),
   });
+});
+
+const setMode = Effect.fn("test.setMode")(function* (
+  task: ScheduledTask,
+  runtimeMode: RuntimeMode,
+) {
+  const service = yield* ScheduledTaskService.ScheduledTaskService;
+  yield* service.upsert({
+    ...task,
+    schedule: task.schedule.type === "webhook" ? { type: "webhook" } : task.schedule,
+    runtimeMode,
+  });
+});
+
+const modesOf = Effect.fn("test.modesOf")(function* (projectId: ProjectId) {
+  const service = yield* ScheduledTaskService.ScheduledTaskService;
+  return Object.fromEntries(
+    (yield* service.list()).tasks
+      .filter((task) => task.projectId === projectId)
+      .map((task) => [task.title, task.runtimeMode]),
+  );
 });
 
 const makeLedgerPath = Effect.fn("test.makeLedgerPath")(function* () {
@@ -71,7 +102,8 @@ it.layer(testLayer)("default routines", (it) => {
       const startMyDay = byTitle.get("Start my day");
       assert.isTrue(startMyDay?.enabled);
       assert.deepEqual(startMyDay?.schedule, { type: "fixed_time", timeOfDay: "08:00" });
-      assert.equal(startMyDay?.runtimeMode, "auto-accept-edits");
+      assert.equal(startMyDay?.runtimeMode, "auto");
+      assert.equal(byTitle.get("Review my week")?.runtimeMode, "auto");
       assert.equal(startMyDay?.threadMode, "new_thread");
       assert.equal(startMyDay?.createdBy, "system");
       assert.equal(startMyDay?.creationSource, "server");
@@ -130,10 +162,69 @@ it.layer(testLayer)("default routines", (it) => {
         projectId: otherProject,
         layout,
         modelSelection: Effect.succeed(null),
+        autoMode: () => Effect.succeed("auto"),
       });
       assert.equal(result, "no-model");
       assert.isFalse((yield* service.list()).tasks.some((task) => task.projectId === otherProject));
       assert.isFalse(yield* (yield* FileSystem.FileSystem).exists(ledgerPath));
     }),
   );
+
+  it.effect("moves routines made before Auto to Auto once, leaving the user's own modes", () =>
+    Effect.gen(function* () {
+      const projectId = ProjectId.make("project-move-to-auto");
+      const service = yield* ScheduledTaskService.ScheduledTaskService;
+      const fileSystem = yield* FileSystem.FileSystem;
+      const ledgerPath = yield* makeLedgerPath();
+      const taskFor = (key: "start-my-day" | "review-my-week") =>
+        Effect.map(service.list(), ({ tasks }) =>
+          tasks.find((task) => task.id === routineTaskId(projectId, key)),
+        );
+
+      // Routines as an earlier Majordome made them, with a ledger that predates the move.
+      assert.equal(yield* setUp(ledgerPath, projectId, "auto-accept-edits"), "created");
+      yield* fileSystem.writeFileString(ledgerPath, JSON.stringify({ projects: [projectId] }));
+      const reviewMyWeek = yield* taskFor("review-my-week");
+      assert.isDefined(reviewMyWeek);
+      yield* setMode(reviewMyWeek!, "approval-required");
+
+      // The provider isn't known yet: nothing moves, and the move waits.
+      assert.equal(yield* setUp(ledgerPath, projectId, null), "exists");
+      assert.equal((yield* modesOf(projectId))["Start my day"], "auto-accept-edits");
+
+      assert.equal(yield* setUp(ledgerPath, projectId), "exists");
+      assert.deepEqual(yield* modesOf(projectId), {
+        "Start my day": "auto",
+        "Review my week": "approval-required",
+        "Digest my inbox": "auto-accept-edits",
+      });
+
+      // Choosing the old mode again sticks.
+      const startMyDay = yield* taskFor("start-my-day");
+      yield* setMode(startMyDay!, "auto-accept-edits");
+      assert.equal(yield* setUp(ledgerPath, projectId), "exists");
+      assert.equal((yield* modesOf(projectId))["Start my day"], "auto-accept-edits");
+      const after = yield* taskFor("start-my-day");
+      assert.equal(after?.creationSource, "server");
+      assert.equal(after?.createdBy, "system");
+    }),
+  );
+
+  it("keeps routines in auto-accept edits where the provider or a ceiling has no Auto", () => {
+    assert.equal(
+      autoRoutineMode({ supportedRuntimeModes: undefined, maxRuntimeMode: undefined }),
+      "auto",
+    );
+    assert.equal(
+      autoRoutineMode({
+        supportedRuntimeModes: ["approval-required", "auto-accept-edits", "full-access"],
+        maxRuntimeMode: undefined,
+      }),
+      "auto-accept-edits",
+    );
+    assert.equal(
+      autoRoutineMode({ supportedRuntimeModes: [], maxRuntimeMode: "auto-accept-edits" }),
+      "auto-accept-edits",
+    );
+  });
 });

@@ -28,10 +28,11 @@ import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as OrchestrationEventStore from "../persistence/OrchestrationEventStore.ts";
+import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ServerSettings from "../serverSettings.ts";
-import { ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
+import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import { isVaultRunner, writeVaultRunner } from "./vaultRunner.ts";
@@ -74,6 +75,7 @@ const make = Effect.gen(function* () {
   const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
   const threads = yield* ThreadManagementService.ThreadManagementService;
   const settings = yield* ServerSettings.ServerSettingsService;
+  const providerInstances = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const config = yield* ServerConfig.ServerConfig;
   const fileSystem = yield* FileSystem.FileSystem;
@@ -109,6 +111,18 @@ const make = Effect.gen(function* () {
     Effect.orElseSucceed((): ModelSelection | null => null),
   );
 
+  /** Null while the model's provider isn't registered, so the routines' mode waits for it. */
+  const autoMode = Effect.fn("MajordomeRoutines.autoMode")(function* (
+    modelSelection: ModelSelection,
+  ) {
+    const instance = yield* providerInstances.getInstance(modelSelection.instanceId);
+    if (instance === undefined) return null;
+    return autoRoutineMode({
+      supportedRuntimeModes: (yield* instance.snapshot.getSnapshot).supportedRuntimeModes,
+      maxRuntimeMode: settings.managedPolicy?.limits?.maxRuntimeMode,
+    });
+  });
+
   const setUpRoutines = Effect.fn("MajordomeRoutines.setUpRoutines")(function* (
     project: ProjectStore.ProjectRow,
     layout: VaultLayout,
@@ -118,6 +132,7 @@ const make = Effect.gen(function* () {
       projectId: project.projectId,
       layout,
       modelSelection: chooseModel(project),
+      autoMode,
     }).pipe(Effect.provide(services));
     if (result === "created") {
       yield* Effect.logInfo("Majordome created a vault's default routines.", {
