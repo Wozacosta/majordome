@@ -144,15 +144,12 @@ export interface VaultFolder {
   readonly inRepo?: boolean;
 }
 
-/** Folder names that hold plumbing, periodic notes or old things, never a topic. */
-const NOT_TOPIC_FOLDERS = new Set([
+/** Folder names that hold files for notes, templates or periodic notes, never a topic. */
+const SYSTEM_FOLDER_NAMES = new Set([
   "attachments",
   "assets",
   "images",
   "media",
-  "archive",
-  "archives",
-  "done",
   "templates",
   "template",
   "weekly",
@@ -160,31 +157,50 @@ const NOT_TOPIC_FOLDERS = new Set([
   "node_modules",
 ]);
 
+/** Folders of old things: they can hold a topic, but none is suggested there. */
+const OLD_FOLDER_NAMES = new Set(["archive", "archives", "done"]);
+
+/**
+ * False for the vault's own folders and anything in them: dot folders, the daily notes and inbox
+ * its config names, and attachment, template and periodic-note folders (`_attachments` included).
+ */
+export function canHoldTopic(
+  folder: string,
+  layout: Pick<VaultLayout, "dailyFolder" | "inboxFolder">,
+): boolean {
+  const lower = folder.toLowerCase();
+  const isRoleFolder = [layout.dailyFolder, layout.inboxFolder].some((role) => {
+    const roleFolder = normalizeTopicFolder(role)?.toLowerCase();
+    return roleFolder !== undefined && (lower === roleFolder || lower.startsWith(`${roleFolder}/`));
+  });
+  return (
+    !isRoleFolder &&
+    !lower
+      .split("/")
+      .some(
+        (segment) => segment.startsWith(".") || SYSTEM_FOLDER_NAMES.has(segment.replace(/^_+/, "")),
+      )
+  );
+}
+
 const SUGGESTION_LIMIT = 12;
 
 /**
  * Up to twelve folders that look like topics, most recently written in first: second-level folders
- * of any area and top-level leaves. Skips daily, inbox, plumbing, code repositories, empty folders
- * and folders in `taken`.
+ * of any area and top-level leaves. Skips folders that can't hold a topic, old things, `_` folders,
+ * code repositories, empty folders and folders in `taken`.
  */
 export function suggestTopics(input: {
   readonly folders: ReadonlyArray<VaultFolder>;
   readonly layout: Pick<VaultLayout, "dailyFolder" | "inboxFolder" | "projectsFolder">;
   readonly taken: ReadonlySet<string>;
 }): ReadonlyArray<MajordomeTopicSuggestion> {
-  const skipped = new Set(
-    [input.layout.dailyFolder, input.layout.inboxFolder].map((folder) => folder.toLowerCase()),
-  );
   const isPlumbing = (folder: string) =>
+    !canHoldTopic(folder, input.layout) ||
     folder.split("/").some((segment) => {
       const name = segment.toLowerCase();
-      return (
-        NOT_TOPIC_FOLDERS.has(name) ||
-        name.startsWith("_") ||
-        name.startsWith(".") ||
-        skipped.has(name)
-      );
-    }) || skipped.has(folder.toLowerCase());
+      return OLD_FOLDER_NAMES.has(name) || name.startsWith("_");
+    });
   const usable = input.folders.filter(
     (folder) => !isPlumbing(folder.path) && !input.taken.has(folder.path) && !folder.inRepo,
   );

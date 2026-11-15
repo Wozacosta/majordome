@@ -8,6 +8,7 @@ import {
   pickActiveVault,
   placeTopic,
   selectRecentThreads,
+  selectTopicThreads,
   topicSubtitle,
   topicThreadKeys,
 } from "./topics.logic";
@@ -37,6 +38,7 @@ const thread = (id: string, projectId: ProjectId) => ({
   environmentId: env,
   id: ThreadId.make(id),
   projectId,
+  title: `Chat ${id}`,
 });
 
 describe("collectVaults", () => {
@@ -91,6 +93,14 @@ describe("selectRecentThreads", () => {
 
   it("lists nothing until a vault is known", () => {
     expect(selectRecentThreads(threads, { vault: null, topicKeys: new Set() })).toEqual([]);
+  });
+
+  it("gives search the shown vault's topic chats, under their topics' titles", () => {
+    expect(selectTopicThreads(threads, vaults[0]!)).toEqual([
+      { ...thread("topic-thread", brain.id), title: "fitness" },
+    ]);
+    expect(selectTopicThreads(threads, vaults[1]!)).toEqual([]);
+    expect(selectTopicThreads(threads, null)).toEqual([]);
   });
 });
 

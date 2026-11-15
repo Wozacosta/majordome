@@ -123,6 +123,7 @@ const setUp = Effect.fn("test.setUp")(function* (
   yield* write("projects/lisbon-move/visas.md", "# Visas\n");
   yield* write("daily/2026-11-15.md", "- Today\n");
   yield* write("inbox/scan.md", "scan\n");
+  yield* write("attachments/scan.png", "png");
   const fake = fakeThreads();
   const roots: Record<string, string> = { [vaultProject]: vault, [codeProject]: code };
   const service = yield* Effect.service(MajordomeTopics.MajordomeTopics).pipe(
@@ -182,6 +183,9 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.isTrue(first.isVault);
       assert.equal(first.projectsFolder, "projects");
       assert.includeMembers([...first.folders], ["personal/fitness", "projects/lisbon-move"]);
+      for (const folder of ["daily", "inbox", "attachments"]) {
+        assert.notInclude(first.folders, folder);
+      }
       // Order follows when the notes changed, which the test can't pin down.
       assert.sameDeepMembers(
         [...first.suggestions],
@@ -261,6 +265,10 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.equal(
         errorMessage(yield* create("personal/fitness")),
         "Another topic already uses personal/fitness.",
+      );
+      assert.equal(
+        errorMessage(yield* create("daily")),
+        "daily is for your daily notes, inbox or files, so it can't be a topic's folder.",
       );
     }),
   );

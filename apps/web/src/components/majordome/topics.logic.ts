@@ -103,6 +103,27 @@ export function selectRecentThreads<
   );
 }
 
+/** The vault's topic chats, titled as the Topics list names them, for search to find. */
+export function selectTopicThreads<
+  T extends {
+    readonly environmentId: EnvironmentId;
+    readonly id: ThreadId;
+    readonly title: string;
+  },
+>(threads: ReadonlyArray<T>, vault: MajordomeVault | null): ReadonlyArray<T> {
+  if (vault === null) return [];
+  const titleByThreadId = new Map(
+    vault.topics.flatMap((topic) =>
+      topic.threadId === null ? [] : [[topic.threadId, topic.title] as const],
+    ),
+  );
+  return threads.flatMap((thread) => {
+    const title =
+      thread.environmentId === vault.environmentId ? titleByThreadId.get(thread.id) : undefined;
+    return title === undefined ? [] : [{ ...thread, title }];
+  });
+}
+
 /** The line under a topic: its latest message, or its folder until it has one. */
 export function topicSubtitle(
   topic: Pick<MajordomeTopic, "folder" | "lastMessagePreview">,
