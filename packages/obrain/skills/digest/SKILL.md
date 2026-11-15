@@ -5,7 +5,7 @@ description: Reads files from any folder — PDFs, docs, images, code, text — 
 
 # digest — Read and Summarize Files
 
-Claude reads every file in a folder and produces a markdown note per file.
+Read every file in a folder and write a markdown note per file.
 
 ## Step 1: Where?
 
@@ -20,7 +20,7 @@ What should I read?
 ## Step 2: Process
 
 For each file:
-- Read it directly (PDFs, images, text, code — Claude handles all of these)
+- Read it directly (PDFs, images, text, code). If a format is beyond you, say so and move on
 - Pull out what matters
 - Write a markdown note:
 

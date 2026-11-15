@@ -1,7 +1,7 @@
 {
   "name": "obrain",
   "version": "2026.11.5",
-  "description": "Wire Obsidian to Claude Code with one command, then run your day from a small menu. Local, private, compounds over time.",
+  "description": "Wire an Obsidian vault to your AI agent (Claude Code, Codex, Cursor, OpenCode, Gemini CLI) with one command, then run your day from a small menu. Local, private, compounds over time.",
   "bin": {
     "obrain": "./bin/obrain.js"
   },
@@ -9,12 +9,15 @@
     "obsidian",
     "claude",
     "claude-code",
+    "codex",
     "pkm",
     "ai",
     "notes",
     "markdown",
     "knowledge-base",
     "productivity",
+    "agents-md",
+    "agent-skills",
     "cli",
     "tui"
   ],
@@ -30,8 +33,7 @@
     "skills/",
     "setup.sh",
     "uninstall.sh",
-    "CLAUDE.md",
-    "memory.md",
+    "templates/",
     "LICENSE",
     "README.md"
   ],

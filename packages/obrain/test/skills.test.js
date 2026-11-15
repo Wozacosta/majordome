@@ -76,6 +76,14 @@ describe("skill files", () => {
     }
   });
 
+  it("skills are provider-neutral: no bare 'Claude' meaning the agent", () => {
+    for (const skill of EXPECTED_SKILLS) {
+      const content = fs.readFileSync(path.join(SKILLS_DIR, skill, "SKILL.md"), "utf-8");
+      assert.ok(!/\bClaude\b(?! Code)/.test(content), `${skill}: says Claude where it means the agent`);
+      assert.ok(!content.includes(".claude/skills/["), `${skill}: writes skills to .claude/skills`);
+    }
+  });
+
   it("no skill references Gemini or API keys", () => {
     for (const skill of EXPECTED_SKILLS) {
       const file = path.join(SKILLS_DIR, skill, "SKILL.md");

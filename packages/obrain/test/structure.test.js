@@ -7,8 +7,8 @@ const ROOT = path.resolve(__dirname, "..");
 
 describe("project structure", () => {
   const requiredFiles = [
-    "CLAUDE.md",
-    "memory.md",
+    "templates/AGENTS.md",
+    "templates/memory.md",
     "LICENSE",
     "README.md",
     "package.json",
@@ -18,6 +18,7 @@ describe("project structure", () => {
     "lib/cli.mjs",
     "lib/brain.mjs",
     "lib/tools.mjs",
+    "lib/agents.mjs",
   ];
 
   for (const file of requiredFiles) {
@@ -75,13 +76,31 @@ describe("package.json", () => {
   });
 });
 
-describe("CLAUDE.md", () => {
-  const content = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf-8");
+it("ships no AGENTS.md or CLAUDE.md at the package root (agents working on obrain would load it)", () => {
+  assert.ok(!fs.existsSync(path.join(ROOT, "AGENTS.md")));
+  assert.ok(!fs.existsSync(path.join(ROOT, "CLAUDE.md")));
+});
+
+describe("AGENTS.md template", () => {
+  const content = fs.readFileSync(path.join(ROOT, "templates", "AGENTS.md"), "utf-8");
+
+  it("keeps the placeholder status uses to spot an unpersonalized brain", () => {
+    assert.ok(content.includes("[Run /brain-setup"));
+  });
+
+  it("is provider-neutral", () => {
+    assert.ok(!/\bClaude\b(?! Code)/.test(content), "says Claude where it means the agent");
+  });
+
+  it("mentions .agents/skills and .majordome/", () => {
+    assert.ok(content.includes(".agents/skills/"));
+    assert.ok(content.includes(".majordome/"));
+  });
 
   it("references all slash commands", () => {
     const commands = ["brain-setup", "morning", "weekly", "recap", "todo", "digest", "import-vault"];
     for (const cmd of commands) {
-      assert.ok(content.includes(cmd), `CLAUDE.md missing reference to ${cmd}`);
+      assert.ok(content.includes(cmd), `AGENTS.md missing reference to ${cmd}`);
     }
   });
 
@@ -94,7 +113,7 @@ describe("CLAUDE.md", () => {
   it("references all brain folders", () => {
     const folders = ["drop/", "daily/", "weekly/", "projects/", "refs/", "done/", "todo.md"];
     for (const f of folders) {
-      assert.ok(content.includes(f), `CLAUDE.md missing folder reference: ${f}`);
+      assert.ok(content.includes(f), `AGENTS.md missing folder reference: ${f}`);
     }
   });
 

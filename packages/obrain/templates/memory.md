@@ -1,6 +1,6 @@
 # Session Log
 
-Auto-maintained by Claude Code. Tracks what happened, what changed,
+Kept up to date by your AI agent. Tracks what happened, what changed,
 and anything worth carrying forward.
 
 ---

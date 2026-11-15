@@ -1,8 +1,11 @@
-# CLAUDE.md — obrain
+# AGENTS.md — obrain
+
+Instructions for any AI agent working in this brain (Claude Code, Codex, Cursor,
+OpenCode and others). CLAUDE.md only imports this file; edit this one.
 
 ## Owner Profile
 [Run /brain-setup to generate this. You'll answer a few questions
-and Claude builds a profile that loads automatically every session.]
+and the agent builds a profile that loads automatically every session.]
 
 ## How This Brain Is Organized
 
@@ -13,6 +16,16 @@ and Claude builds a profile that loads automatically every session.]
   refs/       — long-term reference material and research
   done/       — completed work gets moved here, nothing gets deleted
   todo.md     — single task list, managed via /todo
+  memory.md   — what the agent has learned about how the owner works
+
+  .agents/skills/  — the skills below, one folder each (shared by every agent)
+  .majordome/      — settings for the Majordome app; leave it alone
+
+## Memory
+- memory.md is the only memory. When you learn something worth keeping about the owner,
+  write it there, never into your own app's memory feature.
+- Keep memory.md short: it is loaded at the start of every session. Merge or rewrite
+  entries instead of only appending.
 
 ## On Launch
 - Open daily/[today].md or offer to create it
@@ -40,11 +53,14 @@ and Claude builds a profile that loads automatically every session.]
 - Done with something → move to done/
 - Keep this file current as workflows evolve
 
-## Slash Commands
-- /brain-setup   — one-time onboarding, builds your profile
-- /morning       — start-of-day ritual with context
-- /weekly        — end-of-week review and planning
-- /recap         — save this session to the right place
-- /todo          — manage tasks (add, finish, prioritize)
-- /digest        — read and summarize a folder of files
-- /import-vault  — merge notes from another Obsidian vault
+## Skills
+Each skill can be run by name (/name in Claude Code, $name in Codex) or
+just by saying the phrase next to it, in any agent.
+
+- /brain-setup   — one-time onboarding, builds the owner profile ("set up my brain")
+- /morning       — start-of-day ritual with context ("start my day")
+- /weekly        — end-of-week review and planning ("review my week")
+- /recap         — save this session to the right place ("save this session")
+- /todo          — manage tasks: add, finish, prioritize ("add a todo", "what's on my plate")
+- /digest        — read and summarize a folder of files ("digest drop/")
+- /import-vault  — merge notes from another Obsidian vault ("import my old vault")

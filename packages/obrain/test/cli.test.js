@@ -55,11 +55,15 @@ describe("obrain CLI, non-interactive", () => {
   const fs = require("fs");
   const os = require("os");
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "obrain-cli-"));
-  const env = { ...process.env, HOME: sandbox, XDG_CONFIG_HOME: path.join(sandbox, ".config") };
+  // No agent CLI on PATH, so nothing real gets launched or installed
+  const env = { ...process.env, HOME: sandbox, XDG_CONFIG_HOME: path.join(sandbox, ".config"), PATH: path.dirname(process.execPath) };
+  delete env.CODEX_HOME;
+  delete env.CLAUDE_CONFIG_DIR;
+  const node = process.execPath;
   const brain = path.join(sandbox, "obrain");
   const sh = (args) => {
     try {
-      return { stdout: execFileSync("node", [CLI, ...args], { encoding: "utf-8", env, cwd: sandbox, timeout: 15000 }), code: 0 };
+      return { stdout: execFileSync(node, [CLI, ...args], { encoding: "utf-8", env, cwd: sandbox, timeout: 15000 }), code: 0 };
     } catch (e) {
       return { stdout: (e.stdout || "") + (e.stderr || ""), code: e.status };
     }
@@ -80,8 +84,11 @@ describe("obrain CLI, non-interactive", () => {
   it("init --yes --no-install builds a brain at ~/obrain", () => {
     const { code } = sh(["init", "--yes", "--no-install"]);
     assert.strictEqual(code, 0);
-    assert.ok(fs.existsSync(path.join(brain, "CLAUDE.md")));
-    assert.ok(fs.existsSync(path.join(brain, ".claude", "skills", "morning", "SKILL.md")));
+    assert.ok(fs.existsSync(path.join(brain, "AGENTS.md")));
+    assert.strictEqual(fs.readFileSync(path.join(brain, "CLAUDE.md"), "utf-8"), "@AGENTS.md\n");
+    assert.ok(fs.existsSync(path.join(brain, ".agents", "skills", "morning", "SKILL.md")));
+    assert.ok(fs.lstatSync(path.join(brain, ".claude", "skills")).isSymbolicLink());
+    assert.ok(fs.existsSync(path.join(brain, ".majordome", "config.json")));
     assert.ok(!fs.existsSync(path.join(sandbox, ".claude", "skills")), "installed skills globally");
   });
 
@@ -99,12 +106,29 @@ describe("obrain CLI, non-interactive", () => {
     assert.strictEqual(code, 0);
     assert.ok(stdout.includes("1 in drop/"));
     assert.ok(stdout.includes("skills installed"));
+    assert.ok(stdout.includes("No AI agent found"));
+  });
+
+  it("start fails clearly with no agent installed", () => {
+    const { stdout, code } = sh(["start"]);
+    assert.strictEqual(code, 1);
+    assert.ok(stdout.includes("No AI agent found"));
+  });
+
+  it("agent <name> remembers the choice", () => {
+    const { code } = sh(["agent", "codex"]);
+    assert.strictEqual(code, 0);
+    const config = JSON.parse(fs.readFileSync(path.join(sandbox, ".config", "obrain", "config.json"), "utf-8"));
+    assert.strictEqual(config.agent, "codex");
+    assert.strictEqual(sh(["agent", "nope"]).code, 1);
   });
 
   it("uninstall --yes keeps notes", () => {
     const { code } = sh(["uninstall", "--yes"]);
     assert.strictEqual(code, 0);
     assert.ok(!fs.existsSync(path.join(brain, ".claude")));
+    assert.ok(!fs.existsSync(path.join(brain, ".agents")));
+    assert.ok(!fs.existsSync(path.join(brain, "AGENTS.md")));
     assert.ok(fs.existsSync(path.join(brain, "drop", "notes.txt")));
     fs.rmSync(sandbox, { recursive: true, force: true });
   });
