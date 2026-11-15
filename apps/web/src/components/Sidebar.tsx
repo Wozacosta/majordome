@@ -448,8 +448,9 @@ function useSidebarThreads(input: {
     keepEmptyFolders: keepEmpty,
   } = input;
   // Folders already separate the work, so boring mode has no Working shelf.
-  const workingShelfEnabled =
-    useClientSettings((s) => s.sidebarWorkingShelfEnabled) && folderGroups === null;
+  // Majordome keeps running threads in place, whatever an older saved setting says.
+  const workingShelfSetting = useClientSettings((s) => s.sidebarWorkingShelfEnabled);
+  const workingShelfEnabled = !isMajordome && workingShelfSetting && folderGroups === null;
   const inboxReturnsVersion = useSyncExternalStore(
     inboxReturns.subscribe,
     inboxReturns.getSnapshot,

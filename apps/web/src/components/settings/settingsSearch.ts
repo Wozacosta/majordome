@@ -126,6 +126,9 @@ const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
   "/settings/devices",
 ]);
 
+/** Single settings Majordome decides for the owner, left out of search. */
+const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set(["working-shelf"]);
+
 /** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
 export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
   readonly heading: string;
@@ -1550,7 +1553,8 @@ export function settingsForThisPlatform(
       (isElectron || item.desktopOnly !== true) &&
       (!item.releaseChannelOnly || isElectron || HOSTED_APP_CHANNEL !== null) &&
       (!item.secretsFeatureOnly || isSecretsFeatureEnabled) &&
-      (!isMajordome || !MAJORDOME_HIDDEN_SETTINGS.has(item.to)) &&
+      (!isMajordome ||
+        (!MAJORDOME_HIDDEN_SETTINGS.has(item.to) && !MAJORDOME_HIDDEN_SETTING_IDS.has(item.id))) &&
       (!item.macOnly || isMacPlatform(platform)) &&
       (!item.windowsOnly || isWindowsPlatform(platform)),
   );
