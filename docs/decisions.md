@@ -45,8 +45,20 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 - **Multi-machine sync is an advanced setting.** Any number of servers (Mac, VPS), auth always on.
   The vault syncs through a git remote. Majordome never force-pushes. When its change conflicts
   with yours, it pushes a `majordome/conflict-*` branch and the feed lets you choose.
-- **Phone access:** QR pairing on the same Wi-Fi, and guided Tailscale setup for anywhere. A hosted
-  Majordome relay waits until people ask for it (T3 Connect belongs to T3).
+- **Phone access:** a home-screen web app over Tailscale with HTTPS (a `*.ts.net` address), which
+  iPhone web push needs. Majordome guides the Tailscale setup once and shows a QR code. Same-Wi-Fi
+  QR pairing stays as a fallback without notifications. A hosted Majordome relay waits until
+  people ask for it (T3 Connect belongs to T3).
+- **Push notifications, only three kinds:** a run is waiting for you, "Start my day" finished (its
+  first line), a run couldn't finish.
+- **Your edits are saved too.** Every 5 minutes Majordome commits the owner's own edits as "Your
+  edits", authored by the owner, after a gitleaks check. It replaces `brain-sync`.
+- **GitHub backup** uses a "Majordome" OAuth app with GitHub's device sign-in (public client id, no
+  secret) and creates a private `majordome-brain` repo, pushing after every save. OAuth apps can only
+  ask for the broad `repo` permission; the screen says so. A vault that already pushes somewhere
+  shows as backed up.
+- **Folder backup** is a nightly `age`-encrypted `git bundle`, encrypted with a passphrase the owner
+  chooses, kept in the Keychain and shown once as a recovery phrase to write down.
 - **One runner, chosen explicitly.** `.majordome/runner` names the server that runs routines and the
   inbox watcher. Moving it is one button; if it is offline, the Overview says so. No heartbeat (it
   would commit every few minutes through git) and no automatic takeover in v1.
