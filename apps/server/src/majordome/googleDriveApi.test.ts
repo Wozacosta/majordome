@@ -17,6 +17,7 @@ import {
   pruneDriveBackups,
   refreshGoogleAccessToken,
   requestGoogleDeviceCode,
+  resolveGoogleClient,
   uploadDriveFile,
 } from "./googleDriveApi.ts";
 import { backupFilePattern } from "./vaultFolderBackup.ts";
@@ -160,6 +161,17 @@ describe("Google device sign-in", () => {
       yield* TestClock.adjust("5 seconds");
       expect(reasonOf(yield* Fiber.await(told))).toContain('"reason":"expired"');
     });
+  });
+});
+
+describe("resolveGoogleClient", () => {
+  it("uses the build's OAuth app unless the environment names one", () => {
+    const built = { clientId: "built.apps.googleusercontent.com", clientSecret: "built-secret" };
+    expect(resolveGoogleClient({}, built)).toBe(built);
+    expect(resolveGoogleClient({ MAJORDOME_GOOGLE_CLIENT_ID: " " }, built)).toBe(built);
+    expect(
+      resolveGoogleClient({ MAJORDOME_GOOGLE_CLIENT_ID: "env.apps.googleusercontent.com" }, built),
+    ).toEqual({ clientId: "env.apps.googleusercontent.com", clientSecret: "" });
   });
 });
 

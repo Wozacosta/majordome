@@ -163,6 +163,12 @@ export default mergeConfig(
         __T3CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_TOKEN__: JSON.stringify(
           repoEnv.T3CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN?.trim() ?? "",
         ),
+        __MAJORDOME_BUILD_GOOGLE_CLIENT_ID__: JSON.stringify(
+          repoEnv.MAJORDOME_GOOGLE_CLIENT_ID?.trim() ?? "",
+        ),
+        __MAJORDOME_BUILD_GOOGLE_CLIENT_SECRET__: JSON.stringify(
+          repoEnv.MAJORDOME_GOOGLE_CLIENT_SECRET?.trim() ?? "",
+        ),
       },
     },
     test: {

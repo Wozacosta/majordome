@@ -17,15 +17,28 @@ import { HttpClient } from "effect/http";
 
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import {
-  GOOGLE_CLIENT_ID_VARIABLE,
-  GOOGLE_CLIENT_SECRET_VARIABLE,
   type GoogleClient,
   GoogleDriveError,
   pollGoogleDeviceToken,
   refreshGoogleAccessToken,
   requestGoogleDeviceCode,
+  resolveGoogleClient,
   revokeGoogleToken,
 } from "./googleDriveApi.ts";
+
+// Release builds bake in the OAuth app (apps/server/vite.config.ts); the environment overrides it.
+declare const __MAJORDOME_BUILD_GOOGLE_CLIENT_ID__: string | undefined;
+declare const __MAJORDOME_BUILD_GOOGLE_CLIENT_SECRET__: string | undefined;
+const BUILD_GOOGLE_CLIENT: GoogleClient = {
+  clientId:
+    typeof __MAJORDOME_BUILD_GOOGLE_CLIENT_ID__ === "undefined"
+      ? ""
+      : __MAJORDOME_BUILD_GOOGLE_CLIENT_ID__,
+  clientSecret:
+    typeof __MAJORDOME_BUILD_GOOGLE_CLIENT_SECRET__ === "undefined"
+      ? ""
+      : __MAJORDOME_BUILD_GOOGLE_CLIENT_SECRET__,
+};
 
 const REFRESH_TOKEN_SECRET = "majordome-google-refresh-token";
 // Renew ahead of expiry so a token never lapses in the middle of an upload's first request.
@@ -74,10 +87,7 @@ export const make = Effect.gen(function* () {
   const secrets = yield* ServerSecretStore.ServerSecretStore;
   const services = yield* Effect.context<HttpClient.HttpClient>();
   const environment = yield* HostProcess.Environment;
-  const client: GoogleClient = {
-    clientId: environment[GOOGLE_CLIENT_ID_VARIABLE]?.trim() ?? "",
-    clientSecret: environment[GOOGLE_CLIENT_SECRET_VARIABLE]?.trim() ?? "",
-  };
+  const client = resolveGoogleClient(environment, BUILD_GOOGLE_CLIENT);
   const layerScope = yield* Effect.scope;
   const cached = yield* Ref.make<{ readonly token: string; readonly expiresAt: number } | null>(
     null,

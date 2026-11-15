@@ -14,8 +14,8 @@ import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/h
 // The Majordome Google OAuth app (TVs and limited-input devices) comes from these variables, set at
 // build time or in a local .env. It stays out of the repository: Google disables OAuth secrets it
 // finds in public code.
-export const GOOGLE_CLIENT_ID_VARIABLE = "MAJORDOME_GOOGLE_CLIENT_ID";
-export const GOOGLE_CLIENT_SECRET_VARIABLE = "MAJORDOME_GOOGLE_CLIENT_SECRET";
+const GOOGLE_CLIENT_ID_VARIABLE = "MAJORDOME_GOOGLE_CLIENT_ID";
+const GOOGLE_CLIENT_SECRET_VARIABLE = "MAJORDOME_GOOGLE_CLIENT_SECRET";
 const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER_NAME = "Majordome backups";
 const FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
@@ -29,6 +29,16 @@ const UPLOAD_TIMEOUT = Duration.hours(2);
 export interface GoogleClient {
   readonly clientId: string;
   readonly clientSecret: string;
+}
+
+/** The environment's OAuth app when it names one, else the one baked into the build. */
+export function resolveGoogleClient(
+  environment: Readonly<Record<string, string | undefined>>,
+  built: GoogleClient,
+): GoogleClient {
+  const clientId = environment[GOOGLE_CLIENT_ID_VARIABLE]?.trim() ?? "";
+  if (clientId === "") return built;
+  return { clientId, clientSecret: environment[GOOGLE_CLIENT_SECRET_VARIABLE]?.trim() ?? "" };
 }
 
 export const GoogleDriveErrorReason = Schema.Literals([
