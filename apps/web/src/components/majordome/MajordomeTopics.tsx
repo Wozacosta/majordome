@@ -126,6 +126,11 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
   const [pendingOrder, setPendingOrder] = useState<ReadonlyArray<string> | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  // The route moves only once the chat has rendered; until then, the topic tapped shows as open.
+  const [opening, setOpening] = useState<{
+    readonly topicId: string;
+    readonly fromRouteKey: string | null;
+  } | null>(null);
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
     label: "open a topic",
     reportFailure: false,
@@ -172,6 +177,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   };
 
   const open = async (topic: MajordomeTopic) => {
+    setOpening({ topicId: topic.id, fromRouteKey: routeThreadKey });
     if (topic.threadId !== null) {
       goToThread(topic.threadId);
       return;
@@ -180,8 +186,10 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
       environmentId: vault.environmentId,
       input: { projectId: vault.projectId, topicId: topic.id },
     });
-    if (result._tag === "Failure") reportFailure(`Could not open ${topic.title}`, result);
-    else goToThread(result.value.threadId);
+    if (result._tag === "Failure") {
+      setOpening(null);
+      reportFailure(`Could not open ${topic.title}`, result);
+    } else goToThread(result.value.threadId);
   };
 
   const reorder = async (next: ReadonlyArray<string>) => {
@@ -228,7 +236,11 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
                 vault={vault}
                 topic={topic}
                 thread={thread}
-                isActive={threadKey !== null && threadKey === routeThreadKey}
+                isActive={
+                  opening !== null && opening.fromRouteKey === routeThreadKey
+                    ? opening.topicId === topic.id
+                    : threadKey !== null && threadKey === routeThreadKey
+                }
                 isDragging={dragging === topic.id}
                 canMoveUp={index > 0}
                 canMoveDown={index < topics.length - 1}
