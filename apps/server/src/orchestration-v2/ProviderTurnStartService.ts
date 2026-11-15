@@ -53,6 +53,7 @@ import {
   historicalMessage,
   latestNativeContextUsage,
 } from "@t3tools/provider-core/server/handoffBudget";
+import { readVaultContext } from "../majordome/vaultContext.ts";
 import { deliverContextHandoffs, withInlineContext } from "./ContextHandoffDelivery.ts";
 import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
@@ -1732,7 +1733,21 @@ export const layer: Layer.Layer<
             sideChatHandoff === undefined || compact || goalCommand
               ? ""
               : sideChatHandoff.summaryText;
-          const context = [delivery.context, sideChatContext, restartNote]
+          // Majordome: a new native session starts with the vault's live memory, for every provider.
+          const vaultContext =
+            compact ||
+            goalCommand ||
+            turnInput.nativeThreadHasTurns === true ||
+            turnInput.runtimePolicy.cwd == null
+              ? ""
+              : yield* readVaultContext({
+                  vaultRoot: turnInput.runtimePolicy.cwd,
+                  nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+                }).pipe(
+                  Effect.provideService(FileSystem.FileSystem, fileSystem),
+                  Effect.provideService(Path.Path, path),
+                );
+          const context = [vaultContext, delivery.context, sideChatContext, restartNote]
             .filter((part) => part !== "")
             .join("\n\n");
           const { restartContinuationOfRunId: _resumedRunId, ...promptedInput } = turnInput;
