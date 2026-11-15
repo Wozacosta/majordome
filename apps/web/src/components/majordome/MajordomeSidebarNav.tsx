@@ -5,7 +5,9 @@ import {
   BellIcon,
   CalendarClockIcon,
   CloudUploadIcon,
+  LayoutDashboardIcon,
   NewspaperIcon,
+  NotebookTextIcon,
   SmartphoneIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -17,14 +19,23 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../
 import { backupNeedsAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 
-type NavPath = "/feed" | "/settings/scheduled-tasks" | "/backup" | "/notifications" | "/phone";
+type NavPath =
+  | "/feed"
+  | "/notes"
+  | "/settings/scheduled-tasks"
+  | "/backup"
+  | "/notifications"
+  | "/phone"
+  | "/overview";
 
 const NAV_ITEMS: ReadonlyArray<{ to: NavPath; label: string; icon: LucideIcon }> = [
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
+  { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/settings/scheduled-tasks", label: "Routines", icon: CalendarClockIcon },
   { to: "/backup", label: "Back up my brain", icon: CloudUploadIcon },
   { to: "/notifications", label: "Notifications", icon: BellIcon },
   { to: "/phone", label: "Your phone", icon: SmartphoneIcon },
+  { to: "/overview", label: "Overview", icon: LayoutDashboardIcon },
 ];
 
 type NavHint = { readonly tone: "warning" | "error"; readonly label: string };

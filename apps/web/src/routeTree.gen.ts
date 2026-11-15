@@ -22,7 +22,9 @@ import { Route as ChatUsageRouteImport } from './routes/_chat.usage'
 import { Route as ChatSettingsRouteImport } from './routes/_chat.settings'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
 import { Route as ChatPhoneRouteImport } from './routes/_chat.phone'
+import { Route as ChatOverviewRouteImport } from './routes/_chat.overview'
 import { Route as ChatNotificationsRouteImport } from './routes/_chat.notifications'
+import { Route as ChatNotesRouteImport } from './routes/_chat.notes'
 import { Route as ChatNewRouteImport } from './routes/_chat.new'
 import { Route as ChatFeedRouteImport } from './routes/_chat.feed'
 import { Route as ChatBackupRouteImport } from './routes/_chat.backup'
@@ -121,9 +123,19 @@ const ChatPhoneRoute = ChatPhoneRouteImport.update({
   path: '/phone',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatOverviewRoute = ChatOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ChatNotificationsRoute = ChatNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatNotesRoute = ChatNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatNewRoute = ChatNewRouteImport.update({
@@ -309,7 +321,9 @@ export interface FileRoutesByFullPath {
   '/backup': typeof ChatBackupRoute
   '/feed': typeof ChatFeedRoute
   '/new': typeof ChatNewRoute
+  '/notes': typeof ChatNotesRoute
   '/notifications': typeof ChatNotificationsRoute
+  '/overview': typeof ChatOverviewRoute
   '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/settings': typeof ChatSettingsRouteWithChildren
@@ -356,7 +370,9 @@ export interface FileRoutesByTo {
   '/backup': typeof ChatBackupRoute
   '/feed': typeof ChatFeedRoute
   '/new': typeof ChatNewRoute
+  '/notes': typeof ChatNotesRoute
   '/notifications': typeof ChatNotificationsRoute
+  '/overview': typeof ChatOverviewRoute
   '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
   '/settings': typeof ChatSettingsRouteWithChildren
@@ -406,7 +422,9 @@ export interface FileRoutesById {
   '/_chat/backup': typeof ChatBackupRoute
   '/_chat/feed': typeof ChatFeedRoute
   '/_chat/new': typeof ChatNewRoute
+  '/_chat/notes': typeof ChatNotesRoute
   '/_chat/notifications': typeof ChatNotificationsRoute
+  '/_chat/overview': typeof ChatOverviewRoute
   '/_chat/phone': typeof ChatPhoneRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
   '/_chat/settings': typeof ChatSettingsRouteWithChildren
@@ -457,7 +475,9 @@ export interface FileRouteTypes {
     | '/backup'
     | '/feed'
     | '/new'
+    | '/notes'
     | '/notifications'
+    | '/overview'
     | '/phone'
     | '/pull-requests'
     | '/settings'
@@ -504,7 +524,9 @@ export interface FileRouteTypes {
     | '/backup'
     | '/feed'
     | '/new'
+    | '/notes'
     | '/notifications'
+    | '/overview'
     | '/phone'
     | '/pull-requests'
     | '/settings'
@@ -553,7 +575,9 @@ export interface FileRouteTypes {
     | '/_chat/backup'
     | '/_chat/feed'
     | '/_chat/new'
+    | '/_chat/notes'
     | '/_chat/notifications'
+    | '/_chat/overview'
     | '/_chat/phone'
     | '/_chat/pull-requests'
     | '/_chat/settings'
@@ -697,11 +721,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatPhoneRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/_chat/overview': {
+      id: '/_chat/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof ChatOverviewRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/_chat/notifications': {
       id: '/_chat/notifications'
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof ChatNotificationsRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/notes': {
+      id: '/_chat/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof ChatNotesRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_chat/new': {
@@ -1006,7 +1044,9 @@ interface ChatRouteChildren {
   ChatBackupRoute: typeof ChatBackupRoute
   ChatFeedRoute: typeof ChatFeedRoute
   ChatNewRoute: typeof ChatNewRoute
+  ChatNotesRoute: typeof ChatNotesRoute
   ChatNotificationsRoute: typeof ChatNotificationsRoute
+  ChatOverviewRoute: typeof ChatOverviewRoute
   ChatPhoneRoute: typeof ChatPhoneRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
   ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
@@ -1020,7 +1060,9 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatBackupRoute: ChatBackupRoute,
   ChatFeedRoute: ChatFeedRoute,
   ChatNewRoute: ChatNewRoute,
+  ChatNotesRoute: ChatNotesRoute,
   ChatNotificationsRoute: ChatNotificationsRoute,
+  ChatOverviewRoute: ChatOverviewRoute,
   ChatPhoneRoute: ChatPhoneRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,
   ChatSettingsRoute: ChatSettingsRouteWithChildren,

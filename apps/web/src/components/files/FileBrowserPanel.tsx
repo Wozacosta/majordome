@@ -55,6 +55,8 @@ interface FileBrowserPanelProps {
   onRefreshSelectedFile?: () => void;
   workspaceMutationId: string | null;
   answersPanelFind?: boolean;
+  /** Leaves matching paths, and everything below them, out of the tree and its search. */
+  hidePath?: ((relativePath: string) => boolean) | undefined;
 }
 
 function treePath(entry: ProjectEntry): string {
@@ -121,10 +123,12 @@ function buildTreeEntries(
   searchEntries: readonly ProjectEntry[],
   searchPending: boolean,
   query: string,
+  hidePath: ((relativePath: string) => boolean) | undefined,
 ) {
-  const result = new Map(directoryEntries.map((entry) => [entry.path, entry]));
+  const shown = (entry: ProjectEntry) => hidePath === undefined || !hidePath(entry.path);
+  const result = new Map(directoryEntries.filter(shown).map((entry) => [entry.path, entry]));
   if (query.trim() && !searchPending) {
-    for (const entry of searchEntries) {
+    for (const entry of searchEntries.filter(shown)) {
       if (!result.has(entry.path)) result.set(entry.path, entry);
       const segments = entry.path.split("/");
       for (let index = 1; index < segments.length; index++) {
@@ -157,6 +161,7 @@ export default function FileBrowserPanel({
   workspaceMutationId,
   hostFolder = false,
   answersPanelFind = false,
+  hidePath,
 }: FileBrowserPanelProps) {
   const panelPath = (relativePath: string) =>
     hostFolder ? joinHostPath(cwd, relativePath) : relativePath;
@@ -179,7 +184,7 @@ export default function FileBrowserPanel({
     200,
   );
   const { entries, entryKinds, treePaths, directoryPaths, expandableDirectoryPaths } =
-    buildTreeEntries(directoryEntries, pathSearch.entries, pathSearch.isPending, query);
+    buildTreeEntries(directoryEntries, pathSearch.entries, pathSearch.isPending, query, hidePath);
   const entryKindsRef = useRef(entryKinds);
   const previousTreePathsRef = useRef<readonly string[] | null>(null);
   const syncingSelectionRef = useRef(false);
