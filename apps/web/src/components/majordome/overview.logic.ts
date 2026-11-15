@@ -46,6 +46,7 @@ export function worstTone(tones: ReadonlyArray<OverviewTone>): OverviewTone {
 export type OverviewPath =
   | "/settings/notifications"
   | "/settings/phone"
+  | "/settings/always-on"
   | "/settings/providers"
   | "/settings/scheduled-tasks"
   | "/feed"
@@ -254,7 +255,12 @@ export function majordomeBox(input: {
 }
 
 const RUNNER_LINE: Record<MajordomeRoutinesRunner, Omit<OverviewLine, "key">> = {
-  "this-server": { text: "Routines run on this computer", tone: "ok", link: { to: "/feed" } },
+  "this-server": {
+    text: "Routines run on this computer",
+    detail: "Only while it's awake. Move them to an always-on server",
+    tone: "ok",
+    link: { to: "/settings/always-on" },
+  },
   "another-server": {
     text: "Routines run on another computer",
     tone: "neutral",

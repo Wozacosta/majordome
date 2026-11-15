@@ -285,6 +285,8 @@ function GitHubOption({
     label: "forget github",
   });
   const connected = status.remote?.isGitHub === true;
+  // Notes cloned from GitHub onto a new server keep their repository; signing in lets it push.
+  const needsSignIn = connected && !status.github.signedIn;
 
   const forget = async () => {
     const result = await configure({
@@ -311,11 +313,15 @@ function GitHubOption({
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="xs"
-            variant={connected ? "outline" : "default"}
+            variant={connected && !needsSignIn ? "outline" : "default"}
             onClick={() => setOpen(true)}
           >
             <GithubIcon />
-            {connected ? "Connect another GitHub repository" : "Connect GitHub"}
+            {needsSignIn
+              ? "Sign in to GitHub"
+              : connected
+                ? "Connect another GitHub repository"
+                : "Connect GitHub"}
           </Button>
           {status.github.signedIn ? (
             <Button size="xs" variant="ghost-muted" onClick={() => void forget()}>

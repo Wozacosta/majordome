@@ -710,6 +710,34 @@ const buildCliArchive = Effect.fn("buildCliArchive")(function* (input: {
   return archivePath;
 });
 
+/** The container image runs the built server with Node, so it needs dist/ and the same externals. */
+const stageServerRuntime = Effect.fn("stageServerRuntime")(function* (input: {
+  readonly arch: BuildArch;
+  readonly outputDir: string;
+}) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const repoRoot = yield* RepoRoot;
+  const dist = path.join(repoRoot, "apps/server/dist");
+  yield* requireInput(
+    path.join(dist, "client/index.html"),
+    "Run `vp run --filter t3 build` first.",
+  );
+  const stageDir = path.resolve(input.outputDir);
+  yield* fs.makeDirectory(stageDir, { recursive: true });
+  yield* fs.copy(dist, path.join(stageDir, "dist"));
+  yield* fs.remove(path.join(stageDir, "dist/client"), { recursive: true });
+  yield* stageWebClient(path.join(dist, "client"), path.join(stageDir, "dist/client"));
+  yield* stageRuntimeExternals({
+    repoRoot,
+    stageDir,
+    platform: "linux",
+    arch: input.arch,
+    version: serverPackageJson.version,
+  });
+  yield* Effect.log(`[cli-archive] Staged the server runtime in ${stageDir}.`);
+});
+
 const command = Command.make(
   "build-cli-archive",
   {
@@ -743,6 +771,18 @@ const command = Command.make(
     ).pipe(
       Command.withDescription(
         "Wait for a --notary-submission-file submission; fail unless Accepted.",
+      ),
+    ),
+    Command.make(
+      "stage-runtime",
+      {
+        arch: Flag.Literals("arch", BuildArch.literals),
+        outputDir: Flag.String("output-dir"),
+      },
+      (input) => stageServerRuntime(input).pipe(Effect.scoped),
+    ).pipe(
+      Command.withDescription(
+        "Stage apps/server/dist and its Linux runtime node_modules for the container image.",
       ),
     ),
   ]),

@@ -784,8 +784,42 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     },
   );
 
-  /** Creates the private repository, adds it as a remote and sends the vault there. */
+  /** The vault's GitHub remote over HTTPS, which the stored sign-in can push to. */
+  const gitHubRemoteOf = Effect.fn("MajordomeBackup.gitHubRemoteOf")(function* (vaultRoot: string) {
+    const state = yield* readState(vaultRoot);
+    const remote = yield* resolveVaultRemote({
+      cwd: vaultRoot,
+      preferred: state.remoteName ?? null,
+    }).pipe(
+      Effect.provide(services),
+      Effect.orElseSucceed(() => null),
+    );
+    return remote !== null && remote.url.startsWith("https://github.com/") ? remote.name : null;
+  });
+
+  /**
+   * Sends the vault to GitHub with this sign-in. A vault cloned from GitHub (a new server) keeps
+   * its repository when `reuseGitHubRemote`; otherwise a new private repository is created.
+   */
   const connectWithToken = Effect.fn("MajordomeBackup.connectWithToken")(function* (
+    vaultRoot: string,
+    token: string,
+    options: { readonly reuseGitHubRemote: boolean },
+  ) {
+    const existing = options.reuseGitHubRemote ? yield* gitHubRemoteOf(vaultRoot) : null;
+    const remoteName = existing ?? (yield* addBackupRepo(vaultRoot, token));
+    yield* updateState(vaultRoot, {
+      remoteName,
+      syncing: true,
+      syncPause: undefined,
+      syncError: undefined,
+    });
+    yield* runCycle(vaultRoot);
+    return yield* statusOf(vaultRoot);
+  });
+
+  /** Creates the private repository and adds it as a remote; returns the remote's name. */
+  const addBackupRepo = Effect.fn("MajordomeBackup.addBackupRepo")(function* (
     vaultRoot: string,
     token: string,
   ) {
@@ -793,7 +827,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       Effect.provide(services),
       Effect.mapError((cause) => vaultError(cause.message, cause)),
     );
-    const remoteName = yield* vaultLock
+    return yield* vaultLock
       .withLock(
         vaultRoot,
         Effect.gen(function* () {
@@ -822,14 +856,6 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           vaultError("Could not add the GitHub repository to your notes.", cause),
         ),
       );
-    yield* updateState(vaultRoot, {
-      remoteName,
-      syncing: true,
-      syncPause: undefined,
-      syncError: undefined,
-    });
-    yield* runCycle(vaultRoot);
-    return yield* statusOf(vaultRoot);
   });
 
   const connectGitHubStart: MajordomeBackup["Service"]["connectGitHubStart"] = Effect.fn(
@@ -844,7 +870,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     let work: Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     if (Option.isSome(token)) {
       prompt = { status: "signed-in" };
-      work = connectWithToken(vaultRoot, token.value);
+      work = connectWithToken(vaultRoot, token.value, { reuseGitHubRemote: false });
     } else {
       const code = yield* requestDeviceCode(clientId).pipe(
         Effect.provide(services),
@@ -866,7 +892,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
               Effect.mapError((cause) => vaultError("Could not save the GitHub sign-in.", cause)),
             ),
         ),
-        Effect.flatMap((accessToken) => connectWithToken(vaultRoot, accessToken)),
+        Effect.flatMap((accessToken) =>
+          connectWithToken(vaultRoot, accessToken, { reuseGitHubRemote: true }),
+        ),
       );
     }
     const deferred = yield* Deferred.make<MajordomeBackupStatus, MajordomeVaultError>();

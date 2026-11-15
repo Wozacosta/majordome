@@ -124,6 +124,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/backup": CloudUploadIcon,
   "/settings/notifications": BellIcon,
   "/settings/phone": SmartphoneIcon,
+  "/settings/always-on": ServerIcon,
 };
 
 const OPEN_GROUPS_KEY = "t3code:settings-nav:open-groups";

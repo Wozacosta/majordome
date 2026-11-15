@@ -96,6 +96,7 @@ describe("searchSettings", () => {
       "/settings/backup",
       "/settings/notifications",
       "/settings/phone",
+      "/settings/always-on",
     ];
     const navPaths: ReadonlyArray<string> = SETTINGS_NAV_GROUPS.flatMap((group) => group.paths);
     expect(navPaths.filter((path) => majordomePages.includes(path))).toEqual([]);

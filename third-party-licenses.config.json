@@ -865,6 +865,15 @@
       "name": "iobuffer",
       "license": "MIT",
       "sourceUrl": "https://github.com/image-js/iobuffer"
+    },
+    {
+      "name": "http_ece",
+      "version": "1.2.0",
+      "sourceUrl": "https://github.com/martinthomson/encrypted-content-encoding",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Martin Thomson"]
+      }
     }
   ]
 }

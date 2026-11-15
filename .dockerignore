@@ -1,0 +1,21 @@
+# The container image builds from a clean checkout: no local state, installs or build output.
+.git
+.repos
+.t3
+.claude
+.cursor
+.agents
+.plans
+**/node_modules
+**/dist
+**/dist-exe
+**/.turbo
+**/.vitest-*
+**/*.tsbuildinfo
+.env
+.env.local
+release
+release-cli
+artifacts
+apps/mobile/ios
+apps/mobile/android
