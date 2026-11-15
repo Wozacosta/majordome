@@ -31,7 +31,7 @@ describe("secureAddressTarget", () => {
         host: undefined,
         port: 3773,
       }),
-    ).toEqual({ host: "127.0.0.1", port: 5733 });
+    ).toEqual({ host: "localhost", port: 5733 });
   });
 
   it("forwards to the address the server listens on", () => {

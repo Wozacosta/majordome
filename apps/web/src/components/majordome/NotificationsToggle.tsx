@@ -150,9 +150,14 @@ function SupportedNotificationsToggle({
 
   if (compact) {
     return (
-      <div className="flex min-h-7 items-center gap-2 px-3 text-xs text-muted-foreground">
+      <div className="flex min-h-7 flex-wrap items-center gap-2 px-3 text-xs text-muted-foreground">
         <BellIcon className="size-3.5 shrink-0" aria-hidden />
         {toggle}
+        {on ? (
+          <Button size="xs" variant="outline" onClick={() => void test()}>
+            Send a test
+          </Button>
+        ) : null}
       </div>
     );
   }

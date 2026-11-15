@@ -121,7 +121,7 @@ export function FeedPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
         <WorkspacePageHeader electron={isElectron} className="border-b border-border">
           <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Feed</h1>
-          <div className="flex shrink-0 items-center gap-3 [-webkit-app-region:no-drag]">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 [-webkit-app-region:no-drag]">
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <Switch
                 size="sm"

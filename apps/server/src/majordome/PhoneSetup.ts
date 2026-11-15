@@ -40,8 +40,9 @@ export function secureAddressTarget(config: {
 }): { readonly host: string; readonly port: number; readonly urlHost?: string } {
   if (config.devUrl !== undefined) {
     const port = config.devUrl.port === "" ? 80 : Number.parseInt(config.devUrl.port, 10);
+    // The dev server may listen on IPv6 only, so forward to the name it was started with.
     return isLoopbackHost(config.devUrl.hostname)
-      ? { host: "127.0.0.1", port }
+      ? { host: config.devUrl.hostname, port }
       : { host: config.devUrl.hostname, port, urlHost: config.devUrl.hostname };
   }
   if (config.host !== undefined && !isWildcardHost(config.host) && !isLoopbackHost(config.host)) {
