@@ -34,7 +34,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   - Loaded when recent: today's and yesterday's daily notes.
   - Searched: everything else, through a SQLite full-text index the server rebuilds. Not in git.
   - Nightly dreaming: a routine moves anything worth keeping into `memory.md` or project notes.
-- Standard markdown links. Images in `attachments/` next to the note. Large files stay in your
+- Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in
+  `attachments/` next to the note. Large files stay in your
   file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
   Edits to `CLAUDE.md` wait for approval.
@@ -135,8 +136,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - Unattended runs can read and write the vault and read the web. A shell, Tier B, and any outward
   action (sending email, posting) need approval.
 - Approvals go to a queue and send a push. With no answer they are denied after a timeout (24h).
-- Each server uses its own provider logins. Each routine has a turn cap; the runner has a
-  daily budget, and routines pause when it runs out.
+- Each server uses its own provider logins. **Limits, not money** (providers don't report cost the
+  same way): an unattended run stops after 20 minutes of work (time waiting for the owner doesn't
+  count), and a vault starts at most 20 unattended runs a day, then routines pause until tomorrow
+  with one notification. Both are set in Routines and stored in `.majordome/config.json`. "Run now"
+  is never capped.
 - The Overview screen shows servers, the runner, sync state, schedules, which secrets resolve, the
   Tier B access log and index health.
 
@@ -173,7 +177,7 @@ takes over.
 4. **M4.** One server by default: container image, "Move to an always-on server" guide, provider
    sign-in from the phone or desktop, big files and sensitive documents served by the server.
 5. **M5.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
-6. **M6.** Dreaming, search index, Overview screen, turn caps and daily budget.
+6. **M6.** Dreaming, search index, Overview screen.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
 8. **Later.** Hosted Majordome, when people ask for it.
