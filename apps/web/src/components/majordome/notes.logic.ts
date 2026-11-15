@@ -1,4 +1,4 @@
-import { EnvironmentId, type ProjectEntry, ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { isWorkspaceImagePreviewPath } from "@t3tools/shared/mediaPreview";
 
 import { isMarkdownPreviewFile } from "../files/filePreviewMode";
@@ -107,57 +107,6 @@ export function noteKind(path: string): NoteKind {
   if (/\.pdf$/i.test(path)) return "pdf";
   if (isWorkspaceImagePreviewPath(path)) return "image";
   return "other";
-}
-
-// `![[name]]`, `![[folder/name.png|300]]`; a heading or block reference after `#` is dropped.
-const WIKI_EMBED = /!\[\[([^\]|#^\n]+)(?:[#^][^\]|\n]*)?(?:\|[^\]\n]*)?\]\]/g;
-
-/** The images a note embeds the Obsidian way, once each. Embedded notes are left as written. */
-export function wikiImageEmbeds(text: string): ReadonlyArray<string> {
-  const names = new Set<string>();
-  for (const match of text.matchAll(WIKI_EMBED)) {
-    const name = match[1]?.trim();
-    if (name && isWorkspaceImagePreviewPath(name)) names.add(name);
-  }
-  return [...names];
-}
-
-/** Rewrites `![[image.png]]` as a standard image at the path `resolve` gives, when it gives one. */
-export function rewriteWikiImageEmbeds(
-  text: string,
-  resolve: (name: string) => string | null,
-): string {
-  return text.replaceAll(WIKI_EMBED, (whole, rawName: string) => {
-    const name = rawName.trim();
-    if (!isWorkspaceImagePreviewPath(name)) return whole;
-    const path = resolve(name);
-    if (path === null) return whole;
-    const alt = name.split("/").at(-1)?.replaceAll(/[[\]]/g, "") ?? "";
-    return `![${alt}](<${path}>)`;
-  });
-}
-
-/**
- * Where Obsidian finds an embedded image: a name with a folder is from the vault's top; a bare
- * name is the shortest matching path anywhere in the vault. Null when nothing matches.
- */
-export function pickWikiEmbedPath(
-  name: string,
-  entries: ReadonlyArray<ProjectEntry>,
-): string | null {
-  if (name.includes("/")) return cleanNotePath(name) ?? null;
-  const wanted = name.toLowerCase();
-  const matches = entries.filter(
-    (entry) =>
-      entry.kind === "file" &&
-      !isHiddenVaultPath(entry.path) &&
-      (entry.path.split("/").at(-1) ?? "").toLowerCase() === wanted,
-  );
-  return (
-    matches.toSorted(
-      (left, right) => left.path.length - right.path.length || left.path.localeCompare(right.path),
-    )[0]?.path ?? null
-  );
 }
 
 /** The vault file a clicked link points at, or null for web links and files outside the vault. */

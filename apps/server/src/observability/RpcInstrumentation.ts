@@ -110,6 +110,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeGetPhoneSetup]: "majordome",
   [WS_METHODS.majordomeEnableSecureAddress]: "majordome",
   [WS_METHODS.majordomeListVaultHistory]: "majordome",
+  [WS_METHODS.majordomeSubscribeVaultChanges]: "majordome",
   [WS_METHODS.majordomeUndoVaultRun]: "majordome",
   [WS_METHODS.majordomeRunRoutinesHere]: "majordome",
   [WS_METHODS.majordomeGetBackupStatus]: "majordome",

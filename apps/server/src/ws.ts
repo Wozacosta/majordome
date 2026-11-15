@@ -2344,6 +2344,7 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeVault.listHistory(input)),
           ),
+        [WS_METHODS.majordomeSubscribeVaultChanges]: (input) => majordomeVault.changes(input),
         [WS_METHODS.majordomeUndoVaultRun]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeVault.undo(input)),

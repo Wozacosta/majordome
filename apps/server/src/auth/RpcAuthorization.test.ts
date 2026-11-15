@@ -56,6 +56,7 @@ describe("RPC authorization scopes", () => {
   it("lets readers see a vault's history, backup and topics but keeps changes behind operate scope and backup credentials behind settings scope", () => {
     for (const method of [
       WS_METHODS.majordomeListVaultHistory,
+      WS_METHODS.majordomeSubscribeVaultChanges,
       WS_METHODS.majordomeGetBackupStatus,
       WS_METHODS.majordomeListTopics,
     ]) {

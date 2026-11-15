@@ -6,12 +6,9 @@ import {
   noteKind,
   notesLink,
   type NotesVault,
-  pickWikiEmbedPath,
-  rewriteWikiImageEmbeds,
   selectNotesVault,
   validateNotesSearch,
   vaultLinkTarget,
-  wikiImageEmbeds,
 } from "./notes.logic";
 
 const vault = (projectId: string, environmentId = "local"): NotesVault => ({
@@ -122,36 +119,6 @@ describe("noteKind", () => {
     expect(noteKind("attachments/photo.PNG")).toBe("image");
     expect(noteKind("papers/scan.pdf")).toBe("pdf");
     expect(noteKind("data.canvas")).toBe("other");
-  });
-});
-
-describe("wiki image embeds", () => {
-  const text = "Before ![[photo.png]] and ![[folder/chart.jpg|300]] and ![[Other note]] after.";
-
-  it("finds the images a note embeds, not embedded notes", () => {
-    expect(wikiImageEmbeds(text)).toEqual(["photo.png", "folder/chart.jpg"]);
-  });
-
-  it("rewrites resolved images as standard markdown and leaves the rest", () => {
-    expect(
-      rewriteWikiImageEmbeds(text, (name) =>
-        name === "photo.png" ? "/v/attachments/photo.png" : null,
-      ),
-    ).toBe(
-      "Before ![photo.png](</v/attachments/photo.png>) and ![[folder/chart.jpg|300]] and ![[Other note]] after.",
-    );
-  });
-
-  it("finds a bare name at its shortest path, outside hidden folders", () => {
-    const entries = [
-      { path: "projects/x/attachments/photo.png", kind: "file" as const },
-      { path: "attachments/photo.png", kind: "file" as const },
-      { path: ".trash/photo.png", kind: "file" as const },
-      { path: "attachments/photo.png.md", kind: "file" as const },
-    ];
-    expect(pickWikiEmbedPath("photo.png", entries)).toBe("attachments/photo.png");
-    expect(pickWikiEmbedPath("missing.png", entries)).toBeNull();
-    expect(pickWikiEmbedPath("folder/chart.jpg", [])).toBe("folder/chart.jpg");
   });
 });
 

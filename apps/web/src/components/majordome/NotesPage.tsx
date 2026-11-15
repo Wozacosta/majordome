@@ -1,12 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate } from "@tanstack/react-router";
-import { AsyncResult } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { ArrowLeftIcon } from "lucide-react";
 
 import { isElectron } from "../../env";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProjects } from "../../state/entities";
-import { vaultBackupStatusesAtom } from "../../state/majordome";
+import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import FileBrowserPanel from "../files/FileBrowserPanel";
 import { FileExplorerPane } from "../files/FileExplorerPane";
 import { Button } from "../ui/button";
@@ -55,6 +55,24 @@ function useNotesVaults(): {
   return { vaults, loading };
 }
 
+const NO_VAULT_CHANGES = Atom.make(AsyncResult.initial<number, never>(false)).pipe(
+  Atom.withLabel("majordome:notes-vault-changes:none"),
+);
+
+/** Moves on whenever the vault's notes change on disk, as its server sees them. */
+function useVaultRevision(vault: NotesVault | null): string | null {
+  const result = useAtomValue(
+    vault === null
+      ? NO_VAULT_CHANGES
+      : majordomeEnvironment.vaultChanges({
+          environmentId: vault.environmentId,
+          input: { projectId: vault.projectId },
+        }),
+  );
+  const revision = AsyncResult.getOrElse(result, () => null);
+  return revision === null ? null : String(revision);
+}
+
 /** A read-only view of the notes folder: its folders and files, and the note picked from them. */
 export function NotesPage({ search }: { readonly search: NotesSearch }) {
   const navigate = useNavigate();
@@ -68,16 +86,17 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
     vault !== null && vault.projectId === search.project && search.path !== undefined
       ? search.path
       : null;
+  const revision = useVaultRevision(vault);
 
-  const open = (next: { vault: NotesVault; path?: string | undefined }) =>
-    void navigate({
-      ...notesLink({
-        projectId: next.vault.projectId,
-        environmentId: vaults.length > 1 ? next.vault.environmentId : undefined,
-        path: next.path,
-        from: search.from,
-      }),
+  const linkTo = (next: { vault: NotesVault; path?: string | undefined }) =>
+    notesLink({
+      projectId: next.vault.projectId,
+      environmentId: vaults.length > 1 ? next.vault.environmentId : undefined,
+      path: next.path,
+      from: search.from,
     });
+  const open = (next: { vault: NotesVault; path?: string | undefined }) =>
+    void navigate(linkTo(next));
 
   const showNote = vault !== null && path !== null;
   const returnScreen = search.from === undefined ? null : NOTES_RETURN_SCREENS[search.from];
@@ -152,8 +171,9 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                 key={`${vaultKey(vault)}:${path}`}
                 vault={vault}
                 path={path}
+                revision={revision}
                 showTitle={!isPhone}
-                onOpenNote={(target) => open({ vault, path: target })}
+                noteLink={(target) => linkTo({ vault, path: target })}
               />
             ) : null}
             {showTree ? (
@@ -173,7 +193,7 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                   onOpenFile={(target) => {
                     if (target !== path) open({ vault, path: target });
                   }}
-                  workspaceMutationId={null}
+                  workspaceMutationId={revision}
                   hidePath={isHiddenVaultPath}
                 />
               </FileExplorerPane>

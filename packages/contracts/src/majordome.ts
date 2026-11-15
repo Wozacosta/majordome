@@ -8,6 +8,9 @@ export const MajordomeVaultHistoryInput = Schema.Struct({
 });
 export type MajordomeVaultHistoryInput = typeof MajordomeVaultHistoryInput.Type;
 
+export const MajordomeVaultChangesInput = Schema.Struct({ projectId: ProjectId });
+export type MajordomeVaultChangesInput = typeof MajordomeVaultChangesInput.Type;
+
 export const MajordomeRoutineKind = Schema.Literals([
   "start-my-day",
   "review-my-week",

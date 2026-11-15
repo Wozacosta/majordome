@@ -1,9 +1,11 @@
 /**
- * The feed's view of a project's vault: its history, which server runs its routines, and "Undo
- * this", looked up by project so clients never name a folder on the server.
+ * The feed's view of a project's vault: its history, which server runs its routines, "Undo
+ * this", and when its notes change, looked up by project so clients never name a folder on the
+ * server.
  */
 
 import {
+  type MajordomeVaultChangesInput,
   MajordomeVaultError,
   type MajordomeVaultHistoryInput,
   type MajordomeVaultHistoryResult,
@@ -16,11 +18,13 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import * as Stream from "effect/Stream";
 
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import { VAULT_CHANGES_QUIET_PERIOD, vaultChangeRevisions } from "./vaultChanges.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -38,6 +42,10 @@ export class MajordomeVaultService extends Context.Service<
     readonly undo: (
       input: MajordomeVaultUndoInput,
     ) => Effect.Effect<MajordomeVaultUndoResult, MajordomeVaultError>;
+    /** Nothing for a project that is not a vault. */
+    readonly changes: (
+      input: MajordomeVaultChangesInput,
+    ) => Stream.Stream<number, MajordomeVaultError>;
   }
 >()("t3/majordome/MajordomeVaultService") {}
 
@@ -132,7 +140,21 @@ const make = Effect.gen(function* () {
     Effect.mapError(toVaultError("Could not undo this run.")),
   );
 
-  return MajordomeVaultService.of({ listHistory, undo });
+  const changes: MajordomeVaultService["Service"]["changes"] = (input) =>
+    Stream.unwrap(
+      vaultRoot(input.projectId).pipe(
+        Effect.map((cwd) =>
+          cwd === undefined
+            ? Stream.empty
+            : vaultChangeRevisions(
+                fileSystem.watch(cwd, { recursive: true }),
+                VAULT_CHANGES_QUIET_PERIOD,
+              ),
+        ),
+      ),
+    ).pipe(Stream.mapError(toVaultError("Could not watch this vault for changes.")));
+
+  return MajordomeVaultService.of({ listHistory, undo, changes });
 });
 
 export const layer = Layer.effect(MajordomeVaultService, make);

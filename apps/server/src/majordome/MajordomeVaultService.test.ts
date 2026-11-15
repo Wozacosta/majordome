@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Stream from "effect/Stream";
 
 import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
@@ -274,6 +275,7 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
           routinesRunner: "none",
         });
         assert.deepEqual(yield* service.undo({ projectId, commit }), { status: "not-found" });
+        assert.deepEqual(yield* Stream.runCollect(service.changes({ projectId })), []);
       }
       assert.equal(yield* code.run(["rev-list", "--count", "HEAD"]), "1");
     }),
