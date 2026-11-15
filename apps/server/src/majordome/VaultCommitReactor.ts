@@ -4,7 +4,6 @@
  * from the user's own. Nothing is pushed here.
  */
 
-import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -20,15 +19,19 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import { isTerminalRunStatus } from "../orchestration-v2/ThreadManagementService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import * as VaultLock from "./VaultLock.ts";
 
 export const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost" };
+/** Git trailer that links a run's commit back to its thread. */
+export const MAJORDOME_THREAD_TRAILER = "Majordome-Thread";
 
 export function vaultCommitMessage(input: {
   readonly threadTitle: string;
   readonly runOrdinal: number;
+  readonly threadId: string;
 }): string {
   const title = input.threadTitle.replaceAll(/\s+/g, " ").trim() || "Untitled thread";
-  return `majordome: ${title}\n\nRun ${input.runOrdinal} of this thread.`;
+  return `majordome: ${title}\n\nRun ${input.runOrdinal} of this thread.\n\n${MAJORDOME_THREAD_TRAILER}: ${input.threadId}`;
 }
 
 /** True when it made a commit; false when the folder is not a vault or nothing changed. */
@@ -79,7 +82,7 @@ const make = Effect.gen(function* () {
     FileSystem.FileSystem | Path.Path | GitVcsDriver.GitVcsDriver
   >();
   // Runs in two threads of one vault can end together; git allows one commit at a time.
-  const vaultLock = yield* KeyedLock.make<string>();
+  const vaultLock = yield* VaultLock.VaultLock;
 
   const commitRun = Effect.fn("VaultCommitReactor.commitRun")(function* (
     threadId: Parameters<typeof projections.getThreadShell>[0],
@@ -95,7 +98,7 @@ const make = Effect.gen(function* () {
       cwd,
       commitVaultRun({
         cwd,
-        message: vaultCommitMessage({ threadTitle: thread.title, runOrdinal }),
+        message: vaultCommitMessage({ threadTitle: thread.title, runOrdinal, threadId }),
       }).pipe(Effect.provide(services)),
     );
   });

@@ -6,7 +6,7 @@
 import * as Effect from "effect/Effect";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { MAJORDOME_AUTHOR } from "./VaultCommitReactor.ts";
+import { MAJORDOME_AUTHOR, MAJORDOME_THREAD_TRAILER } from "./VaultCommitReactor.ts";
 
 export interface VaultHistoryEntry {
   readonly commit: string;
@@ -16,6 +16,8 @@ export interface VaultHistoryEntry {
   readonly committedAt: string;
   /** True for the runs Majordome committed; false for the owner's own commits. */
   readonly byMajordome: boolean;
+  /** The thread whose run made this commit, from its trailer; null for other commits. */
+  readonly threadId: string | null;
   readonly files: ReadonlyArray<string>;
 }
 
@@ -28,6 +30,17 @@ export type VaultUndoResult =
 const FIELD = "\u001f";
 const RECORD = "\u001e";
 const COMMIT_PATTERN = /^[0-9a-f]{7,64}$/;
+
+const THREAD_TRAILER_LINE = new RegExp(`^${MAJORDOME_THREAD_TRAILER}:[ \\t]*(\\S+)[ \\t]*$`, "m");
+
+function splitThreadTrailer(rawBody: string) {
+  const match = THREAD_TRAILER_LINE.exec(rawBody);
+  if (match === null) return { body: rawBody.trim(), threadId: null };
+  return {
+    body: (rawBody.slice(0, match.index) + rawBody.slice(match.index + match[0].length)).trim(),
+    threadId: match[1] ?? null,
+  };
+}
 
 const majordomeEnv = {
   GIT_AUTHOR_NAME: MAJORDOME_AUTHOR.name,
@@ -50,14 +63,16 @@ function parseVaultLog(stdout: string): ReadonlyArray<VaultHistoryEntry> {
         subject = "",
         rest = "",
       ] = record.split(FIELD);
-      const [body = "", fileList = ""] = rest.split("\u0000");
+      const [rawBody = "", fileList = ""] = rest.split("\u0000");
+      const { body, threadId } = splitThreadTrailer(rawBody);
       return {
         commit,
         subject,
-        body: body.trim(),
+        body,
         authorName,
         committedAt,
         byMajordome: authorEmail === MAJORDOME_AUTHOR.email,
+        threadId,
         files: fileList
           .split("\n")
           .map((file) => file.trim())

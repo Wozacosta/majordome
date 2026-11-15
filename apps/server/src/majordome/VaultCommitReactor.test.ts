@@ -44,7 +44,11 @@ it.layer(testLayer)("commitVaultRun", (it) => {
 
       const committed = yield* commitVaultRun({
         cwd: root,
-        message: vaultCommitMessage({ threadTitle: "Plan  the week", runOrdinal: 3 }),
+        message: vaultCommitMessage({
+          threadTitle: "Plan  the week",
+          runOrdinal: 3,
+          threadId: "thread-1",
+        }),
       });
 
       assert.isTrue(committed);
@@ -53,7 +57,14 @@ it.layer(testLayer)("commitVaultRun", (it) => {
         "Majordome <majordome@localhost>",
       );
       assert.equal(yield* run(["log", "-1", "--format=%s"]), "majordome: Plan the week");
-      assert.equal(yield* run(["log", "-1", "--format=%b"]), "Run 3 of this thread.");
+      assert.equal(
+        yield* run(["log", "-1", "--format=%b"]),
+        "Run 3 of this thread.\n\nMajordome-Thread: thread-1",
+      );
+      assert.equal(
+        yield* run(["log", "-1", "--format=%(trailers:key=Majordome-Thread,valueonly)"]),
+        "thread-1",
+      );
       assert.equal(yield* run(["status", "--porcelain"]), "");
     }),
   );
@@ -81,7 +92,7 @@ it.layer(testLayer)("commitVaultRun", (it) => {
 
 it("names an untitled thread", () => {
   assert.equal(
-    vaultCommitMessage({ threadTitle: "  ", runOrdinal: 1 }),
-    "majordome: Untitled thread\n\nRun 1 of this thread.",
+    vaultCommitMessage({ threadTitle: "  ", runOrdinal: 1, threadId: "thread-1" }),
+    "majordome: Untitled thread\n\nRun 1 of this thread.\n\nMajordome-Thread: thread-1",
   );
 });

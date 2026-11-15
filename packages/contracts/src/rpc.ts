@@ -86,6 +86,13 @@ import {
 } from "./auth.ts";
 import { ClientActivityReportInput } from "./background.ts";
 import {
+  MajordomeVaultError,
+  MajordomeVaultHistoryInput,
+  MajordomeVaultHistoryResult,
+  MajordomeVaultUndoInput,
+  MajordomeVaultUndoResult,
+} from "./majordome.ts";
+import {
   FilesystemGetMetadataInput,
   FilesystemGetMetadataResult,
   FilesystemBrowseInput,
@@ -629,6 +636,9 @@ export const WS_METHODS = {
   subscribeServerLifecycle: "subscribeServerLifecycle",
   subscribeAuthAccess: "subscribeAuthAccess",
   subscribeResourceTelemetry: "subscribeResourceTelemetry",
+
+  majordomeListVaultHistory: "majordome.listVaultHistory",
+  majordomeUndoVaultRun: "majordome.undoVaultRun",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2105,6 +2115,18 @@ const WsSubscribeResourceTelemetryRpc = Rpc.make(WS_METHODS.subscribeResourceTel
   stream: true,
 });
 
+const WsMajordomeListVaultHistoryRpc = Rpc.make(WS_METHODS.majordomeListVaultHistory, {
+  payload: MajordomeVaultHistoryInput,
+  success: MajordomeVaultHistoryResult,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeUndoVaultRunRpc = Rpc.make(WS_METHODS.majordomeUndoVaultRun, {
+  payload: MajordomeVaultUndoInput,
+  success: MajordomeVaultUndoResult,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthorization>()(
   "t3/contracts/RpcScopeAuthorization",
   { error: EnvironmentAuthorizationError },
@@ -2332,4 +2354,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2SubscribeThreadRpc,
   WsOrchestrationV2SubscribeCommandOutputRpc,
   WsOrchestrationV2SubscribePromptSuggestionRpc,
+  WsMajordomeListVaultHistoryRpc,
+  WsMajordomeUndoVaultRunRpc,
 ).middleware(RpcScopeAuthorization);

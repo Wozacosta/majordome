@@ -127,6 +127,17 @@ export class ScheduledTaskWebhookOrigin extends Context.Reference<Effect.Effect<
   },
 ) {}
 
+/**
+ * Whether this server should fire a task's scheduled occurrence. A fork can say no when another
+ * server runs the task's project; the occurrence is then skipped, not left due. Manual and webhook
+ * runs do not ask.
+ */
+export class ScheduledTaskRunGate extends Context.Reference<
+  (task: ScheduledTask) => Effect.Effect<boolean>
+>("t3/scheduledTasks/ScheduledTaskRunGate", {
+  defaultValue: () => () => Effect.succeed(true),
+}) {}
+
 class WebhookDeliverySkipped extends Schema.TaggedError<WebhookDeliverySkipped>()(
   "WebhookDeliverySkipped",
   { reason: Schema.String },
@@ -483,6 +494,7 @@ export const layer = Layer.effect(
     const secretRequests = yield* SecretRequests.SecretRequests;
     const scheduler = yield* Scheduler.Scheduler;
     const readWebhookOrigin = yield* ScheduledTaskWebhookOrigin;
+    const mayRunHere = yield* ScheduledTaskRunGate;
     const managedPolicy = yield* ManagedPolicy.ManagedPolicy;
     const webhookPolicyOrganization = ManagedPolicy.deniedBy(managedPolicy, "webhookTasks");
     // Existing webhook tasks stay stored but report why they do not run.
@@ -974,6 +986,10 @@ export const layer = Layer.effect(
             Option.isNone(parsedNextRunAt) ||
             DateTime.toEpochMillis(parsedNextRunAt.value) > DateTime.toEpochMillis(startedAt))
         ) {
+          return { task: active, threadId: null, dispatchFailed: false };
+        }
+        if (trigger === "scheduled" && !(yield* mayRunHere(active))) {
+          yield* rescheduleMissedRun(active, startedAt, "runs on another server");
           return { task: active, threadId: null, dispatchFailed: false };
         }
         // A thread that stays busy would otherwise collect one copy of the

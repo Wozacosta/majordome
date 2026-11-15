@@ -131,7 +131,10 @@ import * as KnownWorkspaces from "./workspace/KnownWorkspaces.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
+import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
+import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
+import * as VaultLock from "./majordome/VaultLock.ts";
 import * as VcsAutomaticFetchInterval from "./vcs/VcsAutomaticFetchInterval.ts";
 import * as VcsDriverRegistry from "./vcs/VcsDriverRegistry.ts";
 import * as VcsProjectConfig from "./vcs/VcsProjectConfig.ts";
@@ -597,6 +600,8 @@ const layerScheduledTaskWebhookOrigin = Layer.effect(
 const layerOrchestrationV2Runtime = RuntimeLayer.layerProduction.pipe(
   Layer.provide(UsageLimitSources.layerResetFallback),
   Layer.provide(layerScheduledTaskWebhookOrigin),
+  // Scheduled routines of a vault fire only on the vault's runner.
+  Layer.provide(MajordomeRoutines.layerRunGate),
   Layer.provide(ProviderUsageAnalytics.layer),
   Layer.provide(layerCheckpointStore),
   Layer.provide(layerGitWorkflow),
@@ -716,7 +721,18 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       const service = yield* VaultCommitReactor.VaultCommitReactor;
       yield* service.start();
     }),
-  ).pipe(Layer.provide(VaultCommitReactor.layer), Layer.provide(ProjectionStoreV2.layer)),
+  ).pipe(
+    Layer.provide(VaultCommitReactor.layer),
+    Layer.provide(ProjectionStoreV2.layer),
+    Layer.provide(VaultLock.layer),
+  ),
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const service = yield* MajordomeRoutines.MajordomeRoutines;
+      yield* service.start();
+    }),
+  ).pipe(Layer.provide(MajordomeRoutines.layer)),
+  MajordomeVaultService.layer.pipe(Layer.provide(VaultLock.layer)),
   ProviderUsageLimitsIngestion.layer,
   layerProviderInstallationRefresh,
   ProviderInstallation.layer,

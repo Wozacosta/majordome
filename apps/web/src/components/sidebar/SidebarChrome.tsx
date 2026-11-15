@@ -1,4 +1,10 @@
-import { ArrowLeftIcon, ArrowRightIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ChartNoAxesColumnIcon,
+  NewspaperIcon,
+  SettingsIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
@@ -284,6 +290,16 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             label="Settings"
             onClick={handleSettingsClick}
           />
+          {isMajordome ? (
+            <SidebarUtilityItem
+              icon={<NewspaperIcon />}
+              label="Feed"
+              onClick={() => {
+                closeMobileSidebar();
+                void navigate({ to: "/feed" });
+              }}
+            />
+          ) : null}
           {pullRequestsSupported && !isMajordome ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}

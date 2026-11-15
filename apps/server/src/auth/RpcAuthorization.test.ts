@@ -52,6 +52,15 @@ describe("RPC authorization scopes", () => {
     );
   });
 
+  it("lets readers see a vault's history but keeps undoing a run behind operate scope", () => {
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeListVaultHistory)).toBe(
+      AuthOrchestrationReadScope,
+    );
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeUndoVaultRun)).toBe(
+      AuthOrchestrationOperateScope,
+    );
+  });
+
   it("separates passive terminal observation from operations that can change a shell", () => {
     for (const method of [WS_METHODS.terminalObserve, WS_METHODS.subscribeTerminalMetadata]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthTerminalReadScope);

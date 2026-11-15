@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer";
 
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { commitVaultRun } from "./VaultCommitReactor.ts";
+import { commitVaultRun, vaultCommitMessage } from "./VaultCommitReactor.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 
 const testLayer = GitVcsDriver.layer.pipe(
@@ -48,7 +48,9 @@ it.layer(testLayer)("vault history", (it) => {
       const vault = yield* makeVault();
       yield* vault.write("memory.md", "- Likes tea\n- Prefers checklists\n");
       yield* vault.write("daily/2026-11-15.md", "- [ ] Call the bank\n");
-      yield* vault.agentRun("majordome: Start my day\n\nRun 1 of this thread.");
+      yield* vault.agentRun(
+        vaultCommitMessage({ threadTitle: "Start my day", runOrdinal: 1, threadId: "thread-7" }),
+      );
 
       const history = yield* listVaultHistory({ cwd: vault.root, limit: 10 });
 
@@ -56,10 +58,12 @@ it.layer(testLayer)("vault history", (it) => {
       const [latest, first] = history;
       assert.equal(latest?.subject, "majordome: Start my day");
       assert.equal(latest?.body, "Run 1 of this thread.");
+      assert.equal(latest?.threadId, "thread-7");
       assert.isTrue(latest?.byMajordome);
       assert.deepEqual([...(latest?.files ?? [])].sort(), ["daily/2026-11-15.md", "memory.md"]);
       assert.equal(first?.subject, "My first note");
       assert.isFalse(first?.byMajordome);
+      assert.isNull(first?.threadId);
       assert.equal(first?.authorName, "Owner");
     }),
   );

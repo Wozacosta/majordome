@@ -10,25 +10,11 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
-import * as Schema from "effect/Schema";
 
-/** A folder is a Majordome vault when it has this directory. */
-const VAULT_CONFIG_DIRNAME = ".majordome";
-const VAULT_CONFIG_FILENAME = "config.json";
+import { readVaultLayout } from "./vaultConfig.ts";
 
 export const MEMORY_CHAR_LIMIT = 8_000;
 const DAILY_NOTE_CHAR_LIMIT = 4_000;
-
-const VaultConfig = Schema.Struct({
-  memory: Schema.optional(Schema.String),
-  folders: Schema.optional(
-    Schema.Struct({
-      daily: Schema.optional(Schema.String),
-    }),
-  ),
-});
-
-const decodeVaultConfig = Schema.decodeUnknownOption(Schema.fromJsonString(VaultConfig));
 
 /** `YYYY-MM-DD` in the server's local time zone, the way daily notes are named. */
 export function localIsoDate(
@@ -56,24 +42,14 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
 }) {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const configDir = path.join(input.vaultRoot, VAULT_CONFIG_DIRNAME);
-  const isVault = yield* fileSystem.exists(configDir).pipe(Effect.orElseSucceed(() => false));
-  if (!isVault) return "";
+  const layout = yield* readVaultLayout(input.vaultRoot);
+  if (Option.isNone(layout)) return "";
 
   const readText = (relativePath: string) =>
     fileSystem.readFileString(path.join(input.vaultRoot, relativePath)).pipe(Effect.option);
 
-  const config = Option.getOrElse(
-    Option.flatMap(
-      yield* fileSystem
-        .readFileString(path.join(configDir, VAULT_CONFIG_FILENAME))
-        .pipe(Effect.option),
-      decodeVaultConfig,
-    ),
-    () => ({}) as typeof VaultConfig.Type,
-  );
-  const memoryPath = config.memory ?? "memory.md";
-  const dailyFolder = config.folders?.daily ?? "daily";
+  const memoryPath = layout.value.memory;
+  const dailyFolder = layout.value.dailyFolder;
 
   const sections: Array<string> = [];
   const memory = yield* readText(memoryPath);

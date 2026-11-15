@@ -59,6 +59,7 @@ import {
   ArrowLeftIcon,
   BugIcon,
   ChartNoAxesColumnIcon,
+  NewspaperIcon,
   CheckIcon,
   ChevronRightIcon,
   CornerLeftUpIcon,
@@ -1700,6 +1701,19 @@ function OpenCommandPaletteDialog(props: {
       await navigate({ to: "/usage" });
     },
   });
+
+  if (isMajordome) {
+    actionItems.push({
+      kind: "action",
+      value: "action:feed",
+      searchTerms: ["feed", "history", "undo", "notes", "runs", "activity"],
+      title: "Open feed",
+      icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/feed" });
+      },
+    });
+  }
 
   for (const direction of [1, -1] as const) {
     const title = direction === 1 ? "Focus Next Workspace Area" : "Focus Previous Workspace Area";
