@@ -169,7 +169,7 @@ it.effect("skips a scheduled occurrence the gate refuses and fires it once allow
   }).pipe(Effect.provide(SqlitePersistence.layerMemory)),
 );
 
-it.effect("sets up an opened vault and digests files dropped in its inbox", () =>
+it.effect("moves a vault's routines here and digests files dropped in its inbox", () =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const vaultRoot = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-vault-" });
@@ -179,7 +179,14 @@ it.effect("sets up an opened vault and digests files dropped in its inbox", () =
       `${vaultRoot}/.majordome/config.json`,
       JSON.stringify({ folders: { daily: "daily", inbox: "drop" } }),
     );
+    // Another computer runs this vault's routines until they are moved here.
+    yield* fs.writeFileString(`${vaultRoot}/.majordome/runner`, "env-elsewhere\n");
     const projectId = ProjectId.make("project-e2e");
+    const vaultRow = {
+      projectId,
+      workspaceRoot: vaultRoot,
+      defaultModelSelection: { instanceId: "codex", model: "gpt-5" },
+    } as ProjectStore.ProjectRow;
     const launched = yield* Queue.unbounded<string>();
     // Inbox events come from this queue instead of the OS, so the test controls their timing.
     const watchEvents = yield* Queue.unbounded<FileSystem.WatchEvent>();
@@ -199,14 +206,9 @@ it.effect("sets up an opened vault and digests files dropped in its inbox", () =
             Layer.provide(
               Layer.mergeAll(
                 Layer.mock(ProjectStore.ProjectStoreV2)({
-                  list: () =>
-                    Effect.succeed([
-                      {
-                        projectId,
-                        workspaceRoot: vaultRoot,
-                        defaultModelSelection: { instanceId: "codex", model: "gpt-5" },
-                      } as ProjectStore.ProjectRow,
-                    ]),
+                  list: () => Effect.succeed([vaultRow]),
+                  get: (id) =>
+                    Effect.succeed(id === projectId ? Option.some(vaultRow) : Option.none()),
                 }),
                 Layer.mock(OrchestrationEventStore.OrchestrationEventStore)({
                   latestApplicationSequence: Effect.succeed(0),
@@ -242,18 +244,25 @@ it.effect("sets up an opened vault and digests files dropped in its inbox", () =
         );
         const service = Context.get(context, MajordomeRoutines.MajordomeRoutines);
         const scheduledTasks = Context.get(context, ScheduledTaskService.ScheduledTaskService);
-        yield* service.start().pipe(Effect.provideService(FileSystem.WatchBackend, watchBackend));
+        const withWatchBackend = Effect.provideService(FileSystem.WatchBackend, watchBackend);
+        yield* service.start().pipe(withWatchBackend);
         yield* settle;
         yield* TestClock.adjust("1 second");
-        // The inbox watch starts once the vault is set up and this server holds it.
-        assert.equal(yield* Deferred.await(watching), `${vaultRoot}/drop`);
+        yield* settle;
+        // Routines are set up on every server, but only the runner watches the inbox.
         const tasks = (yield* scheduledTasks.list()).tasks;
         assert.deepEqual(tasks.map((task) => task.title).toSorted(), [
           "Digest my inbox",
           "Review my week",
           "Start my day",
         ]);
+        assert.isFalse(yield* Deferred.isDone(watching));
+
+        const missing = yield* Effect.flip(service.runHere(ProjectId.make("missing")));
+        assert.equal(missing.message, "That vault was not found.");
+        yield* service.runHere(projectId).pipe(withWatchBackend);
         assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-here\n");
+        assert.equal(yield* Deferred.await(watching), `${vaultRoot}/drop`);
 
         yield* fs.writeFileString(`${vaultRoot}/drop/receipt.md`, "Paid 12 EUR\n");
         yield* Queue.offer(watchEvents, { _tag: "Create", path: "receipt.md" });

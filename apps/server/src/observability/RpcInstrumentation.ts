@@ -104,6 +104,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.scheduledTasksRunNow]: "scheduledTasks",
   [WS_METHODS.majordomeListVaultHistory]: "majordome",
   [WS_METHODS.majordomeUndoVaultRun]: "majordome",
+  [WS_METHODS.majordomeRunRoutinesHere]: "majordome",
   [WS_METHODS.scheduledTasksRotateWebhookToken]: "scheduledTasks",
   [WS_METHODS.scheduledTasksListWebhookDeliveries]: "scheduledTasks",
   [WS_METHODS.scheduledTasksGetWebhookDelivery]: "scheduledTasks",

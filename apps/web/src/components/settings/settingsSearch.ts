@@ -105,7 +105,8 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/threads": msg("Threads"),
   "/settings/browser": msg("Browser"),
   "/settings/devices": msg("Devices"),
-  "/settings/scheduled-tasks": msg("Scheduled tasks"),
+  // Majordome calls its scheduled tasks routines.
+  "/settings/scheduled-tasks": isMajordome ? msg("Routines") : msg("Scheduled tasks"),
   "/settings/source-control": msg("Source control"),
   "/settings/worktrees": msg("Worktrees"),
   "/settings/connections": msg("Environments"),
@@ -1016,8 +1017,9 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "scheduled-tasks",
-    title: "Scheduled tasks",
+    title: isMajordome ? "Routines" : "Scheduled tasks",
     to: "/settings/scheduled-tasks",
+    ...(isMajordome ? { searchTerms: ["scheduled tasks start my day review my week inbox"] } : {}),
   },
   {
     id: "agent-browser-access",

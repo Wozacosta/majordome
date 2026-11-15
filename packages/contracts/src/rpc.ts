@@ -86,6 +86,7 @@ import {
 } from "./auth.ts";
 import { ClientActivityReportInput } from "./background.ts";
 import {
+  MajordomeRunRoutinesHereInput,
   MajordomeVaultError,
   MajordomeVaultHistoryInput,
   MajordomeVaultHistoryResult,
@@ -639,6 +640,7 @@ export const WS_METHODS = {
 
   majordomeListVaultHistory: "majordome.listVaultHistory",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
+  majordomeRunRoutinesHere: "majordome.runRoutinesHere",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2127,6 +2129,11 @@ const WsMajordomeUndoVaultRunRpc = Rpc.make(WS_METHODS.majordomeUndoVaultRun, {
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeRunRoutinesHereRpc = Rpc.make(WS_METHODS.majordomeRunRoutinesHere, {
+  payload: MajordomeRunRoutinesHereInput,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthorization>()(
   "t3/contracts/RpcScopeAuthorization",
   { error: EnvironmentAuthorizationError },
@@ -2356,4 +2363,5 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2SubscribePromptSuggestionRpc,
   WsMajordomeListVaultHistoryRpc,
   WsMajordomeUndoVaultRunRpc,
+  WsMajordomeRunRoutinesHereRpc,
 ).middleware(RpcScopeAuthorization);

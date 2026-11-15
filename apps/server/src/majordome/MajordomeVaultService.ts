@@ -1,6 +1,6 @@
 /**
- * The feed's view of a project's vault: its history and "Undo this", looked up by project so
- * clients never name a folder on the server.
+ * The feed's view of a project's vault: its history, which server runs its routines, and "Undo
+ * this", looked up by project so clients never name a folder on the server.
  */
 
 import {
@@ -17,10 +17,12 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { readVaultRunner } from "./vaultRunner.ts";
 
 const DEFAULT_HISTORY_LIMIT = 100;
 
@@ -42,6 +44,7 @@ const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const services = yield* Effect.context<GitVcsDriver.GitVcsDriver>();
   const vaultLock = yield* VaultLock.VaultLock;
+  const environment = yield* ServerEnvironment.ServerEnvironment;
 
   const toVaultError = (message: string) => (cause: unknown) =>
     new MajordomeVaultError({ message, cause });
@@ -63,12 +66,25 @@ const make = Effect.gen(function* () {
   )(
     function* (input) {
       const cwd = yield* vaultRoot(input.projectId);
-      if (cwd === undefined) return { isVault: false, entries: [] };
+      if (cwd === undefined) {
+        return { isVault: false, entries: [], routinesRunner: "none" as const };
+      }
       const entries = yield* listVaultHistory({
         cwd,
         limit: input.limit ?? DEFAULT_HISTORY_LIMIT,
       }).pipe(Effect.provide(services));
-      return { isVault: true, entries };
+      // Read only: looking at the feed must not claim the vault for this server.
+      const runner = yield* readVaultRunner(cwd).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      );
+      const environmentId = yield* environment.getEnvironmentId;
+      const routinesRunner = Option.match(runner, {
+        onNone: () => "none" as const,
+        onSome: (id) =>
+          id === environmentId ? ("this-server" as const) : ("another-server" as const),
+      });
+      return { isVault: true, entries, routinesRunner };
     },
     Effect.mapError(toVaultError("Could not read this vault's history.")),
   );

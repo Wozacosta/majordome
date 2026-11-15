@@ -52,13 +52,13 @@ describe("RPC authorization scopes", () => {
     );
   });
 
-  it("lets readers see a vault's history but keeps undoing a run behind operate scope", () => {
+  it("lets readers see a vault's history but keeps undoing a run and moving routines behind operate scope", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.majordomeListVaultHistory)).toBe(
       AuthOrchestrationReadScope,
     );
-    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeUndoVaultRun)).toBe(
-      AuthOrchestrationOperateScope,
-    );
+    for (const method of [WS_METHODS.majordomeUndoVaultRun, WS_METHODS.majordomeRunRoutinesHere]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
+    }
   });
 
   it("separates passive terminal observation from operations that can change a shell", () => {

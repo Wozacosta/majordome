@@ -5,18 +5,27 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import {
+  type EnvironmentId,
+  type MajordomeRoutinesRunner,
   type MajordomeVaultHistoryResult,
   type MajordomeVaultUndoResult,
   ThreadId,
 } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { MessageSquareIcon, NotebookPenIcon, Undo2Icon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  CircleAlertIcon,
+  HandIcon,
+  MessageSquareIcon,
+  NotebookPenIcon,
+  Undo2Icon,
+} from "lucide-react";
 import { useState } from "react";
 
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
-import { useProjects } from "../../state/entities";
+import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -43,11 +52,24 @@ import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
-import { buildFeedItems, type FeedItem, type FeedVault, summarizeFeedFiles } from "./feed.logic";
+import {
+  buildFeedItems,
+  buildFeedRunItems,
+  FEED_RUN_STATUS_LABELS,
+  type FeedItem,
+  type FeedRunItem,
+  type FeedVault,
+  summarizeFeedFiles,
+} from "./feed.logic";
+
+interface FeedVaultState extends FeedVault {
+  readonly routinesRunner: MajordomeRoutinesRunner;
+}
 
 export function FeedPage() {
   const [includeOwnChanges, setIncludeOwnChanges] = useState(true);
   const [pendingUndo, setPendingUndo] = useState<FeedItem | null>(null);
+  const [pendingMove, setPendingMove] = useState<FeedVaultState | null>(null);
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
 
@@ -58,6 +80,8 @@ export function FeedPage() {
     ),
   );
 
+  const threads = useQuietThreadShells();
+  const vaults: Array<FeedVaultState> = [];
   const histories: Array<{
     vault: FeedVault;
     entries: MajordomeVaultHistoryResult["entries"];
@@ -75,16 +99,16 @@ export function FeedPage() {
     }
     const history = AsyncResult.getOrElse(result, () => null);
     if (history?.isVault) {
-      histories.push({
-        vault: {
-          environmentId: project.environmentId,
-          projectId: project.id,
-          title: project.title,
-        },
-        entries: history.entries,
-      });
+      const vault = {
+        environmentId: project.environmentId,
+        projectId: project.id,
+        title: project.title,
+      };
+      vaults.push({ ...vault, routinesRunner: history.routinesRunner });
+      histories.push({ vault, entries: history.entries });
     }
   });
+  const runItems = buildFeedRunItems(threads, vaults);
   const items = buildFeedItems(histories, { includeOwnChanges });
   const showVaultName = histories.length > 1;
 
@@ -93,14 +117,20 @@ export function FeedPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
         <WorkspacePageHeader electron={isElectron} className="border-b border-border">
           <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Feed</h1>
-          <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground [-webkit-app-region:no-drag]">
-            <Switch
-              size="sm"
-              checked={includeOwnChanges}
-              onCheckedChange={(checked) => setIncludeOwnChanges(checked)}
-            />
-            Show my own changes
-          </label>
+          <div className="flex shrink-0 items-center gap-3 [-webkit-app-region:no-drag]">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Switch
+                size="sm"
+                checked={includeOwnChanges}
+                onCheckedChange={(checked) => setIncludeOwnChanges(checked)}
+              />
+              Show my own changes
+            </label>
+            <Button size="xs" variant="outline" render={<Link to="/settings/scheduled-tasks" />}>
+              <CalendarClockIcon />
+              Routines
+            </Button>
+          </div>
         </WorkspacePageHeader>
 
         <ScrollArea className="min-h-0 flex-1">
@@ -110,6 +140,30 @@ export function FeedPage() {
                 {error}
               </p>
             ))}
+            {vaults.length > 0 ? (
+              <div className="mb-3 flex flex-col gap-1" aria-label="Routines">
+                {vaults.map((vault) => (
+                  <RoutinesRunnerLine
+                    key={`${vault.environmentId}:${vault.projectId}`}
+                    vault={vault}
+                    showVaultName={vaults.length > 1}
+                    onMove={() => setPendingMove(vault)}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {runItems.length > 0 ? (
+              <ul className="m-0 mb-1 flex list-none flex-col gap-1 p-0" aria-label="Needs you">
+                {runItems.map((item) => (
+                  <FeedRunRow
+                    key={item.key}
+                    item={item}
+                    nowMs={nowMs}
+                    showVaultName={showVaultName}
+                  />
+                ))}
+              </ul>
+            ) : null}
             {items.length > 0 ? (
               <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label="Feed">
                 {items.map((item) => (
@@ -122,7 +176,7 @@ export function FeedPage() {
                   />
                 ))}
               </ul>
-            ) : loading ? (
+            ) : runItems.length > 0 ? null : loading ? (
               <FeedSkeleton />
             ) : histories.length === 0 ? (
               <FeedEmpty
@@ -139,6 +193,7 @@ export function FeedPage() {
         </ScrollArea>
       </div>
       <UndoRunDialog item={pendingUndo} onClose={() => setPendingUndo(null)} />
+      <MoveRoutinesDialog vault={pendingMove} onClose={() => setPendingMove(null)} />
     </SidebarInset>
   );
 }
@@ -203,19 +258,7 @@ function FeedRow({
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {threadId !== null ? (
-          <Button
-            size="xs"
-            variant="ghost-muted"
-            render={
-              <Link
-                to="/$environmentId/$threadId"
-                params={buildThreadRouteParams(scopeThreadRef(item.vault.environmentId, threadId))}
-              />
-            }
-          >
-            <MessageSquareIcon />
-            Open chat
-          </Button>
+          <OpenChatButton environmentId={item.vault.environmentId} threadId={threadId} />
         ) : null}
         {entry.byMajordome && !item.undone && canUndo ? (
           <Button size="xs" variant="outline" onClick={onUndo}>
@@ -225,6 +268,192 @@ function FeedRow({
         ) : null}
       </div>
     </li>
+  );
+}
+
+function OpenChatButton({
+  environmentId,
+  threadId,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly threadId: ThreadId;
+}) {
+  return (
+    <Button
+      size="xs"
+      variant="ghost-muted"
+      render={
+        <Link
+          to="/$environmentId/$threadId"
+          params={buildThreadRouteParams(scopeThreadRef(environmentId, threadId))}
+        />
+      }
+    >
+      <MessageSquareIcon />
+      Open chat
+    </Button>
+  );
+}
+
+function FeedRunRow({
+  item,
+  nowMs,
+  showVaultName,
+}: {
+  readonly item: FeedRunItem;
+  readonly nowMs: number;
+  readonly showVaultName: boolean;
+}) {
+  const Icon = item.status === "waiting" ? HandIcon : CircleAlertIcon;
+  const meta = [formatRelativeTimeLabel(item.at, nowMs), showVaultName ? item.vault.title : null]
+    .filter((part) => part !== null && part !== "")
+    .join(" · ");
+  return (
+    <li
+      className="flex items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-accent/40"
+      data-feed-run={item.status}
+    >
+      <Icon
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          item.status === "waiting" ? "text-warning-foreground" : "text-destructive-foreground",
+        )}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+          <Badge variant={item.status === "waiting" ? "warning" : "error"}>
+            {FEED_RUN_STATUS_LABELS[item.status]}
+          </Badge>
+        </div>
+        <p className="truncate text-xs text-muted-foreground">{meta}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <OpenChatButton environmentId={item.vault.environmentId} threadId={item.threadId} />
+      </div>
+    </li>
+  );
+}
+
+const RUNNER_COPY: Record<MajordomeRoutinesRunner, string> = {
+  "this-server": "Routines run on this computer",
+  "another-server": "Routines run on another computer",
+  none: "Routines don't run on any computer yet",
+};
+
+function RoutinesRunnerLine({
+  vault,
+  showVaultName,
+  onMove,
+}: {
+  readonly vault: FeedVaultState;
+  readonly showVaultName: boolean;
+  readonly onMove: () => void;
+}) {
+  const canMove = useAtomValue(
+    majordomeEnvironment.runRoutinesHere.permissionAtom(vault.environmentId),
+  );
+  return (
+    <div
+      className="flex min-h-7 items-center gap-2 px-3 text-xs text-muted-foreground"
+      data-routines-runner={vault.routinesRunner}
+    >
+      <CalendarClockIcon className="size-3.5 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1 truncate">
+        {showVaultName ? `${vault.title}: ` : ""}
+        {RUNNER_COPY[vault.routinesRunner]}
+      </span>
+      {vault.routinesRunner !== "this-server" && canMove ? (
+        <Button size="xs" variant="outline" onClick={onMove}>
+          Move routines here
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function MoveRoutinesDialog({
+  vault,
+  onClose,
+}: {
+  readonly vault: FeedVaultState | null;
+  readonly onClose: () => void;
+}) {
+  return (
+    <AlertDialog
+      open={vault !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      {vault ? (
+        <MoveRoutinesDialogPopup
+          key={`${vault.environmentId}:${vault.projectId}`}
+          vault={vault}
+          onClose={onClose}
+        />
+      ) : null}
+    </AlertDialog>
+  );
+}
+
+function MoveRoutinesDialogPopup({
+  vault,
+  onClose,
+}: {
+  readonly vault: FeedVaultState;
+  readonly onClose: () => void;
+}) {
+  const runHere = useAtomCommand(majordomeEnvironment.runRoutinesHere, {
+    label: "run routines here",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const confirm = async () => {
+    setBusy(true);
+    const result = await runHere({
+      environmentId: vault.environmentId,
+      input: { projectId: vault.projectId },
+    });
+    setBusy(false);
+    if (result._tag === "Failure") {
+      if (!isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        toastManager.add({
+          type: "error",
+          title: "Could not move routines here",
+          description: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      toastManager.add({ type: "success", title: "Routines now run on this computer" });
+    }
+    onClose();
+  };
+
+  return (
+    <AlertDialogPopup>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Move routines to this computer?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Your routines for {vault.title}, and digesting new files in your inbox, will run on this
+          computer from now on.
+          {vault.routinesRunner === "another-server"
+            ? " The other computer stops running them once it gets your latest notes."
+            : ""}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
+          Cancel
+        </AlertDialogClose>
+        <Button disabled={busy} onClick={() => void confirm()}>
+          {busy && <Spinner size="sm" />}
+          Move routines here
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogPopup>
   );
 }
 

@@ -22,9 +22,14 @@ export const MajordomeVaultHistoryEntry = Schema.Struct({
 });
 export type MajordomeVaultHistoryEntry = typeof MajordomeVaultHistoryEntry.Type;
 
+/** Which server runs the vault's routines: this one, another one, or none yet. */
+export const MajordomeRoutinesRunner = Schema.Literals(["this-server", "another-server", "none"]);
+export type MajordomeRoutinesRunner = typeof MajordomeRoutinesRunner.Type;
+
 export const MajordomeVaultHistoryResult = Schema.Struct({
   isVault: Schema.Boolean,
   entries: Schema.Array(MajordomeVaultHistoryEntry),
+  routinesRunner: MajordomeRoutinesRunner,
 });
 export type MajordomeVaultHistoryResult = typeof MajordomeVaultHistoryResult.Type;
 
@@ -41,6 +46,11 @@ export const MajordomeVaultUndoResult = Schema.Union([
   Schema.Struct({ status: Schema.Literal("not-found") }),
 ]);
 export type MajordomeVaultUndoResult = typeof MajordomeVaultUndoResult.Type;
+
+export const MajordomeRunRoutinesHereInput = Schema.Struct({
+  projectId: ProjectId,
+});
+export type MajordomeRunRoutinesHereInput = typeof MajordomeRunRoutinesHereInput.Type;
 
 export class MajordomeVaultError extends Schema.TaggedError<MajordomeVaultError>()(
   "MajordomeVaultError",

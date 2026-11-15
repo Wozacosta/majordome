@@ -1,13 +1,14 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import * as ServerConfig from "../config.ts";
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
@@ -67,6 +68,11 @@ const makeService = (roots: Readonly<Record<string, string>>) =>
       MajordomeVaultService.layer.pipe(
         Layer.provide(VaultLock.layer),
         Layer.provide(
+          Layer.mock(ServerEnvironment.ServerEnvironment)({
+            getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
+          }),
+        ),
+        Layer.provide(
           Layer.mock(ProjectStore.ProjectStoreV2)({
             get: (projectId) =>
               Effect.succeed(
@@ -110,6 +116,24 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
     }),
   );
 
+  it.effect("says which server runs the vault's routines without claiming it", () =>
+    Effect.gen(function* () {
+      const vault = yield* makeFolder({ vault: true });
+      const runnerFile = `${vault.root}/.majordome/runner`;
+      const service = yield* makeService({ [vaultProject]: vault.root });
+      const runner = service
+        .listHistory({ projectId: vaultProject })
+        .pipe(Effect.map((history) => history.routinesRunner));
+
+      assert.equal(yield* runner, "none");
+      assert.isFalse(yield* vault.fs.exists(runnerFile));
+      yield* vault.fs.writeFileString(runnerFile, "env-elsewhere\n");
+      assert.equal(yield* runner, "another-server");
+      yield* vault.fs.writeFileString(runnerFile, "env-here\n");
+      assert.equal(yield* runner, "this-server");
+    }),
+  );
+
   it.effect("treats folders that are not vaults, and unknown projects, as having no history", () =>
     Effect.gen(function* () {
       const code = yield* makeFolder({ vault: false });
@@ -120,6 +144,7 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
         assert.deepEqual(yield* service.listHistory({ projectId }), {
           isVault: false,
           entries: [],
+          routinesRunner: "none",
         });
         assert.deepEqual(yield* service.undo({ projectId, commit }), { status: "not-found" });
       }

@@ -726,12 +726,13 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(ProjectionStoreV2.layer),
     Layer.provide(VaultLock.layer),
   ),
+  // provideMerge keeps the service in the context, for "Move routines here".
   Layer.effectDiscard(
     Effect.gen(function* () {
       const service = yield* MajordomeRoutines.MajordomeRoutines;
       yield* service.start();
     }),
-  ).pipe(Layer.provide(MajordomeRoutines.layer)),
+  ).pipe(Layer.provideMerge(MajordomeRoutines.layer)),
   MajordomeVaultService.layer.pipe(Layer.provide(VaultLock.layer)),
   ProviderUsageLimitsIngestion.layer,
   layerProviderInstallationRefresh,
