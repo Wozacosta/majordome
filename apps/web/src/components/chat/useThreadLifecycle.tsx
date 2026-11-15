@@ -78,6 +78,7 @@ import { Atom } from "effect/reactivity";
 import { environmentThreadDetails } from "../../state/threads";
 import { openSideChatTab } from "../../lib/sideChatPane";
 import type { useLocalDispatchState } from "./useLocalDispatchState";
+import { SETTLE_WORDS } from "../../settleWording";
 const RELATED_THREAD_SHELL_WAIT_MS = 1_000;
 const NO_RUN_STOP_ATOM = Atom.make<RunStopPresentation | null>(null).pipe(
   Atom.withLabel("web-thread-run-stop:empty"),
@@ -256,7 +257,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Failed to un-settle thread",
+          title: SETTLE_WORDS.unsettleFailed,
           description: error instanceof Error ? error.message : "An error occurred.",
         }),
       );
@@ -633,9 +634,13 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   ) : activeThreadSettled ? (
     <ThreadStatusLine
       icon={<CheckCircle2Icon />}
-      label={settledAt ? `Settled ${formatRelativeTimeLabel(settledAt)}` : "Settled"}
+      label={
+        settledAt
+          ? SETTLE_WORDS.settledSince(formatRelativeTimeLabel(settledAt))
+          : SETTLE_WORDS.settledSection
+      }
       clockMinute={nowMinute}
-      actionLabel={isUnsettling ? "Un-settling..." : "Un-settle"}
+      actionLabel={isUnsettling ? SETTLE_WORDS.unsettling : SETTLE_WORDS.unsettle}
       actionDisabled={!canOperateThread || isUnsettling}
       onAction={() => void handleUnsettleActiveThreadStable()}
     />
@@ -668,7 +673,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
         return;
       }
       if (settleAndAdvance(activeThreadRef)) return;
-      void settleThread(activeThreadRef).then(toastThreadActionFailure("Failed to settle thread"));
+      void settleThread(activeThreadRef).then(toastThreadActionFailure(SETTLE_WORDS.settleFailed));
     },
     "thread.pin": ({ event }) => {
       // An open project list pins its highlighted project with this key instead.

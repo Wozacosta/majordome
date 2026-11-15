@@ -10,6 +10,7 @@ import { shortcutLabelForCommand } from "../keybindings";
 import { announce, cancelAnnouncement } from "../lib/announce";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "../state/server";
+import { SETTLE_WORDS } from "../settleWording";
 import * as ThreadUndo from "@t3tools/client-runtime/state/thread-undo";
 
 type UndoOptions = {
@@ -29,7 +30,7 @@ type UndoNotice = {
 export const useThreadUndoNotice = create<{ notice: UndoNotice | null }>(() => ({ notice: null }));
 
 const UNDONE_ACTION = {
-  Settled: "settle",
+  Settled: SETTLE_WORDS.undoneAction,
   Snoozed: "snooze",
   Unpinned: "unpin",
   Archived: "archive",
@@ -41,8 +42,16 @@ function countLabel(action: UndoOptions["action"], count: number) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
+/** The notice's short word for what was done, such as "Snoozed". */
+export function threadUndoActionLabel(action: UndoOptions["action"]): string {
+  return action === "Settled" ? SETTLE_WORDS.settledNotice : action;
+}
+
 function threadUndoNoticeSummary(notice: Pick<UndoNotice, "action" | "count">): string {
-  return `${notice.action} ${countLabel(notice.action, notice.count)}`;
+  const count = countLabel(notice.action, notice.count);
+  return notice.action === "Settled"
+    ? SETTLE_WORDS.settledSummary(count)
+    : `${notice.action} ${count}`;
 }
 
 export function threadUndoLabel(keybindings: Parameters<typeof shortcutLabelForCommand>[0]) {

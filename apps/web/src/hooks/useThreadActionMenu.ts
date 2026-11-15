@@ -48,6 +48,7 @@ import { useCopyToClipboard } from "./useCopyToClipboard";
 import { useNewThreadHandler } from "./useHandleNewThread";
 import { useClientSettings } from "./useSettings";
 import { canTurnThreadIntoProject, useThreadActions } from "./useThreadActions";
+import { SETTLE_WORDS } from "../settleWording";
 
 function failureToast(title: string, error: unknown) {
   toastManager.add(
@@ -218,10 +219,10 @@ export function useThreadActionMenu(input: {
           return;
         }
         case "settle":
-          await reportFailure("Failed to settle thread", () => settleThread(threadRef));
+          await reportFailure(SETTLE_WORDS.settleFailed, () => settleThread(threadRef));
           return;
         case "unsettle":
-          await reportFailure("Failed to un-settle thread", () => unsettleThread(threadRef));
+          await reportFailure(SETTLE_WORDS.unsettleFailed, () => unsettleThread(threadRef));
           return;
         case "unsnooze":
           await reportFailure("Failed to wake thread", () => unsnoozeThread(threadRef));
@@ -235,7 +236,7 @@ export function useThreadActionMenu(input: {
         }
         case "auto-settle:enabled":
         case "auto-settle:disabled":
-          await reportFailure("Failed to update auto-settle", () =>
+          await reportFailure(SETTLE_WORDS.autoSettleFailed, () =>
             setThreadAutoSettle(threadRef, action === "auto-settle:enabled"),
           );
           return;

@@ -12,6 +12,7 @@ import { searchableSetting } from "./settingsSearch";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
 import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
 import { firstManagedDenial, usePrimaryManagedPolicy } from "~/state/managedPolicy";
+import { SETTLE_WORDS } from "~/settleWording";
 
 /** Features still settling in. */
 export function LabsSettingsPanel() {
@@ -36,7 +37,7 @@ function BoringSidebarRow() {
   return (
     <SettingsRow
       {...searchableSetting("boring-sidebar")}
-      description="Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders."
+      description={SETTLE_WORDS.projectFoldersDescription}
       control={
         <Switch
           checked={settings.boringSidebarEnabled}

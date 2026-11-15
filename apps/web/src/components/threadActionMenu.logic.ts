@@ -1,4 +1,6 @@
 import type { ContextMenuItem } from "@t3tools/contracts";
+
+import { SETTLE_WORDS } from "../settleWording";
 import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
 
 export type ThreadActionMenuId =
@@ -139,8 +141,8 @@ export function buildThreadActionMenuItems(
     ...(state.supports.settlement
       ? [
           state.isSettled
-            ? { id: "unsettle" as const, label: "Un-settle thread", icon: "circle-check" }
-            : { id: "settle" as const, label: "Settle thread", icon: "circle-check" },
+            ? { id: "unsettle" as const, label: SETTLE_WORDS.unsettleThread, icon: "circle-check" }
+            : { id: "settle" as const, label: SETTLE_WORDS.settleThread, icon: "circle-check" },
         ]
       : []),
     ...(state.supports.snooze
@@ -207,7 +209,7 @@ export function buildThreadActionMenuItems(
       ? [
           {
             id: "auto-settle" as const,
-            label: "Auto-settle behavior",
+            label: SETTLE_WORDS.autoSettleMenu,
             icon: "timer",
             children: [
               {

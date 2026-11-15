@@ -48,6 +48,7 @@ import {
   useUpdateScopedSettings,
 } from "./useScopedSettings";
 import { settingsScopeEnvironmentLabel } from "./settingsScopeAxis";
+import { SETTLE_WORDS } from "../../settleWording";
 
 export function WorktreesDirectoryRow() {
   const { connectedEnvironments, targets } = useSettingsScope();
@@ -706,7 +707,7 @@ export function WorktreeCleanupSection() {
                     true,
                 ) && (
                   <SettingsRow
-                    title="Delete settled worktrees"
+                    title={SETTLE_WORDS.deleteSettledWorktrees}
                     managedPaths={lockablePath("worktreeSettledAfterDays")}
                     status={[
                       ruleStatus("worktreeSettledAfterDays"),
@@ -716,11 +717,11 @@ export function WorktreeCleanupSection() {
                     ]
                       .filter(Boolean)
                       .join(". ")}
-                    description="Remove worktrees this many days after their thread settles. Set 0 days to remove them at the next cleanup. Branches and thread history are kept."
+                    description={SETTLE_WORDS.deleteSettledWorktreesDescription}
                     serverScoped={!isProjectScope}
                     control={
                       <RetentionControl
-                        label="Delete settled worktrees"
+                        label={SETTLE_WORDS.deleteSettledWorktrees}
                         value={settings.worktreeSettledAfterDays}
                         minimum={0}
                         onChange={(worktreeSettledAfterDays, onFailed) =>

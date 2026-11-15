@@ -126,6 +126,7 @@ import { downloadLocalUpdate } from "../sidebar/SidebarUpdatePill";
 import { useUpdateEverythingRun } from "../sidebar/updateEverythingRun";
 import { awaitsTrackSwitch, channelSwitchLabel } from "../sidebar/updateEverything.logic";
 import { isHostedByThisApp } from "../sidebar/useUpdateEverything";
+import { SETTLE_WORDS } from "../../settleWording";
 
 const RESPONSE_STREAMING_MODE_LABELS: Record<ResponseStreamingMode, string> = {
   turn: "Wait for the full response",
@@ -497,14 +498,14 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? ["Working section"]
       : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
-      ? ["Auto-settle inactive threads"]
+      ? [SETTLE_WORDS.autoSettleInactiveTitle]
       : []),
     ...(settings.sidebarAutoSettleKeepPullRequests !==
     DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests
       ? ["Keep threads with a PR"]
       : []),
     ...(settings.sidebarAutoSettleOnMerge !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge
-      ? ["Auto-settle merged threads"]
+      ? [SETTLE_WORDS.autoSettleMergedTitle]
       : []),
     ...(settings.autoResumeLimitedThreads !== DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads
       ? ["Resume after usage limits"]
@@ -774,7 +775,7 @@ function AutoSettleDaysInput({
           setField(cancelAutoSettleDaysField(field));
         }
       }}
-      aria-label="Days of inactivity before auto-settle"
+      aria-label={SETTLE_WORDS.autoSettleDaysLabel}
     />
   );
 }
@@ -1885,17 +1886,17 @@ export function ThreadsSettingsPanel() {
       </SettingsSection>
 
       {hasServerTargets ? (
-        <SettingsSection id="auto-settle" title="Auto-settle">
+        <SettingsSection id="auto-settle" title={SETTLE_WORDS.settingsSection}>
           <SettingsRow
             serverScoped
             settingKeys={["sidebarAutoSettleOnMerge"]}
             {...searchableSetting("auto-settle-merged-threads")}
-            description="Settle a thread when its pull request merges. Closed pull requests still settle automatically."
+            description={SETTLE_WORDS.autoSettleMergedDescription}
             resetAction={
               settings.sidebarAutoSettleOnMerge !==
               DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge ? (
                 <SettingResetButton
-                  label="auto-settle on merge"
+                  label={SETTLE_WORDS.autoSettleMergedReset}
                   onClick={() =>
                     updateSettings({
                       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -1911,7 +1912,7 @@ export function ThreadsSettingsPanel() {
                 onCheckedChange={(checked) =>
                   updateSettings({ sidebarAutoSettleOnMerge: Boolean(checked) })
                 }
-                aria-label="Auto-settle merged threads"
+                aria-label={SETTLE_WORDS.autoSettleMergedTitle}
               />
             }
           />
@@ -1920,12 +1921,14 @@ export function ThreadsSettingsPanel() {
             serverScoped
             settingKeys={["sidebarAutoSettleAfterDays"]}
             {...searchableSetting("auto-settle-inactive-threads")}
-            description="Sidebar threads with no activity for this long settle automatically."
+            description={SETTLE_WORDS.autoSettleInactiveDescription(
+              settings.sidebarAutoSettleAfterDays,
+            )}
             resetAction={
               settings.sidebarAutoSettleAfterDays !==
               DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays ? (
                 <SettingResetButton
-                  label="auto-settle"
+                  label={SETTLE_WORDS.autoSettleInactiveReset}
                   onClick={() =>
                     updateSettings({
                       sidebarAutoSettleAfterDays:
@@ -1944,7 +1947,7 @@ export function ThreadsSettingsPanel() {
                     sidebarAutoSettleAfterDays: checked ? AUTO_SETTLE_DEFAULT_DAYS : null,
                   })
                 }
-                aria-label="Auto-settle inactive threads"
+                aria-label={SETTLE_WORDS.autoSettleInactiveTitle}
               />
             }
           />
@@ -1953,7 +1956,7 @@ export function ThreadsSettingsPanel() {
               serverScoped
               settingKeys={["sidebarAutoSettleAfterDays"]}
               title={searchableSetting("days-before-auto-settle").title}
-              description="Any new activity un-settles a thread automatically."
+              description={SETTLE_WORDS.autoSettleDaysDescription}
               control={
                 <AutoSettleDaysInput
                   value={settings.sidebarAutoSettleAfterDays}
@@ -1969,7 +1972,7 @@ export function ThreadsSettingsPanel() {
               serverScoped
               settingKeys={["sidebarAutoSettleKeepPullRequests"]}
               title="Keep threads with a PR"
-              description="Inactivity does not settle threads with a pull request. Merge and close still do."
+              description={SETTLE_WORDS.keepPullRequestsDescription}
               control={
                 <ScopedSwitch
                   settingKeys={["sidebarAutoSettleKeepPullRequests"]}

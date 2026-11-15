@@ -15,6 +15,7 @@ import {
 
 import { shortcutConflictKey, shortcutKeyFromEvent } from "../../keybindings";
 import { isMacPlatform } from "../../lib/utils";
+import { SETTLE_WORDS } from "../../settleWording";
 import { METRIC_OPTIONS, WINDOW_OPTIONS } from "../usage/usageShortcuts";
 
 // Rank every usage command; mixing rank and alphabetical comparisons makes order input-dependent.
@@ -378,6 +379,7 @@ export function commandLabel(command: KeybindingCommand): string {
   if (command === "thread.steerQueuedMessage") return "Queue: Send First Queued Message";
   if (command === "thread.editQueuedMessage") return "Queue: Edit Last Queued Message";
   if (command === "thread.copyReference") return "Pull Request: Copy Link or Thread";
+  if (command === "thread.settle") return SETTLE_WORDS.keybinding;
   const usageMetric = METRIC_OPTIONS.find((option) => option.command === command);
   if (usageMetric) return `Usage: ${usageMetric.label}`;
   const usagePeriod = WINDOW_OPTIONS.find((option) => option.command === command);

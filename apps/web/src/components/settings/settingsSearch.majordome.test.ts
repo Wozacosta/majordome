@@ -59,3 +59,17 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
   expect(searchSettings("keybindings").map((item) => item.to)).toContain("/settings/keybindings");
   expect(searchSettings("archived threads")[0]?.to).toBe("/settings/archived");
 });
+
+it("says Done for settling, and still finds it for people who search T3's word", () => {
+  const titles = (query: string) => searchSettings(query).map((item) => item.title);
+  expect(titles("move chats to done")).toContain("Move inactive chats to Done");
+  expect(titles("auto-settle")).toEqual(
+    expect.arrayContaining([
+      "Move inactive chats to Done",
+      "Move merged chats to Done",
+      "Days before chats move to Done",
+    ]),
+  );
+  expect(titles("settle")).toContain("Thread: Mark as Done");
+  expect(titles("settle").some((title) => /settle/i.test(title))).toBe(false);
+});

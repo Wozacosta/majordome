@@ -13,6 +13,7 @@ import * as Schema from "effect/Schema";
 import { msg } from "gt-react";
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
 import { writeLocalStorageValue } from "../../hooks/useLocalStorage";
+import { SETTLE_WORDS } from "../../settleWording";
 import { commandLabel } from "./KeybindingsSettings.logic";
 import type { ResolvedSettingsScope } from "./settingsScope";
 
@@ -708,9 +709,11 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "auto-settle-inactive-threads",
-    title: "Auto-settle inactive threads",
+    title: SETTLE_WORDS.autoSettleInactiveTitle,
     to: "/settings/threads",
-    searchTerms: ["sidebar inactivity days no activity automatically"],
+    searchTerms: [
+      `sidebar inactivity days no activity automatically ${SETTLE_WORDS.searchKeywords}`,
+    ],
     requiresThreadAutoSettlement: true,
     scope: "project-defaults",
   },
@@ -723,9 +726,9 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "auto-settle-merged-threads",
-    title: "Auto-settle merged threads",
+    title: SETTLE_WORDS.autoSettleMergedTitle,
     to: "/settings/threads",
-    searchTerms: ["pull request merge closed automatically sidebar"],
+    searchTerms: [`pull request merge closed automatically sidebar ${SETTLE_WORDS.searchKeywords}`],
     requiresThreadAutoSettlement: true,
     scope: "project-defaults",
   },
@@ -740,10 +743,10 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "days-before-auto-settle",
-    title: "Days of inactivity before auto-settle",
+    title: SETTLE_WORDS.autoSettleDaysTitle,
     to: "/settings/threads",
     targetId: "auto-settle-inactive-threads",
-    searchTerms: ["thread timeout activity sidebar"],
+    searchTerms: [`thread timeout activity sidebar ${SETTLE_WORDS.searchKeywords}`],
     requiresThreadAutoSettlement: true,
     scope: "project-defaults",
   },

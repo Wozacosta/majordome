@@ -53,6 +53,7 @@ import { Label } from "./ui/label";
 import { Popover, PopoverPopup, PopoverTrigger } from "./ui/popover";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
+import { SETTLE_WORDS } from "../settleWording";
 
 const SCRIPT_ICONS: Array<{ id: ProjectScriptIcon; label: string }> = [
   { id: "play", label: "Play" },
@@ -520,14 +521,14 @@ function ProjectScriptEditorForm({
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>Run in the thread's worktree when the thread settles</span>
+              <span>{SETTLE_WORDS.scriptRunOnSettle}</span>
               <Switch
                 checked={runOnSettle}
                 onCheckedChange={(checked) => setRunOnSettle(Boolean(checked))}
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>Stop this action when the thread settles</span>
+              <span>{SETTLE_WORDS.scriptStopOnSettle}</span>
               <Switch
                 checked={stopOnSettle}
                 onCheckedChange={(checked) => setStopOnSettle(Boolean(checked))}

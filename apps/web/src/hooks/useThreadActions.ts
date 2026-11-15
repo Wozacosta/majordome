@@ -61,6 +61,7 @@ import { showThreadUndoNotice } from "./showThreadUndoNotice";
 import { useAtomCommand } from "../state/use-atom-command";
 import { useOrchestrationCommand } from "../state/use-orchestration-command";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
+import { SETTLE_WORDS } from "../settleWording";
 
 export class ThreadArchiveBlockedError extends Schema.TaggedError<ThreadArchiveBlockedError>()(
   "ThreadArchiveBlockedError",
@@ -82,7 +83,7 @@ export class ThreadSettlementUnsupportedError extends Schema.TaggedError<ThreadS
   },
 ) {
   override get message(): string {
-    return "This environment's server does not support settling yet. Update the server to use Settle.";
+    return SETTLE_WORDS.settleUnsupported;
   }
 }
 
@@ -127,7 +128,7 @@ export class ThreadAutoSettleOptOutUnsupportedError extends Schema.TaggedError<T
   },
 ) {
   override get message(): string {
-    return "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it.";
+    return SETTLE_WORDS.autoSettleUnsupported;
   }
 }
 
@@ -844,7 +845,7 @@ export function useThreadActions() {
       action: "Settled",
       claim: action,
       undo: () => runUndoPlan(target, undoPlan),
-      failureTitle: "Failed to undo settle",
+      failureTitle: SETTLE_WORDS.undoSettleFailed,
     });
     return result;
   };
