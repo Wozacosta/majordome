@@ -34,6 +34,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import {
   EMPTY_PROJECT_TOPIC_STATE,
@@ -44,7 +45,7 @@ import {
 } from "./topicThreads.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
-import { chooseVaultModel } from "./vaultModel.ts";
+import { chooseVaultModel, firstReadyProviderModel } from "./vaultModel.ts";
 import {
   listVaultFolders,
   newTopicId,
@@ -84,6 +85,8 @@ export class MajordomeTopics extends Context.Service<
 
 const isTopicsError = Schema.is(MajordomeTopicsError);
 
+const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
+
 const fail = (message: string) => Effect.fail(new MajordomeTopicsError({ message }));
 
 const readmeFor = (title: string) =>
@@ -93,6 +96,7 @@ const make = Effect.gen(function* () {
   const projects = yield* ProjectStore.ProjectStoreV2;
   const threads = yield* ThreadManagementService.ThreadManagementService;
   const settings = yield* ServerSettings.ServerSettingsService;
+  const providers = yield* ProviderRegistry.ProviderRegistry;
   const config = yield* ServerConfig.ServerConfig;
   const vaultLock = yield* VaultLock.VaultLock;
   const fileSystem = yield* FileSystem.FileSystem;
@@ -229,10 +233,18 @@ const make = Effect.gen(function* () {
     state: ProjectTopicState,
   ) {
     const thread = yield* liveThread(state.threads[topic.id]);
+    const folderPath = path.join(vaultRoot, topic.folder);
+    const keyNote = yield* Effect.findFirst(KEY_NOTES, (name) =>
+      fileSystem.exists(path.join(folderPath, name)).pipe(Effect.orElseSucceed(() => false)),
+    );
     return {
       ...topic,
       threadId: thread?.id ?? null,
-      folderExists: yield* isFolder(path.join(vaultRoot, topic.folder)),
+      folderExists: yield* isFolder(folderPath),
+      keyNote: Option.match(keyNote, {
+        onNone: () => null,
+        onSome: (name) => `${topic.folder}/${name}`,
+      }),
     } satisfies MajordomeTopic;
   });
 
@@ -397,13 +409,14 @@ const make = Effect.gen(function* () {
       const state = yield* projectState(input.projectId);
       const existing = yield* liveThread(state.threads[topic.id]);
       if (existing !== null) return { threadId: existing.id };
-      const modelSelection = yield* chooseVaultModel(project).pipe(
-        Effect.provideService(ServerSettings.ServerSettingsService, settings),
-        Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
-      );
+      const modelSelection =
+        (yield* chooseVaultModel(project).pipe(
+          Effect.provideService(ServerSettings.ServerSettingsService, settings),
+          Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+        )) ?? firstReadyProviderModel(yield* providers.getProviders);
       if (modelSelection === null) {
         return yield* fail(
-          "Majordome doesn't know which model to use yet. Start a chat or choose a default model in Settings, then open this topic again.",
+          "No AI provider is ready yet. Set one up in Settings, then open this topic again.",
         );
       }
       const threadId = ThreadId.make(yield* random.uuidV4());

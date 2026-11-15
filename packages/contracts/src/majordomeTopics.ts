@@ -20,6 +20,8 @@ export const MajordomeTopic = Schema.Struct({
   threadId: Schema.NullOr(ThreadId),
   /** False when the folder has been moved or deleted since. */
   folderExists: Schema.Boolean,
+  /** The note to open the folder at in Notes: its log, else its README or index. */
+  keyNote: Schema.NullOr(Schema.String),
 });
 export type MajordomeTopic = typeof MajordomeTopic.Type;
 

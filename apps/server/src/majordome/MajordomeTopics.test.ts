@@ -17,6 +17,7 @@ import * as Option from "effect/Option";
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -124,6 +125,9 @@ const setUp = Effect.fn("test.setUp")(function* (
             }),
           }),
         ),
+        Layer.provide(
+          Layer.mock(ProviderRegistry.ProviderRegistry)({ getProviders: Effect.succeed([]) }),
+        ),
         Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-topics-" })),
         Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
       ),
@@ -191,6 +195,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         folder: "projects/quitting-nicotine",
         threadId: null,
         folderExists: true,
+        keyNote: "projects/quitting-nicotine/README.md",
       });
       assert.include(
         yield* fs.readFileString(`${vault}/projects/quitting-nicotine/README.md`),
@@ -276,7 +281,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       const exit = yield* service
         .open({ projectId: vaultProject, topicId: topic.id })
         .pipe(Effect.exit);
-      assert.include(errorMessage(exit), "Start a chat or choose a default model");
+      assert.include(errorMessage(exit), "No AI provider is ready yet");
     }),
   );
 
