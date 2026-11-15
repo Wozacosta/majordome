@@ -8,6 +8,13 @@ export const MajordomeVaultHistoryInput = Schema.Struct({
 });
 export type MajordomeVaultHistoryInput = typeof MajordomeVaultHistoryInput.Type;
 
+export const MajordomeRoutineKind = Schema.Literals([
+  "start-my-day",
+  "review-my-week",
+  "digest-my-inbox",
+]);
+export type MajordomeRoutineKind = typeof MajordomeRoutineKind.Type;
+
 export const MajordomeVaultHistoryEntry = Schema.Struct({
   commit: Schema.String,
   subject: Schema.String,
@@ -19,6 +26,12 @@ export const MajordomeVaultHistoryEntry = Schema.Struct({
   /** The thread whose run made this change, when it is known. */
   threadId: Schema.NullOr(Schema.String),
   files: Schema.Array(Schema.String),
+  /** For a run: the start of the agent's final reply, in plain words. Absent when unknown. */
+  summary: Schema.optional(Schema.NullOr(Schema.String)),
+  /** For a run a default routine started: which one. */
+  routine: Schema.optional(Schema.NullOr(MajordomeRoutineKind)),
+  /** For "Start my day": the start of the daily note it wrote, as plain lines. */
+  dailyNotePreview: Schema.optional(Schema.NullOr(Schema.String)),
 });
 export type MajordomeVaultHistoryEntry = typeof MajordomeVaultHistoryEntry.Type;
 
@@ -30,6 +43,13 @@ export const MajordomeVaultHistoryResult = Schema.Struct({
   isVault: Schema.Boolean,
   entries: Schema.Array(MajordomeVaultHistoryEntry),
   routinesRunner: MajordomeRoutinesRunner,
+  /** The vault's daily and inbox folders, from its config. */
+  folders: Schema.optional(Schema.Struct({ daily: Schema.String, inbox: Schema.String })),
+  /**
+   * The Markdown notes these entries touched that still exist, each with its first `# heading`
+   * (null when it has none).
+   */
+  notes: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
 });
 export type MajordomeVaultHistoryResult = typeof MajordomeVaultHistoryResult.Type;
 

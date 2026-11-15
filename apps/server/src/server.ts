@@ -737,7 +737,10 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       yield* service.start();
     }),
   ).pipe(Layer.provideMerge(MajordomeRoutines.layer)),
-  MajordomeVaultService.layer.pipe(Layer.provide(VaultLock.layer)),
+  MajordomeVaultService.layer.pipe(
+    Layer.provide(VaultLock.layer),
+    Layer.provide(ProjectionStoreV2.layer),
+  ),
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {

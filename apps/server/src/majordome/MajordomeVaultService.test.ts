@@ -1,7 +1,8 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -9,6 +10,7 @@ import * as Option from "effect/Option";
 
 import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
+import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
@@ -62,11 +64,69 @@ const projectRow = (projectId: ProjectId, workspaceRoot: string): ProjectStore.P
   deletedAt: null,
 });
 
-const makeService = (roots: Readonly<Record<string, string>>) =>
+/** A thread's runs as the projection holds them: ordinal, final reply, and the task that sent it. */
+interface FakeRun {
+  readonly ordinal: number;
+  readonly reply: string;
+  readonly scheduledTaskId?: string;
+}
+
+const fakeProjections = (threads: Readonly<Record<string, ReadonlyArray<FakeRun>>>) => {
+  const runsOf = (threadId: ThreadId) => {
+    const runs = threads[threadId];
+    return runs === undefined
+      ? Effect.fail(new ProjectionStore.ProjectionStoreThreadNotFoundError({ threadId }))
+      : Effect.succeed(runs);
+  };
+  const createdAt = DateTime.makeUnsafe("2026-11-15T08:00:00.000Z");
+  return Layer.mock(ProjectionStore.ProjectionStoreV2)({
+    getThreadRecords: (threadId, fields) =>
+      runsOf(threadId).pipe(
+        Effect.map(
+          (runs) =>
+            ({
+              thread: null,
+              runs: runs.map((run) => ({
+                id: `${threadId}:run-${run.ordinal}`,
+                ordinal: run.ordinal,
+                userMessageId: `${threadId}:prompt-${run.ordinal}`,
+              })),
+              messages: (fields as ReadonlyArray<string>).includes("messages")
+                ? runs.map((run) => ({
+                    id: `${threadId}:reply-${run.ordinal}`,
+                    runId: `${threadId}:run-${run.ordinal}`,
+                    role: "assistant",
+                    text: run.reply,
+                    createdAt,
+                  }))
+                : [],
+            }) as never,
+        ),
+      ),
+    getMessagesById: (threadId, ids) =>
+      runsOf(threadId).pipe(
+        Effect.map(
+          (runs) =>
+            new Map(
+              runs
+                .map((run) => [`${threadId}:prompt-${run.ordinal}`, run] as const)
+                .filter(([id]) => (ids as ReadonlyArray<string>).includes(id))
+                .map(([id, run]) => [id, { id, scheduledTaskId: run.scheduledTaskId }]),
+            ) as never,
+        ),
+      ),
+  });
+};
+
+const makeService = (
+  roots: Readonly<Record<string, string>>,
+  threads: Readonly<Record<string, ReadonlyArray<FakeRun>>> = {},
+) =>
   Effect.service(MajordomeVaultService.MajordomeVaultService).pipe(
     Effect.provide(
       MajordomeVaultService.layer.pipe(
         Layer.provide(VaultLock.layer),
+        Layer.provide(fakeProjections(threads)),
         Layer.provide(
           Layer.mock(ServerEnvironment.ServerEnvironment)({
             getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
@@ -113,6 +173,71 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       });
       assert.equal(result.status, "undone");
       assert.equal(yield* vault.fs.readFileString(`${vault.root}/memory.md`), "- Likes tea\n");
+    }),
+  );
+
+  it.effect("tells each run in plain words, and titles the notes it touched", () =>
+    Effect.gen(function* () {
+      const vault = yield* makeFolder({ vault: true });
+      yield* vault.fs.makeDirectory(`${vault.root}/daily`);
+      yield* vault.fs.makeDirectory(`${vault.root}/projects`);
+      yield* vault.fs.writeFileString(
+        `${vault.root}/daily/2026-11-15.md`,
+        "---\ntags: [daily]\n---\n# Sunday 15 November\n\n- [ ] Call the notary\n- Pack for **Lisbon**\n",
+      );
+      yield* vault.fs.writeFileString(
+        `${vault.root}/projects/lisbon.md`,
+        "# Lisbon move\n\nFlats.\n",
+      );
+      yield* commitVaultRun({
+        cwd: vault.root,
+        message: vaultCommitMessage({ threadTitle: "Morning", runOrdinal: 2, threadId: "t-day" }),
+      });
+      yield* vault.fs.writeFileString(`${vault.root}/handover-2026-11-03.md`, "No heading\n");
+      yield* commitVaultRun({
+        cwd: vault.root,
+        message: vaultCommitMessage({ threadTitle: "Old chat", runOrdinal: 1, threadId: "t-gone" }),
+      });
+      const service = yield* makeService(
+        { [vaultProject]: vault.root },
+        {
+          "t-day": [
+            { ordinal: 1, reply: "Earlier run." },
+            {
+              ordinal: 2,
+              reply: "## Your day\n\nThree meetings; the visa appointment moved to **Thursday**.",
+              scheduledTaskId: `majordome:${vaultProject}:start-my-day`,
+            },
+          ],
+        },
+      );
+
+      const history = yield* service.listHistory({ projectId: vaultProject });
+      assert.deepEqual(
+        history.entries.map((entry) => [
+          entry.subject,
+          entry.summary ?? null,
+          entry.routine ?? null,
+          entry.dailyNotePreview ?? null,
+        ]),
+        [
+          ["majordome: Old chat", null, null, null],
+          [
+            "majordome: Morning",
+            "Three meetings; the visa appointment moved to Thursday.",
+            "start-my-day",
+            "• Call the notary\n• Pack for Lisbon",
+          ],
+          ["My first note", null, null, null],
+        ],
+      );
+      assert.deepEqual(history.folders, { daily: "daily", inbox: "inbox" });
+      assert.deepEqual(history.notes, {
+        "handover-2026-11-03.md": null,
+        "daily/2026-11-15.md": "Sunday 15 November",
+        "projects/lisbon.md": "Lisbon move",
+        "memory.md": null,
+      });
     }),
   );
 
