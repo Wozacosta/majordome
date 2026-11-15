@@ -26,6 +26,8 @@ services:
     environment:
       T3CODE_HOST: 127.0.0.1
       TZ: ${TZ:-UTC}
+      # Optional: the output of `claude setup-token`, so Claude works without signing in here.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     volumes:
       - majordome-data:/data
     restart: unless-stopped
