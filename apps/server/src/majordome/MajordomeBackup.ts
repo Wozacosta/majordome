@@ -72,6 +72,7 @@ import {
   storeFolderBackup,
   validateBackupFolder,
 } from "./vaultFolderBackup.ts";
+import { makeVaultBrainIds } from "./vaultBrainId.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { findGitleaks } from "./vaultSecretScan.ts";
 import {
@@ -226,6 +227,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     (): BackupLedger => ({ vaults: {} }),
   );
   const ledger = yield* Ref.make<BackupLedger>(initial);
+  const brainIdOf = makeVaultBrainIds();
 
   const nowIso = Effect.map(Clock.currentTimeMillis, isoTime);
 
@@ -612,6 +614,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     const syncing = state.syncing !== false;
     return {
       isVault: true,
+      brainId: yield* brainIdOf(vaultRoot).pipe(Effect.provide(services)),
       lastSavedAt: state.lastSavedAt ?? null,
       saveError: state.saveError ?? null,
       paused: state.savePause ?? (syncing ? (state.syncPause ?? null) : null),
