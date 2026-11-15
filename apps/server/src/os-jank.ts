@@ -1,4 +1,5 @@
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { isT3CodeHome, MAJORDOME_HOME_DIRNAME, t3CodeHomeRefusal } from "@t3tools/shared/majordome";
 import {
   buildEnvironmentCaptureCommand,
   extractEnvironmentValues,
@@ -231,8 +232,13 @@ export const expandHomePath = Effect.fn(function* (input: string) {
 
 export const resolveBaseDir = Effect.fn(function* (raw: string | undefined) {
   const { join, resolve } = yield* Path.Path;
+  const home = yield* HostProcess.HomeDirectory;
   if (!raw || raw.trim().length === 0) {
-    return join(yield* HostProcess.HomeDirectory, ".t3");
+    return join(home, MAJORDOME_HOME_DIRNAME);
   }
-  return resolve(yield* expandHomePath(raw.trim()));
+  const baseDir = resolve(yield* expandHomePath(raw.trim()));
+  if (isT3CodeHome(baseDir, home)) {
+    return yield* Effect.die(new Error(t3CodeHomeRefusal(baseDir)));
+  }
+  return baseDir;
 });

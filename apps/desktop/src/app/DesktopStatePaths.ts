@@ -1,3 +1,4 @@
+import { isT3CodeHome, MAJORDOME_HOME_DIRNAME, t3CodeHomeRefusal } from "@t3tools/shared/majordome";
 import * as Option from "effect/Option";
 
 export type JoinPath = (first: string, ...segments: string[]) => string;
@@ -15,9 +16,13 @@ export function resolveDesktopBaseDir(input: {
   readonly joinPath: JoinPath;
   readonly t3Home: Option.Option<string>;
 }): string {
-  return Option.getOrElse(normalizeConfiguredBaseDir(input.t3Home), () =>
-    input.joinPath(input.homeDirectory, ".t3"),
+  const baseDir = Option.getOrElse(normalizeConfiguredBaseDir(input.t3Home), () =>
+    input.joinPath(input.homeDirectory, MAJORDOME_HOME_DIRNAME),
   );
+  if (isT3CodeHome(baseDir, input.homeDirectory)) {
+    throw new Error(t3CodeHomeRefusal(baseDir));
+  }
+  return baseDir;
 }
 
 export function resolveDesktopStateDir(input: {

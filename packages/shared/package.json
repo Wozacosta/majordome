@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./majordome": {
+      "types": "./src/majordome.ts",
+      "import": "./src/majordome.ts"
+    },
     "./png": {
       "types": "./src/png.ts",
       "import": "./src/png.ts"
