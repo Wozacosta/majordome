@@ -87,6 +87,7 @@ import {
 import { ClientActivityReportInput } from "./background.ts";
 import {
   MajordomeRunRoutinesHereInput,
+  MajordomeVaultChangesInput,
   MajordomeVaultError,
   MajordomeVaultHistoryInput,
   MajordomeVaultHistoryResult,
@@ -672,6 +673,7 @@ export const WS_METHODS = {
   majordomeGetPhoneSetup: "majordome.getPhoneSetup",
   majordomeEnableSecureAddress: "majordome.enableSecureAddress",
   majordomeListVaultHistory: "majordome.listVaultHistory",
+  majordomeSubscribeVaultChanges: "majordome.subscribeVaultChanges",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
   majordomeRunRoutinesHere: "majordome.runRoutinesHere",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
@@ -2211,6 +2213,14 @@ const WsMajordomeListVaultHistoryRpc = Rpc.make(WS_METHODS.majordomeListVaultHis
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+// A revision that moves on whenever the vault's notes change on disk.
+const WsMajordomeSubscribeVaultChangesRpc = Rpc.make(WS_METHODS.majordomeSubscribeVaultChanges, {
+  payload: MajordomeVaultChangesInput,
+  success: NonNegativeInt,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+  stream: true,
+});
+
 const WsMajordomeUndoVaultRunRpc = Rpc.make(WS_METHODS.majordomeUndoVaultRun, {
   payload: MajordomeVaultUndoInput,
   success: MajordomeVaultUndoResult,
@@ -2557,6 +2567,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeGetPhoneSetupRpc,
   WsMajordomeEnableSecureAddressRpc,
   WsMajordomeListVaultHistoryRpc,
+  WsMajordomeSubscribeVaultChangesRpc,
   WsMajordomeUndoVaultRunRpc,
   WsMajordomeRunRoutinesHereRpc,
   WsMajordomeGetBackupStatusRpc,

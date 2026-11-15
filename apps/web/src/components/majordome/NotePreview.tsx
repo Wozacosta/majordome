@@ -37,15 +37,20 @@ function absoluteVaultPath(vault: NotesVault, path: string): string {
   return `${vault.workspaceRoot.replace(/[\\/]+$/, "")}/${path}`;
 }
 
-/** One note, image or document from the vault, shown as it reads; nothing here edits it. */
+/**
+ * One note, image or document from the vault, shown as it reads; nothing here edits it. A new
+ * `revision` (the vault changed on disk) reads a note or text file again.
+ */
 export function NotePreview({
   vault,
   path,
+  revision,
   showTitle,
   onOpenNote,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
+  readonly revision: string | null;
   readonly showTitle: boolean;
   readonly onOpenNote: (path: string) => void;
 }) {
@@ -62,7 +67,7 @@ export function NotePreview({
         </div>
       ) : null}
       {kind === "markdown" ? (
-        <MarkdownNote vault={vault} path={path} onOpenNote={onOpenNote} />
+        <MarkdownNote vault={vault} path={path} revision={revision} onOpenNote={onOpenNote} />
       ) : kind === "image" ? (
         <ImageNote vault={vault} path={path} />
       ) : kind === "pdf" ? (
@@ -78,7 +83,7 @@ export function NotePreview({
           />
         </Suspense>
       ) : (
-        <OtherFile vault={vault} path={path} />
+        <OtherFile vault={vault} path={path} revision={revision} />
       )}
     </div>
   );
@@ -117,13 +122,15 @@ const embedSearchesAtom = Atom.family((key: string) => {
 function MarkdownNote({
   vault,
   path,
+  revision,
   onOpenNote,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
+  readonly revision: string | null;
   readonly onOpenNote: (path: string) => void;
 }) {
-  const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path);
+  const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
   const text = file.data?.contents ?? "";
   const bareNames = wikiImageEmbeds(text).filter((name) => !name.includes("/"));
   const searches = useAtomValue(
@@ -187,8 +194,16 @@ function ImageNote({ vault, path }: { readonly vault: NotesVault; readonly path:
   );
 }
 
-function OtherFile({ vault, path }: { readonly vault: NotesVault; readonly path: string }) {
-  const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path);
+function OtherFile({
+  vault,
+  path,
+  revision,
+}: {
+  readonly vault: NotesVault;
+  readonly path: string;
+  readonly revision: string | null;
+}) {
+  const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
   if (file.readError?.failure === "binary_file") {
     return <Centered>Majordome can't show this kind of file yet.</Centered>;
   }

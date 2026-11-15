@@ -3,7 +3,11 @@ import * as Effect from "effect/Effect";
 import { Atom, type AtomRegistry } from "effect/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
-import { createEnvironmentRpcCommand, createEnvironmentRpcQueryAtomFamily } from "./runtime.ts";
+import {
+  createEnvironmentRpcCommand,
+  createEnvironmentRpcQueryAtomFamily,
+  createEnvironmentRpcSubscriptionAtomFamily,
+} from "./runtime.ts";
 
 /** Bumped after an undo or a routines move so every vault history in that environment reads again. */
 const historyRevision = Atom.family((environmentId: EnvironmentId) =>
@@ -64,6 +68,10 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeListVaultHistory,
       staleTimeMs: 10_000,
       refreshTrigger: ({ environmentId }) => historyRevision(environmentId),
+    }),
+    vaultChanges: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
+      label: "environment-data:majordome:vault-changes",
+      tag: WS_METHODS.majordomeSubscribeVaultChanges,
     }),
     undoVaultRun: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:undo-vault-run",
