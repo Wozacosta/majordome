@@ -15,10 +15,14 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
   routes. Upstream fixes are cherry-picked.
 - Provider-agnostic. Every provider T3 supports keeps working, and brain features must work the
   same with each of them. obrain becomes provider-agnostic too.
+- **Opinionated, for non-technical people.** Screens use plain words ("History", "Undo this",
+  "Back up", "Your phone"), not git, GitHub, Tailscale, terminal or API key. Early versions may
+  show some plumbing when there is no simpler way yet.
 
 ## Vault and memory
 
-- Obsidian is the editor. Majordome shows notes read-only and opens them with `obsidian://` links.
+- Obsidian is optional. Majordome shows notes and images itself; an "Open in Obsidian" button is
+  there for people who use it, and the vault stays Obsidian-compatible. A built-in editor comes later.
 - Any vault works: folder roles (inbox, daily, projects…) come from config in `.majordome/`.
 - Memory layers:
   - Always loaded: `CLAUDE.md` and `memory.md` (size-capped; when full, the agent merges entries).
@@ -33,10 +37,16 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
 ## Servers and sync
 
-- Any number of servers (Mac, VPS). Reachable over Tailscale only, auth always on.
-- The vault syncs with git. Default remote: a private GitHub repo. Majordome never force-pushes.
-  When its change conflicts with yours, it pushes a `majordome/conflict-*` branch and the feed lets you
-  choose.
+- **History is a local git repo, created silently.** No remote and no account by default. "Undo
+  what the agent did" is a button.
+- **Back up my brain** offers two choices: connect GitHub (device sign-in, Majordome creates a private
+  repo) or choose a folder (iCloud Drive, Dropbox, USB), which gets a nightly `age`-encrypted
+  `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit.
+- **Multi-machine sync is an advanced setting.** Any number of servers (Mac, VPS), auth always on.
+  The vault syncs through a git remote. Majordome never force-pushes. When its change conflicts
+  with yours, it pushes a `majordome/conflict-*` branch and the feed lets you choose.
+- **Phone access:** QR pairing on the same Wi-Fi, and guided Tailscale setup for anywhere. A hosted
+  Majordome relay waits until people ask for it (T3 Connect belongs to T3).
 - One runner lease (`.majordome/runner`, with a heartbeat) decides which server runs cron, the inbox
   watcher and dreaming. If the runner stops answering, another server takes over.
 - Sessions:
@@ -91,12 +101,16 @@ Found while importing T3 Code. Reuse these instead of building them:
 Mobile push and the iOS and Android apps go through T3 Connect and T3's store listings, which a fork
 cannot use. Majordome stays with a PWA plus web push for v1.
 
+The author's `brain-sync` launch agent (auto-commit, pull with rebase, pause on conflict, gitleaks
+gate) is the model for Majordome's sync. It is switched off on each machine when Majordome's sync
+takes over.
+
 ## Milestones
 
-1. **M1.** Fork, hide the coding UI, open a vault as the workspace, chat with the memory layers
-   loaded, one commit per run.
-2. **M2.** Runner lease on top of scheduled tasks, inbox watcher, feed.
-3. **M3.** PWA, web push, Tailscale defaults.
+1. **M1.** Fork, hide the coding UI, open a vault as the workspace, note viewer, chat with the
+   memory layers loaded, one commit per run.
+2. **M2.** Runner lease on top of scheduled tasks, inbox watcher, feed, History with "Undo this".
+3. **M3.** Phone (PWA, web push, QR pairing, guided Tailscale) and "Back up my brain".
 4. **M4.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
 5. **M5.** Dreaming, search index, Overview screen.
-6. **M6.** Session replication, conflict branches.
+6. **M6.** Multi-machine sync (advanced), session replication, conflict branches.
