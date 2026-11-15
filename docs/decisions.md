@@ -38,7 +38,18 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
   Edits to `CLAUDE.md` wait for approval.
-- A thread can be pinned to a vault folder (`projects/x/`) to load that folder as context.
+- **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
+  nicotine", "Fitness log"), not chats. A topic is one continuing conversation tied to one folder
+  of the vault (an existing one or a new one); each session in it starts with that folder's notes.
+  Its real memory lives in the folder (e.g. a running `log.md`), so the chat can be compacted or
+  restarted without losing anything. Topics stay forever, in the owner's order, and never settle.
+  Topics are defined in the vault (`.majordome/topics.json`) so they travel with the brain.
+- **Recent** sits below Topics: one-off chats, which settle after 7 days. Any of them can become a
+  topic in one action.
+- **First topics are suggested** once from the vault's folders; the owner accepts or skips them.
+- **No projects in the interface.** Majordome shows only vaults; with one vault there are no
+  project names or badges anywhere and new chats and topics go into it. Several vaults get a small
+  switcher.
 
 ## Servers and sync
 
