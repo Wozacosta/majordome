@@ -11,9 +11,16 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildFeedItems,
   buildFeedRunItems,
+  classifyFeedEntry,
   feedItemTitle,
+  feedNotes,
+  feedNoteTitle,
   feedOwnerEdit,
+  feedRunSummary,
+  feedVaultNotes,
+  foldOwnChanges,
   groupFeedItems,
+  ownDayLine,
   summarizeFeedFiles,
 } from "./feed.logic";
 
@@ -274,5 +281,129 @@ describe("buildFeedRunItems", () => {
       ["failed", "failed", "2026-11-15T09:00:00.000Z"],
     ]);
     expect(items[0]?.vault).toBe(vaults[0]);
+  });
+});
+
+const localIso = (day: number, hour: number) => new Date(2026, 10, day, hour).toISOString();
+const NOW = new Date(2026, 10, 15, 12).getTime();
+
+describe("classifyFeedEntry", () => {
+  it("tells runs, undos, the owner's saves and their other changes apart", () => {
+    expect(
+      [
+        entry({ commit: "a" }),
+        entry({ commit: "b", subject: "Undo: majordome: Start my day" }),
+        entry({ commit: "c", subject: "Your edits", byMajordome: false }),
+        entry({ commit: "d", subject: "sync(mac): 2 files", byMajordome: false }),
+        entry({ commit: "e", subject: "Reorganise", byMajordome: false }),
+      ].map(classifyFeedEntry),
+    ).toEqual(["run", "undo", "own-edit", "own-edit", "own-change"]);
+  });
+});
+
+describe("notes", () => {
+  const notes = feedVaultNotes({
+    folders: { daily: "Journal", inbox: "Inbox" },
+    notes: {
+      "projects/lisbon.md": "Lisbon move",
+      "handover-2026-11-03.md": null,
+      "Journal/2026-11-15.md": "Sunday",
+    },
+  });
+
+  it("names a note by its day, its heading, or its file name", () => {
+    expect(
+      [
+        "Journal/2026-11-15.md",
+        "Journal/2026-11-14.md",
+        "Journal/2026-11-03.md",
+        "Journal/2025-12-31.md",
+        "Journal/ideas/2026-11-15.md",
+        "projects/lisbon.md",
+        "handover-2026-11-03.md",
+        "projects/big_plan-v2.md",
+      ].map((path) => feedNoteTitle(path, notes, NOW)),
+    ).toEqual([
+      "Today",
+      "Yesterday",
+      "Tue 3 Nov",
+      "31 Dec 2025",
+      "2026-11-15",
+      "Lisbon move",
+      "handover 2026-11-03",
+      "big plan v2",
+    ]);
+  });
+
+  it("lists notes that still exist first, and only those open", () => {
+    const { shown, more } = feedNotes(
+      ["Inbox/scan.pdf", ".majordome/runner", "projects/lisbon.md", "Journal/2026-11-15.md"],
+      notes,
+      NOW,
+      2,
+    );
+    expect(shown.map((note) => [note.title, note.openable])).toEqual([
+      ["Lisbon move", true],
+      ["Today", true],
+    ]);
+    expect(more).toBe(1);
+  });
+
+  it("says where the inbox went for Digest my inbox, and the reply otherwise", () => {
+    const digest = entry({
+      commit: "a",
+      routine: "digest-my-inbox",
+      summary: "Done.",
+      files: ["Inbox/a.pdf", "Inbox/b.md", "projects/lisbon-move/a.md", "reading/b.md", "c.md"],
+    });
+    expect(feedRunSummary(digest, notes)).toBe(
+      "Filed 3 notes into Lisbon move, Reading and your notes",
+    );
+    expect(feedRunSummary({ ...digest, files: ["Inbox/a.pdf"] }, notes)).toBe("Done.");
+    expect(feedRunSummary(entry({ commit: "b", summary: "Your day." }), notes)).toBe("Your day.");
+    expect(feedRunSummary(entry({ commit: "c" }), notes)).toBeNull();
+  });
+});
+
+describe("foldOwnChanges", () => {
+  it("folds the owner's changes into one line a day, where that day's newest was", () => {
+    const own = (commit: string, day: number, hour: number, files: Array<string>) =>
+      entry({
+        commit,
+        subject: "Your edits",
+        byMajordome: false,
+        committedAt: localIso(day, hour),
+        files,
+      });
+    const items = buildFeedItems(
+      [
+        {
+          vault: vault("Notes"),
+          entries: [
+            own("o4", 15, 11, ["a.md", "b.md"]),
+            entry({ commit: "r2", committedAt: localIso(15, 10) }),
+            own("o3", 15, 9, ["b.md", "c.md", "d.md"]),
+            own("o2", 14, 20, ["a.md"]),
+            entry({ commit: "r1", committedAt: localIso(3, 8) }),
+            own("o1", 3, 7, ["a.md", "e.md"]),
+          ],
+        },
+      ],
+      { includeOwnChanges: true },
+    );
+    const timeline = foldOwnChanges(items);
+    expect(
+      timeline.map((row) =>
+        row.kind === "own-day"
+          ? `${ownDayLine(row, NOW)} (${row.items.map((item) => item.entry.commit).join(",")})`
+          : row.item.entry.commit,
+      ),
+    ).toEqual([
+      "You edited 4 notes today (o4,o3)",
+      "r2",
+      "You edited 1 note yesterday (o2)",
+      "r1",
+      "You edited 2 notes on Tue 3 Nov (o1)",
+    ]);
   });
 });

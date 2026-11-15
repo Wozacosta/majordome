@@ -11,29 +11,36 @@ import {
   type MajordomeVaultUndoResult,
   ThreadId,
 } from "@t3tools/contracts";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
   CalendarClockIcon,
+  CalendarRangeIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   CircleAlertIcon,
+  EllipsisIcon,
   HandIcon,
+  InboxIcon,
   MessageSquareIcon,
   NotebookPenIcon,
+  SunriseIcon,
   Undo2Icon,
 } from "lucide-react";
 import { useState } from "react";
 
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
+import { useRightPanelStore } from "../../rightPanelStore";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
-import { formatRelativeTimeLabel } from "../../timestampFormat";
+import { formatFullTimestamp, formatRelativeTimeLabel } from "../../timestampFormat";
 import { cn } from "../../lib/utils";
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -57,10 +64,18 @@ import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
   buildFeedItems,
   buildFeedRunItems,
+  classifyFeedEntry,
   FEED_RUN_STATUS_LABELS,
   type FeedEditGroup,
   type FeedItem,
+  feedNotes,
+  type FeedOwnDay,
+  feedRunSummary,
+  type FeedVaultNotes,
+  feedVaultNotes,
+  foldOwnChanges,
   groupFeedItems,
+  ownDayLine,
   type FeedRunItem,
   type FeedVault,
   summarizeFeedFiles,
@@ -72,7 +87,7 @@ interface FeedVaultState extends FeedVault {
 }
 
 export function FeedPage() {
-  const [includeOwnChanges, setIncludeOwnChanges] = useState(true);
+  const [includeOwnChanges, setIncludeOwnChanges] = useState(false);
   const [pendingUndo, setPendingUndo] = useState<FeedItem | null>(null);
   const [pendingMove, setPendingMove] = useState<FeedVaultState | null>(null);
   const nowMinute = useNowMinute();
@@ -91,6 +106,7 @@ export function FeedPage() {
     vault: FeedVault;
     entries: MajordomeVaultHistoryResult["entries"];
   }> = [];
+  const vaultNotes = new Map<string, FeedVaultNotes>();
   const errors: Array<string> = [];
   let loading = false;
   projects.forEach((project, index) => {
@@ -111,11 +127,33 @@ export function FeedPage() {
       };
       vaults.push({ ...vault, routinesRunner: history.routinesRunner });
       histories.push({ vault, entries: history.entries });
+      vaultNotes.set(vaultKey(vault), feedVaultNotes(history));
     }
   });
   const runItems = buildFeedRunItems(threads, vaults);
-  const items = groupFeedItems(buildFeedItems(histories, { includeOwnChanges }));
+  const changes = buildFeedItems(histories, { includeOwnChanges: true });
+  const timeline = includeOwnChanges ? null : foldOwnChanges(changes);
+  const grouped = includeOwnChanges ? groupFeedItems(changes) : null;
+  const itemCount = timeline?.length ?? grouped?.length ?? 0;
+  const knownThreads = new Set(threads.map((thread) => `${thread.environmentId}:${thread.id}`));
   const showVaultName = histories.length > 1;
+  const renderChange = (item: FeedItem) =>
+    item.entry.byMajordome ? (
+      <FeedRunCard
+        key={item.key}
+        item={item}
+        nowMs={nowMs}
+        showVaultName={showVaultName}
+        vaultNotes={vaultNotes.get(vaultKey(item.vault))}
+        threadKnown={
+          item.entry.threadId !== null &&
+          knownThreads.has(`${item.vault.environmentId}:${item.entry.threadId}`)
+        }
+        onUndo={() => setPendingUndo(item)}
+      />
+    ) : (
+      <FeedRow key={item.key} item={item} nowMs={nowMs} showVaultName={showVaultName} />
+    );
 
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
@@ -172,9 +210,21 @@ export function FeedPage() {
                 ))}
               </ul>
             ) : null}
-            {items.length > 0 ? (
-              <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label="Feed">
-                {items.map((row) =>
+            {itemCount > 0 ? (
+              <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label="Feed">
+                {timeline?.map((row) =>
+                  row.kind === "own-day" ? (
+                    <FeedOwnDayRow
+                      key={row.key}
+                      day={row}
+                      nowMs={nowMs}
+                      showVaultName={showVaultName}
+                    />
+                  ) : (
+                    renderChange(row.item)
+                  ),
+                )}
+                {grouped?.map((row) =>
                   row.kind === "edits" ? (
                     <FeedEditGroupRow
                       key={row.key}
@@ -183,13 +233,7 @@ export function FeedPage() {
                       showVaultName={showVaultName}
                     />
                   ) : (
-                    <FeedRow
-                      key={row.key}
-                      item={row.item}
-                      nowMs={nowMs}
-                      showVaultName={showVaultName}
-                      onUndo={() => setPendingUndo(row.item)}
-                    />
+                    renderChange(row.item)
                   ),
                 )}
               </ul>
@@ -342,6 +386,235 @@ function FeedEditGroupRow({
           {group.saves.map((save) => (
             <FeedRow key={save.key} item={save} nowMs={nowMs} showVaultName={false} />
           ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+const vaultKey = (vault: FeedVault) => `${vault.environmentId}:${vault.projectId}`;
+
+const ROUTINE_ICONS = {
+  "start-my-day": SunriseIcon,
+  "review-my-week": CalendarRangeIcon,
+  "digest-my-inbox": InboxIcon,
+} as const;
+
+/** One run, told as an outcome: what it did in plain words, the notes it touched, and Undo. */
+function FeedRunCard({
+  item,
+  nowMs,
+  showVaultName,
+  vaultNotes,
+  threadKnown,
+  onUndo,
+}: {
+  readonly item: FeedItem;
+  readonly nowMs: number;
+  readonly showVaultName: boolean;
+  readonly vaultNotes: FeedVaultNotes | undefined;
+  /** The run's chat is still there, so its notes can open beside it. */
+  readonly threadKnown: boolean;
+  readonly onUndo: () => void;
+}) {
+  const canUndo = useAtomValue(
+    majordomeEnvironment.undoVaultRun.permissionAtom(item.vault.environmentId),
+  );
+  const navigate = useNavigate();
+  const { entry } = item;
+  const notesInfo = vaultNotes ?? feedVaultNotes({});
+  const kind = classifyFeedEntry(entry);
+  const summary = kind === "run" ? feedRunSummary(entry, notesInfo) : null;
+  const notes = feedNotes(entry.files, notesInfo, nowMs);
+  const threadRef =
+    entry.threadId === null
+      ? null
+      : scopeThreadRef(item.vault.environmentId, ThreadId.make(entry.threadId));
+  const Icon =
+    kind === "undo"
+      ? Undo2Icon
+      : entry.routine
+        ? ROUTINE_ICONS[entry.routine]
+        : entry.threadId === null
+          ? NotebookPenIcon
+          : MessageSquareIcon;
+  const meta = [
+    formatRelativeTimeLabel(entry.committedAt, nowMs),
+    showVaultName ? item.vault.title : null,
+  ].filter((part) => part !== null && part !== "");
+  const undoable = !item.undone && canUndo;
+
+  const openNote = (path: string) => {
+    if (threadRef === null) return;
+    useRightPanelStore.getState().openFile(threadRef, path);
+    void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(threadRef) });
+  };
+
+  return (
+    <li
+      className={cn(
+        "flex flex-col gap-2 rounded-xl border border-border bg-card px-3.5 py-3",
+        item.undone && "opacity-70",
+      )}
+      data-feed-item={entry.commit}
+      data-feed-kind={kind}
+      data-feed-routine={entry.routine ?? undefined}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <Icon className="mt-0.5 size-4 shrink-0 text-foreground/70" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
+            {item.undone ? <Badge variant="secondary">Undone</Badge> : null}
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
+        </div>
+        <Menu>
+          <MenuTrigger
+            render={<Button size="icon-xs" variant="ghost-muted" aria-label="More for this run" />}
+          >
+            <EllipsisIcon />
+          </MenuTrigger>
+          <MenuPopup align="end">
+            {threadRef !== null ? (
+              <MenuItem
+                onClick={() =>
+                  void navigate({
+                    to: "/$environmentId/$threadId",
+                    params: buildThreadRouteParams(threadRef),
+                  })
+                }
+              >
+                <MessageSquareIcon />
+                Open chat
+              </MenuItem>
+            ) : null}
+            {undoable ? (
+              <MenuItem onClick={onUndo}>
+                <Undo2Icon />
+                Undo this
+              </MenuItem>
+            ) : null}
+          </MenuPopup>
+        </Menu>
+      </div>
+
+      {summary !== null ? (
+        <p className="ms-7 line-clamp-3 text-sm break-words text-foreground/90">{summary}</p>
+      ) : null}
+
+      {entry.dailyNotePreview ? (
+        <p
+          className="ms-7 line-clamp-6 rounded-lg bg-muted/60 px-3 py-2 text-xs whitespace-pre-line text-muted-foreground"
+          data-feed-daily-preview
+        >
+          {entry.dailyNotePreview}
+        </p>
+      ) : null}
+
+      {notes.shown.length > 0 ? (
+        <p className="ms-7 flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+          <NotebookPenIcon className="me-0.5 size-3.5 shrink-0" aria-hidden />
+          {notes.shown.map((note, index) => (
+            <span key={note.path} className="inline-flex min-w-0 items-center gap-x-1">
+              {index > 0 ? <span aria-hidden>·</span> : null}
+              {note.openable && threadKnown ? (
+                <button
+                  type="button"
+                  className="max-w-56 cursor-pointer truncate text-foreground underline-offset-2 hover:underline"
+                  data-feed-note={note.path}
+                  onClick={() => openNote(note.path)}
+                >
+                  {note.title}
+                </button>
+              ) : (
+                <span className="max-w-56 truncate" data-feed-note={note.path}>
+                  {note.title}
+                </span>
+              )}
+            </span>
+          ))}
+          {notes.more > 0 ? <span>and {notes.more} more</span> : null}
+        </p>
+      ) : null}
+
+      <Collapsible className="ms-7">
+        <CollapsibleTrigger className="group inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <ChevronRightIcon
+            className="size-3.5 transition-transform group-data-[panel-open]:rotate-90"
+            aria-hidden
+          />
+          Details
+        </CollapsibleTrigger>
+        <CollapsiblePanel>
+          <div className="mt-2 flex flex-col gap-2 text-xs text-muted-foreground">
+            {entry.files.length > 0 ? (
+              <ul className="m-0 flex list-none flex-col gap-0.5 p-0 font-mono break-all">
+                {entry.files.map((file) => (
+                  <li key={file}>{file}</li>
+                ))}
+              </ul>
+            ) : null}
+            <p>
+              Saved {formatFullTimestamp(entry.committedAt, "locale")} · {entry.commit.slice(0, 7)}
+            </p>
+            {undoable ? (
+              <div>
+                <Button size="xs" variant="outline" onClick={onUndo}>
+                  <Undo2Icon />
+                  Undo this
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </CollapsiblePanel>
+      </Collapsible>
+    </li>
+  );
+}
+
+/** The owner's own changes on one day, as one quiet line that opens to show them. */
+function FeedOwnDayRow({
+  day,
+  nowMs,
+  showVaultName,
+}: {
+  readonly day: FeedOwnDay;
+  readonly nowMs: number;
+  readonly showVaultName: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const listId = `feed-own-${day.key}`;
+  return (
+    <li className="flex flex-col" data-feed-own-day={day.items.length}>
+      <button
+        type="button"
+        className="flex min-h-8 cursor-pointer items-center gap-2 rounded-lg px-3 text-start text-xs text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+        aria-expanded={expanded}
+        aria-controls={listId}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        {expanded ? (
+          <ChevronDownIcon className="size-3.5 shrink-0" aria-hidden />
+        ) : (
+          <ChevronRightIcon className="size-3.5 shrink-0" aria-hidden />
+        )}
+        <span className="min-w-0 flex-1 truncate">{ownDayLine(day, nowMs)}</span>
+      </button>
+      {expanded ? (
+        <ul id={listId} className="m-0 ms-4 flex list-none flex-col p-0" aria-label="Your edits">
+          {groupFeedItems(day.items).map((row) =>
+            row.kind === "edits" ? (
+              <FeedEditGroupRow
+                key={row.key}
+                group={row}
+                nowMs={nowMs}
+                showVaultName={showVaultName}
+              />
+            ) : (
+              <FeedRow key={row.key} item={row.item} nowMs={nowMs} showVaultName={showVaultName} />
+            ),
+          )}
         </ul>
       ) : null}
     </li>

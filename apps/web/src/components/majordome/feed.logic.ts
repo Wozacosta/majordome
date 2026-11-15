@@ -259,3 +259,216 @@ export function buildFeedRunItems(
     .toSorted((left, right) => right.atMs - left.atMs || left.key.localeCompare(right.key))
     .map(({ atMs: _atMs, ...item }) => item);
 }
+
+/** What a change is, for the person reading the feed. */
+export type FeedEntryKind = "run" | "undo" | "own-edit" | "own-change";
+
+export function classifyFeedEntry(entry: MajordomeVaultHistoryEntry): FeedEntryKind {
+  if (!entry.byMajordome) return feedOwnerEdit(entry) === null ? "own-change" : "own-edit";
+  return entry.subject.startsWith(UNDO_PREFIX) ? "undo" : "run";
+}
+
+/** What the vault said about its notes: its daily and inbox folders, and the notes' headings. */
+export interface FeedVaultNotes {
+  readonly dailyFolder: string;
+  readonly inboxFolder: string;
+  /** Notes that still exist, with their first heading or null. */
+  readonly notes: Readonly<Record<string, string | null>>;
+}
+
+export function feedVaultNotes(history: {
+  readonly folders?: { readonly daily: string; readonly inbox: string } | undefined;
+  readonly notes?: Readonly<Record<string, string | null>> | undefined;
+}): FeedVaultNotes {
+  return {
+    dailyFolder: history.folders?.daily ?? "daily",
+    inboxFolder: history.folders?.inbox ?? "inbox",
+    notes: history.notes ?? {},
+  };
+}
+
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DAY_MS = 86_400_000;
+const dayFormatter = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+const dayWithYearFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+function startOfLocalDay(ms: number): number {
+  const date = new Date(ms);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+/** "Today", "Yesterday", "Tue 3 Nov", or "3 Nov 2025" for another year. */
+function feedDayLabel(day: Date, nowMs: number): string {
+  const days = Math.round((startOfLocalDay(nowMs) - startOfLocalDay(day.getTime())) / DAY_MS);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return day.getFullYear() === new Date(nowMs).getFullYear()
+    ? dayFormatter.format(day)
+    : dayWithYearFormatter.format(day);
+}
+
+function baseName(path: string): string {
+  const base = path.slice(path.lastIndexOf("/") + 1);
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(0, dot) : base;
+}
+
+function withSlash(folder: string): string {
+  return `${folder.replace(/\/+$/, "")}/`;
+}
+
+/** A file or folder name as words: "handover-2026-11-03" reads "handover 2026-11-03". */
+function plainName(name: string): string {
+  return name
+    .replaceAll("_", " ")
+    .replaceAll(/(?<!\d)-|-(?!\d)/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+}
+
+/** A note as a person names it: a daily note's day, its first heading, or its file name. */
+export function feedNoteTitle(path: string, vaultNotes: FeedVaultNotes, nowMs: number): string {
+  const dailyPrefix = withSlash(vaultNotes.dailyFolder);
+  if (path.startsWith(dailyPrefix) && path.endsWith(".md")) {
+    const match = ISO_DAY.exec(baseName(path));
+    if (match !== null && !path.slice(dailyPrefix.length).includes("/")) {
+      const day = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return feedDayLabel(day, nowMs);
+    }
+  }
+  return vaultNotes.notes[path] ?? plainName(baseName(path));
+}
+
+export interface FeedNote {
+  readonly path: string;
+  readonly title: string;
+  /** A Markdown note that is still there, so it can be opened. */
+  readonly openable: boolean;
+}
+
+/** The notes a change touched, by title, notes that still exist first, and how many more. */
+export function feedNotes(
+  files: ReadonlyArray<string>,
+  vaultNotes: FeedVaultNotes,
+  nowMs: number,
+  max = 4,
+): { readonly shown: ReadonlyArray<FeedNote>; readonly more: number } {
+  const notes = files
+    .filter((file) => !file.startsWith(".majordome/"))
+    .map((path) => ({
+      path,
+      title: feedNoteTitle(path, vaultNotes, nowMs),
+      openable: Object.hasOwn(vaultNotes.notes, path),
+    }))
+    .toSorted((left, right) => Number(right.openable) - Number(left.openable));
+  return { shown: notes.slice(0, max), more: Math.max(0, notes.length - max) };
+}
+
+function listWords(words: ReadonlyArray<string>): string {
+  if (words.length <= 1) return words.join("");
+  return `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
+}
+
+/** "Filed 3 notes into Lisbon move and Reading": where "Digest my inbox" put the inbox's files. */
+function feedFiledSummary(files: ReadonlyArray<string>, vaultNotes: FeedVaultNotes): string | null {
+  const inbox = withSlash(vaultNotes.inboxFolder);
+  const filed = files.filter((file) => !file.startsWith(inbox) && !file.startsWith(".majordome/"));
+  if (filed.length === 0) return null;
+  const folders = [
+    ...new Set(
+      filed.map((file) => {
+        const parts = file.split("/");
+        const folder = plainName(parts.at(-2) ?? "");
+        return folder === "" ? "your notes" : folder[0]!.toUpperCase() + folder.slice(1);
+      }),
+    ),
+  ];
+  const shown =
+    folders.length > 3 ? [...folders.slice(0, 2), `${folders.length - 2} more`] : folders;
+  return `Filed ${filed.length} ${filed.length === 1 ? "note" : "notes"} into ${listWords(shown)}`;
+}
+
+/** The line under a run's name: what it did, in plain words. */
+export function feedRunSummary(
+  entry: MajordomeVaultHistoryEntry,
+  vaultNotes: FeedVaultNotes,
+): string | null {
+  if (entry.routine === "digest-my-inbox") {
+    const filed = feedFiledSummary(entry.files, vaultNotes);
+    if (filed !== null) return filed;
+  }
+  return entry.summary ?? null;
+}
+
+/** The owner's own changes on one day, folded into one quiet line. */
+export interface FeedOwnDay {
+  readonly kind: "own-day";
+  readonly key: string;
+  /** The newest change that day, for its label. */
+  readonly at: string;
+  /** Newest first. */
+  readonly items: ReadonlyArray<FeedItem>;
+  /** Notes changed that day, each counted once. */
+  readonly noteCount: number;
+}
+
+export type FeedTimelineItem =
+  | { readonly kind: "change"; readonly key: string; readonly item: FeedItem }
+  | FeedOwnDay;
+
+/**
+ * Keeps Majordome's changes as they are and folds the owner's own into one line per day, placed
+ * where that day's newest one was.
+ */
+export function foldOwnChanges(items: ReadonlyArray<FeedItem>): ReadonlyArray<FeedTimelineItem> {
+  const slots: Array<FeedItem | Array<FeedItem>> = [];
+  const days = new Map<string, Array<FeedItem>>();
+  for (const item of items) {
+    if (item.entry.byMajordome) {
+      slots.push(item);
+      continue;
+    }
+    const day = localDay(item.entry.committedAt);
+    const existing = days.get(day);
+    if (existing !== undefined) {
+      existing.push(item);
+      continue;
+    }
+    const group = [item];
+    days.set(day, group);
+    slots.push(group);
+  }
+  return slots.map((slot): FeedTimelineItem => {
+    if (!Array.isArray(slot)) return { kind: "change", key: slot.key, item: slot };
+    const [first] = slot as [FeedItem, ...Array<FeedItem>];
+    const notes = new Set(
+      slot.flatMap((item) =>
+        item.entry.files.map(
+          (file) => `${item.vault.environmentId}:${item.vault.projectId}:${file}`,
+        ),
+      ),
+    );
+    return {
+      kind: "own-day",
+      key: `own:${first.key}`,
+      at: first.entry.committedAt,
+      items: slot,
+      noteCount: notes.size,
+    };
+  });
+}
+
+/** "You edited 4 notes today", "… 1 note yesterday", "… 2 notes on Tue 3 Nov". */
+export function ownDayLine(day: FeedOwnDay, nowMs: number): string {
+  const label = feedDayLabel(new Date(day.at), nowMs);
+  const when = label === "Today" ? "today" : label === "Yesterday" ? "yesterday" : `on ${label}`;
+  return `You edited ${day.noteCount} ${day.noteCount === 1 ? "note" : "notes"} ${when}`;
+}
