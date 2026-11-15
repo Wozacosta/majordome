@@ -185,6 +185,46 @@ function fakeGoogleDrive() {
   return { http, files, revoked, control };
 }
 
+/** GitHub's device sign-in, faked; `created` lists the repositories Majordome asked for. */
+function fakeGitHub() {
+  const created: Array<string> = [];
+  const http = HttpClient.make((request) =>
+    Effect.sync(() => {
+      const url = new URL(request.url);
+      const json = (status: number, body: unknown) =>
+        HttpClientResponse.fromWeb(
+          request,
+          new Response(JSON.stringify(body), {
+            status,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      switch (`${request.method} ${url.host}${url.pathname}`) {
+        case "POST github.com/login/device/code":
+          return json(200, {
+            device_code: "device-1",
+            user_code: "ABCD-1234",
+            verification_uri: "https://github.com/login/device",
+            expires_in: 900,
+            interval: 5,
+          });
+        case "POST github.com/login/oauth/access_token":
+          return json(200, { access_token: "gho_test" });
+        case "POST api.github.com/user/repos":
+          created.push("majordome-brain");
+          return json(201, {
+            clone_url: "https://github.com/owner/majordome-brain-2.git",
+            html_url: "https://github.com/owner/majordome-brain-2",
+            full_name: "owner/majordome-brain-2",
+          });
+        default:
+          return json(500, {});
+      }
+    }),
+  );
+  return { http, created };
+}
+
 const lastCommit = (root: string) => gitIn(root, ["log", "-1", "--format=%an|%s"]);
 
 it.layer(testLayer)("MajordomeBackup", (it) => {
@@ -396,6 +436,33 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
       assert.isNull(disconnected.drive);
       assert.isFalse(disconnected.googleDrive.signedIn);
       assert.deepStrictEqual(google.revoked, ["1//refresh"]);
+    }),
+  );
+
+  it.effect("signing in to GitHub keeps the repository the notes were cloned from", () =>
+    Effect.gen(function* () {
+      const { root } = yield* makeVault();
+      yield* gitIn(root, [
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/owner/majordome-brain.git",
+      ]);
+      // A dead proxy keeps git off the network; the first push simply fails.
+      yield* gitIn(root, ["config", "http.proxy", "http://127.0.0.1:9"]);
+      const github = fakeGitHub();
+      const backup = yield* backupFor(root, github.http);
+
+      const prompt = yield* backup.connectGitHubStart({ projectId });
+      assert.strictEqual(prompt.status, "code");
+      const waiting = yield* Effect.forkChild(backup.connectGitHubWait({ projectId }));
+      yield* TestClock.adjust("5 seconds");
+      const connected = yield* Fiber.join(waiting);
+
+      assert.deepStrictEqual(github.created, []);
+      assert.isTrue(connected.github.signedIn);
+      assert.strictEqual(connected.remote?.webUrl, "https://github.com/owner/majordome-brain");
+      assert.strictEqual(yield* gitIn(root, ["remote"]), "origin");
     }),
   );
 });

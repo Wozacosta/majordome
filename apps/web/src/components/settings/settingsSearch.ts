@@ -44,7 +44,8 @@ export type SettingsPath =
   | "/settings/overview"
   | "/settings/backup"
   | "/settings/notifications"
-  | "/settings/phone";
+  | "/settings/phone"
+  | "/settings/always-on";
 
 export type SettingsSearchScope =
   | "environment"
@@ -128,6 +129,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/backup": msg("Back up my brain"),
   "/settings/notifications": msg("Notifications"),
   "/settings/phone": msg("Your phone"),
+  "/settings/always-on": msg("Always-on server"),
 };
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
@@ -203,6 +205,7 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
       "/settings/backup",
       "/settings/notifications",
       "/settings/phone",
+      "/settings/always-on",
       "/settings/projects",
     ],
   },
@@ -1112,6 +1115,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["mobile iphone android tailscale pair qr code home screen"],
   },
   {
+    id: "majordome-always-on",
+    title: "Always-on server",
+    to: "/settings/always-on",
+    majordomeOnly: true,
+    searchTerms: ["vps server cloud docker 24/7 move routines runner deploy host"],
+  },
+  {
     id: "agent-browser-access",
     title: "Agent browser access",
     to: "/settings/browser",
@@ -1504,6 +1514,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/backup": null,
   "/settings/notifications": null,
   "/settings/phone": null,
+  "/settings/always-on": null,
 };
 
 const RENAMED_SETTINGS_PATHS: Readonly<Record<string, SettingsPath>> = {

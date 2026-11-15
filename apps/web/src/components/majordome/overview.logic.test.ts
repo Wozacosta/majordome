@@ -127,7 +127,7 @@ describe("brainBox", () => {
     const box = brainBox(base);
     expect(box.lines.map((line) => [line.text, line.detail ?? null])).toEqual([
       ["Nothing waiting for you", null],
-      ["Routines run on this computer", null],
+      ["Routines run on this computer", "Only while it's awake. Move them to an always-on server"],
       ["Start my day", "Next tomorrow at 8:00"],
     ]);
     expect(box.tone).toBe("ok");

@@ -48,6 +48,12 @@ Claude Code's verbose mode can stay enabled when you use Claude for text generat
 thread titles, branch names, commit messages, and pull request descriptions. On a remote connection,
 T3 Code uses the Claude configuration on the connected server.
 
+## Sign in on a server without a browser
+
+On a computer where you use Claude, run `claude setup-token` and copy the token it prints. In the
+server's **Settings > Providers > Claude**, paste it into **Claude sign-in token**. The token is
+stored as a secret on that server.
+
 ## Compact long conversations
 
 Set **Auto-compact after** in the Claude provider settings to an integer between

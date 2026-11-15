@@ -62,6 +62,7 @@ export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
   "/settings/backup",
   "/settings/notifications",
   "/settings/phone",
+  "/settings/always-on",
 ]);
 
 interface SettingsScopeMenuProps {
