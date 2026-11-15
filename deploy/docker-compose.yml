@@ -28,6 +28,9 @@ services:
       TZ: ${TZ:-UTC}
       # Optional: the output of `claude setup-token`, so Claude works without signing in here.
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Optional: this server's address, such as https://majordome.<your-tailnet>.ts.net, so
+      # `majord pair` prints a link and QR code that open on your phone and computer.
+      MAJORDOME_PUBLIC_URL: ${MAJORDOME_PUBLIC_URL:-}
     volumes:
       - majordome-data:/data
     restart: unless-stopped

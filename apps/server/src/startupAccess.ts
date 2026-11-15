@@ -8,8 +8,9 @@ import {
   isWildcardHost,
 } from "@t3tools/shared/hostClassification";
 import { QrCode } from "@t3tools/shared/qrCode";
-import { buildPairingAppLink } from "@t3tools/shared/remote";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 
@@ -180,13 +181,26 @@ export const renderTerminalQrCode = (value: string, margin = 2): string => {
   return rows.join("\n");
 };
 
+/**
+ * The address other devices reach this server at, when a proxy it cannot see (Tailscale Serve in
+ * the container's sidecar) puts it there. Set by the owner, such as in deploy/docker-compose.yml.
+ */
+export const PUBLIC_URL_ENV = "MAJORDOME_PUBLIC_URL";
+
+export const readPublicUrl = Effect.gen(function* () {
+  const value = yield* Config.String(PUBLIC_URL_ENV).pipe(Config.option);
+  const url = URL.parse(Option.getOrElse(value, () => "").trim());
+  return url !== null && (url.protocol === "https:" || url.protocol === "http:")
+    ? url.origin
+    : undefined;
+}).pipe(Effect.orElseSucceed(() => undefined));
+
 export const formatHeadlessServeOutput = (accessInfo: HeadlessServeAccessInfo): string =>
   [
-    "T3 Code server is ready.",
+    "Majordome server is ready.",
     `Connection string: ${accessInfo.connectionString}`,
     `Token: ${accessInfo.token}`,
     `Pairing URL: ${accessInfo.pairingUrl}`,
-    `App link: ${buildPairingAppLink(accessInfo.pairingUrl)}`,
     "",
     renderTerminalQrCode(accessInfo.pairingUrl),
     "",
@@ -196,11 +210,13 @@ export const issueHeadlessServeAccessInfo = Effect.fn("issueHeadlessServeAccessI
   const serverConfig = yield* ServerConfig.ServerConfig;
   const httpServer = yield* HttpServer.HttpServer;
   const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-  const connectionString = resolveHeadlessConnectionString(
-    serverConfig.host,
-    resolveListeningPort(httpServer.address, serverConfig.port),
-    { privateNetworkOnly: serverConfig.privateNetworkOnly },
-  );
+  const connectionString =
+    (yield* readPublicUrl) ??
+    resolveHeadlessConnectionString(
+      serverConfig.host,
+      resolveListeningPort(httpServer.address, serverConfig.port),
+      { privateNetworkOnly: serverConfig.privateNetworkOnly },
+    );
   const issued = yield* serverAuth.issueStartupPairingCredential();
 
   return {
