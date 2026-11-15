@@ -1,9 +1,12 @@
 /**
- * The feed's view of a project's vault: its history, which server runs its routines, and "Undo
- * this", looked up by project so clients never name a folder on the server.
+ * The feed's view of a project's vault: its history, which server runs its routines, the limits on
+ * unattended runs, and "Undo this", looked up by project so clients never name a folder on the
+ * server.
  */
 
 import {
+  type MajordomeRoutineLimits,
+  type MajordomeSetRoutineLimitsInput,
   MajordomeVaultError,
   type MajordomeVaultHistoryInput,
   type MajordomeVaultHistoryResult,
@@ -16,18 +19,21 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { readVaultLayout } from "./vaultConfig.ts";
+import * as RoutineRunLedger from "./RoutineRunLedger.ts";
+import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { readVaultRunner } from "./vaultRunner.ts";
 import { describeVaultHistory } from "./vaultRunSummaries.ts";
 
 const DEFAULT_HISTORY_LIMIT = 100;
+const isVaultError = Schema.is(MajordomeVaultError);
 
 export class MajordomeVaultService extends Context.Service<
   MajordomeVaultService,
@@ -38,6 +44,9 @@ export class MajordomeVaultService extends Context.Service<
     readonly undo: (
       input: MajordomeVaultUndoInput,
     ) => Effect.Effect<MajordomeVaultUndoResult, MajordomeVaultError>;
+    readonly setRoutineLimits: (
+      input: MajordomeSetRoutineLimitsInput,
+    ) => Effect.Effect<MajordomeRoutineLimits, MajordomeVaultError>;
   }
 >()("t3/majordome/MajordomeVaultService") {}
 
@@ -49,6 +58,7 @@ const make = Effect.gen(function* () {
   const vaultLock = yield* VaultLock.VaultLock;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const projections = yield* ProjectionStore.ProjectionStoreV2;
+  const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
 
   const toVaultError = (message: string) => (cause: unknown) =>
     new MajordomeVaultError({ message, cause });
@@ -109,12 +119,20 @@ const make = Effect.gen(function* () {
         onSome: (id) =>
           id === environmentId ? ("this-server" as const) : ("another-server" as const),
       });
+      const routineLimits = yield* readVaultLimits(cwd).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      );
+      const { pausedToday, stoppedRuns } = yield* runLedger.read(input.projectId);
       return {
         isVault: true,
         entries,
         routinesRunner,
         folders: { daily: layout.dailyFolder, inbox: layout.inboxFolder },
         notes,
+        routineLimits,
+        pausedToday,
+        stoppedRuns,
       };
     },
     Effect.mapError(toVaultError("Could not read this vault's history.")),
@@ -132,7 +150,28 @@ const make = Effect.gen(function* () {
     Effect.mapError(toVaultError("Could not undo this run.")),
   );
 
-  return MajordomeVaultService.of({ listHistory, undo });
+  const setRoutineLimits: MajordomeVaultService["Service"]["setRoutineLimits"] = Effect.fn(
+    "MajordomeVaultService.setRoutineLimits",
+  )(
+    function* (input) {
+      const cwd = yield* vaultRoot(input.projectId);
+      if (cwd === undefined) {
+        return yield* new MajordomeVaultError({ message: "That project is not a vault." });
+      }
+      yield* writeVaultLimits(cwd, input.limits).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      );
+      return input.limits;
+    },
+    Effect.mapError((cause) =>
+      isVaultError(cause)
+        ? cause
+        : new MajordomeVaultError({ message: "Could not save the limits.", cause }),
+    ),
+  );
+
+  return MajordomeVaultService.of({ listHistory, undo, setRoutineLimits });
 });
 
 export const layer = Layer.effect(MajordomeVaultService, make);

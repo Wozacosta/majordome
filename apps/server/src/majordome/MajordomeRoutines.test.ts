@@ -30,6 +30,7 @@ import * as Scheduler from "../scheduling/Scheduler.ts";
 import * as SecretRequests from "../secrets/SecretRequests.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
+import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 
 const settle = Effect.forEach(Array.from({ length: 50 }), () => Effect.yieldNow, {
   discard: true,
@@ -44,6 +45,9 @@ const gateFor = (roots: Record<string, string>) =>
       MajordomeRoutines.layerRunGate.pipe(
         Layer.provide(
           Layer.mergeAll(
+            RoutineRunLedger.layer.pipe(
+              Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-gate-" })),
+            ),
             Layer.mock(ProjectStore.ProjectStoreV2)({
               get: (projectId) =>
                 Effect.succeed(
@@ -71,12 +75,19 @@ it.layer(NodeServices.layer)("the runner gate", (it) => {
       const here = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-gate-" });
       yield* fs.makeDirectory(`${here}/.majordome`);
       const code = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-gate-" });
+      yield* fs.writeFileString(
+        `${here}/.majordome/config.json`,
+        JSON.stringify({ limits: { runsPerDay: 2 } }),
+      );
 
       const gate = yield* gateFor({ elsewhere, here, code });
       assert.isFalse(yield* gate(task("elsewhere")));
       // An unclaimed vault becomes this server's.
       assert.isTrue(yield* gate(task("here")));
       assert.equal(yield* fs.readFileString(`${here}/.majordome/runner`), "env-here\n");
+      // Then it fires until it has used today's runs.
+      assert.isTrue(yield* gate(task("here")));
+      assert.isFalse(yield* gate(task("here")));
       // Projects that are not vaults, or not found, are not Majordome's to hold back.
       assert.isTrue(yield* gate(task("code")));
       assert.isTrue(yield* gate(task("missing")));
@@ -219,6 +230,11 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
                   getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
                 }),
                 ServerSettings.ServerSettingsService.layerTest(),
+                RoutineRunLedger.layer.pipe(
+                  Layer.provide(
+                    ServerConfig.layerTest(process.cwd(), { prefix: "majordome-routines-" }),
+                  ),
+                ),
                 ServerConfig.layerTest(process.cwd(), { prefix: "majordome-routines-" }),
                 ManagedPolicy.layerTest(),
                 Layer.mock(ThreadLaunchService.ThreadLaunchService)({

@@ -14,6 +14,7 @@ import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
+import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { commitVaultRun, vaultCommitMessage } from "./VaultCommitReactor.ts";
 
@@ -128,6 +129,7 @@ const makeService = (
     Effect.provide(
       MajordomeVaultService.layer.pipe(
         Layer.provide(VaultLock.layer),
+        Layer.provide(RoutineRunLedger.layer),
         Layer.provide(fakeProjections(threads)),
         Layer.provide(
           Layer.mock(ServerEnvironment.ServerEnvironment)({
@@ -258,6 +260,40 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       assert.equal(yield* runner, "another-server");
       yield* vault.fs.writeFileString(runnerFile, "env-here\n");
       assert.equal(yield* runner, "this-server");
+    }),
+  );
+
+  it.effect("saves the limits on unattended runs in the vault's config, keeping the rest", () =>
+    Effect.gen(function* () {
+      const vault = yield* makeFolder({ vault: true });
+      const config = `${vault.root}/.majordome/config.json`;
+      yield* vault.fs.writeFileString(config, JSON.stringify({ folders: { inbox: "drop" } }));
+      const service = yield* makeService({ [vaultProject]: vault.root });
+      const limits = service
+        .listHistory({ projectId: vaultProject })
+        .pipe(Effect.map((history) => history.routineLimits));
+
+      assert.deepEqual(yield* limits, { runMinutes: 20, runsPerDay: 20 });
+      yield* service.setRoutineLimits({
+        projectId: vaultProject,
+        limits: { runMinutes: 45, runsPerDay: 5 },
+      });
+      assert.deepEqual(yield* limits, { runMinutes: 45, runsPerDay: 5 });
+      assert.deepEqual(JSON.parse(yield* vault.fs.readFileString(config)), {
+        folders: { inbox: "drop" },
+        limits: { runMinutes: 45, runsPerDay: 5 },
+      });
+
+      // A config it can't read is left alone rather than replaced.
+      yield* vault.fs.writeFileString(config, "{ not json");
+      const failed = yield* Effect.flip(
+        service.setRoutineLimits({
+          projectId: vaultProject,
+          limits: { runMinutes: 1, runsPerDay: 1 },
+        }),
+      );
+      assert.equal(failed.message, "Could not save the limits.");
+      assert.equal(yield* vault.fs.readFileString(config), "{ not json");
     }),
   );
 

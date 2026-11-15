@@ -2353,6 +2353,10 @@ export const layerWsRpc = (
             Effect.andThen(majordomeRoutines.runHere(input.projectId)),
             Effect.mapError((cause) => new MajordomeVaultError({ message: cause.message, cause })),
           ),
+        [WS_METHODS.majordomeSetRoutineLimits]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeVault.setRoutineLimits(input)),
+          ),
         [WS_METHODS.majordomeGetBackupStatus]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.getStatus(input)),

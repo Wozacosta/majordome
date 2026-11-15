@@ -138,6 +138,8 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
+import * as RoutineLimits from "./majordome/RoutineLimits.ts";
+import * as RoutineRunLedger from "./majordome/RoutineRunLedger.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
 import * as VaultLock from "./majordome/VaultLock.ts";
 import * as VcsAutomaticFetchInterval from "./vcs/VcsAutomaticFetchInterval.ts";
@@ -757,10 +759,13 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   // provideMerge keeps the push service in the context, for the notification RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {
-      const service = yield* MajordomePushReactor.PushReactor;
-      yield* service.start();
+      yield* (yield* MajordomePushReactor.PushReactor).start();
+      yield* (yield* RoutineLimits.RoutineLimits).start();
     }),
-  ).pipe(Layer.provide(MajordomePushReactor.layer), Layer.provideMerge(MajordomePush.layer)),
+  ).pipe(
+    Layer.provide(Layer.merge(MajordomePushReactor.layer, RoutineLimits.layer)),
+    Layer.provideMerge(MajordomePush.layer),
+  ),
   ProviderUsageLimitsIngestion.layer,
   layerProviderInstallationRefresh,
   ProviderInstallation.layer,
@@ -768,6 +773,8 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   Layer.effectDiscard(ProjectSettingsOverrideSweep.sweep),
 ).pipe(
   Layer.provideMerge(layerOrchestrationApplication),
+  // Below the orchestration runtime, so its routine gate and the Majordome services share one count.
+  Layer.provideMerge(RoutineRunLedger.layer),
   Layer.provideMerge(RuntimeLayer.layerEventInfrastructure),
   Layer.provideMerge(Layer.merge(ProjectStore.layer, ThreadSearch.layer)),
   Layer.provideMerge(SecretCheck.layer),
