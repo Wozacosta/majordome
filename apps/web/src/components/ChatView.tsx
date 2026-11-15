@@ -150,7 +150,7 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
-import { isElectron } from "../env";
+import { isElectron, isMajordome } from "../env";
 import { useActiveThreadRef } from "../hooks/useActiveThreadRef";
 import { composerRequiresModifier } from "../composer-logic";
 import {
@@ -2000,7 +2000,7 @@ export default function ChatView(props: ChatViewProps) {
   );
   const visiblePullRequestCount = visiblePullRequests.length;
   const pullRequestsSurfaceAvailable =
-    isServerThread && supportsThreadPullRequests && visiblePullRequestCount > 0;
+    !isMajordome && isServerThread && supportsThreadPullRequests && visiblePullRequestCount > 0;
   const { state: deviceState, loaded: deviceStateLoaded } = useDeviceState(
     activeThreadRef?.environmentId ?? null,
   );
@@ -2431,7 +2431,8 @@ export default function ChatView(props: ChatViewProps) {
     onDiffPanelOpen,
     closeRightPanelSurface,
   });
-  const pullRequestSurfaceAvailable = supportsPullRequests && pullRequestPanelTarget !== null;
+  const pullRequestSurfaceAvailable =
+    !isMajordome && supportsPullRequests && pullRequestPanelTarget !== null;
   const {
     acknowledgeActiveThreadWoke,
     activeBranchMismatchKey,
@@ -3282,7 +3283,7 @@ export default function ChatView(props: ChatViewProps) {
     />
   ) : null;
   const panelToggleControlProps = {
-    terminalAvailable: activeProject !== null,
+    terminalAvailable: !isMajordome && activeProject !== null,
     terminalOpen: terminalUiState.terminalOpen,
     terminalShortcutLabel: shortcutLabelForCommand(keybindings, "terminal.toggle"),
     threadPanelOpen,
@@ -3799,7 +3800,7 @@ export default function ChatView(props: ChatViewProps) {
                                   projectId={activeThread.projectId}
                                   worktreePath={activeThread.worktreePath}
                                   isServerThread={isServerThread}
-                                  showGitControls={isGitRepo}
+                                  showGitControls={isGitRepo && !isMajordome}
                                   {...(routeKind === "draft" && draftId ? { draftId } : {})}
                                   onEnvModeChange={onEnvModeChangeStable}
                                   startFromOrigin={startFromOrigin}
@@ -3972,7 +3973,7 @@ export default function ChatView(props: ChatViewProps) {
           </ThreadFindCanvas>
         </div>
 
-        {embedded ? null : (
+        {embedded || isMajordome ? null : (
           <ChatTerminalDrawers
             activeThreadKey={activeThreadKey}
             activeTerminalOpen={Boolean(terminalUiState.terminalOpen)}
@@ -4039,7 +4040,7 @@ export default function ChatView(props: ChatViewProps) {
           onAddDevice={addDeviceSurfaceStable}
           onAddSideChat={sideChatsOffered ? openSideChatStable : undefined}
           browserAvailable={canOperatePreview && browserAvailable}
-          terminalAvailable={activeProject !== null && canOperateTerminal}
+          terminalAvailable={!isMajordome && activeProject !== null && canOperateTerminal}
           diffAvailable={isServerThread && isGitRepo}
           filesAvailable={activeProject !== null}
           pullRequestAvailable={pullRequestSurfaceAvailable}

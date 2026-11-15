@@ -18,7 +18,7 @@ import {
   type ShortcutEventLike as SharedShortcutEventLike,
   type ShortcutModifierStateLike,
 } from "@t3tools/shared/keybindings";
-import { isElectron } from "./env";
+import { isElectron, isMajordome } from "./env";
 import { isEditableFocused } from "./lib/editableFocus";
 import { projectScriptIdFromCommand } from "./projectScripts";
 
@@ -176,6 +176,24 @@ function matchesCommandShortcut(
   return resolveShortcutCommand(event, keybindings, options) === command;
 }
 
+const MAJORDOME_HIDDEN_COMMANDS: ReadonlySet<string> = new Set([
+  "composer.workspace",
+  "composer.previousWorktree",
+  "composer.branch",
+  "editor.openFavorite",
+]);
+
+/** Majordome has no terminal, pull requests, worktrees, editor or project scripts to reach. */
+function isHiddenInMajordome(command: KeybindingCommand): boolean {
+  return (
+    isMajordome &&
+    (command.startsWith("terminal.") ||
+      command.startsWith("pullRequest.") ||
+      MAJORDOME_HIDDEN_COMMANDS.has(command) ||
+      projectScriptIdFromCommand(command) !== null)
+  );
+}
+
 export function resolveShortcutCommand(
   event: ShortcutEventLike,
   keybindings: ResolvedKeybindingsConfig,
@@ -190,6 +208,7 @@ export function resolveShortcutCommand(
   for (let index = keybindings.length - 1; index >= 0; index -= 1) {
     const binding = keybindings[index];
     if (!binding) continue;
+    if (isHiddenInMajordome(binding.command)) continue;
     if (!matchesWhenClause(binding.whenAst, context)) continue;
     if (!matchesKeybindingShortcut(event, shortcutForContext(binding, context), platform)) continue;
     return binding.command;

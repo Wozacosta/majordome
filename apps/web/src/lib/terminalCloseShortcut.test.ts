@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { ResolvedKeybindingsConfig } from "@t3tools/contracts";
 
@@ -7,6 +7,12 @@ import {
   preventTerminalCloseShortcut,
   type TerminalCloseShortcutEvent,
 } from "./terminalCloseShortcut";
+
+// These tests cover T3 Code's coding UI, which Majordome hides.
+vi.mock("~/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
+}));
 
 const keybindings = [
   {

@@ -1,5 +1,5 @@
 import { HOSTED_APP_CHANNEL } from "~/branding";
-import { isElectron, isSecretsFeatureEnabled } from "~/env";
+import { isElectron, isMajordome, isSecretsFeatureEnabled } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
 import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@t3tools/contracts";
 import type { EnvironmentId } from "@t3tools/contracts";
@@ -118,6 +118,13 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/archived": msg("Archive"),
 };
 
+/** Coding settings Majordome leaves out of the sidebar and search. */
+const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
+  "/settings/source-control",
+  "/settings/worktrees",
+  "/settings/devices",
+]);
+
 /** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
 export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
   readonly heading: string;
@@ -143,14 +150,16 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
       "/settings/providers",
       "/settings/threads",
       "/settings/browser",
-      "/settings/devices",
+      ...(isMajordome ? [] : (["/settings/devices"] as const)),
       "/settings/scheduled-tasks",
     ],
   },
-  {
-    heading: msg("Code"),
-    paths: ["/settings/projects", "/settings/source-control", "/settings/worktrees"],
-  },
+  isMajordome
+    ? { heading: msg("Projects"), headingHidden: true, paths: ["/settings/projects"] }
+    : {
+        heading: msg("Code"),
+        paths: ["/settings/projects", "/settings/source-control", "/settings/worktrees"],
+      },
   {
     heading: msg("Connections"),
     paths: [
@@ -1539,6 +1548,7 @@ export function settingsForThisPlatform(
       (isElectron || item.desktopOnly !== true) &&
       (!item.releaseChannelOnly || isElectron || HOSTED_APP_CHANNEL !== null) &&
       (!item.secretsFeatureOnly || isSecretsFeatureEnabled) &&
+      (!isMajordome || !MAJORDOME_HIDDEN_SETTINGS.has(item.to)) &&
       (!item.macOnly || isMacPlatform(platform)) &&
       (!item.windowsOnly || isWindowsPlatform(platform)),
   );

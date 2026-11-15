@@ -21,8 +21,10 @@ import {
   type SettingsSearchItem,
 } from "./settingsSearch";
 
+// isMajordome: false keeps covering T3 Code's coding settings, which Majordome hides.
 vi.mock("~/env", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
   isSecretsFeatureEnabled: false,
 }));
 

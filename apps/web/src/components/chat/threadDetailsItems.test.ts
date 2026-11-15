@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import {
   resolveThreadDetailsVisibility,
   setThreadDetailsItem,
   THREAD_DETAILS_ITEMS,
 } from "./threadDetailsItems";
+
+// These tests cover T3 Code's coding UI, which Majordome hides.
+vi.mock("~/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
+}));
 
 const usage = THREAD_DETAILS_ITEMS.find((item) => item.id === "usage")!;
 const servers = THREAD_DETAILS_ITEMS.find((item) => item.id === "servers")!;

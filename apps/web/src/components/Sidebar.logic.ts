@@ -5,6 +5,8 @@ import { isShownUnderParent } from "@t3tools/client-runtime/state/threads";
 import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 import { threadPullRequestSearchTerms } from "@t3tools/shared/threadPullRequests";
 import * as React from "react";
+
+import { isMajordome } from "../env";
 import {
   isAtomCommandInterrupted,
   type AtomCommandResult,
@@ -169,7 +171,9 @@ export function useSnoozeWakeClock(
 export function withoutRemovedCheckout<
   T extends { readonly branch: string | null; readonly worktreePath: string | null },
 >(thread: T, gitStatus: { readonly isRepo?: boolean | undefined } | null): T {
-  return gitStatus?.isRepo === false ? { ...thread, branch: null, worktreePath: null } : thread;
+  if (gitStatus?.isRepo === false) return { ...thread, branch: null, worktreePath: null };
+  // A vault's history is plumbing, so Majordome never shows its branch.
+  return isMajordome ? { ...thread, branch: null } : thread;
 }
 
 export function useRetainedValue<T>(key: string | null, value: T | null): T | null {

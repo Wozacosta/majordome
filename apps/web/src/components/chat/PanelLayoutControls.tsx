@@ -9,6 +9,7 @@ import { memo, type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { cn } from "~/lib/utils";
 
+import { isMajordome } from "../../env";
 import type { ThreadPanelPresentation } from "../../rightPanelLayout";
 import { PopoverCreateHandle, PopoverTrigger } from "../ui/popover";
 import { useMobileSidebarSheetMounted } from "../ui/sidebar";
@@ -40,7 +41,7 @@ export interface PanelLayoutControlsProps {
 
 export const PanelLayoutControls = memo(function PanelLayoutControls({
   showThreadPanelControl = true,
-  showTerminalControl = true,
+  showTerminalControl = !isMajordome,
   showRightPanelControl = true,
   terminalAvailable,
   terminalOpen,

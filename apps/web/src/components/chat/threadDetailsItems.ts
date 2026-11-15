@@ -1,14 +1,16 @@
 import type { ClientSettings } from "@t3tools/contracts";
 
+import { isMajordome } from "../../env";
+
 // Ids are stored in client settings, so never rename one.
 export const THREAD_DETAILS_ITEMS = [
-  { id: "environment", label: "Environment and worktree", defaultVisible: true },
-  { id: "openIn", label: "Open in editor", defaultVisible: true },
-  { id: "scripts", label: "Project scripts", defaultVisible: true },
-  { id: "branch", label: "Branch and pull request", defaultVisible: true },
-  { id: "gitActions", label: "Git actions", defaultVisible: true },
+  { id: "environment", label: "Environment and worktree", defaultVisible: !isMajordome },
+  { id: "openIn", label: "Open in editor", defaultVisible: !isMajordome },
+  { id: "scripts", label: "Project scripts", defaultVisible: !isMajordome },
+  { id: "branch", label: "Branch and pull request", defaultVisible: !isMajordome },
+  { id: "gitActions", label: "Git actions", defaultVisible: !isMajordome },
   { id: "changes", label: "Changes", defaultVisible: true },
-  { id: "servers", label: "Servers", defaultVisible: true },
+  { id: "servers", label: "Servers", defaultVisible: !isMajordome },
   { id: "automations", label: "Automations", defaultVisible: true },
   { id: "lineage", label: "Lineage", defaultVisible: true },
   { id: "sideChats", label: "Side chats", defaultVisible: true },

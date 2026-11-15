@@ -1,4 +1,4 @@
-import { assert, describe, it } from "vite-plus/test";
+import { assert, describe, it, vi } from "vite-plus/test";
 import {
   compileResolvedKeybindingsConfig,
   DEFAULT_RESOLVED_KEYBINDINGS,
@@ -24,6 +24,12 @@ import {
   terminalNavigationShortcutData,
   type ShortcutEventLike,
 } from "./keybindings";
+
+// These tests cover T3 Code's coding UI, which Majordome hides.
+vi.mock("~/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
+}));
 
 function event(overrides: Partial<ShortcutEventLike> = {}): ShortcutEventLike {
   return {

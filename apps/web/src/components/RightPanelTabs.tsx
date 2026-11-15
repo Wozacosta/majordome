@@ -60,7 +60,7 @@ import {
   useState,
 } from "react";
 
-import { isElectron } from "~/env";
+import { isElectron, isMajordome } from "~/env";
 import type { DesktopPreviewOverlay } from "~/previewStateStore";
 import type { RightPanelSurface } from "~/rightPanelStore";
 import { cn } from "~/lib/utils";
@@ -197,6 +197,16 @@ const LAUNCHER_SHORTCUT_BLOCKING_LAYERS = [
 ]
   .map((slot) => `[data-slot="${slot}"]:is([data-open],[data-ending-style])`)
   .join(",");
+
+// Majordome has no coding surfaces: no terminal, pull requests or device simulators.
+const MAJORDOME_HIDDEN_SURFACES = new Set([
+  "Terminal",
+  "Pull request",
+  "Linked pull requests",
+  "Device",
+]);
+const isMajordomeSurfaceAction = (action: { readonly label: string }) =>
+  !isMajordome || !MAJORDOME_HIDDEN_SURFACES.has(action.label);
 
 const SURFACE_UNAVAILABLE_HINTS = {
   browser: "Only available in the desktop app.",
@@ -338,78 +348,80 @@ function RightPanelEmptyState(props: {
 }) {
   const [highlight, setHighlight] = useState(-1);
 
-  const actions = [
-    {
-      label: "Browser",
-      icon: Globe2,
-      shortcut: "B",
-      available: props.browserAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.browser,
-      onClick: props.onAddBrowser,
-    },
-    {
-      label: "Terminal",
-      icon: TerminalSquare,
-      shortcut: "T",
-      available: props.terminalAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.terminal,
-      onClick: props.onAddTerminal,
-    },
-    {
-      label: "Files",
-      icon: Files,
-      shortcut: "F",
-      available: props.filesAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.files,
-      onClick: props.onAddFiles,
-    },
-    {
-      label: "Diff",
-      icon: FileDiff,
-      shortcut: "D",
-      available: props.diffAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.diff,
-      onClick: props.onAddDiff,
-    },
-    {
-      label: "Pull request",
-      icon: PullRequestGlyph.pullRequest,
-      shortcut: "P",
-      available: props.pullRequestAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.pullRequest,
-      onClick: props.onAddPullRequest,
-    },
-    {
-      label: "Linked pull requests",
-      icon: PullRequestGlyph.link,
-      shortcut: "L",
-      available: props.pullRequestsAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.pullRequests,
-      onClick: props.onAddPullRequests,
-    },
-    {
-      label: "Device",
-      description: "Watch an iOS Simulator or Android Emulator.",
-      icon: Smartphone,
-      shortcut: "M",
-      available: props.deviceAvailable,
-      disabledReason: SURFACE_UNAVAILABLE_HINTS.device,
-      onClick: props.onAddDevice,
-    },
-    ...(props.onAddSideChat
-      ? [
-          {
-            label: "Side chat",
-            description: "Ask a side question while this thread keeps working.",
-            icon: MessagesSquare,
-            shortcut: "S",
-            available: props.sideChatAvailable && !props.sideChatDisabledReason,
-            disabledReason: props.sideChatDisabledReason ?? SURFACE_UNAVAILABLE_HINTS.sideChat,
-            onClick: props.onAddSideChat,
-          },
-        ]
-      : []),
-  ] as const;
+  const actions = (
+    [
+      {
+        label: "Browser",
+        icon: Globe2,
+        shortcut: "B",
+        available: props.browserAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.browser,
+        onClick: props.onAddBrowser,
+      },
+      {
+        label: "Terminal",
+        icon: TerminalSquare,
+        shortcut: "T",
+        available: props.terminalAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.terminal,
+        onClick: props.onAddTerminal,
+      },
+      {
+        label: "Files",
+        icon: Files,
+        shortcut: "F",
+        available: props.filesAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.files,
+        onClick: props.onAddFiles,
+      },
+      {
+        label: "Diff",
+        icon: FileDiff,
+        shortcut: "D",
+        available: props.diffAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.diff,
+        onClick: props.onAddDiff,
+      },
+      {
+        label: "Pull request",
+        icon: PullRequestGlyph.pullRequest,
+        shortcut: "P",
+        available: props.pullRequestAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.pullRequest,
+        onClick: props.onAddPullRequest,
+      },
+      {
+        label: "Linked pull requests",
+        icon: PullRequestGlyph.link,
+        shortcut: "L",
+        available: props.pullRequestsAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.pullRequests,
+        onClick: props.onAddPullRequests,
+      },
+      {
+        label: "Device",
+        description: "Watch an iOS Simulator or Android Emulator.",
+        icon: Smartphone,
+        shortcut: "M",
+        available: props.deviceAvailable,
+        disabledReason: SURFACE_UNAVAILABLE_HINTS.device,
+        onClick: props.onAddDevice,
+      },
+      ...(props.onAddSideChat
+        ? [
+            {
+              label: "Side chat",
+              description: "Ask a side question while this thread keeps working.",
+              icon: MessagesSquare,
+              shortcut: "S",
+              available: props.sideChatAvailable && !props.sideChatDisabledReason,
+              disabledReason: props.sideChatDisabledReason ?? SURFACE_UNAVAILABLE_HINTS.sideChat,
+              onClick: props.onAddSideChat,
+            },
+          ]
+        : []),
+    ] as const
+  ).filter(isMajordomeSurfaceAction);
 
   type SurfaceAction = (typeof actions)[number];
 
@@ -1092,76 +1104,78 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
     });
   };
 
-  const addSurfaceActions = [
-    {
-      label: "Browser",
-      icon: Globe2,
-      shortcut: "B",
-      available: props.browserAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.browser,
-      onClick: props.onAddBrowser,
-    },
-    {
-      label: "Terminal",
-      icon: TerminalSquare,
-      shortcut: "T",
-      available: props.terminalAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.terminal,
-      onClick: props.onAddTerminal,
-    },
-    {
-      label: "Files",
-      icon: Files,
-      shortcut: "F",
-      available: props.filesAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.files,
-      onClick: props.onAddFiles,
-    },
-    {
-      label: "Diff",
-      icon: FileDiff,
-      shortcut: "D",
-      available: props.diffAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.diff,
-      onClick: props.onAddDiff,
-    },
-    {
-      label: "Pull request",
-      icon: PullRequestGlyph.pullRequest,
-      shortcut: "P",
-      available: props.pullRequestAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.pullRequest,
-      onClick: props.onAddPullRequest,
-    },
-    {
-      label: "Linked pull requests",
-      icon: PullRequestGlyph.link,
-      shortcut: "L",
-      available: props.pullRequestsAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.pullRequests,
-      onClick: props.onAddPullRequests,
-    },
-    {
-      label: "Device",
-      icon: Smartphone,
-      shortcut: "M",
-      available: props.deviceAvailable,
-      disabledReason: SURFACE_DISABLED_REASONS.device,
-      onClick: props.onAddDevice,
-    },
-    ...(props.onAddSideChat
-      ? [
-          {
-            label: "Side chat",
-            icon: MessagesSquare,
-            shortcut: "S",
-            available: props.sideChatAvailable === true && !props.sideChatDisabledReason,
-            disabledReason: props.sideChatDisabledReason ?? SURFACE_DISABLED_REASONS.sideChat,
-            onClick: props.onAddSideChat,
-          },
-        ]
-      : []),
-  ] as const;
+  const addSurfaceActions = (
+    [
+      {
+        label: "Browser",
+        icon: Globe2,
+        shortcut: "B",
+        available: props.browserAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.browser,
+        onClick: props.onAddBrowser,
+      },
+      {
+        label: "Terminal",
+        icon: TerminalSquare,
+        shortcut: "T",
+        available: props.terminalAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.terminal,
+        onClick: props.onAddTerminal,
+      },
+      {
+        label: "Files",
+        icon: Files,
+        shortcut: "F",
+        available: props.filesAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.files,
+        onClick: props.onAddFiles,
+      },
+      {
+        label: "Diff",
+        icon: FileDiff,
+        shortcut: "D",
+        available: props.diffAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.diff,
+        onClick: props.onAddDiff,
+      },
+      {
+        label: "Pull request",
+        icon: PullRequestGlyph.pullRequest,
+        shortcut: "P",
+        available: props.pullRequestAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.pullRequest,
+        onClick: props.onAddPullRequest,
+      },
+      {
+        label: "Linked pull requests",
+        icon: PullRequestGlyph.link,
+        shortcut: "L",
+        available: props.pullRequestsAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.pullRequests,
+        onClick: props.onAddPullRequests,
+      },
+      {
+        label: "Device",
+        icon: Smartphone,
+        shortcut: "M",
+        available: props.deviceAvailable,
+        disabledReason: SURFACE_DISABLED_REASONS.device,
+        onClick: props.onAddDevice,
+      },
+      ...(props.onAddSideChat
+        ? [
+            {
+              label: "Side chat",
+              icon: MessagesSquare,
+              shortcut: "S",
+              available: props.sideChatAvailable === true && !props.sideChatDisabledReason,
+              disabledReason: props.sideChatDisabledReason ?? SURFACE_DISABLED_REASONS.sideChat,
+              onClick: props.onAddSideChat,
+            },
+          ]
+        : []),
+    ] as const
+  ).filter(isMajordomeSurfaceAction);
 
   const handleAddSurfaceMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const action = surfaceShortcutActionForKey(addSurfaceActions, event.nativeEvent);

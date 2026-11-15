@@ -98,6 +98,7 @@ import { useAtomValue } from "@effect/atom-react";
 
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
+import { isMajordome } from "../env";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useOpenPanelPullRequestUrl } from "../hooks/useOpenPanelPullRequestUrl";
 import { copyThreadReference } from "../lib/copyThreadReference";
@@ -1462,6 +1463,7 @@ function OpenCommandPaletteDialog(props: {
   }
 
   if (
+    !isMajordome &&
     activeThread !== null &&
     threadPullRequestLinkMode(activeThreadServerConfig?.environment.capabilities) !== "unsupported"
   ) {
@@ -1631,7 +1633,7 @@ function OpenCommandPaletteDialog(props: {
 
   actionItems.push(themeEditorItem);
 
-  if (environments.some((environment) => environment.serverConfig !== null)) {
+  if (!isMajordome && environments.some((environment) => environment.serverConfig !== null)) {
     actionItems.push({
       kind: "action",
       value: "action:pull-requests",

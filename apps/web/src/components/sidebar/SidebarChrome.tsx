@@ -38,6 +38,7 @@ import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+import { isMajordome } from "~/env";
 import { observeResize } from "~/lib/observeResize";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
@@ -178,6 +179,18 @@ function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
 }
 
 function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
+  if (isMajordome) {
+    return (
+      <span
+        className={cn(
+          "truncate text-sm font-medium tracking-tight",
+          onBackdrop ? "text-white/90" : "text-foreground",
+        )}
+      >
+        Majordome
+      </span>
+    );
+  }
   return (
     <span className="inline-flex min-w-0 items-baseline gap-1 text-sm font-medium tracking-tight">
       <T3Wordmark aria-label="T3" className="h-[1cap] w-auto shrink-0" />
@@ -271,7 +284,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             label="Settings"
             onClick={handleSettingsClick}
           />
-          {pullRequestsSupported ? (
+          {pullRequestsSupported && !isMajordome ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}
               label="Pull requests"
