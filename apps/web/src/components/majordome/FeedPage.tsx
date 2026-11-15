@@ -415,6 +415,7 @@ function FeedNoteLinks({
                 projectId: vault.projectId,
                 environmentId: vault.environmentId,
                 path: note.path,
+                from: "feed",
               })}
               className="max-w-56 truncate text-foreground underline-offset-2 hover:underline"
               data-feed-note={note.path}

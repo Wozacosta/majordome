@@ -102,6 +102,20 @@ describe("notesLink", () => {
   });
 });
 
+describe("returning from Notes", () => {
+  it("remembers the screen a note was opened from, and drops unknown ones", () => {
+    const link = notesLink({
+      projectId: ProjectId.make("project-1"),
+      path: "daily/2026-11-15.md",
+      from: "feed",
+    });
+    expect(link.search.from).toBe("feed");
+    expect(validateNotesSearch({ ...link.search }).from).toBe("feed");
+    expect(validateNotesSearch({ from: "overview" }).from).toBe("overview");
+    expect(validateNotesSearch({ from: "settings" }).from).toBeUndefined();
+  });
+});
+
 describe("noteKind", () => {
   it("picks how a file is shown", () => {
     expect(noteKind("daily/today.md")).toBe("markdown");

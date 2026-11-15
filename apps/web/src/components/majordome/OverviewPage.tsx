@@ -217,7 +217,11 @@ function BrainColumn({
   const brain = brainBox({
     key,
     title: vault.title,
-    link: notesLink({ projectId: vault.projectId, environmentId: vault.environmentId }),
+    link: notesLink({
+      projectId: vault.projectId,
+      environmentId: vault.environmentId,
+      from: "overview",
+    }),
     runner: vault.runner,
     routines: tasks.data?.tasks.filter((task) => task.projectId === vault.projectId) ?? null,
     waiting,

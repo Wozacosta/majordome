@@ -22,6 +22,7 @@ import {
   type NotesSearch,
   type NotesVault,
   selectNotesVault,
+  NOTES_RETURN_SCREENS,
 } from "./notes.logic";
 
 const vaultKey = (vault: NotesVault) => `${vault.environmentId}:${vault.projectId}`;
@@ -74,10 +75,12 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
         projectId: next.vault.projectId,
         environmentId: vaults.length > 1 ? next.vault.environmentId : undefined,
         path: next.path,
+        from: search.from,
       }),
     });
 
   const showNote = vault !== null && path !== null;
+  const returnScreen = search.from === undefined ? null : NOTES_RETURN_SCREENS[search.from];
   const showTree = vault !== null && !(isPhone && showNote);
   const phoneNote = isPhone && vault !== null && path !== null ? { vault, path } : null;
 
@@ -89,6 +92,15 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
             <Button size="sm" variant="ghost" onClick={() => open({ vault: phoneNote.vault })}>
               <ArrowLeftIcon />
               Back
+            </Button>
+          ) : returnScreen ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void navigate({ to: returnScreen.to })}
+            >
+              <ArrowLeftIcon />
+              {returnScreen.label}
             </Button>
           ) : null}
           <h1 className="min-w-0 flex-1 truncate text-sm font-medium">

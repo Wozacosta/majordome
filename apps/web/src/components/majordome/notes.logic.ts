@@ -36,10 +36,18 @@ export function selectNotesVault(
   return match ?? vaults[0] ?? null;
 }
 
+/** Screens that open a note and get a way back from Notes. */
+export const NOTES_RETURN_SCREENS = {
+  feed: { to: "/feed", label: "Feed" },
+  overview: { to: "/overview", label: "Overview" },
+} as const;
+export type NotesReturnScreen = keyof typeof NOTES_RETURN_SCREENS;
+
 export interface NotesSearch {
   readonly project?: ProjectId;
   readonly environment?: EnvironmentId;
   readonly path?: string;
+  readonly from?: NotesReturnScreen;
 }
 
 /** A vault-relative path, or undefined when it climbs out of the vault or is plumbing. */
@@ -63,6 +71,9 @@ export function validateNotesSearch(raw: Record<string, unknown>): NotesSearch {
       ? { environment: EnvironmentId.make(raw.environment.trim()) }
       : {}),
     ...(path === undefined ? {} : { path }),
+    ...(typeof raw.from === "string" && Object.hasOwn(NOTES_RETURN_SCREENS, raw.from)
+      ? { from: raw.from as NotesReturnScreen }
+      : {}),
   };
 }
 
@@ -74,6 +85,8 @@ export function notesLink(input: {
   readonly projectId: ProjectId;
   readonly environmentId?: EnvironmentId | undefined;
   readonly path?: string | undefined;
+  /** The screen the reader came from, which Notes offers a way back to. */
+  readonly from?: NotesReturnScreen | undefined;
 }): { readonly to: "/notes"; readonly search: NotesSearch } {
   const path = input.path === undefined ? undefined : cleanNotePath(input.path);
   return {
@@ -82,6 +95,7 @@ export function notesLink(input: {
       project: input.projectId,
       ...(input.environmentId === undefined ? {} : { environment: input.environmentId }),
       ...(path === undefined ? {} : { path }),
+      ...(input.from === undefined ? {} : { from: input.from }),
     },
   };
 }
