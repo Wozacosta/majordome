@@ -72,6 +72,9 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeConnectGitHubStart,
       WS_METHODS.majordomeConnectGitHubWait,
       WS_METHODS.majordomeConnectGitHubCancel,
+      WS_METHODS.majordomeConnectGoogleDriveStart,
+      WS_METHODS.majordomeConnectGoogleDriveWait,
+      WS_METHODS.majordomeConnectGoogleDriveCancel,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthSettingsWriteScope);
     }

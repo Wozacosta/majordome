@@ -8,6 +8,7 @@ import type {
   EnvironmentId,
   MajordomeBackupStatus,
   MajordomeGitHubConnectPrompt,
+  MajordomeGoogleDriveProblem,
   ProjectId,
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
@@ -278,6 +279,7 @@ function VaultBackup({
       )}
       <GitHubOption vault={vault} status={status} canConfigure={canConfigure} />
       <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+      <GoogleDriveOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
     </div>
   );
 }
@@ -336,13 +338,146 @@ function GitHubOption({
         </div>
       ) : null}
       <AlertDialog open={open} onOpenChange={setOpen}>
-        {open ? <ConnectGitHubPopup vault={vault} onClose={() => setOpen(false)} /> : null}
+        {open ? <GitHubSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
       </AlertDialog>
     </Section>
   );
 }
 
-function ConnectGitHubPopup({
+interface DeviceSignInCopy {
+  readonly title: string;
+  readonly intro: string;
+  readonly waitingFor: string;
+  readonly working: string;
+}
+
+const GITHUB_SIGN_IN: DeviceSignInCopy = {
+  title: "Connect GitHub",
+  intro:
+    "You'll sign in on GitHub's website with a one-time code. GitHub asks to allow access to all your repositories; Majordome only creates and updates its own private backup.",
+  waitingFor: "Waiting for GitHub…",
+  working: "Creating your private repository and sending your notes…",
+};
+
+const GOOGLE_DRIVE_SIGN_IN: DeviceSignInCopy = {
+  title: "Connect Google Drive",
+  intro:
+    "You'll sign in on Google's website with a one-time code. Majordome asks only to see and manage the files it creates in your Drive.",
+  waitingFor: "Waiting for Google…",
+  working: "Sending your first encrypted copy to Google Drive…",
+};
+
+type BackupTarget = {
+  readonly environmentId: EnvironmentId;
+  readonly input: { readonly projectId: ProjectId };
+};
+
+/** A device sign-in: show the code, wait for the person to approve it, then report. */
+function DeviceSignInPopup({
+  vault,
+  copy,
+  start,
+  wait,
+  cancel,
+  onConnected,
+  onClose,
+}: {
+  readonly vault: BackupVault;
+  readonly copy: DeviceSignInCopy;
+  readonly start: (
+    target: BackupTarget,
+  ) => Promise<AtomCommandResult<MajordomeGitHubConnectPrompt, unknown>>;
+  readonly wait: (
+    target: BackupTarget,
+  ) => Promise<AtomCommandResult<MajordomeBackupStatus, unknown>>;
+  readonly cancel: (target: BackupTarget) => Promise<unknown>;
+  readonly onConnected: (status: MajordomeBackupStatus) => void;
+  readonly onClose: () => void;
+}) {
+  const [prompt, setPrompt] = useState<MajordomeGitHubConnectPrompt | null>(null);
+  const [phase, setPhase] = useState<"idle" | "starting" | "waiting">("idle");
+  const target = { environmentId: vault.environmentId, input: { projectId: vault.projectId } };
+
+  const begin = async () => {
+    setPhase("starting");
+    const started = await start(target);
+    if (started._tag === "Failure") {
+      reportFailure(`Could not ${copy.title.toLowerCase()}`, started);
+      setPhase("idle");
+      return;
+    }
+    setPrompt(started.value);
+    setPhase("waiting");
+    const done = await wait(target);
+    if (done._tag === "Failure") {
+      reportFailure("The sign-in didn't finish", done);
+      setPhase("idle");
+      setPrompt(null);
+      return;
+    }
+    onConnected(done.value);
+    onClose();
+  };
+
+  const stop = async () => {
+    if (phase === "waiting") await cancel(target);
+    onClose();
+  };
+
+  return (
+    <AlertDialogPopup>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{copy.title}</AlertDialogTitle>
+        {prompt?.status === "code" ? (
+          <AlertDialogDescription render={<div />}>
+            <p>
+              Open{" "}
+              <a
+                href={prompt.verificationUri}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                {prompt.verificationUri.replace(/^https:\/\//, "")}
+              </a>{" "}
+              and enter this code:
+            </p>
+            <p
+              className="my-3 font-mono text-2xl tracking-widest text-foreground"
+              data-sign-in-code
+            >
+              {prompt.userCode}
+            </p>
+            <p className="flex items-center gap-2">
+              <Spinner size="sm" /> {copy.waitingFor}
+            </p>
+          </AlertDialogDescription>
+        ) : prompt?.status === "signed-in" ? (
+          <AlertDialogDescription render={<div />}>
+            <p className="flex items-center gap-2">
+              <Spinner size="sm" /> {copy.working}
+            </p>
+          </AlertDialogDescription>
+        ) : (
+          <AlertDialogDescription>{copy.intro}</AlertDialogDescription>
+        )}
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogClose render={<Button variant="outline" />} onClick={() => void stop()}>
+          Cancel
+        </AlertDialogClose>
+        {phase === "idle" || phase === "starting" ? (
+          <Button disabled={phase === "starting"} onClick={() => void begin()}>
+            {phase === "starting" ? <Spinner size="sm" /> : null}
+            Continue
+          </Button>
+        ) : null}
+      </AlertDialogFooter>
+    </AlertDialogPopup>
+  );
+}
+
+function GitHubSignInPopup({
   vault,
   onClose,
 }: {
@@ -358,91 +493,174 @@ function ConnectGitHubPopup({
   const cancel = useAtomCommand(majordomeEnvironment.connectGitHubCancel, {
     label: "cancel github",
   });
-  const [prompt, setPrompt] = useState<MajordomeGitHubConnectPrompt | null>(null);
-  const [phase, setPhase] = useState<"idle" | "starting" | "waiting">("idle");
-  const target = { environmentId: vault.environmentId, input: { projectId: vault.projectId } };
+  return (
+    <DeviceSignInPopup
+      vault={vault}
+      copy={GITHUB_SIGN_IN}
+      start={start}
+      wait={wait}
+      cancel={cancel}
+      onConnected={(status) =>
+        toastManager.add({
+          type: status.remote?.backedUp ? "success" : "warning",
+          title: status.remote?.backedUp
+            ? "Backed up to GitHub"
+            : "GitHub is connected; the first backup hasn't finished",
+        })
+      }
+      onClose={onClose}
+    />
+  );
+}
 
-  const begin = async () => {
-    setPhase("starting");
-    const started = await start(target);
-    if (started._tag === "Failure") {
-      reportFailure("Could not connect GitHub", started);
-      setPhase("idle");
-      return;
-    }
-    setPrompt(started.value);
-    setPhase("waiting");
-    const done = await wait(target);
-    if (done._tag === "Failure") {
-      reportFailure("GitHub isn't connected", done);
-      setPhase("idle");
-      setPrompt(null);
-      return;
-    }
-    toastManager.add({
-      type: done.value.remote?.backedUp ? "success" : "warning",
-      title: done.value.remote?.backedUp
-        ? "Backed up to GitHub"
-        : "GitHub is connected; the first backup hasn't finished",
+function GoogleDriveSignInPopup({
+  vault,
+  onClose,
+}: {
+  readonly vault: BackupVault;
+  readonly onClose: () => void;
+}) {
+  const start = useAtomCommand(majordomeEnvironment.connectGoogleDriveStart, {
+    label: "connect google drive",
+  });
+  const wait = useAtomCommand(majordomeEnvironment.connectGoogleDriveWait, {
+    label: "wait for google drive",
+  });
+  const cancel = useAtomCommand(majordomeEnvironment.connectGoogleDriveCancel, {
+    label: "cancel google drive",
+  });
+  return (
+    <DeviceSignInPopup
+      vault={vault}
+      copy={GOOGLE_DRIVE_SIGN_IN}
+      start={start}
+      wait={wait}
+      cancel={cancel}
+      onConnected={(status) =>
+        toastManager.add({
+          type: status.drive?.lastBackupAt ? "success" : "warning",
+          title: status.drive?.lastBackupAt
+            ? "Backed up to Google Drive"
+            : "Google Drive is connected; the first copy hasn't gone up yet",
+        })
+      }
+      onClose={onClose}
+    />
+  );
+}
+
+const DRIVE_PROBLEM_ACTION: Record<MajordomeGoogleDriveProblem, string | null> = {
+  "signed-out": "Connect again",
+  "access-removed": "Connect again",
+  "quota-full": null,
+  failed: null,
+};
+
+function GoogleDriveOption({
+  vault,
+  status,
+  canConfigure,
+  nowMs,
+}: {
+  readonly vault: BackupVault;
+  readonly status: MajordomeBackupStatus;
+  readonly canConfigure: boolean;
+  readonly nowMs: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [settingPassphrase, setSettingPassphrase] = useState(false);
+  const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
+    label: "disconnect google drive",
+  });
+  const drive = status.drive;
+
+  const disconnect = async () => {
+    const result = await configure({
+      environmentId: vault.environmentId,
+      input: { projectId: vault.projectId, change: { type: "disconnect-google-drive" } },
     });
-    onClose();
+    if (result._tag === "Failure") reportFailure("Could not disconnect Google Drive", result);
+    else toastManager.add({ type: "success", title: "Google Drive is disconnected" });
   };
 
-  const stop = async () => {
-    if (phase === "waiting") await cancel(target);
-    onClose();
-  };
+  const connectAction = drive?.problem ? DRIVE_PROBLEM_ACTION[drive.problem] : null;
 
   return (
-    <AlertDialogPopup>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Connect GitHub</AlertDialogTitle>
-        {prompt?.status === "code" ? (
-          <AlertDialogDescription render={<div />}>
-            <p>
-              Open{" "}
-              <a
-                href={prompt.verificationUri}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {prompt.verificationUri.replace(/^https:\/\//, "")}
-              </a>{" "}
-              and enter this code:
-            </p>
-            <p className="my-3 font-mono text-2xl tracking-widest text-foreground" data-github-code>
-              {prompt.userCode}
-            </p>
-            <p className="flex items-center gap-2">
-              <Spinner size="sm" /> Waiting for GitHub…
-            </p>
-          </AlertDialogDescription>
-        ) : prompt?.status === "signed-in" ? (
-          <AlertDialogDescription render={<div />}>
-            <p className="flex items-center gap-2">
-              <Spinner size="sm" /> Creating your private repository and sending your notes…
-            </p>
-          </AlertDialogDescription>
-        ) : (
-          <AlertDialogDescription>
-            You'll sign in on GitHub's website with a one-time code. GitHub asks to allow access to
-            all your repositories; Majordome only creates and updates its own private backup.
-          </AlertDialogDescription>
-        )}
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogClose render={<Button variant="outline" />} onClick={() => void stop()}>
-          Cancel
-        </AlertDialogClose>
-        {phase === "idle" || phase === "starting" ? (
-          <Button disabled={phase === "starting"} onClick={() => void begin()}>
-            {phase === "starting" ? <Spinner size="sm" /> : null}
-            Continue
+    <Section title="Google Drive">
+      <Muted>
+        Every night Majordome puts an encrypted copy of your notes and their history in a “Majordome
+        backups” folder in your Google Drive. It can only see the files it puts there, and keeps the
+        last 14 copies.
+      </Muted>
+      {drive !== null ? (
+        <div className="flex flex-col gap-2" data-google-drive="connected">
+          <Muted>
+            {drive.lastBackupAt
+              ? `Last copy ${formatRelativeTimeLabel(drive.lastBackupAt, nowMs)}: ${drive.lastFile ?? ""}`
+              : "No copy yet."}
+          </Muted>
+          {drive.lastError ? (
+            <p className="text-sm text-destructive-foreground">{drive.lastError}</p>
+          ) : null}
+          {canConfigure ? (
+            <div className="flex flex-wrap gap-2">
+              {connectAction ? (
+                <Button size="xs" onClick={() => setOpen(true)}>
+                  {connectAction}
+                </Button>
+              ) : null}
+              <Button size="xs" variant="ghost-muted" onClick={() => void disconnect()}>
+                Disconnect Google Drive
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : !status.googleDrive.available ? (
+        <Muted>Connecting Google Drive isn't set up on this server yet.</Muted>
+      ) : canConfigure ? (
+        status.hasPassphrase ? (
+          <Button
+            size="xs"
+            className="w-fit"
+            onClick={() => setOpen(true)}
+            data-google-drive="connect"
+          >
+            <CloudUploadIcon />
+            Connect Google Drive
           </Button>
-        ) : null}
-      </AlertDialogFooter>
-    </AlertDialogPopup>
+        ) : settingPassphrase ? (
+          <FolderForm
+            vault={vault}
+            mode="passphrase"
+            initialPath=""
+            onDone={() => {
+              setSettingPassphrase(false);
+              setOpen(true);
+            }}
+            onCancel={() => setSettingPassphrase(false)}
+          />
+        ) : (
+          <Button
+            size="xs"
+            className="w-fit"
+            onClick={() => setSettingPassphrase(true)}
+            data-google-drive="choose-passphrase"
+          >
+            <CloudUploadIcon />
+            Connect Google Drive
+          </Button>
+        )
+      ) : null}
+      <p className="text-xs text-muted-foreground">
+        Majordome's Google app is still in testing: only people Majordome invited can connect, and
+        Google may warn that the app isn't verified. That's expected for now. While in testing,
+        Google also asks you to connect again every 7 days.
+      </p>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        {open ? <GoogleDriveSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
+      </AlertDialog>
+      <RestoreNote folderName={vault.folderName} source="drive" />
+    </Section>
   );
 }
 
@@ -505,23 +723,27 @@ function FolderOption({
       ) : canConfigure ? (
         <FolderForm
           vault={vault}
+          mode="folder"
           initialPath={folder?.path ?? ""}
           onDone={() => setEditing(false)}
           {...(folder !== null ? { onCancel: () => setEditing(false) } : {})}
         />
       ) : null}
-      <RestoreNote folderName={vault.folderName} />
+      <RestoreNote folderName={vault.folderName} source="folder" />
     </Section>
   );
 }
 
+/** The folder and passphrase form; with `mode="passphrase"`, only the passphrase. */
 function FolderForm({
   vault,
+  mode,
   initialPath,
   onDone,
   onCancel,
 }: {
   readonly vault: BackupVault;
+  readonly mode: "folder" | "passphrase";
   readonly initialPath: string;
   readonly onDone: () => void;
   readonly onCancel?: () => void;
@@ -535,18 +757,37 @@ function FolderForm({
   const [step, setStep] = useState<"form" | "write-down">("form");
   const [wroteItDown, setWroteItDown] = useState(false);
   const [busy, setBusy] = useState(false);
-  const problem = folderFormProblem({ path, passphrase, confirmation });
+  const problem = folderFormProblem({
+    path: mode === "folder" ? path : null,
+    passphrase,
+    confirmation,
+  });
 
   const save = async () => {
     setBusy(true);
     const result = await configure({
       environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, change: { type: "set-folder", path, passphrase } },
+      input: {
+        projectId: vault.projectId,
+        change:
+          mode === "folder"
+            ? { type: "set-folder", path, passphrase }
+            : { type: "set-passphrase", passphrase },
+      },
     });
     setBusy(false);
     if (result._tag === "Failure") {
-      reportFailure("Could not use this folder", result);
+      reportFailure(
+        mode === "folder" ? "Could not use this folder" : "Could not save the passphrase",
+        result,
+      );
       setStep("form");
+      return;
+    }
+    if (mode === "passphrase") {
+      setPassphrase("");
+      setConfirmation("");
+      onDone();
       return;
     }
     toastManager.add({
@@ -584,7 +825,7 @@ function FolderForm({
           </Button>
           <Button size="xs" disabled={!wroteItDown || busy} onClick={() => void save()}>
             {busy ? <Spinner size="sm" /> : null}
-            Back up to this folder
+            {mode === "folder" ? "Back up to this folder" : "Continue to Google"}
           </Button>
         </div>
       </div>
@@ -602,15 +843,19 @@ function FolderForm({
         }
       }}
     >
-      <label className="flex flex-col gap-1 text-sm">
-        Folder on this computer
-        <Input
-          value={path}
-          placeholder="~/Library/Mobile Documents/com~apple~CloudDocs/Majordome"
-          onChange={(event) => setPath(event.target.value)}
-          aria-label="Backup folder"
-        />
-      </label>
+      {mode === "folder" ? (
+        <label className="flex flex-col gap-1 text-sm">
+          Folder on this computer
+          <Input
+            value={path}
+            placeholder="~/Library/Mobile Documents/com~apple~CloudDocs/Majordome"
+            onChange={(event) => setPath(event.target.value)}
+            aria-label="Backup folder"
+          />
+        </label>
+      ) : (
+        <Muted>Choose a passphrase to encrypt your copies. Google never sees your notes.</Muted>
+      )}
       <label className="flex flex-col gap-1 text-sm">
         Passphrase
         <Input
@@ -653,15 +898,29 @@ function FolderForm({
   );
 }
 
-function RestoreNote({ folderName }: { readonly folderName: string }) {
+function RestoreNote({
+  folderName,
+  source,
+}: {
+  readonly folderName: string;
+  readonly source: "folder" | "drive";
+}) {
   const [decrypt, clone] = restoreCommands(folderName);
   return (
     <details className="text-sm text-muted-foreground">
-      <summary className="cursor-pointer">How to restore from a folder copy</summary>
+      <summary className="cursor-pointer">
+        {source === "folder"
+          ? "How to restore from a folder copy"
+          : "How to restore from a Google Drive copy"}
+      </summary>
       <div className="mt-2 flex flex-col gap-2">
         <p>
-          You don't need Majordome to restore. Install age from age-encryption.org, then, in the
-          folder with your copies, run these two commands. The first asks for your passphrase.
+          You don't need Majordome to restore.{" "}
+          {source === "drive"
+            ? "Download the newest .age file from the “Majordome backups” folder in Google Drive. "
+            : ""}
+          Install age from age-encryption.org, then, in the folder with your copy, run these two
+          commands. The first asks for your passphrase.
         </p>
         <pre className="overflow-x-auto rounded-md bg-muted/40 px-3 py-2 font-mono text-xs text-foreground">
           {`${decrypt}\n${clone}`}

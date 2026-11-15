@@ -99,6 +99,19 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:connect-github-cancel",
       tag: WS_METHODS.majordomeConnectGitHubCancel,
     }),
+    connectGoogleDriveStart: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-google-drive-start",
+      tag: WS_METHODS.majordomeConnectGoogleDriveStart,
+    }),
+    connectGoogleDriveWait: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-google-drive-wait",
+      tag: WS_METHODS.majordomeConnectGoogleDriveWait,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
+    connectGoogleDriveCancel: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:connect-google-drive-cancel",
+      tag: WS_METHODS.majordomeConnectGoogleDriveCancel,
+    }),
   };
 }
 

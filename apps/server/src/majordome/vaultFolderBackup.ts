@@ -25,11 +25,9 @@ export class FolderBackupError extends Schema.TaggedError<FolderBackupError>()(
   { message: Schema.String, cause: Schema.optional(Schema.Defect()) },
 ) {}
 
-const isFolderBackupError = Schema.is(FolderBackupError);
+export const folderBackupFileName = (slug: string, date: string) => `majordome-${slug}-${date}.age`;
 
-const folderBackupFileName = (slug: string, date: string) => `majordome-${slug}-${date}.age`;
-
-const backupFilePattern = (slug: string) =>
+export const backupFilePattern = (slug: string) =>
   new RegExp(
     `^majordome-${slug.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}-\\d{4}-\\d{2}-\\d{2}\\.age$`,
   );
@@ -54,7 +52,7 @@ export const createVaultBundle = Effect.fn("majordome.createVaultBundle")(functi
   }
 });
 
-const encryptFile = (input: {
+export const encryptFile = (input: {
   readonly source: string;
   readonly target: string;
   readonly passphrase: string;
@@ -101,15 +99,13 @@ export const decryptFile = (input: {
     catch: (cause) => new FolderBackupError({ message: "Could not decrypt the backup.", cause }),
   }).pipe(Effect.withSpan("majordome.decryptFile"));
 
-/** Moves the encrypted bundle into the folder under today's name and drops the oldest copies. */
+/** Copies the encrypted bundle into the folder under today's name and drops the oldest copies. */
 export const storeFolderBackup = Effect.fn("majordome.storeFolderBackup")(function* (input: {
-  readonly bundlePath: string;
+  readonly encryptedPath: string;
   readonly folder: string;
   readonly slug: string;
   readonly date: string;
-  readonly passphrase: string;
   readonly keep: number;
-  readonly scryptWorkFactor?: number;
 }) {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -117,18 +113,12 @@ export const storeFolderBackup = Effect.fn("majordome.storeFolderBackup")(functi
   const target = path.join(input.folder, fileName);
   // Written beside the target and renamed, so a cut-off write never replaces a good copy.
   const partial = path.join(input.folder, `.${fileName}.partial`);
-  yield* encryptFile({
-    source: input.bundlePath,
-    target: partial,
-    passphrase: input.passphrase,
-    ...(input.scryptWorkFactor === undefined ? {} : { scryptWorkFactor: input.scryptWorkFactor }),
-  }).pipe(
+  yield* fileSystem.copyFile(input.encryptedPath, partial).pipe(
     Effect.andThen(fileSystem.rename(partial, target)),
     Effect.tapError(() => fileSystem.remove(partial).pipe(Effect.ignore)),
-    Effect.mapError((cause) =>
-      isFolderBackupError(cause)
-        ? cause
-        : new FolderBackupError({ message: "Could not write the backup to the folder.", cause }),
+    Effect.mapError(
+      (cause) =>
+        new FolderBackupError({ message: "Could not write the backup to the folder.", cause }),
     ),
   );
 

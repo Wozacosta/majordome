@@ -1,4 +1,5 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { ProjectId } from "@t3tools/contracts";
@@ -6,7 +7,9 @@ import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import { HttpClient } from "effect/http";
+import * as Redacted from "effect/Redacted";
+import { HttpClient, type HttpClientRequest, HttpClientResponse } from "effect/http";
+import * as TestClock from "effect/testing/TestClock";
 
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
@@ -14,6 +17,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as BackupPassphraseStore from "./BackupPassphraseStore.ts";
+import * as GoogleDriveAuth from "./GoogleDriveAuth.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
 import { commitVaultRun } from "./VaultCommitReactor.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
@@ -38,11 +42,6 @@ const testLayer = Layer.mergeAll(
     BackupPassphraseStore.BackupPassphraseStore,
     BackupPassphraseStore.makeSecretStore(),
   ),
-  // Nothing here may reach GitHub.
-  Layer.succeed(
-    HttpClient.HttpClient,
-    HttpClient.make(() => Effect.die("no network in tests")),
-  ),
 ).pipe(
   Layer.provideMerge(ServerSecretStore.layer),
   Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-backup-" })),
@@ -51,14 +50,140 @@ const testLayer = Layer.mergeAll(
 
 const projectId = ProjectId.make("vault-project");
 
+// Nothing here may reach GitHub or Google unless a test hands in its fake.
+const noNetwork = HttpClient.make(() => Effect.die("no network in tests"));
+
 /** The backup service over one vault project, encrypting with a low work factor for speed. */
-const backupFor = (root: string) =>
-  MajordomeBackup.make({ scryptWorkFactor: 10 }).pipe(
+const backupFor = Effect.fn("test.backupFor")(function* (
+  root: string,
+  http: HttpClient.HttpClient = noNetwork,
+) {
+  const googleAuth = yield* GoogleDriveAuth.make.pipe(
+    Effect.provideService(HttpClient.HttpClient, http),
+    Effect.provideService(HostProcess.Environment, {
+      MAJORDOME_GOOGLE_CLIENT_ID: "test-client.apps.googleusercontent.com",
+      MAJORDOME_GOOGLE_CLIENT_SECRET: "test-secret",
+    }),
+  );
+  return yield* MajordomeBackup.make({ scryptWorkFactor: 10 }).pipe(
     Effect.provideService(ProjectStore.ProjectStoreV2, {
       get: () => Effect.succeedSome({ projectId, workspaceRoot: root }),
       list: () => Effect.succeed([{ projectId, workspaceRoot: root }]),
     } as unknown as ProjectStore.ProjectStoreV2["Service"]),
+    Effect.provideService(GoogleDriveAuth.GoogleDriveAuth, googleAuth),
+    Effect.provideService(HttpClient.HttpClient, http),
   );
+});
+
+interface FakeDriveFile {
+  readonly id: string;
+  readonly name: string;
+  readonly mimeType: string;
+  readonly parents: ReadonlyArray<string>;
+}
+
+/** Google's sign-in and Drive, faked in memory: only the calls a backup makes. */
+function fakeGoogleDrive() {
+  const files: Array<FakeDriveFile> = [];
+  const revoked: Array<string> = [];
+  const control = { quotaFull: false };
+  let nextId = 1;
+  const json = (
+    request: HttpClientRequest.HttpClientRequest,
+    status: number,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ) =>
+    HttpClientResponse.fromWeb(
+      request,
+      new Response(body === undefined ? null : JSON.stringify(body), {
+        status,
+        headers: { "content-type": "application/json", ...headers },
+      }),
+    );
+  const http = HttpClient.make((request) =>
+    Effect.sync(() => {
+      const url = new URL(request.url);
+      const params = new URLSearchParams(
+        request.urlParams.params.map(([key, value]): [string, string] => [
+          key,
+          Redacted.isRedacted(value) ? Redacted.value(value) : value,
+        ]),
+      );
+      const text =
+        request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : "";
+      const route = `${request.method} ${url.host}${url.pathname}`;
+      if (route === "POST oauth2.googleapis.com/device/code") {
+        return json(request, 200, {
+          device_code: "device-1",
+          user_code: "WXYZ-1234",
+          verification_url: "https://www.google.com/device",
+          expires_in: 1800,
+          interval: 5,
+        });
+      }
+      if (route === "POST oauth2.googleapis.com/token") {
+        return json(request, 200, {
+          access_token: "ya29.access",
+          refresh_token: "1//refresh",
+          expires_in: 3599,
+        });
+      }
+      if (route === "POST oauth2.googleapis.com/revoke") {
+        revoked.push(new URLSearchParams(text).get("token") ?? "");
+        return json(request, 200, {});
+      }
+      if (route === "GET www.googleapis.com/drive/v3/files") {
+        const q = params.get("q") ?? "";
+        const parent = /^'([^']+)' in parents/.exec(q)?.[1];
+        const listed = parent
+          ? files.filter((file) => file.parents.includes(parent))
+          : files.filter((file) => file.mimeType === "application/vnd.google-apps.folder");
+        return json(request, 200, { files: listed.map(({ id, name }) => ({ id, name })) });
+      }
+      if (request.method === "GET" && url.pathname.startsWith("/drive/v3/files/")) {
+        const file = files.find((entry) => url.pathname.endsWith(`/${entry.id}`));
+        return file ? json(request, 200, { id: file.id, trashed: false }) : json(request, 404, {});
+      }
+      if (route === "POST www.googleapis.com/drive/v3/files") {
+        const id = `folder-${nextId++}`;
+        files.push({ id, ...JSON.parse(text), parents: [] });
+        return json(request, 200, { id });
+      }
+      if (route === "POST www.googleapis.com/upload/drive/v3/files") {
+        if (control.quotaFull) {
+          return json(request, 403, { error: { errors: [{ reason: "storageQuotaExceeded" }] } });
+        }
+        const metadata = JSON.parse(text) as { name: string; parents: Array<string> };
+        return json(
+          request,
+          200,
+          {},
+          {
+            location: `https://www.googleapis.com/upload/session?name=${encodeURIComponent(metadata.name)}&parent=${metadata.parents[0]}`,
+          },
+        );
+      }
+      if (route === "PUT www.googleapis.com/upload/session") {
+        const id = `file-${nextId++}`;
+        files.push({
+          id,
+          name: url.searchParams.get("name") ?? "",
+          mimeType: "application/octet-stream",
+          parents: [url.searchParams.get("parent") ?? ""],
+        });
+        return json(request, 200, { id });
+      }
+      if (request.method === "DELETE") {
+        const index = files.findIndex((entry) => url.pathname.endsWith(`/${entry.id}`));
+        if (index >= 0) files.splice(index, 1);
+        return json(request, 204);
+      }
+      return json(request, 500, {});
+    }),
+  );
+  return { http, files, revoked, control };
+}
 
 const lastCommit = (root: string) => gitIn(root, ["log", "-1", "--format=%an|%s"]);
 
@@ -208,6 +333,69 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
       yield* backup.runCycle(root);
       assert.equal(yield* lastCommit(root), "Owner|Your edits");
       assert.equal(yield* remoteMain(bare!), remoteHead);
+    }),
+  );
+
+  it.effect("copies to Google Drive once signed in, says when Drive is full, and disconnects", () =>
+    Effect.gen(function* () {
+      const { root } = yield* makeVault();
+      const google = fakeGoogleDrive();
+      const backup = yield* backupFor(root, google.http);
+
+      const noPassphrase = yield* backup.connectGoogleDriveStart({ projectId }).pipe(Effect.flip);
+      assert.include(noPassphrase.message, "passphrase");
+      yield* backup.configure({
+        projectId,
+        change: { type: "set-passphrase", passphrase: "four words for my notes" },
+      });
+
+      const prompt = yield* backup.connectGoogleDriveStart({ projectId });
+      assert.deepStrictEqual(prompt, {
+        status: "code",
+        userCode: "WXYZ-1234",
+        verificationUri: "https://www.google.com/device",
+        expiresAt: 1_800_000,
+      });
+      const waiting = yield* Effect.forkChild(backup.connectGoogleDriveWait({ projectId }));
+      yield* TestClock.adjust("5 seconds");
+      const connected = yield* Fiber.join(waiting);
+
+      assert.isTrue(connected.googleDrive.signedIn);
+      assert.isNull(connected.drive?.problem ?? null);
+      assert.match(
+        connected.drive?.lastFile ?? "",
+        /^majordome-majordome-vault-[a-z0-9]+-\d{4}-\d{2}-\d{2}\.age$/,
+      );
+      const folder = google.files.find((file) => file.name === "Majordome backups");
+      assert.isDefined(folder);
+      assert.deepStrictEqual(
+        google.files.filter((file) => file.parents.includes(folder!.id)).map((file) => file.name),
+        [connected.drive?.lastFile],
+      );
+
+      // Today's copy again replaces the earlier one in the same folder.
+      yield* backup.backUpNow({ projectId });
+      assert.strictEqual(
+        google.files.filter((file) => file.name === "Majordome backups").length,
+        1,
+      );
+      assert.strictEqual(
+        google.files.filter((file) => file.parents.includes(folder!.id)).length,
+        1,
+      );
+
+      google.control.quotaFull = true;
+      const full = yield* backup.backUpNow({ projectId });
+      assert.strictEqual(full.drive?.problem, "quota-full");
+      assert.include(full.drive?.lastError ?? "", "Google Drive is full");
+
+      const disconnected = yield* backup.configure({
+        projectId,
+        change: { type: "disconnect-google-drive" },
+      });
+      assert.isNull(disconnected.drive);
+      assert.isFalse(disconnected.googleDrive.signedIn);
+      assert.deepStrictEqual(google.revoked, ["1//refresh"]);
     }),
   );
 });

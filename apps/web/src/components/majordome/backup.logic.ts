@@ -46,7 +46,7 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
     const copy = PAUSE_COPY[status.paused.reason];
     return { tone: "warning", title: copy.title, detail: copy.detail };
   }
-  const { remote, folder } = status;
+  const { remote, folder, drive } = status;
   if (remote !== null && remote.syncing && remote.backedUp) {
     return {
       tone: "ok",
@@ -61,8 +61,14 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
       detail: `${remote.lastError} Majordome tries again every few minutes.`,
     };
   }
+  if (drive !== null && drive.lastError !== null) {
+    return { tone: "warning", title: "Couldn't back up to Google Drive", detail: drive.lastError };
+  }
   if (folder !== null && folder.lastError !== null) {
     return { tone: "warning", title: "Couldn't back up to your folder", detail: folder.lastError };
+  }
+  if (drive !== null && drive.lastBackupAt !== null) {
+    return { tone: "ok", title: "Backed up to Google Drive ✓", detail: null };
   }
   if (folder !== null && folder.lastBackupAt !== null) {
     return { tone: "ok", title: "Backed up to your folder every night ✓", detail: null };
@@ -83,13 +89,14 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 
 const MIN_PASSPHRASE_LENGTH = 8;
 
-/** Why the folder form can't go on yet, or null when it can. */
+/** Why the folder or passphrase form can't go on yet, or null when it can. */
 export function folderFormProblem(input: {
-  readonly path: string;
+  /** Null when the form only asks for a passphrase. */
+  readonly path: string | null;
   readonly passphrase: string;
   readonly confirmation: string;
 }): string | null {
-  if (input.path.trim() === "") return "Choose a folder.";
+  if (input.path !== null && input.path.trim() === "") return "Choose a folder.";
   if (input.passphrase.length < MIN_PASSPHRASE_LENGTH) {
     return `Use at least ${MIN_PASSPHRASE_LENGTH} characters; a few unrelated words work well.`;
   }

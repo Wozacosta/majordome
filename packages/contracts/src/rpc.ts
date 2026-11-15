@@ -105,6 +105,7 @@ import {
   MajordomeBackupStatus,
   MajordomeConfigureBackupInput,
   MajordomeGitHubConnectPrompt,
+  MajordomeGoogleDriveConnectPrompt,
 } from "./majordomeBackup.ts";
 import {
   FilesystemGetMetadataInput,
@@ -666,6 +667,9 @@ export const WS_METHODS = {
   majordomeConnectGitHubStart: "majordome.connectGitHubStart",
   majordomeConnectGitHubWait: "majordome.connectGitHubWait",
   majordomeConnectGitHubCancel: "majordome.connectGitHubCancel",
+  majordomeConnectGoogleDriveStart: "majordome.connectGoogleDriveStart",
+  majordomeConnectGoogleDriveWait: "majordome.connectGoogleDriveWait",
+  majordomeConnectGoogleDriveCancel: "majordome.connectGoogleDriveCancel",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2227,6 +2231,29 @@ const WsMajordomeConnectGitHubCancelRpc = Rpc.make(WS_METHODS.majordomeConnectGi
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeConnectGoogleDriveStartRpc = Rpc.make(
+  WS_METHODS.majordomeConnectGoogleDriveStart,
+  {
+    payload: MajordomeBackupInput,
+    success: MajordomeGoogleDriveConnectPrompt,
+    error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+  },
+);
+
+const WsMajordomeConnectGoogleDriveWaitRpc = Rpc.make(WS_METHODS.majordomeConnectGoogleDriveWait, {
+  payload: MajordomeBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeConnectGoogleDriveCancelRpc = Rpc.make(
+  WS_METHODS.majordomeConnectGoogleDriveCancel,
+  {
+    payload: MajordomeBackupInput,
+    error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+  },
+);
+
 export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthorization>()(
   "t3/contracts/RpcScopeAuthorization",
   { error: EnvironmentAuthorizationError },
@@ -2469,4 +2496,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeConnectGitHubStartRpc,
   WsMajordomeConnectGitHubWaitRpc,
   WsMajordomeConnectGitHubCancelRpc,
+  WsMajordomeConnectGoogleDriveStartRpc,
+  WsMajordomeConnectGoogleDriveWaitRpc,
+  WsMajordomeConnectGoogleDriveCancelRpc,
 ).middleware(RpcScopeAuthorization);

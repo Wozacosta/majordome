@@ -82,6 +82,9 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeConnectGitHubStart]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubWait]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubCancel]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGoogleDriveStart]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGoogleDriveWait]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeConnectGoogleDriveCancel]: AuthSettingsWriteScope,
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: AuthOrchestrationOperateScope,
   // Force stop kills agent processes, as Stop on a terminal does.
   [ORCHESTRATION_V2_WS_METHODS.forceStopThread]: AuthOrchestrationOperateScope,

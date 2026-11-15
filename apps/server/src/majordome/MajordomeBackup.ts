@@ -11,6 +11,8 @@ import {
   type MajordomeBackupChange,
   type MajordomeBackupInput,
   MajordomeBackupPause,
+  MajordomeGoogleDriveProblem,
+  type MajordomeGoogleDriveConnectPrompt,
   type MajordomeBackupStatus,
   type MajordomeConfigureBackupInput,
   type MajordomeGitHubConnectPrompt,
@@ -50,12 +52,22 @@ import {
   pollDeviceToken,
   requestDeviceCode,
 } from "./githubBackup.ts";
+import * as GoogleDriveAuth from "./GoogleDriveAuth.ts";
+import {
+  findOrCreateDriveFolder,
+  type GoogleDriveError,
+  pruneDriveBackups,
+  uploadDriveFile,
+} from "./googleDriveApi.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
 import { autosaveVault, listLines } from "./vaultAutosave.ts";
 import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 import { localIsoDate } from "./vaultContext.ts";
 import {
+  backupFilePattern,
   createVaultBundle,
+  encryptFile,
+  folderBackupFileName,
   FOLDER_BACKUP_KEEP,
   storeFolderBackup,
   validateBackupFolder,
@@ -90,6 +102,12 @@ const VaultBackupState = Schema.Struct({
   lastFolderBackupAt: Schema.optional(Schema.String),
   lastFolderFile: Schema.optional(Schema.String),
   folderError: Schema.optional(Schema.String),
+  /** Present while this vault is copied to Google Drive; remembers the backups folder. */
+  drive: Schema.optional(Schema.Struct({ folderId: Schema.optional(Schema.String) })),
+  lastDriveBackupAt: Schema.optional(Schema.String),
+  lastDriveFile: Schema.optional(Schema.String),
+  driveError: Schema.optional(Schema.String),
+  driveProblem: Schema.optional(MajordomeGoogleDriveProblem),
 });
 type VaultBackupState = typeof VaultBackupState.Type;
 type Mutable<T> = { -readonly [K in keyof T]?: T[K] | undefined };
@@ -136,10 +154,17 @@ export class MajordomeBackup extends Context.Service<
       input: MajordomeBackupInput,
     ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     readonly connectGitHubCancel: (input: MajordomeBackupInput) => Effect.Effect<void>;
-    /** One save, sync and (when due or forced) folder backup of one vault. */
+    readonly connectGoogleDriveStart: (
+      input: MajordomeBackupInput,
+    ) => Effect.Effect<MajordomeGoogleDriveConnectPrompt, MajordomeVaultError>;
+    readonly connectGoogleDriveWait: (
+      input: MajordomeBackupInput,
+    ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
+    readonly connectGoogleDriveCancel: (input: MajordomeBackupInput) => Effect.Effect<void>;
+    /** One save, sync and (when due or forced) encrypted folder and Drive copy of one vault. */
     readonly runCycle: (
       vaultRoot: string,
-      options?: { readonly forceFolderBackup?: boolean },
+      options?: { readonly forceCopies?: boolean },
     ) => Effect.Effect<void>;
   }
 >()("t3/majordome/MajordomeBackup") {}
@@ -172,6 +197,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   const passphrases = yield* BackupPassphraseStore.BackupPassphraseStore;
   const vaultLock = yield* VaultLock.VaultLock;
   const activeRuns = yield* VaultActiveRuns.VaultActiveRuns;
+  const googleAuth = yield* GoogleDriveAuth.GoogleDriveAuth;
   const services = yield* Effect.context<
     | FileSystem.FileSystem
     | Path.Path
@@ -365,56 +391,161 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     }
   });
 
-  const folderBackup = Effect.fn("MajordomeBackup.folderBackup")(function* (
+  /** Drive calls with a current token; one refused token is renewed and the call tried again. */
+  const withDriveToken = <A>(
+    call: (
+      token: string,
+    ) => Effect.Effect<A, GoogleDriveError, HttpClient.HttpClient | FileSystem.FileSystem>,
+  ) =>
+    googleAuth.accessToken().pipe(
+      Effect.flatMap((token) => call(token).pipe(Effect.provide(services))),
+      Effect.catchIf(
+        (error) => error.reason === "signed-out",
+        () =>
+          googleAuth.invalidate().pipe(
+            Effect.andThen(googleAuth.accessToken()),
+            Effect.flatMap((token) => call(token).pipe(Effect.provide(services))),
+          ),
+      ),
+    );
+
+  const copyToDrive = Effect.fn("MajordomeBackup.copyToDrive")(function* (input: {
+    readonly knownFolderId: string | null;
+    readonly encryptedPath: string;
+    readonly slug: string;
+    readonly date: string;
+  }) {
+    const folderId = yield* withDriveToken((accessToken) =>
+      findOrCreateDriveFolder({ accessToken, knownId: input.knownFolderId }),
+    );
+    const size = Number((yield* fileSystem.stat(input.encryptedPath)).size);
+    const name = folderBackupFileName(input.slug, input.date);
+    const fileId = yield* withDriveToken((accessToken) =>
+      uploadDriveFile({ accessToken, folderId, name, path: input.encryptedPath, size }),
+    );
+    yield* withDriveToken((accessToken) =>
+      pruneDriveBackups({
+        accessToken,
+        folderId,
+        fileNamePattern: backupFilePattern(input.slug),
+        keepId: fileId,
+        keep: FOLDER_BACKUP_KEEP,
+      }),
+    );
+    return { folderId, name };
+  });
+
+  /** The nightly encrypted copies: one bundle, encrypted once, to the folder and to Drive. */
+  const encryptedCopies = Effect.fn("MajordomeBackup.encryptedCopies")(function* (
     vaultRoot: string,
     force: boolean,
   ) {
     const state = yield* readState(vaultRoot);
-    if (state.folder === undefined) return;
     const now = yield* Clock.currentTimeMillis;
-    if (!force && !folderBackupDue(state.lastFolderBackupAt, now)) return;
-    const folder = state.folder;
-    const result = yield* Effect.scoped(
+    const folder =
+      state.folder !== undefined && (force || folderBackupDue(state.lastFolderBackupAt, now))
+        ? state.folder
+        : undefined;
+    const drive =
+      state.drive !== undefined && (force || folderBackupDue(state.lastDriveBackupAt, now))
+        ? state.drive
+        : undefined;
+    if (folder === undefined && drive === undefined) return;
+    const slug = majordomeVaultSlug(path.basename(vaultRoot));
+    const date = localIsoDate(now);
+    yield* Effect.scoped(
       Effect.gen(function* () {
-        const passphrase = yield* passphrases.get(passphraseKey(vaultRoot));
-        if (Option.isNone(passphrase)) {
-          return yield* vaultError(
-            "The backup passphrase is missing on this computer. Choose the folder again.",
+        const prepared = yield* Effect.gen(function* () {
+          const passphrase = yield* passphrases.get(passphraseKey(vaultRoot));
+          if (Option.isNone(passphrase)) {
+            return yield* vaultError(
+              "The backup passphrase is missing on this computer. Set it again on this screen.",
+            );
+          }
+          const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-bundle-" });
+          const bundlePath = path.join(temp, "vault.bundle");
+          const encryptedPath = path.join(temp, "vault.age");
+          yield* vaultLock.withLock(
+            vaultRoot,
+            createVaultBundle({ cwd: vaultRoot, bundlePath }).pipe(Effect.provide(services)),
           );
+          yield* encryptFile({
+            source: bundlePath,
+            target: encryptedPath,
+            passphrase: passphrase.value,
+            ...(options?.scryptWorkFactor === undefined
+              ? {}
+              : { scryptWorkFactor: options.scryptWorkFactor }),
+          });
+          return encryptedPath;
+        }).pipe(Effect.result);
+        if (prepared._tag === "Failure") {
+          const message = errorMessage(prepared.failure, "The encrypted copy could not be made.");
+          yield* Effect.logWarning("Majordome could not make a vault's encrypted copy.", {
+            vaultRoot,
+            cause: prepared.failure,
+          });
+          return yield* updateState(vaultRoot, {
+            ...(folder === undefined ? {} : { folderError: message }),
+            ...(drive === undefined
+              ? {}
+              : { driveError: message, driveProblem: "failed" as const }),
+          });
         }
-        const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-bundle-" });
-        const bundlePath = path.join(temp, "vault.bundle");
-        yield* vaultLock.withLock(
-          vaultRoot,
-          createVaultBundle({ cwd: vaultRoot, bundlePath }).pipe(Effect.provide(services)),
-        );
-        return yield* storeFolderBackup({
-          bundlePath,
-          folder: folder.path,
-          slug: majordomeVaultSlug(path.basename(vaultRoot)),
-          date: localIsoDate(now),
-          passphrase: passphrase.value,
-          keep: folder.keep,
-          ...(options?.scryptWorkFactor === undefined
-            ? {}
-            : { scryptWorkFactor: options.scryptWorkFactor }),
-        }).pipe(Effect.provide(services));
+        const encryptedPath = prepared.success;
+
+        if (folder !== undefined) {
+          const stored = yield* storeFolderBackup({
+            encryptedPath,
+            folder: folder.path,
+            slug,
+            date,
+            keep: folder.keep,
+          }).pipe(Effect.provide(services), Effect.result);
+          yield* stored._tag === "Failure"
+            ? updateState(vaultRoot, { folderError: stored.failure.message })
+            : updateState(vaultRoot, {
+                lastFolderBackupAt: isoTime(now),
+                lastFolderFile: path.basename(stored.success.file),
+                folderError: undefined,
+              });
+        }
+
+        if (drive !== undefined) {
+          const uploaded = yield* copyToDrive({
+            knownFolderId: drive.folderId ?? null,
+            encryptedPath,
+            slug,
+            date,
+          }).pipe(Effect.result);
+          if (uploaded._tag === "Failure") {
+            const failure = uploaded.failure;
+            yield* Effect.logWarning("Majordome could not copy a vault to Google Drive.", {
+              vaultRoot,
+              reason: failure._tag === "GoogleDriveError" ? failure.reason : "file",
+            });
+            yield* updateState(vaultRoot, {
+              driveError: failure.message,
+              driveProblem:
+                failure._tag === "GoogleDriveError" &&
+                (failure.reason === "signed-out" ||
+                  failure.reason === "access-removed" ||
+                  failure.reason === "quota-full")
+                  ? failure.reason
+                  : "failed",
+            });
+          } else {
+            yield* updateState(vaultRoot, {
+              drive: { folderId: uploaded.success.folderId },
+              lastDriveBackupAt: isoTime(now),
+              lastDriveFile: uploaded.success.name,
+              driveError: undefined,
+              driveProblem: undefined,
+            });
+          }
+        }
       }),
-    ).pipe(Effect.result);
-    if (result._tag === "Failure") {
-      yield* Effect.logWarning("Majordome could not back up a vault to its folder.", {
-        vaultRoot,
-        cause: result.failure,
-      });
-      return yield* updateState(vaultRoot, {
-        folderError: errorMessage(result.failure, "The backup to the folder failed."),
-      });
-    }
-    yield* updateState(vaultRoot, {
-      lastFolderBackupAt: isoTime(now),
-      lastFolderFile: path.basename(result.success.file),
-      folderError: undefined,
-    });
+    );
   });
 
   const runCycle: MajordomeBackup["Service"]["runCycle"] = (vaultRoot, cycleOptions) =>
@@ -427,7 +558,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           );
           yield* save(vaultRoot, gitleaks);
           yield* sync(vaultRoot, gitleaks);
-          yield* folderBackup(vaultRoot, cycleOptions?.forceFolderBackup === true);
+          yield* encryptedCopies(vaultRoot, cycleOptions?.forceCopies === true);
         }),
       )
       .pipe(
@@ -507,6 +638,21 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
               lastFile: state.lastFolderFile ?? null,
               lastError: state.folderError ?? null,
             },
+      drive:
+        state.drive === undefined
+          ? null
+          : {
+              lastBackupAt: state.lastDriveBackupAt ?? null,
+              lastFile: state.lastDriveFile ?? null,
+              lastError: state.driveError ?? null,
+              problem: state.driveProblem ?? null,
+            },
+      hasPassphrase: Option.isSome(
+        yield* passphrases
+          .get(passphraseKey(vaultRoot))
+          .pipe(Effect.orElseSucceed(() => Option.none<string>())),
+      ),
+      googleDrive: { available: googleAuth.available, signedIn: yield* googleAuth.signedIn },
       github: { available: clientId !== "", signedIn: Option.isSome(yield* githubToken) },
       secretScan:
         (yield* findGitleaks().pipe(
@@ -523,6 +669,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     paused: null,
     remote: null,
     folder: null,
+    drive: null,
+    hasPassphrase: false,
+    googleDrive: { available: googleAuth.available, signedIn: false },
     github: { available: clientId !== "", signedIn: false },
     secretScan: false,
   };
@@ -537,10 +686,23 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   const backUpNow: MajordomeBackup["Service"]["backUpNow"] = Effect.fn("MajordomeBackup.backUpNow")(
     function* (input) {
       const vaultRoot = yield* requireVault(input.projectId);
-      yield* runCycle(vaultRoot, { forceFolderBackup: true });
+      yield* runCycle(vaultRoot, { forceCopies: true });
       return yield* statusOf(vaultRoot);
     },
   );
+
+  const checkPassphrase = Effect.fn("MajordomeBackup.checkPassphrase")(function* (
+    passphrase: string,
+  ) {
+    if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+      return yield* vaultError(
+        `Use a passphrase of at least ${MIN_PASSPHRASE_LENGTH} characters; a few unrelated words work well.`,
+      );
+    }
+  });
+
+  const forgetPassphrase = (vaultRoot: string) =>
+    passphrases.remove(passphraseKey(vaultRoot)).pipe(Effect.ignore);
 
   const applyChange = Effect.fn("MajordomeBackup.applyChange")(function* (
     vaultRoot: string,
@@ -548,11 +710,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   ) {
     switch (change.type) {
       case "set-folder": {
-        if (change.passphrase.length < MIN_PASSPHRASE_LENGTH) {
-          return yield* vaultError(
-            `Use a passphrase of at least ${MIN_PASSPHRASE_LENGTH} characters; a few unrelated words work well.`,
-          );
-        }
+        yield* checkPassphrase(change.passphrase);
         const folder = yield* validateBackupFolder({
           folder: change.path,
           vaultRoot,
@@ -571,10 +729,10 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           folderError: undefined,
         });
         // The first copy right away, so the person sees it work.
-        return yield* runCycle(vaultRoot, { forceFolderBackup: true });
+        return yield* runCycle(vaultRoot, { forceCopies: true });
       }
       case "remove-folder":
-        yield* passphrases.remove(passphraseKey(vaultRoot)).pipe(Effect.ignore);
+        if ((yield* readState(vaultRoot)).drive === undefined) yield* forgetPassphrase(vaultRoot);
         return yield* updateState(vaultRoot, {
           folder: undefined,
           lastFolderBackupAt: undefined,
@@ -594,6 +752,23 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           .pipe(
             Effect.mapError((cause) => vaultError("Could not forget the GitHub sign-in.", cause)),
           );
+      case "set-passphrase":
+        yield* checkPassphrase(change.passphrase);
+        return yield* passphrases
+          .set(passphraseKey(vaultRoot), change.passphrase)
+          .pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
+      case "disconnect-google-drive":
+        yield* googleAuth
+          .disconnect()
+          .pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
+        if ((yield* readState(vaultRoot)).folder === undefined) yield* forgetPassphrase(vaultRoot);
+        return yield* updateState(vaultRoot, {
+          drive: undefined,
+          lastDriveBackupAt: undefined,
+          lastDriveFile: undefined,
+          driveError: undefined,
+          driveProblem: undefined,
+        });
     }
   });
 
@@ -731,6 +906,53 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     yield* Fiber.interrupt(current.fiber);
   });
 
+  const connectGoogleDriveStart: MajordomeBackup["Service"]["connectGoogleDriveStart"] = Effect.fn(
+    "MajordomeBackup.connectGoogleDriveStart",
+  )(function* (input) {
+    const vaultRoot = yield* requireVault(input.projectId);
+    if (!googleAuth.available) {
+      return yield* vaultError("Connecting Google Drive is not set up on this server yet.");
+    }
+    const passphrase = yield* passphrases
+      .get(passphraseKey(vaultRoot))
+      .pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
+    if (Option.isNone(passphrase)) {
+      return yield* vaultError("Choose a passphrase for the encrypted copies first.");
+    }
+    const prompt = yield* googleAuth
+      .start()
+      .pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
+    return prompt.status === "signed-in"
+      ? prompt
+      : {
+          status: "code" as const,
+          userCode: prompt.userCode,
+          verificationUri: prompt.verificationUrl,
+          expiresAt: prompt.expiresAt,
+        };
+  });
+
+  const connectGoogleDriveWait: MajordomeBackup["Service"]["connectGoogleDriveWait"] = Effect.fn(
+    "MajordomeBackup.connectGoogleDriveWait",
+  )(function* (input) {
+    const vaultRoot = yield* requireVault(input.projectId);
+    yield* googleAuth.wait().pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
+    const state = yield* readState(vaultRoot);
+    yield* updateState(vaultRoot, {
+      drive: state.drive ?? {},
+      driveError: undefined,
+      driveProblem: undefined,
+    });
+    // The first copy right away, so the person sees it work.
+    yield* runCycle(vaultRoot, { forceCopies: true });
+    return yield* statusOf(vaultRoot);
+  });
+
+  const connectGoogleDriveCancel: MajordomeBackup["Service"]["connectGoogleDriveCancel"] =
+    Effect.fn("MajordomeBackup.connectGoogleDriveCancel")(function* () {
+      yield* googleAuth.cancel();
+    });
+
   return MajordomeBackup.of({
     start,
     getStatus,
@@ -739,11 +961,15 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     connectGitHubStart,
     connectGitHubWait,
     connectGitHubCancel,
+    connectGoogleDriveStart,
+    connectGoogleDriveWait,
+    connectGoogleDriveCancel,
     runCycle,
   });
 });
 
 export const layer = Layer.effect(MajordomeBackup, make()).pipe(
+  Layer.provide(GoogleDriveAuth.layer),
   Layer.provide(BackupPassphraseStore.layer),
   Layer.provide(VaultActiveRuns.layer),
   Layer.provide(ProcessRunner.layer),

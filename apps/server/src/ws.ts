@@ -2374,6 +2374,18 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.connectGitHubCancel(input)),
           ),
+        [WS_METHODS.majordomeConnectGoogleDriveStart]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGoogleDriveStart(input)),
+          ),
+        [WS_METHODS.majordomeConnectGoogleDriveWait]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGoogleDriveWait(input)),
+          ),
+        [WS_METHODS.majordomeConnectGoogleDriveCancel]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.connectGoogleDriveCancel(input)),
+          ),
         [WS_METHODS.serverProbe]: (_input) => Effect.succeed({}),
         [WS_METHODS.serverGetConfig]: (_input) =>
           loadServerConfig({

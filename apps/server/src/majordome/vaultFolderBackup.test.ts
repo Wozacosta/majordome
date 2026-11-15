@@ -10,6 +10,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import {
   createVaultBundle,
   decryptFile,
+  encryptFile,
   storeFolderBackup,
   validateBackupFolder,
 } from "./vaultFolderBackup.ts";
@@ -30,15 +31,19 @@ it.layer(testLayer)("folder backup", (it) => {
       const work = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-work-" });
       const folder = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-backups-" });
       yield* createVaultBundle({ cwd: root, bundlePath: `${work}/vault.bundle` });
+      yield* encryptFile({
+        source: `${work}/vault.bundle`,
+        target: `${work}/vault.age`,
+        passphrase: "correct horse « battery » staple",
+        scryptWorkFactor,
+      });
 
       const { file } = yield* storeFolderBackup({
-        bundlePath: `${work}/vault.bundle`,
+        encryptedPath: `${work}/vault.age`,
         folder,
         slug: "brain",
         date: "2026-11-15",
-        passphrase: "correct horse « battery » staple",
         keep: 14,
-        scryptWorkFactor,
       });
 
       assert.equal(file, `${folder}/majordome-brain-2026-11-15.age`);
@@ -69,7 +74,7 @@ it.layer(testLayer)("folder backup", (it) => {
 
   it.effect("keeps the newest copies of this vault and leaves other files alone", () =>
     Effect.gen(function* () {
-      const { root, fs } = yield* makeVault();
+      const { fs } = yield* makeVault();
       const work = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-work-" });
       const folder = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-backups-" });
       for (const day of ["01", "02", "03", "04"]) {
@@ -77,16 +82,14 @@ it.layer(testLayer)("folder backup", (it) => {
       }
       yield* fs.writeFileString(`${folder}/majordome-work-2026-10-01.age`, "another vault");
       yield* fs.writeFileString(`${folder}/holiday.jpg`, "not ours");
-      yield* createVaultBundle({ cwd: root, bundlePath: `${work}/vault.bundle` });
+      yield* fs.writeFileString(`${work}/vault.age`, "encrypted");
 
       yield* storeFolderBackup({
-        bundlePath: `${work}/vault.bundle`,
+        encryptedPath: `${work}/vault.age`,
         folder,
         slug: "brain",
         date: "2026-11-15",
-        passphrase: "a passphrase",
         keep: 3,
-        scryptWorkFactor,
       });
 
       assert.deepStrictEqual((yield* fs.readDirectory(folder)).toSorted(), [

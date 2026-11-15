@@ -10,6 +10,9 @@ const base: MajordomeBackupStatus = {
   paused: null,
   remote: null,
   folder: null,
+  drive: null,
+  hasPassphrase: false,
+  googleDrive: { available: true, signedIn: false },
   github: { available: true, signedIn: false },
   secretScan: true,
 };
@@ -63,6 +66,22 @@ describe("backupHeadline", () => {
     );
   });
 
+  it("names Google Drive, and says plainly when a Drive copy failed", () => {
+    const drive = {
+      lastBackupAt: "2026-11-15T02:00:00Z",
+      lastFile: "x.age",
+      lastError: null,
+      problem: null,
+    };
+    expect(backupHeadline({ ...base, drive }).title).toBe("Backed up to Google Drive ✓");
+    expect(
+      backupHeadline({
+        ...base,
+        drive: { ...drive, lastError: "Your Google Drive is full.", problem: "quota-full" },
+      }),
+    ).toMatchObject({ tone: "warning", title: "Couldn't back up to Google Drive" });
+  });
+
   it("reports a failed send, and a folder backup that worked", () => {
     expect(
       backupHeadline({
@@ -94,6 +113,7 @@ describe("folderFormProblem", () => {
     );
     expect(folderFormProblem(ok)).toBe("The two passphrases don't match.");
     expect(folderFormProblem({ ...ok, confirmation: ok.passphrase })).toBeNull();
+    expect(folderFormProblem({ ...ok, path: null, confirmation: ok.passphrase })).toBeNull();
   });
 });
 

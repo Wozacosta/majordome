@@ -51,6 +51,23 @@ export const MajordomeBackupFolder = Schema.Struct({
 });
 export type MajordomeBackupFolder = typeof MajordomeBackupFolder.Type;
 
+/** Why the last Google Drive backup failed, when the person has something to do about it. */
+export const MajordomeGoogleDriveProblem = Schema.Literals([
+  "signed-out",
+  "access-removed",
+  "quota-full",
+  "failed",
+]);
+export type MajordomeGoogleDriveProblem = typeof MajordomeGoogleDriveProblem.Type;
+
+export const MajordomeBackupDrive = Schema.Struct({
+  lastBackupAt: Schema.NullOr(Schema.String),
+  lastFile: Schema.NullOr(Schema.String),
+  lastError: Schema.NullOr(Schema.String),
+  problem: Schema.NullOr(MajordomeGoogleDriveProblem),
+});
+export type MajordomeBackupDrive = typeof MajordomeBackupDrive.Type;
+
 export const MajordomeBackupStatus = Schema.Struct({
   isVault: Schema.Boolean,
   lastSavedAt: Schema.NullOr(Schema.String),
@@ -58,6 +75,11 @@ export const MajordomeBackupStatus = Schema.Struct({
   paused: Schema.NullOr(MajordomeBackupPause),
   remote: Schema.NullOr(MajordomeBackupRemote),
   folder: Schema.NullOr(MajordomeBackupFolder),
+  /** The nightly copy to Google Drive, when this vault has one. */
+  drive: Schema.NullOr(MajordomeBackupDrive),
+  /** Whether this vault has an encryption passphrase for its folder and Drive copies. */
+  hasPassphrase: Schema.Boolean,
+  googleDrive: Schema.Struct({ available: Schema.Boolean, signedIn: Schema.Boolean }),
   github: Schema.Struct({
     /** False until the server is given the Majordome GitHub app's client id. */
     available: Schema.Boolean,
@@ -78,6 +100,10 @@ export const MajordomeBackupChange = Schema.Union([
   Schema.Struct({ type: Schema.Literal("set-syncing"), enabled: Schema.Boolean }),
   /** Forgets this server's GitHub sign-in. The vault's remote stays. */
   Schema.Struct({ type: Schema.Literal("disconnect-github") }),
+  /** The passphrase for the encrypted copies, before connecting Google Drive without a folder. */
+  Schema.Struct({ type: Schema.Literal("set-passphrase"), passphrase: Schema.String }),
+  /** Stops the Drive copies, revokes this server's Google sign-in and forgets it. */
+  Schema.Struct({ type: Schema.Literal("disconnect-google-drive") }),
 ]);
 export type MajordomeBackupChange = typeof MajordomeBackupChange.Type;
 
@@ -98,6 +124,10 @@ export const MajordomeGitHubConnectPrompt = Schema.Union([
   }),
 ]);
 export type MajordomeGitHubConnectPrompt = typeof MajordomeGitHubConnectPrompt.Type;
+
+/** Google's device sign-in has the same shape: a code to enter on a page. */
+export const MajordomeGoogleDriveConnectPrompt = MajordomeGitHubConnectPrompt;
+export type MajordomeGoogleDriveConnectPrompt = MajordomeGitHubConnectPrompt;
 
 /** The vault's name in its folder-backup file names, `majordome-<slug>-<YYYY-MM-DD>.age`. */
 export function majordomeVaultSlug(folderName: string): string {
