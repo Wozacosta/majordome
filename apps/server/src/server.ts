@@ -135,6 +135,7 @@ import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
+import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
@@ -741,6 +742,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(VaultLock.layer),
     Layer.provide(ProjectionStoreV2.layer),
   ),
+  MajordomeTopics.layer.pipe(Layer.provide(VaultLock.layer)),
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {

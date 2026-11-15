@@ -6,9 +6,7 @@
  */
 
 import { type ModelSelection, type ProjectId, type ThreadId } from "@t3tools/contracts";
-import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import * as Context from "effect/Context";
-import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -35,6 +33,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import { chooseVaultModel } from "./vaultModel.ts";
 import { isVaultRunner, writeVaultRunner } from "./vaultRunner.ts";
 
 const RECONCILE_INTERVAL = Duration.minutes(5);
@@ -90,26 +89,11 @@ const make = Effect.gen(function* () {
   // Log a vault without a model once, not at every reconcile.
   const reportedNoModel = yield* Ref.make<ReadonlySet<ProjectId>>(new Set());
 
-  /** The project's default model, else the model of its latest thread. */
-  const chooseModel = Effect.fn("MajordomeRoutines.chooseModel")(
-    function* (project: ProjectStore.ProjectRow) {
-      const configured = resolveProjectSettings(
-        yield* settings.getSettings,
-        project.projectId,
-        project,
-      ).settings.defaultModelSelection;
-      if (configured !== null) return configured;
-      const latest = (yield* threads.listProjectThreads({
-        projectId: project.projectId,
-        includeSubagents: false,
-      })).toSorted(
-        (a, b) => DateTime.toEpochMillis(b.updatedAt) - DateTime.toEpochMillis(a.updatedAt),
-      )[0];
-      if (latest === undefined) return null;
-      return (yield* threads.getThreadShell(latest.id))?.modelSelection ?? null;
-    },
-    Effect.orElseSucceed((): ModelSelection | null => null),
-  );
+  const chooseModel = (project: ProjectStore.ProjectRow) =>
+    chooseVaultModel(project).pipe(
+      Effect.provideService(ServerSettings.ServerSettingsService, settings),
+      Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+    );
 
   /** Null while the model's provider isn't registered, so the routines' mode waits for it. */
   const autoMode = Effect.fn("MajordomeRoutines.autoMode")(function* (

@@ -109,6 +109,17 @@ import {
   MajordomeGoogleDriveConnectPrompt,
 } from "./majordomeBackup.ts";
 import {
+  MajordomeCreateTopicInput,
+  MajordomeOpenTopicResult,
+  MajordomeReorderTopicsInput,
+  MajordomeTopic,
+  MajordomeTopicRefInput,
+  MajordomeTopicsError,
+  MajordomeTopicsInput,
+  MajordomeTopicsResult,
+  MajordomeUpdateTopicInput,
+} from "./majordomeTopics.ts";
+import {
   FilesystemGetMetadataInput,
   FilesystemGetMetadataResult,
   FilesystemBrowseInput,
@@ -672,6 +683,13 @@ export const WS_METHODS = {
   majordomeConnectGoogleDriveStart: "majordome.connectGoogleDriveStart",
   majordomeConnectGoogleDriveWait: "majordome.connectGoogleDriveWait",
   majordomeConnectGoogleDriveCancel: "majordome.connectGoogleDriveCancel",
+  majordomeListTopics: "majordome.listTopics",
+  majordomeCreateTopic: "majordome.createTopic",
+  majordomeUpdateTopic: "majordome.updateTopic",
+  majordomeReorderTopics: "majordome.reorderTopics",
+  majordomeRemoveTopic: "majordome.removeTopic",
+  majordomeOpenTopic: "majordome.openTopic",
+  majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2204,6 +2222,48 @@ const WsMajordomeRunRoutinesHereRpc = Rpc.make(WS_METHODS.majordomeRunRoutinesHe
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
+  payload: MajordomeTopicsInput,
+  success: MajordomeTopicsResult,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeCreateTopicRpc = Rpc.make(WS_METHODS.majordomeCreateTopic, {
+  payload: MajordomeCreateTopicInput,
+  success: MajordomeTopic,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeUpdateTopicRpc = Rpc.make(WS_METHODS.majordomeUpdateTopic, {
+  payload: MajordomeUpdateTopicInput,
+  success: MajordomeTopic,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeReorderTopicsRpc = Rpc.make(WS_METHODS.majordomeReorderTopics, {
+  payload: MajordomeReorderTopicsInput,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeRemoveTopicRpc = Rpc.make(WS_METHODS.majordomeRemoveTopic, {
+  payload: MajordomeTopicRefInput,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeOpenTopicRpc = Rpc.make(WS_METHODS.majordomeOpenTopic, {
+  payload: MajordomeTopicRefInput,
+  success: MajordomeOpenTopicResult,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
+  WS_METHODS.majordomeDismissTopicSuggestions,
+  {
+    payload: MajordomeTopicsInput,
+    error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+  },
+);
+
 const WsMajordomeGetBackupStatusRpc = Rpc.make(WS_METHODS.majordomeGetBackupStatus, {
   payload: MajordomeBackupInput,
   success: MajordomeBackupStatus,
@@ -2508,4 +2568,11 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeConnectGoogleDriveStartRpc,
   WsMajordomeConnectGoogleDriveWaitRpc,
   WsMajordomeConnectGoogleDriveCancelRpc,
+  WsMajordomeListTopicsRpc,
+  WsMajordomeCreateTopicRpc,
+  WsMajordomeUpdateTopicRpc,
+  WsMajordomeReorderTopicsRpc,
+  WsMajordomeRemoveTopicRpc,
+  WsMajordomeOpenTopicRpc,
+  WsMajordomeDismissTopicSuggestionsRpc,
 ).middleware(RpcScopeAuthorization);

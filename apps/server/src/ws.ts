@@ -128,6 +128,7 @@ import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
+import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
@@ -1480,6 +1481,7 @@ export const layerWsRpc = (
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
+      const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
       const pullRequests = yield* PullRequestService.PullRequestService;
@@ -2386,6 +2388,34 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeConnectGoogleDriveCancel]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.connectGoogleDriveCancel(input)),
+          ),
+        [WS_METHODS.majordomeListTopics]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.list(input)),
+          ),
+        [WS_METHODS.majordomeCreateTopic]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.create(input)),
+          ),
+        [WS_METHODS.majordomeUpdateTopic]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.update(input)),
+          ),
+        [WS_METHODS.majordomeReorderTopics]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.reorder(input)),
+          ),
+        [WS_METHODS.majordomeRemoveTopic]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.remove(input)),
+          ),
+        [WS_METHODS.majordomeOpenTopic]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.open(input)),
+          ),
+        [WS_METHODS.majordomeDismissTopicSuggestions]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.dismissSuggestions(input)),
           ),
         [WS_METHODS.serverProbe]: (_input) => Effect.succeed({}),
         [WS_METHODS.serverGetConfig]: (_input) =>

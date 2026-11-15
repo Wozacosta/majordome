@@ -53,10 +53,11 @@ describe("RPC authorization scopes", () => {
     );
   });
 
-  it("lets readers see a vault's history and backup but keeps changes behind operate scope and backup credentials behind settings scope", () => {
+  it("lets readers see a vault's history, backup and topics but keeps changes behind operate scope and backup credentials behind settings scope", () => {
     for (const method of [
       WS_METHODS.majordomeListVaultHistory,
       WS_METHODS.majordomeGetBackupStatus,
+      WS_METHODS.majordomeListTopics,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
     }
@@ -64,6 +65,12 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeUndoVaultRun,
       WS_METHODS.majordomeRunRoutinesHere,
       WS_METHODS.majordomeBackUpNow,
+      WS_METHODS.majordomeCreateTopic,
+      WS_METHODS.majordomeUpdateTopic,
+      WS_METHODS.majordomeReorderTopics,
+      WS_METHODS.majordomeRemoveTopic,
+      WS_METHODS.majordomeOpenTopic,
+      WS_METHODS.majordomeDismissTopicSuggestions,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }
