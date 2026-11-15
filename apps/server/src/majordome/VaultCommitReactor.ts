@@ -21,7 +21,7 @@ import { isTerminalRunStatus } from "../orchestration-v2/ThreadManagementService
 import { forkParked } from "../serverActivation.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 
-const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost" };
+export const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost" };
 
 export function vaultCommitMessage(input: {
   readonly threadTitle: string;
