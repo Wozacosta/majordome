@@ -13,12 +13,13 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 - **Add, don't edit.** `upstream` (pingdotgg/t3code) stays a git remote. T3's core (runtime,
   provider adapters, transport) stays close to upstream; brain features go in new packages and
   routes. Upstream fixes are cherry-picked.
-- Claude and Codex both stay. Brain features target Claude first; Codex parity is best effort.
+- Provider-agnostic. Every provider T3 supports keeps working, and brain features must work the
+  same with each of them. obrain becomes provider-agnostic too.
 
 ## Vault and memory
 
 - Obsidian is the editor. Majordome shows notes read-only and opens them with `obsidian://` links.
-- Any vault works: folder roles (inbox, daily, projects…) come from config in `.servo/`.
+- Any vault works: folder roles (inbox, daily, projects…) come from config in `.majordome/`.
 - Memory layers:
   - Always loaded: `CLAUDE.md` and `memory.md` (size-capped; when full, the agent merges entries).
   - Loaded when recent: today's and yesterday's daily notes.
@@ -34,9 +35,9 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
 - Any number of servers (Mac, VPS). Reachable over Tailscale only, auth always on.
 - The vault syncs with git. Default remote: a private GitHub repo. Majordome never force-pushes.
-  When its change conflicts with yours, it pushes a `servo/conflict-*` branch and the feed lets you
+  When its change conflicts with yours, it pushes a `majordome/conflict-*` branch and the feed lets you
   choose.
-- One runner lease (`.servo/runner`, with a heartbeat) decides which server runs cron, the inbox
+- One runner lease (`.majordome/runner`, with a heartbeat) decides which server runs cron, the inbox
   watcher and dreaming. If the runner stops answering, another server takes over.
 - Sessions:
   - Each thread has one owner server, and only the owner writes to its event log. Every other
@@ -67,7 +68,7 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 - Unattended runs can read and write the vault and read the web. A shell, Tier B, and any outward
   action (sending email, posting) need approval.
 - Approvals go to a queue and send a push. With no answer they are denied after a timeout (24h).
-- Each server uses its own Claude or Codex login. Each routine has a turn cap; the runner has a
+- Each server uses its own provider logins. Each routine has a turn cap; the runner has a
   daily budget, and routines pause when it runs out.
 - The Overview screen shows servers, the runner, sync state, schedules, which secrets resolve, the
   Tier B access log and index health.
@@ -76,16 +77,16 @@ Agreed on 2026-11-15. `servo` is the codename; **Majordome** is the public name.
 
 Found while importing T3 Code. Reuse these instead of building them:
 
-| Planned                      | What T3 Code already has                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------- |
-| Cron routines                | Scheduled tasks: once, interval, time of day, webhook (`apps/server/src/scheduledTasks`) |
-| Always-on server             | `t3 service install` (launchd / systemd), see `docs/user/background-service.md`      |
-| Secret references            | Secret providers with references and a provider registry (`packages/secret-provider-*`), 1Password today, plus secret request cards |
-| Thread handoff               | Portable handoffs carry context to a new provider session (`docs/user/portable-handoffs.md`) |
-| Multi-server client          | Environments: one client, several servers                                             |
-| Tailscale and pairing        | `packages/tailscale`, pairing links, `t3 up`                                          |
-| Session store                | Event-sourced threads in SQLite (`apps/server/src/orchestration-v2/EventStore.ts`)    |
-| Web app manifest             | `apps/web/public/manifest.webmanifest`                                                |
+| Planned               | What T3 Code already has                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Cron routines         | Scheduled tasks: once, interval, time of day, webhook (`apps/server/src/scheduledTasks`)                                            |
+| Always-on server      | `t3 service install` (launchd / systemd), see `docs/user/background-service.md`                                                     |
+| Secret references     | Secret providers with references and a provider registry (`packages/secret-provider-*`), 1Password today, plus secret request cards |
+| Thread handoff        | Portable handoffs carry context to a new provider session (`docs/user/portable-handoffs.md`)                                        |
+| Multi-server client   | Environments: one client, several servers                                                                                           |
+| Tailscale and pairing | `packages/tailscale`, pairing links, `t3 up`                                                                                        |
+| Session store         | Event-sourced threads in SQLite (`apps/server/src/orchestration-v2/EventStore.ts`)                                                  |
+| Web app manifest      | `apps/web/public/manifest.webmanifest`                                                                                              |
 
 Mobile push and the iOS and Android apps go through T3 Connect and T3's store listings, which a fork
 cannot use. Majordome stays with a PWA plus web push for v1.
