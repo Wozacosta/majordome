@@ -184,4 +184,11 @@ takes over.
 6. **M6.** Dreaming, search index, Overview screen.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
-8. **Later.** Hosted Majordome, when people ask for it.
+8. **One-button move.** "Move to an always-on server" does it all from the Mac app: sign in to a host
+   once (DigitalOcean OAuth, or a Hetzner token), the app creates the server, joins it to Tailscale
+   through its API, copies the vault over the tailnet, pairs it, carries provider sign-ins and the
+   time zone, and moves routines. Today's guide (SSH, Docker, auth key, pairing code) is for
+   technical owners only.
+9. **Later.** Hosted Majordome on AWS, when people ask for it: the same image, one container and
+   encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
+   and wake for routines and when the owner opens the app, to keep the price low.
