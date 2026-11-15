@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#059669"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="32" font-weight="600" fill="#ffffff">S</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><defs><linearGradient id="tile-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f222b"/><stop offset="1" stop-color="#14161c"/></linearGradient><linearGradient id="tile-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf8f2"/><stop offset="1" stop-color="#e8e0d1"/></linearGradient><radialGradient id="tile-glow"><stop offset="0" stop-color="#3ddc84" stop-opacity="0.55"/><stop offset="1" stop-color="#3ddc84" stop-opacity="0"/></radialGradient><clipPath id="tile-body"><rect x="0" y="0" width="16" height="16" rx="3.6"/></clipPath></defs><g clip-path="url(#tile-body)"><rect width="16" height="16" fill="url(#tile-bg)"/></g><svg x="0" y="0" width="16" height="16" viewBox="0 0 16 16" overflow="visible">
+  <path id="dome" d="M3 11a5 5 0 0 1 10 0Z" fill="url(#tile-metal)"/>
+  <rect id="tray" x="2" y="12" width="12" height="2" rx="1" fill="url(#tile-metal)"/>
+  <circle id="knob" cx="8" cy="3" r="2" fill="#3ddc84"/>
+</svg></svg>

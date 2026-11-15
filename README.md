@@ -1,6 +1,9 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
-
-# Majordome
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark-dark.svg">
+    <img src="assets/brand/wordmark-light.svg" height="44" alt="Majordome">
+  </picture>
+</h1>
 
 A second brain with an agent that keeps working while you are away.
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
+  <path id="dome" d="M3 11a5 5 0 0 1 10 0Z" fill="#14161c"/>
+  <rect id="tray" x="2" y="12" width="12" height="2" rx="1" fill="#14161c"/>
+  <circle id="knob" cx="8" cy="3" r="2" fill="#3ddc84"/>
+</svg>

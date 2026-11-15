@@ -39,6 +39,7 @@ import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { isMajordome } from "~/env";
+import { MajordomeCloche } from "~/components/MajordomeCloche";
 import { observeResize } from "~/lib/observeResize";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
@@ -183,11 +184,12 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
     return (
       <span
         className={cn(
-          "truncate text-sm font-medium tracking-tight",
+          "inline-flex min-w-0 items-center gap-1.5 text-sm font-medium tracking-tight",
           onBackdrop ? "text-white/90" : "text-foreground",
         )}
       >
-        Majordome
+        <MajordomeCloche aria-hidden className="size-4 shrink-0" />
+        <span className="truncate">Majordome</span>
       </span>
     );
   }
