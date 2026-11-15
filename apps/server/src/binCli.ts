@@ -22,7 +22,6 @@ import { sharedServerCommandFlags } from "./cli/config.ts";
 import { projectCommand } from "./cli/project.ts";
 import { threadCommand } from "./cli/thread.ts";
 import { runDefaultServerCommand, serveCommand, startCommand } from "./cli/server.ts";
-import { updateCommand } from "./cli/update.ts";
 import {
   confirmCliInstall,
   inTerminalForeground,
@@ -34,12 +33,12 @@ import { runServiceLauncherCli } from "./cli/serviceLauncher.ts";
 import { speechWorkerCommand } from "./cli/speechWorker.ts";
 import { claudeHistoryCommand } from "./cli/claudeHistory.ts";
 import { sshHelperCommand } from "./cli/sshHelper.ts";
-import { serviceCommand } from "./cli/service.ts";
+import { majordServiceCommand, majordStatusCommand } from "./cli/majord.ts";
 import { servicePreflightCommand } from "./cli/servicePreflight.ts";
 import { themeCommand } from "./cli/theme.ts";
 import { traceCommand } from "./cli/trace.ts";
 import { triageCommand } from "./cli/triage.ts";
-import { connectCommand, statusCommand, upCommand } from "./cli/up.ts";
+import { connectCommand } from "./cli/up.ts";
 
 const layerCliRuntime = Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer);
 
@@ -60,7 +59,7 @@ const connectUnavailableCommand = Command.make("connect", {
   Command.withHandler(() =>
     Effect.fail(
       new CliError.ShowHelp({
-        commandPath: ["t3", "connect"],
+        commandPath: ["majord", "connect"],
         errors: [new ConnectPublicConfigMissingError({ cause: connectPublicConfigMissingMessage })],
       }),
     ),
@@ -68,16 +67,16 @@ const connectUnavailableCommand = Command.make("connect", {
 );
 
 export const makeCli = ({ cloudEnabled = hasCloudPublicConfig } = {}) =>
-  Command.make("t3", { ...sharedServerCommandFlags }).pipe(
+  Command.make("majord", { ...sharedServerCommandFlags }).pipe(
     Command.withDescription(
-      "Run T3 Code in this terminal and open it in your browser. To use it from your other devices, run `t3 up`.",
+      "Run Majordome in this terminal and open it in your browser. To keep it running in the background, run `majord service install`.",
     ),
     Command.withHandler(runDefaultServerCommand),
     Command.withSubcommands([
       Command.make("help").pipe(
         Command.withDescription("Show command help."),
         Command.withHandler(() =>
-          Effect.fail(new CliError.ShowHelp({ commandPath: ["t3"], errors: [] })),
+          Effect.fail(new CliError.ShowHelp({ commandPath: ["majord"], errors: [] })),
         ),
       ),
       acpMcpBridgeCommand,
@@ -91,10 +90,9 @@ export const makeCli = ({ cloudEnabled = hasCloudPublicConfig } = {}) =>
       browserCommand,
       projectCommand,
       threadCommand,
-      upCommand,
-      statusCommand,
-      serviceCommand,
-      updateCommand,
+      // In place of T3 Code's `up`, `status`, `service` and `update`, which install its releases.
+      majordStatusCommand,
+      majordServiceCommand,
       installCommand,
       uninstallCommand,
       // bin.ts runs the bare service invocation; this keeps flags and help working like other commands.
