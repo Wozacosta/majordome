@@ -4,6 +4,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
 import {
+  canHoldTopic,
   listVaultFolders,
   newTopicId,
   normalizeTopicFolder,
@@ -139,6 +140,26 @@ describe("suggestTopics", () => {
       { title: "Fitness", folder: "personal/fitness" },
       { title: "Lisbon move", folder: "projects/lisbon-move" },
     ]);
+  });
+
+  it("never lets the vault's own folders hold a topic, wherever its config puts them", () => {
+    const configured = { dailyFolder: "journal/daily", inboxFolder: "drop" };
+    for (const folder of [
+      "journal/daily",
+      "journal/daily/2026",
+      "drop",
+      "Drop/scans",
+      "attachments",
+      "personal/_attachments",
+      "Templates",
+      "weekly",
+      ".obsidian",
+    ]) {
+      assert.isFalse(canHoldTopic(folder, configured), folder);
+    }
+    for (const folder of ["journal", "daily", "inbox", "personal/fitness", "archive/old-job"]) {
+      assert.isTrue(canHoldTopic(folder, configured), folder);
+    }
   });
 
   it("puts the folders written in most lately first, from any area, and skips code repos", () => {

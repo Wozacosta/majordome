@@ -49,6 +49,7 @@ import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { chooseVaultModel, firstReadyProviderModel } from "./vaultModel.ts";
 import {
+  canHoldTopic,
   listVaultFolders,
   newTopicId,
   normalizeTopicFolder,
@@ -160,12 +161,18 @@ const make = Effect.gen(function* () {
   /** The cleaned folder, created with a README when asked and missing. */
   const resolveFolder = Effect.fn("MajordomeTopics.resolveFolder")(function* (input: {
     readonly vaultRoot: string;
+    readonly layout: VaultLayout;
     readonly folder: string;
     readonly createFolder: boolean;
     readonly title: string;
   }) {
     const folder = normalizeTopicFolder(input.folder);
     if (folder === null) return yield* fail("Choose a folder inside your notes.");
+    if (!canHoldTopic(folder, input.layout)) {
+      return yield* fail(
+        `${folder} is for your daily notes, inbox or files, so it can't be a topic's folder.`,
+      );
+    }
     const absolute = path.join(input.vaultRoot, folder);
     if (yield* isFolder(absolute)) return folder;
     if (!input.createFolder) return yield* fail(`There is no folder ${folder} in your notes.`);
@@ -332,7 +339,9 @@ const make = Effect.gen(function* () {
         suggestions: state.suggestionsDismissed
           ? []
           : suggestionsFor(vault.layout, folders, topics),
-        folders: folders.map((folder) => folder.path),
+        folders: folders.flatMap((folder) =>
+          canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
+        ),
         projectsFolder: normalizeTopicFolder(vault.layout.projectsFolder) ?? "projects",
       };
     },
@@ -341,7 +350,7 @@ const make = Effect.gen(function* () {
 
   const create: MajordomeTopics["Service"]["create"] = Effect.fn("MajordomeTopics.create")(
     function* (input) {
-      const { project } = yield* requireVault(input.projectId);
+      const { project, layout } = yield* requireVault(input.projectId);
       const vaultRoot = project.workspaceRoot;
       const topics = yield* provideFs(readVaultTopics(vaultRoot));
       const state = yield* projectState(input.projectId);
@@ -354,7 +363,7 @@ const make = Effect.gen(function* () {
           return yield* fail("That chat is already a topic.");
         }
       }
-      const folder = yield* resolveFolder({ vaultRoot, ...input });
+      const folder = yield* resolveFolder({ vaultRoot, layout, ...input });
       if (topics.some((topic) => topic.folder === folder)) {
         return yield* fail(`Another topic already uses ${folder}.`);
       }
@@ -380,7 +389,7 @@ const make = Effect.gen(function* () {
 
   const update: MajordomeTopics["Service"]["update"] = Effect.fn("MajordomeTopics.update")(
     function* (input) {
-      const { project } = yield* requireVault(input.projectId);
+      const { project, layout } = yield* requireVault(input.projectId);
       const vaultRoot = project.workspaceRoot;
       const { topics, topic } = yield* findTopic(vaultRoot, input.topicId);
       const title = input.title ?? topic.title;
@@ -389,6 +398,7 @@ const make = Effect.gen(function* () {
           ? topic.folder
           : yield* resolveFolder({
               vaultRoot,
+              layout,
               folder: input.folder,
               createFolder: input.createFolder ?? false,
               title,
