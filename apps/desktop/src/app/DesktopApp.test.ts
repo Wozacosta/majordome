@@ -58,6 +58,7 @@ import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 import * as DesktopConnectionCatalogStore from "./DesktopConnectionCatalogStore.ts";
 import * as DesktopIpc from "../ipc/DesktopIpc.ts";
 import * as DesktopLocalEnvironmentAuth from "../backend/DesktopLocalEnvironmentAuth.ts";
+import * as DesktopMajordService from "../backend/DesktopMajordService.ts";
 import * as DesktopManagedPolicy from "./DesktopManagedPolicy.ts";
 import * as DesktopPrimaryPaste from "./DesktopPrimaryPaste.ts";
 import * as DesktopSshEnvironment from "../ssh/DesktopSshEnvironment.ts";
@@ -94,7 +95,7 @@ it.effect.each([false, true])(
         });
       const runApp = DesktopApp.program
         .pipe(
-          Effect.provide(NodeCrypto.layer),
+          Effect.provide(Layer.mergeAll(NodeCrypto.layer, DesktopMajordService.layerTest())),
           Effect.provideService(DesktopAppIdentity.DesktopAppIdentity, {
             resolveUserDataPath: Effect.succeed("/isolated/userdata"),
             configure: record("identity"),

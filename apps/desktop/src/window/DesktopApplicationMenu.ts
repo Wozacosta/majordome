@@ -7,9 +7,11 @@ import * as Schema from "effect/Schema";
 import * as Electron from "electron";
 
 import { makeComponentLogger } from "../app/DesktopObservability.ts";
+import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
 import * as ElectronMenu from "../electron/ElectronMenu.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
+import * as DesktopMajordService from "../backend/DesktopMajordService.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 
@@ -148,6 +150,8 @@ const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
 export const make = Effect.gen(function* () {
   const electronMenu = yield* ElectronMenu.ElectronMenu;
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
+  const majord = yield* DesktopMajordService.DesktopMajordService;
+  const electronApp = yield* ElectronApp.ElectronApp;
   const context = yield* Effect.context<DesktopApplicationMenuRuntimeServices>();
   const runPromise = Effect.runPromiseWith(context);
 
@@ -173,6 +177,10 @@ export const make = Effect.gen(function* () {
     };
     const settingsClick = () => {
       runMenuEffect("open-settings", dispatchMenuAction("open-settings"));
+    };
+    // Quit leaves the background service running; this stops it until the next login or launch.
+    const quitCompletelyClick = () => {
+      runMenuEffect("quit-completely", majord.stop.pipe(Effect.andThen(electronApp.quit)));
     };
     // Chromium and the renderer already handle this chord; injecting another paste duplicates text.
     const pasteAsTextClick = (
@@ -214,6 +222,14 @@ export const make = Effect.gen(function* () {
           { role: "unhide" },
           { type: "separator" },
           { role: "quit", label: `Quit ${environment.displayName}` },
+          ...(majord.supported
+            ? [
+                {
+                  label: `Quit ${environment.displayName} Completely`,
+                  click: quitCompletelyClick,
+                },
+              ]
+            : []),
         ],
       });
     }

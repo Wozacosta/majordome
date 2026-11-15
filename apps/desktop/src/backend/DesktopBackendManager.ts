@@ -84,6 +84,8 @@ export interface DesktopBackendStartConfig extends BackendProcessContext {
   readonly preflightFailure: Option.Option<PreflightFailure>;
   readonly runningDistro?: string;
   readonly wslRuntimeId?: string;
+  /** The `majord` launch agent already runs this server: connect to it, never spawn or stop it. */
+  readonly attachToService?: boolean;
 }
 
 export interface PreflightFailure {
@@ -411,9 +413,36 @@ const decodeDesktopTelemetryControlLine = Schema.decodeUnknownEffect(
   Schema.fromJsonString(DesktopTelemetryControlMessage),
 );
 
+/** Waits for the service's server like a spawned one, then holds the run open until it is stopped. */
+const attachToService = Effect.fn("desktop.backendProcess.attachToService")(function* (
+  options: RunBackendProcessOptions,
+): Effect.fn.Return<BackendProcessExit, never, HttpClient.HttpClient | Scope.Scope> {
+  const released = yield* Deferred.make<void>();
+  yield* Effect.addFinalizer(() => Deferred.succeed(released, undefined));
+  const probeReadiness = waitForHttpReady({
+    executablePath: options.executablePath,
+    entryPath: options.entryPath,
+    cwd: options.cwd,
+    httpBaseUrl: options.httpBaseUrl,
+    timeout: options.readinessTimeout ?? DEFAULT_BACKEND_READINESS_TIMEOUT,
+  }).pipe(
+    // launchd owns the process; the window has no pid of its own to report.
+    Effect.flatMap(() => options.onReady?.(0) ?? Effect.void),
+    Effect.as(true),
+    Effect.catchTags({
+      BackendReadinessTimeoutError: (error) =>
+        (options.onReadinessFailure?.(error) ?? Effect.void).pipe(Effect.as(false)),
+    }),
+  );
+  yield* probeReadiness.pipe(Effect.repeat({ while: (ready) => !ready }), Effect.forkScoped);
+  yield* Deferred.await(released);
+  return { code: Option.none(), reason: "disconnected from the background service" };
+});
+
 export const runBackendProcess = Effect.fn("runBackendProcess")(function* (
   options: RunBackendProcessOptions,
 ): Effect.fn.Return<BackendProcessExit, BackendProcessError, BackendProcessRunRequirements> {
+  if (options.attachToService === true) return yield* attachToService(options);
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const bootstrapJson = yield* encodeBootstrapJson(options.bootstrap).pipe(
     Effect.mapError(

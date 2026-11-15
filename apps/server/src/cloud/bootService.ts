@@ -15,6 +15,7 @@ import { HttpClient } from "effect/http";
 import * as Schema from "effect/Schema";
 
 import { CLI_RELEASE_BASE_URL_ENV } from "@t3tools/shared/cliRelease";
+import { MAJORD_LAUNCHD_LABEL } from "@t3tools/shared/majord";
 
 import * as ProcessRunner from "../processRunner.ts";
 import { acquireServiceSelectionLock } from "./serviceSelectionLock.ts";
@@ -56,9 +57,8 @@ export {
 
 const BOOT_SERVICE_NAME = "majordome";
 export const BOOT_SERVICE_UNIT_FILE = `${BOOT_SERVICE_NAME}.service`;
-// `.service` suffix keeps the label distinct from the desktop app's bundle id
-// (io.github.wozacosta.majordome), so launchd and TCC records never collide.
-export const BOOT_SERVICE_LAUNCHD_LABEL = "io.github.wozacosta.majordome.service";
+// The desktop app's `majord` agent: `t3 doctor` and status read and stop the same job.
+export const BOOT_SERVICE_LAUNCHD_LABEL = MAJORD_LAUNCHD_LABEL;
 export const BOOT_SERVICE_PLIST_FILE = `${BOOT_SERVICE_LAUNCHD_LABEL}.plist`;
 export const BOOT_SERVICE_LOG_FILE = "boot-service.log";
 /** `schtasks /Query /HRESULT` exits with this when the task is not registered. */

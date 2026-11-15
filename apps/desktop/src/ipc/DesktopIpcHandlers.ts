@@ -85,6 +85,11 @@ import {
   uninstallCliCommand,
   addCliCommandToPath,
 } from "./methods/cliCommand.ts";
+import {
+  getBackgroundServiceState,
+  quitCompletely,
+  setBackgroundServiceEnabled,
+} from "./methods/backgroundService.ts";
 
 export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers")(function* () {
   const ipc = yield* DesktopIpc.DesktopIpc;
@@ -170,6 +175,9 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(installCliCommand);
   yield* ipc.handle(uninstallCliCommand);
   yield* ipc.handle(addCliCommandToPath);
+  yield* ipc.handle(getBackgroundServiceState);
+  yield* ipc.handle(setBackgroundServiceEnabled);
+  yield* ipc.handle(quitCompletely);
   for (const previewMethod of PreviewIpc.methods) {
     // Explicit types preserve the error/service union of these heterogeneous preview methods.
     yield* ipc.handle<

@@ -20,6 +20,7 @@ import * as SynchronizedRef from "effect/SynchronizedRef";
 import serverPackageJson from "../../../server/package.json" with { type: "json" };
 
 import * as DesktopBackendManager from "./DesktopBackendManager.ts";
+import * as DesktopMajordService from "./DesktopMajordService.ts";
 import * as DesktopCliShim from "../app/DesktopCliShim.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopState from "../app/DesktopState.ts";
@@ -767,6 +768,7 @@ export const make = Effect.gen(function* () {
   const desktopState = yield* DesktopState.DesktopState;
   const mac = yield* Mac.Mac;
   const random = yield* SecureRandom.SecureRandom;
+  const majord = yield* DesktopMajordService.DesktopMajordService;
   // Random generation yields; serialize it so concurrent backends cannot capture distinct bootstrap secrets.
   const secretRef = yield* SynchronizedRef.make(Option.none<string>());
   const hostScope = yield* Effect.cached(
@@ -779,12 +781,19 @@ export const make = Effect.gen(function* () {
   const getOrCreateBootstrapSecret = SynchronizedRef.modifyEffect(secretRef, (current) =>
     Option.match(current, {
       onSome: (secret) => Effect.succeed([secret, current] as const),
+      // The background service keeps the secret it started with, so this window can sign in to it.
       onNone: () =>
-        random.randomBytes(32).pipe(
-          Effect.map((bytes) => {
-            const secret = Hex.encode(bytes);
-            return [secret, Option.some(secret)] as const;
-          }),
+        majord.savedBootstrap.pipe(
+          Effect.map((saved) =>
+            Option.flatMapNullishOr(saved, (bootstrap) => bootstrap.desktopBootstrapSecret),
+          ),
+          Effect.flatMap(
+            Option.match({
+              onSome: Effect.succeed,
+              onNone: () => random.randomBytes(32).pipe(Effect.map(Hex.encode)),
+            }),
+          ),
+          Effect.map((secret) => [secret, Option.some(secret)] as const),
         ),
     }),
   );
@@ -875,7 +884,13 @@ export const make = Effect.gen(function* () {
           "WSL-only backend requested but WSL is unavailable; starting the Windows primary instead.",
         );
       }
-      return yield* buildWindowsPrimaryConfig;
+      const config = yield* buildWindowsPrimaryConfig;
+      if (!(yield* majord.wanted)) return config;
+      // A service that cannot start leaves the window to run its own server; ensure logs why.
+      return yield* majord.ensure(config, { start: true }).pipe(
+        Effect.as({ ...config, attachToService: true }),
+        Effect.orElseSucceed(() => config),
+      );
     }).pipe(Effect.withSpan("desktop.backendConfiguration.resolvePrimary")),
     resolvePrimaryLabel: Effect.gen(function* () {
       const { useWsl, distro } = yield* describePrimary;

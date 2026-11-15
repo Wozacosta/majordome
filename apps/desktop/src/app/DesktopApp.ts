@@ -23,6 +23,7 @@ import * as DesktopBackendManager from "../backend/DesktopBackendManager.ts";
 import * as DesktopBackendPool from "../backend/DesktopBackendPool.ts";
 import * as DesktopHomeOwner from "../backend/DesktopHomeOwner.ts";
 import * as DesktopLocalEnvironmentAuth from "../backend/DesktopLocalEnvironmentAuth.ts";
+import * as DesktopMajordService from "../backend/DesktopMajordService.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopLegacyLocalStorage from "./DesktopLegacyLocalStorage.ts";
 import * as DesktopLifecycle from "./DesktopLifecycle.ts";
@@ -205,8 +206,16 @@ const startLocalBackend = Effect.gen(function* () {
     return yield* new DesktopDevelopmentBackendPortRequiredError();
   }
 
+  const majord = yield* DesktopMajordService.DesktopMajordService;
+  // The background service owns this home, on the port it already listens on.
+  const runsInService = yield* majord.wanted;
+  const servicePort = runsInService
+    ? Option.map(yield* majord.savedBootstrap, (bootstrap) => bootstrap.port)
+    : Option.none<number>();
+
   // A backend started while another server holds this home's lock can only exit with code 78.
   if (
+    !runsInService &&
     !(settings.wslOnly && settings.wslBackendEnabled) &&
     !(yield* DesktopHomeOwner.awaitHomeOwnershipRelease())
   ) {
@@ -222,7 +231,9 @@ const startLocalBackend = Effect.gen(function* () {
     return false;
   }
 
-  const backendPortSelection = yield* resolveDesktopBackendPort(environment.configuredBackendPort);
+  const backendPortSelection = yield* resolveDesktopBackendPort(
+    Option.orElse(environment.configuredBackendPort, () => servicePort),
+  );
   const backendPort = backendPortSelection.port;
   yield* logBootstrapInfo(
     backendPortSelection.selectedByScan
