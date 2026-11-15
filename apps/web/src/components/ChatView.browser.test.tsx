@@ -41,6 +41,11 @@ import {
 import { act, fakeTimers, render } from "../../test/render";
 
 // The socket is the only fake layer; see test/appScenarios.renders.tsx.
+// These cover T3 Code's chat view and sidebar, which Majordome trims to its notes folders.
+vi.mock("../env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../env")>()),
+  isMajordome: false,
+}));
 vi.mock("../../../../packages/client-runtime/src/connection/driver.ts", async (importOriginal) => {
   const [actual, { fakeDriver }, Layer] = await Promise.all([
     importOriginal<{ readonly ConnectionDriver: Context.Key<unknown, FakeDriver> }>(),

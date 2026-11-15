@@ -34,6 +34,12 @@ vi.mock(
   },
 );
 
+// This covers T3 Code's project picker; Majordome names no project on a new chat.
+vi.mock("~/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
+}));
+
 vi.mock(import("~/rpc/requestLatencyState"), async (original) => ({
   ...(await original()),
   trackRpcRequestSent: () => {},

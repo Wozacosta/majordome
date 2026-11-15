@@ -1,5 +1,8 @@
 import { EnvironmentId } from "@t3tools/contracts";
-import { LayersIcon } from "lucide-react";
+import { FolderPlusIcon, LayersIcon } from "lucide-react";
+
+import { openCommandPalette } from "../../commandPaletteBus";
+import { isMajordome } from "../../env";
 
 import { Button } from "../ui/button";
 import { ProjectSettingsPanel } from "./ProjectSettingsPanel";
@@ -50,6 +53,19 @@ export function ProjectsSettings() {
           Choose a project to manage its name, icon, checkouts and actions.
         </SettingsScopeNotice>
       )}
+      {/* Majordome adds notes folders here only; the sidebar shows no projects. */}
+      {isMajordome ? (
+        <SettingsPageContainer>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openCommandPalette({ open: "add-project" })}
+          >
+            <FolderPlusIcon />
+            Open a notes folder
+          </Button>
+        </SettingsPageContainer>
+      ) : null}
     </div>
   );
 }
