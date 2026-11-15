@@ -253,7 +253,7 @@ import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
 import { MajordomeTopicsSection } from "./majordome/MajordomeTopics";
-import { selectRecentThreads, topicThreadKeys } from "./majordome/topics.logic";
+import { selectRecentThreads, selectTopicThreads, topicThreadKeys } from "./majordome/topics.logic";
 import { useMajordomeVaults } from "./majordome/useMajordomeVaults";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
@@ -1369,11 +1369,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   // Ranked across environments as the palette ranks them, so one
   // environment's list does not sit above another's better matches; rows
   // already shown keep their places while slower environments answer.
+  // Topic chats are listed apart from Recent, so search adds them back.
+  const searchPool = isMajordome
+    ? [...selectTopicThreads(promotedThreads, majordomeVaults.activeVault), ...searchableThreads]
+    : searchableThreads;
   const threadByMatchKey =
     threadSearch.matches.length === 0
       ? null
       : new Map(
-          searchableThreads.map((thread) => [
+          searchPool.map((thread) => [
             threadSearchMatchKey({ environmentId: thread.environmentId, threadId: thread.id }),
             thread,
           ]),
@@ -1405,7 +1409,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   );
   if (messageOrder !== shownMessageOrder) setShownMessageOrder(messageOrder);
   const { titleMatches: threadTitleResults, contentMatches: threadContentResults } =
-    searchSidebarThreads(searchableThreads, threadSearchQuery, new Set(messageOrder.keys));
+    searchSidebarThreads(searchPool, threadSearchQuery, new Set(messageOrder.keys));
   const threadSearchResults = [...threadTitleResults, ...threadContentResults];
   // Only rows listed for their messages show one, and open find on it.
   const threadSearchMatchByKey = new Map(
