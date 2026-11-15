@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useClientSettings } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
@@ -32,12 +31,9 @@ import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
 import { formatRelativeTimeLabel, formatUpcomingTimestamp } from "../../timestampFormat";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
-import { ScrollArea } from "../ui/scroll-area";
-import { SidebarInset } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
-import { WorkspacePageContainer } from "../WorkspacePageContainer";
-import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { buildFeedRunItems } from "./feed.logic";
+import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { notesLink, type NotesVault } from "./notes.logic";
 import { useDevicePush } from "./NotificationsToggle";
 import {
@@ -55,25 +51,16 @@ import { readDevicePushSupport } from "./pushNotifications";
 export function OverviewPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Overview</h1>
-        </WorkspacePageHeader>
-        <ScrollArea className="min-h-0 flex-1">
-          <WorkspacePageContainer width="expanded">
-            <p className="text-sm text-muted-foreground">
-              How your Majordome fits together, as it is right now. Open a box to change it.
-            </p>
-            {environmentId === null ? (
-              <Skeleton className="h-64 w-full" />
-            ) : (
-              <Diagram environmentId={environmentId} />
-            )}
-          </WorkspacePageContainer>
-        </ScrollArea>
-      </div>
-    </SidebarInset>
+    <MajordomeSettingsPage searchId="majordome-overview" width="expanded">
+      <p className="text-sm text-muted-foreground">
+        How your Majordome fits together, as it is right now. Open a box to change it.
+      </p>
+      {environmentId === null ? (
+        <Skeleton className="h-64 w-full" />
+      ) : (
+        <Diagram environmentId={environmentId} />
+      )}
+    </MajordomeSettingsPage>
   );
 }
 

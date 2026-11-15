@@ -57,6 +57,11 @@ export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
   // Access picks its environment on the page itself.
   "/settings/access",
   "/settings/about",
+  // Majordome's own screens pick their vaults and devices themselves.
+  "/settings/overview",
+  "/settings/backup",
+  "/settings/notifications",
+  "/settings/phone",
 ]);
 
 interface SettingsScopeMenuProps {

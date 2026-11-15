@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   backupHeadline,
-  backupNeedsAttention,
+  backupAttention,
   folderFormProblem,
   restoreCommands,
 } from "./backup.logic";
@@ -72,22 +72,22 @@ describe("backupHeadline", () => {
   });
 
   it("flags a pause, a failed save or a failing backup, but not a backup never set up", () => {
-    expect(backupNeedsAttention(base)).toBe(false);
-    expect(backupNeedsAttention({ ...base, remote: remote({ syncing: false }) })).toBe(false);
-    expect(backupNeedsAttention({ ...base, remote: remote({}) })).toBe(false);
+    expect(backupAttention(base)).toBeNull();
+    expect(backupAttention({ ...base, remote: remote({ syncing: false }) })).toBeNull();
+    expect(backupAttention({ ...base, remote: remote({}) })).toBeNull();
     expect(
-      backupNeedsAttention({
+      backupAttention({
         ...base,
         paused: { reason: "secret", files: ["keys.md"], since: "2026-11-15T00:00:00Z" },
       }),
-    ).toBe(true);
-    expect(backupNeedsAttention({ ...base, saveError: "Disk full." })).toBe(true);
+    ).toBe("Backup paused");
+    expect(backupAttention({ ...base, saveError: "Disk full." })).toBe("Saving isn't working");
     expect(
-      backupNeedsAttention({
+      backupAttention({
         ...base,
         remote: remote({ backedUp: false, lastError: "Couldn't reach GitHub." }),
       }),
-    ).toBe(true);
+    ).toBe("Backup isn't working");
   });
 
   it("names Google Drive, and says plainly when a Drive copy failed", () => {

@@ -17,7 +17,6 @@ import { CircleCheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { isElectron } from "../../env";
 import { authEnvironment } from "../../state/auth";
 import { majordomeEnvironment } from "../../state/majordome";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
@@ -37,13 +36,10 @@ import {
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
 import { QRCodeSvg } from "../ui/qr-code";
-import { ScrollArea } from "../ui/scroll-area";
-import { SidebarInset } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
-import { WorkspacePageContainer } from "../WorkspacePageContainer";
-import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { readIsOnPhone } from "./pushNotifications";
 
 const TAILSCALE_DOWNLOAD_URL = "https://tailscale.com/download";
@@ -53,22 +49,13 @@ export function PhonePage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   const [onPhone] = useState(readIsOnPhone);
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Your phone</h1>
-        </WorkspacePageHeader>
-        <ScrollArea className="min-h-0 flex-1">
-          <WorkspacePageContainer>
-            {onPhone ? (
-              <OnPhone />
-            ) : environmentId === null ? null : (
-              <PhoneSetupSection environmentId={environmentId} />
-            )}
-          </WorkspacePageContainer>
-        </ScrollArea>
-      </div>
-    </SidebarInset>
+    <MajordomeSettingsPage searchId="majordome-phone">
+      {onPhone ? (
+        <OnPhone />
+      ) : environmentId === null ? null : (
+        <PhoneSetupSection environmentId={environmentId} />
+      )}
+    </MajordomeSettingsPage>
   );
 }
 
@@ -81,7 +68,7 @@ function OnPhone() {
       </h2>
       <p className="text-sm text-muted-foreground">
         Majordome is set up here. Choose what reaches this phone in{" "}
-        <Link to="/notifications" className="underline underline-offset-2">
+        <Link to="/settings/notifications" className="underline underline-offset-2">
           Notifications
         </Link>
         .

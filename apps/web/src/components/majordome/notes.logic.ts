@@ -39,7 +39,7 @@ export function selectNotesVault(
 /** Screens that open a note and get a way back from Notes. */
 export const NOTES_RETURN_SCREENS = {
   feed: { to: "/feed", label: "Feed" },
-  overview: { to: "/overview", label: "Overview" },
+  overview: { to: "/settings/overview", label: "Overview" },
 } as const;
 export type NotesReturnScreen = keyof typeof NOTES_RETURN_SCREENS;
 

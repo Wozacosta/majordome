@@ -39,7 +39,10 @@ import { Route as ChatSettingsSecretsRouteImport } from './routes/_chat.settings
 import { Route as ChatSettingsScheduledTasksRouteImport } from './routes/_chat.settings.scheduled-tasks'
 import { Route as ChatSettingsProvidersRouteImport } from './routes/_chat.settings.providers'
 import { Route as ChatSettingsProjectsRouteImport } from './routes/_chat.settings.projects'
+import { Route as ChatSettingsPhoneRouteImport } from './routes/_chat.settings.phone'
+import { Route as ChatSettingsOverviewRouteImport } from './routes/_chat.settings.overview'
 import { Route as ChatSettingsOpenSourceLicensesRouteImport } from './routes/_chat.settings.open-source-licenses'
+import { Route as ChatSettingsNotificationsRouteImport } from './routes/_chat.settings.notifications'
 import { Route as ChatSettingsMaintenanceRouteImport } from './routes/_chat.settings.maintenance'
 import { Route as ChatSettingsLabsRouteImport } from './routes/_chat.settings.labs'
 import { Route as ChatSettingsKeybindingsRouteImport } from './routes/_chat.settings.keybindings'
@@ -52,6 +55,7 @@ import { Route as ChatSettingsConnectionsRouteImport } from './routes/_chat.sett
 import { Route as ChatSettingsChatRouteImport } from './routes/_chat.settings.chat'
 import { Route as ChatSettingsBrowserRouteImport } from './routes/_chat.settings.browser'
 import { Route as ChatSettingsBetaRouteImport } from './routes/_chat.settings.beta'
+import { Route as ChatSettingsBackupRouteImport } from './routes/_chat.settings.backup'
 import { Route as ChatSettingsArchivedRouteImport } from './routes/_chat.settings.archived'
 import { Route as ChatSettingsAppearanceRouteImport } from './routes/_chat.settings.appearance'
 import { Route as ChatSettingsAccessRouteImport } from './routes/_chat.settings.access'
@@ -211,10 +215,26 @@ const ChatSettingsProjectsRoute = ChatSettingsProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => ChatSettingsRoute,
 } as any)
+const ChatSettingsPhoneRoute = ChatSettingsPhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
+  getParentRoute: () => ChatSettingsRoute,
+} as any)
+const ChatSettingsOverviewRoute = ChatSettingsOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => ChatSettingsRoute,
+} as any)
 const ChatSettingsOpenSourceLicensesRoute =
   ChatSettingsOpenSourceLicensesRouteImport.update({
     id: '/open-source-licenses',
     path: '/open-source-licenses',
+    getParentRoute: () => ChatSettingsRoute,
+  } as any)
+const ChatSettingsNotificationsRoute =
+  ChatSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
     getParentRoute: () => ChatSettingsRoute,
   } as any)
 const ChatSettingsMaintenanceRoute = ChatSettingsMaintenanceRouteImport.update({
@@ -278,6 +298,11 @@ const ChatSettingsBetaRoute = ChatSettingsBetaRouteImport.update({
   path: '/beta',
   getParentRoute: () => ChatSettingsRoute,
 } as any)
+const ChatSettingsBackupRoute = ChatSettingsBackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => ChatSettingsRoute,
+} as any)
 const ChatSettingsArchivedRoute = ChatSettingsArchivedRouteImport.update({
   id: '/archived',
   path: '/archived',
@@ -335,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/settings/access': typeof ChatSettingsAccessRoute
   '/settings/appearance': typeof ChatSettingsAppearanceRoute
   '/settings/archived': typeof ChatSettingsArchivedRoute
+  '/settings/backup': typeof ChatSettingsBackupRoute
   '/settings/beta': typeof ChatSettingsBetaRoute
   '/settings/browser': typeof ChatSettingsBrowserRoute
   '/settings/chat': typeof ChatSettingsChatRoute
@@ -347,7 +373,10 @@ export interface FileRoutesByFullPath {
   '/settings/keybindings': typeof ChatSettingsKeybindingsRoute
   '/settings/labs': typeof ChatSettingsLabsRoute
   '/settings/maintenance': typeof ChatSettingsMaintenanceRoute
+  '/settings/notifications': typeof ChatSettingsNotificationsRoute
   '/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
+  '/settings/overview': typeof ChatSettingsOverviewRoute
+  '/settings/phone': typeof ChatSettingsPhoneRoute
   '/settings/projects': typeof ChatSettingsProjectsRoute
   '/settings/providers': typeof ChatSettingsProvidersRoute
   '/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -385,6 +414,7 @@ export interface FileRoutesByTo {
   '/settings/access': typeof ChatSettingsAccessRoute
   '/settings/appearance': typeof ChatSettingsAppearanceRoute
   '/settings/archived': typeof ChatSettingsArchivedRoute
+  '/settings/backup': typeof ChatSettingsBackupRoute
   '/settings/beta': typeof ChatSettingsBetaRoute
   '/settings/browser': typeof ChatSettingsBrowserRoute
   '/settings/chat': typeof ChatSettingsChatRoute
@@ -397,7 +427,10 @@ export interface FileRoutesByTo {
   '/settings/keybindings': typeof ChatSettingsKeybindingsRoute
   '/settings/labs': typeof ChatSettingsLabsRoute
   '/settings/maintenance': typeof ChatSettingsMaintenanceRoute
+  '/settings/notifications': typeof ChatSettingsNotificationsRoute
   '/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
+  '/settings/overview': typeof ChatSettingsOverviewRoute
+  '/settings/phone': typeof ChatSettingsPhoneRoute
   '/settings/projects': typeof ChatSettingsProjectsRoute
   '/settings/providers': typeof ChatSettingsProvidersRoute
   '/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -437,6 +470,7 @@ export interface FileRoutesById {
   '/_chat/settings/access': typeof ChatSettingsAccessRoute
   '/_chat/settings/appearance': typeof ChatSettingsAppearanceRoute
   '/_chat/settings/archived': typeof ChatSettingsArchivedRoute
+  '/_chat/settings/backup': typeof ChatSettingsBackupRoute
   '/_chat/settings/beta': typeof ChatSettingsBetaRoute
   '/_chat/settings/browser': typeof ChatSettingsBrowserRoute
   '/_chat/settings/chat': typeof ChatSettingsChatRoute
@@ -449,7 +483,10 @@ export interface FileRoutesById {
   '/_chat/settings/keybindings': typeof ChatSettingsKeybindingsRoute
   '/_chat/settings/labs': typeof ChatSettingsLabsRoute
   '/_chat/settings/maintenance': typeof ChatSettingsMaintenanceRoute
+  '/_chat/settings/notifications': typeof ChatSettingsNotificationsRoute
   '/_chat/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
+  '/_chat/settings/overview': typeof ChatSettingsOverviewRoute
+  '/_chat/settings/phone': typeof ChatSettingsPhoneRoute
   '/_chat/settings/projects': typeof ChatSettingsProjectsRoute
   '/_chat/settings/providers': typeof ChatSettingsProvidersRoute
   '/_chat/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -489,6 +526,7 @@ export interface FileRouteTypes {
     | '/settings/access'
     | '/settings/appearance'
     | '/settings/archived'
+    | '/settings/backup'
     | '/settings/beta'
     | '/settings/browser'
     | '/settings/chat'
@@ -501,7 +539,10 @@ export interface FileRouteTypes {
     | '/settings/keybindings'
     | '/settings/labs'
     | '/settings/maintenance'
+    | '/settings/notifications'
     | '/settings/open-source-licenses'
+    | '/settings/overview'
+    | '/settings/phone'
     | '/settings/projects'
     | '/settings/providers'
     | '/settings/scheduled-tasks'
@@ -539,6 +580,7 @@ export interface FileRouteTypes {
     | '/settings/access'
     | '/settings/appearance'
     | '/settings/archived'
+    | '/settings/backup'
     | '/settings/beta'
     | '/settings/browser'
     | '/settings/chat'
@@ -551,7 +593,10 @@ export interface FileRouteTypes {
     | '/settings/keybindings'
     | '/settings/labs'
     | '/settings/maintenance'
+    | '/settings/notifications'
     | '/settings/open-source-licenses'
+    | '/settings/overview'
+    | '/settings/phone'
     | '/settings/projects'
     | '/settings/providers'
     | '/settings/scheduled-tasks'
@@ -590,6 +635,7 @@ export interface FileRouteTypes {
     | '/_chat/settings/access'
     | '/_chat/settings/appearance'
     | '/_chat/settings/archived'
+    | '/_chat/settings/backup'
     | '/_chat/settings/beta'
     | '/_chat/settings/browser'
     | '/_chat/settings/chat'
@@ -602,7 +648,10 @@ export interface FileRouteTypes {
     | '/_chat/settings/keybindings'
     | '/_chat/settings/labs'
     | '/_chat/settings/maintenance'
+    | '/_chat/settings/notifications'
     | '/_chat/settings/open-source-licenses'
+    | '/_chat/settings/overview'
+    | '/_chat/settings/phone'
     | '/_chat/settings/projects'
     | '/_chat/settings/providers'
     | '/_chat/settings/scheduled-tasks'
@@ -840,11 +889,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSettingsProjectsRouteImport
       parentRoute: typeof ChatSettingsRoute
     }
+    '/_chat/settings/phone': {
+      id: '/_chat/settings/phone'
+      path: '/phone'
+      fullPath: '/settings/phone'
+      preLoaderRoute: typeof ChatSettingsPhoneRouteImport
+      parentRoute: typeof ChatSettingsRoute
+    }
+    '/_chat/settings/overview': {
+      id: '/_chat/settings/overview'
+      path: '/overview'
+      fullPath: '/settings/overview'
+      preLoaderRoute: typeof ChatSettingsOverviewRouteImport
+      parentRoute: typeof ChatSettingsRoute
+    }
     '/_chat/settings/open-source-licenses': {
       id: '/_chat/settings/open-source-licenses'
       path: '/open-source-licenses'
       fullPath: '/settings/open-source-licenses'
       preLoaderRoute: typeof ChatSettingsOpenSourceLicensesRouteImport
+      parentRoute: typeof ChatSettingsRoute
+    }
+    '/_chat/settings/notifications': {
+      id: '/_chat/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof ChatSettingsNotificationsRouteImport
       parentRoute: typeof ChatSettingsRoute
     }
     '/_chat/settings/maintenance': {
@@ -931,6 +1001,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSettingsBetaRouteImport
       parentRoute: typeof ChatSettingsRoute
     }
+    '/_chat/settings/backup': {
+      id: '/_chat/settings/backup'
+      path: '/backup'
+      fullPath: '/settings/backup'
+      preLoaderRoute: typeof ChatSettingsBackupRouteImport
+      parentRoute: typeof ChatSettingsRoute
+    }
     '/_chat/settings/archived': {
       id: '/_chat/settings/archived'
       path: '/archived'
@@ -981,6 +1058,7 @@ interface ChatSettingsRouteChildren {
   ChatSettingsAccessRoute: typeof ChatSettingsAccessRoute
   ChatSettingsAppearanceRoute: typeof ChatSettingsAppearanceRoute
   ChatSettingsArchivedRoute: typeof ChatSettingsArchivedRoute
+  ChatSettingsBackupRoute: typeof ChatSettingsBackupRoute
   ChatSettingsBetaRoute: typeof ChatSettingsBetaRoute
   ChatSettingsBrowserRoute: typeof ChatSettingsBrowserRoute
   ChatSettingsChatRoute: typeof ChatSettingsChatRoute
@@ -993,7 +1071,10 @@ interface ChatSettingsRouteChildren {
   ChatSettingsKeybindingsRoute: typeof ChatSettingsKeybindingsRoute
   ChatSettingsLabsRoute: typeof ChatSettingsLabsRoute
   ChatSettingsMaintenanceRoute: typeof ChatSettingsMaintenanceRoute
+  ChatSettingsNotificationsRoute: typeof ChatSettingsNotificationsRoute
   ChatSettingsOpenSourceLicensesRoute: typeof ChatSettingsOpenSourceLicensesRoute
+  ChatSettingsOverviewRoute: typeof ChatSettingsOverviewRoute
+  ChatSettingsPhoneRoute: typeof ChatSettingsPhoneRoute
   ChatSettingsProjectsRoute: typeof ChatSettingsProjectsRoute
   ChatSettingsProvidersRoute: typeof ChatSettingsProvidersRoute
   ChatSettingsScheduledTasksRoute: typeof ChatSettingsScheduledTasksRoute
@@ -1011,6 +1092,7 @@ const ChatSettingsRouteChildren: ChatSettingsRouteChildren = {
   ChatSettingsAccessRoute: ChatSettingsAccessRoute,
   ChatSettingsAppearanceRoute: ChatSettingsAppearanceRoute,
   ChatSettingsArchivedRoute: ChatSettingsArchivedRoute,
+  ChatSettingsBackupRoute: ChatSettingsBackupRoute,
   ChatSettingsBetaRoute: ChatSettingsBetaRoute,
   ChatSettingsBrowserRoute: ChatSettingsBrowserRoute,
   ChatSettingsChatRoute: ChatSettingsChatRoute,
@@ -1023,7 +1105,10 @@ const ChatSettingsRouteChildren: ChatSettingsRouteChildren = {
   ChatSettingsKeybindingsRoute: ChatSettingsKeybindingsRoute,
   ChatSettingsLabsRoute: ChatSettingsLabsRoute,
   ChatSettingsMaintenanceRoute: ChatSettingsMaintenanceRoute,
+  ChatSettingsNotificationsRoute: ChatSettingsNotificationsRoute,
   ChatSettingsOpenSourceLicensesRoute: ChatSettingsOpenSourceLicensesRoute,
+  ChatSettingsOverviewRoute: ChatSettingsOverviewRoute,
+  ChatSettingsPhoneRoute: ChatSettingsPhoneRoute,
   ChatSettingsProjectsRoute: ChatSettingsProjectsRoute,
   ChatSettingsProvidersRoute: ChatSettingsProvidersRoute,
   ChatSettingsScheduledTasksRoute: ChatSettingsScheduledTasksRoute,

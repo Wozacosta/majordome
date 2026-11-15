@@ -88,13 +88,15 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 }
 
 /**
- * Saving or a chosen backup is paused or failing. "Not backed up yet" alone does not count: it is
- * a choice still to make, and a mark that never goes away teaches people to ignore it.
+ * The sidebar's short alert when saving or a chosen backup is paused or failing, else null.
+ * "Not backed up yet" alone does not count: it is a choice still to make, and a mark that never
+ * goes away teaches people to ignore it.
  */
-export function backupNeedsAttention(status: MajordomeBackupStatus): boolean {
-  if (status.paused !== null || status.saveError !== null) return true;
+export function backupAttention(status: MajordomeBackupStatus): string | null {
+  if (status.paused !== null) return "Backup paused";
+  if (status.saveError !== null) return "Saving isn't working";
   const chosen = status.remote?.syncing === true || status.folder !== null || status.drive !== null;
-  return chosen && backupHeadline(status).tone === "warning";
+  return chosen && backupHeadline(status).tone === "warning" ? "Backup isn't working" : null;
 }
 
 const MIN_PASSPHRASE_LENGTH = 8;

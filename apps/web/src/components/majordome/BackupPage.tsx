@@ -23,7 +23,6 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useProjects } from "../../state/entities";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
@@ -44,15 +43,12 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { Input } from "../ui/input";
-import { ScrollArea } from "../ui/scroll-area";
-import { SidebarInset } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
-import { WorkspacePageContainer } from "../WorkspacePageContainer";
-import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { backupHeadline, folderFormProblem, restoreCommands } from "./backup.logic";
+import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 
 interface BackupVault {
   readonly environmentId: EnvironmentId;
@@ -108,46 +104,37 @@ export function BackupPage() {
   });
 
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Back up my brain</h1>
-        </WorkspacePageHeader>
-        <ScrollArea className="min-h-0 flex-1">
-          <WorkspacePageContainer>
-            {errors.map((error) => (
-              <p key={error} className="text-sm text-destructive-foreground">
-                {error}
-              </p>
-            ))}
-            {vaults.length > 0 ? (
-              <div className="flex flex-col gap-8">
-                {vaults.map(({ vault, status }) => (
-                  <VaultBackup
-                    key={`${vault.environmentId}:${vault.projectId}`}
-                    vault={vault}
-                    status={status}
-                    showName={vaults.length > 1}
-                    nowMs={nowMs}
-                  />
-                ))}
-              </div>
-            ) : loading ? (
-              <Skeleton className="h-40 w-full" />
-            ) : (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>No notes folder yet</EmptyTitle>
-                  <EmptyDescription>
-                    Open your notes folder in Majordome, then come back here to back it up.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </WorkspacePageContainer>
-        </ScrollArea>
-      </div>
-    </SidebarInset>
+    <MajordomeSettingsPage searchId="majordome-backup">
+      {errors.map((error) => (
+        <p key={error} className="text-sm text-destructive-foreground">
+          {error}
+        </p>
+      ))}
+      {vaults.length > 0 ? (
+        <div className="flex flex-col gap-8">
+          {vaults.map(({ vault, status }) => (
+            <VaultBackup
+              key={`${vault.environmentId}:${vault.projectId}`}
+              vault={vault}
+              status={status}
+              showName={vaults.length > 1}
+              nowMs={nowMs}
+            />
+          ))}
+        </div>
+      ) : loading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : (
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>No notes folder yet</EmptyTitle>
+            <EmptyDescription>
+              Open your notes folder in Majordome, then come back here to back it up.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
+    </MajordomeSettingsPage>
   );
 }
 

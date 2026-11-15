@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { PhonePage } from "../components/majordome/PhonePage";
-
+// Moved into Settings; older links and bookmarks still land there.
 export const Route = createFileRoute("/_chat/phone")({
-  component: PhonePage,
+  beforeLoad: () => {
+    throw redirect({ to: "/settings/phone", replace: true });
+  },
 });

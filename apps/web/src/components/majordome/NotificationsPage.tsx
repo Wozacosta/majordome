@@ -8,19 +8,15 @@ import { AsyncResult } from "effect/reactivity";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { isElectron } from "../../env";
 import { majordomeEnvironment } from "../../state/majordome";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { ScrollArea } from "../ui/scroll-area";
-import { SidebarInset } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
 import { toastManager } from "../ui/toast";
-import { WorkspacePageContainer } from "../WorkspacePageContainer";
-import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   type DevicePush,
   NotificationsToggle,
@@ -32,29 +28,18 @@ import { readDevicePushSupport } from "./pushNotifications";
 export function NotificationsPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Notifications</h1>
-        </WorkspacePageHeader>
-        <ScrollArea className="min-h-0 flex-1">
-          <WorkspacePageContainer>
-            {environmentId === null ? null : <DeviceSections environmentId={environmentId} />}
-            <Section title="What Majordome tells you about">
-              <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-sm">
-                <li>A run is waiting for you: it has a question or needs your OK.</li>
-                <li>“Start my day” is ready, with its first line.</li>
-                <li>A run couldn't finish.</li>
-                <li>
-                  Something you asked an agent to tell you, like “let me know when it's done”.
-                </li>
-              </ul>
-              <p className="text-sm text-muted-foreground">Nothing else.</p>
-            </Section>
-          </WorkspacePageContainer>
-        </ScrollArea>
-      </div>
-    </SidebarInset>
+    <MajordomeSettingsPage searchId="majordome-notifications">
+      {environmentId === null ? null : <DeviceSections environmentId={environmentId} />}
+      <Section title="What Majordome tells you about">
+        <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-sm">
+          <li>A run is waiting for you: it has a question or needs your OK.</li>
+          <li>“Start my day” is ready, with its first line.</li>
+          <li>A run couldn't finish.</li>
+          <li>Something you asked an agent to tell you, like “let me know when it's done”.</li>
+        </ul>
+        <p className="text-sm text-muted-foreground">Nothing else.</p>
+      </Section>
+    </MajordomeSettingsPage>
   );
 }
 

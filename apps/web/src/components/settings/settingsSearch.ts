@@ -39,7 +39,11 @@ export type SettingsPath =
   | "/settings/maintenance"
   | "/settings/labs"
   | "/settings/about"
-  | "/settings/archived";
+  | "/settings/archived"
+  | "/settings/overview"
+  | "/settings/backup"
+  | "/settings/notifications"
+  | "/settings/phone";
 
 export type SettingsSearchScope =
   | "environment"
@@ -61,6 +65,7 @@ export interface SettingsSearchItem {
   readonly windowsOnly?: boolean;
   readonly releaseChannelOnly?: boolean;
   readonly secretsFeatureOnly?: boolean;
+  readonly majordomeOnly?: boolean;
   readonly cloudOnly?: boolean;
   readonly environmentOnly?: boolean;
   readonly providerSettingsOnly?: boolean;
@@ -94,11 +99,12 @@ export interface SettingsSearchAvailability {
 
 export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/diagnostics": msg("Diagnostics"),
-  "/settings/projects": msg("Projects"),
+  // Majordome's projects are the notes folders it opens.
+  "/settings/projects": isMajordome ? msg("Notes folders") : msg("Projects"),
   "/settings/general": msg("General"),
   "/settings/appearance": msg("Appearance"),
   "/settings/chat": msg("Chat"),
-  "/settings/diffs": msg("Diffs & pull requests"),
+  "/settings/diffs": isMajordome ? msg("Diffs") : msg("Diffs & pull requests"),
   "/settings/keybindings": msg("Keybindings"),
   "/settings/snap-shot": msg("SnapShots"),
   "/settings/providers": msg("Providers"),
@@ -117,6 +123,10 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/about": msg("About"),
   "/settings/voice": msg("Voice"),
   "/settings/archived": msg("Archive"),
+  "/settings/overview": msg("Overview"),
+  "/settings/backup": msg("Back up my brain"),
+  "/settings/notifications": msg("Notifications"),
+  "/settings/phone": msg("Your phone"),
 };
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
@@ -129,12 +139,15 @@ const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
 /** Single settings Majordome decides for the owner, left out of search. */
 const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set(["working-shelf"]);
 
-/** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
-export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
+export interface SettingsNavGroup {
   readonly heading: string;
   readonly headingHidden?: true;
+  /** Folded away until opened; the choice is kept per browser. */
+  readonly collapsible?: true;
   readonly paths: ReadonlyArray<SettingsPath>;
-}> = [
+}
+
+const T3_SETTINGS_NAV_GROUPS = (secrets: ReadonlyArray<SettingsPath>): SettingsNavGroup[] => [
   {
     heading: msg("Preferences"),
     headingHidden: true,
@@ -154,23 +167,17 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
       "/settings/providers",
       "/settings/threads",
       "/settings/browser",
-      ...(isMajordome ? [] : (["/settings/devices"] as const)),
+      "/settings/devices",
       "/settings/scheduled-tasks",
     ],
   },
-  isMajordome
-    ? { heading: msg("Projects"), headingHidden: true, paths: ["/settings/projects"] }
-    : {
-        heading: msg("Code"),
-        paths: ["/settings/projects", "/settings/source-control", "/settings/worktrees"],
-      },
+  {
+    heading: msg("Code"),
+    paths: ["/settings/projects", "/settings/source-control", "/settings/worktrees"],
+  },
   {
     heading: msg("Connections"),
-    paths: [
-      "/settings/connections",
-      "/settings/access",
-      ...(isSecretsFeatureEnabled ? (["/settings/secrets"] as const) : []),
-    ],
+    paths: ["/settings/connections", "/settings/access", ...secrets],
   },
   {
     heading: msg("More"),
@@ -178,6 +185,55 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     paths: ["/settings/maintenance", "/settings/labs", "/settings/about", "/settings/archived"],
   },
 ];
+
+// Majordome puts the brain first and folds T3's plumbing away under Advanced.
+const MAJORDOME_SETTINGS_NAV_GROUPS = (
+  secrets: ReadonlyArray<SettingsPath>,
+): SettingsNavGroup[] => [
+  {
+    heading: msg("Preferences"),
+    headingHidden: true,
+    paths: ["/settings/general", "/settings/appearance", "/settings/chat", "/settings/voice"],
+  },
+  {
+    heading: msg("Your brain"),
+    paths: [
+      "/settings/overview",
+      "/settings/backup",
+      "/settings/notifications",
+      "/settings/phone",
+      "/settings/projects",
+    ],
+  },
+  { heading: msg("AI"), paths: ["/settings/providers", "/settings/scheduled-tasks"] },
+  {
+    heading: msg("Advanced"),
+    collapsible: true,
+    paths: [
+      "/settings/threads",
+      "/settings/browser",
+      "/settings/diffs",
+      "/settings/keybindings",
+      "/settings/snap-shot",
+      "/settings/connections",
+      "/settings/access",
+      ...secrets,
+      "/settings/maintenance",
+      "/settings/labs",
+      "/settings/archived",
+    ],
+  },
+  { heading: msg("About"), headingHidden: true, paths: ["/settings/about"] },
+];
+
+const SECRETS_NAV_PATHS: ReadonlyArray<SettingsPath> = isSecretsFeatureEnabled
+  ? ["/settings/secrets"]
+  : [];
+
+/** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
+export const SETTINGS_NAV_GROUPS: ReadonlyArray<SettingsNavGroup> = isMajordome
+  ? MAJORDOME_SETTINGS_NAV_GROUPS(SECRETS_NAV_PATHS)
+  : T3_SETTINGS_NAV_GROUPS(SECRETS_NAV_PATHS);
 
 export function keybindingSearchAnchorId<Command extends KeybindingCommand>(command: Command) {
   return `keybinding-${command}` as const;
@@ -1025,6 +1081,34 @@ export const SETTINGS_SEARCH_ITEMS = [
     ...(isMajordome ? { searchTerms: ["scheduled tasks start my day review my week inbox"] } : {}),
   },
   {
+    id: "majordome-overview",
+    title: "Overview",
+    to: "/settings/overview",
+    majordomeOnly: true,
+    searchTerms: ["map setup servers runner devices status health"],
+  },
+  {
+    id: "majordome-backup",
+    title: "Back up my brain",
+    to: "/settings/backup",
+    majordomeOnly: true,
+    searchTerms: ["backup save sync github google drive folder restore passphrase history"],
+  },
+  {
+    id: "majordome-notifications",
+    title: "Notifications",
+    to: "/settings/notifications",
+    majordomeOnly: true,
+    searchTerms: ["push alerts notify devices"],
+  },
+  {
+    id: "majordome-phone",
+    title: "Your phone",
+    to: "/settings/phone",
+    majordomeOnly: true,
+    searchTerms: ["mobile iphone android tailscale pair qr code home screen"],
+  },
+  {
     id: "agent-browser-access",
     title: "Agent browser access",
     to: "/settings/browser",
@@ -1413,6 +1497,10 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/labs": null,
   "/settings/about": null,
   "/settings/archived": "project-defaults",
+  "/settings/overview": null,
+  "/settings/backup": null,
+  "/settings/notifications": null,
+  "/settings/phone": null,
 };
 
 const RENAMED_SETTINGS_PATHS: Readonly<Record<string, SettingsPath>> = {
@@ -1553,6 +1641,7 @@ export function settingsForThisPlatform(
       (isElectron || item.desktopOnly !== true) &&
       (!item.releaseChannelOnly || isElectron || HOSTED_APP_CHANNEL !== null) &&
       (!item.secretsFeatureOnly || isSecretsFeatureEnabled) &&
+      (!item.majordomeOnly || isMajordome) &&
       (!isMajordome ||
         (!MAJORDOME_HIDDEN_SETTINGS.has(item.to) && !MAJORDOME_HIDDEN_SETTING_IDS.has(item.id))) &&
       (!item.macOnly || isMacPlatform(platform)) &&

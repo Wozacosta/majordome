@@ -8,7 +8,7 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 
-import { backupHeadline, backupNeedsAttention } from "./backup.logic";
+import { backupAttention, backupHeadline } from "./backup.logic";
 import type { NotesSearch } from "./notes.logic";
 import type { DevicePushSupport } from "./phone.logic";
 
@@ -43,12 +43,12 @@ export function worstTone(tones: ReadonlyArray<OverviewTone>): OverviewTone {
 }
 
 export type OverviewPath =
-  | "/notifications"
-  | "/phone"
+  | "/settings/notifications"
+  | "/settings/phone"
   | "/settings/providers"
   | "/settings/scheduled-tasks"
   | "/feed"
-  | "/backup"
+  | "/settings/backup"
   | "/notes";
 
 export interface OverviewLink {
@@ -120,7 +120,7 @@ export function devicesBox(input: {
   return box({
     key: "devices",
     title: "Your devices",
-    link: { to: "/notifications" },
+    link: { to: "/settings/notifications" },
     lines: [thisDevice, ...others, ...none],
   });
 }
@@ -195,14 +195,14 @@ export function majordomeBox(input: {
                 text: "Phone address",
                 detail: "On, secure",
                 tone: "ok",
-                link: { to: "/phone" },
+                link: { to: "/settings/phone" },
               }
             : {
                 key: "phone",
                 text: "Phone address",
                 detail: "Off",
                 tone: "neutral",
-                link: { to: "/phone" },
+                link: { to: "/settings/phone" },
               },
         ];
   return box({
@@ -298,10 +298,22 @@ function copyLine(
   formatAgo: (iso: string) => string,
 ): OverviewLine {
   if (copy === null) {
-    return { key, text: name, detail: "Not set up", tone: "neutral", link: { to: "/backup" } };
+    return {
+      key,
+      text: name,
+      detail: "Not set up",
+      tone: "neutral",
+      link: { to: "/settings/backup" },
+    };
   }
   if (copy.lastError !== null) {
-    return { key, text: name, detail: copy.lastError, tone: "warning", link: { to: "/backup" } };
+    return {
+      key,
+      text: name,
+      detail: copy.lastError,
+      tone: "warning",
+      link: { to: "/settings/backup" },
+    };
   }
   return {
     key,
@@ -311,7 +323,7 @@ function copyLine(
         ? "First copy tonight"
         : `Last copy ${formatAgo(copy.lastBackupAt)}`,
     tone: copy.lastBackupAt === null ? "neutral" : "ok",
-    link: { to: "/backup" },
+    link: { to: "/settings/backup" },
   };
 }
 
@@ -327,7 +339,7 @@ function remoteLine(
       text: "GitHub",
       detail: "Not connected",
       tone: "neutral",
-      link: { to: "/backup" },
+      link: { to: "/settings/backup" },
     };
   }
   if (!remote.syncing) {
@@ -336,7 +348,7 @@ function remoteLine(
       text: name,
       detail: "Syncing off",
       tone: "neutral",
-      link: { to: "/backup" },
+      link: { to: "/settings/backup" },
     };
   }
   if (remote.lastError !== null) {
@@ -345,7 +357,7 @@ function remoteLine(
       text: name,
       detail: remote.lastError,
       tone: "warning",
-      link: { to: "/backup" },
+      link: { to: "/settings/backup" },
     };
   }
   return {
@@ -357,7 +369,7 @@ function remoteLine(
         : `Backed up ${formatAgo(remote.lastSyncedAt)}`
       : "Sending your latest changes",
     tone: remote.backedUp ? "ok" : "neutral",
-    link: { to: "/backup" },
+    link: { to: "/settings/backup" },
   };
 }
 
@@ -368,13 +380,13 @@ export function backupBox(input: {
 }): OverviewBox {
   const { status, formatAgo } = input;
   const headline = backupHeadline(status);
-  const needsAttention = backupNeedsAttention(status);
+  const needsAttention = backupAttention(status) !== null;
   const lines: Array<OverviewLine> = [
     {
       key: "headline",
       text: headline.title,
       tone: needsAttention ? "warning" : headline.tone === "ok" ? "ok" : "neutral",
-      link: { to: "/backup" },
+      link: { to: "/settings/backup" },
     },
     status.saveError !== null
       ? { key: "edits", text: "Your edits", detail: status.saveError, tone: "warning" }
@@ -391,5 +403,10 @@ export function backupBox(input: {
     copyLine("folder", "Folder copy", status.folder, formatAgo),
     copyLine("drive", "Google Drive copy", status.drive, formatAgo),
   ];
-  return box({ key: `backup:${input.key}`, title: "Backups", link: { to: "/backup" }, lines });
+  return box({
+    key: `backup:${input.key}`,
+    title: "Backups",
+    link: { to: "/settings/backup" },
+    lines,
+  });
 }

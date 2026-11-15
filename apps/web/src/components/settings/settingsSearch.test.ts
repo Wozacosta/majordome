@@ -82,6 +82,28 @@ describe("searchSettings", () => {
     expect(searchSettings("1password").map((item) => item.to)).not.toContain("/settings/secrets");
   });
 
+  it("keeps T3 Code's groups and leaves Majordome's own pages out of nav and search", () => {
+    expect(SETTINGS_NAV_GROUPS.map((group) => group.heading)).toEqual([
+      "Preferences",
+      "Agents",
+      "Code",
+      "Connections",
+      "More",
+    ]);
+    expect(SETTINGS_NAV_GROUPS.some((group) => group.collapsible)).toBe(false);
+    const majordomePages = [
+      "/settings/overview",
+      "/settings/backup",
+      "/settings/notifications",
+      "/settings/phone",
+    ];
+    const navPaths: ReadonlyArray<string> = SETTINGS_NAV_GROUPS.flatMap((group) => group.paths);
+    expect(navPaths.filter((path) => majordomePages.includes(path))).toEqual([]);
+    for (const query of ["overview", "back up my brain", "notifications", "your phone"]) {
+      expect(searchSettings(query).filter((item) => majordomePages.includes(item.to))).toEqual([]);
+    }
+  });
+
   it("finds the Scheduled tasks page", () => {
     expect(searchSettings("scheduled tasks")[0]).toMatchObject({
       id: "scheduled-tasks",

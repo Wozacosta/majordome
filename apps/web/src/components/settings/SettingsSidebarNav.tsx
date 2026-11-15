@@ -9,11 +9,15 @@ import {
 } from "react";
 import {
   ArchiveIcon,
+  BellIcon,
   FlaskConicalIcon,
   BotIcon,
+  ChevronRightIcon,
+  CloudUploadIcon,
   createLucideIcon,
   CalendarClockIcon,
   FileDiffIcon,
+  FolderOpenIcon,
   FolderTreeIcon,
   GitBranchIcon,
   GlobeIcon,
@@ -23,6 +27,7 @@ import {
   PanelsTopLeftIcon,
   KeyboardIcon,
   KeyRoundIcon,
+  LayoutDashboardIcon,
   MicIcon,
   PaletteIcon,
   SearchIcon,
@@ -37,6 +42,10 @@ import { resolveEventKeys } from "@t3tools/shared/keybindings";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { T, useGT, useMessages } from "gt-react";
 
+import * as Schema from "effect/Schema";
+
+import { isMajordome } from "../../env";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Kbd } from "../ui/kbd";
@@ -94,7 +103,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/appearance": PaletteIcon,
   "/settings/chat": MessageSquareTextIcon,
   "/settings/diffs": FileDiffIcon,
-  "/settings/projects": PanelsTopLeftIcon,
+  "/settings/projects": isMajordome ? FolderOpenIcon : PanelsTopLeftIcon,
   "/settings/keybindings": KeyboardIcon,
   "/settings/snap-shot": SnapShotIcon,
   "/settings/providers": BotIcon,
@@ -111,7 +120,15 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/labs": FlaskConicalIcon,
   "/settings/about": InfoIcon,
   "/settings/archived": ArchiveIcon,
+  "/settings/overview": LayoutDashboardIcon,
+  "/settings/backup": CloudUploadIcon,
+  "/settings/notifications": BellIcon,
+  "/settings/phone": SmartphoneIcon,
 };
+
+const OPEN_GROUPS_KEY = "t3code:settings-nav:open-groups";
+const OpenGroups = Schema.Array(Schema.String);
+const NO_OPEN_GROUPS: ReadonlyArray<string> = [];
 
 // Detail pages without a nav entry highlight the page that links to them.
 const SETTINGS_DETAIL_PAGE_PARENTS: Readonly<Record<string, SettingsPath>> = {
@@ -141,6 +158,11 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
   // Below md the nav is an icon rail; searching expands it over the page.
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
   const [activeResultIndex, setActiveResultIndex] = useState(0);
+  const [openGroups, setOpenGroups] = useLocalStorage(OPEN_GROUPS_KEY, NO_OPEN_GROUPS, OpenGroups);
+  const toggleGroup = (heading: string) =>
+    setOpenGroups((open) =>
+      open.includes(heading) ? open.filter((item) => item !== heading) : [...open, heading],
+    );
   const searchableItems = useAvailableSettingsSearchItems();
   const results = searchSettings(query, searchableItems, m);
   const isSearching = query.trim().length > 0;
@@ -378,51 +400,79 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                   </SidebarMenu>
                 )}
                 <div onKeyDown={handleSettingsSectionKeyDown} className="flex flex-col gap-4">
-                  {SETTINGS_NAV_GROUPS.map((group, index) => (
-                    <div
-                      key={group.heading}
-                      className="flex flex-col gap-1 max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0"
-                    >
-                      <h3
-                        id={`settings-nav-group-${index}`}
-                        className={cn(
-                          "px-2 text-xs font-medium text-sidebar-muted-foreground/80",
-                          group.headingHidden ? "sr-only" : !compactSearchOpen && "max-md:sr-only",
-                        )}
+                  {SETTINGS_NAV_GROUPS.map((group, index) => {
+                    const isPathActive = (to: SettingsPath) =>
+                      activePath === to || activePath.startsWith(`${to}/`);
+                    const collapsed = group.collapsible && !openGroups.includes(group.heading);
+                    // A folded group still shows the page you are on, so you never lose your place.
+                    const paths = collapsed ? group.paths.filter(isPathActive) : group.paths;
+                    return (
+                      <div
+                        key={group.heading}
+                        className="flex flex-col gap-1 max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0"
                       >
-                        {m(group.heading)}
-                      </h3>
-                      {/* The heading stays outside the group it names so NVDA does not read the name twice. */}
-                      <div role="group" aria-labelledby={`settings-nav-group-${index}`}>
-                        <SidebarMenu>
-                          {group.paths.map((to) => {
-                            const Icon = SETTINGS_SECTION_ICONS[to];
-                            const isActive = activePath === to || activePath.startsWith(`${to}/`);
-                            return (
-                              <SidebarMenuItem key={to}>
-                                <SidebarMenuButton
-                                  data-settings-section={to}
-                                  aria-current={isActive ? "page" : undefined}
-                                  isActive={isActive}
-                                  onClick={() => handleSectionClick(to)}
-                                >
-                                  <Icon />
-                                  <span
-                                    className={cn(
-                                      "truncate",
-                                      !compactSearchOpen && "max-md:sr-only",
-                                    )}
+                        {group.collapsible ? (
+                          <h3 id={`settings-nav-group-${index}`}>
+                            <button
+                              type="button"
+                              aria-expanded={!collapsed}
+                              onClick={() => toggleGroup(group.heading)}
+                              className="flex h-6 w-full items-center gap-1 rounded-md px-2 text-xs font-medium text-sidebar-muted-foreground/80 hover:text-sidebar-foreground max-md:h-8 max-md:justify-center"
+                            >
+                              <span className={cn(!compactSearchOpen && "max-md:sr-only")}>
+                                {m(group.heading)}
+                              </span>
+                              <ChevronRightIcon
+                                aria-hidden
+                                className={cn("size-3.5 shrink-0", !collapsed && "rotate-90")}
+                              />
+                            </button>
+                          </h3>
+                        ) : (
+                          <h3
+                            id={`settings-nav-group-${index}`}
+                            className={cn(
+                              "px-2 text-xs font-medium text-sidebar-muted-foreground/80",
+                              group.headingHidden
+                                ? "sr-only"
+                                : !compactSearchOpen && "max-md:sr-only",
+                            )}
+                          >
+                            {m(group.heading)}
+                          </h3>
+                        )}
+                        {/* The heading stays outside the group it names so NVDA does not read the name twice. */}
+                        <div role="group" aria-labelledby={`settings-nav-group-${index}`}>
+                          <SidebarMenu>
+                            {paths.map((to) => {
+                              const Icon = SETTINGS_SECTION_ICONS[to];
+                              const isActive = isPathActive(to);
+                              return (
+                                <SidebarMenuItem key={to}>
+                                  <SidebarMenuButton
+                                    data-settings-section={to}
+                                    aria-current={isActive ? "page" : undefined}
+                                    isActive={isActive}
+                                    onClick={() => handleSectionClick(to)}
                                   >
-                                    {m(SETTINGS_SECTION_LABELS[to])}
-                                  </span>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            );
-                          })}
-                        </SidebarMenu>
+                                    <Icon />
+                                    <span
+                                      className={cn(
+                                        "truncate",
+                                        !compactSearchOpen && "max-md:sr-only",
+                                      )}
+                                    >
+                                      {m(SETTINGS_SECTION_LABELS[to])}
+                                    </span>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                              );
+                            })}
+                          </SidebarMenu>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

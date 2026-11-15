@@ -28,7 +28,7 @@ export function BackupStatusLine({
   const Icon = headline.tone === "warning" ? CircleAlertIcon : CloudUploadIcon;
   return (
     <Link
-      to="/backup"
+      to="/settings/backup"
       className="flex min-h-7 items-center gap-2 rounded-md px-3 text-xs text-muted-foreground hover:bg-accent/40"
       data-backup-line={headline.tone}
     >

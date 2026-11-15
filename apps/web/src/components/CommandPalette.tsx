@@ -1723,7 +1723,7 @@ function OpenCommandPaletteDialog(props: {
       title: "Use on your phone",
       icon: <SmartphoneIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
-        await navigate({ to: "/phone" });
+        await navigate({ to: "/settings/phone" });
       },
     });
     actionItems.push({
@@ -1733,7 +1733,7 @@ function OpenCommandPaletteDialog(props: {
       title: "Notifications",
       icon: <BellIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
-        await navigate({ to: "/notifications" });
+        await navigate({ to: "/settings/notifications" });
       },
     });
     actionItems.push({
@@ -1743,7 +1743,7 @@ function OpenCommandPaletteDialog(props: {
       title: "Back up my brain",
       icon: <CloudUploadIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
-        await navigate({ to: "/backup" });
+        await navigate({ to: "/settings/backup" });
       },
     });
   }

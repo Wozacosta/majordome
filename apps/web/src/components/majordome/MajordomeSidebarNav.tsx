@@ -2,13 +2,10 @@ import { useAtomValue } from "@effect/atom-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
-  BellIcon,
   CalendarClockIcon,
-  CloudUploadIcon,
-  LayoutDashboardIcon,
+  CircleAlertIcon,
   NewspaperIcon,
   NotebookTextIcon,
-  SmartphoneIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -16,27 +13,15 @@ import { cn } from "../../lib/utils";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
-import { backupNeedsAttention } from "./backup.logic";
+import { backupAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 
-type NavPath =
-  | "/feed"
-  | "/notes"
-  | "/settings/scheduled-tasks"
-  | "/backup"
-  | "/notifications"
-  | "/phone"
-  | "/overview";
-
-const NAV_ITEMS: ReadonlyArray<{ to: NavPath; label: string; icon: LucideIcon }> = [
+/** The screens Majordome is used through; its setup lives in Settings. */
+const MAJORDOME_SIDEBAR_ITEMS = [
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/settings/scheduled-tasks", label: "Routines", icon: CalendarClockIcon },
-  { to: "/backup", label: "Back up my brain", icon: CloudUploadIcon },
-  { to: "/notifications", label: "Notifications", icon: BellIcon },
-  { to: "/phone", label: "Your phone", icon: SmartphoneIcon },
-  { to: "/overview", label: "Overview", icon: LayoutDashboardIcon },
-];
+] as const satisfies ReadonlyArray<{ to: string; label: string; icon: LucideIcon }>;
 
 type NavHint = { readonly tone: "warning" | "error"; readonly label: string };
 
@@ -45,26 +30,23 @@ export function MajordomeSidebarNav() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
   const feedHint = useFeedHint();
-  const backupHint = useBackupHint();
-  const hints: Partial<Record<NavPath, NavHint | null>> = {
-    "/feed": feedHint,
-    "/backup": backupHint,
+  const backupAlert = useBackupAlert();
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
   };
 
   return (
     <nav aria-label="Majordome" className="mt-1">
       <SidebarMenu>
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-          const hint = hints[to];
+        {MAJORDOME_SIDEBAR_ITEMS.map(({ to, label, icon: Icon }) => {
+          const hint = to === "/feed" ? feedHint : null;
           return (
             <SidebarMenuItem key={to}>
               <SidebarMenuButton
                 isActive={pathname === to}
                 aria-current={pathname === to ? "page" : undefined}
                 render={<Link to={to} />}
-                onClick={() => {
-                  if (isMobile) setOpenMobile(false);
-                }}
+                onClick={closeMobileSidebar}
               >
                 <Icon />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -82,6 +64,21 @@ export function MajordomeSidebarNav() {
             </SidebarMenuItem>
           );
         })}
+        {/* Only there while something is wrong, so it is never a mark people learn to ignore. */}
+        {backupAlert ? (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={<Link to="/settings/backup" />}
+              onClick={closeMobileSidebar}
+              data-backup-alert
+            >
+              <CircleAlertIcon className="text-warning-foreground" />
+              <span role="status" className="min-w-0 flex-1 truncate text-warning-foreground">
+                {backupAlert}
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ) : null}
       </SidebarMenu>
     </nav>
   );
@@ -107,17 +104,18 @@ function useFeedHint(): NavHint | null {
   return null;
 }
 
-/** A dot on "Back up my brain" when saving or a chosen backup is paused or failing. */
-function useBackupHint(): NavHint | null {
+/** What is wrong with saving or a chosen backup of any vault, or null when all is well. */
+function useBackupAlert(): string | null {
   const projects = useVaultProjects();
   const results = useAtomValue(
     vaultBackupStatusesAtom(
       JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
     ),
   );
-  const needsAttention = results.some((result) => {
+  for (const result of results) {
     const status = AsyncResult.getOrElse(result, () => null);
-    return status?.isVault === true && backupNeedsAttention(status);
-  });
-  return needsAttention ? { tone: "warning", label: "Backup needs your attention" } : null;
+    const alert = status?.isVault === true ? backupAttention(status) : null;
+    if (alert !== null) return alert;
+  }
+  return null;
 }

@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { NotificationsPage } from "../components/majordome/NotificationsPage";
-
+// Moved into Settings; older links and bookmarks still land there.
 export const Route = createFileRoute("/_chat/notifications")({
-  component: NotificationsPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/settings/notifications", replace: true });
+  },
 });
