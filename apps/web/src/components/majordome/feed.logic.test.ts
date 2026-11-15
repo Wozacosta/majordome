@@ -8,7 +8,14 @@ import {
 } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { buildFeedItems, buildFeedRunItems, feedItemTitle, summarizeFeedFiles } from "./feed.logic";
+import {
+  buildFeedItems,
+  buildFeedRunItems,
+  feedItemTitle,
+  feedOwnerEdit,
+  groupFeedItems,
+  summarizeFeedFiles,
+} from "./feed.logic";
 
 const entry = (
   overrides: Partial<MajordomeVaultHistoryEntry> & Pick<MajordomeVaultHistoryEntry, "commit">,
@@ -85,6 +92,79 @@ describe("buildFeedItems", () => {
     expect(
       buildFeedItems(histories, { includeOwnChanges: false }).map((item) => item.entry.commit),
     ).toEqual(["c3c3c3c", "e1e1e1e", "c1c1c1c"]);
+  });
+});
+
+describe("feedOwnerEdit", () => {
+  it("reads the owner's saves and their old sync commits as their edits, with the computer", () => {
+    const own = (subject: string) =>
+      feedOwnerEdit(entry({ commit: "a", subject, byMajordome: false, authorName: "Me" }));
+    expect(own("Your edits")).toEqual({ host: null });
+    expect(own("sync(mac): 1 files")).toEqual({ host: "mac" });
+    expect(own("sync(ovh-vps): 12 files")).toEqual({ host: "ovh-vps" });
+    expect(own("sync(): 1 file")).toEqual({ host: null });
+    expect(own("Fix typo")).toBeNull();
+    expect(own("sync(mac): notes")).toBeNull();
+    expect(feedOwnerEdit(entry({ commit: "b", subject: "Your edits" }))).toBeNull();
+    expect(
+      feedItemTitle(
+        entry({ commit: "c", subject: "sync(mac): 2 files", byMajordome: false, authorName: "Me" }),
+      ),
+    ).toBe("Your edits");
+  });
+});
+
+describe("groupFeedItems", () => {
+  const save = (commit: string, committedAt: string, subject: string, files: Array<string>) =>
+    entry({ commit, subject, committedAt, files, byMajordome: false, authorName: "Me" });
+
+  it("folds a vault's back-to-back saves on one day, broken by any other change to that vault", () => {
+    const histories = [
+      {
+        vault: vault("Notes"),
+        entries: [
+          save("s6", "2026-11-15T12:30:00Z", "Your edits", ["a.md"]),
+          save("s5", "2026-11-15T12:20:00Z", "sync(ovh-vps): 1 files", ["b.md", "a.md"]),
+          save("s4", "2026-11-15T12:10:00Z", "sync(mac): 1 files", ["c.md"]),
+          entry({ commit: "run", committedAt: "2026-11-15T12:05:00Z" }),
+          save("s3", "2026-11-15T12:00:00Z", "Your edits", ["d.md"]),
+          save("own", "2026-11-15T11:55:00Z", "Fix typo", ["e.md"]),
+          save("s2", "2026-11-15T11:50:00Z", "Your edits", ["f.md"]),
+          save("s1", "2026-11-13T12:00:00Z", "Your edits", ["g.md"]),
+        ],
+      },
+      {
+        // Another vault's change between saves does not split them.
+        vault: vault("Work"),
+        entries: [entry({ commit: "work", committedAt: "2026-11-15T12:15:00Z" })],
+      },
+    ];
+
+    const grouped = groupFeedItems(buildFeedItems(histories, { includeOwnChanges: true }));
+    expect(
+      grouped.map((row) =>
+        row.kind === "edits"
+          ? {
+              saves: row.saves.map((item) => item.entry.commit),
+              files: row.files,
+              hosts: row.hosts,
+            }
+          : row.item.entry.commit,
+      ),
+    ).toEqual([
+      { saves: ["s6", "s5", "s4"], files: ["a.md", "b.md", "c.md"], hosts: ["ovh-vps", "mac"] },
+      "work",
+      "run",
+      "s3",
+      "own",
+      "s2",
+      "s1",
+    ]);
+    expect(
+      groupFeedItems(buildFeedItems(histories, { includeOwnChanges: false })).map(
+        (row) => row.kind,
+      ),
+    ).toEqual(["change", "change"]);
   });
 });
 

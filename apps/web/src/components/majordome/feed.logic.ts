@@ -22,15 +22,51 @@ export interface FeedItem {
   readonly title: string;
   /** A later "Undo" already reverted this change. */
   readonly undone: boolean;
+  /** Set when this is one of the owner's saves ("Your edits"), with the computer it came from. */
+  readonly ownerEdit: OwnerEdit | null;
 }
+
+export interface OwnerEdit {
+  readonly host: string | null;
+}
+
+/** The owner's back-to-back saves on one day, with no other change to that vault in between. */
+export interface FeedEditGroup {
+  readonly kind: "edits";
+  readonly key: string;
+  readonly vault: FeedVault;
+  /** Newest first. */
+  readonly saves: ReadonlyArray<FeedItem>;
+  /** Every note the saves changed, newest first, once each. */
+  readonly files: ReadonlyArray<string>;
+  readonly hosts: ReadonlyArray<string>;
+}
+
+export type FeedListItem =
+  | { readonly kind: "change"; readonly key: string; readonly item: FeedItem }
+  | FeedEditGroup;
 
 const RUN_PREFIX = "majordome: ";
 const UNDO_PREFIX = "Undo: ";
 const REVERTS_LINE = /^Reverts ([0-9a-f]{7,64})\.$/m;
+const YOUR_EDITS_SUBJECT = "Your edits";
+// What the owner's sync script wrote before Majordome saved their edits: "sync(mac): 1 files".
+const SYNC_SUBJECT = /^sync\(([^)]*)\): \d+ files?$/;
+
+/** Whether the owner's change is one of their saves, and which computer it came from. */
+export function feedOwnerEdit(entry: MajordomeVaultHistoryEntry): OwnerEdit | null {
+  if (entry.byMajordome) return null;
+  if (entry.subject === YOUR_EDITS_SUBJECT) return { host: null };
+  const host = SYNC_SUBJECT.exec(entry.subject)?.[1]?.trim();
+  if (host === undefined) return null;
+  return { host: host === "" ? null : host };
+}
 
 /** The title a person reads: the thread's name for a run, the subject for their own changes. */
 export function feedItemTitle(entry: MajordomeVaultHistoryEntry): string {
-  if (!entry.byMajordome) return entry.subject;
+  if (!entry.byMajordome) {
+    return feedOwnerEdit(entry) === null ? entry.subject : YOUR_EDITS_SUBJECT;
+  }
   if (entry.subject.startsWith(UNDO_PREFIX)) {
     const undone = entry.subject.slice(UNDO_PREFIX.length);
     return `Undid “${undone.startsWith(RUN_PREFIX) ? undone.slice(RUN_PREFIX.length) : undone}”`;
@@ -63,11 +99,57 @@ export function buildFeedItems(
         entry,
         title: feedItemTitle(entry),
         undone: undoneCommits.has(entry.commit),
+        ownerEdit: feedOwnerEdit(entry),
         at: Date.parse(entry.committedAt),
       });
     }
   }
   return items.toSorted((left, right) => right.at - left.at);
+}
+
+function localDay(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+/**
+ * Folds the owner's back-to-back saves to one vault on one day into a single row. Any other change
+ * to that vault (a run, an undo, a commit of their own) ends the group; other vaults' changes do
+ * not. A lone save stays a plain row.
+ */
+export function groupFeedItems(items: ReadonlyArray<FeedItem>): ReadonlyArray<FeedListItem> {
+  const slots: Array<FeedItem | Array<FeedItem>> = [];
+  const open = new Map<string, { readonly day: string; readonly saves: Array<FeedItem> }>();
+  for (const item of items) {
+    const vaultKey = `${item.vault.environmentId}:${item.vault.projectId}`;
+    if (item.ownerEdit === null) {
+      open.delete(vaultKey);
+      slots.push(item);
+      continue;
+    }
+    const day = localDay(item.entry.committedAt);
+    const current = open.get(vaultKey);
+    if (current !== undefined && current.day === day) {
+      current.saves.push(item);
+      continue;
+    }
+    const saves = [item];
+    open.set(vaultKey, { day, saves });
+    slots.push(saves);
+  }
+  return slots.map((slot): FeedListItem => {
+    if (!Array.isArray(slot)) return { kind: "change", key: slot.key, item: slot };
+    const [first, ...rest] = slot as [FeedItem, ...Array<FeedItem>];
+    if (rest.length === 0) return { kind: "change", key: first.key, item: first };
+    return {
+      kind: "edits",
+      key: `edits:${first.key}`,
+      vault: first.vault,
+      saves: slot,
+      files: [...new Set(slot.flatMap((save) => save.entry.files))],
+      hosts: [...new Set(slot.flatMap((save) => save.ownerEdit?.host ?? []))],
+    };
+  });
 }
 
 /** The first few notes a change touched, and how many more there were. */

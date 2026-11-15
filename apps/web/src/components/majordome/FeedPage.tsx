@@ -15,12 +15,12 @@ import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
   CalendarClockIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   CircleAlertIcon,
   HandIcon,
   MessageSquareIcon,
   NotebookPenIcon,
-  SmartphoneIcon,
-  CloudUploadIcon,
   Undo2Icon,
 } from "lucide-react";
 import { useState } from "react";
@@ -58,7 +58,9 @@ import {
   buildFeedItems,
   buildFeedRunItems,
   FEED_RUN_STATUS_LABELS,
+  type FeedEditGroup,
   type FeedItem,
+  groupFeedItems,
   type FeedRunItem,
   type FeedVault,
   summarizeFeedFiles,
@@ -113,7 +115,7 @@ export function FeedPage() {
     }
   });
   const runItems = buildFeedRunItems(threads, vaults);
-  const items = buildFeedItems(histories, { includeOwnChanges });
+  const items = groupFeedItems(buildFeedItems(histories, { includeOwnChanges }));
   const showVaultName = histories.length > 1;
 
   return (
@@ -130,18 +132,6 @@ export function FeedPage() {
               />
               Show my own changes
             </label>
-            <Button size="xs" variant="outline" render={<Link to="/settings/scheduled-tasks" />}>
-              <CalendarClockIcon />
-              Routines
-            </Button>
-            <Button size="xs" variant="outline" render={<Link to="/phone" />}>
-              <SmartphoneIcon />
-              Your phone
-            </Button>
-            <Button size="xs" variant="outline" render={<Link to="/backup" />}>
-              <CloudUploadIcon />
-              Back up
-            </Button>
           </div>
         </WorkspacePageHeader>
 
@@ -186,15 +176,24 @@ export function FeedPage() {
             ) : null}
             {items.length > 0 ? (
               <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label="Feed">
-                {items.map((item) => (
-                  <FeedRow
-                    key={item.key}
-                    item={item}
-                    nowMs={nowMs}
-                    showVaultName={showVaultName}
-                    onUndo={() => setPendingUndo(item)}
-                  />
-                ))}
+                {items.map((row) =>
+                  row.kind === "edits" ? (
+                    <FeedEditGroupRow
+                      key={row.key}
+                      group={row}
+                      nowMs={nowMs}
+                      showVaultName={showVaultName}
+                    />
+                  ) : (
+                    <FeedRow
+                      key={row.key}
+                      item={row.item}
+                      nowMs={nowMs}
+                      showVaultName={showVaultName}
+                      onUndo={() => setPendingUndo(row.item)}
+                    />
+                  ),
+                )}
               </ul>
             ) : runItems.length > 0 ? null : loading ? (
               <FeedSkeleton />
@@ -227,7 +226,8 @@ function FeedRow({
   readonly item: FeedItem;
   readonly nowMs: number;
   readonly showVaultName: boolean;
-  readonly onUndo: () => void;
+  /** Left out for the owner's saves, which have nothing to undo. */
+  readonly onUndo?: () => void;
 }) {
   const canUndo = useAtomValue(
     majordomeEnvironment.undoVaultRun.permissionAtom(item.vault.environmentId),
@@ -238,6 +238,7 @@ function FeedRow({
   const meta = [
     entry.byMajordome ? "Majordome" : entry.authorName,
     formatRelativeTimeLabel(entry.committedAt, nowMs),
+    item.ownerEdit?.host ? `on ${item.ownerEdit.host}` : null,
     showVaultName ? item.vault.title : null,
   ].filter((part) => part !== null && part !== "");
 
@@ -280,13 +281,71 @@ function FeedRow({
         {threadId !== null ? (
           <OpenChatButton environmentId={item.vault.environmentId} threadId={threadId} />
         ) : null}
-        {entry.byMajordome && !item.undone && canUndo ? (
+        {onUndo && entry.byMajordome && !item.undone && canUndo ? (
           <Button size="xs" variant="outline" onClick={onUndo}>
             <Undo2Icon />
             Undo this
           </Button>
         ) : null}
       </div>
+    </li>
+  );
+}
+
+function FeedEditGroupRow({
+  group,
+  nowMs,
+  showVaultName,
+}: {
+  readonly group: FeedEditGroup;
+  readonly nowMs: number;
+  readonly showVaultName: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [newest] = group.saves;
+  const files = summarizeFeedFiles(group.files);
+  const listId = `feed-saves-${group.key}`;
+  const meta = [
+    newest?.entry.authorName ?? null,
+    newest ? formatRelativeTimeLabel(newest.entry.committedAt, nowMs) : null,
+    group.hosts.length > 0 ? `on ${group.hosts.join(", ")}` : null,
+    showVaultName ? group.vault.title : null,
+  ].filter((part) => part !== null && part !== "");
+
+  return (
+    <li className="flex flex-col" data-feed-edits={group.saves.length}>
+      <div className="flex items-start gap-3 rounded-lg px-3 py-2.5 opacity-70">
+        <NotebookPenIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm text-muted-foreground">
+            Your edits · {group.saves.length} saves
+          </p>
+          <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
+          {files.shown.length > 0 ? (
+            <p className="mt-1 text-xs break-words text-muted-foreground">
+              {files.shown.join(", ")}
+              {files.more > 0 ? ` and ${files.more} more` : ""}
+            </p>
+          ) : null}
+        </div>
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          aria-expanded={expanded}
+          aria-controls={listId}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          {expanded ? "Hide saves" : "Show saves"}
+        </Button>
+      </div>
+      {expanded ? (
+        <ul id={listId} className="m-0 ms-7 flex list-none flex-col p-0" aria-label="Saves">
+          {group.saves.map((save) => (
+            <FeedRow key={save.key} item={save} nowMs={nowMs} showVaultName={false} />
+          ))}
+        </ul>
+      ) : null}
     </li>
   );
 }
