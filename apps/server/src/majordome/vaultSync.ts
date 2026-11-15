@@ -92,13 +92,33 @@ const firstLine = (text: string) =>
     .map((line) => line.trim())
     .find((line) => line !== "" && !line.startsWith("hint:")) ?? "";
 
+/**
+ * The ssh command for background syncs. They can't answer an SSH agent's approval prompt (Bitwarden,
+ * 1Password), so with a key file on disk they skip the agent, and they never wait for input.
+ */
+export function backgroundSshCommand(input: { readonly hasKeyFile: boolean }): string {
+  return [
+    "ssh",
+    "-o BatchMode=yes",
+    "-o ConnectTimeout=20",
+    ...(input.hasKeyFile ? ["-o IdentityAgent=none"] : []),
+  ].join(" ");
+}
+
+type LocalSection = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
+
 export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   readonly cwd: string;
   readonly remote: VaultRemote;
   readonly gitleaks: string | null;
   /** Extra environment for network commands, such as a sign-in header. Never logged. */
   readonly credentialEnv?: Readonly<Record<string, string>>;
+  /** Runs the steps that change the vault; fetch and push run outside it. */
+  readonly local?: LocalSection;
+  /** `GIT_SSH_COMMAND` for fetch and push, see `backgroundSshCommand`. */
+  readonly sshCommand?: string;
 }) {
+  const local: LocalSection = input.local ?? ((effect) => effect);
   const git = yield* GitVcsDriver.GitVcsDriver;
   const { cwd, remote } = input;
   const identity = yield* ownerIdentity(cwd);
@@ -109,17 +129,29 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
       cwd,
       args,
       allowNonZeroExit: true,
-      env: options?.network ? { ...env, ...input.credentialEnv } : env,
+      env: options?.network
+        ? {
+            ...env,
+            ...(input.sshCommand === undefined ? {} : { GIT_SSH_COMMAND: input.sshCommand }),
+            ...input.credentialEnv,
+          }
+        : env,
       ...(options?.network ? { timeoutMs: NETWORK_TIMEOUT_MS } : {}),
     });
 
-  if (yield* hasUnfinishedMerge(cwd)) {
-    return { status: "skipped", reason: "unfinished-merge" } as SyncResult;
-  }
-  // A rebase needs a clean tree; whatever is unsaved goes with the next save.
-  if ((yield* run(["status", "--porcelain"])).stdout.trim() !== "") {
-    return { status: "skipped", reason: "unsaved-changes" } as SyncResult;
-  }
+  const ready = yield* local(
+    Effect.gen(function* () {
+      if (yield* hasUnfinishedMerge(cwd)) {
+        return { status: "skipped", reason: "unfinished-merge" } as SyncResult;
+      }
+      // A rebase needs a clean tree; whatever is unsaved goes with the next save.
+      if ((yield* run(["status", "--porcelain"])).stdout.trim() !== "") {
+        return { status: "skipped", reason: "unsaved-changes" } as SyncResult;
+      }
+      return null;
+    }),
+  );
+  if (ready !== null) return ready;
 
   const fetch = yield* run(["fetch", "--quiet", remote.name], { network: true });
   if (fetch.exitCode !== 0) {
@@ -132,12 +164,14 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   const hasRemoteBranch =
     (yield* run(["rev-parse", "--verify", "--quiet", `${remoteRef}^{commit}`])).exitCode === 0;
 
-  if (hasRemoteBranch) {
-    const behind = Number(
-      (yield* run(["rev-list", "--count", `HEAD..${remoteRef}`])).stdout.trim(),
-    );
-    if (behind > 0) {
-      // Rebasing re-creates commits; unsigned, so it never waits on a signing prompt.
+  // Rebasing re-creates commits; unsigned, so it never waits on a signing prompt.
+  const rebased = yield* local(
+    Effect.gen(function* () {
+      if (!hasRemoteBranch) return null;
+      const behind = Number(
+        (yield* run(["rev-list", "--count", `HEAD..${remoteRef}`])).stdout.trim(),
+      );
+      if (!(behind > 0)) return null;
       const rebase = yield* run([
         "-c",
         "commit.gpgsign=false",
@@ -146,13 +180,13 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
         "--no-autostash",
         remoteRef,
       ]);
-      if (rebase.exitCode !== 0) {
-        const files = listLines((yield* run(["diff", "--name-only", "--diff-filter=U"])).stdout);
-        yield* run(["rebase", "--abort"]);
-        return { status: "conflict", files } as SyncResult;
-      }
-    }
-  }
+      if (rebase.exitCode === 0) return null;
+      const files = listLines((yield* run(["diff", "--name-only", "--diff-filter=U"])).stdout);
+      yield* run(["rebase", "--abort"]);
+      return { status: "conflict", files } as SyncResult;
+    }),
+  );
+  if (rebased !== null) return rebased;
 
   const range = hasRemoteBranch ? `${remoteRef}..HEAD` : "HEAD";
   const ahead = Number((yield* run(["rev-list", "--count", range])).stdout.trim());

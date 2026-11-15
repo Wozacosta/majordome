@@ -79,6 +79,7 @@ import {
   remoteHost,
   remoteWebUrl,
   resolveVaultRemote,
+  backgroundSshCommand,
   syncVault,
 } from "./vaultSync.ts";
 
@@ -207,6 +208,11 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   >();
   const git = yield* GitVcsDriver.GitVcsDriver;
   const homeDirectory = yield* HostProcess.HomeDirectory;
+  const hasSshKeyFile = Effect.forEach(["id_ed25519", "id_ecdsa", "id_rsa"], (name) =>
+    fileSystem
+      .exists(path.join(homeDirectory, ".ssh", name))
+      .pipe(Effect.orElseSucceed(() => false)),
+  ).pipe(Effect.map((found) => found.some(Boolean)));
   const clientId =
     (yield* HostProcess.Environment)[GITHUB_CLIENT_ID_VARIABLE]?.trim() || DEFAULT_GITHUB_CLIENT_ID;
   const layerScope = yield* Effect.scope;
@@ -350,17 +356,15 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       Option.isSome(token) && remote.url.startsWith("https://github.com/")
         ? githubCredentialEnv(token.value)
         : undefined;
-    const result = yield* vaultLock
-      .withLock(
-        vaultRoot,
-        syncVault({
-          cwd: vaultRoot,
-          remote,
-          gitleaks,
-          ...(credentialEnv === undefined ? {} : { credentialEnv }),
-        }).pipe(Effect.provide(services)),
-      )
-      .pipe(Effect.result);
+    // Only the steps that change the vault hold its lock; a slow network never blocks other work.
+    const result = yield* syncVault({
+      cwd: vaultRoot,
+      remote,
+      gitleaks,
+      local: (effect) => vaultLock.withLock(vaultRoot, effect),
+      sshCommand: backgroundSshCommand({ hasKeyFile: yield* hasSshKeyFile }),
+      ...(credentialEnv === undefined ? {} : { credentialEnv }),
+    }).pipe(Effect.provide(services), Effect.result);
     if (result._tag === "Failure") {
       yield* Effect.logWarning("Majordome could not sync a vault.", {
         vaultRoot,

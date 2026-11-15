@@ -8,7 +8,13 @@ import * as ServerConfig from "../config.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { findGitleaks } from "./vaultSecretScan.ts";
-import { remoteHost, remoteWebUrl, resolveVaultRemote, syncVault } from "./vaultSync.ts";
+import {
+  backgroundSshCommand,
+  remoteHost,
+  remoteWebUrl,
+  resolveVaultRemote,
+  syncVault,
+} from "./vaultSync.ts";
 import {
   cloneElsewhere,
   commitAll,
@@ -115,4 +121,16 @@ it("names where a remote lives", () => {
     "https://github.com/someone/brain",
   );
   assert.isNull(remoteWebUrl("ssh://me@vps.example.com/srv/brain.git"));
+});
+
+it("never lets a background sync wait on an SSH agent prompt", () => {
+  assert.equal(
+    backgroundSshCommand({ hasKeyFile: true }),
+    "ssh -o BatchMode=yes -o ConnectTimeout=20 -o IdentityAgent=none",
+  );
+  // Without a key file the agent is the only way in, so it stays, but nothing waits for input.
+  assert.equal(
+    backgroundSshCommand({ hasKeyFile: false }),
+    "ssh -o BatchMode=yes -o ConnectTimeout=20",
+  );
 });
