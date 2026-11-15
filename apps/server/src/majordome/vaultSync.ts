@@ -11,6 +11,12 @@ import { hasUnfinishedMerge, identityEnv, listLines, ownerIdentity } from "./vau
 import { scanForSecrets } from "./vaultSecretScan.ts";
 
 const NETWORK_TIMEOUT_MS = 120_000;
+/**
+ * The newest commit whose history passed the secret scan; local, never pushed. A remote with no
+ * shared history gets the whole history scanned once: run commits and older history never were,
+ * and another remote may be on a more private host.
+ */
+const SCANNED_REF = "refs/majordome/secret-scanned";
 
 export interface VaultRemote {
   readonly name: string;
@@ -188,24 +194,36 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   );
   if (rebased !== null) return rebased;
 
-  const range = hasRemoteBranch ? `${remoteRef}..HEAD` : "HEAD";
-  const ahead = Number((yield* run(["rev-list", "--count", range])).stdout.trim());
+  // Pinned, so a commit made meanwhile is neither sent nor marked scanned without a scan.
+  const head = (yield* run(["rev-parse", "--verify", "HEAD^{commit}"])).stdout.trim();
+  const onRemote = hasRemoteBranch ? [remoteRef] : [];
+  const ahead = Number(
+    (yield* run(["rev-list", "--count", head, "--not", ...onRemote])).stdout.trim(),
+  );
   if (!(ahead > 0)) return { status: "synced", pushed: false } as SyncResult;
 
   if (input.gitleaks !== null) {
-    const scan = yield* scanForSecrets({
-      gitleaks: input.gitleaks,
-      cwd,
-      target: { logOpts: range },
-    });
-    if (scan.status === "found") return { status: "secret", files: scan.files } as SyncResult;
-    if (scan.status === "failed") {
-      return { status: "failed", message: "The secret scan did not finish." } as SyncResult;
+    const hasScanned =
+      (yield* run(["rev-parse", "--verify", "--quiet", `${SCANNED_REF}^{commit}`])).exitCode === 0;
+    const exclude = [...onRemote, ...(hasScanned ? [SCANNED_REF] : [])];
+    const unscanned = exclude.length === 0 ? [head] : [head, "--not", ...exclude];
+    const toScan = Number((yield* run(["rev-list", "--count", ...unscanned])).stdout.trim());
+    if (toScan > 0) {
+      const scan = yield* scanForSecrets({
+        gitleaks: input.gitleaks,
+        cwd,
+        target: { logOpts: unscanned.join(" ") },
+      });
+      if (scan.status === "found") return { status: "secret", files: scan.files } as SyncResult;
+      if (scan.status === "failed") {
+        return { status: "failed", message: "The secret scan did not finish." } as SyncResult;
+      }
+      yield* local(run(["update-ref", SCANNED_REF, head]));
     }
   }
 
   const push = yield* run(
-    ["push", "--quiet", remote.name, `HEAD:refs/heads/${remote.remoteBranch}`],
+    ["push", "--quiet", remote.name, `${head}:refs/heads/${remote.remoteBranch}`],
     { network: true },
   );
   if (push.exitCode !== 0) {

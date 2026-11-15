@@ -814,7 +814,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       syncPause: undefined,
       syncError: undefined,
     });
-    yield* runCycle(vaultRoot);
+    // The first backup to a new repository scans and sends the whole history, which can take
+    // minutes; the sign-in dialog does not wait for it.
+    yield* runCycle(vaultRoot).pipe(Effect.forkIn(layerScope));
     return yield* statusOf(vaultRoot);
   });
 

@@ -452,12 +452,19 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
       yield* gitIn(root, ["config", "http.proxy", "http://127.0.0.1:9"]);
       const github = fakeGitHub();
       const backup = yield* backupFor(root, github.http);
+      const lock = yield* VaultLock.VaultLock;
 
-      const prompt = yield* backup.connectGitHubStart({ projectId });
-      assert.strictEqual(prompt.status, "code");
-      const waiting = yield* Effect.forkChild(backup.connectGitHubWait({ projectId }));
-      yield* TestClock.adjust("5 seconds");
-      const connected = yield* Fiber.join(waiting);
+      // The first backup can take minutes on a large vault; signing in does not wait for it.
+      const connected = yield* lock.withLock(
+        root,
+        Effect.gen(function* () {
+          const prompt = yield* backup.connectGitHubStart({ projectId });
+          assert.strictEqual(prompt.status, "code");
+          const waiting = yield* Effect.forkChild(backup.connectGitHubWait({ projectId }));
+          yield* TestClock.adjust("5 seconds");
+          return yield* Fiber.join(waiting);
+        }),
+      );
 
       assert.deepStrictEqual(github.created, []);
       assert.isTrue(connected.github.signedIn);

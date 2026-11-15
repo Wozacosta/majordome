@@ -102,6 +102,40 @@ it.layer(testLayer)("syncVault", (it) => {
     }),
   );
 
+  it.effect("scans history for a new remote once, even when the first push fails", () =>
+    Effect.gen(function* () {
+      const { root, fs } = yield* makeVault();
+      yield* fs.writeFileString(`${root}/memory.md`, "- Likes tea\n- Reads at night\n");
+      yield* commitAll(root, "Your edits");
+      const bare = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-remote-" });
+      yield* gitIn(root, ["init", "--quiet", "--bare", "-b", "main", bare]);
+      yield* gitIn(root, ["remote", "add", "origin", bare]);
+      yield* fs.writeFileString(`${bare}/hooks/pre-receive`, "#!/bin/sh\nexit 1\n");
+      yield* fs.chmod(`${bare}/hooks/pre-receive`, 0o755);
+      // Records what each scan covers and finds nothing.
+      const scans = `${bare}.scans`;
+      const gitleaks = `${bare}.gitleaks`;
+      yield* fs.writeFileString(
+        gitleaks,
+        `#!/bin/sh\nwhile [ "$1" != "--log-opts" ]; do shift; done\necho "$2" >> "${scans}"\n`,
+      );
+      yield* fs.chmod(gitleaks, 0o755);
+
+      assert.equal((yield* sync(root, gitleaks)).status, "failed");
+      yield* fs.remove(`${bare}/hooks/pre-receive`);
+      const firstHead = yield* gitIn(root, ["rev-parse", "HEAD"]);
+      assert.deepStrictEqual(yield* sync(root, gitleaks), { status: "synced", pushed: true });
+      yield* fs.writeFileString(`${root}/trips.md`, "- Lisbon\n");
+      yield* commitAll(root, "Your edits");
+      assert.deepStrictEqual(yield* sync(root, gitleaks), { status: "synced", pushed: true });
+
+      assert.deepStrictEqual((yield* fs.readFileString(scans)).trim().split("\n"), [
+        firstHead,
+        `${yield* gitIn(root, ["rev-parse", "HEAD"])} --not refs/remotes/origin/main refs/majordome/secret-scanned`,
+      ]);
+    }),
+  );
+
   it.effect("waits for unsaved edits instead of syncing around them", () =>
     Effect.gen(function* () {
       const { root, fs } = yield* makeVault({ remote: true });
