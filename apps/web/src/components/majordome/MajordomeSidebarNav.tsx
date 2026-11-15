@@ -2,6 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
+  BellIcon,
   CalendarClockIcon,
   CloudUploadIcon,
   NewspaperIcon,
@@ -16,12 +17,13 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../
 import { backupNeedsAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 
-type NavPath = "/feed" | "/settings/scheduled-tasks" | "/backup" | "/phone";
+type NavPath = "/feed" | "/settings/scheduled-tasks" | "/backup" | "/notifications" | "/phone";
 
 const NAV_ITEMS: ReadonlyArray<{ to: NavPath; label: string; icon: LucideIcon }> = [
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/settings/scheduled-tasks", label: "Routines", icon: CalendarClockIcon },
   { to: "/backup", label: "Back up my brain", icon: CloudUploadIcon },
+  { to: "/notifications", label: "Notifications", icon: BellIcon },
   { to: "/phone", label: "Your phone", icon: SmartphoneIcon },
 ];
 

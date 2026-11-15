@@ -57,6 +57,7 @@ import {
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
+  BellIcon,
   BugIcon,
   ChartNoAxesColumnIcon,
   NewspaperIcon,
@@ -1718,11 +1719,21 @@ function OpenCommandPaletteDialog(props: {
     actionItems.push({
       kind: "action",
       value: "action:phone",
-      searchTerms: ["phone", "mobile", "notifications", "tailscale", "pair", "qr"],
+      searchTerms: ["phone", "mobile", "tailscale", "pair", "qr"],
       title: "Use on your phone",
       icon: <SmartphoneIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/phone" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:notifications",
+      searchTerms: ["notifications", "notify", "push", "alerts", "devices"],
+      title: "Notifications",
+      icon: <BellIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/notifications" });
       },
     });
     actionItems.push({

@@ -10,8 +10,10 @@ import {
   type EnvironmentId,
   type MajordomePhoneSetup,
 } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
 import * as DateTime from "effect/DateTime";
 import { AsyncResult } from "effect/reactivity";
+import { CircleCheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -42,13 +44,14 @@ import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
-import { NotificationsToggle } from "./NotificationsToggle";
+import { readIsOnPhone } from "./pushNotifications";
 
 const TAILSCALE_DOWNLOAD_URL = "https://tailscale.com/download";
 const TAILSCALE_DNS_SETTINGS_URL = "https://login.tailscale.com/admin/dns";
 
 export function PhonePage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const [onPhone] = useState(readIsOnPhone);
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
@@ -57,14 +60,33 @@ export function PhonePage() {
         </WorkspacePageHeader>
         <ScrollArea className="min-h-0 flex-1">
           <WorkspacePageContainer>
-            <Section title="Notifications on this device">
-              <NotificationsToggle />
-            </Section>
-            {environmentId === null ? null : <PhoneSetupSection environmentId={environmentId} />}
+            {onPhone ? (
+              <OnPhone />
+            ) : environmentId === null ? null : (
+              <PhoneSetupSection environmentId={environmentId} />
+            )}
           </WorkspacePageContainer>
         </ScrollArea>
       </div>
     </SidebarInset>
+  );
+}
+
+function OnPhone() {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <CircleCheckIcon className="size-4 text-success-foreground" aria-hidden />
+        You're on your phone
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Majordome is set up here. Choose what reaches this phone in{" "}
+        <Link to="/notifications" className="underline underline-offset-2">
+          Notifications
+        </Link>
+        .
+      </p>
+    </section>
   );
 }
 
@@ -249,9 +271,7 @@ function SecureAddressSteps({
               Add Majordome to your Home Screen. On iPhone, tap Share, then “Add to Home Screen”. On
               Android, open Chrome's menu and tap “Add to Home screen” or “Install app”.
             </li>
-            <li>
-              Open Majordome from your Home Screen, go to “Your phone” and turn on notifications.
-            </li>
+            <li>Open Majordome from your Home Screen, go to “Notifications” and turn them on.</li>
           </Steps>
         </>
       );

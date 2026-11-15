@@ -2,13 +2,23 @@ import type { MajordomePushSubscription } from "@t3tools/contracts";
 
 import {
   base64UrlToBytes,
+  deviceLabel,
   devicePushSupport,
   isAppleMobileDevice,
+  isOnPhone,
   subscriptionUsesKey,
 } from "./phone.logic";
 
 /** Served from `public/` at the root, so its scope covers every page of the app. */
 const SERVICE_WORKER_URL = "/majordome-sw.js";
+
+/** True when Majordome runs as an installed app, opened from the Home Screen or dock. */
+function readIsStandalone(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    ("standalone" in navigator && navigator.standalone === true)
+  );
+}
 
 export function readDevicePushSupport() {
   return devicePushSupport({
@@ -16,10 +26,21 @@ export function readDevicePushSupport() {
     hasServiceWorker: "serviceWorker" in navigator,
     hasPushManager: "PushManager" in window,
     isAppleMobile: isAppleMobileDevice(navigator.userAgent, navigator.maxTouchPoints),
-    isStandalone:
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator && navigator.standalone === true),
+    isStandalone: readIsStandalone(),
   });
+}
+
+export function readIsOnPhone(): boolean {
+  return isOnPhone({
+    userAgent: navigator.userAgent,
+    maxTouchPoints: navigator.maxTouchPoints,
+    isStandalone: readIsStandalone(),
+    isSecureContext: window.isSecureContext,
+  });
+}
+
+export function readDeviceLabel(): string | undefined {
+  return deviceLabel(navigator.userAgent, navigator.maxTouchPoints);
 }
 
 /** This device's current subscription, if it has one. Never asks for permission. */

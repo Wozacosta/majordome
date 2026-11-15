@@ -2330,10 +2330,11 @@ export const layerWsRpc = (
           ),
         [WS_METHODS.majordomeGetPushConfig]: (_input) => majordomePush.getConfig(),
         [WS_METHODS.majordomeSavePushSubscription]: (input) =>
-          majordomePush.saveSubscription(input.subscription),
+          majordomePush.saveSubscription(input.subscription, input.label),
         [WS_METHODS.majordomeRemovePushSubscription]: (input) =>
           majordomePush.removeSubscription(input.endpoint),
         [WS_METHODS.majordomeSendTestPush]: (input) => majordomePush.sendTest(input.endpoint),
+        [WS_METHODS.majordomeListPushDevices]: (_input) => majordomePush.listDevices(),
         [WS_METHODS.majordomeGetPhoneSetup]: (_input) => majordomePhoneSetup.read(),
         [WS_METHODS.majordomeEnableSecureAddress]: (_input) =>
           majordomePhoneSetup.enableSecureAddress(),

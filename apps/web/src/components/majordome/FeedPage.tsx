@@ -65,7 +65,6 @@ import {
   type FeedVault,
   summarizeFeedFiles,
 } from "./feed.logic";
-import { NotificationsToggle } from "./NotificationsToggle";
 import { BackupStatusLine } from "./BackupStatusLine";
 
 interface FeedVaultState extends FeedVault {
@@ -159,7 +158,6 @@ export function FeedPage() {
                     showVaultName={vaults.length > 1}
                   />
                 ))}
-                <NotificationsToggle compact />
               </div>
             ) : null}
             {runItems.length > 0 ? (

@@ -97,6 +97,7 @@ import {
   MajordomePhoneError,
   MajordomePhoneSetup,
   MajordomePushConfig,
+  MajordomePushDevices,
   MajordomePushEndpointInput,
   MajordomeSavePushSubscriptionInput,
 } from "./majordomePhone.ts";
@@ -656,6 +657,7 @@ export const WS_METHODS = {
   majordomeSavePushSubscription: "majordome.savePushSubscription",
   majordomeRemovePushSubscription: "majordome.removePushSubscription",
   majordomeSendTestPush: "majordome.sendTestPush",
+  majordomeListPushDevices: "majordome.listPushDevices",
   majordomeGetPhoneSetup: "majordome.getPhoneSetup",
   majordomeEnableSecureAddress: "majordome.enableSecureAddress",
   majordomeListVaultHistory: "majordome.listVaultHistory",
@@ -2167,6 +2169,12 @@ const WsMajordomeSendTestPushRpc = Rpc.make(WS_METHODS.majordomeSendTestPush, {
   error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeListPushDevicesRpc = Rpc.make(WS_METHODS.majordomeListPushDevices, {
+  payload: Schema.Struct({}),
+  success: MajordomePushDevices,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeGetPhoneSetupRpc = Rpc.make(WS_METHODS.majordomeGetPhoneSetup, {
   payload: Schema.Struct({}),
   success: MajordomePhoneSetup,
@@ -2485,6 +2493,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeSavePushSubscriptionRpc,
   WsMajordomeRemovePushSubscriptionRpc,
   WsMajordomeSendTestPushRpc,
+  WsMajordomeListPushDevicesRpc,
   WsMajordomeGetPhoneSetupRpc,
   WsMajordomeEnableSecureAddressRpc,
   WsMajordomeListVaultHistoryRpc,

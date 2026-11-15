@@ -84,6 +84,9 @@ describe("RPC authorization scopes", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetPushConfig)).toBe(
       AuthOrchestrationReadScope,
     );
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeListPushDevices)).toBe(
+      AuthOrchestrationReadScope,
+    );
     for (const method of [
       WS_METHODS.majordomeSavePushSubscription,
       WS_METHODS.majordomeRemovePushSubscription,

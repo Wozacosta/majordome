@@ -32,10 +32,17 @@ export function createMajordomeEnvironmentAtoms<R, E>(
     savePushSubscription: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:save-push-subscription",
       tag: WS_METHODS.majordomeSavePushSubscription,
+      onSettled: ({ environmentId }, registry) => bumpPushDevices(environmentId, registry),
     }),
     removePushSubscription: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:remove-push-subscription",
       tag: WS_METHODS.majordomeRemovePushSubscription,
+      onSettled: ({ environmentId }, registry) => bumpPushDevices(environmentId, registry),
+    }),
+    pushDevices: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:push-devices",
+      tag: WS_METHODS.majordomeListPushDevices,
+      refreshTrigger: ({ environmentId }) => pushDevicesRevision(environmentId),
     }),
     sendTestPush: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:send-test-push",
@@ -114,6 +121,17 @@ export function createMajordomeEnvironmentAtoms<R, E>(
     }),
   };
 }
+
+/** Bumped when a device turns notifications on or off, so the device list reads again. */
+const pushDevicesRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:push-devices-revision:${environmentId}`),
+  ),
+);
+
+const bumpPushDevices = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(pushDevicesRevision(environmentId), (value) => value + 1));
 
 /** Bumped after a backup action so the backup status, and the feed it may have added to, read again. */
 const backupRevision = Atom.family((environmentId: EnvironmentId) =>

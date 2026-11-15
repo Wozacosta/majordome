@@ -118,6 +118,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.serverReportClientActivity]: AuthOrchestrationReadScope,
   [WS_METHODS.scheduledTasksSubscribe]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetPushConfig]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeListPushDevices]: AuthOrchestrationReadScope,
   // Names this computer's tailnet address, as Connections settings do.
   [WS_METHODS.majordomeGetPhoneSetup]: AuthAccessReadScope,
   [WS_METHODS.majordomeListVaultHistory]: AuthOrchestrationReadScope,

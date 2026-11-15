@@ -77,12 +77,13 @@ it.layer(storeLayer)("MajordomePush", (it) => {
         // Saving the same device again replaces it rather than adding a second copy.
         yield* push.saveSubscription(browserSubscription("https://push.example/phone"));
 
-        yield* push.notifyAll({
+        const sentTo = yield* push.notifyAll({
           title: "Couldn't finish",
           body: "Start my day",
           tag: "majordome:thread-1",
           url: "/threads/env/thread-1",
         });
+        assert.equal(sentTo, 1);
 
         assert.deepEqual(sent.map((request) => request.url).toSorted(), [
           "https://push.example/gone",
@@ -107,6 +108,44 @@ it.layer(storeLayer)("MajordomePush", (it) => {
         yield* push.notifyAll({ title: "Start my day", body: "Hi", tag: "t", url: "/feed" });
         assert.lengthOf(sent, 0);
       }),
+  );
+
+  it.effect("lists devices with their labels, reading devices saved before labels existed", () =>
+    Effect.gen(function* () {
+      const secrets = yield* ServerSecretStore.ServerSecretStore;
+      const old = browserSubscription("https://push.example/old");
+      yield* secrets.set(
+        "majordome-web-push-subscriptions",
+        new TextEncoder().encode(JSON.stringify([old])),
+      );
+      const push = yield* MajordomePush.make.pipe(Effect.provide(pushService([], () => 201)));
+      yield* push.saveSubscription(
+        browserSubscription("https://push.example/labelled"),
+        "iPhone · Safari",
+      );
+      const { devices } = yield* push.listDevices();
+      assert.deepEqual(
+        devices.map(({ endpoint, label }) => [endpoint, label]),
+        [
+          ["https://push.example/old", null],
+          ["https://push.example/labelled", "iPhone · Safari"],
+        ],
+      );
+      assert.isNull(devices[0]?.addedAt);
+      const addedAt = devices[1]?.addedAt ?? null;
+      assert.isString(addedAt);
+
+      // Renewed keys keep the device's name and the time it was added.
+      yield* push.saveSubscription(browserSubscription("https://push.example/labelled"));
+      const renewed = (yield* push.listDevices()).devices.find(
+        (device) => device.endpoint === "https://push.example/labelled",
+      );
+      assert.deepEqual(renewed, {
+        endpoint: "https://push.example/labelled",
+        label: "iPhone · Safari",
+        addedAt,
+      });
+    }),
   );
 
   it.effect("refuses addresses that are not a push service's and tests only saved devices", () =>

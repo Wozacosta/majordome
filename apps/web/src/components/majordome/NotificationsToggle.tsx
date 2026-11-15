@@ -5,11 +5,9 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
-import { BellIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { majordomeEnvironment } from "../../state/majordome";
-import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
@@ -17,13 +15,13 @@ import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import type { DevicePushSupport } from "./phone.logic";
 import {
-  readDevicePushSupport,
+  readDeviceLabel,
   readDeviceSubscription,
   subscribeDevice,
   unsubscribeDevice,
 } from "./pushNotifications";
 
-const SUPPORT_COPY: Record<Exclude<DevicePushSupport, "supported">, string> = {
+export const SUPPORT_COPY: Record<Exclude<DevicePushSupport, "supported">, string> = {
   insecure:
     "Notifications need the secure address. Open Majordome from the link on the “Your phone” screen.",
   "needs-home-screen":
@@ -35,29 +33,14 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/**
- * "Notifications on this device": a waiting run, "Start my day", and a run that couldn't finish.
- * `compact` is the one-line version for the Feed, shown only where notifications can work.
- */
-export function NotificationsToggle({ compact = false }: { readonly compact?: boolean }) {
-  const environmentId = useAtomValue(primaryEnvironmentIdAtom);
-  const [support] = useState(readDevicePushSupport);
-  if (environmentId === null) return null;
-  if (support !== "supported") {
-    return compact ? null : (
-      <p className="text-sm text-muted-foreground">{SUPPORT_COPY[support]}</p>
-    );
-  }
-  return <SupportedNotificationsToggle environmentId={environmentId} compact={compact} />;
-}
+const fail = (title: string, error: unknown) =>
+  toastManager.add({ type: "error", title, description: errorMessage(error) });
 
-function SupportedNotificationsToggle({
-  environmentId,
-  compact,
-}: {
-  readonly environmentId: EnvironmentId;
-  readonly compact: boolean;
-}) {
+/**
+ * This device's notifications: its subscription (`undefined` while it is read, `null` when off)
+ * and the actions that change it. Where the browser can't get notifications, it stays off.
+ */
+export function useDevicePush(environmentId: EnvironmentId, supported: boolean) {
   const canSave = useAtomValue(
     majordomeEnvironment.savePushSubscription.permissionAtom(environmentId),
   );
@@ -68,11 +51,12 @@ function SupportedNotificationsToggle({
     reportFailure: false,
   });
   const sendTest = useAtomCommand(majordomeEnvironment.sendTestPush, { reportFailure: false });
-  const [endpoint, setEndpoint] = useState<string | null | undefined>(undefined);
+  const [endpoint, setEndpoint] = useState<string | null | undefined>(supported ? undefined : null);
   const [busy, setBusy] = useState(false);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Reads the browser's push subscription, which lives outside React.
   useEffect(() => {
+    if (!supported) return;
     let cancelled = false;
     void readDeviceSubscription()
       .then((subscription) => {
@@ -84,17 +68,18 @@ function SupportedNotificationsToggle({
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const fail = (title: string, error: unknown) =>
-    toastManager.add({ type: "error", title, description: errorMessage(error) });
+  }, [supported]);
 
   const turnOn = async () => {
     if (publicKey === null) return;
     setBusy(true);
     try {
       const subscription = await subscribeDevice(publicKey);
-      const result = await save({ environmentId, input: { subscription } });
+      const label = readDeviceLabel();
+      const result = await save({
+        environmentId,
+        input: { subscription, ...(label === undefined ? {} : { label }) },
+      });
       if (result._tag === "Failure") {
         if (!isAtomCommandInterrupted(result)) {
           fail("Could not turn on notifications", squashAtomCommandFailure(result));
@@ -134,48 +119,36 @@ function SupportedNotificationsToggle({
     toastManager.add({ type: "success", title: "Test sent. It should show up in a moment." });
   };
 
-  const on = endpoint != null;
-  const toggle = (
-    <label className="flex items-center gap-2 text-sm">
-      <Switch
-        size="sm"
-        checked={on}
-        disabled={busy || !canSave || endpoint === undefined || (!on && publicKey === null)}
-        onCheckedChange={(checked) => void (checked ? turnOn() : turnOff())}
-      />
-      Notifications on this device
-      {busy ? <Spinner size="sm" /> : null}
-    </label>
-  );
+  return { endpoint, busy, canSave, ready: publicKey !== null, turnOn, turnOff, test };
+}
 
-  if (compact) {
-    return (
-      <div className="flex min-h-7 flex-wrap items-center gap-2 px-3 text-xs text-muted-foreground">
-        <BellIcon className="size-3.5 shrink-0" aria-hidden />
-        {toggle}
-        {on ? (
-          <Button size="xs" variant="outline" onClick={() => void test()}>
-            Send a test
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
+export type DevicePush = ReturnType<typeof useDevicePush>;
+
+/** "Notifications on this device", with "Send a test" once they are on. */
+export function NotificationsToggle({ push }: { readonly push: DevicePush }) {
+  const on = push.endpoint != null;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
-        {toggle}
+        <label className="flex items-center gap-2 text-sm">
+          <Switch
+            size="sm"
+            checked={on}
+            disabled={
+              push.busy || !push.canSave || push.endpoint === undefined || (!on && !push.ready)
+            }
+            onCheckedChange={(checked) => void (checked ? push.turnOn() : push.turnOff())}
+          />
+          Notifications on this device
+          {push.busy ? <Spinner size="sm" /> : null}
+        </label>
         {on ? (
-          <Button size="xs" variant="outline" onClick={() => void test()}>
+          <Button size="xs" variant="outline" onClick={() => void push.test()}>
             Send a test
           </Button>
         ) : null}
       </div>
-      <p className="text-sm text-muted-foreground">
-        You'll hear from Majordome when a run is waiting for you, when “Start my day” is ready, and
-        when a run couldn't finish. Nothing else.
-      </p>
-      {canSave ? null : (
+      {push.canSave ? null : (
         <p className="text-sm text-muted-foreground">
           This device was paired without permission to run things, so it can't turn this on.
         </p>

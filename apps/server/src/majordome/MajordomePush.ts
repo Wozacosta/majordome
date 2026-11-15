@@ -7,9 +7,11 @@
 import {
   MajordomePhoneError,
   type MajordomePushConfig,
+  type MajordomePushDevices,
   type MajordomePushSubscription,
 } from "@t3tools/contracts";
 import * as Context from "effect/Context";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -31,9 +33,12 @@ const PUSH_TTL_SECONDS = 24 * 60 * 60;
 const VapidKeys = Schema.Struct({ publicKey: Schema.String, privateKey: Schema.String });
 const VapidKeysJson = Schema.fromJsonString(VapidKeys);
 
+// Devices saved before labels existed have no `label` or `addedAt`.
 const StoredSubscription = Schema.Struct({
   endpoint: Schema.String,
   keys: Schema.Struct({ p256dh: Schema.String, auth: Schema.String }),
+  label: Schema.optionalKey(Schema.String),
+  addedAt: Schema.optionalKey(Schema.String),
 });
 const StoredSubscriptionsJson = Schema.fromJsonString(Schema.Array(StoredSubscription));
 type StoredSubscription = typeof StoredSubscription.Type;
@@ -56,14 +61,22 @@ const encodePushPayload = Schema.encodeEffect(PushPayloadJson);
 const encodeText = (text: string) => new TextEncoder().encode(text);
 const decodeText = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
-/** Adds a device, or refreshes its keys when the browser renewed them. */
+/** Adds a device, or refreshes its keys when the browser renewed them, keeping when it was added. */
 function upsertSubscription(
   subscriptions: ReadonlyArray<StoredSubscription>,
   subscription: StoredSubscription,
 ): ReadonlyArray<StoredSubscription> {
+  const previous = subscriptions.find((existing) => existing.endpoint === subscription.endpoint);
+  const label = subscription.label ?? previous?.label;
+  const addedAt = previous?.addedAt ?? subscription.addedAt;
   return [
     ...subscriptions.filter((existing) => existing.endpoint !== subscription.endpoint),
-    { endpoint: subscription.endpoint, keys: subscription.keys },
+    {
+      endpoint: subscription.endpoint,
+      keys: subscription.keys,
+      ...(label === undefined ? {} : { label }),
+      ...(addedAt === undefined ? {} : { addedAt }),
+    },
   ];
 }
 
@@ -89,11 +102,13 @@ export class MajordomePush extends Context.Service<
     readonly getConfig: () => Effect.Effect<MajordomePushConfig, MajordomePhoneError>;
     readonly saveSubscription: (
       subscription: MajordomePushSubscription,
+      label?: string,
     ) => Effect.Effect<void, MajordomePhoneError>;
     readonly removeSubscription: (endpoint: string) => Effect.Effect<void, MajordomePhoneError>;
+    readonly listDevices: () => Effect.Effect<MajordomePushDevices, MajordomePhoneError>;
     readonly sendTest: (endpoint: string) => Effect.Effect<void, MajordomePhoneError>;
-    /** Sends to every device; failures are logged, never raised. */
-    readonly notifyAll: (message: VaultPushMessage) => Effect.Effect<void>;
+    /** Sends to every device and returns how many accepted it; failures are logged, never raised. */
+    readonly notifyAll: (message: VaultPushMessage) => Effect.Effect<number>;
   }
 >()("t3/majordome/MajordomePush") {}
 
@@ -243,19 +258,22 @@ export const make = Effect.gen(function* () {
   const notifyAll = Effect.fn("MajordomePush.notifyAll")(
     function* (message: VaultPushMessage) {
       const subscriptions = yield* readSubscriptions;
-      yield* Effect.forEach(
+      const deliveries = yield* Effect.forEach(
         subscriptions,
         (subscription) =>
           deliver(subscription, message).pipe(
             Effect.catch((cause) =>
-              Effect.logWarning("Majordome could not send a notification.", { cause }),
+              Effect.logWarning("Majordome could not send a notification.", { cause }).pipe(
+                Effect.as<PushDelivery>("failed"),
+              ),
             ),
           ),
-        { concurrency: 4, discard: true },
+        { concurrency: 4 },
       );
+      return deliveries.filter((delivery) => delivery === "sent").length;
     },
     Effect.catch((cause) =>
-      Effect.logWarning("Majordome could not send notifications.", { cause }),
+      Effect.logWarning("Majordome could not send notifications.", { cause }).pipe(Effect.as(0)),
     ),
   );
 
@@ -263,15 +281,31 @@ export const make = Effect.gen(function* () {
     getConfig: Effect.fn("MajordomePush.getConfig")(function* () {
       return { publicKey: (yield* vapidKeys).publicKey };
     }),
-    saveSubscription: Effect.fn("MajordomePush.saveSubscription")(function* (subscription) {
+    saveSubscription: Effect.fn("MajordomePush.saveSubscription")(function* (subscription, label) {
       if (!isPushEndpoint(subscription.endpoint)) {
         return yield* new MajordomePhoneError({
           message: "This browser gave a notification address Majordome can't use.",
         });
       }
-      yield* updateSubscriptions((current) => upsertSubscription(current, subscription));
+      const addedAt = DateTime.formatIso(yield* DateTime.now);
+      yield* updateSubscriptions((current) =>
+        upsertSubscription(current, {
+          ...subscription,
+          ...(label === undefined ? {} : { label }),
+          addedAt,
+        }),
+      );
     }),
     removeSubscription,
+    listDevices: Effect.fn("MajordomePush.listDevices")(function* () {
+      return {
+        devices: (yield* readSubscriptions).map((subscription) => ({
+          endpoint: subscription.endpoint,
+          label: subscription.label ?? null,
+          addedAt: subscription.addedAt ?? null,
+        })),
+      };
+    }),
     sendTest,
     notifyAll,
   });

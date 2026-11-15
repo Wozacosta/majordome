@@ -2,8 +2,10 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   base64UrlToBytes,
+  deviceLabel,
   devicePushSupport,
   isAppleMobileDevice,
+  isOnPhone,
   subscriptionUsesKey,
 } from "./phone.logic";
 
@@ -43,6 +45,53 @@ describe("isAppleMobileDevice", () => {
     expect(isAppleMobileDevice("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)", 5)).toBe(
       true,
     );
+  });
+});
+
+const IPHONE_SAFARI =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const MAC_CHROME =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+const MAC_SAFARI =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+const ANDROID_CHROME =
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+const WINDOWS_EDGE =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0";
+
+describe("deviceLabel", () => {
+  it.each([
+    [IPHONE_SAFARI, 5, "iPhone · Safari"],
+    [MAC_CHROME, 0, "Mac · Chrome"],
+    [MAC_SAFARI, 5, "iPad · Safari"],
+    [ANDROID_CHROME, 5, "Android · Chrome"],
+    [WINDOWS_EDGE, 0, "Windows · Edge"],
+    ["curl/8.0", 0, undefined],
+  ] as const)("%s", (userAgent, touchPoints, expected) => {
+    expect(deviceLabel(userAgent, touchPoints)).toBe(expected);
+  });
+});
+
+describe("isOnPhone", () => {
+  const phone = {
+    userAgent: IPHONE_SAFARI,
+    maxTouchPoints: 5,
+    isStandalone: false,
+    isSecureContext: true,
+  };
+  const computer = { ...phone, userAgent: MAC_CHROME, maxTouchPoints: 0 };
+  it.each([
+    ["a phone on the secure address", phone, true],
+    ["a phone browser on the Wi-Fi address", { ...phone, isSecureContext: false }, false],
+    [
+      "the installed app on a phone",
+      { ...phone, isSecureContext: false, isStandalone: true },
+      true,
+    ],
+    ["the computer on the secure address", computer, false],
+    ["an app installed on the computer", { ...computer, isStandalone: true }, false],
+  ] as const)("%s", (_name, input, expected) => {
+    expect(isOnPhone(input)).toBe(expected);
   });
 });
 

@@ -18,8 +18,12 @@ export const MajordomePushConfig = Schema.Struct({
 });
 export type MajordomePushConfig = typeof MajordomePushConfig.Type;
 
+/** A device's readable name, such as "iPhone · Safari", made from its browser at subscribe time. */
+export const MajordomePushDeviceLabel = TrimmedNonEmptyString.check(Schema.isMaxLength(60));
+
 export const MajordomeSavePushSubscriptionInput = Schema.Struct({
   subscription: MajordomePushSubscription,
+  label: Schema.optionalKey(MajordomePushDeviceLabel),
 });
 export type MajordomeSavePushSubscriptionInput = typeof MajordomeSavePushSubscriptionInput.Type;
 
@@ -27,6 +31,20 @@ export const MajordomePushEndpointInput = Schema.Struct({
   endpoint: TrimmedNonEmptyString,
 });
 export type MajordomePushEndpointInput = typeof MajordomePushEndpointInput.Type;
+
+/** A device that gets notifications. Devices saved before labels existed have neither field. */
+export const MajordomePushDevice = Schema.Struct({
+  endpoint: Schema.String,
+  label: Schema.NullOr(Schema.String),
+  /** ISO time the device turned notifications on. */
+  addedAt: Schema.NullOr(Schema.String),
+});
+export type MajordomePushDevice = typeof MajordomePushDevice.Type;
+
+export const MajordomePushDevices = Schema.Struct({
+  devices: Schema.Array(MajordomePushDevice),
+});
+export type MajordomePushDevices = typeof MajordomePushDevices.Type;
 
 /**
  * How far this computer is from a phone: Tailscale missing, signed out, HTTPS off on the tailnet,

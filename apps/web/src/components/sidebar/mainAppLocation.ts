@@ -15,6 +15,7 @@ export function isSidebarUtilityPage(pathname: string) {
     pathname === "/pull-requests" ||
     pathname === "/feed" ||
     pathname === "/phone" ||
+    pathname === "/notifications" ||
     pathname === "/backup"
   );
 }
