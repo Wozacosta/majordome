@@ -160,12 +160,16 @@ export function summarizeFeedFiles(
   return { shown: files.slice(0, max), more: Math.max(0, files.length - max) };
 }
 
-/** A run that needs the person: it waits on their answer, or it stopped before finishing. */
-export type FeedRunStatus = "waiting" | "failed";
+/**
+ * A run that needs the person: it waits on their answer, it stopped before finishing, or the time
+ * limit for routines stopped it.
+ */
+export type FeedRunStatus = "waiting" | "failed" | "stopped";
 
 export const FEED_RUN_STATUS_LABELS: Record<FeedRunStatus, string> = {
   waiting: "Waiting for you",
   failed: "Couldn't finish",
+  stopped: "Stopped: ran too long",
 };
 
 export interface FeedRunItem {
@@ -199,12 +203,40 @@ type FeedRunThread = Pick<
   | "lastVisitedAt"
 >;
 
+/** `${environmentId}:${runId}` of each run the time limit stopped, from the vault histories. */
+export function stoppedRunKeys(
+  vaults: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly stoppedRuns: ReadonlyArray<{ readonly runId: string }>;
+  }>,
+): ReadonlySet<string> {
+  return new Set(
+    vaults.flatMap((vault) =>
+      vault.stoppedRuns.map((run) => `${vault.environmentId}:${run.runId}`),
+    ),
+  );
+}
+
+/** The thread's latest run was stopped by the time limit, after the person last opened it. */
+function wasStoppedUnseen(thread: FeedRunThread, stoppedRuns: ReadonlySet<string>): boolean {
+  const run = thread.latestRun;
+  if (run?.status !== "interrupted" || !stoppedRuns.has(`${thread.environmentId}:${run.runId}`)) {
+    return false;
+  }
+  if (!thread.lastVisitedAt || !run.completedAt) return true;
+  return Date.parse(run.completedAt) > Date.parse(thread.lastVisitedAt);
+}
+
 /**
  * The feed's word for a thread's state, read the way the sidebar reads it: a pending approval or
  * question is "waiting", and a failure (usage limits included) is "failed" until the person opens
- * the chat. Anything else is not the feed's to flag.
+ * the chat, as is a run the time limit stopped. Anything else is not the feed's to flag.
  */
-function feedRunStatus(thread: FeedRunThread): FeedRunStatus | null {
+function feedRunStatus(
+  thread: FeedRunThread,
+  stoppedRuns: ReadonlySet<string>,
+): FeedRunStatus | null {
+  if (wasStoppedUnseen(thread, stoppedRuns)) return "stopped";
   switch (resolveSidebarRowStatus(thread)) {
     case "approval":
     case "input":
@@ -219,7 +251,7 @@ function feedRunStatus(thread: FeedRunThread): FeedRunStatus | null {
 
 function feedRunAt(thread: FeedRunThread, status: FeedRunStatus): string {
   const run = thread.latestRun;
-  return status === "failed"
+  return status !== "waiting"
     ? (run?.completedAt ?? thread.runtime?.updatedAt ?? thread.updatedAt)
     : (thread.pendingUserInputAt ?? run?.startedAt ?? run?.requestedAt ?? thread.updatedAt);
 }
@@ -233,6 +265,7 @@ function feedRunAt(thread: FeedRunThread, status: FeedRunStatus): string {
 export function buildFeedRunItems(
   threads: ReadonlyArray<FeedRunThread>,
   vaults: ReadonlyArray<FeedVault>,
+  stoppedRuns: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<FeedRunItem> {
   const vaultByProject = new Map(
     vaults.map((vault) => [`${vault.environmentId}:${vault.projectId}`, vault] as const),
@@ -242,7 +275,7 @@ export function buildFeedRunItems(
     if (thread.archivedAt !== null || !isListedThreadLineage(thread.lineage)) continue;
     const vault = vaultByProject.get(`${thread.environmentId}:${thread.projectId}`);
     if (vault === undefined) continue;
-    const status = feedRunStatus(thread);
+    const status = feedRunStatus(thread, stoppedRuns);
     if (status === null) continue;
     const at = feedRunAt(thread, status);
     items.push({

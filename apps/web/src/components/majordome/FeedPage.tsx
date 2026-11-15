@@ -77,12 +77,16 @@ import {
   ownDayLine,
   type FeedRunItem,
   type FeedVault,
+  stoppedRunKeys,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
 import { notesLink } from "./notes.logic";
 
 interface FeedVaultState extends FeedVault {
   readonly routinesRunner: MajordomeRoutinesRunner;
+  /** Today's runs are used up, so routines wait for tomorrow; null when they are not. */
+  readonly pausedRunsPerDay: number | null;
+  readonly stoppedRuns: NonNullable<MajordomeVaultHistoryResult["stoppedRuns"]>;
 }
 
 export function FeedPage() {
@@ -124,12 +128,17 @@ export function FeedPage() {
         projectId: project.id,
         title: project.title,
       };
-      vaults.push({ ...vault, routinesRunner: history.routinesRunner });
+      vaults.push({
+        ...vault,
+        routinesRunner: history.routinesRunner,
+        pausedRunsPerDay: history.pausedToday ? (history.routineLimits?.runsPerDay ?? null) : null,
+        stoppedRuns: history.stoppedRuns ?? [],
+      });
       histories.push({ vault, entries: history.entries });
       vaultNotes.set(vaultKey(vault), feedVaultNotes(history));
     }
   });
-  const runItems = buildFeedRunItems(threads, vaults);
+  const runItems = buildFeedRunItems(threads, vaults, stoppedRunKeys(vaults));
   const changes = buildFeedItems(histories, { includeOwnChanges: true });
   const timeline = includeOwnChanges ? null : foldOwnChanges(changes);
   const grouped = includeOwnChanges ? groupFeedItems(changes) : null;
@@ -725,8 +734,15 @@ function RoutinesRunnerLine({
       <CalendarClockIcon className="size-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1 truncate">
         {showVaultName ? `${vault.title}: ` : ""}
-        {RUNNER_COPY[vault.routinesRunner]}
+        {vault.pausedRunsPerDay !== null
+          ? `Routines are paused until tomorrow: they used today's ${vault.pausedRunsPerDay} runs`
+          : RUNNER_COPY[vault.routinesRunner]}
       </span>
+      {vault.pausedRunsPerDay !== null ? (
+        <Button size="xs" variant="outline" render={<Link to="/settings/scheduled-tasks" />}>
+          Change limits
+        </Button>
+      ) : null}
       {vault.routinesRunner !== "this-server" && canMove ? (
         <Button size="xs" variant="outline" onClick={onMove}>
           Move routines here

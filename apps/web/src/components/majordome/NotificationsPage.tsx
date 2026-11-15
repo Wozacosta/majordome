@@ -34,7 +34,8 @@ export function NotificationsPage() {
         <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-sm">
           <li>A run is waiting for you: it has a question or needs your OK.</li>
           <li>“Start my day” is ready, with its first line.</li>
-          <li>A run couldn't finish.</li>
+          <li>A run couldn't finish, or ran past its time limit and was stopped.</li>
+          <li>Routines paused for the rest of the day: they used today's runs.</li>
           <li>Something you asked an agent to tell you, like “let me know when it's done”.</li>
         </ul>
         <p className="text-sm text-muted-foreground">Nothing else.</p>

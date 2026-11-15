@@ -71,6 +71,7 @@ import {
 } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { isMajordome } from "../../env";
 import { environmentAtomList, environmentIdsKey } from "../../state/environmentAtomList";
 import { useThreadSearch } from "../../state/queries";
 import { formatEnvironmentQueryError, useEnvironmentQuery } from "../../state/query";
@@ -145,6 +146,7 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { RoutineLimitsSection } from "../majordome/RoutineLimits";
 import { searchableSetting } from "./settingsSearch";
 import {
   SettingsPageContainer,
@@ -486,6 +488,7 @@ export function ScheduledTasksSettings(target: {
           </div>
         )}
       </SettingsSection>
+      {isMajordome ? <RoutineLimitsSection /> : null}
       {editor ? (
         <ScheduledTaskEditorDialog
           key={`${editor.environmentId}:${editor.task?.id ?? "new"}`}
