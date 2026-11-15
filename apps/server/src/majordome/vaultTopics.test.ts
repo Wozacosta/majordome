@@ -118,19 +118,37 @@ describe("suggestTopics", () => {
         folder("archive/old-job"),
       ],
     });
+    // With no dates known, the fuller folder comes first.
     assert.deepEqual(suggestions, [
-      { title: "Lisbon move", folder: "projects/lisbon-move" },
-      { title: "Fitness", folder: "personal/fitness" },
       { title: "Recipes", folder: "recipes" },
+      { title: "Fitness", folder: "personal/fitness" },
+      { title: "Lisbon move", folder: "projects/lisbon-move" },
     ]);
   });
 
-  it("suggests at most six", () => {
-    const folders = Array.from({ length: 10 }, (_, index) => ({
+  it("puts the folders written in most lately first, from any area, and skips code repos", () => {
+    const suggestions = suggestTopics({
+      layout,
+      taken: new Set(),
+      folders: [
+        { path: "projects/alfandari", notes: 9, newestNoteMs: 1_000 },
+        { path: "projects/old-site", notes: 3, newestNoteMs: 2_000, inRepo: true },
+        { path: "personal/fitness", notes: 2, newestNoteMs: 9_000 },
+        { path: "personal/finances", notes: 4, newestNoteMs: 8_000 },
+      ],
+    });
+    assert.deepEqual(
+      suggestions.map((suggestion) => suggestion.folder),
+      ["personal/fitness", "personal/finances", "projects/alfandari"],
+    );
+  });
+
+  it("suggests at most twelve", () => {
+    const folders = Array.from({ length: 20 }, (_, index) => ({
       path: `projects/p${index}`,
       notes: 1,
     }));
-    assert.lengthOf(suggestTopics({ layout, taken: new Set(), folders }), 6);
+    assert.lengthOf(suggestTopics({ layout, taken: new Set(), folders }), 12);
   });
 
   it.effect("lists the vault's folders with their notes, plumbing left out", () =>
@@ -144,14 +162,22 @@ describe("suggestTopics", () => {
         "inbox/": "",
       });
       const folders = yield* listVaultFolders(root);
-      assert.deepEqual(folders, [
-        { path: "inbox", notes: 0 },
-        { path: "personal", notes: 2 },
-        { path: "projects", notes: 1 },
-        { path: "personal/fitness", notes: 2 },
-        { path: "projects/lisbon-move", notes: 1 },
-        { path: "projects/lisbon-move/visas", notes: 1 },
-      ]);
+      assert.isTrue(folders.every((folder) => folder.inRepo === false));
+      assert.isAbove(
+        folders.find((folder) => folder.path === "personal/fitness")?.newestNoteMs ?? 0,
+        0,
+      );
+      assert.deepEqual(
+        folders.map(({ path, notes }) => ({ path, notes })),
+        [
+          { path: "inbox", notes: 0 },
+          { path: "personal", notes: 2 },
+          { path: "projects", notes: 1 },
+          { path: "personal/fitness", notes: 2 },
+          { path: "projects/lisbon-move", notes: 1 },
+          { path: "projects/lisbon-move/visas", notes: 1 },
+        ],
+      );
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

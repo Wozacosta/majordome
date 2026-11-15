@@ -158,10 +158,14 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.isTrue(first.isVault);
       assert.equal(first.projectsFolder, "projects");
       assert.includeMembers([...first.folders], ["personal/fitness", "projects/lisbon-move"]);
-      assert.deepEqual(first.suggestions, [
-        { title: "Lisbon move", folder: "projects/lisbon-move" },
-        { title: "Fitness", folder: "personal/fitness" },
-      ]);
+      // Order follows when the notes changed, which the test can't pin down.
+      assert.sameDeepMembers(
+        [...first.suggestions],
+        [
+          { title: "Lisbon move", folder: "projects/lisbon-move" },
+          { title: "Fitness", folder: "personal/fitness" },
+        ],
+      );
 
       yield* service.create({
         projectId: vaultProject,

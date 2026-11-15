@@ -374,6 +374,8 @@ function ActivityLabel({ timestamp }: { readonly timestamp: string }) {
   );
 }
 
+/** Suggestions shown before "Show more": the most recently active folders. */
+const FIRST_SUGGESTIONS = 6;
 function TopicSuggestions({
   vault,
   onCustomize,
@@ -406,6 +408,8 @@ function TopicSuggestions({
     if (result._tag === "Failure") reportFailure(`Could not add ${suggestion.title}`, result);
   };
 
+  const [showAll, setShowAll] = useState(false);
+
   return (
     <div
       role="group"
@@ -434,30 +438,42 @@ function TopicSuggestions({
         </Button>
       </div>
       <ul className="flex flex-col gap-0.5">
-        {vault.suggestions.map((suggestion) => (
-          <li key={suggestion.folder} className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onCustomize(suggestion)}
-              className="flex min-w-0 flex-1 cursor-pointer flex-col rounded-md px-1.5 py-0.5 text-left hover:bg-sidebar-row-hover"
-            >
-              <span className="truncate text-sm text-sidebar-foreground">{suggestion.title}</span>
-              <span className="truncate text-2xs text-sidebar-muted-foreground">
-                {suggestion.folder}
-              </span>
-            </button>
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={busy !== null}
-              aria-label={`Add ${suggestion.title}`}
-              onClick={() => void accept(suggestion)}
-            >
-              Add
-            </Button>
-          </li>
-        ))}
+        {(showAll ? vault.suggestions : vault.suggestions.slice(0, FIRST_SUGGESTIONS)).map(
+          (suggestion) => (
+            <li key={suggestion.folder} className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onCustomize(suggestion)}
+                className="flex min-w-0 flex-1 cursor-pointer flex-col rounded-md px-1.5 py-0.5 text-left hover:bg-sidebar-row-hover"
+              >
+                <span className="truncate text-sm text-sidebar-foreground">{suggestion.title}</span>
+                <span className="truncate text-2xs text-sidebar-muted-foreground">
+                  {suggestion.folder}
+                </span>
+              </button>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={busy !== null}
+                aria-label={`Add ${suggestion.title}`}
+                onClick={() => void accept(suggestion)}
+              >
+                Add
+              </Button>
+            </li>
+          ),
+        )}
       </ul>
+      {!showAll && vault.suggestions.length > FIRST_SUGGESTIONS ? (
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          className="self-start"
+          onClick={() => setShowAll(true)}
+        >
+          Show {vault.suggestions.length - FIRST_SUGGESTIONS} more
+        </Button>
+      ) : null}
     </div>
   );
 }

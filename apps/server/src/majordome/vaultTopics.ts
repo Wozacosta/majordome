@@ -117,6 +117,10 @@ export interface VaultFolder {
   readonly path: string;
   /** Markdown notes in the folder and the folders below it, as far as the listing went. */
   readonly notes: number;
+  /** When the most recently changed of those notes changed, in epoch ms; 0 when unknown. */
+  readonly newestNoteMs?: number;
+  /** The folder, or one above it, is a separate git repository (code), not notes. */
+  readonly inRepo?: boolean;
 }
 
 /** Folder names that hold plumbing, periodic notes or old things, never a topic. */
@@ -135,13 +139,12 @@ const NOT_TOPIC_FOLDERS = new Set([
   "node_modules",
 ]);
 
-const SUGGESTION_LIMIT = 6;
+const SUGGESTION_LIMIT = 12;
 
 /**
- * Up to six folders that look like topics, with human titles: the folders inside the projects
- * folder and other top-level containers (`personal/fitness`, `projects/lisbon-move`), then
- * top-level folders with notes and no subfolders. Daily, inbox, attachments, archive and template
- * folders are skipped, and so are folders with no notes and folders already in `taken`.
+ * Up to twelve folders that look like topics, most recently written in first: second-level folders
+ * of any area and top-level leaves. Skips daily, inbox, plumbing, code repositories, empty folders
+ * and folders in `taken`.
  */
 export function suggestTopics(input: {
   readonly folders: ReadonlyArray<VaultFolder>;
@@ -162,24 +165,26 @@ export function suggestTopics(input: {
       );
     }) || skipped.has(folder.toLowerCase());
   const usable = input.folders.filter(
-    (folder) => !isPlumbing(folder.path) && !input.taken.has(folder.path),
+    (folder) => !isPlumbing(folder.path) && !input.taken.has(folder.path) && !folder.inRepo,
   );
   const depth = (folder: string) => folder.split("/").length;
   const hasChildren = (folder: string) =>
     input.folders.some((other) => other.path.startsWith(`${folder}/`) && !isPlumbing(other.path));
   const withNotes = usable.filter((folder) => folder.notes > 0);
   const projectsFolder = normalizeTopicFolder(input.layout.projectsFolder);
-  const inProjects = withNotes.filter(
-    (folder) => depth(folder.path) === 2 && folder.path.split("/")[0] === projectsFolder,
-  );
-  const nested = withNotes.filter(
-    (folder) => depth(folder.path) === 2 && folder.path.split("/")[0] !== projectsFolder,
-  );
+  const nested = withNotes.filter((folder) => depth(folder.path) === 2);
   const leaves = withNotes.filter(
     (folder) =>
       depth(folder.path) === 1 && folder.path !== projectsFolder && !hasChildren(folder.path),
   );
-  return [...inProjects, ...nested, ...leaves]
+  // Where the owner writes most lately comes first, then the fuller folder.
+  return [...nested, ...leaves]
+    .toSorted(
+      (a, b) =>
+        (b.newestNoteMs ?? 0) - (a.newestNoteMs ?? 0) ||
+        b.notes - a.notes ||
+        a.path.localeCompare(b.path),
+    )
     .slice(0, SUGGESTION_LIMIT)
     .map((folder) => ({ title: topicTitleFromFolder(folder.path), folder: folder.path }));
 }
@@ -196,6 +201,8 @@ export const listVaultFolders = Effect.fn("majordome.listVaultFolders")(function
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const ownNotes = new Map<string, number>();
+  const ownNewest = new Map<string, number>();
+  const repos = new Set<string>();
   let level: Array<string> = [""];
   // One level deeper than listed, to count the notes in the deepest listed folders.
   for (let depth = 0; depth <= FOLDER_LIST_DEPTH && level.length > 0; depth += 1) {
@@ -205,9 +212,20 @@ export const listVaultFolders = Effect.fn("majordome.listVaultFolders")(function
         .readDirectoryEntries(parent === "" ? vaultRoot : path.join(vaultRoot, parent))
         .pipe(Effect.orElseSucceed((): ReadonlyArray<FileSystem.DirectoryEntry> => []));
       let notes = 0;
+      let newest = 0;
       for (const entry of entries.toSorted((a, b) => a.name.localeCompare(b.name))) {
+        if (entry.name === ".git" && parent !== "") repos.add(parent);
         if (!isListedName(entry.name)) continue;
-        if (entry.type === "File" && entry.name.toLowerCase().endsWith(".md")) notes += 1;
+        if (entry.type === "File" && entry.name.toLowerCase().endsWith(".md")) {
+          notes += 1;
+          const info = yield* fileSystem
+            .stat(path.join(vaultRoot, parent, entry.name))
+            .pipe(Effect.option);
+          const changedMs = Option.isSome(info)
+            ? Option.match(info.value.mtime, { onNone: () => 0, onSome: (date) => date.getTime() })
+            : 0;
+          newest = Math.max(newest, changedMs);
+        }
         if (
           entry.type === "Directory" &&
           depth < FOLDER_LIST_DEPTH &&
@@ -216,17 +234,23 @@ export const listVaultFolders = Effect.fn("majordome.listVaultFolders")(function
           next.push(parent === "" ? entry.name : `${parent}/${entry.name}`);
         }
       }
-      if (parent !== "") ownNotes.set(parent, notes);
+      if (parent !== "") {
+        ownNotes.set(parent, notes);
+        ownNewest.set(parent, newest);
+      }
     }
     level = next;
   }
   const folders = [...ownNotes.keys()];
-  return folders.map((folder): VaultFolder => ({
-    path: folder,
-    notes: folders
-      .filter((other) => other === folder || other.startsWith(`${folder}/`))
-      .reduce((sum, other) => sum + (ownNotes.get(other) ?? 0), 0),
-  }));
+  return folders.map((folder): VaultFolder => {
+    const subtree = folders.filter((other) => other === folder || other.startsWith(`${folder}/`));
+    return {
+      path: folder,
+      notes: subtree.reduce((sum, other) => sum + (ownNotes.get(other) ?? 0), 0),
+      newestNoteMs: subtree.reduce((max, other) => Math.max(max, ownNewest.get(other) ?? 0), 0),
+      inRepo: [...repos].some((repo) => folder === repo || folder.startsWith(`${repo}/`)),
+    };
+  });
 });
 
 /** The vault's topics; none when the file is missing or unreadable. */
