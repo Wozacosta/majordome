@@ -1526,6 +1526,22 @@ export const layer: Layer.Layer<
         legacyInputRunIds,
         budget,
       } = handoffContext;
+      const nativeThreadHasTurns =
+        nativeInputRunIds.size > 0 ||
+        (legacyInputRunIds.size > 0 &&
+          sameNativeThread &&
+          !acceptedAttempts.some((source) => source.nativeThreadId !== undefined));
+      // Majordome: a new native session starts with the vault's live memory, for every provider.
+      const vaultContext =
+        nativeThreadHasTurns || goalCommand || resolvedRuntimePolicy.cwd == null
+          ? ""
+          : yield* readVaultContext({
+              vaultRoot: resolvedRuntimePolicy.cwd,
+              nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+            }).pipe(
+              Effect.provideService(FileSystem.FileSystem, fileSystem),
+              Effect.provideService(Path.Path, path),
+            );
       if (manualResume && unsentResumeMessage === undefined && session.resumeTurn === undefined) {
         yield* settleStartFailure({
           signal: "resume-unsupported",
@@ -1733,21 +1749,12 @@ export const layer: Layer.Layer<
             sideChatHandoff === undefined || compact || goalCommand
               ? ""
               : sideChatHandoff.summaryText;
-          // Majordome: a new native session starts with the vault's live memory, for every provider.
-          const vaultContext =
-            compact ||
-            goalCommand ||
-            turnInput.nativeThreadHasTurns === true ||
-            turnInput.runtimePolicy.cwd == null
-              ? ""
-              : yield* readVaultContext({
-                  vaultRoot: turnInput.runtimePolicy.cwd,
-                  nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
-                }).pipe(
-                  Effect.provideService(FileSystem.FileSystem, fileSystem),
-                  Effect.provideService(Path.Path, path),
-                );
-          const context = [vaultContext, delivery.context, sideChatContext, restartNote]
+          const context = [
+            compact ? "" : vaultContext,
+            delivery.context,
+            sideChatContext,
+            restartNote,
+          ]
             .filter((part) => part !== "")
             .join("\n\n");
           const { restartContinuationOfRunId: _resumedRunId, ...promptedInput } = turnInput;
@@ -1822,6 +1829,7 @@ export const layer: Layer.Layer<
         ),
       );
       const deliverySession =
+        vaultContext === "" &&
         effectiveHandoffs.length === 0 &&
         retryHandoff.length === 0 &&
         sideChatHandoff === undefined &&
@@ -1856,11 +1864,7 @@ export const layer: Layer.Layer<
               .map((turn) => turn.ordinal),
           ) + 1,
         resume: manualResume && unsentResumeMessage === undefined,
-        nativeThreadHasTurns:
-          nativeInputRunIds.size > 0 ||
-          (legacyInputRunIds.size > 0 &&
-            sameNativeThread &&
-            !acceptedAttempts.some((source) => source.nativeThreadId !== undefined)),
+        nativeThreadHasTurns,
         shouldStartProviderTurn: runControls.shouldStartProviderTurn,
         shouldFinalizeRun: runControls.shouldFinalizeRun,
         hasUnpairedRunInterruptRequest: runControls.hasUnpairedRunInterruptRequest,
