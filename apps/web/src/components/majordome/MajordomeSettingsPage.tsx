@@ -16,7 +16,8 @@ export function MajordomeSettingsPage({
 }) {
   return (
     <SettingsPageContainer {...(width ? { width } : {})}>
-      <SettingsSearchTarget {...searchableSetting(searchId)}>
+      {/* The page is the destination, so no focus ring around all of it. */}
+      <SettingsSearchTarget {...searchableSetting(searchId)} className="outline-none">
         {/* Without it, a search jump would center the whole page instead of its top. */}
         <span data-settings-scroll-target aria-hidden className="block" />
         <div className="flex flex-col gap-6">{children}</div>

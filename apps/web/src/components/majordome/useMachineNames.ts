@@ -24,5 +24,8 @@ export function useMachineNames() {
     primaryEnvironmentId,
     machineOf: (environmentId: EnvironmentId) =>
       machineName(environmentId, { primaryEnvironmentId, desktop: DESKTOP, labels }),
+    /** In the desktop app, whether the server runs on another machine than this one. */
+    isElsewhere: (environmentId: EnvironmentId) =>
+      DESKTOP !== null && environmentId !== primaryEnvironmentId,
   };
 }

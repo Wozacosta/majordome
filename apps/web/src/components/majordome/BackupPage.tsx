@@ -80,7 +80,7 @@ export function BackupPage() {
     ),
   );
 
-  const { primaryEnvironmentId, machineOf } = useMachineNames();
+  const { primaryEnvironmentId, machineOf, isElsewhere } = useMachineNames();
 
   const copies: Array<BackupVault & { readonly status: MajordomeBackupStatus }> = [];
   const errors: Array<string> = [];
@@ -124,6 +124,7 @@ export function BackupPage() {
               vault={copy}
               status={copy.status}
               label={label}
+              elsewhere={isElsewhere(copy.environmentId)}
               nowMs={nowMs}
             />
           ))}
@@ -161,12 +162,14 @@ function VaultBackup({
   vault,
   status,
   label,
+  elsewhere,
   nowMs,
 }: {
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
   /** The brain or machine this is, when several are listed. */
   readonly label: string | null;
+  readonly elsewhere: boolean;
   readonly nowMs: number;
 }) {
   const headline = backupHeadline(status);
@@ -272,7 +275,10 @@ function VaultBackup({
         </p>
       )}
       <GitHubOption vault={vault} status={status} canConfigure={canConfigure} />
-      <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+      {/* A folder on another machine, such as a server, isn't the iCloud or USB drive meant here. */}
+      {elsewhere && status.folder === null ? null : (
+        <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+      )}
       <GoogleDriveOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
     </div>
   );
