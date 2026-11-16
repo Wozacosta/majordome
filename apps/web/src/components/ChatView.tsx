@@ -33,6 +33,7 @@ import { useThreadLifecycle } from "./chat/useThreadLifecycle";
 import { useRightPanelActions } from "./chat/useRightPanelActions";
 import { type TerminalLaunchContext, useChatTerminalActions } from "./chat/useChatTerminalActions";
 import { useComposerSend } from "./chat/useComposerSend";
+import { consumeDraftSend, usePendingDraftSendStore } from "./majordome/pendingDraftSend";
 import { useComposerResume } from "./chat/useComposerResume";
 import { ThreadFind, ThreadFindCanvas } from "./chat/ThreadFindProvider";
 import { closeThreadFind, openThreadFind, useThreadFindOpen } from "./chat/threadFindStore";
@@ -3211,6 +3212,21 @@ export default function ChatView(props: ChatViewProps) {
     consumePendingFileDrop,
     pendingSidebarFileDrops,
   ]);
+
+  const pendingDraftSendId = usePendingDraftSendStore((state) => state.draftId);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- sends the draft Today's capture box filled in, once this draft's composer has mounted
+  useEffect(() => {
+    if (!draftId || pendingDraftSendId !== draftId || !activeThread) return;
+    const send = () => {
+      if (composerRef.current && consumeDraftSend(draftId)) void onComposerSendStable();
+    };
+    if (composerRef.current) {
+      send();
+      return;
+    }
+    const raf = window.requestAnimationFrame(send);
+    return () => window.cancelAnimationFrame(raf);
+  }, [activeThread, composerRef, draftId, onComposerSendStable, pendingDraftSendId]);
 
   const addDroppedFilesToComposer = useStableCallback(
     (files: Parameters<ChatComposerHandle["addDroppedFiles"]>[0]) =>

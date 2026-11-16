@@ -4,6 +4,7 @@ import { AsyncResult } from "effect/reactivity";
 import {
   CalendarClockIcon,
   CircleAlertIcon,
+  HouseIcon,
   NewspaperIcon,
   NotebookTextIcon,
   type LucideIcon,
@@ -18,6 +19,7 @@ import { buildFeedRunItems } from "./feed.logic";
 
 /** The screens Majordome is used through; its setup lives in Settings. */
 const MAJORDOME_SIDEBAR_ITEMS = [
+  { to: "/", label: "Today", icon: HouseIcon },
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/settings/scheduled-tasks", label: "Routines", icon: CalendarClockIcon },

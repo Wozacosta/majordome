@@ -40,7 +40,7 @@ const navLinks = (container: HTMLElement) =>
     (link) => [link.textContent, link.getAttribute("href")],
   );
 
-it("lists only Feed, Notes and Routines while backup is fine", async () => {
+it("lists only Today, Feed, Notes and Routines while backup is fine", async () => {
   setup([healthy]);
   await using screen = await render(
     <SidebarProvider>
@@ -48,6 +48,7 @@ it("lists only Feed, Notes and Routines while backup is fine", async () => {
     </SidebarProvider>,
   );
   expect(navLinks(screen.container)).toEqual([
+    ["Today", "/"],
     ["Feed", "/feed"],
     ["Notes", "/notes"],
     ["Routines", "/settings/scheduled-tasks"],

@@ -5,12 +5,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type {
-  EnvironmentId,
-  MajordomeTopic,
-  MajordomeTopicSuggestion,
-  ThreadId,
-} from "@t3tools/contracts";
+import type { MajordomeTopic, MajordomeTopicSuggestion } from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -34,7 +29,6 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import type { SidebarThreadSummary } from "../../types";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
@@ -64,6 +58,7 @@ import {
   type VaultTopic,
 } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
+import { useOpenTopic } from "./useOpenTopic";
 
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
@@ -125,8 +120,6 @@ export function MajordomeTopicsSection() {
 }
 
 function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
-  const navigate = useNavigate();
-  const { isMobile, setOpenMobile } = useSidebar();
   const [dialog, setDialog] = useState<TopicDialogRequest | null>(null);
   const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
   const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
@@ -137,10 +130,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
     readonly topicId: string;
     readonly fromRouteKey: string | null;
   } | null>(null);
-  const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
-    label: "open a topic",
-    reportFailure: false,
-  });
+  const openTopic = useOpenTopic(vault);
   const reorderTopics = useAtomCommand(majordomeEnvironment.reorderTopics, {
     label: "reorder topics",
     reportFailure: false,
@@ -176,28 +166,9 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
     }
   }, [previewStamp, copies, seenPreviewStamp]);
 
-  const goToThread = (environmentId: EnvironmentId, threadId: ThreadId) => {
-    if (isMobile) setOpenMobile(false);
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(scopeThreadRef(environmentId, threadId)),
-    });
-  };
-
   const open = async (topic: VaultTopic) => {
     setOpening({ topicId: topic.id, fromRouteKey: routeThreadKey });
-    if (topic.threadId !== null) {
-      goToThread(topic.threadEnvironmentId, topic.threadId);
-      return;
-    }
-    const result = await openTopic({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicId: topic.id },
-    });
-    if (result._tag === "Failure") {
-      setOpening(null);
-      reportFailure(`Could not open ${topic.title}`, result);
-    } else goToThread(vault.environmentId, result.value.threadId);
+    if (!(await openTopic(topic))) setOpening(null);
   };
 
   const reorder = async (next: ReadonlyArray<string>) => {

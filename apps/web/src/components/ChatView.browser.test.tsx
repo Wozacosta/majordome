@@ -14,6 +14,10 @@ import { AppRoot } from "~/AppRoot";
 // The route loads ChatView lazily, and its first transform (React Compiler over ~4k lines)
 // takes 6-11s; importing it here keeps that out of the test's timeout.
 import "~/components/ChatView";
+import {
+  requestDraftSend,
+  usePendingDraftSendStore,
+} from "~/components/majordome/pendingDraftSend";
 import { DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { selectThreadDiffPanelSelection, useDiffPanelStore } from "~/diffPanelStore";
 import { __setClientSettingsForTests } from "~/hooks/useSettings";
@@ -323,6 +327,39 @@ it("a stashed prompt ending in a file chip restores with the chip", async () => 
   await vi.waitFor(() => expect(editor.element().textContent).toContain("Check"));
   expect(editor.element().textContent).not.toContain("[package.json](package.json)");
   await expect.element(chip).toBeVisible();
+});
+
+it("a draft Today's capture box asked to send goes out as if typed on the new-thread page", async () => {
+  using _environment = installFakeEnvironment([]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const draftId = DraftId.make("draft-today-capture");
+  const threadId = ThreadId.make("thread-today-capture");
+  const drafts = useComposerDraftStore.getState();
+  drafts.setProjectDraftThreadId(scopeProjectRef(ENVIRONMENT_ID, PROJECT_ID), draftId, {
+    threadId,
+  });
+  drafts.setPrompt(draftId, "Buy bread tomorrow");
+
+  const router = getRouter(createMemoryHistory({ initialEntries: [`/draft/${draftId}`] }));
+  await router.load();
+  await using _app = await render(<AppRoot router={router} />, {
+    // AppRoot brings its own router.
+    router: false,
+  });
+  const editor = page.getByTestId("composer-editor");
+  await expect.element(editor).toHaveTextContent("Buy bread tomorrow");
+  // The shell snapshot has arrived once the sidebar lists the project, so the connection is up.
+  await expect.element(page.getByText("render", { exact: true }).first()).toBeVisible();
+
+  await act(() => requestDraftSend(draftId));
+
+  // Sent: the text has left the composer for the timeline.
+  await expect.element(editor).not.toHaveTextContent("Buy bread tomorrow");
+  await expect.element(page.getByText("Buy bread tomorrow")).toBeVisible();
+  expect(usePendingDraftSendStore.getState().draftId).toBeNull();
 });
 
 it("a rejected send leaves the timeline when a new draft was typed meanwhile", async () => {

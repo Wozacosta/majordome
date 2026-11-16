@@ -4,7 +4,9 @@ import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-import { isElectron } from "../env";
+import { isElectron, isMajordome } from "../env";
+import { TodayPage } from "../components/majordome/TodayPage";
+import { useMajordomeVaults } from "../components/majordome/useMajordomeVaults";
 import { NoProjectsHero } from "../components/NoProjectsHero";
 import { sortScopedProjectsForSidebar } from "../components/Sidebar.logic";
 import { Button } from "../components/ui/button";
@@ -30,7 +32,15 @@ function ChatIndexRouteView() {
     if (environments.length === 0) return <HostedEmptyState />;
   }
 
-  return <IndexDraftLanding />;
+  return isMajordome ? <MajordomeLanding /> : <IndexDraftLanding />;
+}
+
+/** Majordome opens on Today; with no notes folder yet, on what T3 Code shows without one. */
+function MajordomeLanding() {
+  const { activeVault, loading } = useMajordomeVaults();
+  if (activeVault !== null) return <TodayPage vault={activeVault} />;
+  // A project still being asked about may be the notes folder.
+  return loading ? null : <IndexDraftLanding />;
 }
 
 function IndexDraftLanding() {
