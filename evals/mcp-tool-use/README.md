@@ -289,6 +289,10 @@ Passes per case, main's runtime text (3 samples) → this branch's "Link every o
 
 After the change, the first reference to a file is an absolute link. The remaining failures come from two other kinds of span. Some repeat the file later as relative inline code (Sonnet's other-checkout failures). Others quote values rather than cite files, such as `main` set to `src/index.ts` or the import `./ws`. Chat still turns those spans into pills.
 
+## Private documents cases
+
+`cases/private-documents.ndjson` covers Majordome's `list_private_documents` and `request_private_document`: asking for one document by name with a reason when the task needs it, relaying a refusal without retrying or looking for the file another way, listing without opening, and a control whose answer is in the notes. A mocked `request_private_document` names only its `status`; the runner adds the note T3 sends with that outcome. They were written with the tools from the design in `docs/decisions.md`, not from a recorded mistake, and have only been built with `--dry-run`: run them before changing either description.
+
 ## Where T3's text lives
 
 - `packages/provider-core/src/server/runtimeInstructions.ts`

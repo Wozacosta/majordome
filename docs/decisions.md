@@ -119,6 +119,17 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.
+  - Each server keeps its own documents in its state folder, encrypted to one `age` identity made
+    on first use: in the Keychain on a Mac, in the server's secret store (a 0600 file) elsewhere.
+    On a server the key therefore sits beside the ciphertext; the encryption keeps documents out
+    of the vault, its sync and plain reads, not away from whoever controls the server.
+  - An agent asks by name with a reason (`request_private_document`). The request is the secret
+    request card with `delivery: "private_document"`, so it is in the conversation, makes the run
+    "waiting for you" in the feed, pauses the routine time limit, and sends a push. No answer in
+    24 hours denies it.
+  - Allowed, the copy lives under the attachments folder, the one place outside the workspace
+    every provider may read, in a 0700 folder; it goes when the run ends or after 15 minutes, and
+    start-up clears whatever a crash left.
 - **Tier C, personal passwords.** Out of scope; they stay in a password manager.
 
 ## Always-on
@@ -180,7 +191,8 @@ takes over.
    the app installs (on by default, "Quit Majordome Completely" stops it), the container image with
    a Tailscale sidecar, and the guide. Claude signs in on a server with a pasted
    `claude setup-token` token. Big files and sensitive documents wait for M5.
-5. **M5.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
+5. **M5.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`. _Done:_ Tier B
+   (Settings > Private documents, the two agent tools, the access log).
 6. **M6.** Dreaming, search index, Overview screen.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.

@@ -59,6 +59,8 @@ import { HtmlToolkit } from "../../apps/server/src/mcp/toolkits/html/tools.ts";
 import { MessageToolkit } from "../../apps/server/src/mcp/toolkits/message/tools.ts";
 import { OrchestratorToolkit } from "../../apps/server/src/mcp/toolkits/orchestrator/tools.ts";
 import { PreviewToolkit } from "../../apps/server/src/mcp/toolkits/preview/tools.ts";
+import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolkits/privateDocuments/handlers.ts";
+import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
 import { ProjectToolkit } from "../../apps/server/src/mcp/toolkits/project/tools.ts";
 import {
@@ -460,6 +462,7 @@ const t3SourceTools: ReadonlyArray<Tool.Any> = [
   DeviceToolkit,
   HtmlToolkit,
   MessageToolkit,
+  PrivateDocumentsToolkit,
 ].flatMap((toolkit): ReadonlyArray<Tool.Any> => Object.values(toolkit.tools));
 // McpHttpServer decodes arguments with each tool's JSON codec, which drops undeclared keys.
 const t3InputDecoders = new Map(
@@ -1389,6 +1392,12 @@ const withProductFields = (name: string, value: unknown, child: boolean): unknow
   switch (name) {
     case "request_secret": {
       const note = typeof value.status === "string" ? unsavedSecretNote?.[value.status] : undefined;
+      return note === undefined || value.note !== undefined ? value : { ...value, note };
+    }
+    case "request_private_document": {
+      // The note T3 sends with each outcome, so a case's mock names only the outcome.
+      const notes: Readonly<Record<string, string>> = PRIVATE_DOCUMENT_REQUEST_NOTES;
+      const note = typeof value.status === "string" ? notes[value.status] : undefined;
       return note === undefined || value.note !== undefined ? value : { ...value, note };
     }
     case "delegate_task":
