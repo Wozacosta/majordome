@@ -29,6 +29,8 @@ import {
   type ContextChipAccentKind,
 } from "./lib/contextChipAccents";
 
+import { MAJORDOME_THEME } from "./components/majordome/majordomeTheme";
+import { isMajordome } from "./env";
 import { appAtomRegistry, subscribeAtomChanges } from "./rpc/atomRegistry";
 import { applyThemeCss } from "./themeCss";
 import { themeServerEnvironmentThemesAtom } from "./state/server";
@@ -430,6 +432,11 @@ function legacyThemeMode(theme: ThemePreference): ThemeAppearance | null {
 }
 
 export function getStandardThemeColors(appearance: ThemeAppearance): ThemeColors {
+  if (isMajordome) {
+    return (standardMajordomeThemeColors[appearance] ??= decodeThemeColors(
+      getThemeColorsForMode(MAJORDOME_THEME, appearance)!,
+    ));
+  }
   if (appearance === "dark") {
     return (standardDarkThemeColors ??= decodeThemeColors({
       ...T3_CODE_DARK_THEME_COLORS,
@@ -447,6 +454,8 @@ const STANDARD_WEB_PAINTED_COLORS: Record<ThemeAppearance, Partial<ThemeColors>>
 
 /** The standard theme as index.css paints it, for solves that measure the page. */
 export function getStandardPaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
+  // Majordome's standard theme is painted from its palette, not from index.css.
+  if (isMajordome) return getStandardThemeColors(appearance);
   return { ...getStandardThemeColors(appearance), ...STANDARD_WEB_PAINTED_COLORS[appearance] };
 }
 
@@ -460,6 +469,7 @@ type ThemeOklch = { L: number; C: number; h: number };
 type ParsedThemeColor = { color: ThemeOklch; alpha: number };
 
 let standardLightThemeColors: ThemeColors | undefined;
+const standardMajordomeThemeColors: Partial<Record<ThemeAppearance, ThemeColors>> = {};
 let standardDarkThemeColors: ThemeColors | undefined;
 
 const THEME_LIGHT_FOREGROUND: ThemeRgbColor = { r: 255, g: 250, b: 255 };
@@ -1679,7 +1689,8 @@ export function applyThemePalette(theme: ThemePreference, appearance?: ThemeAppe
   if (!root?.style) return;
 
   setThemePreviewAppearance(null);
-  const palette = getThemeDefinition(theme);
+  // The standard theme stays "no definition" for Settings; Majordome only paints it differently.
+  const palette = getThemeDefinition(theme) ?? (isMajordome ? MAJORDOME_THEME : null);
   applyThemeCss(palette?.css);
 
   if (palette) {

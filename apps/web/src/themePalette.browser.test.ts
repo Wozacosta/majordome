@@ -2,7 +2,7 @@ import { converter } from "culori/fn";
 import { describe, expect, it } from "vite-plus/test";
 
 import "~/index.css";
-import { getStandardPaintedThemeColors } from "./themePalette";
+import { applyThemePalette, getStandardPaintedThemeColors } from "./themePalette";
 
 const toRgb = converter("rgb");
 
@@ -22,11 +22,13 @@ function paintedChannels(variable: string, canvas: readonly number[] = [0, 0, 0]
 }
 
 describe("standard painted theme colors", () => {
-  it("match the chip surfaces index.css paints", () => {
+  it("match the chip surfaces the standard theme paints", () => {
     const root = document.documentElement;
     try {
       for (const appearance of ["light", "dark"] as const) {
         root.classList.toggle("dark", appearance === "dark");
+        // Majordome paints its standard theme from a palette, on top of index.css.
+        applyThemePalette("system", appearance);
         const colors = getStandardPaintedThemeColors(appearance);
         const canvas = paintedChannels("--background");
         for (const [variable, role] of [
