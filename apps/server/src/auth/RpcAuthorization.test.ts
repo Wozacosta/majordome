@@ -110,6 +110,25 @@ describe("RPC authorization scopes", () => {
     );
   });
 
+  it("lets readers list private documents, operators answer a request, and only settings scope add, remove or download one", () => {
+    for (const method of [
+      WS_METHODS.majordomeListPrivateDocuments,
+      WS_METHODS.majordomeGetPrivateDocumentRequest,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
+    }
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeAnswerPrivateDocumentRequest)).toBe(
+      AuthOrchestrationOperateScope,
+    );
+    for (const method of [
+      WS_METHODS.majordomeAddPrivateDocument,
+      WS_METHODS.majordomeRemovePrivateDocument,
+      WS_METHODS.majordomeViewPrivateDocument,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthSettingsWriteScope);
+    }
+  });
+
   it("separates passive terminal observation from operations that can change a shell", () => {
     for (const method of [WS_METHODS.terminalObserve, WS_METHODS.subscribeTerminalMetadata]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthTerminalReadScope);
