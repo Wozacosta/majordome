@@ -28,6 +28,7 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
         "Overview",
         "Back up my brain",
         "Connections",
+        "Private documents",
         "Notifications",
         "Your phone",
         "Always-on server",

@@ -53,6 +53,7 @@ import {
   type OverviewBox,
 } from "./overview.logic";
 import { EntryTitle, ROW_ACTION_CLASS, Section, Surface, ToneDot } from "./paper";
+import { RecentPrivateDocumentAccess } from "./PrivateDocumentsPage";
 import { readDevicePushSupport } from "./pushNotifications";
 import { useMachineNames } from "./useMachineNames";
 
@@ -73,6 +74,9 @@ export function OverviewPage() {
           <Diagram environmentId={environmentId} background={background} />
         )}
       </Section>
+      {environmentId === null ? null : (
+        <RecentPrivateDocumentAccess environmentId={environmentId} />
+      )}
       <BackgroundServiceToggle state={background} />
     </MajordomeSettingsPage>
   );

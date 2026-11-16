@@ -140,6 +140,8 @@ import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
+import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as PrivateDocumentsKey from "./majordome/PrivateDocumentsKey.ts";
 import * as RoutineLimits from "./majordome/RoutineLimits.ts";
 import * as RoutineRunLedger from "./majordome/RoutineRunLedger.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
@@ -766,14 +768,21 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       yield* service.start();
     }),
   ).pipe(Layer.provideMerge(layerMajordomeBackup)),
-  // provideMerge keeps the push service in the context, for the notification RPCs.
+  // provideMerge keeps the push service in the context, for the notification RPCs, and the
+  // private documents service, which agents ask from /mcp and the owner answers over WebSocket.
   Layer.effectDiscard(
     Effect.gen(function* () {
       yield* (yield* MajordomePushReactor.PushReactor).start();
       yield* (yield* RoutineLimits.RoutineLimits).start();
+      yield* (yield* MajordomePrivateDocuments.MajordomePrivateDocuments).start();
     }),
   ).pipe(
     Layer.provide(Layer.merge(MajordomePushReactor.layer, RoutineLimits.layer)),
+    Layer.provideMerge(
+      MajordomePrivateDocuments.layer.pipe(
+        Layer.provide(PrivateDocumentsKey.layer.pipe(Layer.provide(ProcessRunner.layer))),
+      ),
+    ),
     Layer.provideMerge(MajordomePush.layer),
   ),
   ProviderUsageLimitsIngestion.layer,
@@ -912,6 +921,7 @@ const layerMakeRoutes = Layer.mergeAll(
     ServerHttp.layerOtlpTracesProxyRoute,
     ServerHttp.layerAssetRoute,
     ServerHttp.layerAttachmentUploadRoute,
+    ServerHttp.layerPrivateDocumentViewRoute,
     GuestHttp.layer,
     DeviceHubProxy.layer,
     ServerBrowserStream.routeLayer,

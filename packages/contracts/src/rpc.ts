@@ -111,6 +111,17 @@ import {
 } from "./majordomePhone.ts";
 import { MajordomeConnectorsInput, MajordomeConnectorsResult } from "./majordomeConnectors.ts";
 import {
+  MajordomeAddPrivateDocumentInput,
+  MajordomeAnswerPrivateDocumentRequestInput,
+  MajordomePrivateDocument,
+  MajordomePrivateDocumentError,
+  MajordomePrivateDocumentInput,
+  MajordomePrivateDocumentRequest,
+  MajordomePrivateDocumentRequestInput,
+  MajordomePrivateDocumentsResult,
+  MajordomeViewPrivateDocumentResult,
+} from "./majordomePrivateDocuments.ts";
+import {
   MajordomeBackupInput,
   MajordomeBackupStatus,
   MajordomeConfigureBackupInput,
@@ -690,6 +701,12 @@ export const WS_METHODS = {
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
   majordomeListConnectors: "majordome.listConnectors",
+  majordomeListPrivateDocuments: "majordome.listPrivateDocuments",
+  majordomeAddPrivateDocument: "majordome.addPrivateDocument",
+  majordomeRemovePrivateDocument: "majordome.removePrivateDocument",
+  majordomeViewPrivateDocument: "majordome.viewPrivateDocument",
+  majordomeGetPrivateDocumentRequest: "majordome.getPrivateDocumentRequest",
+  majordomeAnswerPrivateDocumentRequest: "majordome.answerPrivateDocumentRequest",
   majordomeBackUpNow: "majordome.backUpNow",
   majordomeConfigureBackup: "majordome.configureBackup",
   majordomeConnectGitHubStart: "majordome.connectGitHubStart",
@@ -2276,6 +2293,51 @@ const WsMajordomeListConnectorsRpc = Rpc.make(WS_METHODS.majordomeListConnectors
   error: EnvironmentAuthorizationError,
 });
 
+const privateDocumentErrors = Schema.Union([
+  MajordomePrivateDocumentError,
+  EnvironmentAuthorizationError,
+]);
+
+const WsMajordomeListPrivateDocumentsRpc = Rpc.make(WS_METHODS.majordomeListPrivateDocuments, {
+  payload: Schema.Struct({}),
+  success: MajordomePrivateDocumentsResult,
+  error: privateDocumentErrors,
+});
+
+const WsMajordomeAddPrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeAddPrivateDocument, {
+  payload: MajordomeAddPrivateDocumentInput,
+  success: MajordomePrivateDocument,
+  error: privateDocumentErrors,
+});
+
+const WsMajordomeRemovePrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeRemovePrivateDocument, {
+  payload: MajordomePrivateDocumentInput,
+  error: privateDocumentErrors,
+});
+
+const WsMajordomeViewPrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeViewPrivateDocument, {
+  payload: MajordomePrivateDocumentInput,
+  success: MajordomeViewPrivateDocumentResult,
+  error: privateDocumentErrors,
+});
+
+const WsMajordomeGetPrivateDocumentRequestRpc = Rpc.make(
+  WS_METHODS.majordomeGetPrivateDocumentRequest,
+  {
+    payload: MajordomePrivateDocumentRequestInput,
+    success: Schema.NullOr(MajordomePrivateDocumentRequest),
+    error: EnvironmentAuthorizationError,
+  },
+);
+
+const WsMajordomeAnswerPrivateDocumentRequestRpc = Rpc.make(
+  WS_METHODS.majordomeAnswerPrivateDocumentRequest,
+  {
+    payload: MajordomeAnswerPrivateDocumentRequestInput,
+    error: privateDocumentErrors,
+  },
+);
+
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
   payload: MajordomeTopicsInput,
   success: MajordomeTopicsResult,
@@ -2620,6 +2682,12 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeGetBackupStatusRpc,
   WsMajordomeListConnectorsRpc,
+  WsMajordomeListPrivateDocumentsRpc,
+  WsMajordomeAddPrivateDocumentRpc,
+  WsMajordomeRemovePrivateDocumentRpc,
+  WsMajordomeViewPrivateDocumentRpc,
+  WsMajordomeGetPrivateDocumentRequestRpc,
+  WsMajordomeAnswerPrivateDocumentRequestRpc,
   WsMajordomeBackUpNowRpc,
   WsMajordomeConfigureBackupRpc,
   WsMajordomeConnectGitHubStartRpc,

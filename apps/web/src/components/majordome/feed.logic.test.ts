@@ -4,8 +4,10 @@ import {
   ProjectId,
   ProviderInstanceId,
   RunId,
+  RuntimeRequestId,
   ThreadId,
 } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -344,6 +346,29 @@ describe("buildFeedRunItems", () => {
       ["too-long", "stopped", "2026-11-15T09:00:00.000Z"],
     ]);
     expect(items[0]?.vault).toBe(vaults[0]);
+    expect(items.map((item) => item.ownerCardId)).toEqual([null, null, null, null]);
+
+    // A card only the owner can answer, such as a private document request, is named so the feed
+    // can offer its answers.
+    const [card] = buildFeedRunItems(
+      [
+        thread("document", {
+          run: "running",
+          hasPendingUserInput: true,
+          source: {
+            pendingRuntimeRequest: {
+              id: RuntimeRequestId.make("turn-item:private-document:1"),
+              kind: "user_input",
+              createdAt: DateTime.makeUnsafe("2026-11-15T11:00:00.000Z"),
+              blocking: true,
+              userOnly: true,
+            },
+          },
+        }),
+      ],
+      vaults,
+    );
+    expect(card?.ownerCardId).toBe("turn-item:private-document:1");
   });
 });
 

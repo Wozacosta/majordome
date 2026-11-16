@@ -248,6 +248,14 @@ const make = Effect.gen(function* () {
           event.payload.status === "pending",
         );
       }
+      // A card only the owner can answer, such as a private document request, waits as a question does.
+      if (event.type === "turn-item.updated" && event.payload.type === "secret_request") {
+        return yield* limit.request(
+          event.threadId,
+          event.payload.id,
+          event.payload.secretStatus === "pending",
+        );
+      }
       if (event.type !== "run.updated") return;
       const run = event.payload;
       if (ThreadManagement.isTerminalRunStatus(run.status)) {

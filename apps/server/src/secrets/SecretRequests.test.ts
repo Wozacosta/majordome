@@ -76,7 +76,7 @@ const withService = <A, E>(
   }) => Effect.Effect<A, E>,
   options: {
     readonly threadId?: ThreadId;
-    readonly delivery?: "file";
+    readonly delivery?: "file" | "private_document";
     readonly directory?: string;
     readonly runStatus?: string;
     readonly removeFails?: boolean;
@@ -362,6 +362,22 @@ it.effect("declining stores nothing, and a request is answered once", () =>
       assert.equal(dispatched.length, 1);
       assert.deepEqual(valuesOf(stored), []);
     }),
+  ),
+);
+
+it.effect("a private document card cannot be answered as a secret", () =>
+  withService(
+    ({ service, stored, dispatched }) =>
+      Effect.gen(function* () {
+        // Saving a value would mark the card `saved`, which for this card means "allowed".
+        const error = yield* service
+          .answer({ threadId, turnItemId, answer: { type: "save", secret: "anything" } })
+          .pipe(Effect.flip);
+        assert.equal(error.reason, "not_found");
+        assert.deepEqual(valuesOf(stored), []);
+        assert.equal(dispatched.length, 0);
+      }),
+    { delivery: "private_document" },
   ),
 );
 

@@ -84,6 +84,11 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeBackUpNow]: AuthOrchestrationOperateScope,
   // Backup settings hold a passphrase and a GitHub sign-in, like credentials saved in Settings.
   [WS_METHODS.majordomeConfigureBackup]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeAddPrivateDocument]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeRemovePrivateDocument]: AuthSettingsWriteScope,
+  // Hands out the decrypted file, so it needs more than the scope that lists the names.
+  [WS_METHODS.majordomeViewPrivateDocument]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeConnectGitHubStart]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubWait]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubCancel]: AuthSettingsWriteScope,

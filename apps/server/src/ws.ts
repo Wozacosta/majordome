@@ -131,6 +131,7 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
+import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
 import {
@@ -1484,6 +1485,7 @@ export const layerWsRpc = (
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
+      const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
@@ -2367,6 +2369,16 @@ export const layerWsRpc = (
             Effect.andThen(majordomeBackup.getStatus(input)),
           ),
         [WS_METHODS.majordomeListConnectors]: (input) => majordomeConnectors.list(input),
+        [WS_METHODS.majordomeListPrivateDocuments]: (_input) => privateDocuments.list(),
+        [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
+        [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),
+        [WS_METHODS.majordomeViewPrivateDocument]: (input) => privateDocuments.ownerViewUrl(input),
+        [WS_METHODS.majordomeGetPrivateDocumentRequest]: (input) =>
+          privateDocuments.getRequest(input),
+        [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: (input) =>
+          Effect.annotateCurrentSpan({ "orchestration_v2.thread_id": input.threadId }).pipe(
+            Effect.andThen(privateDocuments.answerRequest(input)),
+          ),
         [WS_METHODS.majordomeBackUpNow]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.backUpNow(input)),

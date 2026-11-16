@@ -34,6 +34,7 @@ const attention = (
   at: string,
   title = threadId,
 ): FeedRunItem => ({
+  ownerCardId: null,
   key: `env-1:${threadId}`,
   vault,
   threadId: ThreadId.make(threadId),

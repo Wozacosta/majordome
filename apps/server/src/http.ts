@@ -47,6 +47,7 @@ import {
   failEnvironmentInternal,
 } from "./auth/http.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
+import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import { WEBHOOK_ROUTE_PREFIX } from "./scheduledTasks/ScheduledTaskService.ts";
 import {
   browserApiCorsAllowedHeaders,
@@ -397,7 +398,8 @@ const layerUntracedRequests = Layer.succeed(HttpMiddleware.TracerDisabledWhen)((
     UNTRACED_REQUEST_PATHS.has(path) ||
     path.startsWith(`${WEBHOOK_ROUTE_PREFIX}/`) ||
     path.startsWith(`${ASSET_ROUTE_PREFIX}/`) ||
-    path.startsWith(`${ATTACHMENT_UPLOAD_ROUTE_PREFIX}/`)
+    path.startsWith(`${ATTACHMENT_UPLOAD_ROUTE_PREFIX}/`) ||
+    path.startsWith(`${MajordomePrivateDocuments.PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX}/`)
   );
 });
 
@@ -497,6 +499,37 @@ export const layerAttachmentUploadRoute = HttpRouter.add(
     return stored.ok
       ? HttpServerResponse.empty({ status: 204 })
       : HttpServerResponse.text(stored.detail, { status: stored.status });
+  }),
+);
+
+/** The owner's own download of one private document, behind the minute-long link they asked for. */
+export const layerPrivateDocumentViewRoute = HttpRouter.add(
+  "GET",
+  `${MajordomePrivateDocuments.PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX}/*`,
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const url = requestUrl(request);
+    if (Option.isNone(url)) return HttpServerResponse.text("Bad Request", { status: 400 });
+    const token = url.value.pathname.slice(
+      `${MajordomePrivateDocuments.PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX}/`.length,
+    );
+    const documents = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
+    const opened = yield* documents
+      .readForOwner(token)
+      .pipe(Effect.option, Effect.map(Option.flatten));
+    if (Option.isNone(opened)) return HttpServerResponse.text("Not Found", { status: 404 });
+    const { document, bytes } = opened.value;
+    return HttpServerResponse.uint8Array(bytes, {
+      headers: {
+        ...assetResponseHeaders(document.fileName, {
+          download: true,
+          fileName: document.fileName,
+          mimeType: document.mediaType,
+        }),
+        // Decrypted for this one request: no cache may keep it.
+        "Cache-Control": "no-store",
+      },
+    });
   }),
 );
 
