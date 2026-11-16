@@ -198,7 +198,9 @@ takes over.
 6. **M6.** Dreaming, search index, Overview screen. _Done:_ dreaming is a fourth default routine,
    "Tidy my memory", nightly at 3:30, skipped without a run when no note changed since the last one.
    The search index is a per-vault SQLite file in the server's state, with search in Notes and the
-   `search_notes` agent tool; its status is not on a screen until Overview.
+   `search_notes` agent tool. Overview is a health page: one verdict, then machines, routines,
+   notes, AI and access, and phone, each line linking to where it is fixed; it lists secret sources
+   but not whether each secret resolves, which needs a server check that reads them.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
 8. **One-button move.** "Move to an always-on server" does it all from the Mac app: sign in to a host

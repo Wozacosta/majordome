@@ -25,6 +25,7 @@
 - [Guest links](./user/guest-links.md)
 - [T3 Connect troubleshooting](./user/t3-connect-troubleshooting.md)
 - [Outside agents (MCP)](./user/outside-agents.md)
+- [Overview](./user/overview.md)
 - [Running in the background](./user/background-service.md)
 - [Always-on server](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)

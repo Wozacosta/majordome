@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
-import { Muted, READING_MEASURE_CLASS, Section, SwitchLabel } from "./paper";
+import { Muted, READING_MEASURE_CLASS, SwitchLabel } from "./paper";
 
 const backgroundServiceBridge = () =>
   typeof window === "undefined" ? undefined : window.desktopBridge?.backgroundService;
@@ -61,7 +61,7 @@ export function BackgroundServiceToggle({
   if (bridge === undefined || state === null || !state.supported) return null;
 
   return (
-    <Section label="In the background" aria-label="In the background">
+    <div role="group" aria-label="In the background" className="mt-3">
       <div className="flex flex-wrap items-center gap-x-3">
         <SwitchLabel>
           <Switch
@@ -89,6 +89,6 @@ export function BackgroundServiceToggle({
           : "Routines and your inbox only work while Majordome is open."}{" "}
         Majordome restarts when you change this.
       </Muted>
-    </Section>
+    </div>
   );
 }

@@ -12,7 +12,6 @@ import {
   type MajordomePrivateDocument,
   type MajordomePrivateDocumentAccess,
 } from "@t3tools/contracts";
-import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
@@ -200,39 +199,8 @@ function Machine({
   );
 }
 
-const RECENT_ACCESS_SHOWN = 3;
-
 const accessKey = (entry: MajordomePrivateDocumentAccess) =>
   `${entry.at}|${entry.documentId}|${entry.outcome}|${entry.requester?.threadId ?? ""}`;
-
-/** On the Overview: the last few lines of this machine's access log, once it has documents. */
-export function RecentPrivateDocumentAccess({
-  environmentId,
-}: {
-  readonly environmentId: EnvironmentId;
-}) {
-  const data = AsyncResult.getOrElse(
-    useAtomValue(majordomeEnvironment.privateDocuments({ environmentId, input: {} })),
-    () => null,
-  );
-  if (data === null || data.accessLog.length === 0) return null;
-  return (
-    <Section
-      label="Private documents"
-      action={
-        <Link to="/settings/private-documents" className="underline underline-offset-2">
-          Who opened what
-        </Link>
-      }
-    >
-      <EntryList aria-label="Latest private document activity">
-        {data.accessLog.slice(0, RECENT_ACCESS_SHOWN).map((entry) => (
-          <AccessEntry key={accessKey(entry)} entry={entry} />
-        ))}
-      </EntryList>
-    </Section>
-  );
-}
 
 function DocumentEntry({
   environmentId,

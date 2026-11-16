@@ -110,6 +110,18 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 0,
       idleTtlMs: 0,
     }),
+    notesIndexStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:notes-index-status",
+      tag: WS_METHODS.majordomeGetNotesIndexStatus,
+      staleTimeMs: 30_000,
+      refreshTrigger: ({ environmentId }) => notesIndexRevision(environmentId),
+    }),
+    rebuildNotesIndex: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:rebuild-notes-index",
+      tag: WS_METHODS.majordomeRebuildNotesIndex,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(notesIndexRevision(environmentId), (value) => value + 1)),
+    }),
     /** Run with `refresh: true`: the server asks its providers again, then `connectors` reads that. */
     checkConnectors: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:check-connectors",
@@ -237,6 +249,14 @@ export const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpTopics = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(topicsRevision(environmentId), (value) => value + 1));
+
+/** Bumped after a rebuild, so the notes search status reads again. */
+const notesIndexRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:notes-index-revision:${environmentId}`),
+  ),
+);
 
 /** Bumped after "Check again", so the connectors list reads the server's fresh answer. */
 const connectorsRevision = Atom.family((environmentId: EnvironmentId) =>

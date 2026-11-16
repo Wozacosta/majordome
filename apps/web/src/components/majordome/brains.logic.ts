@@ -127,7 +127,7 @@ export function routinesMachine<
 
 /** The copy on the server that runs the brain's routines, else the brain's first copy. */
 export function runnerCopy<
-  C extends BrainCopy & { readonly routinesRunner: MajordomeRoutinesRunner },
+  C extends BrainCopy & { readonly routinesRunner: MajordomeRoutinesRunner | null },
 >(brain: Brain<C>): C {
   return brain.copies.find((copy) => copy.routinesRunner === "this-server") ?? brain.copies[0];
 }

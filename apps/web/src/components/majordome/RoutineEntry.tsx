@@ -2,18 +2,10 @@ import type { ScheduledTaskRunStatus } from "@t3tools/contracts";
 import type { ReactNode } from "react";
 
 import { Entry, Muted, StatusLine } from "./paper";
+import { ROUTINE_LAST_RUN } from "./routines.logic";
 
 /** The Routines screen sits in Settings, whose rows are inset this much. */
 export const ROUTINES_INSET_CLASS = "px-3 sm:px-4";
-
-const LAST_RUN: Record<
-  Exclude<ScheduledTaskRunStatus, "never">,
-  { readonly tone: "ok" | "neutral" | "error"; readonly text: string }
-> = {
-  succeeded: { tone: "ok", text: "Last run went well" },
-  failed: { tone: "error", text: "Last run couldn't finish" },
-  running: { tone: "neutral", text: "Running now" },
-};
 
 /** One routine on the Routines screen: what it is, when it runs, and how its last run went. */
 export function RoutineEntry({
@@ -34,7 +26,7 @@ export function RoutineEntry({
   readonly threadLink?: ReactNode;
   readonly controls: ReactNode;
 }) {
-  const lastRun = lastRunStatus === "never" ? null : LAST_RUN[lastRunStatus];
+  const lastRun = lastRunStatus === "never" ? null : ROUTINE_LAST_RUN[lastRunStatus];
   return (
     <Entry
       as="div"

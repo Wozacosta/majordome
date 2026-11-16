@@ -9,7 +9,8 @@ notification the first time.
 
 ## Turn it on or off
 
-In **Settings → Overview**, use **Keep Majordome running when the window is closed**.
+In **Settings → Overview**, under **Where it runs**, use **Keep Majordome running when the
+window is closed**.
 Majordome restarts to switch. When it is off, routines run only while the window is
 open.
 
