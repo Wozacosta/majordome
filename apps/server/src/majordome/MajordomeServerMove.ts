@@ -265,7 +265,8 @@ function tailscaleSecretProblem(value: string): string | null {
 
 function hetznerTokenProblem(value: string): string | null {
   if (value.startsWith("tskey-")) return "This is a Tailscale key, not a Hetzner one.";
-  return /^[A-Za-z0-9]{32,}$/.test(value)
+  // Hetzner does not document the token's form; only what cannot be one is refused here.
+  return value.length >= 20 && !/\s/.test(value)
     ? null
     : "This does not look like a Hetzner API token: it is one long run of letters and digits.";
 }

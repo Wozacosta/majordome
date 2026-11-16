@@ -18,7 +18,8 @@ const RATE_LIMIT_WAIT = Duration.seconds(10);
 /** The tag every server Majordome sets up carries; an OAuth client can only add tagged devices. */
 export const MAJORDOME_TAG = "tag:majordome";
 
-const CLIENT_SECRET_PATTERN = /^tskey-client-([A-Za-z0-9]+)-[A-Za-z0-9]+$/;
+// Only the prefix is documented, so the rest is matched loosely: `tskey-client-<id>-<secret>`.
+const CLIENT_SECRET_PATTERN = /^tskey-client-([^-\s]+)-\S{8,}$/;
 
 /** True for the secret Tailscale shows once when an OAuth client is made. */
 export const isTailscaleClientSecret = (value: string) => CLIENT_SECRET_PATTERN.test(value);

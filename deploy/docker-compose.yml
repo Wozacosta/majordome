@@ -10,6 +10,8 @@ services:
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:?Put TS_AUTHKEY=tskey-auth-... in .env next to this file}
       TS_STATE_DIR: /var/lib/tailscale
+      # A one-time key is spent after the first start; later starts reuse the saved sign-in.
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
     configs:
       - source: tailscale-serve
