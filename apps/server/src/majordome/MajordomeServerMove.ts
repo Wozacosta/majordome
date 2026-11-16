@@ -160,6 +160,8 @@ const MoveRecord = Schema.Struct({
   phase: MajordomeServerMovePhase,
   /** The phase to return to when a removal is cut short. */
   phaseBeforeRemoval: Schema.optional(MajordomeServerMovePhase),
+  /** Set once a removal has the notes and routines back, so a resumed removal does not ask a deleted server. */
+  broughtBack: Schema.optional(Schema.Boolean),
   steps: Schema.Array(MajordomeServerMoveStep),
   routinesOnServer: Schema.Boolean,
   /** The name chosen on the Tailscale network, and the network's own suffix. */
@@ -1225,7 +1227,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
     const did: Array<string> = [];
     const problems: Array<string> = [];
     const removal = Effect.gen(function* () {
-      if (previous === "ready") {
+      if (previous === "ready" && move.broughtBack !== true) {
         const back = yield* bringNotesBack(move).pipe(Effect.result);
         if (back._tag === "Success") {
           did.push(back.success);
@@ -1250,6 +1252,8 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
           yield* patchMove({ routinesOnServer: false });
           did.push("Routines run on this computer again.");
         }
+        // A forced removal that left notes behind says so again if it has to be resumed.
+        if (back._tag === "Success") yield* patchMove({ broughtBack: true });
       }
       yield* removeFromHetzner(move, did);
       const tailscale = yield* removeFromTailscale(move, did).pipe(Effect.result);
@@ -1289,10 +1293,11 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       const move = yield* currentMove;
       if (move === null) return;
       if (move.phase === "removing") {
-        yield* patchMove({
-          phase: move.phaseBeforeRemoval ?? "failed",
-          phaseBeforeRemoval: undefined,
-        });
+        // A removal cut short by a restart may already have deleted the server: finish it. If it
+        // cannot finish, `takeDown` returns the move to the phase it had, with "Remove" on offer.
+        yield* operationLock
+          .withPermits(1)(takeDown(false))
+          .pipe(Effect.ignore, Effect.forkIn(layerScope));
         return;
       }
       if (move.phase !== "running") return;

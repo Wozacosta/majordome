@@ -286,7 +286,11 @@ const rebuilds = (
       const { results, status } = yield* service.search({ projectId: vaultProject, query: "soil" });
       assert.deepStrictEqual(paths(results), ["inbox/garden.txt"]);
       assert.strictEqual(status?.state, "ready");
-    }).pipe(Effect.provide(layerTest("majordome-notes-search-rebuild-"))),
+    }).pipe(
+      // The index must close before the state folder provided below is removed.
+      Effect.scoped,
+      Effect.provide(layerTest("majordome-notes-search-rebuild-")),
+    ),
   );
 
 rebuilds("is missing", (file) =>
@@ -341,5 +345,5 @@ it.effect("rebuilds on request, and says so when the index cannot be opened", ()
         });
       }),
     );
-  }).pipe(Effect.provide(layerTest("majordome-notes-search-status-"))),
+  }).pipe(Effect.scoped, Effect.provide(layerTest("majordome-notes-search-status-"))),
 );

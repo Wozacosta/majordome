@@ -940,6 +940,48 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
     }).pipe(Effect.provide(computer())),
   );
 
+  it.effect("finishes a removal a restart cut short, without asking the deleted server again", () =>
+    Effect.gen(function* () {
+      const vault = yield* makeVault({ remote: true });
+      const world = fakeWorld();
+      const fs = yield* FileSystem.FileSystem;
+      const head = yield* gitIn(vault.root, ["rev-parse", "HEAD"]);
+      const brainId = yield* readVaultBrainId(vault.root);
+      world.server.vault = () => ({ body: { projectId: "remote-project", head, brainId } });
+      const serverCopy = yield* cloneElsewhere(vault.bare!);
+      const out = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-server-bundle-" });
+      yield* createVaultBundle({ cwd: serverCopy, bundlePath: `${out}/server.bundle` });
+      world.server.bundle = yield* fs.readFile(`${out}/server.bundle`);
+
+      const firstRun = yield* Scope.make();
+      const first = yield* startService(world, vault.root).pipe(Scope.provide(firstRun));
+      yield* saveKeys(first.service);
+      yield* begin(first.service);
+      yield* awaitPhase(first.service, "ready");
+
+      // The computer goes down after the server is deleted, before its firewall is.
+      const firewallDelete = yield* world.holdNext(
+        (sent) => sent.method === "DELETE" && sent.url.pathname.includes("/firewalls/"),
+      );
+      yield* Effect.forkIn(first.service.remove({ force: false }), firstRun);
+      yield* firewallDelete.reached;
+      assert.strictEqual(world.hetzner.servers.size, 0);
+      yield* Scope.close(firstRun, Exit.void);
+      world.server.answers = false;
+
+      const second = yield* startService(world, vault.root);
+      assert.strictEqual((yield* second.service.status()).move?.phase, "removing");
+      yield* second.service.start();
+      const removed = yield* awaitStatus(second.service, (status) => status.move === null);
+      assert.deepStrictEqual(removed.removal?.did, [
+        "Deleted its firewall at Hetzner.",
+        "Removed majordome from your Tailscale network.",
+      ]);
+      assert.deepStrictEqual(removed.removal?.problems, []);
+      assert.strictEqual(world.hetzner.firewalls.size, 0);
+    }).pipe(Effect.provide(computer())),
+  );
+
   it.effect("refuses to delete a server that does not carry this setup's label", () =>
     Effect.gen(function* () {
       const { world, service } = yield* ready();
