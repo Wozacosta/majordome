@@ -574,37 +574,42 @@ describe("connection onboarding", () => {
   it.effect("updates bearer metadata while preserving the credential and identity", () =>
     Effect.gen(function* () {
       const environmentId = EnvironmentId.make("environment-paired");
-      const registration = yield* prepareBearerConnectionUpdate({
-        input: {
-          environmentId,
-          label: "  Renamed environment  ",
-          httpBaseUrl: "http://100.65.180.100:3773/path",
-        },
-        entry: Option.some({
-          target: new BearerConnectionTarget({
+      const update = (label: string) =>
+        prepareBearerConnectionUpdate({
+          input: {
             environmentId,
-            label: "Old label",
-            connectionId: "bearer:environment-paired",
-          }),
-          profile: Option.some(
-            new BearerConnectionProfile({
-              connectionId: "bearer:environment-paired",
+            label,
+            httpBaseUrl: "http://100.65.180.100:3773/path",
+          },
+          entry: Option.some({
+            target: new BearerConnectionTarget({
               environmentId,
               label: "Old label",
-              httpBaseUrl: "http://old.example.test/",
-              wsBaseUrl: "ws://old.example.test/",
+              connectionId: "bearer:environment-paired",
             }),
-          ),
-          enabled: true,
-        }),
-        credential: Option.some(new BearerConnectionCredential({ token: "bearer-token" })),
-      });
+            profile: Option.some(
+              new BearerConnectionProfile({
+                connectionId: "bearer:environment-paired",
+                environmentId,
+                label: "Old label",
+                httpBaseUrl: "http://old.example.test/",
+                wsBaseUrl: "ws://old.example.test/",
+              }),
+            ),
+            enabled: true,
+          }),
+          credential: Option.some(new BearerConnectionCredential({ token: "bearer-token" })),
+        });
+      const registration = yield* update("  Renamed environment  ");
 
+      // Only a label the owner changed stops following the server's name.
+      expect((yield* update("Old label")).target.customLabel).toBeUndefined();
       expect(registration).toMatchObject({
         target: {
           environmentId,
           label: "Renamed environment",
           connectionId: "bearer:environment-paired",
+          customLabel: true,
         },
         profile: {
           environmentId,

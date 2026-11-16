@@ -52,6 +52,7 @@ import {
   hasSavedBearerRoute,
   mergeLearnedRoutes,
   routesAfterRemoving,
+  routesWithServerLabel,
   upsertRoute,
   type ReportedEndpoint,
 } from "./routes.ts";
@@ -368,6 +369,7 @@ export const make = Effect.gen(function* () {
             // before an enabled, compatible environment starts connecting.
             initiallyDesired: entry.enabled && entry.unsupportedReason === undefined,
             learnRoutes: (input) => learnRoutes({ environmentId, ...input }),
+            followLabel: (serverLabel) => followServerLabel(environmentId, serverLabel),
           }).pipe(
             Effect.provideService(Connectivity.Connectivity, connectivity),
             Effect.provideService(ConnectionDriver.ConnectionDriver, driver),
@@ -916,28 +918,24 @@ export const make = Effect.gen(function* () {
     typeof globalThis.location === "undefined" || globalThis.location.protocol !== "https:";
 
   /**
-   * Learned routes reuse the active route's credential, so they do not revoke pull request routing
-   * trust the way a newly paired address does.
+   * Saves what a connected environment said about itself (its addresses, its name) without
+   * reconnecting it. `revise` returns null when the saved routes already say it. The connection's
+   * credentials stay, so this does not revoke pull request routing trust as a newly paired address
+   * does. Platform environments are the host's to describe.
    */
-  const learnRoutes = Effect.fn("EnvironmentRegistry.learnRoutes")(function* (input: {
-    readonly environmentId: EnvironmentId;
-    readonly activeRoute: ConnectionRoute;
-    readonly reported: ReadonlyArray<ReportedEndpoint>;
-  }) {
+  const reviseRoutesInPlace = Effect.fn("EnvironmentRegistry.reviseRoutesInPlace")(function* (
+    environmentId: EnvironmentId,
+    revise: (entry: ConnectionCatalogEntry) => ReadonlyArray<ConnectionRoute> | null,
+  ) {
     return yield* withLeaseLock(
-      input.environmentId,
+      environmentId,
       Effect.gen(function* () {
-        if ((yield* Ref.get(platformEnvironmentIds)).has(input.environmentId)) {
+        if ((yield* Ref.get(platformEnvironmentIds)).has(environmentId)) {
           return Option.none<ConnectionCatalogEntry>();
         }
-        const entry = (yield* SubscriptionRef.get(entries)).get(input.environmentId);
+        const entry = (yield* SubscriptionRef.get(entries)).get(environmentId);
         if (entry === undefined) return Option.none<ConnectionCatalogEntry>();
-        const routes = mergeLearnedRoutes({
-          entry,
-          activeRoute: input.activeRoute,
-          reported: input.reported,
-          allowInsecure: allowInsecureRoutes,
-        });
+        const routes = revise(entry);
         if (routes === null) return Option.none<ConnectionCatalogEntry>();
         const next = entryWithRoutes(entry, routes);
         const previousProfiles = new Map(
@@ -956,22 +954,53 @@ export const make = Effect.gen(function* () {
           }
           yield* profiles.put(profile);
         }
-        yield* registrations.setRoutes(input.environmentId, persistedRoutes(next));
-        const lease = (yield* SubscriptionRef.get(serviceScopes)).get(input.environmentId);
+        yield* registrations.setRoutes(environmentId, persistedRoutes(next));
+        const lease = (yield* SubscriptionRef.get(serviceScopes)).get(environmentId);
         if (lease !== undefined) {
           yield* SubscriptionRef.update(serviceScopes, (current) =>
-            new Map(current).set(input.environmentId, { ...lease, entry: next }),
+            new Map(current).set(environmentId, { ...lease, entry: next }),
           );
         }
         yield* SubscriptionRef.update(entries, (current) =>
-          new Map(current).set(input.environmentId, next),
+          new Map(current).set(environmentId, next),
         );
         return Option.some(next);
+      }),
+    );
+  });
+
+  const learnRoutes = Effect.fn("EnvironmentRegistry.learnRoutes")(function* (input: {
+    readonly environmentId: EnvironmentId;
+    readonly activeRoute: ConnectionRoute;
+    readonly reported: ReadonlyArray<ReportedEndpoint>;
+  }) {
+    return yield* reviseRoutesInPlace(input.environmentId, (entry) =>
+      mergeLearnedRoutes({
+        entry,
+        activeRoute: input.activeRoute,
+        reported: input.reported,
+        allowInsecure: allowInsecureRoutes,
       }),
     ).pipe(
       Effect.catch((error) =>
         Effect.logWarning("Could not save routes learned from the environment.", {
           environmentId: input.environmentId,
+          error,
+        }).pipe(Effect.as(Option.none<ConnectionCatalogEntry>())),
+      ),
+    );
+  });
+
+  const followServerLabel = Effect.fn("EnvironmentRegistry.followServerLabel")(function* (
+    environmentId: EnvironmentId,
+    serverLabel: string,
+  ) {
+    return yield* reviseRoutesInPlace(environmentId, (entry) =>
+      routesWithServerLabel(entry, serverLabel),
+    ).pipe(
+      Effect.catch((error) =>
+        Effect.logWarning("Could not save the environment's new name.", {
+          environmentId,
           error,
         }).pipe(Effect.as(Option.none<ConnectionCatalogEntry>())),
       ),

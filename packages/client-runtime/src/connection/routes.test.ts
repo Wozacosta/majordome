@@ -22,6 +22,7 @@ import {
   removedWithRelay,
   routeKeepsItsHost,
   routesAfterRemoving,
+  routesWithServerLabel,
   sendsTokenInClear,
   upsertRoute,
   usableRoutes,
@@ -466,5 +467,46 @@ describe("learned routes", () => {
     });
     expect(moved).not.toBeNull();
     expect(profileOf(moved![0]!)).toMatchObject({ httpBaseUrl: "https://desk.local:3773/" });
+  });
+});
+
+describe("following the server's label", () => {
+  const saved: ConnectionCatalogEntry = {
+    target: LAN.target,
+    profile: LAN.profile,
+    alternateRoutes: [learned("learned", "http://10.0.0.42:3773/"), RELAY],
+    enabled: true,
+  };
+
+  it("renames every route and its profile, keeping ids and addresses", () => {
+    const routes = routesWithServerLabel(saved, " Always-on server ")!;
+    expect(routes.map((route) => route.target.label)).toEqual(Array(3).fill("Always-on server"));
+    expect(routes.map((route) => connectionRouteId(route.target))).toEqual([
+      "lan",
+      "learned",
+      "relay",
+    ]);
+    expect(Option.getOrThrow(routes[1]!.profile)).toMatchObject({
+      label: "Always-on server",
+      httpBaseUrl: "http://10.0.0.42:3773/",
+      learned: true,
+    });
+    // Following again has nothing to save.
+    expect(routesWithServerLabel(entryWithRoutes(saved, routes), "Always-on server")).toBeNull();
+  });
+
+  it("changes nothing for the same or a blank label", () => {
+    expect(routesWithServerLabel(saved, "Desk")).toBeNull();
+    expect(routesWithServerLabel(saved, "  ")).toBeNull();
+  });
+
+  it("keeps a label the owner typed", () => {
+    const custom = new BearerConnectionTarget({
+      environmentId: ENVIRONMENT_ID,
+      connectionId: "lan",
+      label: "Office",
+      customLabel: true,
+    });
+    expect(routesWithServerLabel({ ...saved, target: custom }, "Always-on server")).toBeNull();
   });
 });

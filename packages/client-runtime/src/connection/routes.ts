@@ -11,8 +11,14 @@ import {
   BearerConnectionProfile,
   type ConnectionCatalogEntry,
   type ConnectionRoute,
+  SshConnectionProfile,
 } from "./catalog.ts";
-import { BearerConnectionTarget, type ConnectionTarget } from "./model.ts";
+import {
+  BearerConnectionTarget,
+  type ConnectionTarget,
+  RelayConnectionTarget,
+  SshConnectionTarget,
+} from "./model.ts";
 
 export type ConnectionRouteKind =
   | "relay"
@@ -380,6 +386,49 @@ export function sendsTokenInClear(
 export function usableRoutes(entry: ConnectionCatalogEntry): ReadonlyArray<ConnectionRoute> {
   const routes = connectionRoutes(entry);
   return routes.filter((route) => !sendsTokenInClear(routes, route));
+}
+
+function relabeled(route: ConnectionRoute, label: string): ConnectionRoute {
+  const { target } = route;
+  const profile = Option.getOrNull(route.profile);
+  if (
+    target._tag === "PrimaryConnectionTarget" ||
+    (target.label === label && (profile === null || profile.label === label))
+  ) {
+    return route;
+  }
+  return {
+    target:
+      target._tag === "RelayConnectionTarget"
+        ? new RelayConnectionTarget({ ...target, label })
+        : target._tag === "SshConnectionTarget"
+          ? new SshConnectionTarget({ ...target, label })
+          : new BearerConnectionTarget({ ...target, label }),
+    profile: Option.map(route.profile, (saved) =>
+      saved._tag === "SshConnectionProfile"
+        ? new SshConnectionProfile({ ...saved, label })
+        : new BearerConnectionProfile({ ...saved, label }),
+    ),
+  };
+}
+
+/**
+ * A saved environment keeps the name its server had when it was paired. This gives its routes the
+ * server's current name, or null when there is nothing to save: the name is the same or blank, or
+ * the owner typed their own.
+ */
+export function routesWithServerLabel(
+  entry: ConnectionCatalogEntry,
+  serverLabel: string,
+): ReadonlyArray<ConnectionRoute> | null {
+  const label = serverLabel.trim();
+  if (label === "") return null;
+  const routes = connectionRoutes(entry);
+  if (routes.some((route) => "customLabel" in route.target && route.target.customLabel === true)) {
+    return null;
+  }
+  const next = routes.map((route) => relabeled(route, label));
+  return next.every((route, index) => route === routes[index]) ? null : next;
 }
 
 export interface ReportedEndpoint {

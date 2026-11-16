@@ -16,10 +16,14 @@ export class PrimaryConnectionTarget extends Schema.TaggedClass<PrimaryConnectio
   },
 ) {}
 
+/** Set when the owner typed the label, so it stops following the server's own name. */
+const CustomLabel = { customLabel: Schema.optionalKey(Schema.Literal(true)) };
+
 export class BearerConnectionTarget extends Schema.TaggedClass<BearerConnectionTarget>()(
   "BearerConnectionTarget",
   {
     ...ConnectionTargetBase,
+    ...CustomLabel,
     connectionId: Schema.String,
   },
 ) {}
@@ -35,6 +39,7 @@ export class SshConnectionTarget extends Schema.TaggedClass<SshConnectionTarget>
   "SshConnectionTarget",
   {
     ...ConnectionTargetBase,
+    ...CustomLabel,
     connectionId: Schema.String,
   },
 ) {}

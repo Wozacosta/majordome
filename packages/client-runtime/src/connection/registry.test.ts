@@ -168,6 +168,8 @@ const makeHarness = Effect.fn("TestEnvironmentRegistry.makeHarness")(function* (
     ) => Effect.Effect<ConnectionBlockedError | undefined>;
     readonly initialDisabled?: ReadonlyArray<EnvironmentId>;
     readonly directEndpoints?: ServerConfig["directEndpoints"];
+    /** The name the server reports while a connection is prepared. */
+    readonly serverLabel?: string;
   },
 ) {
   const storedTargets = yield* Ref.make<ReadonlyArray<ConnectionTarget>>(initialTargets);
@@ -398,6 +400,9 @@ const makeHarness = Effect.fn("TestEnvironmentRegistry.makeHarness")(function* (
           ? { _tag: "Bearer", token: credential.value.token }
           : null,
         target,
+        ...(options?.serverLabel === undefined
+          ? {}
+          : { descriptor: { label: options.serverLabel } as ExecutionEnvironmentDescriptor }),
       };
       if (options?.prepareError) return yield* options.prepareError;
       const heldError = options?.beforePrepareRoute
@@ -2315,6 +2320,36 @@ describe("EnvironmentRegistry routes", () => {
           learned: true,
           httpBaseUrl,
         });
+      }).pipe(Effect.provide(harness.layer), Effect.scoped);
+    }),
+  );
+
+  it.effect("saves the server's new name on connecting, for every route", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness(
+        [LAN_TARGET, RELAY_TARGET],
+        [LAN_PROFILE],
+        [[LAN_TARGET.connectionId, BEARER_CREDENTIAL]],
+        { serverLabel: "Always-on server" },
+      );
+      yield* Effect.gen(function* () {
+        const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+        yield* registry.start;
+        yield* SubscriptionRef.changes(registry.entries).pipe(
+          Stream.filter(
+            (entries) => entries.get(LAN_TARGET.environmentId)?.target.label === "Always-on server",
+          ),
+          Stream.runHead,
+        );
+        expect((yield* Ref.get(harness.storedTargets)).map((target) => target.label)).toEqual([
+          "Always-on server",
+          "Always-on server",
+        ]);
+        expect((yield* Ref.get(harness.storedProfiles)).get(LAN_TARGET.connectionId)).toMatchObject(
+          { label: "Always-on server", httpBaseUrl: LAN_PROFILE.httpBaseUrl },
+        );
+        // The connection it was learned on stays up.
+        expect(yield* Ref.get(harness.releasedSessions)).toBe(0);
       }).pipe(Effect.provide(harness.layer), Effect.scoped);
     }),
   );

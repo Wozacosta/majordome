@@ -241,11 +241,14 @@ export const prepareBearerConnectionUpdate = Effect.fn(
       }),
   });
   const connectionId = entry.target.connectionId;
+  // The edit form sends the label back even when only the address changed.
+  const customLabel = entry.target.customLabel === true || label !== entry.target.label;
   return new BearerConnectionRegistration({
     target: new BearerConnectionTarget({
       environmentId: options.input.environmentId,
       label,
       connectionId,
+      ...(customLabel ? { customLabel: true } : {}),
     }),
     profile: new BearerConnectionProfile({
       connectionId,
@@ -264,13 +267,15 @@ export const prepareSshRegistration = Effect.fn(
   const gateway = yield* ClientCapabilities.SshEnvironmentGateway;
   const provisioned = yield* gateway.provision(input.target, input.expectedEnvironmentId);
   const connectionId = `ssh:${provisioned.environmentId}:${sshTargetKey(provisioned.bootstrap.target)}`;
-  const label = input.label?.trim() || provisioned.label || provisioned.bootstrap.target.alias;
+  const typedLabel = input.label?.trim() || undefined;
+  const label = typedLabel ?? (provisioned.label || provisioned.bootstrap.target.alias);
 
   return new SshConnectionRegistration({
     target: new SshConnectionTarget({
       environmentId: provisioned.environmentId,
       label,
       connectionId,
+      ...(typedLabel === undefined ? {} : { customLabel: true }),
     }),
     profile: new SshConnectionProfile({
       connectionId,
