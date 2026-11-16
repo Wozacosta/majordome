@@ -138,7 +138,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Telegram, email and other channels come in v2.
 - **Default routines**, created when a vault is opened, on by default and editable in a Routines
   screen: "Start my day" daily at 8:00, "Review my week" Sundays at 18:00, "Digest my inbox" when
-  files land in the inbox. Built on T3's scheduled tasks, with a turn cap each.
+  files land in the inbox, "Tidy my memory" nightly at 3:30. Built on T3's scheduled tasks, with a turn cap each.
 - **Inbox watcher:** waits for 2 minutes without new files, then starts one run for the batch.
 - **Feed:** one screen, newest first: each routine or thread run with its status (done, failed,
   waiting for you), the start of the agent's reply, the notes it changed and **Undo this**.
@@ -195,7 +195,8 @@ takes over.
    beside 1Password, and the Secrets settings page is on. The encrypted file's key sits beside it,
    readable only by the server's user: it protects a copied or backed-up file, not a server that is
    already compromised. Tier B: Settings > Private documents, the two agent tools, the access log.
-6. **M6.** Dreaming, search index, Overview screen.
+6. **M6.** Dreaming, search index, Overview screen. _Done:_ dreaming is a fourth default routine,
+   "Tidy my memory", nightly at 3:30, skipped without a run when no note changed since the last one.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
 8. **One-button move.** "Move to an always-on server" does it all from the Mac app: sign in to a host
