@@ -196,6 +196,7 @@ takes over.
    readable only by the server's user: it protects a copied or backed-up file, not a server that is
    already compromised. Tier B: Settings > Private documents, the two agent tools, the access log.
 6. **M6.** Dreaming, search index, Overview screen.
+   _Search index: done_ (a per-vault SQLite file in the server's state, search in Notes, the `search_notes` agent tool); its status is not on a screen until Overview.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
 8. **One-button move.** "Move to an always-on server" does it all from the Mac app: sign in to a host
