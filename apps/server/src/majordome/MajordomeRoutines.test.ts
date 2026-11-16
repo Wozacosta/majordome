@@ -292,18 +292,19 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         yield* settle;
         yield* TestClock.adjust("1 second");
         yield* settle;
-        // Routines are set up on every server, but only the runner watches the inbox.
+        // Only the runner watches the inbox.
+        assert.isFalse(yield* Deferred.isDone(watching));
+
+        const missing = yield* Effect.flip(service.runHere(ProjectId.make("missing")));
+        assert.equal(missing.message, "That vault was not found.");
+        yield* service.runHere(projectId).pipe(withWatchBackend);
+        // The move checks the vault's routines before it returns.
         const tasks = (yield* scheduledTasks.list()).tasks;
         assert.deepEqual(tasks.map((task) => task.title).toSorted(), [
           "Digest my inbox",
           "Review my week",
           "Start my day",
         ]);
-        assert.isFalse(yield* Deferred.isDone(watching));
-
-        const missing = yield* Effect.flip(service.runHere(ProjectId.make("missing")));
-        assert.equal(missing.message, "That vault was not found.");
-        yield* service.runHere(projectId).pipe(withWatchBackend);
         assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-here\n");
         // Committed and sent at once, so the other computer stops running them.
         assert.equal(
