@@ -16,6 +16,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -133,6 +134,11 @@ const makeService = (
       MajordomeVaultService.layer.pipe(
         Layer.provide(VaultLock.layer),
         Layer.provide(RoutineRunLedger.layer),
+        Layer.provide(
+          Layer.mock(MajordomeNotesSearch.MajordomeNotesSearch)({
+            refreshInBackground: () => Effect.void,
+          }),
+        ),
         Layer.provide(fakeProjections(threads)),
         // A server with no routines made and no provider signed in.
         Layer.provide(

@@ -137,6 +137,7 @@ import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
+import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
@@ -694,6 +695,11 @@ const layerMajordomeBackup = MajordomeBackup.layer.pipe(
   Layer.provide(VaultLock.layer),
 );
 
+// One instance, shared by reference: the run and watcher hooks feed the index the RPCs search.
+const layerMajordomeNotesSearch = MajordomeNotesSearch.layer.pipe(
+  Layer.provide(ProjectionStoreV2.layer),
+);
+
 const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   AgentAwarenessRelay.layer,
   HeldHooksWaker.layer,
@@ -740,9 +746,16 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     }),
   ).pipe(
     Layer.provide(VaultCommitReactor.layer),
+    Layer.provide(layerMajordomeNotesSearch),
     Layer.provide(ProjectionStoreV2.layer),
     Layer.provide(VaultLock.layer),
   ),
+  // provideMerge keeps the service in the context, for the search RPCs and the agents' tool.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      yield* (yield* MajordomeNotesSearch.MajordomeNotesSearch).start();
+    }),
+  ).pipe(Layer.provideMerge(layerMajordomeNotesSearch)),
   // provideMerge keeps the service in the context, for "Move routines here".
   Layer.effectDiscard(
     Effect.gen(function* () {
@@ -756,6 +769,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(VaultLock.layer),
   ),
   MajordomeVaultService.layer.pipe(
+    Layer.provide(layerMajordomeNotesSearch),
     Layer.provide(VaultLock.layer),
     Layer.provide(ProjectionStoreV2.layer),
   ),

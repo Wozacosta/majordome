@@ -19,6 +19,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import { isTerminalRunStatus } from "../orchestration-v2/ThreadManagementService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import * as VaultLock from "./VaultLock.ts";
 
 export const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost" };
@@ -92,6 +93,7 @@ const make = Effect.gen(function* () {
   >();
   // Runs in two threads of one vault can end together; git allows one commit at a time.
   const vaultLock = yield* VaultLock.VaultLock;
+  const notesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
 
   const commitRun = Effect.fn("VaultCommitReactor.commitRun")(function* (
     threadId: Parameters<typeof projections.getThreadShell>[0],
@@ -103,6 +105,8 @@ const make = Effect.gen(function* () {
       thread.worktreePath ??
       Option.getOrUndefined(yield* projects.get(thread.projectId))?.workspaceRoot;
     if (cwd === undefined) return;
+    // Whether or not the commit works, the run may have written notes.
+    yield* notesSearch.refreshInBackground(cwd);
     yield* vaultLock.withLock(
       cwd,
       commitVaultRun({

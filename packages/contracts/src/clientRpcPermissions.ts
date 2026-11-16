@@ -82,6 +82,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeRunRoutinesHere]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetRoutineLimits]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeBackUpNow]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeRebuildNotesIndex]: AuthOrchestrationOperateScope,
   // Backup settings hold a passphrase and a GitHub sign-in, like credentials saved in Settings.
   [WS_METHODS.majordomeConfigureBackup]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeAddPrivateDocument]: AuthSettingsWriteScope,

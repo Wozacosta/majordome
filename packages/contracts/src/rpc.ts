@@ -111,6 +111,13 @@ import {
 } from "./majordomePhone.ts";
 import { MajordomeConnectorsInput, MajordomeConnectorsResult } from "./majordomeConnectors.ts";
 import {
+  MajordomeNotesIndexInput,
+  MajordomeNotesIndexResult,
+  MajordomeNotesSearchError,
+  MajordomeNotesSearchInput,
+  MajordomeNotesSearchResult,
+} from "./majordomeNotesSearch.ts";
+import {
   MajordomeAddPrivateDocumentInput,
   MajordomeAnswerPrivateDocumentRequestInput,
   MajordomePrivateDocument,
@@ -701,6 +708,9 @@ export const WS_METHODS = {
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
   majordomeListConnectors: "majordome.listConnectors",
+  majordomeSearchNotes: "majordome.searchNotes",
+  majordomeGetNotesIndexStatus: "majordome.getNotesIndexStatus",
+  majordomeRebuildNotesIndex: "majordome.rebuildNotesIndex",
   majordomeListPrivateDocuments: "majordome.listPrivateDocuments",
   majordomeAddPrivateDocument: "majordome.addPrivateDocument",
   majordomeRemovePrivateDocument: "majordome.removePrivateDocument",
@@ -2287,6 +2297,24 @@ const WsMajordomeSetRoutineLimitsRpc = Rpc.make(WS_METHODS.majordomeSetRoutineLi
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeSearchNotesRpc = Rpc.make(WS_METHODS.majordomeSearchNotes, {
+  payload: MajordomeNotesSearchInput,
+  success: MajordomeNotesSearchResult,
+  error: Schema.Union([MajordomeNotesSearchError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeGetNotesIndexStatusRpc = Rpc.make(WS_METHODS.majordomeGetNotesIndexStatus, {
+  payload: MajordomeNotesIndexInput,
+  success: MajordomeNotesIndexResult,
+  error: Schema.Union([MajordomeNotesSearchError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeRebuildNotesIndexRpc = Rpc.make(WS_METHODS.majordomeRebuildNotesIndex, {
+  payload: MajordomeNotesIndexInput,
+  success: MajordomeNotesIndexResult,
+  error: Schema.Union([MajordomeNotesSearchError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListConnectorsRpc = Rpc.make(WS_METHODS.majordomeListConnectors, {
   payload: MajordomeConnectorsInput,
   success: MajordomeConnectorsResult,
@@ -2682,6 +2710,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeGetBackupStatusRpc,
   WsMajordomeListConnectorsRpc,
+  WsMajordomeSearchNotesRpc,
+  WsMajordomeGetNotesIndexStatusRpc,
+  WsMajordomeRebuildNotesIndexRpc,
   WsMajordomeListPrivateDocumentsRpc,
   WsMajordomeAddPrivateDocumentRpc,
   WsMajordomeRemovePrivateDocumentRpc,

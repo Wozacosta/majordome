@@ -129,6 +129,7 @@ import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
+import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
@@ -1487,6 +1488,7 @@ export const layerWsRpc = (
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
+      const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
       const pullRequests = yield* PullRequestService.PullRequestService;
@@ -2369,6 +2371,18 @@ export const layerWsRpc = (
             Effect.andThen(majordomeBackup.getStatus(input)),
           ),
         [WS_METHODS.majordomeListConnectors]: (input) => majordomeConnectors.list(input),
+        [WS_METHODS.majordomeSearchNotes]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeNotesSearch.search(input)),
+          ),
+        [WS_METHODS.majordomeGetNotesIndexStatus]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeNotesSearch.status(input)),
+          ),
+        [WS_METHODS.majordomeRebuildNotesIndex]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeNotesSearch.rebuild(input)),
+          ),
         [WS_METHODS.majordomeListPrivateDocuments]: (_input) => privateDocuments.list(),
         [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
         [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),

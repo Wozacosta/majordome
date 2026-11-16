@@ -32,6 +32,7 @@ import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { VAULT_CHANGES_QUIET_PERIOD, vaultChangeRevisions } from "./vaultChanges.ts";
 import { routineLedgerPath } from "./defaultRoutines.ts";
+import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
@@ -73,6 +74,7 @@ const make = Effect.gen(function* () {
   const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
   const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
   const providers = yield* ProviderRegistry.ProviderRegistry;
+  const notesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
   const ledgerPath = routineLedgerPath(path, (yield* ServerConfig.ServerConfig).stateDir);
 
   const toVaultError = (message: string) => (cause: unknown) =>
@@ -183,7 +185,7 @@ const make = Effect.gen(function* () {
             : vaultChangeRevisions(
                 fileSystem.watch(cwd, { recursive: true }),
                 VAULT_CHANGES_QUIET_PERIOD,
-              ),
+              ).pipe(Stream.tap(() => notesSearch.refreshInBackground(cwd))),
         ),
       ),
     ).pipe(Stream.mapError(toVaultError("Could not watch this vault for changes.")));
