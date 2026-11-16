@@ -27,6 +27,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as OrchestrationEventStore from "../persistence/OrchestrationEventStore.ts";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ServerSettings from "../serverSettings.ts";
@@ -79,6 +80,7 @@ const make = Effect.gen(function* () {
   const threads = yield* ThreadManagementService.ThreadManagementService;
   const settings = yield* ServerSettings.ServerSettingsService;
   const providerInstances = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
+  const providers = yield* ProviderRegistry.ProviderRegistry;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const config = yield* ServerConfig.ServerConfig;
   const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
@@ -103,6 +105,7 @@ const make = Effect.gen(function* () {
     chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
       Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+      Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
     );
 
   /** Null while the model's provider isn't registered, so the routines' mode waits for it. */
@@ -140,7 +143,7 @@ const make = Effect.gen(function* () {
       );
       if (first) {
         yield* Effect.logInfo(
-          "Majordome will create this vault's routines once it has a model to run them: set a default model or start a thread.",
+          "Majordome will create this vault's routines once a provider is ready to run them: sign in to one in Settings > Providers.",
           { projectId: project.projectId },
         );
       }

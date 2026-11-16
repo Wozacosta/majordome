@@ -7,13 +7,18 @@ import * as Effect from "effect/Effect";
 
 import type * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 
-/** The project's default model, else the model of its latest thread; null when it has neither. */
+/**
+ * The project's default model, else the model of its latest thread, else the first ready provider's
+ * default, as on a fresh server; null when no provider is ready.
+ */
 export const chooseVaultModel = Effect.fn("majordome.chooseVaultModel")(
   function* (project: ProjectStore.ProjectRow) {
     const settings = yield* ServerSettings.ServerSettingsService;
     const threads = yield* ThreadManagementService.ThreadManagementService;
+    const providers = yield* ProviderRegistry.ProviderRegistry;
     const configured = resolveProjectSettings(
       yield* settings.getSettings,
       project.projectId,
@@ -26,16 +31,15 @@ export const chooseVaultModel = Effect.fn("majordome.chooseVaultModel")(
     })).toSorted(
       (a, b) => DateTime.toEpochMillis(b.updatedAt) - DateTime.toEpochMillis(a.updatedAt),
     )[0];
-    if (latest === undefined) return null;
-    return (yield* threads.getThreadShell(latest.id))?.modelSelection ?? null;
+    const fromThread =
+      latest === undefined ? null : (yield* threads.getThreadShell(latest.id))?.modelSelection;
+    return fromThread ?? firstReadyProviderModel(yield* providers.getProviders);
   },
   Effect.orElseSucceed((): ModelSelection | null => null),
 );
 
 /** The default model of the first provider that is set up and ready, as a new chat would pick. */
-export function firstReadyProviderModel(
-  providers: ReadonlyArray<ServerProvider>,
-): ModelSelection | null {
+function firstReadyProviderModel(providers: ReadonlyArray<ServerProvider>): ModelSelection | null {
   for (const provider of providers) {
     if (!provider.enabled || !provider.installed || provider.status !== "ready") continue;
     if (provider.availability === "unavailable") continue;

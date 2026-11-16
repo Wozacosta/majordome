@@ -1,7 +1,13 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { EnvironmentId, ProjectId, type ScheduledTask, ThreadId } from "@t3tools/contracts";
+import {
+  EnvironmentId,
+  ProjectId,
+  type ScheduledTask,
+  type ServerProvider,
+  ThreadId,
+} from "@t3tools/contracts";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -25,6 +31,7 @@ import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
 import * as ManagedProjectFolders from "../project/ManagedProjectFolders.ts";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as Scheduler from "../scheduling/Scheduler.ts";
 import * as SecretRequests from "../secrets/SecretRequests.ts";
@@ -198,11 +205,15 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
     yield* commitAll(vaultRoot, "Your edits");
     const backedUp = yield* Deferred.make<string>();
     const projectId = ProjectId.make("project-e2e");
-    const vaultRow = {
-      projectId,
-      workspaceRoot: vaultRoot,
-      defaultModelSelection: { instanceId: "codex", model: "gpt-5" },
-    } as ProjectStore.ProjectRow;
+    // A fresh server: no default model and no threads, only a provider that is signed in.
+    const vaultRow = { projectId, workspaceRoot: vaultRoot } as ProjectStore.ProjectRow;
+    const claude = {
+      instanceId: "claude",
+      enabled: true,
+      installed: true,
+      status: "ready",
+      models: [{ slug: "claude-opus-5-5", isDefault: true, isCustom: false }],
+    } as unknown as ServerProvider;
     const launched = yield* Queue.unbounded<string>();
     // Inbox events come from this queue instead of the OS, so the test controls their timing.
     const watchEvents = yield* Queue.unbounded<FileSystem.WatchEvent>();
@@ -264,6 +275,9 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
                 Layer.mock(SecretRequests.SecretRequests)({}),
                 Layer.mock(ProviderInstanceRegistry.ProviderInstanceRegistry)({
                   getInstance: () => Effect.undefined,
+                }),
+                Layer.mock(ProviderRegistry.ProviderRegistry)({
+                  getProviders: Effect.succeed([claude]),
                 }),
                 NodeCrypto.layer,
                 Scheduler.layer,

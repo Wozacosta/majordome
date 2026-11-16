@@ -47,7 +47,7 @@ import {
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
-import { chooseVaultModel, firstReadyProviderModel } from "./vaultModel.ts";
+import { chooseVaultModel } from "./vaultModel.ts";
 import {
   canHoldTopic,
   listVaultFolders,
@@ -475,11 +475,11 @@ const make = Effect.gen(function* () {
       const state = yield* projectState(input.projectId);
       const existing = yield* liveThread(state.threads[topic.id]);
       if (existing !== null) return { threadId: existing.id };
-      const modelSelection =
-        (yield* chooseVaultModel(project).pipe(
-          Effect.provideService(ServerSettings.ServerSettingsService, settings),
-          Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
-        )) ?? firstReadyProviderModel(yield* providers.getProviders);
+      const modelSelection = yield* chooseVaultModel(project).pipe(
+        Effect.provideService(ServerSettings.ServerSettingsService, settings),
+        Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+        Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
+      );
       if (modelSelection === null) {
         return yield* fail(
           "No AI provider is ready yet. Set one up in Settings, then open this topic again.",

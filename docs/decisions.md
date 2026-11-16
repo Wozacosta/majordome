@@ -176,7 +176,7 @@ takes over.
    GitHub, folder), then Google Drive.
 4. **M4.** One server by default: container image, "Move to an always-on server" guide, provider
    sign-in from the phone or desktop, big files and sensitive documents served by the server.
-   _Built, not yet released:_ the signed macOS app on GitHub Releases, `majord` as a login service
+   _Done:_ the signed macOS app on GitHub Releases, `majord` as a login service
    the app installs (on by default, "Quit Majordome Completely" stops it), the container image with
    a Tailscale sidecar, and the guide. Claude signs in on a server with a pasted
    `claude setup-token` token. Big files and sensitive documents wait for M5.
