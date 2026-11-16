@@ -139,6 +139,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **Default routines**, created when a vault is opened, on by default and editable in a Routines
   screen: "Start my day" daily at 8:00, "Review my week" Sundays at 18:00, "Digest my inbox" when
   files land in the inbox, "Tidy my memory" nightly at 3:30. Built on T3's scheduled tasks, with a turn cap each.
+  Routines and one-time reminders are created and changed by talking to the assistant, beside the
+  list on the Routines screen; the scheduled-task form is T3 mode only.
 - **Inbox watcher:** waits for 2 minutes without new files, then starts one run for the batch.
 - **Feed:** one screen, newest first: each routine or thread run with its status (done, failed,
   waiting for you), the start of the agent's reply, the notes it changed and **Undo this**.

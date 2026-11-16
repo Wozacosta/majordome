@@ -39,5 +39,6 @@ merged or moved, and anything it was not sure about, as a question you can answe
 **Undo this** on that entry takes the whole night back. A run that found nothing to keep changes
 nothing and leaves no entry.
 
-To change the hour, edit what it does, or turn it off, open **Settings > Routines** and choose
-"Tidy my memory". If you delete it, Majordome does not bring it back.
+To turn it off, open **Routines** and use the switch on "Tidy my memory". To change the hour or
+what it does, choose **Edit** there and tell the assistant. If you delete it, Majordome does not
+bring it back. See [Routines and reminders](./routines.md).
