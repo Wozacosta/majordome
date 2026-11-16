@@ -59,10 +59,31 @@ export type MajordomeStoppedRun = typeof MajordomeStoppedRun.Type;
 export const MajordomeRoutinesRunner = Schema.Literals(["this-server", "another-server", "none"]);
 export type MajordomeRoutinesRunner = typeof MajordomeRoutinesRunner.Type;
 
+/** Whether the vault's routines can run on the server that is their runner, and if not, why. */
+export const MajordomeRoutinesStatus = Schema.Struct({
+  ready: Schema.Boolean,
+  reason: Schema.optional(
+    Schema.Literals([
+      /** No provider on this server is signed in and ready. */
+      "no-provider",
+      "provider-signed-out",
+      /** The routines' provider is turned off, not installed, or failing. */
+      "provider-unavailable",
+      /** A provider is ready; this server has not made the routines yet. */
+      "not-created",
+    ]),
+  ),
+  /** The provider the reason is about, as its display name. */
+  provider: Schema.optional(Schema.String),
+});
+export type MajordomeRoutinesStatus = typeof MajordomeRoutinesStatus.Type;
+
 export const MajordomeVaultHistoryResult = Schema.Struct({
   isVault: Schema.Boolean,
   entries: Schema.Array(MajordomeVaultHistoryEntry),
   routinesRunner: MajordomeRoutinesRunner,
+  /** Only from the server that runs the vault's routines; absent from older servers. */
+  routinesStatus: Schema.optional(MajordomeRoutinesStatus),
   /** The vault's daily and inbox folders, from its config. */
   folders: Schema.optional(Schema.Struct({ daily: Schema.String, inbox: Schema.String })),
   /**

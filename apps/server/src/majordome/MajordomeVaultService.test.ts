@@ -13,6 +13,8 @@ import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
+import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
@@ -132,6 +134,15 @@ const makeService = (
         Layer.provide(VaultLock.layer),
         Layer.provide(RoutineRunLedger.layer),
         Layer.provide(fakeProjections(threads)),
+        // A server with no routines made and no provider signed in.
+        Layer.provide(
+          Layer.mock(ScheduledTaskService.ScheduledTaskService)({
+            list: () => Effect.succeed({ tasks: [] }),
+          }),
+        ),
+        Layer.provide(
+          Layer.mock(ProviderRegistry.ProviderRegistry)({ getProviders: Effect.succeed([]) }),
+        ),
         Layer.provide(
           Layer.mock(ServerEnvironment.ServerEnvironment)({
             getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
@@ -251,16 +262,18 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       const vault = yield* makeFolder({ vault: true });
       const runnerFile = `${vault.root}/.majordome/runner`;
       const service = yield* makeService({ [vaultProject]: vault.root });
-      const runner = service
-        .listHistory({ projectId: vaultProject })
-        .pipe(Effect.map((history) => history.routinesRunner));
+      const history = service.listHistory({ projectId: vaultProject });
+      const runner = history.pipe(Effect.map((result) => result.routinesRunner));
 
       assert.equal(yield* runner, "none");
       assert.isFalse(yield* vault.fs.exists(runnerFile));
       yield* vault.fs.writeFileString(runnerFile, "env-elsewhere\n");
       assert.equal(yield* runner, "another-server");
+      // Only the runner says whether the routines can run.
+      assert.isUndefined((yield* history).routinesStatus);
       yield* vault.fs.writeFileString(runnerFile, "env-here\n");
       assert.equal(yield* runner, "this-server");
+      assert.deepEqual((yield* history).routinesStatus, { ready: false, reason: "no-provider" });
     }),
   );
 

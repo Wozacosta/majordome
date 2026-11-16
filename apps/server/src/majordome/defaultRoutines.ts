@@ -137,12 +137,24 @@ const RoutineLedgerJson = Schema.fromJsonString(RoutineLedger);
 const decodeLedger = Schema.decodeUnknownOption(RoutineLedgerJson);
 const encodeLedger = Schema.encodeSync(RoutineLedgerJson);
 
+/** Where a server keeps its routine ledger. */
+export const routineLedgerPath = (path: Path.Path, stateDir: string) =>
+  path.join(stateDir, "majordome", "routines.json");
+
 const readLedger = Effect.fn("majordome.readRoutineLedger")(function* (ledgerPath: string) {
   const fileSystem = yield* FileSystem.FileSystem;
   const text = yield* fileSystem.readFileString(ledgerPath).pipe(Effect.option);
   return Option.getOrElse(Option.flatMap(text, decodeLedger), (): RoutineLedger => ({
     projects: [],
   }));
+});
+
+/** True once this server made the project's default routines, even if the owner deleted them since. */
+export const hasDefaultRoutines = Effect.fn("majordome.hasDefaultRoutines")(function* (
+  ledgerPath: string,
+  projectId: ProjectId,
+) {
+  return (yield* readLedger(ledgerPath)).projects.includes(projectId);
 });
 
 const writeLedger = Effect.fn("majordome.writeRoutineLedger")(function* (

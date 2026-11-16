@@ -6,6 +6,7 @@
  */
 
 import { type ModelSelection, type ProjectId, type ThreadId } from "@t3tools/contracts";
+import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -32,9 +33,21 @@ import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts
 import { forkParked } from "../serverActivation.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { autoRoutineMode, ensureDefaultRoutines, routineTaskId } from "./defaultRoutines.ts";
+import {
+  autoRoutineMode,
+  ensureDefaultRoutines,
+  routineLedgerPath,
+  routineTaskId,
+} from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
+import * as MajordomePush from "./MajordomePush.ts";
+import {
+  decideRoutinesBlockedPush,
+  routinesBlockedPush,
+  type RoutinesBlockedWatch,
+} from "./pushDecision.ts";
+import { readRoutinesStatus } from "./routinesStatus.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readVaultLayout, readVaultLimits, type VaultLayout } from "./vaultConfig.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
@@ -85,6 +98,7 @@ const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;
   const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
   const backup = yield* MajordomeBackup.MajordomeBackup;
+  const push = yield* MajordomePush.MajordomePush;
   const vaultLock = yield* VaultLock.VaultLock;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -95,11 +109,12 @@ const make = Effect.gen(function* () {
     | GitVcsDriver.GitVcsDriver
   >();
   const layerScope = yield* Effect.scope;
-  const ledgerPath = path.join(config.stateDir, "majordome", "routines.json");
+  const ledgerPath = routineLedgerPath(path, config.stateDir);
   const reconcileLock = yield* Semaphore.make(1);
   const watchers = yield* Ref.make<ReadonlyMap<ProjectId, InboxWatcher>>(new Map());
   // Log a vault without a model once, not at every reconcile.
   const reportedNoModel = yield* Ref.make<ReadonlySet<ProjectId>>(new Set());
+  const blockedWatches = yield* Ref.make<ReadonlyMap<ProjectId, RoutinesBlockedWatch>>(new Map());
 
   const chooseModel = (project: ProjectStore.ProjectRow) =>
     chooseVaultModel(project).pipe(
@@ -155,6 +170,45 @@ const make = Effect.gen(function* () {
       Effect.flatMap((environmentId) => isVaultRunner({ vaultRoot, environmentId })),
       Effect.provide(services),
     );
+
+  /** Tells the owner's devices once when this server, the vault's runner, can't run its routines. */
+  const notifyIfBlocked = Effect.fn("MajordomeRoutines.notifyIfBlocked")(function* (
+    projectId: ProjectId,
+    runner: boolean,
+  ) {
+    const status = runner
+      ? yield* readRoutinesStatus({ ledgerPath, projectId }).pipe(
+          Effect.provide(services),
+          Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
+        )
+      : { ready: true };
+    const { watch, notify } = decideRoutinesBlockedPush({
+      previous: (yield* Ref.get(blockedWatches)).get(projectId),
+      status,
+      now: yield* Clock.currentTimeMillis,
+    });
+    yield* Ref.update(blockedWatches, (watches) => {
+      const next = new Map(watches);
+      if (watch === undefined) next.delete(projectId);
+      else next.set(projectId, watch);
+      return next;
+    });
+    if (!notify) return;
+    yield* Effect.logWarning("Majordome's routines can't run on this server; telling the owner.", {
+      projectId,
+      reason: status.reason,
+    });
+    // Delivery waits on the network; the other vaults must not.
+    yield* push
+      .notifyAll(
+        routinesBlockedPush({
+          status,
+          environmentId: yield* environment.getEnvironmentId,
+          serverLabel: (yield* environment.getDescriptor).label,
+        }),
+      )
+      .pipe(Effect.forkIn(layerScope));
+  });
 
   const awaitRunEnd = (projectId: ProjectId, threadId: ThreadId) =>
     threads.waitForThread({ projectId, threadId, timeoutMs: DIGEST_RUN_WAIT_MS }).pipe(
@@ -230,12 +284,14 @@ const make = Effect.gen(function* () {
           const layout = yield* readVaultLayout(vaultRoot).pipe(Effect.provide(services));
           if (Option.isNone(layout)) return;
           yield* setUpRoutines(project, layout.value);
-          if (yield* isRunner(vaultRoot)) {
+          const runner = yield* isRunner(vaultRoot);
+          if (runner) {
             wanted.set(project.projectId, {
               vaultRoot,
               inboxPath: path.join(vaultRoot, layout.value.inboxFolder),
             });
           }
+          yield* notifyIfBlocked(project.projectId, runner);
         }).pipe(
           Effect.catchCause((cause) =>
             Effect.logWarning("Majordome could not set up a vault's routines.", {

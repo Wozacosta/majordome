@@ -29,9 +29,11 @@ import {
   stoppedRunKeys,
 } from "./feed.logic";
 import { requestDraftSend } from "./pendingDraftSend";
+import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { greetingForHour, selectTodayRuns, type TodayRun, todayTitle } from "./today.logic";
 import { TopicIconBadge } from "./TopicIcon";
 import { type MajordomeVault, topicSubtitle, type VaultTopic } from "./topics.logic";
+import { useMachineNames } from "./useMachineNames";
 import { useOpenTopic } from "./useOpenTopic";
 
 const SECTION_LABEL_CLASS = "mb-2 text-2xs font-semibold uppercase tracking-widest text-primary";
@@ -153,6 +155,7 @@ function TodayRoutines({
     ),
   );
   const threads = useQuietThreadShells();
+  const { machineOf } = useMachineNames();
   const copies = vault.copies.flatMap((copy, index) => {
     const result = results[index];
     const history = result === undefined ? null : AsyncResult.getOrElse(result, () => null);
@@ -198,6 +201,15 @@ function TodayRoutines({
 
   return (
     <Section title="From your routines">
+      {copies.map((copy) => (
+        <RoutinesBlockedLine
+          key={copy.vault.environmentId}
+          environmentId={copy.vault.environmentId}
+          status={copy.history.routinesStatus}
+          machine={machineOf(copy.vault.environmentId)}
+          label={null}
+        />
+      ))}
       {runs.length > 0 ? (
         <ul className="m-0 list-none p-0">
           {runs.map((run) => (

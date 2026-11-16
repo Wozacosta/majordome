@@ -38,6 +38,7 @@ import * as SecretRequests from "../secrets/SecretRequests.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
+import * as MajordomePush from "./MajordomePush.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -248,6 +249,7 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
                 Layer.mock(MajordomeBackup.MajordomeBackup)({
                   runCycle: (root) => Deferred.succeed(backedUp, root).pipe(Effect.asVoid),
                 }),
+                Layer.mock(MajordomePush.MajordomePush)({ notifyAll: () => Effect.succeed(0) }),
                 VaultLock.layer,
                 ServerSettings.ServerSettingsService.layerTest(),
                 RoutineRunLedger.layer.pipe(

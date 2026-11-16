@@ -83,6 +83,7 @@ import {
   withDayHeadings,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
+import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import {
   copyLabel,
   groupBrains,
@@ -249,6 +250,15 @@ export function FeedPage() {
                       moveTo={brain.moveTo}
                       title={showVaultName ? brain.runner.title : null}
                       onMove={setPendingMove}
+                    />
+                  ))}
+                  {brains.map((brain) => (
+                    <RoutinesBlockedLine
+                      key={`blocked:${brain.key}`}
+                      environmentId={brain.runner.environmentId}
+                      status={brain.runner.history.routinesStatus}
+                      machine={machineOf(brain.runner.environmentId)}
+                      label={showVaultName ? brain.runner.title : null}
                     />
                   ))}
                   {vaults.map((vault) => (

@@ -21,6 +21,7 @@ import {
   foldOwnChanges,
   groupFeedItems,
   ownDayLine,
+  routinesBlockedLine,
   stoppedRunKeys,
   summarizeFeedFiles,
   withDayHeadings,
@@ -475,5 +476,43 @@ describe("foldOwnChanges", () => {
         NOW,
       ).map(({ day }) => day),
     ).toEqual(["Today", null, "Yesterday", "Tue 3 Nov", null]);
+  });
+});
+
+describe("routinesBlockedLine", () => {
+  it.each([
+    [
+      { ready: false, reason: "no-provider" },
+      "Always-on server",
+      { text: "Routines can't run: no AI is signed in on Always-on server.", tone: "warning" },
+    ],
+    [
+      { ready: false, reason: "provider-signed-out", provider: "Claude" },
+      "This Mac",
+      { text: "Routines can't run: Claude is signed out on this Mac.", tone: "warning" },
+    ],
+    [
+      { ready: false, reason: "provider-unavailable" },
+      "Another computer",
+      {
+        text: "Routines can't run: the AI they use isn't available on Another computer.",
+        tone: "warning",
+      },
+    ],
+    [
+      { ready: false, reason: "not-created" },
+      "This Mac",
+      { text: "Routines are being set up on this Mac.", tone: "neutral" },
+    ],
+    // A server from before reasons existed still says it can't run them.
+    [
+      { ready: false },
+      "This Mac",
+      { text: "Routines can't run: no AI is signed in on this Mac.", tone: "warning" },
+    ],
+    [{ ready: true }, "This Mac", null],
+    [undefined, "This Mac", null],
+  ] as const)("words %j on %s", (status, machine, expected) => {
+    expect(routinesBlockedLine(status, machine)).toEqual(expected);
   });
 });

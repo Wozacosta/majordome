@@ -2,12 +2,14 @@ import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/model
 import {
   type EnvironmentId,
   isListedThreadLineage,
+  type MajordomeRoutinesStatus,
   type MajordomeVaultHistoryEntry,
   type ProjectId,
   type ThreadId,
 } from "@t3tools/contracts";
 
 import { resolveSidebarRowStatus } from "../Sidebar.logic";
+import { machineInSentence } from "./brains.logic";
 
 export interface FeedVault {
   readonly environmentId: EnvironmentId;
@@ -22,6 +24,30 @@ export interface FeedVault {
 /** One key for every copy of a brain. */
 function feedBrainKey(vault: FeedVault): string {
   return vault.brainKey ?? `${vault.environmentId}:${vault.projectId}`;
+}
+
+/**
+ * What to tell the owner when a brain's routines can't run on the server that runs them; null when
+ * they can, or when the server is too old to say. `machine` is that server as `machineName` has it.
+ */
+export function routinesBlockedLine(
+  status: MajordomeRoutinesStatus | undefined,
+  machine: string,
+): { readonly text: string; readonly tone: "warning" | "neutral" } | null {
+  if (status === undefined || status.ready) return null;
+  const where = `on ${machineInSentence(machine)}`;
+  const provider = status.provider ?? "the AI they use";
+  switch (status.reason) {
+    case "not-created":
+      // A provider is ready, so the server makes them at its next check.
+      return { text: `Routines are being set up ${where}.`, tone: "neutral" };
+    case "provider-signed-out":
+      return { text: `Routines can't run: ${provider} is signed out ${where}.`, tone: "warning" };
+    case "provider-unavailable":
+      return { text: `Routines can't run: ${provider} isn't available ${where}.`, tone: "warning" };
+    default:
+      return { text: `Routines can't run: no AI is signed in ${where}.`, tone: "warning" };
+  }
 }
 
 export interface FeedItem {

@@ -23,12 +23,17 @@ import * as Path from "effect/Path";
 import * as Stream from "effect/Stream";
 import * as Schema from "effect/Schema";
 
+import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
+import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { VAULT_CHANGES_QUIET_PERIOD, vaultChangeRevisions } from "./vaultChanges.ts";
+import { routineLedgerPath } from "./defaultRoutines.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
+import { readRoutinesStatus } from "./routinesStatus.ts";
 import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -66,6 +71,9 @@ const make = Effect.gen(function* () {
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const projections = yield* ProjectionStore.ProjectionStoreV2;
   const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
+  const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
+  const providers = yield* ProviderRegistry.ProviderRegistry;
+  const ledgerPath = routineLedgerPath(path, (yield* ServerConfig.ServerConfig).stateDir);
 
   const toVaultError = (message: string) => (cause: unknown) =>
     new MajordomeVaultError({ message, cause });
@@ -131,10 +139,19 @@ const make = Effect.gen(function* () {
         Effect.provideService(Path.Path, path),
       );
       const { pausedToday, stoppedRuns } = yield* runLedger.read(input.projectId);
+      const routinesStatus =
+        routinesRunner === "this-server"
+          ? yield* readRoutinesStatus({ ledgerPath, projectId: input.projectId }).pipe(
+              Effect.provideService(FileSystem.FileSystem, fileSystem),
+              Effect.provideService(ScheduledTaskService.ScheduledTaskService, scheduledTasks),
+              Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
+            )
+          : undefined;
       return {
         isVault: true,
         entries,
         routinesRunner,
+        ...(routinesStatus === undefined ? {} : { routinesStatus }),
         folders: { daily: layout.dailyFolder, inbox: layout.inboxFolder },
         notes,
         routineLimits,

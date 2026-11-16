@@ -749,6 +749,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ).pipe(
     Layer.provideMerge(MajordomeRoutines.layer),
     Layer.provide(layerMajordomeBackup),
+    Layer.provide(MajordomePush.layer),
     Layer.provide(VaultLock.layer),
   ),
   MajordomeVaultService.layer.pipe(

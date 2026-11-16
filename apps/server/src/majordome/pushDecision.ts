@@ -1,9 +1,10 @@
 /**
  * Which vault runs reach the owner's phone. Only three do: a run waiting for an answer, "Start my
  * day" finishing, and a run that couldn't finish. Each carries a key so one run notifies once.
+ * A runner whose routines can't run at all notifies once too, until it recovers.
  */
 
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeRoutinesStatus } from "@t3tools/contracts";
 import {
   type ProjectThreadAwarenessV2Input,
   projectThreadAwarenessV2,
@@ -105,6 +106,55 @@ export function decideVaultPush(input: {
     default:
       return null;
   }
+}
+
+/** A server still checking its providers after it starts looks blocked; it notifies only past this. */
+export const ROUTINES_BLOCKED_GRACE_MS = 10 * 60 * 1_000;
+
+/** A vault whose routines can't run here: since when, and whether the owner was told. */
+export interface RoutinesBlockedWatch {
+  readonly since: number;
+  readonly notified: boolean;
+}
+
+/**
+ * Notifies once per time a runner's routines stop being able to run, however often it is checked
+ * and whichever provider reason it shows. Recovering forgets the watch, so a later failure notifies
+ * again. Routines that are only not made yet say nothing: making them is this server's next step.
+ */
+export function decideRoutinesBlockedPush(input: {
+  readonly previous: RoutinesBlockedWatch | undefined;
+  readonly status: MajordomeRoutinesStatus;
+  readonly now: number;
+}): { readonly watch: RoutinesBlockedWatch | undefined; readonly notify: boolean } {
+  if (input.status.ready || input.status.reason === "not-created") {
+    return { watch: undefined, notify: false };
+  }
+  const since = input.previous?.since ?? input.now;
+  if (input.previous?.notified) return { watch: input.previous, notify: false };
+  const notify = input.now - since >= ROUTINES_BLOCKED_GRACE_MS;
+  return { watch: { since, notified: notify }, notify };
+}
+
+export function routinesBlockedPush(input: {
+  readonly status: MajordomeRoutinesStatus;
+  readonly environmentId: EnvironmentId;
+  /** The server's own name, as its clients show it. */
+  readonly serverLabel: string;
+}): VaultPushMessage {
+  const provider = input.status.provider ?? "The AI your routines use";
+  return {
+    title: "Routines can't run",
+    body:
+      input.status.reason === "provider-signed-out"
+        ? `${provider} is signed out on ${input.serverLabel}.`
+        : input.status.reason === "provider-unavailable"
+          ? `${provider} isn't available on ${input.serverLabel}.`
+          : `No AI is signed in on ${input.serverLabel}.`,
+    // One tag for the server: several vaults blocked by one provider show as one notification.
+    tag: "majordome:routines",
+    url: `/settings/providers?environmentId=${encodeURIComponent(input.environmentId)}`,
+  };
 }
 
 /** Remembers the last few hundred keys; a run's notification goes out once per server start. */

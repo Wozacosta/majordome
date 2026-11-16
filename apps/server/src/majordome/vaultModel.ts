@@ -38,11 +38,19 @@ export const chooseVaultModel = Effect.fn("majordome.chooseVaultModel")(
   Effect.orElseSucceed((): ModelSelection | null => null),
 );
 
+export function isProviderReady(provider: ServerProvider): boolean {
+  return (
+    provider.enabled &&
+    provider.installed &&
+    provider.status === "ready" &&
+    provider.availability !== "unavailable"
+  );
+}
+
 /** The default model of the first provider that is set up and ready, as a new chat would pick. */
 function firstReadyProviderModel(providers: ReadonlyArray<ServerProvider>): ModelSelection | null {
   for (const provider of providers) {
-    if (!provider.enabled || !provider.installed || provider.status !== "ready") continue;
-    if (provider.availability === "unavailable") continue;
+    if (!isProviderReady(provider)) continue;
     const model =
       provider.models.find((candidate) => candidate.isDefault === true && !candidate.isCustom) ??
       provider.models.find((candidate) => !candidate.isCustom) ??
