@@ -51,6 +51,17 @@ export function routinesBlockedLine(
   }
 }
 
+/** What to tell the owner while their memory note is longer than conversations load; else null. */
+export function memoryOverLimitLine(
+  memoryOverLimit: { readonly tidyRoutineOn: boolean } | undefined,
+): string | null {
+  if (memoryOverLimit === undefined) return null;
+  const problem = "Your memory note is too long, so its end isn't loaded into conversations.";
+  return memoryOverLimit.tidyRoutineOn
+    ? `${problem} “Tidy my memory” shortens it tonight.`
+    : `${problem} Turn on “Tidy my memory” in Routines, or shorten the note yourself.`;
+}
+
 export interface FeedItem {
   readonly key: string;
   readonly vault: FeedVault;

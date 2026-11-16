@@ -1540,6 +1540,11 @@ export const layer: Layer.Layer<
               vaultRoot: resolvedRuntimePolicy.cwd,
               nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
               topicOf: { threadId: projection.thread.id, stateDir: serverConfig.stateDir },
+              startedBy: {
+                projectId: projection.thread.projectId,
+                scheduledTaskId: message?.scheduledTaskId,
+                stateDir: serverConfig.stateDir,
+              },
             }).pipe(
               Effect.provideService(FileSystem.FileSystem, fileSystem),
               Effect.provideService(Path.Path, path),

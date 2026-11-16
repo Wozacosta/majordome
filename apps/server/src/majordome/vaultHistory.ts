@@ -84,8 +84,11 @@ function parseVaultLog(stdout: string): ReadonlyArray<VaultHistoryEntry> {
 export const listVaultHistory = Effect.fn("majordome.listVaultHistory")(function* (input: {
   readonly cwd: string;
   readonly limit: number;
+  /** Only commits after this one, or with `sinceIso`, after that time. */
+  readonly after?: { readonly commit: string } | { readonly sinceIso: string } | undefined;
 }) {
   const git = yield* GitVcsDriver.GitVcsDriver;
+  const { after } = input;
   const result = yield* git.execute({
     operation: "majordome.vaultHistory",
     cwd: input.cwd,
@@ -94,6 +97,11 @@ export const listVaultHistory = Effect.fn("majordome.listVaultHistory")(function
       `--max-count=${Math.max(1, Math.min(input.limit, 500))}`,
       "--name-only",
       `--format=${RECORD}%H${FIELD}%an${FIELD}%ae${FIELD}%cI${FIELD}%s${FIELD}%b%x00`,
+      ...(after === undefined
+        ? []
+        : "commit" in after
+          ? [`${after.commit}..HEAD`]
+          : [`--since=${after.sinceIso}`]),
     ],
     allowNonZeroExit: true,
   });

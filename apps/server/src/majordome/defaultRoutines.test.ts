@@ -90,7 +90,7 @@ const makeLedgerPath = Effect.fn("test.makeLedgerPath")(function* () {
 });
 
 it.layer(testLayer)("default routines", (it) => {
-  it.effect("creates the three routines once", () =>
+  it.effect("creates the default routines once", () =>
     Effect.gen(function* () {
       const projectId = ProjectId.make("project-created-once");
       const service = yield* ScheduledTaskService.ScheduledTaskService;
@@ -102,6 +102,7 @@ it.layer(testLayer)("default routines", (it) => {
         "Digest my inbox",
         "Review my week",
         "Start my day",
+        "Tidy my memory",
       ]);
       const byTitle = new Map(tasks.map((task) => [task.title, task]));
       const startMyDay = byTitle.get("Start my day");
@@ -123,11 +124,15 @@ it.layer(testLayer)("default routines", (it) => {
       assert.isFalse(digest?.enabled);
       assert.isNull(digest?.nextRunAt);
       assert.include(digest?.prompt ?? "", "`drop/`");
+      const tidy = byTitle.get("Tidy my memory");
+      assert.isTrue(tidy?.enabled);
+      assert.deepEqual(tidy?.schedule, { type: "fixed_time", timeOfDay: "03:30" });
+      assert.equal(tidy?.runtimeMode, "auto");
 
       assert.equal(yield* setUp(ledgerPath, projectId), "exists");
       assert.equal(
         (yield* service.list()).tasks.filter((task) => task.projectId === projectId).length,
-        3,
+        4,
       );
     }),
   );
@@ -154,6 +159,50 @@ it.layer(testLayer)("default routines", (it) => {
       assert.equal(yield* setUp(ledgerPath, projectId), "created");
       const after = (yield* service.list()).tasks.find((task) => task.id === startMyDay);
       assert.isFalse(after?.enabled);
+    }),
+  );
+
+  it.effect("adds a later default once to a vault that already has its routines", () =>
+    Effect.gen(function* () {
+      const projectId = ProjectId.make("project-before-memory-pass");
+      const service = yield* ScheduledTaskService.ScheduledTaskService;
+      const fileSystem = yield* FileSystem.FileSystem;
+      const ledgerPath = yield* makeLedgerPath();
+      const tidyId = routineTaskId(projectId, "tidy-my-memory");
+      const titles = Effect.map(service.list(), ({ tasks }) =>
+        tasks
+          .filter((task) => task.projectId === projectId)
+          .map((task) => task.title)
+          .toSorted(),
+      );
+
+      // A vault as an earlier Majordome left it: three routines, one deleted by the owner since.
+      assert.equal(yield* setUp(ledgerPath, projectId), "created");
+      yield* service.delete({ id: tidyId });
+      yield* service.delete({ id: routineTaskId(projectId, "review-my-week") });
+      yield* fileSystem.writeFileString(
+        ledgerPath,
+        JSON.stringify({ projects: [projectId], autoMode: [projectId] }),
+      );
+
+      // Without a model it waits, recording nothing.
+      const waiting = yield* ensureDefaultRoutines({
+        ledgerPath,
+        projectId,
+        layout,
+        modelSelection: Effect.succeed(null),
+        autoMode: () => Effect.succeed("auto"),
+      });
+      assert.equal(waiting, "exists");
+      assert.deepEqual(yield* titles, ["Digest my inbox", "Start my day"]);
+
+      assert.equal(yield* setUp(ledgerPath, projectId), "added");
+      assert.deepEqual(yield* titles, ["Digest my inbox", "Start my day", "Tidy my memory"]);
+
+      // Deleted or edited afterwards, it is the owner's.
+      yield* service.delete({ id: tidyId });
+      assert.equal(yield* setUp(ledgerPath, projectId), "exists");
+      assert.deepEqual(yield* titles, ["Digest my inbox", "Start my day"]);
     }),
   );
 
@@ -202,6 +251,7 @@ it.layer(testLayer)("default routines", (it) => {
         "Start my day": "auto",
         "Review my week": "approval-required",
         "Digest my inbox": "auto-accept-edits",
+        "Tidy my memory": "auto-accept-edits",
       });
 
       // Choosing the old mode again sticks.

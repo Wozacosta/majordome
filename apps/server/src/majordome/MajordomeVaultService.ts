@@ -31,12 +31,14 @@ import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { VAULT_CHANGES_QUIET_PERIOD, vaultChangeRevisions } from "./vaultChanges.ts";
-import { routineLedgerPath } from "./defaultRoutines.ts";
+import { routineLedgerPath, routineTaskId } from "./defaultRoutines.ts";
+import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { readMemoryChars } from "./vaultContext.ts";
 import { readVaultRunner } from "./vaultRunner.ts";
 import { describeVaultHistory } from "./vaultRunSummaries.ts";
 
@@ -147,11 +149,28 @@ const make = Effect.gen(function* () {
               Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
             )
           : undefined;
+      const memoryChars = yield* readMemoryChars({
+        vaultRoot: cwd,
+        memoryPath: layout.memory,
+      }).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      );
+      const tidyId = routineTaskId(input.projectId, "tidy-my-memory");
+      const memoryOverLimit =
+        memoryChars > MEMORY_CHAR_LIMIT
+          ? {
+              tidyRoutineOn: (yield* scheduledTasks.list()).tasks.some(
+                (task) => task.id === tidyId && task.enabled,
+              ),
+            }
+          : undefined;
       return {
         isVault: true,
         entries,
         routinesRunner,
         ...(routinesStatus === undefined ? {} : { routinesStatus }),
+        ...(memoryOverLimit === undefined ? {} : { memoryOverLimit }),
         folders: { daily: layout.dailyFolder, inbox: layout.inboxFolder },
         notes,
         routineLimits,

@@ -8,6 +8,7 @@
 import { type ModelSelection, type ProjectId, type ThreadId } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
+import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -40,6 +41,8 @@ import {
   routineTaskId,
 } from "./defaultRoutines.ts";
 import { INBOX_QUIET_PERIOD, watchInbox } from "./inboxWatcher.ts";
+import { planMemoryPass } from "./memoryPass.ts";
+import { readMemoryPassState, writeMemoryPassState } from "./memoryPassState.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
 import * as MajordomePush from "./MajordomePush.ts";
 import {
@@ -146,10 +149,13 @@ const make = Effect.gen(function* () {
       modelSelection: chooseModel(project),
       autoMode,
     }).pipe(Effect.provide(services));
-    if (result === "created") {
-      yield* Effect.logInfo("Majordome created a vault's default routines.", {
-        projectId: project.projectId,
-      });
+    if (result === "created" || result === "added") {
+      yield* Effect.logInfo(
+        result === "created"
+          ? "Majordome created a vault's default routines."
+          : "Majordome added a new default routine to a vault.",
+        { projectId: project.projectId },
+      );
     } else if (result === "no-model") {
       const first = yield* Ref.modify(reportedNoModel, (reported) =>
         reported.has(project.projectId)
@@ -402,7 +408,8 @@ export const layer = Layer.effect(MajordomeRoutines, make);
 
 /**
  * Lets a scheduled task fire only on its vault's runner, and only while the vault has runs left
- * today. Tasks outside vaults are not affected, and neither are manual runs.
+ * today. The memory pass is also held back, before it counts as a run, on a night with nothing new
+ * to go through. Tasks outside vaults are not affected, and neither are manual runs.
  */
 export const layerRunGate = Layer.effect(
   ScheduledTaskService.ScheduledTaskRunGate,
@@ -410,20 +417,39 @@ export const layerRunGate = Layer.effect(
     const projects = yield* ProjectStore.ProjectStoreV2;
     const environment = yield* ServerEnvironment.ServerEnvironment;
     const runLedger = yield* RoutineRunLedger.RoutineRunLedger;
-    const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+    const { stateDir } = yield* ServerConfig.ServerConfig;
+    const services = yield* Effect.context<
+      FileSystem.FileSystem | Path.Path | GitVcsDriver.GitVcsDriver
+    >();
     return (task) =>
       Effect.gen(function* () {
         const project = yield* projects.get(task.projectId);
         if (Option.isNone(project)) return true;
         const vaultRoot = project.value.workspaceRoot;
-        if (Option.isNone(yield* readVaultLayout(vaultRoot))) return true;
+        const layout = yield* readVaultLayout(vaultRoot);
+        if (Option.isNone(layout)) return true;
         const runner = yield* isVaultRunner({
           vaultRoot,
           environmentId: yield* environment.getEnvironmentId,
         });
         if (!runner) return false;
+        const passKey = { stateDir, projectId: task.projectId };
+        const pass =
+          task.id === routineTaskId(task.projectId, "tidy-my-memory")
+            ? yield* planMemoryPass({
+                vaultRoot,
+                layout: layout.value,
+                previous: yield* readMemoryPassState(passKey),
+                passTitle: task.title,
+                now: yield* DateTime.now,
+              })
+            : undefined;
+        if (pass === null) return false;
         const { runsPerDay } = yield* readVaultLimits(vaultRoot);
-        return yield* runLedger.take(task.projectId, runsPerDay);
+        const mayRun = yield* runLedger.take(task.projectId, runsPerDay);
+        // Only a pass that runs moves on, so a night without runs left loses nothing.
+        if (mayRun && pass !== undefined) yield* writeMemoryPassState(passKey, pass);
+        return mayRun;
       }).pipe(
         Effect.provide(services),
         Effect.catchCause((cause) =>

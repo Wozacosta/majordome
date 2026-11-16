@@ -274,6 +274,11 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       yield* vault.fs.writeFileString(runnerFile, "env-here\n");
       assert.equal(yield* runner, "this-server");
       assert.deepEqual((yield* history).routinesStatus, { ready: false, reason: "no-provider" });
+
+      // A memory note longer than conversations load is said, with whether a routine shortens it.
+      assert.isUndefined((yield* history).memoryOverLimit);
+      yield* vault.fs.writeFileString(`${vault.root}/memory.md`, "x".repeat(8_001));
+      assert.deepEqual((yield* history).memoryOverLimit, { tidyRoutineOn: false });
     }),
   );
 
