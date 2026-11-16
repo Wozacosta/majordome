@@ -110,6 +110,16 @@ describe("RPC authorization scopes", () => {
     );
   });
 
+  it("keeps Claude's sign-in, which replaces a provider's login, behind provider management", () => {
+    for (const method of [
+      WS_METHODS.claudeSignInStart,
+      WS_METHODS.claudeSignInSubmit,
+      WS_METHODS.claudeSignInCancel,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthProvidersManageScope);
+    }
+  });
+
   it("separates passive terminal observation from operations that can change a shell", () => {
     for (const method of [WS_METHODS.terminalObserve, WS_METHODS.subscribeTerminalMetadata]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthTerminalReadScope);

@@ -41,6 +41,11 @@ import { NonNegativeInt, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { SecretSourceCheckResult } from "./settingsSecretValue.ts";
 import { SecretReference } from "./secretReference.ts";
 import {
+  ClaudeSignInAttempt,
+  ClaudeSignInCancelInput,
+  ClaudeSignInError,
+  ClaudeSignInResult,
+  ClaudeSignInSubmitInput,
   ProviderAuthCancelInput,
   ProviderAuthCompleteInput,
   ProviderAuthState,
@@ -492,6 +497,9 @@ export const WS_METHODS = {
   providerAuthRemoveMethod: "provider.auth.removeMethod",
   providerAuthLogout: "provider.auth.logout",
   providerAuthSubscribe: "provider.auth.subscribe",
+  claudeSignInStart: "provider.claude.signIn.start",
+  claudeSignInSubmit: "provider.claude.signIn.submit",
+  claudeSignInCancel: "provider.claude.signIn.cancel",
   providerInstallStart: "provider.install.start",
   providerInstallCancel: "provider.install.cancel",
   providerInstallSubscribe: "provider.install.subscribe",
@@ -834,6 +842,25 @@ const WsProviderAuthSubscribeRpc = Rpc.make(WS_METHODS.providerAuthSubscribe, {
   success: ProviderAuthState,
   error: ProviderSetupRpcError,
   stream: true,
+});
+
+const ClaudeSignInRpcError = Schema.Union([ClaudeSignInError, EnvironmentAuthorizationError]);
+
+const WsClaudeSignInStartRpc = Rpc.make(WS_METHODS.claudeSignInStart, {
+  payload: ProviderSetupInput,
+  success: ClaudeSignInAttempt,
+  error: ClaudeSignInRpcError,
+});
+
+const WsClaudeSignInSubmitRpc = Rpc.make(WS_METHODS.claudeSignInSubmit, {
+  payload: ClaudeSignInSubmitInput,
+  success: ClaudeSignInResult,
+  error: ClaudeSignInRpcError,
+});
+
+const WsClaudeSignInCancelRpc = Rpc.make(WS_METHODS.claudeSignInCancel, {
+  payload: ClaudeSignInCancelInput,
+  error: ClaudeSignInRpcError,
 });
 
 const WsProviderInstallStartRpc = Rpc.make(WS_METHODS.providerInstallStart, {
@@ -2371,6 +2398,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsProviderAuthRemoveMethodRpc,
   WsProviderAuthLogoutRpc,
   WsProviderAuthSubscribeRpc,
+  WsClaudeSignInStartRpc,
+  WsClaudeSignInSubmitRpc,
+  WsClaudeSignInCancelRpc,
   WsProviderInstallStartRpc,
   WsProviderInstallCancelRpc,
   WsProviderInstallSubscribeRpc,

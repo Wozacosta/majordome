@@ -155,6 +155,9 @@ describe("command permissions", () => {
   it.effect.each([
     { method: WS_METHODS.serverRunStorageCleanup, scope: AuthSettingsWriteScope },
     { method: WS_METHODS.serverReclaimDatabaseSpace, scope: AuthEnvironmentMaintainScope },
+    { method: WS_METHODS.claudeSignInStart, scope: AuthProvidersManageScope },
+    { method: WS_METHODS.claudeSignInSubmit, scope: AuthProvidersManageScope },
+    { method: WS_METHODS.claudeSignInCancel, scope: AuthProvidersManageScope },
   ])("requires the destination $scope grant for $method", ({ method, scope }) =>
     Effect.gen(function* () {
       const registry = yield* setup;

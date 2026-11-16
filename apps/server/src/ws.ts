@@ -188,6 +188,7 @@ import * as AcpRegistrySupport from "@t3tools/provider-acp-registry/server/AcpRe
 import * as AcpRegistryRuntimeCoordinator from "@t3tools/provider-acp-registry/server/AcpRegistryRuntimeCoordinator";
 import * as ProviderMaintenanceRunner from "./provider/providerMaintenanceRunner.ts";
 import * as ProviderAuthService from "./provider/ProviderAuthService.ts";
+import * as ClaudeSignIn from "./provider/ClaudeSignIn.ts";
 import * as ProviderInstallation from "./provider/providerInstallation.ts";
 import * as ServerSelfUpdate from "./cloud/selfUpdate.ts";
 import * as NpmRelease from "./cloud/npmRelease.ts";
@@ -1546,6 +1547,7 @@ export const layerWsRpc = (
       const acpRegistrySessions = yield* AcpRegistrySessions.AcpRegistrySessions;
       const providerMaintenanceRunner = yield* ProviderMaintenanceRunner.ProviderMaintenanceRunner;
       const providerAuth = yield* ProviderAuthService.ProviderAuthService;
+      const claudeSignIn = yield* ClaudeSignIn.ClaudeSignIn;
       const providerInstallation = yield* ProviderInstallation.ProviderInstallation;
       const serverSelfUpdate = yield* ServerSelfUpdate.ServerSelfUpdate;
       const npmRelease = yield* NpmRelease.NpmRelease;
@@ -2732,6 +2734,9 @@ export const layerWsRpc = (
         [WS_METHODS.providerAuthLogout]: (input) => providerAuth.logout(input),
         [WS_METHODS.providerAuthSubscribe]: (input) =>
           providerAuth.subscribe(input, currentSessionId),
+        [WS_METHODS.claudeSignInStart]: (input) => claudeSignIn.start(input),
+        [WS_METHODS.claudeSignInSubmit]: (input) => claudeSignIn.submit(input),
+        [WS_METHODS.claudeSignInCancel]: (input) => claudeSignIn.cancel(input),
         [WS_METHODS.providerInstallStart]: (input) => providerInstallation.start(input),
         [WS_METHODS.providerInstallCancel]: (input) => providerInstallation.cancel(input),
         [WS_METHODS.providerInstallSubscribe]: (input) => providerInstallation.subscribe(input),

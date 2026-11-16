@@ -55,23 +55,36 @@ Tailscale account (the one **Your phone** set up).
 
 7. **Finish on the server's Majordome:**
    - **Back up my brain > Sign in to GitHub**, so the server saves your notes back to GitHub.
-   - **Settings > Providers**: sign in to Claude or ChatGPT (below).
+   - **Settings > Providers > Claude > Sign in to Claude**, or **Codex > Continue with ChatGPT**
+     (below).
    - **Feed > Move routines here.** Your computer stops running them once it gets your latest notes.
 
 Your computer keeps its own copy of the notes and stays in step through GitHub.
 
 ## Sign in to Claude and ChatGPT on the server
 
-The server has no browser, so sign-in happens from your phone or computer:
+The server has no browser, so sign-in happens from your phone or computer, in the server's
+Majordome:
 
-- **Claude:** on the server, run `docker compose exec -it majordome claude auth login`, open the
-  link it prints, approve, and paste the code back. This full sign-in brings your Claude account's
-  connectors (Gmail, Calendar, Drive), so routines can use them.
-- **Claude, without connectors:** on a computer where you use Claude, run `claude setup-token` and
-  paste the token in **Settings > Providers > Claude > Claude sign-in token** on the server's
-  Majordome. Conversations work, but the server can't reach your email, calendar or files.
+- **Claude:** in **Settings > Providers > Claude**, choose **Sign in to Claude**. Open the link it
+  shows, approve, and paste the code Claude gives you back into Majordome. The code only works for a
+  few minutes; if it is refused, choose **Start over** for a new link. This full sign-in brings your
+  Claude account's connectors (Gmail, Calendar, Drive), so routines can use them.
 - **ChatGPT (Codex):** in **Settings > Providers > Codex**, choose **Continue with ChatGPT**. After
   you sign in, the page fails to load: copy its address and paste it in the field Majordome shows.
+
+Two other ways to sign in to Claude:
+
+- **From a terminal:** on the server, run `docker compose exec -it majordome claude auth login`,
+  open the link it prints, approve, and paste the code back. It is the same sign-in as above.
+- **With a token, without connectors:** on a computer where you use Claude, run
+  `claude setup-token` and paste the token in **Settings > Providers > Claude > Claude sign-in
+  token**. Conversations work, but the server can't reach your email, calendar or files.
+
+A token wins over a full sign-in for as long as Claude sees it. **Sign in to Claude** removes a
+token saved in Settings, and Majordome leaves out one set as `CLAUDE_CODE_OAUTH_TOKEN` in the
+server's `.env` file once the full sign-in is stored. If it tells you the token still wins, delete
+that line from `.env` and run `docker compose up -d`.
 
 ## What the server can reach
 
