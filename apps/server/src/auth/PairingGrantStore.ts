@@ -16,6 +16,7 @@ import {
   DESKTOP_BOOTSTRAP_TOKEN_WINDOW_MS,
   isValidDesktopBootstrapToken,
 } from "@t3tools/shared/desktopBootstrapToken";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
@@ -28,6 +29,12 @@ import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
+
+import {
+  SERVER_SETUP_SECRET_VARIABLE,
+  SERVER_SETUP_SUBJECT,
+  serverSetupSecretExpiry,
+} from "./serverSetupSecret.ts";
 
 import * as ServerConfig from "../config.ts";
 import * as AuthConnectDevices from "../persistence/AuthConnectDevices.ts";
@@ -423,6 +430,37 @@ const make = Effect.gen(function* () {
       // Reloads and expired bearer sessions must be able to re-exchange the desktop seed.
       remainingUses: "unbounded",
     });
+  }
+
+  // A server made by "Set up a server for me" starts with one secret in its environment. It is
+  // stored as a pairing link, so its single use and expiry survive restarts; a secret already
+  // seen, spent or past the expiry it carries is never added again.
+  const seedServerSetupSecret = Effect.fn("PairingGrantStore.seedServerSetupSecret")(function* (
+    secret: string,
+  ) {
+    const expiresAt = serverSetupSecretExpiry(secret);
+    const now = yield* DateTime.now;
+    if (expiresAt === undefined || DateTime.isGreaterThanOrEqualTo(now, expiresAt)) return;
+    if (Option.isSome(yield* pairingLinks.getByCredential({ credential: secret }))) return;
+    yield* pairingLinks.create({
+      id: yield* random.uuidV4(),
+      credential: secret,
+      method: "one-time-token",
+      scopes: AuthStandardClientScopes,
+      subject: SERVER_SETUP_SUBJECT,
+      label: "Server setup",
+      proofKeyThumbprint: null,
+      createdAt: now,
+      expiresAt,
+    });
+  });
+  const serverSetupSecret = (yield* HostProcess.Environment)[SERVER_SETUP_SECRET_VARIABLE]?.trim();
+  if (serverSetupSecret) {
+    yield* seedServerSetupSecret(serverSetupSecret).pipe(
+      Effect.catchCause(() =>
+        Effect.logWarning("Majordome could not prepare this server's one-time setup secret."),
+      ),
+    );
   }
 
   const listActive: PairingGrantStore["Service"]["listActive"] = Effect.fn(
