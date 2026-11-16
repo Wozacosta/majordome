@@ -103,6 +103,13 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 60_000,
       refreshTrigger: ({ environmentId }) => connectorsRevision(environmentId),
     }),
+    /** One query per typed search; nothing is kept, so results are never older than the notes. */
+    notesSearch: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:notes-search",
+      tag: WS_METHODS.majordomeSearchNotes,
+      staleTimeMs: 0,
+      idleTtlMs: 0,
+    }),
     /** Run with `refresh: true`: the server asks its providers again, then `connectors` reads that. */
     checkConnectors: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:check-connectors",

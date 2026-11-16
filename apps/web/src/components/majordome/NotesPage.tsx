@@ -2,6 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { useNavigate } from "@tanstack/react-router";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { ArrowLeftIcon } from "lucide-react";
+import { useState } from "react";
 
 import { isElectron } from "../../env";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -19,6 +20,8 @@ import { Skeleton } from "../ui/skeleton";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { type Brain, brainKey, groupBrains } from "./brains.logic";
 import { NotePreview } from "./NotePreview";
+import { NotesSearchField, NotesSearchResults } from "./NotesSearch";
+import { notesSearchCopies, notesSearchQuery } from "./notesSearch.logic";
 import { PageTitle, READING_MEASURE_CLASS } from "./paper";
 import {
   isHiddenVaultPath,
@@ -103,6 +106,9 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
       ? search.path
       : null;
   const revision = useVaultRevision(vault);
+  // Kept here, above the list, so the results are still there after a note is opened and closed.
+  const [searchText, setSearchText] = useState("");
+  const searching = notesSearchQuery(searchText) !== "";
 
   const linkTo = (next: { vault: NotesVault; path?: string | undefined }) =>
     notesLink({
@@ -213,19 +219,34 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                   )}
                 >
                   {showNote ? null : <PageTitle className="mb-3 px-3">Notes</PageTitle>}
-                  <FileBrowserPanel
-                    key={vaultKey(vault)}
-                    environmentId={vault.environmentId}
-                    cwd={vault.workspaceRoot}
-                    projectName={vault.title}
+                  <div className={cn("px-3 pb-2", showNote && "pt-2")}>
+                    <NotesSearchField value={searchText} onChange={setSearchText} />
+                  </div>
+                  <NotesSearchResults
+                    key={brainKey(vault)}
+                    copies={notesSearchCopies(brains, vault)}
+                    typed={searchText}
                     selectedPath={path}
-                    selectedPathRevealId={0}
-                    onOpenFile={(target) => {
-                      if (target !== path) open({ vault, path: target });
-                    }}
-                    workspaceMutationId={revision}
-                    hidePath={isHiddenVaultPath}
+                    linkTo={(copy, target) => linkTo({ vault: copy, path: target })}
                   />
+                  {/* Hidden, not unmounted, while results show: the list keeps its open folders. */}
+                  <div
+                    className={cn("flex min-h-0 min-w-0 flex-1 flex-col", searching && "hidden")}
+                  >
+                    <FileBrowserPanel
+                      key={vaultKey(vault)}
+                      environmentId={vault.environmentId}
+                      cwd={vault.workspaceRoot}
+                      projectName={vault.title}
+                      selectedPath={path}
+                      selectedPathRevealId={0}
+                      onOpenFile={(target) => {
+                        if (target !== path) open({ vault, path: target });
+                      }}
+                      workspaceMutationId={revision}
+                      hidePath={isHiddenVaultPath}
+                    />
+                  </div>
                 </div>
               </FileExplorerPane>
             ) : null}
