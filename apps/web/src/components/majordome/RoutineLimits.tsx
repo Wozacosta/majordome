@@ -12,7 +12,6 @@ import type {
 import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
 
-import { cn } from "../../lib/utils";
 import { useProjects } from "../../state/entities";
 import { usePrimaryEnvironmentId } from "../../state/environments";
 import {
@@ -25,8 +24,7 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { toastManager } from "../ui/toast";
-import { Entry, EntryList, Muted, READING_MEASURE_CLASS, SectionLabel } from "./paper";
-import { ROUTINES_INSET_CLASS } from "./RoutineEntry";
+import { Entry, EntryList, Muted, READING_MEASURE_CLASS } from "./paper";
 
 const MAX_RUN_MINUTES = 24 * 60;
 const MAX_RUNS_PER_DAY = 1_000;
@@ -44,8 +42,8 @@ function parseLimit(draft: string, max: number): number | null {
   return Number.isInteger(value) && value >= 1 && value <= max ? value : null;
 }
 
-/** The limits on unattended runs of each vault, on the Routines screen. */
-export function RoutineLimitsSection() {
+/** The limits on unattended runs of each vault, on the Routines screen; nothing while none is known. */
+export function RoutineLimits() {
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
   const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
   const results = useAtomValue(vaultHistoriesAtom(key));
@@ -77,21 +75,16 @@ export function RoutineLimitsSection() {
   if (vaults.length === 0) return null;
 
   return (
-    <section>
-      <div className={cn("mb-2 flex", ROUTINES_INSET_CLASS)}>
-        <SectionLabel>Limits</SectionLabel>
-      </div>
-      <EntryList>
-        {vaults.map((vault) => (
-          <VaultLimitsRows
-            // Saved limits come back through the history, which resets the drafts.
-            key={`${vault.environmentId}:${vault.projectId}:${vault.limits.runMinutes}:${vault.limits.runsPerDay}`}
-            vault={vault}
-            showVaultName={vaults.length > 1}
-          />
-        ))}
-      </EntryList>
-    </section>
+    <EntryList aria-label="Limits">
+      {vaults.map((vault) => (
+        <VaultLimitsRows
+          // Saved limits come back through the history, which resets the drafts.
+          key={`${vault.environmentId}:${vault.projectId}:${vault.limits.runMinutes}:${vault.limits.runsPerDay}`}
+          vault={vault}
+          showVaultName={vaults.length > 1}
+        />
+      ))}
+    </EntryList>
   );
 }
 
@@ -137,7 +130,6 @@ function VaultLimitsRows({
   return (
     <>
       <Entry
-        className={ROUTINES_INSET_CLASS}
         title={`${prefix}Stop a run after`}
         actions={
           <LimitInput
@@ -156,7 +148,6 @@ function VaultLimitsRows({
         </Muted>
       </Entry>
       <Entry
-        className={ROUTINES_INSET_CLASS}
         title={`${prefix}Runs per day`}
         actions={
           <div className="flex items-center gap-2">

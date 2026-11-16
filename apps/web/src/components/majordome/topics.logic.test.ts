@@ -19,7 +19,11 @@ const brain = { environmentId: env, id: ProjectId.make("brain"), title: "brain" 
 const work = { environmentId: env, id: ProjectId.make("work"), title: "work" };
 const code = { environmentId: env, id: ProjectId.make("code"), title: "t3code" };
 
-const vaultResult = (topics: ReadonlyArray<{ id: string; threadId: string | null }>) => ({
+const vaultResult = (
+  topics: ReadonlyArray<{ id: string; threadId: string | null }>,
+  routinesThreadId: string | null = null,
+) => ({
+  routinesThreadId: routinesThreadId === null ? null : ThreadId.make(routinesThreadId),
   isVault: true,
   topics: topics.map((topic) => ({
     id: topic.id,
@@ -113,10 +117,13 @@ describe("mergeVaultCopies", () => {
   const { vaults: copies, loading } = collectVaults(
     [onVps, onMac, { ...work, environmentId: vps }],
     [
-      vaultResult([
-        { id: "fitness", threadId: "vps-fitness" },
-        { id: "reading", threadId: "vps-reading" },
-      ]),
+      vaultResult(
+        [
+          { id: "fitness", threadId: "vps-fitness" },
+          { id: "reading", threadId: "vps-reading" },
+        ],
+        "vps-routines",
+      ),
       vaultResult([
         { id: "fitness", threadId: "mac-fitness" },
         { id: "reading", threadId: null },
@@ -158,6 +165,8 @@ describe("mergeVaultCopies", () => {
       at(vps, "vps-reading", onVps.id),
       at(mac, "mac-chat", onMac.id),
       at(vps, "routine-run", onVps.id),
+      // The conversation behind the Routines screen has its place there.
+      at(vps, "vps-routines", onVps.id),
     ];
     const recent = selectRecentThreads(threads, {
       vault: vaults[0]!,

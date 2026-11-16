@@ -29,10 +29,14 @@ export interface MajordomeVault {
   readonly folders: ReadonlyArray<string>;
   readonly projectsFolder: string;
   /** Every server's copy of this brain, the shown one first. */
-  readonly copies: ReadonlyArray<{
-    readonly environmentId: EnvironmentId;
-    readonly projectId: ProjectId;
-  }>;
+  readonly copies: ReadonlyArray<VaultCopy>;
+}
+
+export interface VaultCopy {
+  readonly environmentId: EnvironmentId;
+  readonly projectId: ProjectId;
+  /** That server's conversation behind the Routines screen; null until it is started. */
+  readonly routinesThreadId: ThreadId | null;
 }
 
 interface ListedProject {
@@ -61,10 +65,11 @@ export function collectVaults(
       return;
     }
     if (!result.isVault) return;
-    const copy = { environmentId: project.environmentId, projectId: project.id };
+    const ref = { environmentId: project.environmentId, projectId: project.id };
+    const copy = { ...ref, routinesThreadId: result.routinesThreadId ?? null };
     vaults.push({
-      key: scopedProjectKey(copy),
-      ...copy,
+      key: scopedProjectKey(ref),
+      ...ref,
       title: project.title,
       brainId,
       topics: result.topics.map((topic) => ({
@@ -94,7 +99,7 @@ export function mergeVaultCopies(
     return {
       ...shown,
       key: brain.key,
-      copies: brain.copies.map(({ environmentId, projectId }) => ({ environmentId, projectId })),
+      copies: brain.copies.flatMap((copy) => copy.copies),
       topics: shown.topics.map((topic) => {
         if (topic.threadId !== null) return topic;
         const elsewhere = others
@@ -121,10 +126,20 @@ export function pickActiveVault(
   return vaults.find((vault) => vault.key === chosenKey) ?? vaults[0] ?? null;
 }
 
-/** `scopedThreadKey`s of every topic's thread, in every vault. */
+/**
+ * `scopedThreadKey`s of every thread that has its own place, in every vault: each topic's, and the
+ * conversation behind the Routines screen.
+ */
 export function topicThreadKeys(vaults: ReadonlyArray<MajordomeVault>): ReadonlySet<string> {
   const keys = new Set<string>();
   for (const vault of vaults) {
+    for (const copy of vault.copies) {
+      if (copy.routinesThreadId !== null) {
+        keys.add(
+          scopedThreadKey({ environmentId: copy.environmentId, threadId: copy.routinesThreadId }),
+        );
+      }
+    }
     for (const topic of vault.topics) {
       if (topic.threadId !== null) {
         keys.add(

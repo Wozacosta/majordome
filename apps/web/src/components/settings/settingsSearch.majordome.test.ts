@@ -35,7 +35,8 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
         "Notes folders",
       ],
     },
-    { heading: "AI", collapsible: false, labels: ["Providers", "Routines"] },
+    // Routines have their own screen, in the sidebar.
+    { heading: "AI", collapsible: false, labels: ["Providers"] },
     {
       heading: "Advanced",
       collapsible: true,
@@ -69,6 +70,9 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
   expect(searchSettings("notes folders").map((item) => item.to)).toContain("/settings/projects");
   expect(searchSettings("keybindings").map((item) => item.to)).toContain("/settings/keybindings");
   expect(searchSettings("archived threads")[0]?.to).toBe("/settings/archived");
+  expect(searchSettings("scheduled tasks").map((item) => item.to)).not.toContain(
+    "/settings/scheduled-tasks",
+  );
 });
 
 it("says Done for settling, and still finds it for people who search T3's word", () => {

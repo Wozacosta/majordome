@@ -115,8 +115,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/threads": msg("Threads"),
   "/settings/browser": msg("Browser"),
   "/settings/devices": msg("Devices"),
-  // Majordome calls its scheduled tasks routines.
-  "/settings/scheduled-tasks": isMajordome ? msg("Routines") : msg("Scheduled tasks"),
+  "/settings/scheduled-tasks": msg("Scheduled tasks"),
   "/settings/source-control": msg("Source control"),
   "/settings/worktrees": msg("Worktrees"),
   "/settings/connections": msg("Environments"),
@@ -138,6 +137,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
 const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
+  "/settings/scheduled-tasks",
   "/settings/source-control",
   "/settings/worktrees",
   "/settings/devices",
@@ -215,7 +215,8 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
       "/settings/projects",
     ],
   },
-  { heading: msg("AI"), paths: ["/settings/providers", "/settings/scheduled-tasks"] },
+  // Routines have their own screen, in the sidebar.
+  { heading: msg("AI"), paths: ["/settings/providers"] },
   {
     heading: msg("Advanced"),
     collapsible: true,
@@ -1088,9 +1089,8 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "scheduled-tasks",
-    title: isMajordome ? "Routines" : "Scheduled tasks",
+    title: "Scheduled tasks",
     to: "/settings/scheduled-tasks",
-    ...(isMajordome ? { searchTerms: ["scheduled tasks start my day review my week inbox"] } : {}),
   },
   {
     id: "majordome-overview",

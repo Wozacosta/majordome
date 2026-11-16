@@ -51,7 +51,7 @@ it("lists only Today, Feed, Notes and Routines while backup is fine", async () =
     ["Today", "/"],
     ["Feed", "/feed"],
     ["Notes", "/notes"],
-    ["Routines", "/settings/scheduled-tasks"],
+    ["Routines", "/routines"],
   ]);
 });
 

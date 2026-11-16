@@ -60,6 +60,7 @@ import {
   BellIcon,
   BugIcon,
   ChartNoAxesColumnIcon,
+  CalendarClockIcon,
   NewspaperIcon,
   SmartphoneIcon,
   CloudUploadIcon,
@@ -1714,6 +1715,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/feed" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:routines",
+      searchTerms: ["routines", "reminders", "schedule", "new routine", "new task", "automation"],
+      title: "Open routines",
+      icon: <CalendarClockIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/routines" });
       },
     });
     actionItems.push({

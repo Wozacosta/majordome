@@ -71,6 +71,16 @@ export const environmentOverviewsAtom = Atom.family((key: string) => {
   ).pipe(Atom.withLabel(`majordome:environment-overviews:${key}`));
 });
 
+/** What each listed server has scheduled, kept live; keyed like `environmentOverviewsAtom`. */
+export const environmentScheduledTasksAtom = Atom.family((key: string) => {
+  const environmentIds = JSON.parse(key) as ReadonlyArray<EnvironmentId>;
+  return Atom.make((get) =>
+    environmentIds.map((environmentId) =>
+      get(serverEnvironment.scheduledTasksLive({ environmentId, input: {} })),
+    ),
+  ).pipe(Atom.withLabel(`majordome:environment-scheduled-tasks:${key}`));
+});
+
 export type PrivateDocumentRequestRef = readonly [
   environmentId: EnvironmentId,
   threadId: ThreadId,

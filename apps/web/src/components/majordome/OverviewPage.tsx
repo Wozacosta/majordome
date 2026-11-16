@@ -357,7 +357,7 @@ function Health({
       <Lines
         label="Routines"
         section={routines}
-        action={<SectionLink to="/settings/scheduled-tasks">Routines</SectionLink>}
+        action={<SectionLink to="/routines">Routines</SectionLink>}
       />
       <Lines
         label="Notes"
@@ -379,7 +379,7 @@ function SectionLink({
   to,
   children,
 }: {
-  readonly to: "/settings/scheduled-tasks" | "/settings/backup" | "/settings/connectors";
+  readonly to: "/routines" | "/settings/backup" | "/settings/connectors";
   readonly children: ReactNode;
 }) {
   return (

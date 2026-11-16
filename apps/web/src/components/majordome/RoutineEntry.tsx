@@ -4,37 +4,27 @@ import type { ReactNode } from "react";
 import { Entry, Muted, StatusLine } from "./paper";
 import { ROUTINE_LAST_RUN } from "./routines.logic";
 
-/** The Routines screen sits in Settings, whose rows are inset this much. */
-export const ROUTINES_INSET_CLASS = "px-3 sm:px-4";
-
-/** One routine on the Routines screen: what it is, when it runs, and how its last run went. */
+/** One routine on the Routines screen: what it does, when it runs, and how its last run went. */
 export function RoutineEntry({
   title,
   prompt,
-  schedule,
+  when,
   lastRunStatus,
   lastRunError,
-  threadLink,
   controls,
 }: {
   readonly title: string;
+  /** The routine's instructions; their start says what it does. */
   readonly prompt: string;
   /** When it runs and when it runs next, in plain words. */
-  readonly schedule: ReactNode;
+  readonly when: string;
   readonly lastRunStatus: ScheduledTaskRunStatus;
   readonly lastRunError: string | null | undefined;
-  readonly threadLink?: ReactNode;
   readonly controls: ReactNode;
 }) {
   const lastRun = lastRunStatus === "never" ? null : ROUTINE_LAST_RUN[lastRunStatus];
   return (
-    <Entry
-      as="div"
-      className={ROUTINES_INSET_CLASS}
-      title={title}
-      meta={schedule}
-      actions={controls}
-    >
+    <Entry title={title} meta={when} actions={controls} data-routine={title}>
       <Muted className="line-clamp-2 break-words">{prompt}</Muted>
       {lastRun ? (
         <StatusLine tone={lastRun.tone} data-routine-last-run={lastRunStatus}>
@@ -44,7 +34,27 @@ export function RoutineEntry({
       ) : lastRunError ? (
         <StatusLine tone="error">{lastRunError}</StatusLine>
       ) : null}
-      {threadLink ? <p className="text-xs text-muted-foreground">{threadLink}</p> : null}
+    </Entry>
+  );
+}
+
+/** One upcoming reminder: what it is about, when it comes, and where it will be posted. */
+export function ReminderEntry({
+  title,
+  when,
+  conversation,
+  controls,
+}: {
+  readonly title: string;
+  /** The date and time it fires and how long until then. */
+  readonly when: string;
+  /** A link to the conversation it posts in, when it has one. */
+  readonly conversation?: ReactNode;
+  readonly controls: ReactNode;
+}) {
+  return (
+    <Entry title={title} meta={when} actions={controls} data-reminder={title}>
+      {conversation ? <Muted>{conversation}</Muted> : null}
     </Entry>
   );
 }

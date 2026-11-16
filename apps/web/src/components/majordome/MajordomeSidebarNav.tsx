@@ -22,7 +22,7 @@ const MAJORDOME_SIDEBAR_ITEMS = [
   { to: "/", label: "Today", icon: HouseIcon },
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
-  { to: "/settings/scheduled-tasks", label: "Routines", icon: CalendarClockIcon },
+  { to: "/routines", label: "Routines", icon: CalendarClockIcon },
 ] as const satisfies ReadonlyArray<{ to: string; label: string; icon: LucideIcon }>;
 
 type NavHint = { readonly tone: "warning" | "error"; readonly label: string };

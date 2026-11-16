@@ -21,7 +21,7 @@ import { aiRows } from "./connections.logic";
 import { type FeedRunStatus, memoryOverLimitLine, routinesBlockedLine } from "./feed.logic";
 import type { DevicePushSupport } from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
-import { ROUTINE_LAST_RUN } from "./routines.logic";
+import { ROUTINE_LAST_RUN, routineKind } from "./routines.logic";
 
 /**
  * How a part of the setup is doing. Warning (orange) and error (red) are the sidebar's dots:
@@ -58,7 +58,7 @@ export type OverviewLink =
         | "/settings/phone"
         | "/settings/always-on"
         | "/settings/connections"
-        | "/settings/scheduled-tasks"
+        | "/routines"
         | "/settings/backup"
         | "/settings/secrets"
         | "/settings/private-documents"
@@ -422,7 +422,7 @@ function routineLine(
     text: say(copy.label, task.title),
     detail: parts.filter((part) => part !== null).join(" · "),
     tone: !task.enabled || lastRun === null ? "neutral" : lastRun.tone,
-    link: { to: "/settings/scheduled-tasks" },
+    link: { to: "/routines" },
   };
 }
 
@@ -436,7 +436,7 @@ export function routinesSection(input: {
   let loading = input.loading;
   const lines: Array<OverviewLine> = [];
   for (const brain of input.brains) {
-    const tasksLink = { to: "/settings/scheduled-tasks" } as const;
+    const tasksLink = { to: "/routines" } as const;
     const blocked = routinesBlockedLine(brain.routinesStatus, brain.runner.machine);
     if (blocked !== null) {
       lines.push({
@@ -462,7 +462,12 @@ export function routinesSection(input: {
         loading = true;
       } else if (copy.tasks.state === "ready") {
         const { tasks, timeZone } = copy.tasks.value;
-        lines.push(...tasks.map((task) => routineLine(task, copy, timeZone, input.formatNextRun)));
+        lines.push(
+          ...tasks
+            // A reminder that already went off is not something that runs any more.
+            .filter((task) => routineKind(task) !== "done")
+            .map((task) => routineLine(task, copy, timeZone, input.formatNextRun)),
+        );
       } else {
         const line = unansweredLine(copy.tasks, {
           key: `routines:${copy.key}`,
@@ -502,7 +507,7 @@ export function routinesSection(input: {
           key: "routines:none",
           text: "No routines yet",
           tone: "neutral",
-          link: { to: "/settings/scheduled-tasks" },
+          link: { to: "/routines" },
         },
       ],
       false,

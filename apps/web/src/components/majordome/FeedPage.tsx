@@ -557,9 +557,11 @@ function FeedRunCard({
       ? Undo2Icon
       : entry.routine
         ? ROUTINE_ICONS[entry.routine]
-        : entry.threadId === null
-          ? NotebookPenIcon
-          : MessageSquareIcon;
+        : entry.scheduled
+          ? CalendarClockIcon
+          : entry.threadId === null
+            ? NotebookPenIcon
+            : MessageSquareIcon;
   const meta = [
     formatRelativeTimeLabel(entry.committedAt, nowMs),
     item.machine ? `on ${machineInSentence(item.machine)}` : null,
@@ -826,7 +828,7 @@ function RoutinesRunnerLine({
             : RUNNER_COPY[runner.routinesRunner]}
       </span>
       {runner.pausedRunsPerDay !== null ? (
-        <Button size="xs" variant="outline" render={<Link to="/settings/scheduled-tasks" />}>
+        <Button size="xs" variant="outline" render={<Link to="/routines" />}>
           Change limits
         </Button>
       ) : null}

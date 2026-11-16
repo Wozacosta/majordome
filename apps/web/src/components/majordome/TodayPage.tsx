@@ -30,11 +30,13 @@ import {
 } from "./feed.logic";
 import { requestDraftSend } from "./pendingDraftSend";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
+import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
 import { greetingForHour, selectTodayRuns, type TodayRun, todayTitle } from "./today.logic";
 import { TopicIconBadge } from "./TopicIcon";
 import { type MajordomeVault, topicSubtitle, type VaultTopic } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
 import { useOpenTopic } from "./useOpenTopic";
+import { useVaultRoutines } from "./useVaultRoutines";
 
 const SECTION_LABEL_CLASS = "mb-2 text-2xs font-semibold uppercase tracking-widest text-primary";
 /** A row's clickable area: wider than its text, so the hover tint has room and the text stays aligned. */
@@ -62,6 +64,7 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
               {todayTitle(now)}
             </h1>
             <CaptureBox key={vault.key} vault={vault} />
+            <ComingUp vault={vault} nowMs={nowMs} />
             <TodayRoutines vault={vault} nowMs={nowMs} />
             {vault.topics.length > 0 ? <TodayTopics vault={vault} /> : null}
           </div>
@@ -138,6 +141,30 @@ function Section({ title, children }: { readonly title: string; readonly childre
       <h2 className={SECTION_LABEL_CLASS}>{title}</h2>
       {children}
     </section>
+  );
+}
+
+/** The next few reminders, each leading to the Routines screen; nothing when none is coming. */
+function ComingUp({ vault, nowMs }: { readonly vault: MajordomeVault; readonly nowMs: number }) {
+  const reminders = selectComingUp(useVaultRoutines(vault).reminders);
+  if (reminders.length === 0) return null;
+  return (
+    <Section title="Coming up">
+      <ul className="m-0 list-none p-0">
+        {reminders.map(({ key, task }) => (
+          <li key={key} className="border-t border-border" data-today-reminder={task.title}>
+            <Link to="/routines" className={cn(ROW_TARGET_CLASS, "flex items-baseline gap-2")}>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                {task.title}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {plainDateTime(task.nextRunAt ?? "")} · {untilWords(task.nextRunAt ?? "", nowMs)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
@@ -220,7 +247,7 @@ function TodayRoutines({
         <p className="border-t border-border py-3 text-sm text-muted-foreground">
           What your routines do will show here after they run.{" "}
           <Link
-            to="/settings/scheduled-tasks"
+            to="/routines"
             className="rounded-sm text-foreground underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
             See your routines

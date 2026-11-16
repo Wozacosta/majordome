@@ -277,6 +277,13 @@ describe("routinesSection", () => {
                   nextRunAt: null,
                   lastRunStatus: "never",
                 }),
+                // A reminder that went off stays stored, and is left out.
+                task({
+                  id: "rang",
+                  title: "Call the bank",
+                  schedule: { type: "once", runAt: "2026-11-01T10:00:00.000Z" },
+                  nextRunAt: null,
+                }),
               ],
             }),
           },
@@ -294,7 +301,7 @@ describe("routinesSection", () => {
       ["Digest my inbox", "When something arrives", "neutral"],
       ["Up to 20 runs a day, 30 minutes each", null, "neutral"],
     ]);
-    expect(section.lines[0]?.link).toEqual({ to: "/settings/scheduled-tasks" });
+    expect(section.lines[0]?.link).toEqual({ to: "/routines" });
   });
 
   it("says first when routines can't run, and sends the owner to that machine's providers", () => {
@@ -314,7 +321,7 @@ describe("routinesSection", () => {
       [
         "Home: Routines are paused until tomorrow: they used today's 20 runs",
         "warning",
-        { to: "/settings/scheduled-tasks" },
+        { to: "/routines" },
       ],
     ]);
     // The paused line already gives the limit.
