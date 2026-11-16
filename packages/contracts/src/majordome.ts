@@ -34,6 +34,8 @@ export const MajordomeVaultHistoryEntry = Schema.Struct({
   summary: Schema.optional(Schema.NullOr(Schema.String)),
   /** For a run a default routine started: which one. */
   routine: Schema.optional(Schema.NullOr(MajordomeRoutineKind)),
+  /** A routine or reminder started the run, one of the defaults or the owner's own. */
+  scheduled: Schema.optional(Schema.Boolean),
   /** For "Start my day": the start of the daily note it wrote, as plain lines. */
   dailyNotePreview: Schema.optional(Schema.NullOr(Schema.String)),
 });

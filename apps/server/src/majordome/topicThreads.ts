@@ -15,6 +15,8 @@ const ProjectTopicState = Schema.Struct({
   /** Topic id → thread id. */
   threads: Schema.Record(Schema.String, ThreadId),
   suggestionsDismissed: Schema.optional(Schema.Boolean),
+  /** The conversation behind the Routines screen. */
+  routinesThread: Schema.optional(ThreadId),
 });
 export type ProjectTopicState = typeof ProjectTopicState.Type;
 

@@ -337,6 +337,42 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
     }),
   );
 
+  it.effect(
+    "keeps one conversation behind the Routines screen until a fresh one is asked for",
+    () =>
+      Effect.gen(function* () {
+        const { service, fake } = yield* setUp();
+        assert.isNull((yield* service.list({ projectId: vaultProject })).routinesThreadId);
+
+        const { threadId } = yield* service.openRoutinesConversation({ projectId: vaultProject });
+        const thread = fake.threads.get(threadId)!;
+        assert.equal(thread.projectId, vaultProject);
+        assert.isNotNull(thread.autoSettleDisabledAt);
+        assert.equal(
+          (yield* service.openRoutinesConversation({ projectId: vaultProject })).threadId,
+          threadId,
+        );
+        assert.equal((yield* service.list({ projectId: vaultProject })).routinesThreadId, threadId);
+
+        // The old conversation goes back to the recent chats and settles like them.
+        const fresh = yield* service.openRoutinesConversation({
+          projectId: vaultProject,
+          fresh: true,
+        });
+        assert.notEqual(fresh.threadId, threadId);
+        assert.isNull(thread.autoSettleDisabledAt);
+        assert.equal(
+          (yield* service.list({ projectId: vaultProject })).routinesThreadId,
+          fresh.threadId,
+        );
+
+        const exit = yield* service
+          .openRoutinesConversation({ projectId: codeProject })
+          .pipe(Effect.exit);
+        assert.equal(errorMessage(exit), "That notes folder was not found.");
+      }),
+  );
+
   it.effect("says what to do when it has no model to start the thread with", () =>
     Effect.gen(function* () {
       const { service } = yield* setUp({ defaultModel: null });

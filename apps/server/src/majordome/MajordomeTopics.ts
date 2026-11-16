@@ -9,6 +9,7 @@ import {
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
   type MajordomeCreateTopicInput,
+  type MajordomeOpenRoutinesConversationInput,
   type MajordomeOpenTopicResult,
   type MajordomeReorderTopicsInput,
   type MajordomeTopic,
@@ -80,6 +81,10 @@ export class MajordomeTopics extends Context.Service<
     readonly open: (
       input: MajordomeTopicRefInput,
     ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
+    /** The thread behind the Routines screen on this server, started now if there is none. */
+    readonly openRoutinesConversation: (
+      input: MajordomeOpenRoutinesConversationInput,
+    ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
     readonly dismissSuggestions: (
       input: MajordomeTopicsInput,
     ) => Effect.Effect<void, MajordomeTopicsError>;
@@ -87,6 +92,8 @@ export class MajordomeTopics extends Context.Service<
 >()("t3/majordome/MajordomeTopics") {}
 
 const isTopicsError = Schema.is(MajordomeTopicsError);
+
+const ROUTINES_CONVERSATION_TITLE = "Routines and reminders";
 
 const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
 /** Enough of the latest messages to find one with words in it. */
@@ -343,6 +350,7 @@ const make = Effect.gen(function* () {
           canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
         ),
         projectsFolder: normalizeTopicFolder(vault.layout.projectsFolder) ?? "projects",
+        routinesThreadId: (yield* liveThread(state.routinesThread))?.id ?? null,
       };
     },
     Effect.mapError(toTopicsError("Could not read your topics.")),
@@ -455,18 +463,54 @@ const make = Effect.gen(function* () {
       const { [input.topicId]: _removed, ...rest } = state.threads;
       yield* updateProjectState(input.projectId, (current) => ({ ...current, threads: rest }));
       // The conversation stays, as a recent chat that settles like the others.
-      if ((yield* liveThread(threadId)) !== null) {
-        yield* dispatch({
-          type: "thread.auto-settle.set",
-          commandId: yield* commandId("release"),
-          threadId,
-          enabled: true,
-        });
-      }
+      yield* releaseThread(threadId);
     },
     (effect) => lock.withPermits(1)(effect),
     Effect.mapError(toTopicsError("Could not remove this topic.")),
   );
+
+  /** A new thread in the vault that stays out of Settled, as a topic's conversation does. */
+  const startKeptThread = Effect.fn("MajordomeTopics.startKeptThread")(function* (
+    project: ProjectStore.ProjectRow,
+    title: string,
+  ) {
+    const modelSelection = yield* chooseVaultModel(project).pipe(
+      Effect.provideService(ServerSettings.ServerSettingsService, settings),
+      Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+      Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
+    );
+    if (modelSelection === null) {
+      return yield* fail("No AI provider is ready yet. Set one up in Settings, then try again.");
+    }
+    const threadId = ThreadId.make(yield* random.uuidV4());
+    yield* dispatch({
+      type: "thread.create",
+      createdBy: "user",
+      creationSource: "server",
+      commandId: yield* commandId("create"),
+      threadId,
+      projectId: project.projectId,
+      title,
+      modelSelection,
+      runtimeMode: (yield* settings.getSettings).defaultRuntimeMode,
+      interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+      branch: null,
+      worktreePath: null,
+    });
+    yield* keepThreadAsTopic(threadId, undefined);
+    return threadId;
+  });
+
+  /** Lets a thread that was kept settle again, as a recent chat. */
+  const releaseThread = Effect.fn("MajordomeTopics.releaseThread")(function* (threadId: ThreadId) {
+    if ((yield* liveThread(threadId)) === null) return;
+    yield* dispatch({
+      type: "thread.auto-settle.set",
+      commandId: yield* commandId("release"),
+      threadId,
+      enabled: true,
+    });
+  });
 
   const open: MajordomeTopics["Service"]["open"] = Effect.fn("MajordomeTopics.open")(
     function* (input) {
@@ -475,41 +519,35 @@ const make = Effect.gen(function* () {
       const state = yield* projectState(input.projectId);
       const existing = yield* liveThread(state.threads[topic.id]);
       if (existing !== null) return { threadId: existing.id };
-      const modelSelection = yield* chooseVaultModel(project).pipe(
-        Effect.provideService(ServerSettings.ServerSettingsService, settings),
-        Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
-        Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
-      );
-      if (modelSelection === null) {
-        return yield* fail(
-          "No AI provider is ready yet. Set one up in Settings, then open this topic again.",
-        );
-      }
-      const threadId = ThreadId.make(yield* random.uuidV4());
-      yield* dispatch({
-        type: "thread.create",
-        createdBy: "user",
-        creationSource: "server",
-        commandId: yield* commandId("create"),
-        threadId,
-        projectId: project.projectId,
-        title: topic.title,
-        modelSelection,
-        runtimeMode: (yield* settings.getSettings).defaultRuntimeMode,
-        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
-        branch: null,
-        worktreePath: null,
-      });
+      const threadId = yield* startKeptThread(project, topic.title);
       yield* updateProjectState(input.projectId, (current) => ({
         ...current,
         threads: { ...current.threads, [topic.id]: threadId },
       }));
-      yield* keepThreadAsTopic(threadId, undefined);
       return { threadId };
     },
     (effect) => lock.withPermits(1)(effect),
     Effect.mapError(toTopicsError("Could not open this topic.")),
   );
+
+  const openRoutinesConversation: MajordomeTopics["Service"]["openRoutinesConversation"] =
+    Effect.fn("MajordomeTopics.openRoutinesConversation")(
+      function* (input) {
+        const { project } = yield* requireVault(input.projectId);
+        const previous = (yield* projectState(input.projectId)).routinesThread;
+        const existing = yield* liveThread(previous);
+        if (existing !== null && input.fresh !== true) return { threadId: existing.id };
+        const threadId = yield* startKeptThread(project, ROUTINES_CONVERSATION_TITLE);
+        yield* updateProjectState(input.projectId, (current) => ({
+          ...current,
+          routinesThread: threadId,
+        }));
+        if (previous !== undefined) yield* releaseThread(previous);
+        return { threadId };
+      },
+      (effect) => lock.withPermits(1)(effect),
+      Effect.mapError(toTopicsError("Could not open the assistant for your routines.")),
+    );
 
   const dismissSuggestions: MajordomeTopics["Service"]["dismissSuggestions"] = Effect.fn(
     "MajordomeTopics.dismissSuggestions",
@@ -525,7 +563,16 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not hide the suggestions.")),
   );
 
-  return MajordomeTopics.of({ list, create, update, reorder, remove, open, dismissSuggestions });
+  return MajordomeTopics.of({
+    list,
+    create,
+    update,
+    reorder,
+    remove,
+    open,
+    openRoutinesConversation,
+    dismissSuggestions,
+  });
 });
 
 export const layer = Layer.effect(MajordomeTopics, make);

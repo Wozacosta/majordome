@@ -142,6 +142,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeReorderTopics]: "majordome",
   [WS_METHODS.majordomeRemoveTopic]: "majordome",
   [WS_METHODS.majordomeOpenTopic]: "majordome",
+  [WS_METHODS.majordomeOpenRoutinesConversation]: "majordome",
   [WS_METHODS.majordomeDismissTopicSuggestions]: "majordome",
   [WS_METHODS.scheduledTasksRotateWebhookToken]: "scheduledTasks",
   [WS_METHODS.scheduledTasksListWebhookDeliveries]: "scheduledTasks",

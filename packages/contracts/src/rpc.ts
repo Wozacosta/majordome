@@ -137,6 +137,7 @@ import {
 } from "./majordomeBackup.ts";
 import {
   MajordomeCreateTopicInput,
+  MajordomeOpenRoutinesConversationInput,
   MajordomeOpenTopicResult,
   MajordomeReorderTopicsInput,
   MajordomeTopic,
@@ -731,6 +732,7 @@ export const WS_METHODS = {
   majordomeReorderTopics: "majordome.reorderTopics",
   majordomeRemoveTopic: "majordome.removeTopic",
   majordomeOpenTopic: "majordome.openTopic",
+  majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
 } as const;
 
@@ -2400,6 +2402,15 @@ const WsMajordomeOpenTopicRpc = Rpc.make(WS_METHODS.majordomeOpenTopic, {
   error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeOpenRoutinesConversationRpc = Rpc.make(
+  WS_METHODS.majordomeOpenRoutinesConversation,
+  {
+    payload: MajordomeOpenRoutinesConversationInput,
+    success: MajordomeOpenTopicResult,
+    error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+  },
+);
+
 const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   WS_METHODS.majordomeDismissTopicSuggestions,
   {
@@ -2733,5 +2744,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeReorderTopicsRpc,
   WsMajordomeRemoveTopicRpc,
   WsMajordomeOpenTopicRpc,
+  WsMajordomeOpenRoutinesConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,
 ).middleware(RpcScopeAuthorization);

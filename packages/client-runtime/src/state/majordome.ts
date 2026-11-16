@@ -228,6 +228,11 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeOpenTopic,
       onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
     }),
+    openRoutinesConversation: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:open-routines-conversation",
+      tag: WS_METHODS.majordomeOpenRoutinesConversation,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
     dismissTopicSuggestions: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:dismiss-topic-suggestions",
       tag: WS_METHODS.majordomeDismissTopicSuggestions,

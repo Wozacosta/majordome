@@ -277,6 +277,7 @@ export const describeVaultHistory = Effect.fn("majordome.describeVaultHistory")(
       ...entry,
       summary: facts?.summary ?? null,
       routine,
+      scheduled: routine !== null || facts?.scheduledTaskId !== undefined,
       dailyNotePreview:
         dailyHead !== undefined && Option.isSome(dailyHead)
           ? dailyNotePreview(dailyHead.value)

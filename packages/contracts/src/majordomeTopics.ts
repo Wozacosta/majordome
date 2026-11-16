@@ -84,6 +84,8 @@ export const MajordomeTopicsResult = Schema.Struct({
   folders: Schema.Array(Schema.String),
   /** Where new topic folders go, from the vault's config (`projects` by default). */
   projectsFolder: Schema.String,
+  /** This server's conversation behind the Routines screen, once it has been started. */
+  routinesThreadId: Schema.optional(Schema.NullOr(ThreadId)),
 });
 export type MajordomeTopicsResult = typeof MajordomeTopicsResult.Type;
 
@@ -122,6 +124,14 @@ export const MajordomeReorderTopicsInput = Schema.Struct({
   topicIds: Schema.Array(TrimmedNonEmptyString),
 });
 export type MajordomeReorderTopicsInput = typeof MajordomeReorderTopicsInput.Type;
+
+export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
+  projectId: ProjectId,
+  /** Starts a new conversation and lets the previous one go to the recent chats. */
+  fresh: Schema.optional(Schema.Boolean),
+});
+export type MajordomeOpenRoutinesConversationInput =
+  typeof MajordomeOpenRoutinesConversationInput.Type;
 
 export const MajordomeOpenTopicResult = Schema.Struct({
   threadId: ThreadId,
