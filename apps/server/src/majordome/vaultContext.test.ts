@@ -175,6 +175,36 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
     }),
   );
 
+  it.effect("tells the owner's conversations how to set up routines, not a routine's own run", () =>
+    Effect.gen(function* () {
+      const root = yield* makeVault({ ".majordome/config.json": "{}", "memory.md": "- Likes tea" });
+      const startedBy = { projectId: "vault", stateDir: root };
+      const owned = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        startedBy: { ...startedBy, scheduledTaskId: undefined },
+      });
+      assert.match(owned, /<\/vault_context>\n\n<routines>\n/);
+      assert.include(owned, "wait for a yes");
+      assert.match(owned, /Now: 2026-11-15T12:00[+-]\d{2}:\d{2} \(/);
+      const scheduled = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        startedBy: { ...startedBy, scheduledTaskId: "majordome:vault:start-my-day" },
+      });
+      assert.notInclude(scheduled, "<routines>");
+
+      // A vault with no notes to load still gets the guide.
+      const empty = yield* makeVault({ ".majordome/config.json": "{}" });
+      const guideOnly = yield* readVaultContext({
+        vaultRoot: empty,
+        nowMillis: NOW,
+        startedBy: { ...startedBy, scheduledTaskId: undefined },
+      });
+      assert.isTrue(guideOnly.startsWith("<routines>"));
+    }),
+  );
+
   it.effect("returns nothing for an empty vault", () =>
     Effect.gen(function* () {
       const root = yield* makeVault({ ".majordome/config.json": "{}" });

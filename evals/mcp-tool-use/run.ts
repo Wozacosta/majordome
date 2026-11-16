@@ -25,6 +25,7 @@ import {
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Config from "effect/Config";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -62,6 +63,7 @@ import { PreviewToolkit } from "../../apps/server/src/mcp/toolkits/preview/tools
 import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolkits/privateDocuments/handlers.ts";
 import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
+import { routinesGuide } from "../../apps/server/src/majordome/routinesGuide.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
 import { ProjectToolkit } from "../../apps/server/src/mcp/toolkits/project/tools.ts";
 import {
@@ -315,6 +317,11 @@ export const McpToolUseCase = Schema.Struct({
     /** delegate_task `role` for a delegated child. T3 builds the child's first message from it. */
     delegateRole: Schema.optional(OrchestratorMcpTaskRole),
     context: Schema.optional(Schema.String),
+    /**
+     * A Majordome notes-folder conversation: adds the guide to routines the vault context carries,
+     * with this local time (`2026-10-24T10:00:00`, read as Europe/Lisbon) as its "now".
+     */
+    routinesGuideAt: Schema.optional(Schema.String),
     priorTurns: Schema.optional(
       Schema.Array(
         Schema.Struct({
@@ -1037,7 +1044,7 @@ export const buildMessages = (sample: Sample) => {
     if (last?.role !== role) messages.push({ role, content: blocks });
     else messages[messages.length - 1] = { role, content: [...last.content, ...blocks] };
   };
-  const { role, context, delegateRole, priorTurns = [] } = testCase.setup;
+  const { role, context, delegateRole, priorTurns = [], routinesGuideAt } = testCase.setup;
   const sideChat = testCase.setup.sideChat;
   if (testCase.prompt === "" && (role !== "top" || sideChat !== undefined)) {
     throw new Error(
@@ -1057,6 +1064,14 @@ export const buildMessages = (sample: Sample) => {
       ? "You are a subagent started by the parent agent's Agent tool. Your final message goes to the parent agent, not to the user."
       : undefined,
     context,
+    routinesGuideAt === undefined
+      ? undefined
+      : routinesGuide(
+          DateTime.makeZonedUnsafe(routinesGuideAt, {
+            timeZone: "Europe/Lisbon",
+            adjustForTimeZone: true,
+          }),
+        ),
   ];
   const reminders = base.reminders.toSpliced(base.gitStatusAt, 0, reminder(gitStatus(testCase)));
   push("user", ...reminders, ...notes.flatMap((note) => (note ? [reminder(note)] : [])));
