@@ -1438,6 +1438,18 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:provider:auth-logout",
       tag: WS_METHODS.providerAuthLogout,
     }),
+    startClaudeSignIn: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:provider:claude-sign-in-start",
+      tag: WS_METHODS.claudeSignInStart,
+    }),
+    submitClaudeSignIn: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:provider:claude-sign-in-submit",
+      tag: WS_METHODS.claudeSignInSubmit,
+    }),
+    cancelClaudeSignIn: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:provider:claude-sign-in-cancel",
+      tag: WS_METHODS.claudeSignInCancel,
+    }),
     providerInstallState: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:provider:install-state",
       tag: WS_METHODS.providerInstallSubscribe,

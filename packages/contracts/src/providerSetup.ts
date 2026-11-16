@@ -147,6 +147,77 @@ export const ProviderAuthCancelInput = Schema.Struct({
 });
 export type ProviderAuthCancelInput = typeof ProviderAuthCancelInput.Type;
 
+/** A full Claude sign-in running on the environment: its link opens in the owner's own browser. */
+export const ClaudeSignInAttempt = Schema.Struct({
+  attemptId: SetupOperationId,
+  url: SignInUrl,
+  expiresAt: IsoDateTime,
+});
+export type ClaudeSignInAttempt = typeof ClaudeSignInAttempt.Type;
+
+export const ClaudeSignInSubmitInput = Schema.Struct({
+  instanceId: ProviderInstanceId,
+  attemptId: SetupOperationId,
+  // The code Claude's page shows after approval: a short-lived credential, so it stays redacted.
+  code: Schema.RedactedFromValue(TrimmedNonEmptyString.check(Schema.isMaxLength(4_096))),
+});
+export type ClaudeSignInSubmitInput = typeof ClaudeSignInSubmitInput.Type;
+
+export const ClaudeSignInCancelInput = Schema.Struct({
+  instanceId: ProviderInstanceId,
+  attemptId: SetupOperationId,
+});
+export type ClaudeSignInCancelInput = typeof ClaudeSignInCancelInput.Type;
+
+export const ClaudeSignInResult = Schema.Struct({
+  // A sign-in token (`CLAUDE_CODE_OAUTH_TOKEN`) outranks the new sign-in while Claude sees it.
+  /** The token saved in this provider's settings; `stillSet` is left for the owner to remove. */
+  savedToken: Schema.Literals(["none", "removed", "stillSet"]),
+  /** The token in the server's own environment: `ignored` once Claude runs without it here. */
+  serverToken: Schema.Literals(["none", "ignored", "stillSet"]),
+});
+export type ClaudeSignInResult = typeof ClaudeSignInResult.Type;
+
+const CLAUDE_SIGN_IN_ERROR_MESSAGES = {
+  unavailable: "This provider can't sign in to Claude here.",
+  notStarted:
+    "Claude couldn't start its sign-in on this machine. Check that Claude Code is installed there, then try again.",
+  noLink: "Claude didn't give a sign-in link in time. Try again.",
+  noAttempt: "This sign-in is no longer open. Start over to get a new link.",
+  expired: "This sign-in took too long and was closed. Start over to get a new link.",
+  codeIncomplete:
+    "That code looks incomplete. Copy the whole code from Claude's page and paste it again.",
+  codeRejected:
+    "Claude didn't accept that code. It may have expired or been used already. Start over to get a new one.",
+  noAnswer: "Claude took too long to confirm the sign-in. Start over and try again.",
+  failed: "Claude couldn't finish the sign-in. Start over and try again.",
+} as const;
+
+/** Safe sign-in failure text. Never carries the pasted code, the link, or the CLI's output. */
+export class ClaudeSignInError extends Schema.TaggedError<ClaudeSignInError>()(
+  "ClaudeSignInError",
+  {
+    instanceId: ProviderInstanceId,
+    // Only `codeIncomplete` leaves the attempt open; after any other the owner starts over.
+    reason: Schema.Literals([
+      "unavailable",
+      "notStarted",
+      "noLink",
+      "noAttempt",
+      "expired",
+      "codeIncomplete",
+      "codeRejected",
+      "noAnswer",
+      "failed",
+    ]),
+    cause: Schema.optional(Schema.Defect()),
+  },
+) {
+  override get message(): string {
+    return CLAUDE_SIGN_IN_ERROR_MESSAGES[this.reason];
+  }
+}
+
 const ByteCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
 export const ProviderInstallState = Schema.Struct({

@@ -5,6 +5,7 @@ import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
+import { identity } from "effect/Function";
 import * as Path from "effect/Path";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
@@ -60,6 +61,7 @@ import {
 } from "./ClaudeHome.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
+import { resolveClaudeHostSignInToken, withoutClaudeSignInToken } from "./ClaudeStoredLogin.ts";
 import { probeClaudeConnectors } from "../ClaudeConnectorsProbe.ts";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
@@ -116,7 +118,30 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
     const modelCatalog = catalogService
       .current(DRIVER_KIND)
       .pipe(Effect.map(resolveClaudeModelCatalog));
-    const processEnv = yield* mergeClaudeProcessEnvironment(config, environment, process.env);
+    const hostSignInToken = enabled
+      ? yield* resolveClaudeHostSignInToken({
+          config,
+          instanceEnvironment: environment,
+          hostEnvironment: process.env,
+          cwd: stateDir,
+        }).pipe(
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(FileSystem.FileSystem, fileSystem),
+          Effect.provideService(Path.Path, path),
+        )
+      : undefined;
+    const ignoresHostSignInToken = hostSignInToken?.signInToken === "ignored";
+    if (ignoresHostSignInToken) {
+      yield* Effect.logInfo(
+        "Claude runs without the server environment's sign-in token: a full sign-in is stored.",
+        { instanceId },
+      );
+    }
+    const processEnv = yield* mergeClaudeProcessEnvironment(
+      config,
+      environment,
+      hostSignInToken?.environment ?? process.env,
+    );
     const fallbackContinuationIdentity = defaultProviderContinuationIdentity({
       driverKind: DRIVER_KIND,
       instanceId,
@@ -184,6 +209,13 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
         routeModelCatalog: modelRoutes.route,
       },
     ).pipe(
+      // The adapter builds its own environment from the host's, so it gets the same answer.
+      ignoresHostSignInToken
+        ? Effect.provideService(
+            HostProcess.Environment,
+            withoutClaudeSignInToken(yield* HostProcess.Environment),
+          )
+        : identity,
       Effect.mapError(
         (cause) =>
           new ProviderDriverError({
