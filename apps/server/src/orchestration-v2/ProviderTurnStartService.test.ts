@@ -80,6 +80,9 @@ import * as ProviderUsageAnalytics from "../telemetry/ProviderUsageAnalytics.ts"
 import * as RuntimePolicy from "./RuntimePolicy.ts";
 import * as TurnItemPositionStore from "./TurnItemPositionStore.ts";
 
+// Workspaces exist here, but none is a Majordome notes folder, so no vault context is added.
+const existsExceptVaultConfig = (path: string) => Effect.succeed(!path.endsWith(".majordome"));
+
 const isDomainEvent = Schema.is(OrchestrationV2DomainEvent);
 
 const managedWorktreesDir = "/tmp/provider-turn-start-worktrees";
@@ -1258,7 +1261,7 @@ function makeLocalCommandHarness(input: {
         Layer.mock(TurnItemPositionStore.TurnItemPositionStoreV2)({}),
         layerWorktreeLocation(input.worktreesDir),
         input.fileSystem === undefined
-          ? FileSystem.layerNoop({ exists: () => Effect.succeed(true) })
+          ? FileSystem.layerNoop({ exists: existsExceptVaultConfig })
           : Layer.succeed(FileSystem.FileSystem, input.fileSystem),
         input.gitWorkflow === undefined
           ? Layer.mock(GitWorkflow.GitWorkflowService)({
@@ -2540,7 +2543,7 @@ effectIt.effect.each([
       const releaseRestore = yield* Deferred.make<void>();
       const restoreEntered = yield* Deferred.make<void>();
       const fileSystem = FileSystem.makeNoop({
-        exists: () => Effect.succeed(true),
+        exists: existsExceptVaultConfig,
         realPath: (candidate) =>
           (missing as ReadonlyArray<string>).includes(candidate)
             ? Effect.fail(
