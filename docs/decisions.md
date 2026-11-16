@@ -181,6 +181,10 @@ takes over.
    a Tailscale sidecar, and the guide. Claude signs in on a server with a pasted
    `claude setup-token` token. Big files and sensitive documents wait for M5.
 5. **M5.** Keychain, encrypted-file and `exec` secret providers; Tier B with `age`.
+   _Done for Tier A:_ Keychain, encrypted file (`majord secret set`), command and environment
+   variable sources beside 1Password, and the Secrets settings page is on. The encrypted file's key
+   sits beside it, readable only by the server's user: it protects a copied or backed-up file, not
+   a server that is already compromised.
 6. **M6.** Dreaming, search index, Overview screen.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
