@@ -35,9 +35,6 @@ Tailscale account (the one **Your phone** set up).
    address, `MAJORDOME_PUBLIC_URL=https://majordome.<your-tailnet>.ts.net` (shown in Tailscale's
    admin page). Then run `docker compose up -d` again.
 
-   To use Claude without signing in on the server, run `claude setup-token` on any computer and add
-   the token it prints as `CLAUDE_CODE_OAUTH_TOKEN=…` in the same file.
-
 5. **Bring your notes** from your GitHub backup:
 
    ```bash
@@ -67,9 +64,12 @@ Your computer keeps its own copy of the notes and stays in step through GitHub.
 
 The server has no browser, so sign-in happens from your phone or computer:
 
-- **Claude:** on a computer where you use Claude, run `claude setup-token` and copy the token it
-  prints. On the server's Majordome, paste it in **Settings > Providers > Claude > Claude sign-in
-  token**.
+- **Claude:** on the server, run `docker compose exec -it majordome claude auth login`, open the
+  link it prints, approve, and paste the code back. This full sign-in brings your Claude account's
+  connectors (Gmail, Calendar, Drive), so routines can use them.
+- **Claude, without connectors:** on a computer where you use Claude, run `claude setup-token` and
+  paste the token in **Settings > Providers > Claude > Claude sign-in token** on the server's
+  Majordome. Conversations work, but the server can't reach your email, calendar or files.
 - **ChatGPT (Codex):** in **Settings > Providers > Codex**, choose **Continue with ChatGPT**. After
   you sign in, the page fails to load: copy its address and paste it in the field Majordome shows.
 

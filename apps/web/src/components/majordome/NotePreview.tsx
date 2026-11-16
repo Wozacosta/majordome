@@ -44,13 +44,13 @@ function absoluteVaultPath(vault: NotesVault, path: string): string {
 type NoteLink = (path: string) => ReturnType<typeof notesLink>;
 
 /**
- * A note reads as a page: a comfortable measure, larger text and serif headings. The sizes are
+ * A note reads as a page: a comfortable measure, larger text and clear headings. The sizes are
  * marked important because the markdown stylesheet sets its headings outside Tailwind's layers.
  */
 const NOTE_READING_CLASS = cn(
   READING_MEASURE_CLASS,
   "mx-auto px-5 py-8 text-base leading-relaxed sm:px-8",
-  "[&_:is(h1,h2,h3,h4,h5,h6)]:font-serif [&_:is(h1,h2,h3)]:font-medium! [&_:is(h1,h2,h3)]:tracking-tight",
+  "[&_:is(h1,h2,h3)]:tracking-tight",
   "[&_h1]:text-3xl! [&_h2]:mt-8! [&_h2]:text-2xl! [&_h3]:mt-6! [&_h3]:text-xl! [&_:is(h4,h5,h6)]:text-base!",
 );
 

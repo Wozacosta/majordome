@@ -4,7 +4,7 @@ import { cn } from "../../lib/utils";
 import { OVERVIEW_TONE_DOT_CLASS, type OverviewTone } from "./overview.logic";
 
 /**
- * Majordome's notebook look: serif headings, hairline entries, and few raised surfaces. Its pages
+ * Majordome's notebook look: clear headings, hairline entries, and few raised surfaces. Its pages
  * compose these slots, so the recipes live here.
  */
 
@@ -13,15 +13,15 @@ type PaperTone = OverviewTone;
 /** The comfortable line length for text that is read, not scanned. */
 export const READING_MEASURE_CLASS = "max-w-[46rem]";
 
-/** Serif type, for a heading that sits outside the slots here. */
-export const SERIF_HEADING_CLASS = "font-serif font-medium tracking-tight text-foreground";
+/** Heading type, for a heading that sits outside the slots here. */
+export const HEADING_CLASS = "font-semibold tracking-tight text-foreground";
 
 /** On a link or button that is a whole row: the hover and focus look, with its text kept aligned. */
 export const ROW_ACTION_CLASS =
   "-mx-2 rounded-md px-2 outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
 export function PageTitle({ className, ...props }: ComponentPropsWithoutRef<"h1">) {
-  return <h1 className={cn(SERIF_HEADING_CLASS, "text-3xl", className)} {...props} />;
+  return <h1 className={cn(HEADING_CLASS, "text-3xl", className)} {...props} />;
 }
 
 /** A page's start: its title, one sentence that helps a decision, and the page's own action. */
@@ -47,7 +47,7 @@ export function PageHeader({
 
 /** A machine's or a brain's name over its own sections. */
 export function SectionTitle({ className, ...props }: ComponentPropsWithoutRef<"h2">) {
-  return <h2 className={cn(SERIF_HEADING_CLASS, "text-xl", className)} {...props} />;
+  return <h2 className={cn(HEADING_CLASS, "text-xl", className)} {...props} />;
 }
 
 export function SectionLabel({
@@ -103,11 +103,11 @@ export function EntryList({ className, ...props }: ComponentPropsWithoutRef<"ul"
 }
 
 export function EntryTitle({ className, ...props }: ComponentPropsWithoutRef<"p">) {
-  return <p className={cn("min-w-0 font-serif text-base text-foreground", className)} {...props} />;
+  return <p className={cn("min-w-0 text-sm font-medium text-foreground", className)} {...props} />;
 }
 
 /**
- * One entry of a list, under a hairline: a serif title, a line about it, its controls on the
+ * One entry of a list, under a hairline: a title, a line about it, its controls on the
  * right, and whatever belongs to it below.
  */
 export function Entry({
@@ -224,7 +224,7 @@ export function Step({
   return (
     <li
       className={cn(
-        "relative border-t border-border py-3 ps-8 [counter-increment:step] before:absolute before:start-0 before:top-3 before:font-serif before:text-base before:text-primary before:content-[counter(step)]",
+        "relative border-t border-border py-3 ps-8 [counter-increment:step] before:absolute before:start-0 before:top-3 before:text-sm before:font-medium before:text-primary before:content-[counter(step)]",
         className,
       )}
       {...props}

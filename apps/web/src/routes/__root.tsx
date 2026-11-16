@@ -39,7 +39,7 @@ import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import { Button } from "../components/ui/button";
 import { StandalonePage, StandalonePageHeader } from "../components/ui/standalone-page";
 import { AnchoredToastProvider, ToastProvider } from "../components/ui/toast";
-import { isElectron } from "../env";
+import { isElectron, isMajordome } from "../env";
 import { useClientSettings } from "../hooks/useSettings";
 import {
   deriveLogicalProjectKeyFromSettings,
@@ -364,7 +364,8 @@ function EventRouter({
         );
       useUiStateStore.getState().setProjectExpanded(bootstrapProjectKey, true);
 
-      if (readPathname() !== "/") {
+      // Majordome's home is Today, not the thread of the folder the server started in.
+      if (isMajordome || readPathname() !== "/") {
         return;
       }
       if (skipInitialBootstrapNavigationRef.current) {

@@ -59,7 +59,7 @@ import {
   READING_MEASURE_CLASS,
   Section,
   SectionTitle,
-  SERIF_HEADING_CLASS,
+  HEADING_CLASS,
   StatusLine,
   Surface,
   SwitchLabel,
@@ -225,7 +225,7 @@ function VaultBackup({
           <CloudUploadIcon className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden />
         )}
         <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
-          <p className={cn(SERIF_HEADING_CLASS, "text-xl")}>{headline.title}</p>
+          <p className={cn(HEADING_CLASS, "text-xl")}>{headline.title}</p>
           {headline.detail ? (
             <Muted className={READING_MEASURE_CLASS}>{headline.detail}</Muted>
           ) : null}

@@ -56,7 +56,7 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-184 px-5 pt-2 pb-12 sm:px-6 sm:pt-6">
             <p className="text-sm text-muted-foreground">{greetingForHour(now.getHours())}</p>
-            <h1 className="font-serif text-3xl font-medium tracking-tight text-foreground">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               {todayTitle(now)}
             </h1>
             <CaptureBox key={vault.key} vault={vault} />
@@ -223,7 +223,7 @@ function RunRow({ run, nowMs }: { readonly run: TodayRun; readonly nowMs: number
   const content = (
     <>
       <span className="flex min-w-0 items-center gap-2">
-        <span className="min-w-0 truncate font-serif text-base text-foreground">{run.title}</span>
+        <span className="min-w-0 truncate text-sm font-medium text-foreground">{run.title}</span>
         {run.status !== null ? (
           <Badge variant={run.status === "waiting" ? "warning" : "error"}>
             {FEED_RUN_STATUS_LABELS[run.status]}
@@ -280,7 +280,7 @@ function TodayTopics({ vault }: { readonly vault: MajordomeVault }) {
             >
               <TopicIconBadge topic={topic} statusDotClass={null} />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate font-serif text-base text-foreground">{topic.title}</span>
+                <span className="truncate text-sm font-medium text-foreground">{topic.title}</span>
                 <span className="truncate text-sm text-muted-foreground">
                   {topicSubtitle(topic)}
                 </span>
