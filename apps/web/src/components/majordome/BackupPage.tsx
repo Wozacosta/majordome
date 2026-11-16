@@ -50,6 +50,20 @@ import { toastManager } from "../ui/toast";
 import { backupHeadline, folderFormProblem, restoreCommands } from "./backup.logic";
 import { groupBrains, labelCopies } from "./brains.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import {
+  Disclosure,
+  Entry,
+  EntryList,
+  EntryTitle,
+  Muted,
+  READING_MEASURE_CLASS,
+  Section,
+  SectionTitle,
+  SERIF_HEADING_CLASS,
+  StatusLine,
+  Surface,
+  SwitchLabel,
+} from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 interface BackupVault {
@@ -111,51 +125,46 @@ export function BackupPage() {
 
   return (
     <MajordomeSettingsPage searchId="majordome-backup">
-      {errors.map((error) => (
-        <p key={error} className="text-sm text-destructive-foreground">
-          {error}
-        </p>
-      ))}
-      {vaults.length > 0 ? (
-        <div className="flex flex-col gap-8">
-          {vaults.map(({ copy, label }) => (
-            <VaultBackup
-              key={`${copy.environmentId}:${copy.projectId}`}
-              vault={copy}
-              status={copy.status}
-              label={label}
-              elsewhere={isElsewhere(copy.environmentId)}
-              nowMs={nowMs}
-            />
+      {errors.length > 0 ? (
+        <Section>
+          {errors.map((error) => (
+            <ErrorLine key={error}>{error}</ErrorLine>
           ))}
-        </div>
-      ) : loading ? (
-        <Skeleton className="h-40 w-full" />
+        </Section>
+      ) : null}
+      {vaults.length > 0 ? (
+        vaults.map(({ copy, label }) => (
+          <VaultBackup
+            key={`${copy.environmentId}:${copy.projectId}`}
+            vault={copy}
+            status={copy.status}
+            label={label}
+            elsewhere={isElsewhere(copy.environmentId)}
+            nowMs={nowMs}
+          />
+        ))
       ) : (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>No notes folder yet</EmptyTitle>
-            <EmptyDescription>
-              Open your notes folder in Majordome, then come back here to back it up.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <Section>
+          {loading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No notes folder yet</EmptyTitle>
+                <EmptyDescription>
+                  Open your notes folder in Majordome, then come back here to back it up.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </Section>
       )}
     </MajordomeSettingsPage>
   );
 }
 
-function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-      <h3 className="text-sm font-medium text-foreground">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-function Muted({ children }: { readonly children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
+function ErrorLine({ children }: { readonly children: ReactNode }) {
+  return <p className="text-sm break-words text-destructive-foreground">{children}</p>;
 }
 
 function VaultBackup({
@@ -180,9 +189,6 @@ function VaultBackup({
     majordomeEnvironment.configureBackup.permissionAtom(vault.environmentId),
   );
   const backUpNow = useAtomCommand(majordomeEnvironment.backUpNow, { label: "back up now" });
-  const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
-    label: "configure backup",
-  });
   const [busy, setBusy] = useState(false);
   const when = (iso: string | null) => (iso === null ? null : formatRelativeTimeLabel(iso, nowMs));
 
@@ -196,6 +202,96 @@ function VaultBackup({
     if (result._tag === "Failure") reportFailure("Could not back up", result);
   };
 
+  const facts = [
+    status.lastSavedAt === null ? null : `Your edits saved ${when(status.lastSavedAt)}`,
+    status.remote?.lastSyncedAt ? `Sent ${when(status.remote.lastSyncedAt)}` : null,
+    status.folder?.lastBackupAt ? `Folder copy ${when(status.folder.lastBackupAt)}` : null,
+  ].filter((fact) => fact !== null);
+  const remote = status.remote;
+
+  return (
+    <div className={label === null ? "mt-8" : "mt-10"} data-backup-vault={vault.projectId}>
+      {label !== null ? <SectionTitle className="mb-3">{label}</SectionTitle> : null}
+      <div
+        className="flex flex-wrap items-start gap-x-3 gap-y-3"
+        data-backup-tone={headline.tone}
+        aria-live="polite"
+      >
+        {headline.tone === "ok" ? (
+          <CircleCheckIcon className="mt-1 size-5 shrink-0 text-success-foreground" aria-hidden />
+        ) : headline.tone === "warning" ? (
+          <CircleAlertIcon className="mt-1 size-5 shrink-0 text-warning-foreground" aria-hidden />
+        ) : (
+          <CloudUploadIcon className="mt-1 size-5 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+        <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1">
+          <p className={cn(SERIF_HEADING_CLASS, "text-xl")}>{headline.title}</p>
+          {headline.detail ? (
+            <Muted className={READING_MEASURE_CLASS}>{headline.detail}</Muted>
+          ) : null}
+          {status.paused !== null && status.paused.files.length > 0 ? (
+            <ul className="m-0 list-disc ps-5 text-sm break-all text-foreground">
+              {status.paused.files.map((file) => (
+                <li key={file}>{file}</li>
+              ))}
+            </ul>
+          ) : null}
+          {status.saveError ? <ErrorLine>{status.saveError}</ErrorLine> : null}
+          {facts.length > 0 ? (
+            <p className="text-xs text-muted-foreground">{facts.join(" · ")}</p>
+          ) : null}
+          {status.secretScan ? null : (
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <ShieldIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              The secret check (gitleaks) isn't installed on this computer, so notes are saved
+              without it.
+            </p>
+          )}
+        </div>
+        {canBackUp ? (
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => void runNow()}>
+            {busy ? <Spinner size="sm" /> : null}
+            Back up now
+          </Button>
+        ) : null}
+      </div>
+      <Section label="Where your notes are kept" labelAs={label === null ? "h2" : "h3"}>
+        <EntryList>
+          <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+          {remote !== null && !remote.isGitHub ? (
+            <Entry title={remote.host ?? "Another copy"} data-backup-destination="remote">
+              <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
+            </Entry>
+          ) : null}
+          {/* A folder on another machine, such as a server, isn't the iCloud or USB drive meant here. */}
+          {elsewhere && status.folder === null ? null : (
+            <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+          )}
+          <GoogleDriveOption
+            vault={vault}
+            status={status}
+            canConfigure={canConfigure}
+            nowMs={nowMs}
+          />
+        </EntryList>
+      </Section>
+    </div>
+  );
+}
+
+/** "Keep in sync with GitHub": whether saved changes are sent on, with a link to where they go. */
+function RemoteSync({
+  vault,
+  remote,
+  canConfigure,
+}: {
+  readonly vault: BackupVault;
+  readonly remote: NonNullable<MajordomeBackupStatus["remote"]>;
+  readonly canConfigure: boolean;
+}) {
+  const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
+    label: "configure backup",
+  });
   const setSyncing = async (enabled: boolean) => {
     const result = await configure({
       environmentId: vault.environmentId,
@@ -203,83 +299,26 @@ function VaultBackup({
     });
     if (result._tag === "Failure") reportFailure("Could not change syncing", result);
   };
-
-  const facts = [
-    status.lastSavedAt === null ? null : `Your edits saved ${when(status.lastSavedAt)}`,
-    status.remote?.lastSyncedAt ? `Sent ${when(status.remote.lastSyncedAt)}` : null,
-    status.folder?.lastBackupAt ? `Folder copy ${when(status.folder.lastBackupAt)}` : null,
-  ].filter((fact) => fact !== null);
-
   return (
-    <div className="flex flex-col gap-4" data-backup-vault={vault.projectId}>
-      {label !== null ? <h2 className="text-base font-medium">{label}</h2> : null}
-      <div className="flex items-start gap-3" data-backup-tone={headline.tone} aria-live="polite">
-        {headline.tone === "ok" ? (
-          <CircleCheckIcon className="mt-0.5 size-5 shrink-0 text-success-foreground" aria-hidden />
-        ) : headline.tone === "warning" ? (
-          <CircleAlertIcon className="mt-0.5 size-5 shrink-0 text-warning-foreground" aria-hidden />
-        ) : (
-          <CloudUploadIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">{headline.title}</p>
-          {headline.detail ? <Muted>{headline.detail}</Muted> : null}
-          {status.paused !== null && status.paused.files.length > 0 ? (
-            <ul className="mt-1 list-disc ps-5 text-sm text-foreground">
-              {status.paused.files.map((file) => (
-                <li key={file}>{file}</li>
-              ))}
-            </ul>
-          ) : null}
-          {status.saveError ? (
-            <p className="text-sm text-destructive-foreground">{status.saveError}</p>
-          ) : null}
-          {facts.length > 0 ? (
-            <p className="mt-1 text-xs text-muted-foreground">{facts.join(" · ")}</p>
-          ) : null}
-        </div>
-        {canBackUp ? (
-          <Button size="xs" variant="outline" disabled={busy} onClick={() => void runNow()}>
-            {busy ? <Spinner size="sm" /> : null}
-            Back up now
-          </Button>
-        ) : null}
-      </div>
-      {status.remote !== null ? (
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Switch
-            size="sm"
-            checked={status.remote.syncing}
-            disabled={!canConfigure}
-            onCheckedChange={(checked) => void setSyncing(checked)}
-          />
-          Keep in sync with{" "}
-          {status.remote.isGitHub ? "GitHub" : (status.remote.host ?? "the backup")}
-          {status.remote.webUrl ? (
-            <a
-              href={status.remote.webUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2"
-            >
-              Open
-            </a>
-          ) : null}
-        </label>
+    <div className="flex flex-wrap items-center gap-x-3">
+      <SwitchLabel>
+        <Switch
+          checked={remote.syncing}
+          disabled={!canConfigure}
+          onCheckedChange={(checked) => void setSyncing(checked)}
+        />
+        Keep in sync with {remote.isGitHub ? "GitHub" : (remote.host ?? "the backup")}
+      </SwitchLabel>
+      {remote.webUrl ? (
+        <a
+          href={remote.webUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex min-h-10 items-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          Open
+        </a>
       ) : null}
-      {status.secretScan ? null : (
-        <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldIcon className="size-3.5" aria-hidden />
-          The secret check (gitleaks) isn't installed on this computer, so notes are saved without
-          it.
-        </p>
-      )}
-      <GitHubOption vault={vault} status={status} canConfigure={canConfigure} />
-      {/* A folder on another machine, such as a server, isn't the iCloud or USB drive meant here. */}
-      {elsewhere && status.folder === null ? null : (
-        <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
-      )}
-      <GoogleDriveOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
     </div>
   );
 }
@@ -288,16 +327,19 @@ function GitHubOption({
   vault,
   status,
   canConfigure,
+  nowMs,
 }: {
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
   readonly canConfigure: boolean;
+  readonly nowMs: number;
 }) {
   const [open, setOpen] = useState(false);
   const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
     label: "forget github",
   });
-  const connected = status.remote?.isGitHub === true;
+  const remote = status.remote?.isGitHub === true ? status.remote : null;
+  const connected = remote !== null;
   // Notes cloned from GitHub onto a new server keep their repository; signing in lets it push.
   const needsSignIn = connected && !status.github.signedIn;
 
@@ -310,16 +352,40 @@ function GitHubOption({
     else toastManager.add({ type: "success", title: "Majordome forgot your GitHub sign-in" });
   };
 
-  return (
-    <Section title="Connect GitHub">
-      <Muted>
+  const how = (
+    <>
+      <Muted className={READING_MEASURE_CLASS}>
         Majordome creates a private repository called majordome-brain on your GitHub account and
         sends your notes there after every save.
       </Muted>
-      <Muted>
+      <Muted className={READING_MEASURE_CLASS}>
         GitHub only offers this kind of sign-in with access to all your repositories. Majordome only
         uses it for your notes' backup.
       </Muted>
+    </>
+  );
+
+  return (
+    <Entry title="GitHub" data-backup-destination="github">
+      {remote === null ? (
+        <StatusLine tone="neutral">Not connected</StatusLine>
+      ) : needsSignIn ? (
+        <StatusLine tone="warning">
+          Sign in to GitHub so this computer can send your notes there
+        </StatusLine>
+      ) : !remote.syncing ? (
+        <StatusLine tone="neutral">Connected, but syncing is off</StatusLine>
+      ) : (
+        <StatusLine tone="ok">
+          {remote.lastSyncedAt
+            ? `Connected · sent ${formatRelativeTimeLabel(remote.lastSyncedAt, nowMs)}`
+            : "Connected"}
+        </StatusLine>
+      )}
+      {remote !== null ? (
+        <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
+      ) : null}
+      {connected ? null : how}
       {!status.github.available ? (
         <Muted>Connecting GitHub isn't set up on this server yet.</Muted>
       ) : canConfigure ? (
@@ -343,10 +409,11 @@ function GitHubOption({
           ) : null}
         </div>
       ) : null}
+      {connected ? <Disclosure summary="How this works">{how}</Disclosure> : null}
       <AlertDialog open={open} onOpenChange={setOpen}>
         {open ? <GitHubSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
       </AlertDialog>
-    </Section>
+    </Entry>
   );
 }
 
@@ -590,24 +657,26 @@ function GoogleDriveOption({
   };
 
   const connectAction = drive?.problem ? DRIVE_PROBLEM_ACTION[drive.problem] : null;
-
-  return (
-    <Section title="Google Drive">
-      <Muted>
+  const how = (
+    <>
+      <Muted className={READING_MEASURE_CLASS}>
         Every night Majordome puts an encrypted copy of your notes and their history in a “Majordome
         backups” folder in your Google Drive. It can only see the files it puts there, and keeps the
         last 14 copies.
       </Muted>
+      <Muted className={READING_MEASURE_CLASS}>
+        Majordome's Google app is still in testing: only people Majordome invited can connect, and
+        Google may warn that the app isn't verified. That's expected for now. While in testing,
+        Google also asks you to connect again every 7 days.
+      </Muted>
+    </>
+  );
+
+  return (
+    <Entry title="Google Drive" data-backup-destination="google-drive">
       {drive !== null ? (
         <div className="flex flex-col gap-2" data-google-drive="connected">
-          <Muted>
-            {drive.lastBackupAt
-              ? `Last copy ${formatRelativeTimeLabel(drive.lastBackupAt, nowMs)}: ${drive.lastFile ?? ""}`
-              : "No copy yet."}
-          </Muted>
-          {drive.lastError ? (
-            <p className="text-sm text-destructive-foreground">{drive.lastError}</p>
-          ) : null}
+          <CopyStatus copy={drive} nowMs={nowMs} />
           {canConfigure ? (
             <div className="flex flex-wrap gap-2">
               {connectAction ? (
@@ -620,53 +689,79 @@ function GoogleDriveOption({
               </Button>
             </div>
           ) : null}
+          <Disclosure summary="How this works">{how}</Disclosure>
         </div>
-      ) : !status.googleDrive.available ? (
-        <Muted>Connecting Google Drive isn't set up on this server yet.</Muted>
-      ) : canConfigure ? (
-        status.hasPassphrase ? (
-          <Button
-            size="xs"
-            className="w-fit"
-            onClick={() => setOpen(true)}
-            data-google-drive="connect"
-          >
-            <CloudUploadIcon />
-            Connect Google Drive
-          </Button>
-        ) : settingPassphrase ? (
-          <FolderForm
-            vault={vault}
-            mode="passphrase"
-            initialPath=""
-            onDone={() => {
-              setSettingPassphrase(false);
-              setOpen(true);
-            }}
-            onCancel={() => setSettingPassphrase(false)}
-          />
-        ) : (
-          <Button
-            size="xs"
-            className="w-fit"
-            onClick={() => setSettingPassphrase(true)}
-            data-google-drive="choose-passphrase"
-          >
-            <CloudUploadIcon />
-            Connect Google Drive
-          </Button>
-        )
-      ) : null}
-      <p className="text-xs text-muted-foreground">
-        Majordome's Google app is still in testing: only people Majordome invited can connect, and
-        Google may warn that the app isn't verified. That's expected for now. While in testing,
-        Google also asks you to connect again every 7 days.
-      </p>
+      ) : (
+        <>
+          <StatusLine tone="neutral">Not connected</StatusLine>
+          {how}
+          {!status.googleDrive.available ? (
+            <Muted>Connecting Google Drive isn't set up on this server yet.</Muted>
+          ) : canConfigure ? (
+            status.hasPassphrase ? (
+              <div>
+                <Button size="xs" onClick={() => setOpen(true)} data-google-drive="connect">
+                  <CloudUploadIcon />
+                  Connect Google Drive
+                </Button>
+              </div>
+            ) : settingPassphrase ? (
+              <FolderForm
+                vault={vault}
+                mode="passphrase"
+                initialPath=""
+                onDone={() => {
+                  setSettingPassphrase(false);
+                  setOpen(true);
+                }}
+                onCancel={() => setSettingPassphrase(false)}
+              />
+            ) : (
+              <div>
+                <Button
+                  size="xs"
+                  onClick={() => setSettingPassphrase(true)}
+                  data-google-drive="choose-passphrase"
+                >
+                  <CloudUploadIcon />
+                  Connect Google Drive
+                </Button>
+              </div>
+            )
+          ) : null}
+        </>
+      )}
       <AlertDialog open={open} onOpenChange={setOpen}>
         {open ? <GoogleDriveSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
       </AlertDialog>
       <RestoreNote folderName={vault.folderName} source="drive" />
-    </Section>
+    </Entry>
+  );
+}
+
+/** When the last encrypted copy went out, and what went wrong if the newest one didn't. */
+function CopyStatus({
+  copy,
+  nowMs,
+}: {
+  readonly copy: {
+    readonly lastBackupAt: string | null;
+    readonly lastFile: string | null;
+    readonly lastError: string | null;
+  };
+  readonly nowMs: number;
+}) {
+  return (
+    <>
+      <StatusLine tone={copy.lastError ? "warning" : copy.lastBackupAt ? "ok" : "neutral"}>
+        <span className="break-words">
+          {copy.lastBackupAt
+            ? `Last copy ${formatRelativeTimeLabel(copy.lastBackupAt, nowMs)}: ${copy.lastFile ?? ""}`
+            : "No copy yet."}
+        </span>
+      </StatusLine>
+      {copy.lastError ? <ErrorLine>{copy.lastError}</ErrorLine> : null}
+    </>
   );
 }
 
@@ -695,26 +790,22 @@ function FolderOption({
     if (result._tag === "Failure") reportFailure("Could not stop the folder backup", result);
   };
 
+  const how = (
+    <Muted className={READING_MEASURE_CLASS}>
+      Every night Majordome puts an encrypted copy of your notes and their history in a folder you
+      choose, such as iCloud Drive, Dropbox or a USB drive. It keeps the last 14 copies.
+    </Muted>
+  );
+
   return (
-    <Section title="Choose a backup folder">
-      <Muted>
-        Every night Majordome puts an encrypted copy of your notes and their history in a folder you
-        choose, such as iCloud Drive, Dropbox or a USB drive. It keeps the last 14 copies.
-      </Muted>
+    <Entry title="Backup folder" data-backup-destination="folder">
       {folder !== null && !editing ? (
-        <div className="flex flex-col gap-2">
-          <p className="flex items-center gap-2 text-sm text-foreground">
-            <FolderIcon className="size-4 shrink-0" aria-hidden />
+        <>
+          <p className="flex min-w-0 items-center gap-2 text-foreground">
+            <FolderIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="min-w-0 truncate font-mono text-xs">{folder.path}</span>
           </p>
-          <Muted>
-            {folder.lastBackupAt
-              ? `Last copy ${formatRelativeTimeLabel(folder.lastBackupAt, nowMs)}: ${folder.lastFile ?? ""}`
-              : "No copy yet."}
-          </Muted>
-          {folder.lastError ? (
-            <p className="text-sm text-destructive-foreground">{folder.lastError}</p>
-          ) : null}
+          <CopyStatus copy={folder} nowMs={nowMs} />
           {canConfigure ? (
             <div className="flex flex-wrap gap-2">
               <Button size="xs" variant="outline" onClick={() => setEditing(true)}>
@@ -725,18 +816,25 @@ function FolderOption({
               </Button>
             </div>
           ) : null}
-        </div>
-      ) : canConfigure ? (
-        <FolderForm
-          vault={vault}
-          mode="folder"
-          initialPath={folder?.path ?? ""}
-          onDone={() => setEditing(false)}
-          {...(folder !== null ? { onCancel: () => setEditing(false) } : {})}
-        />
-      ) : null}
+          <Disclosure summary="How this works">{how}</Disclosure>
+        </>
+      ) : (
+        <>
+          {folder === null ? <StatusLine tone="neutral">Not set up</StatusLine> : null}
+          {how}
+          {canConfigure ? (
+            <FolderForm
+              vault={vault}
+              mode="folder"
+              initialPath={folder?.path ?? ""}
+              onDone={() => setEditing(false)}
+              {...(folder !== null ? { onCancel: () => setEditing(false) } : {})}
+            />
+          ) : null}
+        </>
+      )}
       <RestoreNote folderName={vault.folderName} source="folder" />
-    </Section>
+    </Entry>
   );
 }
 
@@ -809,23 +907,23 @@ function FolderForm({
 
   if (step === "write-down") {
     return (
-      <div className="flex flex-col gap-3" data-recovery-phrase>
-        <p className="text-sm font-medium text-foreground">Write down your passphrase</p>
+      <Surface className="flex max-w-xl flex-col gap-3" data-recovery-phrase>
+        <EntryTitle>Write down your passphrase</EntryTitle>
         <Muted>
           It's the only way to open these backups. Majordome keeps it in this computer's keychain,
           but if this computer is lost you'll need it from paper. It won't be shown again.
         </Muted>
-        <p className="rounded-md border border-border bg-muted/40 px-3 py-2 font-mono text-base break-all text-foreground">
+        <p className="rounded-md bg-muted px-3 py-2 font-mono text-base break-all text-foreground">
           {passphrase}
         </p>
-        <label className="flex items-center gap-2 text-sm">
+        <SwitchLabel>
           <Checkbox
             checked={wroteItDown}
             onCheckedChange={(checked) => setWroteItDown(checked === true)}
           />
           I wrote it down
-        </label>
-        <div className="flex gap-2">
+        </SwitchLabel>
+        <div className="flex flex-wrap gap-2">
           <Button size="xs" variant="outline" disabled={busy} onClick={() => setStep("form")}>
             Back
           </Button>
@@ -834,73 +932,75 @@ function FolderForm({
             {mode === "folder" ? "Back up to this folder" : "Continue to Google"}
           </Button>
         </div>
-      </div>
+      </Surface>
     );
   }
 
   return (
-    <form
-      className="flex flex-col gap-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (problem === null) {
-          setWroteItDown(false);
-          setStep("write-down");
-        }
-      }}
-    >
-      {mode === "folder" ? (
-        <label className="flex flex-col gap-1 text-sm">
-          Folder on this computer
+    <Surface className="max-w-xl">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (problem === null) {
+            setWroteItDown(false);
+            setStep("write-down");
+          }
+        }}
+      >
+        {mode === "folder" ? (
+          <label className="flex flex-col gap-1 text-sm text-foreground">
+            Folder on this computer
+            <Input
+              value={path}
+              placeholder="~/Library/Mobile Documents/com~apple~CloudDocs/Majordome"
+              onChange={(event) => setPath(event.target.value)}
+              aria-label="Backup folder"
+            />
+          </label>
+        ) : (
+          <Muted>Choose a passphrase to encrypt your copies. Google never sees your notes.</Muted>
+        )}
+        <label className="flex flex-col gap-1 text-sm text-foreground">
+          Passphrase
           <Input
-            value={path}
-            placeholder="~/Library/Mobile Documents/com~apple~CloudDocs/Majordome"
-            onChange={(event) => setPath(event.target.value)}
-            aria-label="Backup folder"
+            type="password"
+            value={passphrase}
+            autoComplete="new-password"
+            onChange={(event) => setPassphrase(event.target.value)}
+            aria-label="Passphrase"
           />
         </label>
-      ) : (
-        <Muted>Choose a passphrase to encrypt your copies. Google never sees your notes.</Muted>
-      )}
-      <label className="flex flex-col gap-1 text-sm">
-        Passphrase
-        <Input
-          type="password"
-          value={passphrase}
-          autoComplete="new-password"
-          onChange={(event) => setPassphrase(event.target.value)}
-          aria-label="Passphrase"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Passphrase again
-        <Input
-          type="password"
-          value={confirmation}
-          autoComplete="new-password"
-          onChange={(event) => setConfirmation(event.target.value)}
-          aria-label="Passphrase again"
-        />
-      </label>
-      <p
-        className={cn(
-          "text-xs",
-          problem === null ? "text-muted-foreground" : "text-warning-foreground",
-        )}
-      >
-        {problem ?? "Next, you'll write the passphrase down."}
-      </p>
-      <div className="flex gap-2">
-        {onCancel ? (
-          <Button size="xs" variant="outline" type="button" onClick={onCancel}>
-            Cancel
+        <label className="flex flex-col gap-1 text-sm text-foreground">
+          Passphrase again
+          <Input
+            type="password"
+            value={confirmation}
+            autoComplete="new-password"
+            onChange={(event) => setConfirmation(event.target.value)}
+            aria-label="Passphrase again"
+          />
+        </label>
+        <p
+          className={cn(
+            "text-xs",
+            problem === null ? "text-muted-foreground" : "text-warning-foreground",
+          )}
+        >
+          {problem ?? "Next, you'll write the passphrase down."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {onCancel ? (
+            <Button size="xs" variant="outline" type="button" onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : null}
+          <Button size="xs" type="submit" disabled={problem !== null}>
+            Continue
           </Button>
-        ) : null}
-        <Button size="xs" type="submit" disabled={problem !== null}>
-          Continue
-        </Button>
-      </div>
-    </form>
+        </div>
+      </form>
+    </Surface>
   );
 }
 
@@ -913,26 +1013,25 @@ function RestoreNote({
 }) {
   const [decrypt, clone] = restoreCommands(folderName);
   return (
-    <details className="text-sm text-muted-foreground">
-      <summary className="cursor-pointer">
-        {source === "folder"
+    <Disclosure
+      summary={
+        source === "folder"
           ? "How to restore from a folder copy"
-          : "How to restore from a Google Drive copy"}
-      </summary>
-      <div className="mt-2 flex flex-col gap-2">
-        <p>
-          You don't need Majordome to restore.{" "}
-          {source === "drive"
-            ? "Download the newest .age file from the “Majordome backups” folder in Google Drive. "
-            : ""}
-          Install age from age-encryption.org, then, in the folder with your copy, run these two
-          commands. The first asks for your passphrase.
-        </p>
-        <pre className="overflow-x-auto rounded-md bg-muted/40 px-3 py-2 font-mono text-xs text-foreground">
-          {`${decrypt}\n${clone}`}
-        </pre>
-        <p>The my-notes folder then holds your notes and their whole history.</p>
-      </div>
-    </details>
+          : "How to restore from a Google Drive copy"
+      }
+    >
+      <p className={READING_MEASURE_CLASS}>
+        You don't need Majordome to restore.{" "}
+        {source === "drive"
+          ? "Download the newest .age file from the “Majordome backups” folder in Google Drive. "
+          : ""}
+        Install age from age-encryption.org, then, in the folder with your copy, run these two
+        commands. The first asks for your passphrase.
+      </p>
+      <pre className="overflow-x-auto rounded-lg border border-border bg-muted/50 px-3 py-2.5 font-mono text-xs text-foreground">
+        {`${decrypt}\n${clone}`}
+      </pre>
+      <p>The my-notes folder then holds your notes and their whole history.</p>
+    </Disclosure>
   );
 }

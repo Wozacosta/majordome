@@ -17,6 +17,8 @@ export function FileMarkdownPreview(props: {
   readonly renderContextReference?:
     | ((reference: ChatMarkdownContextReference) => ReactNode)
     | undefined;
+  /** Replaces the default page column, for a surface with its own reading layout. */
+  readonly className?: string | undefined;
 }) {
   const lastSeparator = Math.max(
     props.relativePath.lastIndexOf("/"),
@@ -34,7 +36,7 @@ export function FileMarkdownPreview(props: {
       imageBaseDir={imageBaseDir}
       threadRef={props.threadRef}
       workspaceMutationId={props.workspaceMutationId}
-      className="mx-auto max-w-4xl px-6 py-5"
+      className={props.className ?? "mx-auto max-w-4xl px-6 py-5"}
       onTaskListChange={props.onTaskListChange}
       renderContextReference={props.renderContextReference}
     />

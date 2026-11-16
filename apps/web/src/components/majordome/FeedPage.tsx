@@ -18,16 +18,14 @@ import {
   CalendarRangeIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  CircleAlertIcon,
   EllipsisIcon,
-  HandIcon,
   InboxIcon,
   MessageSquareIcon,
   NotebookPenIcon,
   SunriseIcon,
   Undo2Icon,
 } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, Fragment, useContext, useState } from "react";
 
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
@@ -82,6 +80,7 @@ import {
   type FeedRunItem,
   type FeedVault,
   stoppedRunKeys,
+  withDayHeadings,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
 import {
@@ -93,6 +92,16 @@ import {
   statusBrainId,
 } from "./brains.logic";
 import { notesLink } from "./notes.logic";
+import {
+  Entry,
+  EntryList,
+  PageTitle,
+  READING_MEASURE_CLASS,
+  ROW_ACTION_CLASS,
+  Section,
+  SectionLabel,
+  StatusLine,
+} from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 interface FeedVaultState extends FeedVault {
@@ -176,14 +185,25 @@ export function FeedPage() {
       knownThreads: new Set(threads.map((thread) => `${thread.environmentId}:${thread.id}`)),
     },
   );
-  const timeline = includeOwnChanges ? null : foldOwnChanges(changes);
-  const grouped = includeOwnChanges ? groupFeedItems(changes) : null;
+  const timeline = includeOwnChanges
+    ? null
+    : withDayHeadings(
+        foldOwnChanges(changes),
+        (row) => (row.kind === "own-day" ? row.at : row.item.entry.committedAt),
+        nowMs,
+      );
+  const grouped = includeOwnChanges
+    ? withDayHeadings(
+        groupFeedItems(changes),
+        (row) => (row.kind === "edits" ? row.saves[0] : row.item)?.entry.committedAt ?? "",
+        nowMs,
+      )
+    : null;
   const itemCount = timeline?.length ?? grouped?.length ?? 0;
   const showVaultName = brains.length > 1;
   const renderChange = (item: FeedItem) =>
     item.entry.byMajordome ? (
       <FeedRunCard
-        key={item.key}
         item={item}
         nowMs={nowMs}
         showVaultName={showVaultName}
@@ -191,7 +211,7 @@ export function FeedPage() {
         onUndo={() => setPendingUndo(item)}
       />
     ) : (
-      <FeedRow key={item.key} item={item} nowMs={nowMs} showVaultName={showVaultName} />
+      <FeedRow item={item} nowMs={nowMs} showVaultName={showVaultName} />
     );
 
   return (
@@ -199,8 +219,7 @@ export function FeedPage() {
       <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
           <WorkspacePageHeader electron={isElectron} className="border-b border-border">
-            <h1 className="min-w-0 flex-1 truncate text-sm font-medium">Feed</h1>
-            <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 [-webkit-app-region:no-drag]">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-3 gap-y-1 [-webkit-app-region:no-drag]">
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Switch
                   size="sm"
@@ -213,14 +232,15 @@ export function FeedPage() {
           </WorkspacePageHeader>
 
           <ScrollArea className="min-h-0 flex-1">
-            <WorkspacePageContainer>
+            <WorkspacePageContainer className="gap-0">
+              <PageTitle>Feed</PageTitle>
               {errors.map((error) => (
-                <p key={error} className="text-sm text-destructive-foreground">
+                <p key={error} className="mt-3 text-sm text-destructive-foreground">
                   {error}
                 </p>
               ))}
               {brains.length > 0 ? (
-                <div className="mb-3 flex flex-col gap-1" aria-label="Routines">
+                <div className="mt-3 flex flex-col" aria-label="Routines">
                   {brains.map((brain) => (
                     <RoutinesRunnerLine
                       key={brain.key}
@@ -245,56 +265,58 @@ export function FeedPage() {
                 </div>
               ) : null}
               {runItems.length > 0 ? (
-                <ul className="m-0 mb-1 flex list-none flex-col gap-1 p-0" aria-label="Needs you">
-                  {runItems.map((item) => (
-                    <FeedRunRow
-                      key={item.key}
-                      item={item}
-                      nowMs={nowMs}
-                      showVaultName={showVaultName}
-                    />
-                  ))}
-                </ul>
+                <Section label="Needs you">
+                  <EntryList aria-label="Needs you">
+                    {runItems.map((item) => (
+                      <FeedRunRow
+                        key={item.key}
+                        item={item}
+                        nowMs={nowMs}
+                        showVaultName={showVaultName}
+                      />
+                    ))}
+                  </EntryList>
+                </Section>
               ) : null}
               {itemCount > 0 ? (
-                <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label="Feed">
-                  {timeline?.map((row) =>
-                    row.kind === "own-day" ? (
-                      <FeedOwnDayRow
-                        key={row.key}
-                        day={row}
-                        nowMs={nowMs}
-                        showVaultName={showVaultName}
-                      />
-                    ) : (
-                      renderChange(row.item)
-                    ),
+                <EntryList aria-label="Feed">
+                  {timeline?.map(({ row, day }) => (
+                    <Fragment key={row.key}>
+                      {day === null ? null : <FeedDayHeading day={day} />}
+                      {row.kind === "own-day" ? (
+                        <FeedOwnDayRow day={row} nowMs={nowMs} showVaultName={showVaultName} />
+                      ) : (
+                        renderChange(row.item)
+                      )}
+                    </Fragment>
+                  ))}
+                  {grouped?.map(({ row, day }) => (
+                    <Fragment key={row.key}>
+                      {day === null ? null : <FeedDayHeading day={day} />}
+                      {row.kind === "edits" ? (
+                        <FeedEditGroupRow group={row} nowMs={nowMs} showVaultName={showVaultName} />
+                      ) : (
+                        renderChange(row.item)
+                      )}
+                    </Fragment>
+                  ))}
+                </EntryList>
+              ) : runItems.length > 0 ? null : (
+                <Section>
+                  {loading ? (
+                    <FeedSkeleton />
+                  ) : vaults.length === 0 ? (
+                    <FeedEmpty
+                      title="No notes folder yet"
+                      description="Open your notes folder in Majordome. Everything it changes there will show up here."
+                    />
+                  ) : (
+                    <FeedEmpty
+                      title="Nothing here yet"
+                      description="Each time Majordome changes your notes, you'll see what it did here, and you can undo it."
+                    />
                   )}
-                  {grouped?.map((row) =>
-                    row.kind === "edits" ? (
-                      <FeedEditGroupRow
-                        key={row.key}
-                        group={row}
-                        nowMs={nowMs}
-                        showVaultName={showVaultName}
-                      />
-                    ) : (
-                      renderChange(row.item)
-                    ),
-                  )}
-                </ul>
-              ) : runItems.length > 0 ? null : loading ? (
-                <FeedSkeleton />
-              ) : vaults.length === 0 ? (
-                <FeedEmpty
-                  title="No notes folder yet"
-                  description="Open your notes folder in Majordome. Everything it changes there will show up here."
-                />
-              ) : (
-                <FeedEmpty
-                  title="Nothing here yet"
-                  description="Each time Majordome changes your notes, you'll see what it did here, and you can undo it."
-                />
+                </Section>
               )}
             </WorkspacePageContainer>
           </ScrollArea>
@@ -303,6 +325,15 @@ export function FeedPage() {
         <MoveRoutinesDialog vault={pendingMove} onClose={() => setPendingMove(null)} />
       </SidebarInset>
     </FeedVaultNotesContext>
+  );
+}
+
+/** The day a stretch of the feed happened on, as a section label inside the list. */
+function FeedDayHeading({ day }: { readonly day: string }) {
+  return (
+    <li className="mt-8 mb-2 flex">
+      <SectionLabel>{day}</SectionLabel>
+    </li>
   );
 }
 
@@ -330,49 +361,36 @@ function FeedRow({
     item.machine ? `on ${machineInSentence(item.machine)}` : null,
     showVaultName ? item.vault.title : null,
   ].filter((part) => part !== null && part !== "");
+  const showUndo = onUndo !== undefined && entry.byMajordome && !item.undone && canUndo;
 
   return (
-    <li
-      className={cn(
-        "flex items-start gap-3 rounded-lg px-3 py-2.5",
-        entry.byMajordome ? "hover:bg-accent/40" : "opacity-70",
-      )}
+    <Entry
       data-feed-item={entry.commit}
+      title={
+        <span className={entry.byMajordome ? undefined : "text-muted-foreground"}>
+          {item.title}
+        </span>
+      }
+      aside={item.undone ? <Badge variant="secondary">Undone</Badge> : null}
+      meta={meta.join(" · ")}
+      actions={
+        threadId !== null || showUndo ? (
+          <>
+            {threadId !== null ? (
+              <OpenChatButton environmentId={item.vault.environmentId} threadId={threadId} />
+            ) : null}
+            {showUndo ? (
+              <Button size="xs" variant="outline" onClick={onUndo}>
+                <Undo2Icon />
+                Undo this
+              </Button>
+            ) : null}
+          </>
+        ) : undefined
+      }
     >
-      <NotebookPenIcon
-        className={cn(
-          "mt-0.5 size-4 shrink-0",
-          entry.byMajordome ? "text-foreground/70" : "text-muted-foreground",
-        )}
-        aria-hidden
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn(
-              "truncate text-sm",
-              entry.byMajordome ? "font-medium text-foreground" : "text-muted-foreground",
-            )}
-          >
-            {item.title}
-          </span>
-          {item.undone ? <Badge variant="secondary">Undone</Badge> : null}
-        </div>
-        <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
-        <FeedNoteLinks vault={item.vault} files={entry.files} nowMs={nowMs} className="mt-1" />
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        {threadId !== null ? (
-          <OpenChatButton environmentId={item.vault.environmentId} threadId={threadId} />
-        ) : null}
-        {onUndo && entry.byMajordome && !item.undone && canUndo ? (
-          <Button size="xs" variant="outline" onClick={onUndo}>
-            <Undo2Icon />
-            Undo this
-          </Button>
-        ) : null}
-      </div>
-    </li>
+      <FeedNoteLinks vault={item.vault} files={entry.files} nowMs={nowMs} />
+    </Entry>
   );
 }
 
@@ -396,16 +414,11 @@ function FeedEditGroupRow({
   ].filter((part) => part !== null && part !== "");
 
   return (
-    <li className="flex flex-col" data-feed-edits={group.saves.length}>
-      <div className="flex items-start gap-3 rounded-lg px-3 py-2.5 opacity-70">
-        <NotebookPenIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-muted-foreground">
-            Your edits · {group.saves.length} saves
-          </p>
-          <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
-          <FeedNoteLinks vault={group.vault} files={group.files} nowMs={nowMs} className="mt-1" />
-        </div>
+    <Entry
+      data-feed-edits={group.saves.length}
+      title={<span className="text-muted-foreground">Your edits · {group.saves.length} saves</span>}
+      meta={meta.join(" · ")}
+      actions={
         <Button
           size="xs"
           variant="ghost-muted"
@@ -416,15 +429,17 @@ function FeedEditGroupRow({
           {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
           {expanded ? "Hide saves" : "Show saves"}
         </Button>
-      </div>
+      }
+    >
+      <FeedNoteLinks vault={group.vault} files={group.files} nowMs={nowMs} />
       {expanded ? (
-        <ul id={listId} className="m-0 ms-7 flex list-none flex-col p-0" aria-label="Saves">
+        <EntryList id={listId} className="ms-4" aria-label="Saves">
           {group.saves.map((save) => (
             <FeedRow key={save.key} item={save} nowMs={nowMs} showVaultName={false} />
           ))}
-        </ul>
+        </EntryList>
       ) : null}
-    </li>
+    </Entry>
   );
 }
 
@@ -438,28 +453,21 @@ function FeedNoteLinks({
   vault,
   files,
   nowMs,
-  className,
   withIcon = false,
 }: {
   readonly vault: FeedVault;
   readonly files: ReadonlyArray<string>;
   readonly nowMs: number;
-  readonly className?: string;
   readonly withIcon?: boolean;
 }) {
   const notesByVault = useContext(FeedVaultNotesContext);
   const notes = feedNotes(files, notesByVault.get(vaultKey(vault)) ?? feedVaultNotes({}), nowMs);
   if (notes.shown.length === 0) return null;
   return (
-    <p
-      className={cn(
-        "flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground",
-        className,
-      )}
-    >
-      {withIcon ? <NotebookPenIcon className="me-0.5 size-3.5 shrink-0" aria-hidden /> : null}
+    <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+      {withIcon ? <NotebookPenIcon className="size-3.5 shrink-0" aria-hidden /> : null}
       {notes.shown.map((note, index) => (
-        <span key={note.path} className="inline-flex min-w-0 items-center gap-x-1">
+        <span key={note.path} className="inline-flex min-w-0 items-center gap-x-1.5">
           {index > 0 ? <span aria-hidden>·</span> : null}
           {note.openable ? (
             <Link
@@ -469,7 +477,7 @@ function FeedNoteLinks({
                 path: note.path,
                 from: "feed",
               })}
-              className="max-w-56 truncate text-foreground underline-offset-2 hover:underline"
+              className="max-w-56 truncate rounded-sm text-foreground underline decoration-border underline-offset-4 outline-none hover:decoration-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               data-feed-note={note.path}
             >
               {note.title}
@@ -535,24 +543,20 @@ function FeedRunCard({
   const undoable = !item.undone && canUndo;
 
   return (
-    <li
-      className={cn(
-        "flex flex-col gap-2 rounded-xl border border-border bg-card px-3.5 py-3",
-        item.undone && "opacity-70",
-      )}
+    <Entry
+      className={item.undone ? "opacity-70" : undefined}
       data-feed-item={entry.commit}
       data-feed-kind={kind}
       data-feed-routine={entry.routine ?? undefined}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <Icon className="mt-0.5 size-4 shrink-0 text-foreground/70" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
-            {item.undone ? <Badge variant="secondary">Undone</Badge> : null}
-          </div>
-          <p className="truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
-        </div>
+      title={item.title}
+      aside={item.undone ? <Badge variant="secondary">Undone</Badge> : null}
+      meta={
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <Icon className="size-3.5 shrink-0" aria-hidden />
+          {meta.join(" · ")}
+        </span>
+      }
+      actions={
         <Menu>
           <MenuTrigger
             render={<Button size="icon-xs" variant="ghost-muted" aria-label="More for this run" />}
@@ -581,31 +585,35 @@ function FeedRunCard({
             ) : null}
           </MenuPopup>
         </Menu>
-      </div>
-
+      }
+    >
       {summary !== null ? (
-        <p className="ms-7 line-clamp-3 text-sm break-words text-foreground/90">{summary}</p>
+        <p
+          className={cn(
+            READING_MEASURE_CLASS,
+            "line-clamp-3 leading-relaxed break-words text-foreground",
+          )}
+        >
+          {summary}
+        </p>
       ) : null}
 
       {entry.dailyNotePreview ? (
         <p
-          className="ms-7 line-clamp-6 rounded-lg bg-muted/60 px-3 py-2 text-xs whitespace-pre-line text-muted-foreground"
+          className={cn(
+            READING_MEASURE_CLASS,
+            "line-clamp-6 border-s-2 border-border ps-3 leading-relaxed whitespace-pre-line text-muted-foreground",
+          )}
           data-feed-daily-preview
         >
           {entry.dailyNotePreview}
         </p>
       ) : null}
 
-      <FeedNoteLinks
-        vault={item.vault}
-        files={entry.files}
-        nowMs={nowMs}
-        className="ms-7"
-        withIcon
-      />
+      <FeedNoteLinks vault={item.vault} files={entry.files} nowMs={nowMs} withIcon />
 
-      <Collapsible className="ms-7">
-        <CollapsibleTrigger className="group inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <Collapsible>
+        <CollapsibleTrigger className="group -mx-2 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
           <ChevronRightIcon
             className="size-3.5 transition-transform group-data-[panel-open]:rotate-90"
             aria-hidden
@@ -613,7 +621,7 @@ function FeedRunCard({
           Details
         </CollapsibleTrigger>
         <CollapsiblePanel>
-          <div className="mt-2 flex flex-col gap-2 text-xs text-muted-foreground">
+          <div className="mt-1 flex flex-col gap-2 text-xs text-muted-foreground">
             {entry.files.length > 0 ? (
               <ul className="m-0 flex list-none flex-col gap-0.5 p-0 font-mono break-all">
                 {entry.files.map((file) => (
@@ -635,7 +643,7 @@ function FeedRunCard({
           </div>
         </CollapsiblePanel>
       </Collapsible>
-    </li>
+    </Entry>
   );
 }
 
@@ -652,10 +660,13 @@ function FeedOwnDayRow({
   const [expanded, setExpanded] = useState(false);
   const listId = `feed-own-${day.key}`;
   return (
-    <li className="flex flex-col" data-feed-own-day={day.items.length}>
+    <Entry className="py-0" data-feed-own-day={day.items.length}>
       <button
         type="button"
-        className="flex min-h-8 cursor-pointer items-center gap-2 rounded-lg px-3 text-start text-xs text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+        className={cn(
+          ROW_ACTION_CLASS,
+          "flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-2 text-start text-sm text-muted-foreground hover:text-foreground",
+        )}
         aria-expanded={expanded}
         aria-controls={listId}
         onClick={() => setExpanded((value) => !value)}
@@ -668,7 +679,7 @@ function FeedOwnDayRow({
         <span className="min-w-0 flex-1 truncate">{ownDayLine(day, nowMs)}</span>
       </button>
       {expanded ? (
-        <ul id={listId} className="m-0 ms-4 flex list-none flex-col p-0" aria-label="Your edits">
+        <EntryList id={listId} className="ms-5" aria-label="Your edits">
           {groupFeedItems(day.items).map((row) =>
             row.kind === "edits" ? (
               <FeedEditGroupRow
@@ -681,9 +692,9 @@ function FeedOwnDayRow({
               <FeedRow key={row.key} item={row.item} nowMs={nowMs} showVaultName={showVaultName} />
             ),
           )}
-        </ul>
+        </EntryList>
       ) : null}
-    </li>
+    </Entry>
   );
 }
 
@@ -720,7 +731,6 @@ function FeedRunRow({
   readonly nowMs: number;
   readonly showVaultName: boolean;
 }) {
-  const Icon = item.status === "waiting" ? HandIcon : CircleAlertIcon;
   const meta = [
     formatRelativeTimeLabel(item.at, nowMs),
     item.vault.machine ? `on ${machineInSentence(item.vault.machine)}` : null,
@@ -729,30 +739,16 @@ function FeedRunRow({
     .filter((part) => part !== null && part !== "")
     .join(" · ");
   return (
-    <li
-      className="flex items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-accent/40"
+    <Entry
       data-feed-run={item.status}
+      title={item.title}
+      meta={meta}
+      actions={<OpenChatButton environmentId={item.vault.environmentId} threadId={item.threadId} />}
     >
-      <Icon
-        className={cn(
-          "mt-0.5 size-4 shrink-0",
-          item.status === "waiting" ? "text-warning-foreground" : "text-destructive-foreground",
-        )}
-        aria-hidden
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{item.title}</span>
-          <Badge variant={item.status === "waiting" ? "warning" : "error"}>
-            {FEED_RUN_STATUS_LABELS[item.status]}
-          </Badge>
-        </div>
-        <p className="truncate text-xs text-muted-foreground">{meta}</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <OpenChatButton environmentId={item.vault.environmentId} threadId={item.threadId} />
-      </div>
-    </li>
+      <StatusLine tone={item.status === "waiting" ? "warning" : "error"}>
+        {FEED_RUN_STATUS_LABELS[item.status]}
+      </StatusLine>
+    </Entry>
   );
 }
 
@@ -785,11 +781,11 @@ function RoutinesRunnerLine({
   );
   return (
     <div
-      className="flex min-h-7 items-center gap-2 px-3 text-xs text-muted-foreground"
+      className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"
       data-routines-runner={runner.routinesRunner}
     >
       <CalendarClockIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">
+      <span className="min-w-0 flex-1 basis-48">
         {title === null ? "" : `${title}: `}
         {runner.pausedRunsPerDay !== null
           ? `Routines are paused until tomorrow: they used today's ${runner.pausedRunsPerDay} runs`

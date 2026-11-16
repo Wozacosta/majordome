@@ -12,6 +12,7 @@ import type {
 import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
 
+import { cn } from "../../lib/utils";
 import { useProjects } from "../../state/entities";
 import { usePrimaryEnvironmentId } from "../../state/environments";
 import {
@@ -24,7 +25,8 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { toastManager } from "../ui/toast";
-import { SettingsRow, SettingsSection } from "../settings/settingsLayout";
+import { Entry, EntryList, Muted, READING_MEASURE_CLASS, SectionLabel } from "./paper";
+import { ROUTINES_INSET_CLASS } from "./RoutineEntry";
 
 const MAX_RUN_MINUTES = 24 * 60;
 const MAX_RUNS_PER_DAY = 1_000;
@@ -75,16 +77,21 @@ export function RoutineLimitsSection() {
   if (vaults.length === 0) return null;
 
   return (
-    <SettingsSection title="Limits">
-      {vaults.map((vault) => (
-        <VaultLimitsRows
-          // Saved limits come back through the history, which resets the drafts.
-          key={`${vault.environmentId}:${vault.projectId}:${vault.limits.runMinutes}:${vault.limits.runsPerDay}`}
-          vault={vault}
-          showVaultName={vaults.length > 1}
-        />
-      ))}
-    </SettingsSection>
+    <section>
+      <div className={cn("mb-2 flex", ROUTINES_INSET_CLASS)}>
+        <SectionLabel>Limits</SectionLabel>
+      </div>
+      <EntryList>
+        {vaults.map((vault) => (
+          <VaultLimitsRows
+            // Saved limits come back through the history, which resets the drafts.
+            key={`${vault.environmentId}:${vault.projectId}:${vault.limits.runMinutes}:${vault.limits.runsPerDay}`}
+            vault={vault}
+            showVaultName={vaults.length > 1}
+          />
+        ))}
+      </EntryList>
+    </section>
   );
 }
 
@@ -129,10 +136,10 @@ function VaultLimitsRows({
 
   return (
     <>
-      <SettingsRow
+      <Entry
+        className={ROUTINES_INSET_CLASS}
         title={`${prefix}Stop a run after`}
-        description="A routine or inbox digest still working after this many minutes is stopped, and you're told it couldn't finish. Time waiting for your answer doesn't count."
-        control={
+        actions={
           <LimitInput
             label="minutes"
             value={minutesDraft}
@@ -142,11 +149,16 @@ function VaultLimitsRows({
             onChange={setMinutesDraft}
           />
         }
-      />
-      <SettingsRow
+      >
+        <Muted className={READING_MEASURE_CLASS}>
+          A routine or inbox digest still working after this many minutes is stopped, and you're
+          told it couldn't finish. Time waiting for your answer doesn't count.
+        </Muted>
+      </Entry>
+      <Entry
+        className={ROUTINES_INSET_CLASS}
         title={`${prefix}Runs per day`}
-        description="Routines and inbox digests start at most this many runs a day. After that they pause until tomorrow and you're told once. “Run now” still works."
-        control={
+        actions={
           <div className="flex items-center gap-2">
             <LimitInput
               label="runs"
@@ -165,7 +177,12 @@ function VaultLimitsRows({
             </Button>
           </div>
         }
-      />
+      >
+        <Muted className={READING_MEASURE_CLASS}>
+          Routines and inbox digests start at most this many runs a day. After that they pause until
+          tomorrow and you're told once. “Run now” still works.
+        </Muted>
+      </Entry>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { useProjects } from "../../state/entities";
 import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { CommandBlock } from "../CommandBlock";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import { Step, Steps } from "./paper";
 
 const COMPOSE_URL =
   "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/docker-compose.yml";
@@ -18,13 +19,11 @@ const GITHUB_ACCESS_KEY_URL =
 export function AlwaysOnServerPage() {
   const repoUrl = useGitHubBackupUrl();
   return (
-    <MajordomeSettingsPage searchId="majordome-always-on">
-      <p className="text-sm text-muted-foreground">
-        Majordome runs on this computer, so your routines only run while it is awake. An always-on
-        server is a small computer you rent that never sleeps. Moving there takes about 20 minutes;
-        your notes come along through your GitHub backup.
-      </p>
-      <ol className="m-0 flex list-decimal flex-col gap-5 ps-5 text-sm">
+    <MajordomeSettingsPage
+      searchId="majordome-always-on"
+      intro="Majordome runs on this computer, so your routines only run while it is awake. An always-on server is a small computer you rent that never sleeps. Moving there takes about 20 minutes; your notes come along through your GitHub backup."
+    >
+      <Steps className="mt-8">
         <Step title="Rent a small server">
           Any provider works (Hetzner, OVH, DigitalOcean…). Choose Ubuntu with at least 2 GB of
           memory, about €5 a month. Open its console, or connect to it from a terminal.
@@ -60,7 +59,7 @@ export function AlwaysOnServerPage() {
             command={`docker compose exec -it majordome git clone ${repoUrl ?? "https://github.com/YOUR-NAME/majordome-brain.git"} /data/brain`}
           />
           <CommandBlock command="docker compose exec majordome majord project add /data/brain" />
-          <span className="text-muted-foreground">
+          <span className="block">
             GitHub asks for your username and a password: use a key from{" "}
             <ExternalLink href={GITHUB_ACCESS_KEY_URL}>this GitHub page</ExternalLink> (set it to
             expire in a day). Your usual password doesn't work there.
@@ -86,19 +85,8 @@ export function AlwaysOnServerPage() {
           <code className="font-mono text-xs">claude setup-token</code>, run on this computer) or
           continue with ChatGPT; then on the Feed, press Move routines here.
         </Step>
-      </ol>
+      </Steps>
     </MajordomeSettingsPage>
-  );
-}
-
-function Step({ title, children }: { readonly title: string; readonly children: ReactNode }) {
-  return (
-    <li className="ps-1">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-foreground">{title}</h2>
-        <div className="flex flex-col gap-2 text-muted-foreground">{children}</div>
-      </div>
-    </li>
   );
 }
 

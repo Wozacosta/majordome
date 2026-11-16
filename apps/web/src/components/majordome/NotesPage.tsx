@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "lucide-react";
 
 import { isElectron } from "../../env";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { cn } from "../../lib/utils";
 import { useProjects } from "../../state/entities";
 import { usePrimaryEnvironmentId } from "../../state/environments";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
@@ -18,6 +19,7 @@ import { Skeleton } from "../ui/skeleton";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { type Brain, brainKey, groupBrains } from "./brains.logic";
 import { NotePreview } from "./NotePreview";
+import { PageTitle, READING_MEASURE_CLASS } from "./paper";
 import {
   isHiddenVaultPath,
   notesLink,
@@ -136,9 +138,14 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
               {returnScreen.label}
             </Button>
           ) : null}
-          <h1 className="min-w-0 flex-1 truncate text-sm font-medium">
-            {phoneNote ? noteTitle(phoneNote.path) : "Notes"}
-          </h1>
+          {/* Without a note open, the page's own title below is the heading. */}
+          {showNote ? (
+            <h1 className="min-w-0 flex-1 truncate text-sm font-medium">
+              {phoneNote ? noteTitle(phoneNote.path) : "Notes"}
+            </h1>
+          ) : (
+            <div className="min-w-0 flex-1" />
+          )}
           {brains.length > 1 && vault !== null && phoneNote === null ? (
             <div className="min-w-0 [-webkit-app-region:no-drag]">
               <Select
@@ -197,19 +204,29 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                 defaultWidth={288}
                 resizeLabel="Resize the folder list"
               >
-                <FileBrowserPanel
-                  key={vaultKey(vault)}
-                  environmentId={vault.environmentId}
-                  cwd={vault.workspaceRoot}
-                  projectName={vault.title}
-                  selectedPath={path}
-                  selectedPathRevealId={0}
-                  onOpenFile={(target) => {
-                    if (target !== path) open({ vault, path: target });
-                  }}
-                  workspaceMutationId={revision}
-                  hidePath={isHiddenVaultPath}
-                />
+                {/* One wrapper in both layouts, so opening a note keeps the list's open folders. */}
+                <div
+                  className={cn(
+                    "flex min-h-0 min-w-0 flex-1 flex-col",
+                    !showNote && "mx-auto pt-6",
+                    !showNote && READING_MEASURE_CLASS,
+                  )}
+                >
+                  {showNote ? null : <PageTitle className="mb-3 px-3">Notes</PageTitle>}
+                  <FileBrowserPanel
+                    key={vaultKey(vault)}
+                    environmentId={vault.environmentId}
+                    cwd={vault.workspaceRoot}
+                    projectName={vault.title}
+                    selectedPath={path}
+                    selectedPathRevealId={0}
+                    onOpenFile={(target) => {
+                      if (target !== path) open({ vault, path: target });
+                    }}
+                    workspaceMutationId={revision}
+                    hidePath={isHiddenVaultPath}
+                  />
+                </div>
               </FileExplorerPane>
             ) : null}
           </div>

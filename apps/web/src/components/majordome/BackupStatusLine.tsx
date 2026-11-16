@@ -7,6 +7,7 @@ import { majordomeEnvironment } from "../../state/majordome";
 import { cn } from "../../lib/utils";
 import { backupHeadline } from "./backup.logic";
 import type { FeedVault } from "./feed.logic";
+import { ROW_ACTION_CLASS } from "./paper";
 
 /** The feed's one line about a vault's backup, linking to "Back up my brain". */
 export function BackupStatusLine({
@@ -30,7 +31,10 @@ export function BackupStatusLine({
   return (
     <Link
       to="/settings/backup"
-      className="flex min-h-7 items-center gap-2 rounded-md px-3 text-xs text-muted-foreground hover:bg-accent/40"
+      className={cn(
+        ROW_ACTION_CLASS,
+        "flex min-h-10 items-center gap-2 text-sm text-muted-foreground hover:text-foreground",
+      )}
       data-backup-line={headline.tone}
     >
       <Icon

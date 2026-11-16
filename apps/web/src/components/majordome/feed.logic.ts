@@ -532,3 +532,19 @@ export function ownDayLine(day: FeedOwnDay, nowMs: number): string {
   const when = label === "Today" ? "today" : label === "Yesterday" ? "yesterday" : `on ${label}`;
   return `You edited ${day.noteCount} ${day.noteCount === 1 ? "note" : "notes"} ${when}`;
 }
+
+/**
+ * The feed's rows with the day each one starts: `day` is "Today", "Yesterday" or a date on the
+ * first row of a day and null on the rest. `rows` are newest first.
+ */
+export function withDayHeadings<Row>(
+  rows: ReadonlyArray<Row>,
+  at: (row: Row) => string,
+  nowMs: number,
+): ReadonlyArray<{ readonly row: Row; readonly day: string | null }> {
+  const days = rows.map((row) => localDay(at(row)));
+  return rows.map((row, index) => ({
+    row,
+    day: days[index] === days[index - 1] ? null : feedDayLabel(new Date(at(row)), nowMs),
+  }));
+}
