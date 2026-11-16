@@ -140,6 +140,10 @@ import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
+import * as MajordomeMoveReceiver from "./majordome/MajordomeMoveReceiver.ts";
+import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
+import * as MoveReceiverHttp from "./majordome/moveReceiverHttp.ts";
+import * as VaultActiveRuns from "./majordome/VaultActiveRuns.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import * as PrivateDocumentsKey from "./majordome/PrivateDocumentsKey.ts";
@@ -768,6 +772,24 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(MajordomePush.layer),
     Layer.provide(VaultLock.layer),
   ),
+  // provideMerge keeps the service in the context, for the "Set up a server for me" RPCs.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      yield* (yield* MajordomeServerMove.MajordomeServerMove).start();
+    }),
+  ).pipe(
+    Layer.provideMerge(MajordomeServerMove.layer),
+    Layer.provide(MajordomeRoutines.layer),
+    Layer.provide(layerMajordomeBackup),
+    Layer.provide(MajordomePush.layer),
+    Layer.provide(
+      Layer.mergeAll(
+        VaultLock.layer,
+        VaultActiveRuns.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
+        ProcessRunner.layer,
+      ),
+    ),
+  ),
   MajordomeVaultService.layer.pipe(
     Layer.provide(layerMajordomeNotesSearch),
     Layer.provide(VaultLock.layer),
@@ -936,6 +958,14 @@ const layerMakeRoutes = Layer.mergeAll(
     ServerHttp.layerAssetRoute,
     ServerHttp.layerAttachmentUploadRoute,
     ServerHttp.layerPrivateDocumentViewRoute,
+    // What a server answers while the owner's computer sets it up and copies the notes to it.
+    MoveReceiverHttp.layer.pipe(
+      Layer.provide(
+        MajordomeMoveReceiver.layer.pipe(
+          Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer)),
+        ),
+      ),
+    ),
     GuestHttp.layer,
     DeviceHubProxy.layer,
     ServerBrowserStream.routeLayer,

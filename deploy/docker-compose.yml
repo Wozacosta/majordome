@@ -5,10 +5,13 @@
 services:
   tailscale:
     image: tailscale/tailscale:v1.104.7
-    hostname: majordome
+    # The name on your Tailscale network; "Set up a server for me" picks one that is free.
+    hostname: ${MAJORDOME_HOSTNAME:-majordome}
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:?Put TS_AUTHKEY=tskey-auth-... in .env next to this file}
       TS_STATE_DIR: /var/lib/tailscale
+      # A one-time key is spent after the first start; later starts reuse the saved sign-in.
+      TS_AUTH_ONCE: "true"
       TS_SERVE_CONFIG: /config/serve.json
     configs:
       - source: tailscale-serve
@@ -32,6 +35,9 @@ services:
       # Optional: this server's address, such as https://majordome.<your-tailnet>.ts.net, so
       # `majord pair` prints a link and QR code that open on your phone and computer.
       MAJORDOME_PUBLIC_URL: ${MAJORDOME_PUBLIC_URL:-}
+      # Set only by "Set up a server for me": a one-time secret that lets the computer that made
+      # this server pair with it. It is spent on first use and carries its own expiry.
+      MAJORDOME_SETUP_SECRET: ${MAJORDOME_SETUP_SECRET:-}
     volumes:
       - majordome-data:/data
     restart: unless-stopped

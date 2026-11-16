@@ -2,7 +2,9 @@ import { AuthStandardClientScopes } from "@t3tools/contracts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as SecureRandom from "effect/crypto/SecureRandom";
+import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -17,6 +19,11 @@ import {
 import * as ServerConfig from "../config.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as PairingGrantStore from "./PairingGrantStore.ts";
+import {
+  formatServerSetupSecret,
+  SERVER_SETUP_SECRET_VARIABLE,
+  serverSetupSecretExpiry,
+} from "./serverSetupSecret.ts";
 
 const layerServerConfig = (
   overrides?: Partial<
@@ -236,5 +243,67 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("PairingGrantStor
         expect(yield* Queue.take(changes)).toEqual({ type: "pairingLinkRemoved", id: issued.id });
       }
     }).pipe(Effect.scoped, Effect.provide(layerPairingGrantStore())),
+  );
+  // One database across several starts of the store, as a server's restarts see it.
+  const startedWith = <A, E>(
+    secret: string,
+    use: (grants: PairingGrantStore.PairingGrantStore["Service"]) => Effect.Effect<A, E>,
+  ) =>
+    Effect.gen(function* () {
+      return yield* use(yield* PairingGrantStore.PairingGrantStore);
+    }).pipe(
+      Effect.provide(Layer.fresh(PairingGrantStore.layer)),
+      Effect.provideService(HostProcess.Environment, { [SERVER_SETUP_SECRET_VARIABLE]: secret }),
+    );
+  const setupSecret = (fill: number, expiresInMinutes: number) =>
+    formatServerSetupSecret({
+      expiresAt: DateTime.makeUnsafe(Duration.toMillis(Duration.minutes(expiresInMinutes))),
+      random: new Uint8Array(32).fill(fill),
+    });
+  const serverDatabase = Layer.mergeAll(SqlitePersistence.layerMemory, layerServerConfig());
+
+  it.effect("accepts a server's setup secret once, as an owner, and never after a restart", () =>
+    Effect.gen(function* () {
+      const secret = setupSecret(1, 30);
+      expect(serverSetupSecretExpiry(secret)?.epochMilliseconds).toBe(30 * 60_000);
+      const wrong = yield* startedWith(secret, (grants) =>
+        Effect.flip(grants.consume(setupSecret(2, 30))),
+      );
+      expect(wrong._tag).toBe("UnknownBootstrapCredentialError");
+
+      const grant = yield* startedWith(secret, (grants) => grants.consume(secret));
+      expect(grant.scopes).toEqual(AuthStandardClientScopes);
+      expect(grant.subject).toBe("server-setup");
+      expect(grant.expiresAt.epochMilliseconds).toBe(30 * 60_000);
+
+      const replayed = yield* startedWith(secret, (grants) => Effect.flip(grants.consume(secret)));
+      expect(replayed._tag).toBe("UnknownBootstrapCredentialError");
+    }).pipe(Effect.provide(serverDatabase)),
+  );
+
+  it.effect("refuses a setup secret past the expiry it carries, even on a wiped server", () =>
+    Effect.gen(function* () {
+      const secret = setupSecret(3, 30);
+      yield* startedWith(secret, () => Effect.void);
+      yield* TestClock.adjust(Duration.minutes(31));
+      const expired = yield* startedWith(secret, (grants) => Effect.flip(grants.consume(secret)));
+      expect(expired._tag).toBe("ExpiredBootstrapCredentialError");
+
+      // A fresh database stands for a server whose state was deleted and started again.
+      const wiped = yield* startedWith(secret, (grants) =>
+        Effect.flip(grants.consume(secret)),
+      ).pipe(Effect.provide(Layer.fresh(serverDatabase)));
+      expect(wiped._tag).toBe("UnknownBootstrapCredentialError");
+    }).pipe(Effect.provide(serverDatabase)),
+  );
+
+  it.effect("ignores a setup secret that is not in the expected form", () =>
+    Effect.gen(function* () {
+      const listed = yield* startedWith("hunter2", (grants) =>
+        Effect.all([grants.listActive(), Effect.flip(grants.consume("hunter2"))]),
+      );
+      expect(listed[0]).toEqual([]);
+      expect(listed[1]._tag).toBe("UnknownBootstrapCredentialError");
+    }).pipe(Effect.provide(serverDatabase)),
   );
 });

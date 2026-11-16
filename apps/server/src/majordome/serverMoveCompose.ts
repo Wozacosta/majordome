@@ -1,0 +1,65 @@
+/**
+ * `deploy/docker-compose.yml`, word for word, for the server "Set up a server for me" creates: the
+ * packaged app has no copy of the repository to read it from. A test keeps the two the same.
+ */
+export const DEPLOY_COMPOSE_FILE = `# Majordome on an always-on server, reachable only through your Tailscale network over HTTPS.
+# Put TS_AUTHKEY=tskey-auth-... in a .env file next to this one, then: docker compose up -d
+# Guide: docs/user/always-on-server.md
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.104.7
+    # The name on your Tailscale network; "Set up a server for me" picks one that is free.
+    hostname: \${MAJORDOME_HOSTNAME:-majordome}
+    environment:
+      TS_AUTHKEY: \${TS_AUTHKEY:?Put TS_AUTHKEY=tskey-auth-... in .env next to this file}
+      TS_STATE_DIR: /var/lib/tailscale
+      # A one-time key is spent after the first start; later starts reuse the saved sign-in.
+      TS_AUTH_ONCE: "true"
+      TS_SERVE_CONFIG: /config/serve.json
+    configs:
+      - source: tailscale-serve
+        target: /config/serve.json
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    restart: unless-stopped
+
+  majordome:
+    image: ghcr.io/wozacosta/majordome:latest
+    # Shares the Tailscale container's network: nothing listens on the server's public address.
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    environment:
+      T3CODE_HOST: 127.0.0.1
+      TZ: \${TZ:-UTC}
+      # Optional: the output of \`claude setup-token\`. Prefer Sign in to Claude in the app: a token
+      # leaves out your connectors, and Majordome ignores it once a full sign-in is stored.
+      CLAUDE_CODE_OAUTH_TOKEN: \${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Optional: this server's address, such as https://majordome.<your-tailnet>.ts.net, so
+      # \`majord pair\` prints a link and QR code that open on your phone and computer.
+      MAJORDOME_PUBLIC_URL: \${MAJORDOME_PUBLIC_URL:-}
+      # Set only by "Set up a server for me": a one-time secret that lets the computer that made
+      # this server pair with it. It is spent on first use and carries its own expiry.
+      MAJORDOME_SETUP_SECRET: \${MAJORDOME_SETUP_SECRET:-}
+    volumes:
+      - majordome-data:/data
+    restart: unless-stopped
+
+configs:
+  tailscale-serve:
+    # https://majordome.<your-tailnet>.ts.net -> Majordome. Tailscale fills in TS_CERT_DOMAIN.
+    content: |
+      {
+        "TCP": { "443": { "HTTPS": true } },
+        "Web": {
+          "$\${TS_CERT_DOMAIN}:443": {
+            "Handlers": { "/": { "Proxy": "http://127.0.0.1:3773" } }
+          }
+        }
+      }
+
+volumes:
+  tailscale-state:
+  majordome-data:
+`;

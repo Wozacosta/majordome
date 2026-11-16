@@ -16,6 +16,13 @@
   as `node` (uid 1000).
 - Health check: `GET /.well-known/t3/environment`, which needs no auth.
 
+"Set up a server for me" writes the same compose file on the server it creates, with the image
+pinned to the version of the computer that made it, and sets two variables in its `.env`:
+`MAJORDOME_HOSTNAME` (a name free on the tailnet) and `MAJORDOME_SETUP_SECRET` (a one-time pairing
+secret, see [decisions](../decisions.md#servers-and-sync)). `serverMoveCompose.ts` holds a copy of
+the compose file, since the packaged app has no repository to read: change both together. A test
+fails when they differ.
+
 Tailscale is a sidecar in the compose file, not part of the image. Majordome shares its network
 namespace and binds `127.0.0.1`, and the sidecar's `TS_SERVE_CONFIG` publishes it over HTTPS on
 the tailnet. The image has no `tailscale` CLI, so **Your phone** cannot manage Serve there; the

@@ -59,8 +59,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 
 - **One server owns everything by default.** The vault, its history, big files and sensitive
   documents live on one Majordome server; the desktop app and the phone are windows onto it, so
-  most people never need sync. It runs on "this computer" by default (background service), with a
-  guided "Move to an always-on server" (one-click deploy guide to a VPS) for 24/7 routines.
+  most people never need sync. It runs on "this computer" by default (background service), with
+  "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
   cloud machine. **Hosted Majordome** is a later milestone, built only when people ask: one
   isolated machine per user, paid, after checking that running people's provider subscriptions on
@@ -99,6 +99,14 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **One runner, chosen explicitly.** `.majordome/runner` names the server that runs routines and the
   inbox watcher. Moving it is one button; if it is offline, the Overview says so. No heartbeat (it
   would commit every few minutes through git) and no automatic takeover in v1.
+- **A server made from the app is paired without a code.** The new server gets one setup secret
+  in its first-boot script and stores it as a single-use owner pairing link; the secret carries
+  its own expiry, so neither a restart nor wiped state revives it. Only the computer that made
+  the server holds it, and it is only reachable on the tailnet. That computer then asks the
+  server for ordinary pairing links for the app and the phone.
+- **Removal deletes by label, not by name.** Every Hetzner resource a move creates carries the
+  move's id as a label, and each id is written to state before the next call. Removing deletes
+  only resources with that label, after bringing notes and routines back.
 - Sessions:
   - Each thread has one owner server, and only the owner writes to its event log. Every other
     server keeps a read-only copy.
@@ -205,11 +213,15 @@ takes over.
    but not whether each secret resolves, which needs a server check that reads them.
 7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
    Obsidian on a laptop.
-8. **One-button move.** "Move to an always-on server" does it all from the Mac app: sign in to a host
-   once (DigitalOcean OAuth, or a Hetzner token), the app creates the server, joins it to Tailscale
-   through its API, copies the vault over the tailnet, pairs it, carries provider sign-ins and the
-   time zone, and moves routines. Today's guide (SSH, Docker, auth key, pairing code) is for
-   technical owners only.
+8. **One-button move.** _Done, for Hetzner; untested against real accounts._ "Set up a server for
+   me" in Settings > Always-on server: the owner pastes a Hetzner API token and a Tailscale OAuth
+   secret once; this computer's server creates a firewalled Hetzner server whose first-boot script
+   installs Docker and starts the pinned image, mints its one-time Tailscale key, pairs with it,
+   copies the vault as a git bundle over the tailnet, carries the time zone and the GitHub backup
+   sign-in, and moves routines once a provider is signed in there. Provider sign-ins are not
+   copied: a Claude sign-in's refresh token must not live on two machines. Today's guide (SSH,
+   Docker, auth key, pairing code) stays for other providers. Left: DigitalOcean, updating a
+   server in place, and carrying routines the assistant set up.
 9. **Later.** Hosted Majordome on AWS, when people ask for it: the same image, one container and
    encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
    and wake for routines and when the owner opens the app, to keep the price low.

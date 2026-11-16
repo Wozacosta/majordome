@@ -78,6 +78,17 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeSendTestPush]: AuthOrchestrationOperateScope,
   // Puts this server on the tailnet's HTTPS address, which is how phones pair with it.
   [WS_METHODS.majordomeEnableSecureAddress]: AuthAccessWriteScope,
+  // Rents a billed server, adds a device to the owner's tailnet and hands out pairing links;
+  // even its check spends the saved Hetzner and Tailscale keys.
+  [WS_METHODS.majordomeServerMoveSaveKeys]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveForgetKeys]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveCheck]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveStart]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveRetry]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveCancel]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveIssuePairingLink]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveRoutines]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeServerMoveRemove]: AuthAccessWriteScope,
   [WS_METHODS.majordomeUndoVaultRun]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRunRoutinesHere]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetRoutineLimits]: AuthSettingsWriteScope,

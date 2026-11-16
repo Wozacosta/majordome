@@ -63,6 +63,51 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
     }),
+    /** "Set up a server for me": the server's own account of each step, as it happens. */
+    serverMove: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
+      label: "environment-data:majordome:server-move",
+      tag: WS_METHODS.majordomeServerMoveSubscribe,
+    }),
+    serverMoveSaveKeys: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-save-keys",
+      tag: WS_METHODS.majordomeServerMoveSaveKeys,
+    }),
+    serverMoveForgetKeys: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-forget-keys",
+      tag: WS_METHODS.majordomeServerMoveForgetKeys,
+    }),
+    serverMoveCheck: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-check",
+      tag: WS_METHODS.majordomeServerMoveCheck,
+    }),
+    serverMoveStart: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-start",
+      tag: WS_METHODS.majordomeServerMoveStart,
+    }),
+    serverMoveRetry: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-retry",
+      tag: WS_METHODS.majordomeServerMoveRetry,
+    }),
+    serverMoveCancel: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-cancel",
+      tag: WS_METHODS.majordomeServerMoveCancel,
+    }),
+    serverMoveIssuePairingLink: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-pairing-link",
+      tag: WS_METHODS.majordomeServerMoveIssuePairingLink,
+    }),
+    serverMoveRoutines: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-routines",
+      tag: WS_METHODS.majordomeServerMoveRoutines,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
+    }),
+    serverMoveRemove: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:server-move-remove",
+      tag: WS_METHODS.majordomeServerMoveRemove,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
+    }),
     vaultHistory: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:vault-history",
       tag: WS_METHODS.majordomeListVaultHistory,
