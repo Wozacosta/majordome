@@ -40,6 +40,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
 import * as MajordomePush from "./MajordomePush.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
+import { readMemoryPassState } from "./memoryPassState.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { commitAll, gitIn, makeVault } from "./vaultTestRepos.ts";
@@ -52,14 +53,16 @@ const task = (projectId: string) =>
   ({ id: "majordome:task", projectId: ProjectId.make(projectId) }) as ScheduledTask;
 
 const gateFor = (roots: Record<string, string>) =>
-  Effect.service(ScheduledTaskService.ScheduledTaskRunGate).pipe(
+  Effect.all({
+    gate: Effect.service(ScheduledTaskService.ScheduledTaskRunGate),
+    stateDir: Effect.map(ServerConfig.ServerConfig, (config) => config.stateDir),
+  }).pipe(
     Effect.provide(
       MajordomeRoutines.layerRunGate.pipe(
         Layer.provide(
           Layer.mergeAll(
-            RoutineRunLedger.layer.pipe(
-              Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-gate-" })),
-            ),
+            RoutineRunLedger.layer,
+            GitVcsDriver.layer.pipe(Layer.provide(NodeCrypto.layer)),
             Layer.mock(ProjectStore.ProjectStoreV2)({
               get: (projectId) =>
                 Effect.succeed(
@@ -73,11 +76,25 @@ const gateFor = (roots: Record<string, string>) =>
             }),
           ),
         ),
+        Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-gate-" })),
       ),
     ),
   );
 
-it.layer(NodeServices.layer)("the runner gate", (it) => {
+const memoryPassTask = (projectId: string) =>
+  ({
+    id: `majordome:${projectId}:tidy-my-memory`,
+    projectId: ProjectId.make(projectId),
+    title: "Tidy my memory",
+  }) as ScheduledTask;
+
+// The memory pass test builds its vaults with git.
+const gateTestLayer = GitVcsDriver.layer.pipe(
+  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-gate-vaults-" })),
+  Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
+);
+
+it.layer(gateTestLayer)("the runner gate", (it) => {
   it.effect("lets only the vault's runner fire its scheduled routines", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -92,7 +109,7 @@ it.layer(NodeServices.layer)("the runner gate", (it) => {
         JSON.stringify({ limits: { runsPerDay: 2 } }),
       );
 
-      const gate = yield* gateFor({ elsewhere, here, code });
+      const { gate } = yield* gateFor({ elsewhere, here, code });
       assert.isFalse(yield* gate(task("elsewhere")));
       // An unclaimed vault becomes this server's.
       assert.isTrue(yield* gate(task("here")));
@@ -103,6 +120,46 @@ it.layer(NodeServices.layer)("the runner gate", (it) => {
       // Projects that are not vaults, or not found, are not Majordome's to hold back.
       assert.isTrue(yield* gate(task("code")));
       assert.isTrue(yield* gate(task("missing")));
+    }),
+  );
+
+  it.effect("holds the memory pass back on a night with nothing new, without using a run", () =>
+    Effect.gen(function* () {
+      const { root: vault, fs } = yield* makeVault();
+      yield* fs.writeFileString(
+        `${vault}/.majordome/config.json`,
+        JSON.stringify({ limits: { runsPerDay: 2 } }),
+      );
+      yield* fs.writeFileString(`${vault}/.majordome/runner`, "env-here\n");
+      yield* fs.makeDirectory(`${vault}/daily`);
+      yield* fs.writeFileString(`${vault}/daily/2026-11-15.md`, "- My accountant is Ana");
+      yield* commitAll(vault, "Your edits");
+      const { root: elsewhere } = yield* makeVault();
+      yield* fs.writeFileString(`${elsewhere}/.majordome/runner`, "env-elsewhere\n");
+      yield* fs.writeFileString(`${elsewhere}/note.md`, "- Something new");
+
+      const { gate, stateDir } = yield* gateFor({ vault, elsewhere });
+      const passState = (projectId: string) =>
+        readMemoryPassState({ stateDir, projectId }).pipe(Effect.map(Option.getOrUndefined));
+
+      // Another server runs that vault's routines: nothing is planned here.
+      assert.isFalse(yield* gate(memoryPassTask("elsewhere")));
+      assert.isUndefined(yield* passState("elsewhere"));
+
+      assert.isTrue(yield* gate(memoryPassTask("vault")));
+      assert.deepEqual((yield* passState("vault"))?.brief.files, ["daily/2026-11-15.md"]);
+      // Nothing changed since: the pass is skipped, and the day's second run is still there.
+      assert.isFalse(yield* gate(memoryPassTask("vault")));
+      assert.isTrue(yield* gate(task("vault")));
+
+      // Out of runs for today, the pass waits and keeps its place.
+      yield* fs.writeFileString(`${vault}/daily/2026-11-16.md`, "- Stopped the gym in January");
+      yield* commitAll(vault, "Your edits");
+      assert.isFalse(yield* gate(memoryPassTask("vault")));
+      assert.deepEqual((yield* passState("vault"))?.brief.files, ["daily/2026-11-15.md"]);
+      yield* TestClock.adjust("1 day");
+      assert.isTrue(yield* gate(memoryPassTask("vault")));
+      assert.deepEqual((yield* passState("vault"))?.brief.files, ["daily/2026-11-16.md"]);
     }),
   );
 });
@@ -306,6 +363,7 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
           "Digest my inbox",
           "Review my week",
           "Start my day",
+          "Tidy my memory",
         ]);
         assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-here\n");
         // Committed and sent at once, so the other computer stops running them.

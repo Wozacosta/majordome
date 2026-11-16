@@ -20,9 +20,16 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
+import { memoryPassPrompt, VAULT_CONVENTIONS as conventions } from "./memoryPassPrompt.ts";
 import type { VaultLayout } from "./vaultConfig.ts";
 
-type RoutineKey = "start-my-day" | "review-my-week" | "digest-my-inbox";
+type RoutineKey = "start-my-day" | "review-my-week" | "digest-my-inbox" | "tidy-my-memory";
+
+/**
+ * Defaults that came after a vault's first routines. The ledger records each per vault, so a vault
+ * from before one gets it once and a routine the owner then deletes stays deleted.
+ */
+const LATER_ROUTINES: ReadonlyArray<RoutineKey> = ["tidy-my-memory"];
 
 /** Stable per project, so a restart finds the routines it made instead of making more. */
 export const routineTaskId = (projectId: ProjectId, key: RoutineKey) =>
@@ -48,9 +55,6 @@ export function autoRoutineMode(input: {
     ? "auto"
     : "auto-accept-edits";
 }
-
-const conventions =
-  "Follow the conventions in AGENTS.md at the vault root, and use the vault's own skills or commands for this when it has them.";
 
 function defaultRoutines(input: {
   readonly projectId: ProjectId;
@@ -124,6 +128,17 @@ function defaultRoutines(input: {
         `Leave a file in \`${inboxFolder}/\` when you cannot tell where it goes, and list those at the end. Do not delete anything.`,
       ].join("\n"),
     },
+    {
+      ...common,
+      // It only reads and edits notes; Auto keeps a stray command from waiting for the owner at night.
+      runtimeMode: input.autoMode,
+      id: routineTaskId(input.projectId, "tidy-my-memory"),
+      title: "Tidy my memory",
+      enabled: true,
+      // After the day's last notes and clear of the hour clocks skip or repeat.
+      schedule: { type: "fixed_time", timeOfDay: "03:30" },
+      prompt: memoryPassPrompt({ memory, dailyFolder }),
+    },
   ];
 }
 
@@ -131,6 +146,8 @@ const RoutineLedger = Schema.Struct({
   projects: Schema.Array(Schema.String),
   /** Projects whose routines had their one move to Auto; ledgers from before it lack the key. */
   autoMode: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** By routine key, the projects that were offered a default added later (`LATER_ROUTINES`). */
+  added: Schema.optionalKey(Schema.Record(Schema.String, Schema.Array(Schema.String))),
 });
 type RoutineLedger = typeof RoutineLedger.Type;
 const RoutineLedgerJson = Schema.fromJsonString(RoutineLedger);
@@ -170,6 +187,12 @@ const writeLedger = Effect.fn("majordome.writeRoutineLedger")(function* (
     encodeLedger({
       projects: [...new Set(ledger.projects)].toSorted(),
       autoMode: [...new Set(ledger.autoMode)].toSorted(),
+      added: Object.fromEntries(
+        Object.entries(ledger.added ?? {}).map(([key, projects]) => [
+          key,
+          [...new Set(projects)].toSorted(),
+        ]),
+      ),
     }),
   );
   yield* fileSystem.rename(temporary, ledgerPath);
@@ -219,11 +242,20 @@ const moveRoutinesToAuto = Effect.fn("majordome.moveRoutinesToAuto")(function* (
   return settled;
 });
 
+const withAdded = (
+  added: RoutineLedger["added"],
+  keys: ReadonlyArray<RoutineKey>,
+  projectId: ProjectId,
+) => ({
+  ...added,
+  ...Object.fromEntries(keys.map((key) => [key, [...(added?.[key] ?? []), projectId]])),
+});
+
 /**
- * Creates the default routines unless this server already did for the project. A routine that
- * exists is left as the user edited it, apart from its one move to Auto. Without a model to run
- * them, nothing is created or recorded, so a later call can try again. Callers serialize calls for
- * one ledger.
+ * Creates the default routines unless this server already did for the project; a vault from before
+ * a later default gets that one once. A routine that exists is left as the user edited it, apart
+ * from its one move to Auto. Without a model to run them, nothing is created or recorded, so a
+ * later call can try again. Callers serialize calls for one ledger.
  */
 export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines")(
   function* (input: {
@@ -240,14 +272,44 @@ export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines"
       settled ? [...(ledger.autoMode ?? []), input.projectId] : (ledger.autoMode ?? []);
 
     if (ledger.projects.includes(input.projectId)) {
-      if (ledger.autoMode?.includes(input.projectId)) return "exists" as const;
-      const settled = yield* moveRoutinesToAuto({
-        projectId: input.projectId,
-        tasks: (yield* scheduledTasks.list()).tasks,
-        autoMode: input.autoMode,
-      });
-      if (settled) yield* writeLedger(input.ledgerPath, { ...ledger, autoMode: movedToAuto(true) });
-      return "exists" as const;
+      const needsAuto = !ledger.autoMode?.includes(input.projectId);
+      const missing = LATER_ROUTINES.filter(
+        (key) => !ledger.added?.[key]?.includes(input.projectId),
+      );
+      if (!needsAuto && missing.length === 0) return "exists" as const;
+      const tasks = (yield* scheduledTasks.list()).tasks;
+      const settled =
+        needsAuto &&
+        (yield* moveRoutinesToAuto({
+          projectId: input.projectId,
+          tasks,
+          autoMode: input.autoMode,
+        }));
+      const modelSelection = missing.length === 0 ? null : yield* input.modelSelection;
+      let added = false;
+      if (modelSelection !== null) {
+        const autoMode = (yield* input.autoMode(modelSelection)) ?? "auto-accept-edits";
+        const missingIds = new Set<string>(
+          missing.map((key) => routineTaskId(input.projectId, key)),
+        );
+        for (const routine of defaultRoutines({ ...input, modelSelection, autoMode })) {
+          if (routine.id === undefined || !missingIds.has(routine.id)) continue;
+          if (tasks.some((task) => task.id === routine.id)) continue;
+          yield* scheduledTasks.upsert(routine);
+          added = true;
+        }
+      }
+      if (settled || modelSelection !== null) {
+        yield* writeLedger(input.ledgerPath, {
+          ...ledger,
+          autoMode: movedToAuto(settled),
+          added:
+            modelSelection === null
+              ? (ledger.added ?? {})
+              : withAdded(ledger.added, missing, input.projectId),
+        });
+      }
+      return added ? ("added" as const) : ("exists" as const);
     }
 
     const modelSelection = yield* input.modelSelection;
@@ -274,6 +336,7 @@ export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines"
     yield* writeLedger(input.ledgerPath, {
       projects: [...ledger.projects, input.projectId],
       autoMode: movedToAuto(settled),
+      added: withAdded(ledger.added, LATER_ROUTINES, input.projectId),
     });
     return "created" as const;
   },

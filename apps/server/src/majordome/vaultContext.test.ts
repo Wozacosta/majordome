@@ -4,7 +4,9 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
-import { localIsoDate, MEMORY_CHAR_LIMIT, readVaultContext } from "./vaultContext.ts";
+import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
+import { writeMemoryPassState } from "./memoryPassState.ts";
+import { localIsoDate, readVaultContext } from "./vaultContext.ts";
 
 // Noon in the server's own time zone, so today and yesterday are unambiguous wherever tests run.
 const NOW = DateTime.toEpochMillis(
@@ -78,7 +80,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
     }),
   );
 
-  it.effect("truncates a long memory file", () =>
+  it.effect("cuts a memory file over its limit and says how much was left out", () =>
     Effect.gen(function* () {
       const root = yield* makeVault({
         ".majordome/config.json": "{}",
@@ -87,9 +89,57 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       const context = yield* readVaultContext({ vaultRoot: root, nowMillis: NOW });
       assert.include(
         context,
-        `[Truncated: the note is longer than ${MEMORY_CHAR_LIMIT} characters.]`,
+        "[Memory is cut here: memory.md is 8,050 characters and only the first 8,000 are loaded. Read the file when you need the rest.]",
       );
       assert.notInclude(context, "x".repeat(MEMORY_CHAR_LIMIT + 1));
+    }),
+  );
+
+  it.effect("gives the memory pass its list of changed notes, and no other session", () =>
+    Effect.gen(function* () {
+      const root = yield* makeVault({ ".majordome/config.json": "{}", "memory.md": "- Likes tea" });
+      const stateDir = yield* makeVault({});
+      const projectId = "vault-project";
+      yield* writeMemoryPassState(
+        { stateDir, projectId },
+        {
+          head: "abc",
+          brief: {
+            since: "2026-11-14T02:30:00.000Z",
+            preparedAt: DateTime.formatIso(DateTime.makeUnsafe(NOW - 5_000)),
+            files: ["daily/2026-11-14.md", "projects/flat/log.md"],
+            more: 2,
+            memoryChars: 11,
+          },
+        },
+      );
+      const contextFor = (scheduledTaskId: string | undefined, nowMillis = NOW) =>
+        readVaultContext({
+          vaultRoot: root,
+          nowMillis,
+          startedBy: { projectId, scheduledTaskId, stateDir },
+        });
+
+      const pass = yield* contextFor(`majordome:${projectId}:tidy-my-memory`);
+      assert.include(
+        pass,
+        [
+          '<memory_pass since="2026-11-14T02:30:00.000Z">',
+          "Notes that changed since the last memory pass, newest first:",
+          "- daily/2026-11-14.md",
+          "- projects/flat/log.md",
+          "- …and 2 more",
+          "memory.md is 11 characters; its limit is 8,000.",
+          "</memory_pass>",
+        ].join("\n"),
+      );
+      assert.notInclude(yield* contextFor(undefined), "<memory_pass");
+      assert.notInclude(yield* contextFor(`majordome:${projectId}:start-my-day`), "<memory_pass");
+      // "Run now" a day later starts without a list: last night's would be stale.
+      assert.notInclude(
+        yield* contextFor(`majordome:${projectId}:tidy-my-memory`, NOW + 24 * 60 * 60 * 1000),
+        "<memory_pass",
+      );
     }),
   );
 

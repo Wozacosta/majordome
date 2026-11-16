@@ -76,6 +76,12 @@ describe("runs", () => {
     expect(routineOf({ scheduledTaskId: undefined, subject: "majordome: Start my day" })).toBe(
       "start-my-day",
     );
+    expect(
+      routineOf({ scheduledTaskId: "majordome:p-1:tidy-my-memory", subject: "majordome: Night" }),
+    ).toBe("tidy-my-memory");
+    expect(routineOf({ scheduledTaskId: undefined, subject: "majordome: Tidy my memory" })).toBe(
+      "tidy-my-memory",
+    );
     expect(routineOf({ scheduledTaskId: "other", subject: "majordome: Lisbon" })).toBeNull();
   });
 });

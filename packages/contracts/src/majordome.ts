@@ -15,6 +15,7 @@ export const MajordomeRoutineKind = Schema.Literals([
   "start-my-day",
   "review-my-week",
   "digest-my-inbox",
+  "tidy-my-memory",
 ]);
 export type MajordomeRoutineKind = typeof MajordomeRoutineKind.Type;
 
@@ -96,6 +97,13 @@ export const MajordomeVaultHistoryResult = Schema.Struct({
   pausedToday: Schema.optional(Schema.Boolean),
   /** Recent runs on this server that the time limit stopped, newest first. */
   stoppedRuns: Schema.optional(Schema.Array(MajordomeStoppedRun)),
+  /** Set while the memory note is longer than what conversations load. */
+  memoryOverLimit: Schema.optional(
+    Schema.Struct({
+      /** "Tidy my memory" is on here, so tonight's run shortens the note. */
+      tidyRoutineOn: Schema.Boolean,
+    }),
+  ),
 });
 export type MajordomeVaultHistoryResult = typeof MajordomeVaultHistoryResult.Type;
 

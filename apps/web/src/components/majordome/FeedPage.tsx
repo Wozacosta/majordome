@@ -6,6 +6,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import {
   type EnvironmentId,
+  type MajordomeRoutineKind,
   type MajordomeRoutinesRunner,
   type MajordomeVaultHistoryResult,
   type MajordomeVaultUndoResult,
@@ -20,7 +21,9 @@ import {
   ChevronRightIcon,
   EllipsisIcon,
   InboxIcon,
+  type LucideIcon,
   MessageSquareIcon,
+  MoonIcon,
   NotebookPenIcon,
   SunriseIcon,
   Undo2Icon,
@@ -76,6 +79,7 @@ import {
   feedVaultNotes,
   foldOwnChanges,
   groupFeedItems,
+  memoryOverLimitLine,
   ownDayLine,
   type FeedRunItem,
   type FeedVault,
@@ -262,6 +266,15 @@ export function FeedPage() {
                       label={showVaultName ? brain.runner.title : null}
                     />
                   ))}
+                  {brains.map((brain) => {
+                    const line = memoryOverLimitLine(brain.runner.history.memoryOverLimit);
+                    return line === null ? null : (
+                      <StatusLine key={`memory:${brain.key}`} tone="warning" className="py-2.5">
+                        {showVaultName ? `${brain.runner.title}: ` : ""}
+                        {line}
+                      </StatusLine>
+                    );
+                  })}
                   {vaults.map((vault) => (
                     <BackupStatusLine
                       key={`backup:${vault.environmentId}:${vault.projectId}`}
@@ -505,11 +518,12 @@ function FeedNoteLinks({
   );
 }
 
-const ROUTINE_ICONS = {
+const ROUTINE_ICONS: Record<MajordomeRoutineKind, LucideIcon> = {
   "start-my-day": SunriseIcon,
   "review-my-week": CalendarRangeIcon,
   "digest-my-inbox": InboxIcon,
-} as const;
+  "tidy-my-memory": MoonIcon,
+};
 
 /** One run, told as an outcome: what it did in plain words, the notes it touched, and Undo. */
 function FeedRunCard({

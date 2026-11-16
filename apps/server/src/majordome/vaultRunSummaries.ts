@@ -26,11 +26,12 @@ const NOTE_HEAD_BYTES = 4096;
 const MAX_NOTES = 300;
 
 const RUN_ORDINAL = /^Run (\d+) of this thread\.$/m;
-const ROUTINE_TASK = /^majordome:.+:(start-my-day|review-my-week|digest-my-inbox)$/;
+const ROUTINE_TASK = /^majordome:.+:(start-my-day|review-my-week|digest-my-inbox|tidy-my-memory)$/;
 const ROUTINE_TITLES: Record<string, MajordomeRoutineKind> = {
   "start my day": "start-my-day",
   "review my week": "review-my-week",
   "digest my inbox": "digest-my-inbox",
+  "tidy my memory": "tidy-my-memory",
 };
 const FENCE = /^\s*(```|~~~)/;
 const RULE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
