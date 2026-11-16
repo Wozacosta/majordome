@@ -3647,6 +3647,52 @@ describe("OrchestratorMcpService provider resolution", () => {
       }),
     );
 
+    it.effect("runs in the project's folder with its defaults where a fork has its own", () =>
+      Effect.gen(function* () {
+        const inputs = yield* Ref.make<ReadonlyArray<ScheduledTaskUpsertInput>>([]);
+        const saved = yield* Ref.make<ReadonlyArray<ScheduledTask["workspaceStrategy"]>>([]);
+        const vaultModel = { instanceId: ProviderInstanceId.make("claude"), model: "vault-model" };
+        const withDefaults = (repeatingRefusal: string | undefined) =>
+          OrchestratorMcpService.OrchestratorMcpService.pipe(
+            Effect.provide(service(masterRepository, saved, existing, inputs)),
+            Effect.provideService(ScheduledTaskService.ScheduledTaskAgentDefaultsFor, () =>
+              Effect.succeedSome({
+                modelSelection: vaultModel,
+                runtimeMode: "auto",
+                repeatingRefusal,
+              }),
+            ),
+          );
+        const mcp = yield* withDefaults(undefined);
+        yield* mcp.scheduleTask(client, { projectId, prompt: "Review my week", schedule });
+        assert.deepInclude((yield* Ref.get(inputs))[0], {
+          workspaceStrategy: { type: "root" },
+          threadMode: "new_thread",
+          threadId: null,
+          modelSelection: vaultModel,
+          // Never broader than the caller's own mode.
+          runtimeMode: "approval-required",
+        });
+
+        const elsewhere = yield* withDefaults("Routines run on another computer.");
+        const refused = yield* elsewhere
+          .scheduleTask(client, { projectId, prompt: "Review my week", schedule })
+          .pipe(Effect.flip);
+        assert.equal(refused.message, "Routines run on another computer.");
+        const changed = yield* elsewhere
+          .updateScheduledTask(client, { scheduledTaskId: existing.id, enabled: false })
+          .pipe(Effect.flip);
+        assert.equal(changed.message, "Routines run on another computer.");
+        // A reminder lives on the server it was asked on, so it is saved there.
+        yield* elsewhere.scheduleTask(client, {
+          projectId,
+          prompt: "Call the bank",
+          schedule: { type: "once", runAt: "2099-01-01T09:00:00+00:00" },
+        });
+        assert.lengthOf(yield* Ref.get(inputs), 2);
+      }),
+    );
+
     it.effect.each([
       {
         name: "drops an emoji the limit splits",

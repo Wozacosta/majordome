@@ -1,8 +1,10 @@
 import {
   CommandId,
   MessageId,
+  type ModelSelection,
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
   type ProjectId,
+  type RuntimeMode,
   ScheduledTask,
   ScheduledTaskError,
   ScheduledTaskId,
@@ -136,6 +138,25 @@ export class ScheduledTaskRunGate extends Context.Reference<
   (task: ScheduledTask) => Effect.Effect<boolean>
 >("t3/scheduledTasks/ScheduledTaskRunGate", {
   defaultValue: () => () => Effect.succeed(true),
+}) {}
+
+export interface ScheduledTaskAgentDefaults {
+  /** The model unattended runs use in this project; null leaves the caller's. */
+  readonly modelSelection: ModelSelection | null;
+  /** The broadest mode an unattended run gets in this project. */
+  readonly runtimeMode: RuntimeMode;
+  /** Why a repeating task saved on this server would never fire; undefined when it would. */
+  readonly repeatingRefusal: string | undefined;
+}
+
+/**
+ * How a task an agent schedules runs in a project a fork has its own rules for: in the project's
+ * folder, a new thread per run, with these defaults. None leaves the caller's own.
+ */
+export class ScheduledTaskAgentDefaultsFor extends Context.Reference<
+  (projectId: ProjectId) => Effect.Effect<Option.Option<ScheduledTaskAgentDefaults>>
+>("t3/scheduledTasks/ScheduledTaskAgentDefaultsFor", {
+  defaultValue: () => () => Effect.succeedNone,
 }) {}
 
 class WebhookDeliverySkipped extends Schema.TaggedError<WebhookDeliverySkipped>()(

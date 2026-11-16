@@ -944,6 +944,8 @@ const layerMakeRoutes = Layer.mergeAll(
     speechStreamRouteLayer,
   ),
   McpHttpServer.layer.pipe(
+    // A routine the assistant sets up in a vault runs like Majordome's default ones.
+    Layer.provide(MajordomeRoutines.layerAgentTaskDefaults),
     Layer.provide(ProviderAdapterRegistry.layerFromProviderInstanceRegistry),
     Layer.provide(McpOAuth.layerMcpClientAuthenticator),
   ),

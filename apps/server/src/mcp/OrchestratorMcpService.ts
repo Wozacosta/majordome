@@ -1228,6 +1228,7 @@ const make = Effect.gen(function* () {
   const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
   const providerAdapters = yield* ProviderAdapterRegistry.ProviderAdapterRegistryV2;
   const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
+  const agentTaskDefaultsFor = yield* ScheduledTaskService.ScheduledTaskAgentDefaultsFor;
   const projects = yield* ProjectService.ProjectService;
   const threadLaunch = yield* ThreadLaunchService.ThreadLaunchService;
   const gitDriver = yield* GitVcsDriver.GitVcsDriver;
@@ -2088,7 +2089,9 @@ const make = Effect.gen(function* () {
   const scheduledTaskWorkspaceStrategy = Effect.fn(
     "OrchestratorMcpService.scheduledTaskWorkspaceStrategy",
   )(function* (boundToThread: boolean, projectId: ProjectId) {
-    if (boundToThread) return { type: "root" as const };
+    if (boundToThread || Option.isSome(yield* agentTaskDefaultsFor(projectId))) {
+      return { type: "root" as const };
+    }
     const { workspaceRoot } = yield* requireProject(projectId);
     return {
       type: "worktree" as const,
@@ -2184,9 +2187,16 @@ const make = Effect.gen(function* () {
       const projectId = yield* resolveProjectTarget(parent, input.projectId);
       yield* assertLiveCallerForOtherProject(scope, parent, projectId);
       const project = yield* requireProject(projectId);
+      const projectDefaults = Option.getOrUndefined(yield* agentTaskDefaultsFor(projectId));
+      if (projectDefaults?.repeatingRefusal !== undefined && input.schedule.type !== "once") {
+        return yield* failure("invalid_request", projectDefaults.repeatingRefusal);
+      }
+      // Where the project has its own defaults, only a one-time task answers in the asking thread.
       const bindToCurrentThread =
         input.bindToCurrentThread ??
-        (parent !== undefined && parent.thread.projectId === projectId);
+        (parent !== undefined &&
+          parent.thread.projectId === projectId &&
+          (projectDefaults === undefined || input.schedule.type === "once"));
       if (bindToCurrentThread && (parent === undefined || parent.thread.projectId !== projectId)) {
         return yield* failure(
           "invalid_request",
@@ -2196,7 +2206,9 @@ const make = Effect.gen(function* () {
         );
       }
       const modelSelection =
-        parent?.thread.modelSelection ?? (yield* projectDefaultModelSelection(project));
+        (bindToCurrentThread ? null : projectDefaults?.modelSelection) ??
+        parent?.thread.modelSelection ??
+        (yield* projectDefaultModelSelection(project));
       // Never end on a lone high surrogate, which renders as a broken character.
       const derivedTitle = (input.prompt.split("\n")[0]?.trim() ?? "")
         .slice(0, 80)
@@ -2216,7 +2228,11 @@ const make = Effect.gen(function* () {
             : "new_thread",
         workspaceStrategy: yield* scheduledTaskWorkspaceStrategy(bindToCurrentThread, projectId),
         modelSelection,
-        runtimeMode: limits.runtimeMode,
+        runtimeMode:
+          projectDefaults !== undefined &&
+          runtimeModeRank(projectDefaults.runtimeMode) < runtimeModeRank(limits.runtimeMode)
+            ? projectDefaults.runtimeMode
+            : limits.runtimeMode,
         interactionMode: limits.interactionMode,
         createdBy: "agent",
         creationSource: "mcp",
@@ -2290,6 +2306,12 @@ const make = Effect.gen(function* () {
             "invalid_request",
             "To move this task to a new thread with fresh sessions, first unbind it with bindToCurrentThread: false, then set freshSession: true in a second call.",
           );
+        }
+        const refusal = Option.getOrUndefined(
+          yield* agentTaskDefaultsFor(existing.projectId),
+        )?.repeatingRefusal;
+        if (refusal !== undefined && (input.schedule ?? existing.schedule).type !== "once") {
+          return yield* failure("invalid_request", refusal);
         }
         const threadId =
           input.bindToCurrentThread === undefined

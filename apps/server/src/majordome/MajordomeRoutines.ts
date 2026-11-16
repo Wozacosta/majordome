@@ -55,7 +55,7 @@ import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readVaultLayout, readVaultLimits, type VaultLayout } from "./vaultConfig.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
 import * as VaultLock from "./VaultLock.ts";
-import { isVaultRunner, moveVaultRunner } from "./vaultRunner.ts";
+import { isVaultRunner, moveVaultRunner, readVaultRunner } from "./vaultRunner.ts";
 
 const RECONCILE_INTERVAL = Duration.minutes(5);
 const MISSING_INBOX_RETRY = Duration.minutes(1);
@@ -409,7 +409,8 @@ export const layer = Layer.effect(MajordomeRoutines, make);
 /**
  * Lets a scheduled task fire only on its vault's runner, and only while the vault has runs left
  * today. The memory pass is also held back, before it counts as a run, on a night with nothing new
- * to go through. Tasks outside vaults are not affected, and neither are manual runs.
+ * to go through. Tasks outside vaults are not affected, and neither are manual runs or one-time
+ * tasks: a reminder the owner asked for always fires, and does not count as a run.
  */
 export const layerRunGate = Layer.effect(
   ScheduledTaskService.ScheduledTaskRunGate,
@@ -428,6 +429,8 @@ export const layerRunGate = Layer.effect(
         const vaultRoot = project.value.workspaceRoot;
         const layout = yield* readVaultLayout(vaultRoot);
         if (Option.isNone(layout)) return true;
+        // A reminder exists only on the server it was asked on, so no other server would fire it.
+        if (task.schedule.type === "once") return true;
         const runner = yield* isVaultRunner({
           vaultRoot,
           environmentId: yield* environment.getEnvironmentId,
@@ -457,6 +460,63 @@ export const layerRunGate = Layer.effect(
             taskId: task.id,
             cause,
           }).pipe(Effect.as(true)),
+        ),
+      );
+  }),
+);
+
+const REPEATING_ELSEWHERE =
+  "Routines for these notes run on another of the owner's computers, so one set up or changed here would never run. Tell the owner, in plain words, to do this from the Routines screen, which talks to that computer. A one-time reminder works from here.";
+
+/**
+ * A routine the assistant sets up in a vault runs like the default ones: in the notes folder, with
+ * the vault's model, in Auto where the provider allows it. A server that is not the vault's runner
+ * refuses repeating ones, which its run gate would hold back for good.
+ */
+export const layerAgentTaskDefaults = Layer.effect(
+  ScheduledTaskService.ScheduledTaskAgentDefaultsFor,
+  Effect.gen(function* () {
+    const projects = yield* ProjectStore.ProjectStoreV2;
+    const environment = yield* ServerEnvironment.ServerEnvironment;
+    const settings = yield* ServerSettings.ServerSettingsService;
+    const threads = yield* ThreadManagementService.ThreadManagementService;
+    const providers = yield* ProviderRegistry.ProviderRegistry;
+    const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+    return (projectId) =>
+      Effect.gen(function* () {
+        const project = yield* projects.get(projectId);
+        if (Option.isNone(project)) return Option.none();
+        const vaultRoot = project.value.workspaceRoot;
+        if (Option.isNone(yield* readVaultLayout(vaultRoot))) return Option.none();
+        const modelSelection = yield* chooseVaultModel(project.value).pipe(
+          Effect.provideService(ServerSettings.ServerSettingsService, settings),
+          Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
+          Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
+        );
+        const provider =
+          modelSelection === null
+            ? undefined
+            : (yield* providers.getProviders).find(
+                (candidate) => candidate.instanceId === modelSelection.instanceId,
+              );
+        const runner = yield* readVaultRunner(vaultRoot);
+        const here = yield* environment.getEnvironmentId;
+        return Option.some({
+          modelSelection,
+          runtimeMode: autoRoutineMode({
+            supportedRuntimeModes: provider?.supportedRuntimeModes,
+            maxRuntimeMode: settings.managedPolicy?.limits?.maxRuntimeMode,
+          }),
+          repeatingRefusal:
+            Option.isSome(runner) && runner.value !== here ? REPEATING_ELSEWHERE : undefined,
+        });
+      }).pipe(
+        Effect.provide(services),
+        Effect.catchCause((cause) =>
+          Effect.logWarning("Majordome could not read a vault's routine defaults.", {
+            projectId,
+            cause,
+          }).pipe(Effect.as(Option.none())),
         ),
       );
   }),

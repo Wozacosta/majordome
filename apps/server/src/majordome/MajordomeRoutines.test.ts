@@ -2,6 +2,7 @@ import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import {
+  DEFAULT_SERVER_SETTINGS,
   EnvironmentId,
   ProjectId,
   type ScheduledTask,
@@ -49,8 +50,12 @@ const settle = Effect.forEach(Array.from({ length: 50 }), () => Effect.yieldNow,
   discard: true,
 });
 
-const task = (projectId: string) =>
-  ({ id: "majordome:task", projectId: ProjectId.make(projectId) }) as ScheduledTask;
+const task = (projectId: string, schedule: ScheduledTask["schedule"]["type"] = "fixed_time") =>
+  ({
+    id: "majordome:task",
+    projectId: ProjectId.make(projectId),
+    schedule: { type: schedule },
+  }) as ScheduledTask;
 
 const gateFor = (roots: Record<string, string>) =>
   Effect.all({
@@ -86,6 +91,7 @@ const memoryPassTask = (projectId: string) =>
     id: `majordome:${projectId}:tidy-my-memory`,
     projectId: ProjectId.make(projectId),
     title: "Tidy my memory",
+    schedule: { type: "fixed_time", timeOfDay: "03:30" },
   }) as ScheduledTask;
 
 // The memory pass test builds its vaults with git.
@@ -93,6 +99,87 @@ const gateTestLayer = GitVcsDriver.layer.pipe(
   Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-gate-vaults-" })),
   Layer.provideMerge(Layer.merge(NodeServices.layer, NodeCrypto.layer)),
 );
+
+const defaultsFor = (input: {
+  readonly roots: Record<string, string>;
+  readonly supportedRuntimeModes?: ServerProvider["supportedRuntimeModes"];
+}) =>
+  Effect.service(ScheduledTaskService.ScheduledTaskAgentDefaultsFor).pipe(
+    Effect.provide(
+      MajordomeRoutines.layerAgentTaskDefaults.pipe(
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.mock(ProjectStore.ProjectStoreV2)({
+              get: (projectId) =>
+                Effect.succeed(
+                  input.roots[projectId] === undefined
+                    ? Option.none()
+                    : Option.some({
+                        projectId,
+                        workspaceRoot: input.roots[projectId],
+                        defaultModelSelection: null,
+                      } as unknown as ProjectStore.ProjectRow),
+                ),
+            }),
+            Layer.mock(ServerEnvironment.ServerEnvironment)({
+              getEnvironmentId: Effect.succeed(EnvironmentId.make("env-here")),
+            }),
+            Layer.mock(ServerSettings.ServerSettingsService)({
+              getSettings: Effect.succeed({
+                ...DEFAULT_SERVER_SETTINGS,
+                defaultModelSelection: { instanceId: "claude", model: "sonnet" } as never,
+              }),
+            }),
+            Layer.mock(ThreadManagementService.ThreadManagementService)({}),
+            Layer.mock(ProviderRegistry.ProviderRegistry)({
+              getProviders: Effect.succeed([
+                {
+                  instanceId: "claude",
+                  supportedRuntimeModes: input.supportedRuntimeModes,
+                } as unknown as ServerProvider,
+              ]),
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
+
+it.layer(NodeServices.layer)("what the assistant's routines run with", (it) => {
+  it.effect("gives a vault its model and Auto, and refuses repeating ones off the runner", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const here = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-defaults-" });
+      yield* fs.makeDirectory(`${here}/.majordome`);
+      const elsewhere = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-defaults-" });
+      yield* fs.makeDirectory(`${elsewhere}/.majordome`);
+      yield* fs.writeFileString(`${elsewhere}/.majordome/runner`, "env-elsewhere\n");
+      const code = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-defaults-" });
+      const roots = { here, elsewhere, code };
+
+      const defaults = yield* defaultsFor({ roots });
+      assert.deepEqual(Option.getOrThrow(yield* defaults(ProjectId.make("here"))), {
+        modelSelection: { instanceId: "claude", model: "sonnet" } as never,
+        runtimeMode: "auto",
+        repeatingRefusal: undefined,
+      });
+      // Looking does not claim the vault for this server.
+      assert.isFalse(yield* fs.exists(`${here}/.majordome/runner`));
+      assert.include(
+        Option.getOrThrow(yield* defaults(ProjectId.make("elsewhere"))).repeatingRefusal,
+        "another of the owner's computers",
+      );
+      assert.isTrue(Option.isNone(yield* defaults(ProjectId.make("code"))));
+      assert.isTrue(Option.isNone(yield* defaults(ProjectId.make("missing"))));
+
+      const noAuto = yield* defaultsFor({ roots, supportedRuntimeModes: ["auto-accept-edits"] });
+      assert.equal(
+        Option.getOrThrow(yield* noAuto(ProjectId.make("here"))).runtimeMode,
+        "auto-accept-edits",
+      );
+    }),
+  );
+});
 
 it.layer(gateTestLayer)("the runner gate", (it) => {
   it.effect("lets only the vault's runner fire its scheduled routines", () =>
@@ -111,12 +198,16 @@ it.layer(gateTestLayer)("the runner gate", (it) => {
 
       const { gate } = yield* gateFor({ elsewhere, here, code });
       assert.isFalse(yield* gate(task("elsewhere")));
+      // A reminder is only on the server it was asked on, so it fires there.
+      assert.isTrue(yield* gate(task("elsewhere", "once")));
       // An unclaimed vault becomes this server's.
       assert.isTrue(yield* gate(task("here")));
       assert.equal(yield* fs.readFileString(`${here}/.majordome/runner`), "env-here\n");
       // Then it fires until it has used today's runs.
       assert.isTrue(yield* gate(task("here")));
       assert.isFalse(yield* gate(task("here")));
+      // A reminder still fires on a day without runs left.
+      assert.isTrue(yield* gate(task("here", "once")));
       // Projects that are not vaults, or not found, are not Majordome's to hold back.
       assert.isTrue(yield* gate(task("code")));
       assert.isTrue(yield* gate(task("missing")));
