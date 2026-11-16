@@ -11,6 +11,10 @@
       "types": "./src/server/driver.ts",
       "import": "./src/server/driver.ts"
     },
+    "./server/readCommandOutput": {
+      "types": "./src/server/readCommandOutput.ts",
+      "import": "./src/server/readCommandOutput.ts"
+    },
     "./server/SecretResolver": {
       "types": "./src/server/SecretResolver.ts",
       "import": "./src/server/SecretResolver.ts"
@@ -22,6 +26,7 @@
   },
   "dependencies": {
     "@t3tools/contracts": "workspace:*",
+    "@t3tools/provider-core": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

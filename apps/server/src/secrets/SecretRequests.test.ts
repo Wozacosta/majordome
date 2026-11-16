@@ -47,7 +47,9 @@ const fakeVault = () => {
     definition: defineSecretProvider({
       kind: FAKE_KIND,
       label: "Fake",
+      description: "A fake store.",
       configSchema: Schema.Struct({}),
+      configFields: [],
       isReference: (reference) => reference.startsWith("fake://"),
       referencePlaceholder: "fake://item",
       invalidReferenceMessage: "Use fake://item.",

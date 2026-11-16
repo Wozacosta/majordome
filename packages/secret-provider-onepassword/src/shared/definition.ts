@@ -34,7 +34,21 @@ const MAX_REFERENCE_LENGTH = 1024;
 export const definition = defineSecretProvider({
   kind: SecretProviderKind.make("one_password"),
   label: "1Password",
+  description:
+    "Reads secrets from a 1Password account with the op CLI, which must be installed and signed in on the server.",
   configSchema: OnePasswordSecretProviderConfig,
+  configFields: [
+    {
+      key: "account",
+      label: "Account",
+      input: "text",
+      schema: OnePasswordAccount,
+      emptyMessage: "Enter the 1Password account.",
+      placeholder: "my.1password.com",
+      help: "The account shorthand, sign-in address without https://, or ID that op account list shows.",
+      sensitive: true,
+    },
+  ],
   isReference: (reference) => reference.length <= MAX_REFERENCE_LENGTH && REFERENCE.test(reference),
   referencePlaceholder: "op://vault/item/field",
   invalidReferenceMessage: "Use a 1Password reference like op://vault/item/field.",
