@@ -9,12 +9,11 @@ import { builtInSecretProviderDefinitions } from "@t3tools/secret-provider-defin
 import { useAtomValue } from "@effect/atom-react";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { AlertTriangleIcon, CheckIcon, KeyRoundIcon, RefreshCwIcon, TypeIcon } from "lucide-react";
-import { useState, type ComponentProps, type ComponentType, type ReactNode } from "react";
+import { AlertTriangleIcon, CheckIcon, RefreshCwIcon, TypeIcon } from "lucide-react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 
 import { isSecretsFeatureEnabled } from "../../env";
 import { useEnvironmentSettings } from "../../hooks/useSettings";
-import { OnePasswordIcon } from "../Icons";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
@@ -24,6 +23,7 @@ import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { SecretInput } from "./SecretInput";
 import { classifySecretProvider } from "./SecretProviderDialog.logic";
+import { SecretProviderIcon } from "./secretProviderIcons";
 
 export interface SecretSource {
   readonly id: SecretProviderId;
@@ -48,17 +48,10 @@ export function useSecretSources(environmentId: EnvironmentId): ReadonlyArray<Se
     .map(([id, config]) => ({ id, kind: config.kind, label: config.label }));
 }
 
-function SourceIcon(props: { readonly icon: ComponentType<{ readonly className?: string }> }) {
-  return <props.icon className="size-3.5 shrink-0" />;
-}
-
-function SourceLabel(props: {
-  readonly icon: ComponentType<{ readonly className?: string }>;
-  readonly label: string;
-}) {
+function SourceLabel(props: { readonly icon: ReactNode; readonly label: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5">
-      <props.icon className="size-3.5 shrink-0" />
+      {props.icon}
       <span className="truncate">{props.label}</span>
     </span>
   );
@@ -67,15 +60,15 @@ function SourceLabel(props: {
 /** Picks Value (`null`) or one of `sources`; a `value` no longer among them stays listed. */
 export function SecretSourceSelect(props: {
   readonly value: SecretProviderId | null;
-  readonly sources: ReadonlyArray<Pick<SecretSource, "id" | "label">>;
+  readonly sources: ReadonlyArray<SecretSource>;
   readonly label: string;
   readonly disabled?: boolean;
   readonly onValueChange: (provider: SecretProviderId | null) => void;
 }) {
   const { value, sources } = props;
-  const known = value === null || sources.some((source) => source.id === value);
-  const title =
-    value === null ? "Value" : (sources.find((source) => source.id === value)?.label ?? value);
+  const selected = sources.find((source) => source.id === value);
+  const known = value === null || selected !== undefined;
+  const title = value === null ? "Value" : (selected?.label ?? value);
   return (
     <Select
       value={value ?? STORED_VALUE}
@@ -93,21 +86,25 @@ export function SecretSourceSelect(props: {
         title={title}
       >
         <SelectValue>
-          <SourceIcon icon={value === null ? TypeIcon : known ? OnePasswordIcon : KeyRoundIcon} />
+          {value === null ? (
+            <TypeIcon className="size-3.5 shrink-0" />
+          ) : (
+            <SecretProviderIcon kind={selected?.kind} />
+          )}
         </SelectValue>
       </SelectTrigger>
       <SelectPopup align="start" alignItemWithTrigger={false}>
         <SelectItem value={STORED_VALUE}>
-          <SourceLabel icon={TypeIcon} label="Value" />
+          <SourceLabel icon={<TypeIcon className="size-3.5 shrink-0" />} label="Value" />
         </SelectItem>
         {sources.map((source) => (
           <SelectItem key={source.id} value={source.id}>
-            <SourceLabel icon={OnePasswordIcon} label={source.label} />
+            <SourceLabel icon={<SecretProviderIcon kind={source.kind} />} label={source.label} />
           </SelectItem>
         ))}
         {known ? null : (
           <SelectItem value={value}>
-            <SourceLabel icon={KeyRoundIcon} label={value} />
+            <SourceLabel icon={<SecretProviderIcon kind={undefined} />} label={value} />
           </SelectItem>
         )}
       </SelectPopup>
