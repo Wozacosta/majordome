@@ -94,6 +94,7 @@ describe("searchSettings", () => {
     const majordomePages = [
       "/settings/overview",
       "/settings/backup",
+      "/settings/connectors",
       "/settings/notifications",
       "/settings/phone",
       "/settings/always-on",

@@ -130,6 +130,7 @@ import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
+import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
 import {
@@ -1481,6 +1482,7 @@ export const layerWsRpc = (
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
+      const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
@@ -2362,6 +2364,7 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.getStatus(input)),
           ),
+        [WS_METHODS.majordomeListConnectors]: (input) => majordomeConnectors.list(input),
         [WS_METHODS.majordomeBackUpNow]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.backUpNow(input)),

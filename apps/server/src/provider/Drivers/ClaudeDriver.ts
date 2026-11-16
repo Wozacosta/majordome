@@ -60,6 +60,7 @@ import {
 } from "./ClaudeHome.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
+import { probeClaudeConnectors } from "../ClaudeConnectorsProbe.ts";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("claudeAgent");
@@ -400,6 +401,22 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       ),
     );
 
+    const listConnectors = probeClaudeConnectors(effectiveConfig, processEnv, stateDir).pipe(
+      Effect.provideService(Path.Path, path),
+      Effect.mapError(
+        (cause) =>
+          new ProviderDriverError({
+            driver: DRIVER_KIND,
+            instanceId,
+            detail:
+              cause._tag === "ClaudeConnectorsProbeError"
+                ? cause.message
+                : "Claude took too long to list its connectors.",
+            cause,
+          }),
+      ),
+    );
+
     return {
       instanceId,
       driverKind: DRIVER_KIND,
@@ -423,6 +440,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       orchestrationAdapter,
       textGeneration,
       consumeResetCredit,
+      listConnectors,
     } satisfies ProviderInstance;
   }),
 };

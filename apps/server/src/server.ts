@@ -138,6 +138,7 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
+import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as RoutineLimits from "./majordome/RoutineLimits.ts";
 import * as RoutineRunLedger from "./majordome/RoutineRunLedger.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
@@ -755,6 +756,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(ProjectionStoreV2.layer),
   ),
   MajordomeTopics.layer.pipe(Layer.provide(VaultLock.layer)),
+  MajordomeConnectors.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {

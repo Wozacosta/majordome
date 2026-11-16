@@ -58,6 +58,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeListVaultHistory,
       WS_METHODS.majordomeSubscribeVaultChanges,
       WS_METHODS.majordomeGetBackupStatus,
+      WS_METHODS.majordomeListConnectors,
       WS_METHODS.majordomeListTopics,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);

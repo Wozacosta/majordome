@@ -5,6 +5,7 @@ import type {
   AcpRegistryListProvidersResult,
   AcpRegistryOperationError,
   AcpRegistrySetProviderInput,
+  ProviderConnector,
   ProviderDriverKind,
   ResolvedProviderInstanceEnvironment,
   ProviderInstanceId,
@@ -55,6 +56,8 @@ export interface ProviderInstance {
   readonly consumeResetCredit?: (
     creditId: string | undefined,
   ) => Effect.Effect<ProviderConsumeResetCreditOutcome, ProviderDriverError>;
+  /** The connectors (MCP servers) a session would have. Absent when the driver cannot list them. */
+  readonly listConnectors?: Effect.Effect<ReadonlyArray<ProviderConnector>, ProviderDriverError>;
   readonly orchestrationAdapter: ProviderAdapter.ProviderAdapterV2["Service"];
   readonly textGeneration: ProviderTextGeneration;
   readonly auth?: ProviderAuthController;

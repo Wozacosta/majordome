@@ -27,6 +27,7 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
       labels: [
         "Overview",
         "Back up my brain",
+        "Connections",
         "Notifications",
         "Your phone",
         "Always-on server",
@@ -57,6 +58,7 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
 it("finds the brain's pages, and Advanced pages while they are folded away", () => {
   expect(searchSettings("back up")[0]?.to).toBe("/settings/backup");
   expect(searchSettings("your phone")[0]?.to).toBe("/settings/phone");
+  expect(searchSettings("gmail")[0]?.to).toBe("/settings/connectors");
   expect(searchSettings("tailscale").map((item) => item.to)).toContain("/settings/phone");
   expect(searchSettings("always-on server")[0]?.to).toBe("/settings/always-on");
   expect(searchSettings("notifications").map((item) => item.to)).toContain(

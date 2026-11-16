@@ -1,0 +1,276 @@
+import { useAtomValue } from "@effect/atom-react";
+import type { EnvironmentId, MajordomeBackupStatus } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
+import * as Cause from "effect/Cause";
+import { AsyncResult } from "effect/reactivity";
+import type { ReactNode } from "react";
+import { useState } from "react";
+
+import { useProjects } from "../../state/entities";
+import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
+import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
+import { formatEnvironmentQueryError } from "../../state/query";
+import { useAtomCommand } from "../../state/use-atom-command";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
+import { Spinner } from "../ui/spinner";
+import {
+  aiRows,
+  backupRows,
+  type ConnectionState,
+  connectorsView,
+  isUnknownRequest,
+} from "./connections.logic";
+import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import { useMachineNames } from "./useMachineNames";
+
+/** What the assistant can reach on each machine: its AI sign-ins, connectors and backups. */
+export function ConnectionsPage() {
+  const { environments } = useEnvironments();
+  const { primaryEnvironmentId, machineOf, isElsewhere } = useMachineNames();
+  const machines = [
+    ...environments.filter((environment) => environment.environmentId === primaryEnvironmentId),
+    ...environments.filter((environment) => environment.environmentId !== primaryEnvironmentId),
+  ];
+  const connected = machines.filter((machine) => machine.connection.phase === "connected");
+
+  const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
+  const backupResults = useAtomValue(
+    vaultBackupStatusesAtom(
+      JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
+    ),
+  );
+  /** The machine's notes folders' backups; null while any of them is still loading. */
+  const backupsOf = (environmentId: EnvironmentId) => {
+    const statuses: Array<MajordomeBackupStatus> = [];
+    for (const [index, project] of projects.entries()) {
+      if (project.environmentId !== environmentId) continue;
+      const result = backupResults[index];
+      if (result === undefined || result._tag === "Initial") return null;
+      const status = AsyncResult.getOrElse(result, () => null);
+      if (status?.isVault) statuses.push(status);
+    }
+    return statuses;
+  };
+
+  const checkConnectors = useAtomCommand(majordomeEnvironment.checkConnectors, {
+    label: "check connectors",
+    // A machine that cannot answer says so in its own list.
+    reportFailure: false,
+    reportDefect: false,
+  });
+  const [checking, setChecking] = useState(false);
+  const checkAgain = async () => {
+    setChecking(true);
+    await Promise.all(
+      connected.map(({ environmentId }) =>
+        checkConnectors({ environmentId, input: { refresh: true } }),
+      ),
+    );
+    setChecking(false);
+  };
+
+  return (
+    <MajordomeSettingsPage searchId="majordome-connections">
+      <div className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+          What your assistant can reach. Each machine has its own sign-ins, so a routine can only
+          use what is connected on the machine it runs on.
+        </p>
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={checking || connected.length === 0}
+          onClick={() => void checkAgain()}
+        >
+          {checking ? <Spinner size="sm" /> : null}
+          Check again
+        </Button>
+      </div>
+      {machines.length === 0 ? <Skeleton className="h-40 w-full" /> : null}
+      <div className="flex flex-col gap-8">
+        {machines.map((machine) => {
+          const name = machines.length > 1 ? machineOf(machine.environmentId) : null;
+          return (
+            <div
+              key={machine.environmentId}
+              className="flex flex-col gap-4"
+              data-connections-machine={machine.environmentId}
+            >
+              {name !== null ? <h2 className="text-base font-medium">{name}</h2> : null}
+              {machine.connection.phase === "connected" ? (
+                <Machine
+                  environmentId={machine.environmentId}
+                  name={name}
+                  backups={backupsOf(machine.environmentId)}
+                  elsewhere={isElsewhere(machine.environmentId)}
+                />
+              ) : (
+                <Muted>Majordome isn't connected to this machine right now.</Muted>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </MajordomeSettingsPage>
+  );
+}
+
+function Machine({
+  environmentId,
+  name,
+  backups,
+  elsewhere,
+}: {
+  readonly environmentId: EnvironmentId;
+  /** The machine's name, where several are shown. */
+  readonly name: string | null;
+  readonly backups: ReadonlyArray<MajordomeBackupStatus> | null;
+  readonly elsewhere: boolean;
+}) {
+  const providers = useEnvironmentProviders().get(environmentId) ?? null;
+  const ai = providers === null ? null : aiRows(providers);
+  return (
+    <>
+      <Section
+        title="AI"
+        link={
+          <Link to="/settings/providers" className="underline underline-offset-2">
+            Providers
+          </Link>
+        }
+      >
+        {ai === null ? (
+          <Skeleton className="h-10 w-full" />
+        ) : ai.length === 0 ? (
+          <Muted>No AI provider is turned on here.</Muted>
+        ) : (
+          <Rows rows={ai} />
+        )}
+      </Section>
+      <Section title="Connectors">
+        <Connectors environmentId={environmentId} name={name} />
+      </Section>
+      <Section
+        title="Backups"
+        link={
+          <Link to="/settings/backup" className="underline underline-offset-2">
+            Back up my brain
+          </Link>
+        }
+      >
+        {backups === null ? (
+          <Skeleton className="h-10 w-full" />
+        ) : backups.length === 0 ? (
+          <Muted>No notes folder on this machine.</Muted>
+        ) : (
+          <Rows rows={backupRows(backups, { elsewhere })} />
+        )}
+      </Section>
+    </>
+  );
+}
+
+function Connectors({
+  environmentId,
+  name,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly name: string | null;
+}) {
+  const result = useAtomValue(majordomeEnvironment.connectors({ environmentId, input: {} }));
+  const snapshots = useEnvironmentProviders().get(environmentId) ?? null;
+  const connectors = AsyncResult.getOrElse(result, () => null);
+  if (connectors === null) {
+    if (result._tag !== "Failure") return <Skeleton className="h-16 w-full" />;
+    return isUnknownRequest(Cause.squash(result.cause)) ? (
+      <Muted>Update this server to see its connectors.</Muted>
+    ) : (
+      <p className="text-sm text-destructive-foreground">
+        {formatEnvironmentQueryError(result.cause)}
+      </p>
+    );
+  }
+  const view = connectorsView({ result: connectors, snapshots, machine: name });
+  return (
+    <>
+      {view.rows.length > 0 ? <Rows rows={view.rows} /> : null}
+      {view.warnings.map((warning) => (
+        <p key={warning} className="text-sm text-foreground">
+          {warning}
+        </p>
+      ))}
+      {view.notes.map((note) => (
+        <Muted key={note}>{note}</Muted>
+      ))}
+    </>
+  );
+}
+
+function Rows({
+  rows,
+}: {
+  readonly rows: ReadonlyArray<{
+    readonly key: string;
+    readonly name: string;
+    readonly provider?: string | null;
+    readonly state: ConnectionState;
+  }>;
+}) {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      {rows.map((row) => (
+        <li key={row.key} className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="min-w-0 flex-1 truncate text-foreground">
+              {row.name}
+              {row.provider ? (
+                <span className="text-muted-foreground"> · {row.provider}</span>
+              ) : null}
+            </span>
+            <Badge
+              size="sm"
+              variant={
+                row.state.tone === "ok"
+                  ? "success"
+                  : row.state.tone === "warning"
+                    ? "warning"
+                    : "outline"
+              }
+            >
+              {row.state.label}
+            </Badge>
+          </div>
+          {row.state.detail ? (
+            <p className="text-xs text-muted-foreground">{row.state.detail}</p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Section({
+  title,
+  link,
+  children,
+}: {
+  readonly title: string;
+  readonly link?: ReactNode;
+  readonly children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <div className="flex items-baseline gap-2">
+        <h3 className="min-w-0 flex-1 text-sm font-medium text-foreground">{title}</h3>
+        {link ? <span className="text-xs text-muted-foreground">{link}</span> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Muted({ children }: { readonly children: ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}

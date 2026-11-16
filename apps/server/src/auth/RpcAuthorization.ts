@@ -124,6 +124,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeListVaultHistory]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeSubscribeVaultChanges]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetBackupStatus]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeListConnectors]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
   [WS_METHODS.secretsAnswerRequest]: AuthOrchestrationOperateScope,
   // Delivery logs hold request bodies, so they need the same scope as the URL.

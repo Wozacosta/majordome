@@ -104,6 +104,7 @@ import {
   MajordomePushEndpointInput,
   MajordomeSavePushSubscriptionInput,
 } from "./majordomePhone.ts";
+import { MajordomeConnectorsInput, MajordomeConnectorsResult } from "./majordomeConnectors.ts";
 import {
   MajordomeBackupInput,
   MajordomeBackupStatus,
@@ -680,6 +681,7 @@ export const WS_METHODS = {
   majordomeRunRoutinesHere: "majordome.runRoutinesHere",
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
+  majordomeListConnectors: "majordome.listConnectors",
   majordomeBackUpNow: "majordome.backUpNow",
   majordomeConfigureBackup: "majordome.configureBackup",
   majordomeConnectGitHubStart: "majordome.connectGitHubStart",
@@ -2241,6 +2243,12 @@ const WsMajordomeSetRoutineLimitsRpc = Rpc.make(WS_METHODS.majordomeSetRoutineLi
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeListConnectorsRpc = Rpc.make(WS_METHODS.majordomeListConnectors, {
+  payload: MajordomeConnectorsInput,
+  success: MajordomeConnectorsResult,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
   payload: MajordomeTopicsInput,
   success: MajordomeTopicsResult,
@@ -2581,6 +2589,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeRunRoutinesHereRpc,
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeGetBackupStatusRpc,
+  WsMajordomeListConnectorsRpc,
   WsMajordomeBackUpNowRpc,
   WsMajordomeConfigureBackupRpc,
   WsMajordomeConnectGitHubStartRpc,

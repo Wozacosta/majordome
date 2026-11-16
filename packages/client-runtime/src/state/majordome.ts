@@ -97,6 +97,19 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 30_000,
       refreshTrigger: ({ environmentId }) => backupRevision(environmentId),
     }),
+    connectors: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:connectors",
+      tag: WS_METHODS.majordomeListConnectors,
+      staleTimeMs: 60_000,
+      refreshTrigger: ({ environmentId }) => connectorsRevision(environmentId),
+    }),
+    /** Run with `refresh: true`: the server asks its providers again, then `connectors` reads that. */
+    checkConnectors: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:check-connectors",
+      tag: WS_METHODS.majordomeListConnectors,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(connectorsRevision(environmentId), (value) => value + 1)),
+    }),
     backUpNow: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:back-up-now",
       tag: WS_METHODS.majordomeBackUpNow,
@@ -185,6 +198,14 @@ export const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpTopics = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(topicsRevision(environmentId), (value) => value + 1));
+
+/** Bumped after "Check again", so the connectors list reads the server's fresh answer. */
+const connectorsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:connectors-revision:${environmentId}`),
+  ),
+);
 
 /** Bumped when a device turns notifications on or off, so the device list reads again. */
 const pushDevicesRevision = Atom.family((environmentId: EnvironmentId) =>

@@ -73,6 +73,16 @@ The server has no browser, so sign-in happens from your phone or computer:
 - **ChatGPT (Codex):** in **Settings > Providers > Codex**, choose **Continue with ChatGPT**. After
   you sign in, the page fails to load: copy its address and paste it in the field Majordome shows.
 
+## What the server can reach
+
+Each machine has its own sign-ins. **Settings > Connections** lists, for your computer and for the
+server, which AI providers are signed in, which connectors (such as Gmail, Google Calendar and
+Google Drive) your assistant can use there, and where your notes are backed up.
+
+Routines run on the server, so they can only use what is connected there. A connector that works on
+your computer can be missing on the server, and the page says so. Majordome lists Claude's
+connectors; it can't see those of other providers. **Check again** asks each machine afresh.
+
 ## Update
 
 ```bash

@@ -43,6 +43,7 @@ export type SettingsPath =
   | "/settings/archived"
   | "/settings/overview"
   | "/settings/backup"
+  | "/settings/connectors"
   | "/settings/notifications"
   | "/settings/phone"
   | "/settings/always-on";
@@ -127,6 +128,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/archived": msg("Archive"),
   "/settings/overview": msg("Overview"),
   "/settings/backup": msg("Back up my brain"),
+  "/settings/connectors": msg("Connections"),
   "/settings/notifications": msg("Notifications"),
   "/settings/phone": msg("Your phone"),
   "/settings/always-on": msg("Always-on server"),
@@ -203,6 +205,7 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
     paths: [
       "/settings/overview",
       "/settings/backup",
+      "/settings/connectors",
       "/settings/notifications",
       "/settings/phone",
       "/settings/always-on",
@@ -1101,6 +1104,15 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["backup save sync github google drive folder restore passphrase history"],
   },
   {
+    id: "majordome-connections",
+    title: "Connections",
+    to: "/settings/connectors",
+    majordomeOnly: true,
+    searchTerms: [
+      "connectors mcp gmail email calendar google drive files sign in signed in reach access",
+    ],
+  },
+  {
     id: "majordome-notifications",
     title: "Notifications",
     to: "/settings/notifications",
@@ -1512,6 +1524,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/archived": "project-defaults",
   "/settings/overview": null,
   "/settings/backup": null,
+  "/settings/connectors": null,
   "/settings/notifications": null,
   "/settings/phone": null,
   "/settings/always-on": null,
