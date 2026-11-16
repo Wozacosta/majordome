@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
 import type { EnvironmentPresentation } from "../../state/environments";
 import { useEnvironmentSessionState } from "../../state/session";
-import { OnePasswordIcon, type Icon } from "../Icons";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -27,12 +26,7 @@ import { useSettingsScope } from "./SettingsScopeContext";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
 import { searchableSetting } from "./settingsSearch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
-
-const SECRET_PROVIDER_KINDS: Readonly<
-  Record<string, { readonly name: string; readonly icon: Icon }>
-> = {
-  one_password: { name: "1Password", icon: OnePasswordIcon },
-};
+import { SecretProviderIcon } from "./secretProviderIcons";
 
 export function SecretsSettingsPanel() {
   const { scope, environment } = useSettingsScope();
@@ -44,7 +38,7 @@ export function SecretsSettingsPanel() {
       environment.serverConfig.secretProviderSettings !== true ? (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            Update T3 Code on {environment.label} to manage its secret providers.
+            Update Majordome on {environment.label} to manage where it reads secrets from.
           </p>
         </SettingsSection>
       ) : connected ? (
@@ -56,7 +50,7 @@ export function SecretsSettingsPanel() {
       ) : (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            Connect an environment to manage the secret providers its provider variables read from.
+            Connect to a server to manage where its key and token fields read secrets from.
           </p>
         </SettingsSection>
       )}
@@ -90,6 +84,7 @@ function EnvironmentSecretProviders({
     null | { readonly mode: "add" } | { readonly mode: "edit"; readonly id: SecretProviderId }
   >(null);
   const entries = Object.entries(providers) as Array<[SecretProviderId, SecretProviderConfig]>;
+  const serverOs = environment.serverConfig?.environment.platform.os;
   const editingConfig = dialog?.mode === "edit" ? providers[dialog.id] : undefined;
   const editing =
     dialog?.mode === "edit" && editingConfig !== undefined
@@ -103,7 +98,7 @@ function EnvironmentSecretProviders({
           !readOnly ? (
             <Button size="xs" variant="outline" onClick={() => setDialog({ mode: "add" })}>
               <PlusIcon className="size-3" aria-hidden />
-              Add provider
+              Add source
             </Button>
           ) : null
         }
@@ -115,47 +110,53 @@ function EnvironmentSecretProviders({
         ) : null}
         {entries.length === 0 ? (
           <SettingsRow
-            title="No secret providers configured."
-            description="Add a 1Password account, then pick it as the source of a provider variable."
+            title="No secret sources yet."
+            description="Add the Mac Keychain, an encrypted file, 1Password or another place, then pick it next to a key or token field instead of pasting the value."
           />
         ) : (
           entries.map(([id, config]) => {
             const classified = classifySecretProvider(config);
-            const kind =
-              classified.kind === "unsupported"
-                ? undefined
-                : SECRET_PROVIDER_KINDS[classified.kind];
+            const supported = classified.kind === "supported" ? classified : undefined;
             return (
               <SettingsRow
                 key={id}
                 title={
                   <span className="flex min-w-0 items-center gap-2">
-                    {kind ? (
-                      <kind.icon className="size-4.5 shrink-0 text-foreground/80" aria-hidden />
+                    {supported ? (
+                      <SecretProviderIcon
+                        kind={supported.definition.kind}
+                        className="size-4.5 shrink-0 text-foreground/80"
+                      />
                     ) : null}
                     <span className="min-w-0 wrap-anywhere">{config.label}</span>
                   </span>
                 }
                 description={
-                  classified.kind === "one_password" && kind ? (
-                    <span className="flex min-w-0 items-center gap-1">
-                      <span className="shrink-0">{kind.name} ·</span>
-                      <RedactedSensitiveText
-                        value={classified.account}
-                        ariaLabel="Toggle account visibility"
-                        revealTooltip="Click to reveal account"
-                        hideTooltip="Click to hide account"
-                        className="max-w-full truncate"
-                      />
-                    </span>
+                  supported === undefined ? (
+                    `Not supported by this version (${config.kind})`
+                  ) : supported.summary === undefined ? (
+                    supported.definition.label
                   ) : (
-                    `Unsupported provider (${config.kind})`
+                    <span className="flex min-w-0 items-center gap-1">
+                      <span className="shrink-0">{supported.definition.label} ·</span>
+                      {supported.summary.sensitive ? (
+                        <RedactedSensitiveText
+                          value={supported.summary.text}
+                          ariaLabel="Toggle account visibility"
+                          revealTooltip="Click to reveal account"
+                          hideTooltip="Click to hide account"
+                          className="max-w-full truncate"
+                        />
+                      ) : (
+                        <span className="max-w-full truncate">{supported.summary.text}</span>
+                      )}
+                    </span>
                   )
                 }
                 control={
                   !readOnly ? (
                     <div className="flex items-center gap-1">
-                      {kind ? (
+                      {supported ? (
                         <Button
                           size="xs"
                           variant="ghost"
@@ -183,6 +184,7 @@ function EnvironmentSecretProviders({
           onClose={() => setDialog(null)}
           environmentId={environmentId}
           environmentLabel={environment.label}
+          environmentOs={serverOs === "unknown" ? undefined : serverOs}
           existingIds={new Set(Object.keys(providers))}
           {...(editing === undefined ? {} : { existing: editing })}
         />
@@ -223,7 +225,7 @@ function RemoveSecretProviderButton({
                 onConfirm();
               }}
             >
-              Remove provider
+              Remove source
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

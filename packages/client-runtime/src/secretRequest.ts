@@ -3,6 +3,7 @@ import {
   secretRequestPageUrl,
   type OrchestrationV2TurnItem,
   type SecretProviderId,
+  type SecretProviderKind,
   type SecretRequestAnswerInput,
   type ServerConfig,
   type ServerSettings,
@@ -129,6 +130,7 @@ export function secretRequestDisplay(
 /** A configured secret provider a pending card can read its answer from. */
 export interface SecretRequestSource {
   readonly id: SecretProviderId;
+  readonly kind: SecretProviderKind;
   readonly label: string;
   readonly isReference: (reference: string) => boolean;
   readonly referencePlaceholder: string;
@@ -169,6 +171,7 @@ export function configuredSecretSources(
     return [
       {
         id,
+        kind: definition.kind,
         label: provider.label,
         isReference: definition.isReference,
         referencePlaceholder: definition.referencePlaceholder,

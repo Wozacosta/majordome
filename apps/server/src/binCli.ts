@@ -34,6 +34,7 @@ import { speechWorkerCommand } from "./cli/speechWorker.ts";
 import { claudeHistoryCommand } from "./cli/claudeHistory.ts";
 import { sshHelperCommand } from "./cli/sshHelper.ts";
 import { majordServiceCommand, majordStatusCommand } from "./cli/majord.ts";
+import { secretCommand } from "./cli/secret.ts";
 import { servicePreflightCommand } from "./cli/servicePreflight.ts";
 import { themeCommand } from "./cli/theme.ts";
 import { traceCommand } from "./cli/trace.ts";
@@ -93,6 +94,7 @@ export const makeCli = ({ cloudEnabled = hasCloudPublicConfig } = {}) =>
       // In place of T3 Code's `up`, `status`, `service` and `update`, which install its releases.
       majordStatusCommand,
       majordServiceCommand,
+      secretCommand,
       installCommand,
       uninstallCommand,
       // bin.ts runs the bare service invocation; this keeps flags and help working like other commands.

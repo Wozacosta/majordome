@@ -1,12 +1,13 @@
 import { expect, it } from "@effect/vitest";
 
 import {
-  BUILT_IN_SECRET_PROVIDER_DRIVER_LIST,
+  builtInSecretProviderDrivers,
   secretProviderDefinitions,
 } from "./secretProviderDefinitions.ts";
 
 it("runs a driver for every secret provider the server and clients read, in their order", () => {
-  expect(BUILT_IN_SECRET_PROVIDER_DRIVER_LIST.map((driver) => driver.definition)).toEqual(
-    secretProviderDefinitions.definitions,
-  );
+  const drivers = builtInSecretProviderDrivers({
+    encryptedFile: { directory: "/s", secretsPath: "/s/keys.age", keyPath: "/s/keys.agekey" },
+  });
+  expect(drivers.map((driver) => driver.definition)).toEqual(secretProviderDefinitions.definitions);
 });

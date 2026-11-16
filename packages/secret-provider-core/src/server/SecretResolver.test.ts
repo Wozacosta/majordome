@@ -39,7 +39,9 @@ function fakeDriver(
     definition: defineSecretProvider({
       kind: FAKE_KIND,
       label: "Fake",
+      description: "A fake store.",
       configSchema: FakeConfig,
+      configFields: [],
       isReference: (reference) => reference.startsWith("fake://"),
       referencePlaceholder: "fake://item",
       invalidReferenceMessage: "Use fake://item.",

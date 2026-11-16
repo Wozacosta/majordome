@@ -1,64 +1,177 @@
 # Secrets
 
-T3 Code can read credentials from a secret provider, so the credential stays in your password
-manager and T3 Code saves only a reference to it. Agents can also ask you for a secret in a
-private card instead of in the chat.
+Some things Majordome connects to need a key or a token: an AI provider, a voice service, a usage
+dashboard. You can paste the key into its field, or keep it somewhere safer and give Majordome only
+a _reference_ to it, such as `keychain://Majordome/openai`. Settings then hold the reference, never
+the key, and Majordome's server reads the key at the moment it needs it.
 
-The Secrets settings page is in preview and is not in every build yet. Secret requests from agents
-work everywhere.
+The place a reference points to is a **secret source**. You add sources in **Settings → Secrets**
+(under **Advanced**). Each server keeps its own list.
 
-## Secret providers
+## Which source to use
 
-1Password is the supported provider. T3 Code reads secrets with the
-[1Password CLI](https://developer.1password.com/docs/cli/) (`op`), so `op` must be installed and
-signed in on the machine that runs the T3 Code server. When you use T3 Code on another machine or
-from your phone, that is the remote machine, not the device in front of you.
+| Where Majordome's server runs          | Use                      | A reference looks like        |
+| -------------------------------------- | ------------------------ | ----------------------------- |
+| On your Mac                            | **Mac Keychain**         | `keychain://Majordome/openai` |
+| On an always-on server (Linux, a VPS)  | **Encrypted file**       | `secret://openai`             |
+| Anywhere, and you use 1Password        | **1Password**            | `op://vault/item/field`       |
+| Anywhere, and you use a team tool      | **Command**              | `exec://OPENAI_API_KEY`       |
+| In a container that is handed its keys | **Environment variable** | `env://OPENAI_API_KEY`        |
 
-A desktop sign-in asks for approval on that machine, which a remote user cannot answer. On a remote
-or headless server, sign `op` in with a [service account](./secrets-1password-service-account.md) or a
+"The server" is the computer that runs Majordome, which is not always the one in front of you. When
+you use Majordome from your phone, the secrets are read on your Mac or your always-on server.
+
+## Add a source and use it
+
+1. Open **Settings → Secrets** and select **Add source**.
+2. Choose where the secrets are and give the source a name, for example "My keys".
+3. Go to the field that needs the key, for example a provider's API key in
+   **Settings → Providers**. A small picker sits next to it. Change it from **Value** to your
+   source and enter the reference.
+4. Select the check button next to the reference. A tick means the server could read the secret.
+
+Majordome keeps what it read until the server restarts. After you change a secret, select the check
+button again, or **Refresh** in **Settings → Providers**, to use the new value.
+
+### Mac Keychain
+
+The Keychain is where your Mac already keeps passwords. Nothing to configure: add the source, then
+save each key as a Keychain item.
+
+- In **Keychain Access**, choose **File → New Password Item**. The **Keychain Item Name** and the
+  **Account Name** are the two halves of the reference: an item named `Majordome` with the account
+  `openai` is `keychain://Majordome/openai`.
+- Or in Terminal, which asks for the key without showing it or saving it in your history:
+
+  ```sh
+  security add-generic-password -U -s Majordome -a openai -w
+  ```
+
+A name can contain spaces. Write any `/` in a name as `%2F` and any `%` as `%25`.
+
+The first time Majordome reads an item you made in Keychain Access, macOS asks on that Mac whether
+to allow it. Choose **Always Allow**. Nobody can answer that question from a phone, so do the first
+check while you are at the Mac. The Keychain is locked while you are logged out of the Mac, and
+nothing can be read then.
+
+This source only works when Majordome's server is a Mac.
+
+### Encrypted file
+
+For a server with no Keychain. Majordome keeps your keys in one encrypted file in its data folder.
+You add them from the server's terminal, where the value is typed at a hidden prompt and never
+appears in a chat, in your shell history, or in a log:
+
+```sh
+majord secret set openai      # asks for the value
+majord secret list            # names only, never values
+majord secret remove openai
+```
+
+With the container image, put `docker compose exec -it majordome` in front of each command. To
+save a value from another program, pipe it in: `pass show openai | majord secret set openai`.
+Then enter `secret://openai` as the reference.
+
+**What the encryption protects, honestly.** The file is `userdata/secrets/integration-keys.age` in
+Majordome's data folder, encrypted with [age](https://age-encryption.org). The key that opens it is
+the file next to it, `integration-keys.agekey`. A server that runs unattended has nobody to type a
+passphrase, so the key has to be on the same disk. Both files can be read only by the user Majordome
+runs as. That means:
+
+- A copy of the encrypted file alone, in a backup or a synced folder, is useless to whoever finds
+  it.
+- Someone who can read the server's whole disk, or sign in as Majordome's user, has both files and
+  can read your keys. The Encrypted file does not protect against a server that is already broken
+  into. Nothing stored on that server can.
+- Lose the key file and the secrets are gone. Back up both files, in two different places if you
+  can, or be ready to save the keys again.
+
+You can open the file without Majordome: `age -d -i integration-keys.agekey integration-keys.age`.
+
+### 1Password
+
+Majordome reads from 1Password with the [1Password CLI](https://developer.1password.com/docs/cli/)
+(`op`), which must be installed and signed in on the server. When you add the source, enter the
+account: the shorthand, sign-in address (without `https://`), or ID that `op account list` shows.
+Copy a reference from 1Password with **Copy Secret Reference**.
+
+A desktop sign-in asks for approval on the server's screen, which you cannot answer from elsewhere.
+On an always-on server, sign `op` in with a
+[service account](./secrets-1password-service-account.md) or a
 [Connect server](./secrets-1password-connect.md) instead.
 
-To add one, open **Settings → Secrets**, select **Add provider**, and enter a name and the
-1Password account: the shorthand, sign-in address (without `https://`), or ID that
-`op account list` shows. Secret providers belong to the environment you are connected to. Each
-environment keeps its own list.
+### Command
 
-## Use a secret reference
+For Infisical, Doppler, `pass`, and other tools with a command that prints a secret. When you add
+the source you give the program and its fixed arguments, one per line. For each secret, Majordome
+runs the program with the name from the reference added as the last argument, and takes what it
+prints as the secret.
 
-Credential fields in Settings, such as provider environment variables and credentials, source
-control tokens, usage limit keys, and device host tokens, show a source picker next to the field.
-Pick **Value** to save the credential itself, or pick a secret provider and enter a reference such
-as `op://vault/item/field`. Copy the reference from 1Password with **Copy Secret Reference**.
-Select the check button next to a reference to read it now. If it reads, providers that use it
-start using the new value.
+| Tool      | Program     | Arguments                   | `exec://OPENAI_API_KEY` runs                   |
+| --------- | ----------- | --------------------------- | ---------------------------------------------- |
+| Infisical | `infisical` | `secrets`, `get`, `--plain` | `infisical secrets get --plain OPENAI_API_KEY` |
+| Doppler   | `doppler`   | `secrets`, `get`, `--plain` | `doppler secrets get --plain OPENAI_API_KEY`   |
+| pass      | `pass`      | `show`                      | `pass show OPENAI_API_KEY`                     |
 
-T3 Code reads the secret when it needs it, for example when a provider starts. Change the
-credential in 1Password and refresh to use the new value.
+- The tool must already be installed and signed in on the server, for the user Majordome runs as.
+- The program is run directly, not through a shell: quotes, `$VARIABLES`, pipes and `;` in the
+  arguments are passed to it as plain text. If you need those, write a small script and use it as
+  the program.
+- A name can use letters, digits, `.`, `_`, `-`, and `/` between parts, such as `work/openai`.
+- The program has ten seconds to answer. If it fails or takes longer, the secret reads as missing.
+  Majordome does not show the program's error text, because it can contain the secret. Run the
+  command yourself on the server to see what went wrong.
+- The program runs with everything Majordome's user can do, so only people you trust to manage the
+  server should be able to change **Settings → Secrets**.
+
+### Environment variable
+
+Reads a variable from the environment the server was started with, which is how containers are
+usually handed their keys (`environment:` in `docker-compose.yml`). No setup: add the source and
+enter `env://NAME`. A variable that is missing or empty reads as missing. Variables are read when
+they are needed, but they only change when the server restarts.
+
+This is the least private source. Programs Majordome starts can inherit the server's environment,
+and anyone who can inspect the container or the process can see it.
+
+## What the assistant can and cannot see
+
+- Settings, your notes and the conversation only ever hold the reference. Majordome's server reads
+  the secret itself and hands it to the service that needs it.
+- The check button reports only whether the secret could be read. The value is never sent to the
+  app, and errors never include it.
+- One exception to know about: a key you set as an **environment variable of an AI provider** in
+  **Settings → Providers** is given to that provider's program, because that is what the setting
+  means. Commands that program runs can read it.
 
 ## When a secret cannot be read
 
-If 1Password is locked or signed out, the provider or feature that needs the secret shows an error
-naming the secret provider. Unlock 1Password on the server's machine, then select **Refresh** in
-**Settings → Providers**. T3 Code never replaces a saved credential it cannot read with another
-login.
+The provider or feature that needs it shows an error naming the secret source, and the check button
+shows a warning. Majordome never replaces a secret it cannot read with another login. Fix the
+source, then select the check button, or **Refresh** in **Settings → Providers**:
 
-## Remove a secret provider
+- **Mac Keychain:** check the item's name and account, and that you allowed the read on the Mac.
+- **Encrypted file:** run `majord secret list` on the server. It says what is wrong with the file
+  or its key.
+- **1Password:** unlock or sign in to 1Password on the server.
+- **Command:** run the command yourself on the server, as Majordome's user.
+- **Environment variable:** restart the server after setting the variable.
 
-When you remove a secret provider in **Settings → Secrets**, T3 Code lists the fields that read
-from it. Removing it clears those fields, so set them again before you need them. The secrets in
-1Password are not touched.
+## Remove a source
 
-## When an agent asks for a secret
+When you remove a source in **Settings → Secrets**, Majordome lists the fields that read from it.
+Removing it clears those fields, so set them again before you need them. The secrets themselves are
+not touched.
 
-An agent that needs a token or password shows a secret request card in the thread instead of asking
+## When the assistant asks for a secret
+
+When the assistant needs a token or password, it shows a card in the conversation instead of asking
 you to paste it into the chat. Type or paste the value and select **Save securely**, or select
-**Decline**. You can answer from web, desktop, or mobile.
+**Decline**. If the server has a secret source, the card also lets you pick it and enter a reference
+instead. Majordome reads the secret once, when you answer; if it cannot be read, the card says so
+and stays open.
 
-If the environment has a secret provider, the card also lets you pick it and enter a reference
-instead of the value. T3 Code reads the secret once, when you answer. If 1Password is locked, the
-card says so and the request stays open: unlock it and try again, or enter the value.
-
-The value never appears in the conversation. Most requests keep it from the agent too: T3 Code
-passes it to the tool that needs it. When an agent has to run a command with the value, the card
-says so instead: the value goes into a private file that the agent's commands can read for about 24
-hours.
+The value never appears in the conversation. Most requests keep it from the assistant too: Majordome
+passes it to the tool that needs it. When the assistant has to run a command with the value, the
+card says so instead: the value goes into a private file that the assistant's commands can read for
+about 24 hours.

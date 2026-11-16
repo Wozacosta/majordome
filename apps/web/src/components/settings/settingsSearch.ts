@@ -1473,17 +1473,21 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "secret-providers",
-    title: "Secret providers",
+    title: "Secret sources",
     to: "/settings/secrets",
-    searchTerms: ["1password vault credentials api key"],
+    searchTerms: [
+      "secret providers keychain encrypted file 1password vault credentials api key token",
+    ],
     secretsFeatureOnly: true,
   },
   {
     id: "secret-providers-add",
-    title: "Add secret provider",
+    title: "Add secret source",
     to: "/settings/secrets",
     targetId: "secret-providers",
-    searchTerms: ["new 1password vault op cli account"],
+    searchTerms: [
+      "new secret provider keychain encrypted file command infisical doppler pass environment variable 1password op cli account",
+    ],
     secretsFeatureOnly: true,
   },
   {

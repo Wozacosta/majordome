@@ -13,6 +13,10 @@
   },
   "dependencies": {
     "@t3tools/secret-provider-core": "workspace:*",
+    "@t3tools/secret-provider-encrypted-file": "workspace:*",
+    "@t3tools/secret-provider-env": "workspace:*",
+    "@t3tools/secret-provider-exec": "workspace:*",
+    "@t3tools/secret-provider-keychain": "workspace:*",
     "@t3tools/secret-provider-onepassword": "workspace:*"
   }
 }

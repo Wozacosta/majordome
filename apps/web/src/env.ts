@@ -4,6 +4,7 @@ export const isElectron = typeof window !== "undefined" && window.desktopBridge 
 /** Majordome is a second brain, not a coding tool: T3 Code's git, terminal and pull request UI stays hidden. */
 export const isMajordome: boolean = true;
 
-export const isSecretsFeatureEnabled = ["1", "true"].includes(
-  import.meta.env.T3CODE_FEATURE_SECRETS?.trim().toLowerCase() ?? "",
-);
+/** T3 Code previews secret providers behind a build flag; Majordome always has them. */
+export const isSecretsFeatureEnabled =
+  isMajordome ||
+  ["1", "true"].includes(import.meta.env.T3CODE_FEATURE_SECRETS?.trim().toLowerCase() ?? "");
