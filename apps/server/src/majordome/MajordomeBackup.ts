@@ -85,7 +85,7 @@ import {
 } from "./vaultSync.ts";
 
 const SAVE_INTERVAL = "5 minutes";
-const GITHUB_TOKEN_SECRET = "majordome-github-token";
+export const GITHUB_TOKEN_SECRET = "majordome-github-token";
 // Nightly: the first save cycle of a new day from this hour on.
 const NIGHTLY_FROM_HOUR = 2;
 const MIN_PASSPHRASE_LENGTH = 8;

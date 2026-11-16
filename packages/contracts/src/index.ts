@@ -72,6 +72,7 @@ export * from "./majordomeConnectors.ts";
 export * from "./majordomeNotesSearch.ts";
 export * from "./majordomePrivateDocuments.ts";
 export * from "./majordomeTopics.ts";
+export * from "./majordomeServerMove.ts";
 export * from "./worktreeMcp.ts";
 export * from "./resourceTelemetry.ts";
 export * from "./rpc.ts";

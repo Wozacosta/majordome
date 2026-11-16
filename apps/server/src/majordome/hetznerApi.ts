@@ -51,12 +51,11 @@ const REASON_MESSAGES: Record<HetznerErrorReason, string> = {
   failed: "Hetzner could not do that.",
 };
 
-/** `code` and `status` are Hetzner's own; the key never appears in any field. */
+/** `code` and `status` are Hetzner's own. There is no `cause`: requests and answers hold secrets. */
 export class HetznerError extends Schema.TaggedError<HetznerError>()("HetznerError", {
   reason: HetznerErrorReason,
   code: Schema.optional(Schema.String),
   status: Schema.optional(Schema.Number),
-  cause: Schema.optional(Schema.Defect()),
 }) {
   override get message(): string {
     const base = REASON_MESSAGES[this.reason];
@@ -239,9 +238,8 @@ const send = Effect.fn("majordome.hetzner.send")(function* (
 
 const decode = <S extends Schema.Decoder<unknown>>(schema: S, json: unknown) =>
   Schema.decodeUnknownEffect(schema)(json).pipe(
-    Effect.mapError(
-      (cause) => new HetznerError({ reason: "failed", code: "unexpected_answer", cause }),
-    ),
+    // An answer can hold a new server's root password, so the parse error is not kept either.
+    Effect.mapError(() => new HetznerError({ reason: "failed", code: "unexpected_answer" })),
   );
 
 /** Every page of a list, by `meta.pagination.next_page`. */

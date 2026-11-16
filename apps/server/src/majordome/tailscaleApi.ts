@@ -16,7 +16,7 @@ const RATE_LIMIT_RETRIES = 3;
 const RATE_LIMIT_WAIT = Duration.seconds(10);
 
 /** The tag every server Majordome sets up carries; an OAuth client can only add tagged devices. */
-const MAJORDOME_TAG = "tag:majordome";
+export const MAJORDOME_TAG = "tag:majordome";
 
 const CLIENT_SECRET_PATTERN = /^tskey-client-([A-Za-z0-9]+)-[A-Za-z0-9]+$/;
 
@@ -37,22 +37,21 @@ export type TailscaleApiErrorReason = typeof TailscaleApiErrorReason.Type;
 const REASON_MESSAGES: Record<TailscaleApiErrorReason, string> = {
   "bad-credential":
     "Tailscale does not accept this secret. Make a new OAuth credential and paste its secret again.",
-  "missing-scope": "The Tailscale credential is not allowed to do this.",
-  "bad-tag": `The Tailscale credential can't use the tag ${MAJORDOME_TAG}.`,
+  "missing-scope": `The Tailscale credential is missing a permission. Make a new OAuth credential with Auth Keys and Devices > Core both set to Write, each for the tag ${MAJORDOME_TAG}, and paste its secret.`,
+  "bad-tag": `The Tailscale credential can't use the tag ${MAJORDOME_TAG}. In Tailscale's Access controls, open Tags and create a tag named majordome, then make the OAuth credential again with that tag.`,
   "rate-limited": "Tailscale asked Majordome to slow down. Try again in a few minutes.",
   "not-found": "Tailscale no longer has that.",
   unreachable: "Could not reach Tailscale. Check this computer's internet connection.",
   failed: "Tailscale could not do that.",
 };
 
-/** `detail` is Tailscale's own short answer; the secret and tokens never appear in any field. */
+/** `detail` is Tailscale's own short answer. There is no `cause`: requests and answers hold secrets. */
 export class TailscaleApiError extends Schema.TaggedError<TailscaleApiError>()(
   "TailscaleApiError",
   {
     reason: TailscaleApiErrorReason,
     status: Schema.optional(Schema.Number),
     detail: Schema.optional(Schema.String),
-    cause: Schema.optional(Schema.Defect()),
   },
 ) {
   override get message(): string {
@@ -129,9 +128,8 @@ const send = Effect.fn("majordome.tailscale.send")(function* (
 
 const decode = <S extends Schema.Decoder<unknown>>(schema: S, json: unknown) =>
   Schema.decodeUnknownEffect(schema)(json).pipe(
-    Effect.mapError(
-      (cause) => new TailscaleApiError({ reason: "failed", detail: "unexpected answer", cause }),
-    ),
+    // An answer can hold a new key, so the parse error is not kept either.
+    Effect.mapError(() => new TailscaleApiError({ reason: "failed", detail: "unexpected answer" })),
   );
 
 const notFoundIsDone = <R>(effect: Effect.Effect<unknown, TailscaleApiError, R>) =>

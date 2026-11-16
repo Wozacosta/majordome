@@ -5,7 +5,8 @@
 services:
   tailscale:
     image: tailscale/tailscale:v1.104.7
-    hostname: majordome
+    # The name on your Tailscale network; "Set up a server for me" picks one that is free.
+    hostname: ${MAJORDOME_HOSTNAME:-majordome}
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY:?Put TS_AUTHKEY=tskey-auth-... in .env next to this file}
       TS_STATE_DIR: /var/lib/tailscale

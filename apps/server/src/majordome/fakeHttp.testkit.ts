@@ -12,6 +12,8 @@ export interface SentRequest {
   readonly route: string;
   readonly headers: Readonly<Record<string, string>>;
   readonly body: string;
+  /** "Uint8Array" for a body held in memory, "Stream" for a file being uploaded. */
+  readonly bodyTag: string;
   /** The body as JSON, or null when it is not JSON. */
   readonly json: unknown;
   readonly at: number;
@@ -20,6 +22,8 @@ export interface SentRequest {
 export interface FakeReply {
   readonly status?: number;
   readonly body?: unknown;
+  /** A binary answer, in place of `body`. */
+  readonly bytes?: Uint8Array;
   readonly headers?: Record<string, string>;
 }
 
@@ -49,6 +53,7 @@ export function fakeHttp(handle: (sent: SentRequest) => FakeReply | Effect.Effec
         route: `${request.method} ${url.host}${url.pathname}`,
         headers: request.headers,
         body,
+        bodyTag: request.body._tag,
         json: parseJson(body),
         at: yield* Clock.currentTimeMillis,
       };
@@ -56,9 +61,15 @@ export function fakeHttp(handle: (sent: SentRequest) => FakeReply | Effect.Effec
       const answer = handle(sent);
       const reply = Effect.isEffect(answer) ? yield* answer : answer;
       const status = reply.status ?? 200;
+      const content =
+        reply.bytes !== undefined
+          ? new Uint8Array(reply.bytes)
+          : reply.body === undefined || status === 204
+            ? null
+            : encodeBody(reply.body);
       return HttpClientResponse.fromWeb(
         request,
-        new Response(reply.body === undefined || status === 204 ? null : encodeBody(reply.body), {
+        new Response(content, {
           status,
           headers: { "content-type": "application/json", ...reply.headers },
         }),
