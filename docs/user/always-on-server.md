@@ -2,13 +2,96 @@
 
 Majordome runs on your computer by default, so routines like "Start my day" only run while it is
 awake. An always-on server is a small computer you rent that never sleeps. Majordome runs there
-the same way, and your phone and computer connect to it. The same guide, with copy buttons, is in
-**Settings > Always-on server**.
+the same way, and your phone and computer connect to it.
 
-You need a GitHub backup of your notes (**Settings > Back up my brain > Connect GitHub**) and a
-Tailscale account (the one **Your phone** set up).
+**Settings > Always-on server** sets one up for you. You need a Tailscale account (the one **Your
+phone** set up) with HTTPS turned on, and an account at [Hetzner](https://www.hetzner.com/cloud),
+the company the server is rented from.
 
-## Move to a server
+## Set up a server for me
+
+You paste two keys once, press one button, and sign in to Claude on the new server. It takes about
+ten minutes.
+
+### What it costs
+
+Hetzner bills you directly, each month, for the server and its address: about €5 for the smallest
+one that fits. The exact price for the place you choose is read from Hetzner and shown before you
+start. Majordome charges nothing. The server is billed for as long as it exists, running or not,
+until you remove it.
+
+### The Hetzner key
+
+1. Open the [Hetzner Console](https://console.hetzner.com/) and sign in, or create an account.
+2. Create a project named Majordome and open it.
+3. In the left menu choose **Security**, then **API tokens**, then **Generate API token**.
+4. Name it Majordome, choose **Read & Write**, and generate it.
+5. Copy the token and paste it in Majordome. Hetzner shows it only once.
+
+The key can do anything inside that one Hetzner project and nothing outside it, which is why it
+gets a project of its own. Majordome uses it to create and remove this server and its firewall. To
+take it back, delete the token on the same Hetzner page.
+
+### The Tailscale secret
+
+1. In Tailscale's [Access controls](https://login.tailscale.com/admin/acls), choose **Tags**, then
+   **Create tag**. Name it `majordome` and save.
+2. Open [Trust credentials](https://login.tailscale.com/admin/settings/trust-credentials), choose
+   **Credential**, then **OAuth**.
+3. Set **Auth Keys** to **Write** and **Devices > Core** to **Write**, and for each choose the tag
+   `tag:majordome`. Leave everything else off.
+4. Generate the credential, copy its secret (it starts with `tskey-client-`) and paste it in
+   Majordome. Tailscale shows it only once.
+
+The secret lets Majordome add a server tagged `majordome` to your Tailscale network and remove it.
+It cannot read your traffic or change your settings. To take it back, revoke the credential on the
+Trust credentials page.
+
+If you changed Tailscale's access rules from the default, add a rule that lets your devices reach
+`tag:majordome`; with the default rules there is nothing to do.
+
+### Start
+
+**Check** confirms both keys work and says exactly what is missing if one doesn't. Choose where the
+server should be (the nearest place is preselected) and press **Set up a server for me**.
+
+Majordome then creates the server, adds it to your Tailscale network, connects to it and copies
+your notes with their whole history. Each step shows as it happens. If one fails, it says why and
+offers **Try again**; **Stop** removes what was made so nothing is billed.
+
+Nothing on the server is reachable from the internet, only from your own devices: its firewall
+drops every incoming connection, and Majordome answers only on your Tailscale network.
+
+### Finish
+
+- **Sign in to Claude on the server.** Sign-ins are not copied from your computer: each machine has
+  its own. The screen links to the server's Providers page ([below](#sign-in-to-claude-and-chatgpt-on-the-server)).
+- **Move routines now.** Routines stay on your computer until the server is signed in and can run
+  them. Routines you set up by talking to the assistant do not move by themselves: ask the
+  assistant on the server to set them up again. The check names them before you start.
+- **Add it to your phone** with the code the screen shows.
+
+If your notes are backed up to GitHub, the server signs in to the same backup, and your computer's
+copy stays in step with it. Without a GitHub backup your computer's copy stops following the
+server's once routines run there: connect GitHub in **Back up my brain** first if you edit notes on
+both.
+
+Majordome keeps the two keys on your computer, never in your notes. **Forget these keys** deletes
+them; removing the server later asks for them again.
+
+### Remove this server
+
+**Remove this server** copies the notes changed on the server back to your computer, moves routines
+back, then deletes the server and its firewall at Hetzner and its entry in Tailscale, and lists what
+it did. Hetzner stops billing it. Majordome only ever deletes the server it created.
+
+If the server can't be reached, Majordome asks before removing it: notes changed there since the
+move would be lost.
+
+## Do it by hand
+
+For any other provider, or if you prefer a terminal. You need a GitHub backup of your notes
+(**Settings > Back up my brain > Connect GitHub**).
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.
@@ -98,15 +181,22 @@ connectors; it can't see those of other providers. **Check again** asks each mac
 
 ## Update
 
+On a server set up by hand:
+
 ```bash
 cd majordome
 docker compose pull && docker compose up -d
 ```
 
+A server Majordome set up runs the version your computer had that day and has no terminal to log in
+to. To update it, remove it and set it up again: your notes come back to your computer first.
+
 Your notes, sign-ins and settings live in Docker volumes and survive updates. `docker compose down`
 stops Majordome and keeps them; `docker compose down -v` deletes them.
 
 ## If something goes wrong
+
+These are for a server set up by hand; one Majordome set up says what went wrong on its screen.
 
 - **No code, or it expired:** run `docker compose exec majordome majord pair` again.
 - **See what the server is doing:** `docker compose logs -f majordome`.

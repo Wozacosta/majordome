@@ -26,6 +26,7 @@ import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProcessRunner from "../processRunner.ts";
+import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { fakeHttp, type FakeReply, type SentRequest } from "./fakeHttp.testkit.ts";
 import { GITHUB_TOKEN_SECRET } from "./MajordomeBackup.ts";
@@ -460,7 +461,11 @@ type World = ReturnType<typeof fakeWorld>;
 const startService = Effect.fn("test.startService")(function* (
   world: World,
   vaultRoot: string,
-  options?: { readonly tailscale?: TailscaleStatus | "not-installed" | "unreadable" },
+  options?: {
+    readonly tailscale?: TailscaleStatus | "not-installed" | "unreadable";
+    /** Scheduled tasks on this computer, as the scheduler lists them. */
+    readonly tasks?: ReadonlyArray<unknown>;
+  },
 ) {
   const ranHere: Array<ProjectId> = [];
   const service = yield* MajordomeServerMove.make({
@@ -480,6 +485,9 @@ const startService = Effect.fn("test.startService")(function* (
         }),
         Layer.mock(MajordomeRoutines.MajordomeRoutines)({
           runHere: (id) => Effect.sync(() => void ranHere.push(id)),
+        }),
+        Layer.mock(ScheduledTaskService.ScheduledTaskService)({
+          list: () => Effect.succeed({ tasks: options?.tasks ?? [] } as never),
         }),
         Layer.mock(ServerEnvironment.ServerEnvironment)({
           getEnvironmentId: Effect.succeed(HERE),
@@ -981,8 +989,21 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
     Effect.gen(function* () {
       const vault = yield* makeVault();
       const world = fakeWorld();
+      const routine = (id: string, title: string, type: string, enabled = true) => ({
+        id,
+        title,
+        projectId,
+        enabled,
+        schedule: { type },
+      });
       const { service } = yield* startService(world, vault.root, {
         tailscale: { ...signedIn, httpsServeEnabled: false },
+        tasks: [
+          routine(`majordome:${projectId}:start-my-day`, "Start my day", "fixed_time"),
+          routine("task-1", "Water the plants", "fixed_time"),
+          routine("task-2", "Call the dentist", "once"),
+          routine("task-3", "Old routine", "interval", false),
+        ],
       });
       const messages = (check: { problems: ReadonlyArray<{ area: string; message: string }> }) =>
         check.problems.map((problem) => `${problem.area}: ${problem.message}`);
@@ -994,6 +1015,12 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
         "tailscale: Paste your Tailscale secret.",
       ]);
       assert.deepStrictEqual(nothing.locations, []);
+      // Only the owner's own repeating routine is called out: defaults are remade over there.
+      assert.match(
+        nothing.notices.join("\n"),
+        /One routine you set up by talking to the assistant \(Water the plants\) will not move by itself/,
+      );
+      assert.notMatch(nothing.notices.join("\n"), /Start my day|Call the dentist|Old routine/);
 
       yield* saveKeys(service);
       world.hetzner.createFirewall = hetznerError(403, "forbidden");

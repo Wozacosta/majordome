@@ -50,6 +50,7 @@ import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProcessRunner from "../processRunner.ts";
+import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import {
   createFirewall,
@@ -322,6 +323,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
   const vaultLock = yield* VaultLock.VaultLock;
   const activeRuns = yield* VaultActiveRuns.VaultActiveRuns;
   const routines = yield* MajordomeRoutines.MajordomeRoutines;
+  const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const random = yield* SecureRandom.SecureRandom;
   const git = yield* GitVcsDriver.GitVcsDriver;
@@ -567,6 +569,28 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
           "Your notes are backed up with a key that only this computer has, so the server will not send its changes to that backup. Connect GitHub in Back up my brain to keep both in step.",
         );
       }
+    }
+
+    // Majordome's own routines are remade on the server; ones the assistant set up live in
+    // this server's database and stay behind, where the run gate then holds them back.
+    const ownRoutines = (yield* scheduledTasks
+      .list()
+      .pipe(Effect.orElseSucceed(() => ({ tasks: [] })))).tasks.filter(
+      (task) =>
+        task.projectId === input.projectId &&
+        task.enabled &&
+        task.schedule.type !== "once" &&
+        !task.id.startsWith("majordome:"),
+    );
+    if (ownRoutines.length > 0) {
+      notices.push(
+        `${ownRoutines.length === 1 ? "One routine" : `${ownRoutines.length} routines`} you set up by talking to the assistant (${ownRoutines
+          .slice(0, 3)
+          .map((task) => task.title)
+          .join(
+            ", ",
+          )}) will not move by ${ownRoutines.length === 1 ? "itself" : "themselves"}. Once routines run on the server, ask the assistant there to set ${ownRoutines.length === 1 ? "it" : "them"} up again.`,
+      );
     }
 
     const local = yield* localTailscale;
