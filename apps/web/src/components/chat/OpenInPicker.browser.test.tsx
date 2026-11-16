@@ -18,6 +18,11 @@ const state = vi.hoisted(() => ({
   listeners: new Set<() => void>(),
 }));
 
+// Majordome hides the open-in-editor shortcut; these tests cover T3 Code's coding UI.
+vi.mock(import("../../env"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  isMajordome: false,
+}));
 vi.mock(import("../../state/session"), async (importOriginal) => {
   const { useSyncExternalStore } = await import("react");
   const readEnvironmentScope = (environmentId: string, scope: string) =>
