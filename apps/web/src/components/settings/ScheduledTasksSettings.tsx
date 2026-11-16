@@ -146,6 +146,8 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { PageHeader } from "../majordome/paper";
+import { RoutineEntry, ROUTINES_INSET_CLASS } from "../majordome/RoutineEntry";
 import { RoutineLimitsSection } from "../majordome/RoutineLimits";
 import { searchableSetting } from "./settingsSearch";
 import {
@@ -435,25 +437,34 @@ export function ScheduledTasksSettings(target: {
     permittedEnvironments.find(
       (entry) => entry.environmentId === defaultEnvironment?.environmentId,
     ) ?? permittedEnvironments[0];
+  const newTask = (
+    <Button
+      size="xs"
+      variant="ghost-muted"
+      disabled={!creationEnvironment}
+      onClick={() =>
+        creationEnvironment &&
+        setEditor({ environmentId: creationEnvironment.environmentId, task: null })
+      }
+    >
+      <PlusIcon className="size-3" />
+      New task
+    </Button>
+  );
+  const searchTarget = searchableSetting("scheduled-tasks");
   return (
     <SettingsPageContainer>
+      {/* Majordome's Routines screen has a page title; the section's own heading would repeat it. */}
+      {isMajordome ? (
+        <div className={ROUTINES_INSET_CLASS}>
+          <PageHeader title={searchTarget.title} action={newTask} />
+        </div>
+      ) : null}
       <SettingsSection
-        {...searchableSetting("scheduled-tasks")}
+        {...searchTarget}
         variant="plain"
-        headerAction={
-          <Button
-            size="xs"
-            variant="ghost-muted"
-            disabled={!creationEnvironment}
-            onClick={() =>
-              creationEnvironment &&
-              setEditor({ environmentId: creationEnvironment.environmentId, task: null })
-            }
-          >
-            <PlusIcon className="size-3" />
-            New task
-          </Button>
-        }
+        hideTitle={isMajordome}
+        headerAction={newTask}
       >
         {scope.kind === "unavailable" ? (
           <SettingsSection title="Unavailable selection">
@@ -500,6 +511,9 @@ export function ScheduledTasksSettings(target: {
     </SettingsPageContainer>
   );
 }
+
+// Majordome lists routines as hairline entries, so their group is not a bordered card.
+const ROUTINES_GROUP_VARIANT = isMajordome ? "plain" : "grouped";
 
 const scheduledTaskCreatePermissionsAtom = environmentAtomList(
   "web-scheduled-task-create-permissions",
@@ -567,7 +581,7 @@ function ScheduledTaskEnvironmentList({
   }
 
   return (
-    <SettingsGroup>
+    <SettingsGroup variant={ROUTINES_GROUP_VARIANT}>
       {populated.map(({ environment, tasks, timeZone }) => {
         const { primary, secondary } = settingsScopeEnvironmentLabels(environment, environments);
         return (
@@ -681,6 +695,7 @@ function ScheduledTaskEnvironmentSection({
     <SettingsSection
       title={environment.label}
       hideTitle
+      variant={ROUTINES_GROUP_VARIANT}
       icon={
         <EnvironmentMachineIcon
           kind={resolveEnvironmentMachineKind(environment.serverConfig)}
@@ -781,90 +796,106 @@ function ScheduledTaskRow({
       );
     }
   };
-  return (
+  const schedule = (
+    <span>
+      {scheduleLabel(task.schedule, timeZone, task.nextRunAt)} ·{" "}
+      {task.blockedByPolicy !== undefined ? (
+        task.blockedByPolicy
+      ) : !task.enabled ? (
+        "Paused"
+      ) : isWebhook ? (
+        "Listening"
+      ) : task.nextRunAt ? (
+        <>
+          Next run <ScheduledRelativeLabel value={task.nextRunAt} />
+        </>
+      ) : (
+        "Not scheduled"
+      )}
+    </span>
+  );
+  const threadLink =
+    task.threadId !== null && scheduledTaskThreadMode(task) !== "new_thread" ? (
+      <ScheduledTaskThreadLink environmentId={environmentId} threadId={task.threadId} />
+    ) : null;
+  const control = (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={task.enabled}
+        disabled={busy || !canOperate}
+        aria-label={`Enable ${task.title}`}
+        onCheckedChange={() => void act("toggle")}
+      />
+      <Menu>
+        <MenuTrigger
+          render={
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              disabled={busy || !canOperate}
+              aria-label={`Actions for ${task.title}`}
+            />
+          }
+        >
+          <MoreHorizontalIcon className="size-4" />
+        </MenuTrigger>
+        <MenuPopup align="end">
+          <MenuItem onClick={onEdit}>
+            <PencilIcon />
+            Edit
+          </MenuItem>
+          {isWebhook ? (
+            <MenuItem onClick={() => setDeliveriesOpen(true)}>
+              <InboxIcon />
+              Deliveries
+            </MenuItem>
+          ) : (
+            <MenuItem onClick={() => void act("run")}>
+              <PlayIcon />
+              Run now
+            </MenuItem>
+          )}
+          <MenuSeparator />
+          <MenuItem onClick={() => void act("delete")}>
+            <Trash2Icon />
+            Delete
+          </MenuItem>
+        </MenuPopup>
+      </Menu>
+      {deliveriesOpen ? (
+        <WebhookDeliveriesDialog
+          environmentId={environmentId}
+          task={task}
+          onClose={() => setDeliveriesOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+  return isMajordome ? (
+    <RoutineEntry
+      title={task.title}
+      prompt={task.prompt}
+      schedule={schedule}
+      lastRunStatus={task.lastRunStatus}
+      lastRunError={task.lastRunError}
+      threadLink={threadLink}
+      controls={control}
+    />
+  ) : (
     <SettingsRow
       title={task.title}
       description={<span className="line-clamp-2">{task.prompt}</span>}
       status={
         <div className="flex flex-wrap items-center gap-2">
-          <span>
-            {scheduleLabel(task.schedule, timeZone, task.nextRunAt)} ·{" "}
-            {task.blockedByPolicy !== undefined ? (
-              task.blockedByPolicy
-            ) : !task.enabled ? (
-              "Paused"
-            ) : isWebhook ? (
-              "Listening"
-            ) : task.nextRunAt ? (
-              <>
-                Next run <ScheduledRelativeLabel value={task.nextRunAt} />
-              </>
-            ) : (
-              "Not scheduled"
-            )}
-          </span>
+          {schedule}
           {task.lastRunStatus !== "never" ? (
             <Badge variant={statusVariant(task.lastRunStatus)}>{task.lastRunStatus}</Badge>
           ) : null}
-          {task.threadId !== null && scheduledTaskThreadMode(task) !== "new_thread" ? (
-            <ScheduledTaskThreadLink environmentId={environmentId} threadId={task.threadId} />
-          ) : null}
+          {threadLink}
           {task.lastRunError ? <span className="text-destructive">{task.lastRunError}</span> : null}
         </div>
       }
-      control={
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={task.enabled}
-            disabled={busy || !canOperate}
-            aria-label={`Enable ${task.title}`}
-            onCheckedChange={() => void act("toggle")}
-          />
-          <Menu>
-            <MenuTrigger
-              render={
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  disabled={busy || !canOperate}
-                  aria-label={`Actions for ${task.title}`}
-                />
-              }
-            >
-              <MoreHorizontalIcon className="size-4" />
-            </MenuTrigger>
-            <MenuPopup align="end">
-              <MenuItem onClick={onEdit}>
-                <PencilIcon />
-                Edit
-              </MenuItem>
-              {isWebhook ? (
-                <MenuItem onClick={() => setDeliveriesOpen(true)}>
-                  <InboxIcon />
-                  Deliveries
-                </MenuItem>
-              ) : (
-                <MenuItem onClick={() => void act("run")}>
-                  <PlayIcon />
-                  Run now
-                </MenuItem>
-              )}
-              <MenuSeparator />
-              <MenuItem onClick={() => void act("delete")}>
-                <Trash2Icon />
-                Delete
-              </MenuItem>
-            </MenuPopup>
-          </Menu>
-          {deliveriesOpen ? (
-            <WebhookDeliveriesDialog
-              environmentId={environmentId}
-              task={task}
-              onClose={() => setDeliveriesOpen(false)}
-            />
-          ) : null}
-        </div>
-      }
+      control={control}
     />
   );
 }

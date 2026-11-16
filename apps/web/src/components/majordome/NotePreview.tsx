@@ -13,7 +13,9 @@ import { PreviewImage } from "../files/PreviewImage";
 import { useProjectFileQuery } from "../files/projectFilesQueryState";
 import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { Spinner } from "../ui/spinner";
+import { cn } from "../../lib/utils";
 import { type notesLink, noteKind, type NotesVault, vaultLinkTarget } from "./notes.logic";
+import { READING_MEASURE_CLASS } from "./paper";
 import {
   resolveWikiTarget,
   rewriteWikiLinks,
@@ -40,6 +42,17 @@ function absoluteVaultPath(vault: NotesVault, path: string): string {
 }
 
 type NoteLink = (path: string) => ReturnType<typeof notesLink>;
+
+/**
+ * A note reads as a page: a comfortable measure, larger text and serif headings. The sizes are
+ * marked important because the markdown stylesheet sets its headings outside Tailwind's layers.
+ */
+const NOTE_READING_CLASS = cn(
+  READING_MEASURE_CLASS,
+  "mx-auto px-5 py-8 text-base leading-relaxed sm:px-8",
+  "[&_:is(h1,h2,h3,h4,h5,h6)]:font-serif [&_:is(h1,h2,h3)]:font-medium! [&_:is(h1,h2,h3)]:tracking-tight",
+  "[&_h1]:text-3xl! [&_h2]:mt-8! [&_h2]:text-2xl! [&_h3]:mt-6! [&_h3]:text-xl! [&_:is(h4,h5,h6)]:text-base!",
+);
 
 /**
  * One note, image or document from the vault, shown as it reads; nothing here edits it. A new
@@ -203,6 +216,7 @@ function MarkdownNote({
         threadRef={scopeThreadRef(vault.environmentId, NOTES_THREAD_ID)}
         workspaceMutationId={null}
         renderContextReference={renderWikiLink}
+        className={NOTE_READING_CLASS}
       />
     </div>
   );

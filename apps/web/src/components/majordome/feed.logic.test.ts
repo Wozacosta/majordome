@@ -23,6 +23,7 @@ import {
   ownDayLine,
   stoppedRunKeys,
   summarizeFeedFiles,
+  withDayHeadings,
 } from "./feed.logic";
 
 const entry = (
@@ -466,5 +467,13 @@ describe("foldOwnChanges", () => {
       "r1",
       "You edited 2 notes on Tue 3 Nov (o1)",
     ]);
+    // One heading where each day starts.
+    expect(
+      withDayHeadings(
+        timeline,
+        (row) => (row.kind === "own-day" ? row.at : row.item.entry.committedAt),
+        NOW,
+      ).map(({ day }) => day),
+    ).toEqual(["Today", null, "Yesterday", "Tue 3 Nov", null]);
   });
 });

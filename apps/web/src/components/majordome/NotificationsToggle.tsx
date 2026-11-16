@@ -13,6 +13,7 @@ import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
+import { Muted, SwitchLabel } from "./paper";
 import type { DevicePushSupport } from "./phone.logic";
 import {
   readDeviceLabel,
@@ -136,11 +137,10 @@ export type DevicePush = ReturnType<typeof useDevicePush>;
 export function NotificationsToggle({ push }: { readonly push: DevicePush }) {
   const on = push.endpoint != null;
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm">
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-x-3">
+        <SwitchLabel>
           <Switch
-            size="sm"
             checked={on}
             disabled={
               push.busy || !push.canSave || push.endpoint === undefined || (!on && !push.ready)
@@ -149,7 +149,7 @@ export function NotificationsToggle({ push }: { readonly push: DevicePush }) {
           />
           Notifications on this device
           {push.busy ? <Spinner size="sm" /> : null}
-        </label>
+        </SwitchLabel>
         {on ? (
           <Button size="xs" variant="outline" onClick={() => void push.test()}>
             Send a test
@@ -157,9 +157,9 @@ export function NotificationsToggle({ push }: { readonly push: DevicePush }) {
         ) : null}
       </div>
       {push.canSave ? null : (
-        <p className="text-sm text-muted-foreground">
+        <Muted>
           This device was paired without permission to run things, so it can't turn this on.
-        </p>
+        </Muted>
       )}
     </div>
   );

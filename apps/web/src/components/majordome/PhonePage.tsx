@@ -13,7 +13,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import * as DateTime from "effect/DateTime";
 import { AsyncResult } from "effect/reactivity";
-import { CircleCheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -40,6 +39,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import { Muted, READING_MEASURE_CLASS, Section, StatusLine, Step, Steps, Surface } from "./paper";
 import { readIsOnPhone } from "./pushNotifications";
 
 const TAILSCALE_DOWNLOAD_URL = "https://tailscale.com/download";
@@ -61,33 +61,17 @@ export function PhonePage() {
 
 function OnPhone() {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <CircleCheckIcon className="size-4 text-success-foreground" aria-hidden />
-        You're on your phone
-      </h2>
-      <p className="text-sm text-muted-foreground">
+    <Section>
+      <StatusLine tone="ok">You're on your phone</StatusLine>
+      <Muted className="mt-2">
         Majordome is set up here. Choose what reaches this phone in{" "}
         <Link to="/settings/notifications" className="underline underline-offset-2">
           Notifications
         </Link>
         .
-      </p>
-    </section>
+      </Muted>
+    </Section>
   );
-}
-
-function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium text-foreground">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function Steps({ children }: { readonly children: ReactNode }) {
-  return <ol className="m-0 flex list-decimal flex-col gap-2 ps-5 text-sm">{children}</ol>;
 }
 
 function ExternalLink({ href, children }: { readonly href: string; readonly children: ReactNode }) {
@@ -106,7 +90,7 @@ function PhoneSetupSection({ environmentId }: { readonly environmentId: Environm
 
   return (
     <>
-      <Section title="Use Majordome on your phone">
+      <Section label="Use Majordome on your phone">
         {setup === null ? (
           result._tag === "Failure" ? (
             <p className="text-sm text-destructive-foreground">
@@ -125,21 +109,21 @@ function PhoneSetupSection({ environmentId }: { readonly environmentId: Environm
         )}
       </Section>
       {setup === null ? null : (
-        <Section title="Same Wi-Fi only (no notifications)">
+        <Section label="Same Wi-Fi only (no notifications)">
           {setup.wifiUrls.length > 0 ? (
             <>
-              <p className="text-sm text-muted-foreground">
+              <Muted className={READING_MEASURE_CLASS}>
                 When your phone is on the same Wi-Fi as this computer, it can open Majordome without
                 Tailscale. Phones can't get notifications this way, and it stops working away from
                 home.
-              </p>
+              </Muted>
               <PairingCode environmentId={environmentId} baseUrl={setup.wifiUrls[0]!} />
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <Muted className={READING_MEASURE_CLASS}>
               This computer only accepts connections from itself right now, so Wi-Fi pairing is off.
               Use the secure address above instead.
-            </p>
+            </Muted>
           )}
         </Section>
       )}
@@ -159,22 +143,16 @@ function SecureAddressSteps({
   readonly checking: boolean;
 }) {
   const checkAgain = (
-    <Button
-      size="xs"
-      variant="outline"
-      className="w-fit"
-      disabled={checking}
-      onClick={onCheckAgain}
-    >
+    <Button size="xs" variant="outline" disabled={checking} onClick={onCheckAgain}>
       {checking ? <Spinner size="sm" /> : null}
       Check again
     </Button>
   );
   const intro = (
-    <p className="text-sm text-muted-foreground">
+    <Muted className={READING_MEASURE_CLASS}>
       Your phone reaches Majordome through Tailscale, a free app that links your own devices
       privately. It gives this computer a secure address, which iPhone needs for notifications.
-    </p>
+    </Muted>
   );
 
   switch (setup.tailscale) {
@@ -182,60 +160,60 @@ function SecureAddressSteps({
       return (
         <>
           {intro}
-          <Steps>
-            <li>
+          <Steps className="mt-3">
+            <Step>
               Install Tailscale on this computer from{" "}
               <ExternalLink href={TAILSCALE_DOWNLOAD_URL}>tailscale.com/download</ExternalLink>,
               open it and sign in.
-            </li>
-            <li>
+            </Step>
+            <Step>
               Install Tailscale on your phone from the App Store or Google Play, and sign in with
               the same account.
-            </li>
-            <li>Come back here and check again.</li>
+            </Step>
+            <Step>Come back here and check again.</Step>
           </Steps>
-          {checkAgain}
+          <div className="mt-1">{checkAgain}</div>
         </>
       );
     case "signed-out":
       return (
         <>
           {intro}
-          <Steps>
-            <li>Open Tailscale on this computer, sign in and make sure it is connected.</li>
-            <li>Sign in to Tailscale on your phone with the same account.</li>
-            <li>Come back here and check again.</li>
+          <Steps className="mt-3">
+            <Step>Open Tailscale on this computer, sign in and make sure it is connected.</Step>
+            <Step>Sign in to Tailscale on your phone with the same account.</Step>
+            <Step>Come back here and check again.</Step>
           </Steps>
-          {checkAgain}
+          <div className="mt-1">{checkAgain}</div>
         </>
       );
     case "https-off":
       return (
         <>
-          <p className="text-sm text-muted-foreground">
+          <StatusLine tone="warning">
             Tailscale is on. One setting is missing: secure addresses for your devices.
-          </p>
-          <Steps>
-            <li>
+          </StatusLine>
+          <Steps className="mt-3">
+            <Step>
               Open the{" "}
               <ExternalLink href={TAILSCALE_DNS_SETTINGS_URL}>DNS page of Tailscale</ExternalLink>{" "}
               and sign in.
-            </li>
-            <li>Turn on MagicDNS if it is off, then turn on HTTPS Certificates.</li>
-            <li>Come back here and check again.</li>
+            </Step>
+            <Step>Turn on MagicDNS if it is off, then turn on HTTPS Certificates.</Step>
+            <Step>Come back here and check again.</Step>
           </Steps>
-          {checkAgain}
+          <div className="mt-1">{checkAgain}</div>
         </>
       );
     case "not-served":
       return (
         <>
-          <p className="text-sm text-muted-foreground">
+          <StatusLine tone="warning" className={READING_MEASURE_CLASS}>
             Tailscale is ready. Majordome isn't on this computer's secure address yet
             {setup.secureUrl === null ? "" : ` (${setup.secureUrl})`}. Only your own devices signed
             in to your Tailscale account can open it.
-          </p>
-          <div className="flex flex-wrap gap-2">
+          </StatusLine>
+          <div className="mt-3 flex flex-wrap gap-2">
             <EnableSecureAddressButton environmentId={environmentId} />
             {checkAgain}
           </div>
@@ -244,21 +222,23 @@ function SecureAddressSteps({
     case "ready":
       return (
         <>
-          <p className="text-sm text-muted-foreground">
-            Majordome is at <span className="font-medium text-foreground">{setup.secureUrl}</span>.
-            Only your devices signed in to your Tailscale account can open it.
-          </p>
-          <Steps>
-            <li>On your phone, open Tailscale and make sure it is connected.</li>
-            <li>
+          <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
+            Majordome is at <span className="font-medium break-all">{setup.secureUrl}</span>. Only
+            your devices signed in to your Tailscale account can open it.
+          </StatusLine>
+          <Steps className="mt-3">
+            <Step>On your phone, open Tailscale and make sure it is connected.</Step>
+            <Step>
               Scan this code with your phone's camera and open the link.
               <PairingCode environmentId={environmentId} baseUrl={setup.secureUrl!} />
-            </li>
-            <li>
+            </Step>
+            <Step>
               Add Majordome to your Home Screen. On iPhone, tap Share, then “Add to Home Screen”. On
               Android, open Chrome's menu and tap “Add to Home screen” or “Install app”.
-            </li>
-            <li>Open Majordome from your Home Screen, go to “Notifications” and turn them on.</li>
+            </Step>
+            <Step>
+              Open Majordome from your Home Screen, go to “Notifications” and turn them on.
+            </Step>
           </Steps>
         </>
       );
@@ -339,11 +319,7 @@ function PairingCode({
   const [busy, setBusy] = useState(false);
 
   if (!readEnvironmentScope(environmentId, AuthAccessWriteScope)) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Open this screen on the computer where Majordome runs to get a code.
-      </p>
-    );
+    return <Muted>Open this screen on the computer where Majordome runs to get a code.</Muted>;
   }
 
   const show = async () => {
@@ -387,7 +363,8 @@ function PairingCode({
   }
   return (
     <div className="mt-2 flex flex-col gap-2">
-      <div className="w-fit rounded-xl bg-white p-3">
+      {/* White in both themes: a phone's camera reads dark squares on white. */}
+      <Surface className="w-fit bg-white p-3">
         <QRCodeSvg
           value={code.url}
           size={168}
@@ -395,17 +372,13 @@ function PairingCode({
           marginSize={1}
           title="Code to open Majordome on your phone"
         />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {formatExpiresInLabel(code.expiresAt)}. Works once.{" "}
-        <button
-          type="button"
-          className="underline underline-offset-2"
-          onClick={() => setCode(null)}
-        >
+      </Surface>
+      <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+        <span>{formatExpiresInLabel(code.expiresAt)}. Works once.</span>
+        <Button size="xs" variant="ghost-muted" onClick={() => setCode(null)}>
           Hide
-        </button>
-      </p>
+        </Button>
+      </div>
     </div>
   );
 }

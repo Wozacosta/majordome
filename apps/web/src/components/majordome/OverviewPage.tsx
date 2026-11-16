@@ -50,9 +50,9 @@ import {
   devicesBox,
   majordomeBox,
   OVERVIEW_TONE_BOX_CLASS,
-  OVERVIEW_TONE_DOT_CLASS,
   type OverviewBox,
 } from "./overview.logic";
+import { EntryTitle, ROW_ACTION_CLASS, Section, Surface, ToneDot } from "./paper";
 import { readDevicePushSupport } from "./pushNotifications";
 import { useMachineNames } from "./useMachineNames";
 
@@ -61,15 +61,18 @@ export function OverviewPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   const background = useBackgroundService();
   return (
-    <MajordomeSettingsPage searchId="majordome-overview" width="expanded">
-      <p className="text-sm text-muted-foreground">
-        How your Majordome fits together, as it is right now. Open a box to change it.
-      </p>
-      {environmentId === null ? (
-        <Skeleton className="h-64 w-full" />
-      ) : (
-        <Diagram environmentId={environmentId} background={background} />
-      )}
+    <MajordomeSettingsPage
+      searchId="majordome-overview"
+      width="expanded"
+      intro="How your Majordome fits together, as it is right now. Open a box to change it."
+    >
+      <Section>
+        {environmentId === null ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
+          <Diagram environmentId={environmentId} background={background} />
+        )}
+      </Section>
       <BackgroundServiceToggle state={background} />
     </MajordomeSettingsPage>
   );
@@ -282,7 +285,7 @@ function Connector({
       aria-hidden
       className={cn(
         "flex shrink-0 items-center gap-2 py-1 ps-6 text-2xs text-muted-foreground",
-        !vertical && "md:mt-6 md:flex-col md:gap-1 md:px-1 md:py-0 md:ps-1",
+        !vertical && "md:mt-7 md:flex-col md:gap-1 md:px-1 md:py-0 md:ps-1",
       )}
     >
       <span className={cn("h-6 w-px bg-border", !vertical && "md:h-px md:w-14")} />
@@ -291,6 +294,7 @@ function Connector({
   );
 }
 
+/** One part of the setup. It is its own object on the map, so it is a raised sheet. */
 function BoxCard({
   box,
   icon: Icon,
@@ -301,34 +305,32 @@ function BoxCard({
   readonly subtitle?: string;
 }) {
   return (
-    <section
+    <Surface
+      role="region"
       aria-label={box.title}
       data-overview-box={box.key}
       data-tone={box.tone}
-      className={cn(
-        "flex min-w-0 flex-col gap-2 rounded-lg border bg-card p-3 text-card-foreground",
-        OVERVIEW_TONE_BOX_CLASS[box.tone],
-      )}
+      className={cn("flex min-w-0 flex-col p-3", OVERVIEW_TONE_BOX_CLASS[box.tone])}
     >
       <Link
         {...box.link}
-        className="-m-1 flex min-w-0 items-center gap-2 rounded-md p-1 hover:bg-accent/40"
+        className={cn(ROW_ACTION_CLASS, "flex min-h-10 min-w-0 items-center gap-2.5 py-1")}
       >
         <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="flex min-w-0 flex-1 flex-col">
           {subtitle ? <span className="text-2xs text-muted-foreground">{subtitle}</span> : null}
-          <span className="truncate text-sm font-medium">{box.title}</span>
+          <EntryTitle className="truncate">{box.title}</EntryTitle>
         </span>
         <ToneDot tone={box.tone} className="self-center" />
         <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
       </Link>
-      <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+      <ul className="m-0 mt-2 flex list-none flex-col p-0">
         {box.lines.map((line) => {
           const content = (
             <>
               <ToneDot tone={line.tone} className="mt-1.5" />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate">{line.text}</span>
+                <span className="truncate text-foreground">{line.text}</span>
                 {line.detail ? (
                   <span className="text-xs text-muted-foreground">{line.detail}</span>
                 ) : null}
@@ -340,41 +342,17 @@ function BoxCard({
               {line.link ? (
                 <Link
                   {...line.link}
-                  className="-mx-1 flex items-start gap-2 rounded-md px-1 hover:bg-accent/40"
+                  className={cn(ROW_ACTION_CLASS, "flex items-start gap-2 py-1.5")}
                 >
                   {content}
                 </Link>
               ) : (
-                <div className="flex items-start gap-2">{content}</div>
+                <div className="flex items-start gap-2 py-1.5">{content}</div>
               )}
             </li>
           );
         })}
       </ul>
-    </section>
-  );
-}
-
-const TONE_LABEL = {
-  ok: "Fine",
-  neutral: "",
-  warning: "Needs your attention",
-  error: "Something failed",
-};
-
-function ToneDot({
-  tone,
-  className,
-}: {
-  readonly tone: OverviewBox["tone"];
-  readonly className: string;
-}) {
-  return (
-    <span
-      role={tone === "warning" || tone === "error" ? "img" : undefined}
-      aria-label={TONE_LABEL[tone] || undefined}
-      aria-hidden={tone === "neutral" ? true : undefined}
-      className={cn("size-2 shrink-0 rounded-full", OVERVIEW_TONE_DOT_CLASS[tone], className)}
-    />
+    </Surface>
   );
 }

@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
+import { Muted, READING_MEASURE_CLASS, Section, SwitchLabel } from "./paper";
 
 const backgroundServiceBridge = () =>
   typeof window === "undefined" ? undefined : window.desktopBridge?.backgroundService;
@@ -60,18 +61,17 @@ export function BackgroundServiceToggle({
   if (bridge === undefined || state === null || !state.supported) return null;
 
   return (
-    <section aria-label="In the background" className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm">
+    <Section label="In the background" aria-label="In the background">
+      <div className="flex flex-wrap items-center gap-x-3">
+        <SwitchLabel>
           <Switch
-            size="sm"
             checked={state.enabled}
             disabled={busy}
             onCheckedChange={(checked) => void whileBusy(setBusy, () => bridge.setEnabled(checked))}
           />
           Keep Majordome running when the window is closed
           {busy ? <Spinner size="sm" /> : null}
-        </label>
+        </SwitchLabel>
         {state.enabled ? (
           <Button
             size="xs"
@@ -83,12 +83,12 @@ export function BackgroundServiceToggle({
           </Button>
         ) : null}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <Muted className={READING_MEASURE_CLASS}>
         {state.enabled
           ? "Routines and your inbox keep working after you close the window, and Majordome starts when you log in. Quitting completely stops it until you open Majordome again."
           : "Routines and your inbox only work while Majordome is open."}{" "}
         Majordome restarts when you change this.
-      </p>
-    </section>
+      </Muted>
+    </Section>
   );
 }

@@ -3,7 +3,6 @@ import type { EnvironmentId, MajordomeBackupStatus } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useProjects } from "../../state/entities";
@@ -23,6 +22,7 @@ import {
   isUnknownRequest,
 } from "./connections.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
+import { Entry, EntryList, Muted, Section, SectionTitle, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 /** What the assistant can reach on each machine: its AI sign-ins, connectors and backups. */
@@ -72,12 +72,10 @@ export function ConnectionsPage() {
   };
 
   return (
-    <MajordomeSettingsPage searchId="majordome-connections">
-      <div className="flex items-start gap-3">
-        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
-          What your assistant can reach. Each machine has its own sign-ins, so a routine can only
-          use what is connected on the machine it runs on.
-        </p>
+    <MajordomeSettingsPage
+      searchId="majordome-connections"
+      intro="What your assistant can reach. Each machine has its own sign-ins, so a routine can only use what is connected on the machine it runs on."
+      action={
         <Button
           size="xs"
           variant="outline"
@@ -87,32 +85,35 @@ export function ConnectionsPage() {
           {checking ? <Spinner size="sm" /> : null}
           Check again
         </Button>
-      </div>
-      {machines.length === 0 ? <Skeleton className="h-40 w-full" /> : null}
-      <div className="flex flex-col gap-8">
-        {machines.map((machine) => {
-          const name = machines.length > 1 ? machineOf(machine.environmentId) : null;
-          return (
-            <div
-              key={machine.environmentId}
-              className="flex flex-col gap-4"
-              data-connections-machine={machine.environmentId}
-            >
-              {name !== null ? <h2 className="text-base font-medium">{name}</h2> : null}
-              {machine.connection.phase === "connected" ? (
-                <Machine
-                  environmentId={machine.environmentId}
-                  name={name}
-                  backups={backupsOf(machine.environmentId)}
-                  elsewhere={isElsewhere(machine.environmentId)}
-                />
-              ) : (
-                <Muted>Majordome isn't connected to this machine right now.</Muted>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      }
+    >
+      {machines.length === 0 ? (
+        <Section>
+          <Skeleton className="h-40 w-full" />
+        </Section>
+      ) : null}
+      {machines.map((machine) => {
+        const name = machines.length > 1 ? machineOf(machine.environmentId) : null;
+        return (
+          <div
+            key={machine.environmentId}
+            className={name === null ? undefined : "mt-10"}
+            data-connections-machine={machine.environmentId}
+          >
+            {name !== null ? <SectionTitle>{name}</SectionTitle> : null}
+            {machine.connection.phase === "connected" ? (
+              <Machine
+                environmentId={machine.environmentId}
+                name={name}
+                backups={backupsOf(machine.environmentId)}
+                elsewhere={isElsewhere(machine.environmentId)}
+              />
+            ) : (
+              <Muted className="mt-2">Majordome isn't connected to this machine right now.</Muted>
+            )}
+          </div>
+        );
+      })}
     </MajordomeSettingsPage>
   );
 }
@@ -131,11 +132,16 @@ function Machine({
 }) {
   const providers = useEnvironmentProviders().get(environmentId) ?? null;
   const ai = providers === null ? null : aiRows(providers);
+  // Under a machine's name the labels are one level down; a lone machine has no name above them.
+  const labelAs = name === null ? "h2" : "h3";
+  const sectionClassName = name === null ? undefined : "mt-5";
   return (
     <>
       <Section
-        title="AI"
-        link={
+        label="AI"
+        labelAs={labelAs}
+        className={sectionClassName}
+        action={
           <Link to="/settings/providers" className="underline underline-offset-2">
             Providers
           </Link>
@@ -149,12 +155,13 @@ function Machine({
           <Rows rows={ai} />
         )}
       </Section>
-      <Section title="Connectors">
+      <Section label="Connectors" labelAs={labelAs}>
         <Connectors environmentId={environmentId} name={name} />
       </Section>
       <Section
-        title="Backups"
-        link={
+        label="Backups"
+        labelAs={labelAs}
+        action={
           <Link to="/settings/backup" className="underline underline-offset-2">
             Back up my brain
           </Link>
@@ -196,14 +203,20 @@ function Connectors({
   return (
     <>
       {view.rows.length > 0 ? <Rows rows={view.rows} /> : null}
-      {view.warnings.map((warning) => (
-        <p key={warning} className="text-sm text-foreground">
-          {warning}
-        </p>
-      ))}
-      {view.notes.map((note) => (
-        <Muted key={note}>{note}</Muted>
-      ))}
+      {view.warnings.length + view.notes.length > 0 ? (
+        <EntryList>
+          {view.warnings.map((warning) => (
+            <Entry key={warning}>
+              <StatusLine tone="warning">{warning}</StatusLine>
+            </Entry>
+          ))}
+          {view.notes.map((note) => (
+            <Entry key={note}>
+              <Muted>{note}</Muted>
+            </Entry>
+          ))}
+        </EntryList>
+      ) : null}
     </>
   );
 }
@@ -219,18 +232,14 @@ function Rows({
   }>;
 }) {
   return (
-    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+    <EntryList>
       {rows.map((row) => (
-        <li key={row.key} className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="min-w-0 flex-1 truncate text-foreground">
-              {row.name}
-              {row.provider ? (
-                <span className="text-muted-foreground"> · {row.provider}</span>
-              ) : null}
-            </span>
+        <Entry
+          key={row.key}
+          title={row.name}
+          meta={[row.provider, row.state.detail].filter(Boolean).join(" · ") || undefined}
+          actions={
             <Badge
-              size="sm"
               variant={
                 row.state.tone === "ok"
                   ? "success"
@@ -241,36 +250,9 @@ function Rows({
             >
               {row.state.label}
             </Badge>
-          </div>
-          {row.state.detail ? (
-            <p className="text-xs text-muted-foreground">{row.state.detail}</p>
-          ) : null}
-        </li>
+          }
+        />
       ))}
-    </ul>
+    </EntryList>
   );
-}
-
-function Section({
-  title,
-  link,
-  children,
-}: {
-  readonly title: string;
-  readonly link?: ReactNode;
-  readonly children: ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border p-4">
-      <div className="flex items-baseline gap-2">
-        <h3 className="min-w-0 flex-1 text-sm font-medium text-foreground">{title}</h3>
-        {link ? <span className="text-xs text-muted-foreground">{link}</span> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Muted({ children }: { readonly children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
 }
