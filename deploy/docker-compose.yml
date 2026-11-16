@@ -26,7 +26,8 @@ services:
     environment:
       T3CODE_HOST: 127.0.0.1
       TZ: ${TZ:-UTC}
-      # Optional: the output of `claude setup-token`, so Claude works without signing in here.
+      # Optional: the output of `claude setup-token`. Prefer Sign in to Claude in the app: a token
+      # leaves out your connectors, and Majordome ignores it once a full sign-in is stored.
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       # Optional: this server's address, such as https://majordome.<your-tailnet>.ts.net, so
       # `majord pair` prints a link and QR code that open on your phone and computer.

@@ -41,13 +41,13 @@ export const providerClients = makeProviderClientRegistry([
     modelFamilies: ["Claude "],
     acpRegistryAgentIds: ["claude-acp"],
     settingsSchema: ClaudeSettings,
-    // A server with no browser cannot run Claude's own sign-in; this is how it signs in from a client.
+    // The fallback to "Sign in to Claude": a token signs Claude in but leaves the account's connectors out.
     environmentFields: [
       {
         name: "CLAUDE_CODE_OAUTH_TOKEN",
         label: "Claude sign-in token",
         description:
-          "Optional. For a server without a browser: run `claude setup-token` on a computer where you use Claude, then paste the token here.",
+          "Another way to sign in, without your connectors (Gmail, Calendar, Drive): run `claude setup-token` on a computer where you use Claude, then paste the token here.",
         placeholder: "Paste token",
         sensitive: true,
       },

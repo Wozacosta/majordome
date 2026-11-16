@@ -152,6 +152,40 @@ export function connectorsView(input: {
   };
 }
 
+// These sign in with a key or another cloud, where a Claude account's connectors never apply.
+const KEYED_CLAUDE_SIGN_INS = new Set(["apiKey", "bedrock", "customEndpoint"]);
+
+/**
+ * The Claude providers on a machine that a full sign-in would help: signed out, or signed in
+ * with no connectors, which is what a sign-in token gives.
+ */
+export function claudeSignInTargets(input: {
+  readonly result: MajordomeConnectorsResult;
+  readonly snapshots: ReadonlyArray<ServerProvider> | null;
+}): ReadonlyArray<{ readonly instanceId: ServerProvider["instanceId"]; readonly name: string }> {
+  return (input.snapshots ?? [])
+    .filter((snapshot) => {
+      if (snapshot.driver !== "claudeAgent" || !snapshot.enabled || !snapshot.installed) {
+        return false;
+      }
+      if (signedOut(snapshot)) return true;
+      const listed = input.result.providers.find(
+        (provider) => provider.instanceId === snapshot.instanceId,
+      );
+      return (
+        snapshot.auth.status === "authenticated" &&
+        !KEYED_CLAUDE_SIGN_INS.has(snapshot.auth.type ?? "") &&
+        listed?.reported === true &&
+        listed.error === undefined &&
+        listed.connectors.length === 0
+      );
+    })
+    .map((snapshot) => ({
+      instanceId: snapshot.instanceId,
+      name: resolveProviderInstanceDisplayName(snapshot),
+    }));
+}
+
 /** Where one machine's notes are backed up to, across its notes folders. */
 export function backupRows(
   statuses: ReadonlyArray<MajordomeBackupStatus>,

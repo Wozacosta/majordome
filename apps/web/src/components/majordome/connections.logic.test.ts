@@ -13,6 +13,7 @@ import {
   backupRows,
   connectorName,
   connectorState,
+  claudeSignInTargets,
   connectorsView,
   isUnknownRequest,
 } from "./connections.logic";
@@ -120,6 +121,44 @@ it("leaves the missing connectors unsaid for a provider that is signed out", () 
     machine: null,
   });
   expect(view).toEqual({ rows: [], warnings: [], notes: [] });
+});
+
+it.each([
+  ["signed in with no connectors, as a sign-in token leaves it", {}, entry("claudeAgent"), true],
+  [
+    "signed out",
+    { auth: { status: "unauthenticated" } },
+    entry("claudeAgent", { reported: false }),
+    true,
+  ],
+  [
+    "signed in with connectors",
+    {},
+    entry("claudeAgent", { connectors: [{ name: "claude.ai Gmail", status: "connected" }] }),
+    false,
+  ],
+  [
+    "running on an API key, which has no account connectors",
+    { auth: { status: "authenticated", type: "apiKey" } },
+    entry("claudeAgent"),
+    false,
+  ],
+  [
+    "whose connectors could not be checked",
+    {},
+    entry("claudeAgent", { error: "Timed out." }),
+    false,
+  ],
+  ["turned off", { enabled: false }, entry("claudeAgent"), false],
+] as const)("offers a full sign-in for a Claude %s: %s", (_name, overrides, listed, offered) => {
+  const targets = claudeSignInTargets({
+    result: result(listed, entry("codex")),
+    snapshots: [
+      snapshot("claudeAgent", overrides as Partial<ServerProvider>),
+      snapshot("codex", { auth: { status: "unauthenticated" } }),
+    ],
+  });
+  expect(targets.map((target) => target.instanceId)).toEqual(offered ? ["claudeAgent"] : []);
 });
 
 it("names the provider on each row and warning when several list connectors", () => {

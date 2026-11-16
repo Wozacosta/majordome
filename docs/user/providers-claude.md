@@ -48,11 +48,21 @@ Claude Code's verbose mode can stay enabled when you use Claude for text generat
 thread titles, branch names, commit messages, and pull request descriptions. On a remote connection,
 T3 Code uses the Claude configuration on the connected server.
 
-## Sign in on a server without a browser
+## Sign in from the app
 
-On a computer where you use Claude, run `claude setup-token` and copy the token it prints. In the
-server's **Settings > Providers > Claude**, paste it into **Claude sign-in token**. The token is
-stored as a secret on that server.
+In **Settings > Providers > Claude**, choose **Sign in to Claude**. Open the link it shows, approve,
+and paste the code Claude gives you back into the app. The link opens on the device you are using,
+so this also works for a server with no browser. The code only works for a few minutes; if it is
+refused, choose **Start over**.
+
+This is a full sign-in to your Claude account, so its connectors (such as Gmail, Calendar and
+Drive) come with it. Signing in restarts the provider, which stops Claude conversations running on
+that machine.
+
+To sign in with a token instead, run `claude setup-token` on a computer where you use Claude, and
+paste the token into **Claude sign-in token**. It is stored as a secret on that server. A token
+does not bring your connectors, and it wins over a full sign-in while it is set: **Sign in to
+Claude** removes a saved token for that reason.
 
 ## Compact long conversations
 

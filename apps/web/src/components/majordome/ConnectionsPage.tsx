@@ -17,6 +17,7 @@ import { Spinner } from "../ui/spinner";
 import {
   aiRows,
   backupRows,
+  claudeSignInTargets,
   type ConnectionState,
   connectorsView,
   isUnknownRequest,
@@ -200,10 +201,11 @@ function Connectors({
     );
   }
   const view = connectorsView({ result: connectors, snapshots, machine: name });
+  const signIns = claudeSignInTargets({ result: connectors, snapshots });
   return (
     <>
       {view.rows.length > 0 ? <Rows rows={view.rows} /> : null}
-      {view.warnings.length + view.notes.length > 0 ? (
+      {view.warnings.length + view.notes.length + signIns.length > 0 ? (
         <EntryList>
           {view.warnings.map((warning) => (
             <Entry key={warning}>
@@ -213,6 +215,20 @@ function Connectors({
           {view.notes.map((note) => (
             <Entry key={note}>
               <Muted>{note}</Muted>
+            </Entry>
+          ))}
+          {signIns.map((target) => (
+            <Entry key={target.instanceId}>
+              <Muted>
+                <Link
+                  to="/settings/providers"
+                  search={{ environmentId, instanceId: target.instanceId }}
+                  className="text-foreground underline underline-offset-2"
+                >
+                  {signIns.length > 1 ? `Sign in to ${target.name}` : "Sign in to Claude"}
+                </Link>{" "}
+                with your account to bring its connectors, such as Gmail, Calendar and Drive.
+              </Muted>
             </Entry>
           ))}
         </EntryList>

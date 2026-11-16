@@ -81,8 +81,7 @@ export function AlwaysOnServerPage() {
           <Link to="/settings/providers" className="underline underline-offset-2">
             Providers
           </Link>
-          , sign in to Claude (paste the token from{" "}
-          <code className="font-mono text-xs">claude setup-token</code>, run on this computer) or
+          , press Sign in to Claude (it gives you a link to open here and a code to paste back) or
           continue with ChatGPT; then on the Feed, press Move routines here.
         </Step>
       </Steps>
