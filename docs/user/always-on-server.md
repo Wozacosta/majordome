@@ -23,7 +23,7 @@ until you remove it.
 ### The Hetzner key
 
 1. Open the [Hetzner Console](https://console.hetzner.com/) and sign in, or create an account.
-2. Create a project named Majordome and open it.
+2. Create a project, with any name, and open it.
 3. In the left menu choose **Security**, then **API tokens**, then **Generate API token**.
 4. Name it Majordome, choose **Read & Write**, and generate it.
 5. Copy the token and paste it in Majordome. Hetzner shows it only once.

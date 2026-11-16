@@ -346,7 +346,7 @@ function SetupPanel({
                 Open the <ExternalLink href={HETZNER_CONSOLE_URL}>Hetzner Console</ExternalLink> and
                 sign in, or create an account. Hetzner asks for a way to pay.
               </Step>
-              <Step>Create a project named Majordome and open it.</Step>
+              <Step>Create a project, with any name, and open it.</Step>
               <Step>
                 In the left menu choose Security, then API tokens, then Generate API token.
               </Step>

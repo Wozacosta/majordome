@@ -145,7 +145,12 @@ it.layer(testLayer)("MajordomeMoveReceiver", (it) => {
       yield* commitAll(other, "init");
       const server = yield* makeServer();
       const before = yield* bundleOf(vault.root);
-      yield* server.receiver.receiveVault({ bundlePath: before, title: "My notes" });
+      // The identity lets the test commit there on a machine with no git identity of its own.
+      yield* server.receiver.receiveVault({
+        bundlePath: before,
+        title: "My notes",
+        identity: { name: "Owner", email: "owner@example.com" },
+      });
 
       const foreign = yield* Effect.flip(
         server.receiver.receiveVault({ bundlePath: yield* bundleOf(other), title: "Other" }),
