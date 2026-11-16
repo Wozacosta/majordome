@@ -61,6 +61,7 @@ import { OrchestratorToolkit } from "../../apps/server/src/mcp/toolkits/orchestr
 import { PreviewToolkit } from "../../apps/server/src/mcp/toolkits/preview/tools.ts";
 import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolkits/privateDocuments/handlers.ts";
 import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
+import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
 import { ProjectToolkit } from "../../apps/server/src/mcp/toolkits/project/tools.ts";
 import {
@@ -463,6 +464,7 @@ const t3SourceTools: ReadonlyArray<Tool.Any> = [
   HtmlToolkit,
   MessageToolkit,
   PrivateDocumentsToolkit,
+  NotesSearchToolkit,
 ].flatMap((toolkit): ReadonlyArray<Tool.Any> => Object.values(toolkit.tools));
 // McpHttpServer decodes arguments with each tool's JSON codec, which drops undeclared keys.
 const t3InputDecoders = new Map(

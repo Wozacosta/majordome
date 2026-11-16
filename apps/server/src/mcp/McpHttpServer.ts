@@ -93,6 +93,8 @@ import * as NotifyHandlers from "./toolkits/notify/handlers.ts";
 import * as AgentNotify from "../majordome/AgentNotify.ts";
 import { PrivateDocumentsToolkit } from "./toolkits/privateDocuments/tools.ts";
 import * as PrivateDocumentsHandlers from "./toolkits/privateDocuments/handlers.ts";
+import { NotesSearchToolkit } from "./toolkits/notesSearch/tools.ts";
+import * as NotesSearchHandlers from "./toolkits/notesSearch/handlers.ts";
 import { HtmlPreviewTool, HtmlPreviewToolkit, HtmlRenderToolkit } from "./toolkits/html/tools.ts";
 import { requestUrl } from "../requestUrl.ts";
 
@@ -1272,6 +1274,8 @@ const layerPrivateDocumentsToolkit = toolkitRegistration(
   PrivateDocumentsHandlers.layer,
 );
 
+const layerNotesSearchToolkit = toolkitRegistration(NotesSearchToolkit, NotesSearchHandlers.layer);
+
 const layerWorktreeToolkitRegistration = toolkitRegistration(
   WorktreeToolkit,
   WorktreeHandlers.layer,
@@ -1365,6 +1369,7 @@ export const layerTools = Layer.mergeAll(
   layerMessageToolkit,
   layerNotifyToolkit,
   layerPrivateDocumentsToolkit,
+  layerNotesSearchToolkit,
 );
 
 const layerToolExposure = Layer.effect(

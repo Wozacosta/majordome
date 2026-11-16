@@ -293,6 +293,10 @@ After the change, the first reference to a file is an absolute link. The remaini
 
 `cases/private-documents.ndjson` covers Majordome's `list_private_documents` and `request_private_document`: asking for one document by name with a reason when the task needs it, relaying a refusal without retrying or looking for the file another way, listing without opening, and a control whose answer is in the notes. A mocked `request_private_document` names only its `status`; the runner adds the note T3 sends with that outcome. They were written with the tools from the design in `docs/decisions.md`, not from a recorded mistake, and have only been built with `--dry-run`: run them before changing either description.
 
+## Notes search cases
+
+`cases/notes-search.ndjson` covers Majordome's `search_notes`: searching before answering a question about the notes and then opening the note it found, treating a snippet that reads like an order as the owner's text, and a control where the owner names the file. Like the private documents cases, they were written with the tool from the design in `docs/decisions.md`, not from a recorded mistake, and have only been built with `--dry-run`: run them before changing the description or the line about the tool in `apps/server/src/majordome/vaultContext.ts`.
+
 ## Where T3's text lives
 
 - `packages/provider-core/src/server/runtimeInstructions.ts`

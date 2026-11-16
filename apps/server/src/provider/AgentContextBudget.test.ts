@@ -13,6 +13,7 @@ import { ServerConfig } from "../config.ts";
 import { DeviceService } from "../device/DeviceService.ts";
 import { ServerEnvironment } from "../environment/ServerEnvironment.ts";
 import { GitWorkflowService } from "../git/GitWorkflowService.ts";
+import { MajordomeNotesSearch } from "../majordome/MajordomeNotesSearch.ts";
 import { MajordomePrivateDocuments } from "../majordome/MajordomePrivateDocuments.ts";
 import { MajordomePush } from "../majordome/MajordomePush.ts";
 import * as McpHttpServer from "../mcp/McpHttpServer.ts";
@@ -58,6 +59,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(EnvironmentThemeService)({}),
   Layer.mock(GitVcsDriver)({}),
   Layer.mock(GitWorkflowService)({}),
+  Layer.mock(MajordomeNotesSearch)({}),
   Layer.mock(MajordomePrivateDocuments)({}),
   Layer.mock(MajordomePush)({}),
   Layer.mock(ManagedProjectFolders)({ namedProjectsRoot: "" }),
