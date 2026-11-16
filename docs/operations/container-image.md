@@ -37,7 +37,15 @@ test volume with `docker volume rm majordome-local`.
 `.github/workflows/container-image.yml` runs on `v*` tags and by hand, only in
 `Wozacosta/majordome`. Each architecture builds on its own runner, then one job tags the joined
 image: a tag publishes `<version>`, `<major>.<minor>` and `latest`; a manual run publishes `edge`
-and `sha-<commit>`. After the first publish, check that the package is public in its GitHub
+and `sha-<commit>`.
+
+A tag build passes its version as the `MAJORDOME_VERSION` build arg, which the `Dockerfile` writes
+into the package manifests before building, as the desktop release does with `--build-version`.
+`majord --version`, the server's reported version and the web client then all say the release, and
+the build fails if `majord --version` says anything else. Without the arg (a manual run, or
+`docker build` locally) the image reports the version in `apps/server/package.json`.
+
+After the first publish, check that the package is public in its GitHub
 settings: owners' servers pull it without signing in.
 
 ## Bumping

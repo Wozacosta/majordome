@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
 # Majordome's always-on server: the same server as the desktop app, headless, state in /data.
 # Build: docker build -t majordome .   Run: see deploy/docker-compose.yml.
+# A release passes --build-arg MAJORDOME_VERSION=<version>; without it the server reports the
+# version in apps/server/package.json.
 
 # Keep in step with package.json "engines.node"; the build stage checks it.
 ARG NODE_VERSION=26.13.1
@@ -19,10 +21,22 @@ COPY . .
 ENV CI=true ELECTRON_SKIP_BINARY_DOWNLOAD=1
 RUN --mount=type=cache,id=majordome-pnpm-store,target=/root/.local/share/pnpm/store \
   vp install --filter=t3... --filter=@t3tools/web... --filter=@t3tools/scripts...
+# The server and its web client read their version from the manifests, as in the desktop build.
+ARG MAJORDOME_VERSION=
+RUN if [ -n "$MAJORDOME_VERSION" ]; then \
+    node scripts/update-release-package-versions.ts "$MAJORDOME_VERSION"; \
+  fi
 RUN vp run --filter t3 build
 RUN --mount=type=cache,id=majordome-pnpm-store,target=/root/.local/share/pnpm/store \
   node scripts/build-cli-archive.ts stage-runtime \
     --arch "$(node -p 'process.arch')" --output-dir /out
+# The staged server must start and say the release's version ("majord v1.2.3"), or the build fails.
+RUN reported="$(node /out/dist/bin.mjs --version)" \
+  && echo "$reported" \
+  && case "$reported" in \
+    *"v${MAJORDOME_VERSION}"*) ;; \
+    *) echo "Expected version ${MAJORDOME_VERSION}." >&2; exit 1 ;; \
+  esac
 
 FROM ghcr.io/gitleaks/gitleaks:v8.30.1 AS secret-scan
 
