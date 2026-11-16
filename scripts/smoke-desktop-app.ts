@@ -12,6 +12,9 @@ import { _electron, type ElectronApplication } from "playwright-core";
 // A snapshot from an older build on purpose: the packaged server must migrate it forward, as it
 // does for every upgrading user. It holds one project and two threads, nothing else.
 const FIXTURE_DB = NodePath.join(import.meta.dirname, "fixtures/desktop-launch/statev2.sqlite");
+// The fixture project's folder. Majordome lists only threads of vaults, folders holding a
+// `.majordome/` directory, so the check makes it one; the fixture predates vaults.
+const FIXTURE_WORKSPACE = "/tmp/t3-launch-check-workspace";
 const THREAD_TITLE = "Release launch check";
 const THREAD_MESSAGE = "The release opens and shows this thread.";
 const STEP_TIMEOUT_MS = 60_000;
@@ -35,6 +38,7 @@ const home = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-desktop-launc
 const t3Home = NodePath.join(home, "t3");
 NodeFS.mkdirSync(NodePath.join(t3Home, "userdata"), { recursive: true });
 NodeFS.copyFileSync(FIXTURE_DB, NodePath.join(t3Home, "userdata/statev2.sqlite"));
+NodeFS.mkdirSync(NodePath.join(FIXTURE_WORKSPACE, ".majordome"), { recursive: true });
 
 let step = "launching the app";
 let app: ElectronApplication | undefined;
@@ -98,4 +102,5 @@ try {
     child.kill("SIGKILL");
   }
   NodeFS.rmSync(home, { recursive: true, force: true, maxRetries: 5 });
+  NodeFS.rmSync(FIXTURE_WORKSPACE, { recursive: true, force: true, maxRetries: 5 });
 }

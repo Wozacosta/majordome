@@ -18,6 +18,11 @@ const state = vi.hoisted(() => ({
   configLoaded: true,
 }));
 
+// Majordome hides git and pull request details by default; these tests cover T3 Code's coding UI.
+vi.mock(import("~/env"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  isMajordome: false,
+}));
 vi.mock(import("~/state/entities"), async (importOriginal) => ({
   ...(await importOriginal()),
   useProject: ((ref: unknown) =>

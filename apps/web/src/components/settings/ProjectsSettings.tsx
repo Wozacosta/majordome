@@ -5,6 +5,7 @@ import { openCommandPalette } from "../../commandPaletteBus";
 import { isMajordome } from "../../env";
 
 import { Button } from "../ui/button";
+import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { ProjectSettingsPanel } from "./ProjectSettingsPanel";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { SettingsScopeNotice } from "./SettingsScopeNotice";
@@ -53,9 +54,10 @@ export function ProjectsSettings() {
           Choose a project to manage its name, icon, checkouts and actions.
         </SettingsScopeNotice>
       )}
-      {/* Majordome adds notes folders here only; the sidebar shows no projects. */}
+      {/* Majordome adds notes folders here only; the sidebar shows no projects. A second
+          SettingsPageContainer would repeat the scope sentence and split the scroll area. */}
       {isMajordome ? (
-        <SettingsPageContainer>
+        <WorkspacePageContainer>
           <Button
             variant="outline"
             size="sm"
@@ -64,7 +66,7 @@ export function ProjectsSettings() {
             <FolderPlusIcon />
             Open a notes folder
           </Button>
-        </SettingsPageContainer>
+        </WorkspacePageContainer>
       ) : null}
     </div>
   );
