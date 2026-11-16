@@ -111,6 +111,7 @@ import * as ReviewService from "./review/ReviewService.ts";
 import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
+import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
@@ -863,6 +864,7 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(ScheduledTasks.ScheduledTaskService)({}),
   Layer.mock(MajordomePush.MajordomePush)({}),
   Layer.mock(MajordomePhoneSetup.PhoneSetup)({}),
+  Layer.mock(MajordomeServerMove.MajordomeServerMove)({}),
   Layer.mock(MajordomeVaultService.MajordomeVaultService)({}),
   Layer.mock(MajordomeRoutines.MajordomeRoutines)({}),
   Layer.mock(MajordomeBackup.MajordomeBackup)({}),

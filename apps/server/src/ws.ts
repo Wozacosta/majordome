@@ -127,6 +127,7 @@ import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
+import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
@@ -1482,6 +1483,7 @@ export const layerWsRpc = (
       const scheduledTasks = yield* ScheduledTasks.ScheduledTaskService;
       const majordomePush = yield* MajordomePush.MajordomePush;
       const majordomePhoneSetup = yield* MajordomePhoneSetup.PhoneSetup;
+      const majordomeServerMove = yield* MajordomeServerMove.MajordomeServerMove;
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
@@ -2348,6 +2350,17 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeGetPhoneSetup]: (_input) => majordomePhoneSetup.read(),
         [WS_METHODS.majordomeEnableSecureAddress]: (_input) =>
           majordomePhoneSetup.enableSecureAddress(),
+        [WS_METHODS.majordomeServerMoveSubscribe]: (_input) => majordomeServerMove.changes,
+        [WS_METHODS.majordomeServerMoveSaveKeys]: (input) => majordomeServerMove.saveKeys(input),
+        [WS_METHODS.majordomeServerMoveForgetKeys]: (_input) => majordomeServerMove.forgetKeys(),
+        [WS_METHODS.majordomeServerMoveCheck]: (input) => majordomeServerMove.check(input),
+        [WS_METHODS.majordomeServerMoveStart]: (input) => majordomeServerMove.begin(input),
+        [WS_METHODS.majordomeServerMoveRetry]: (_input) => majordomeServerMove.retry(),
+        [WS_METHODS.majordomeServerMoveCancel]: (input) => majordomeServerMove.cancel(input),
+        [WS_METHODS.majordomeServerMoveIssuePairingLink]: (_input) =>
+          majordomeServerMove.issuePairingLink(),
+        [WS_METHODS.majordomeServerMoveRoutines]: (_input) => majordomeServerMove.moveRoutines(),
+        [WS_METHODS.majordomeServerMoveRemove]: (input) => majordomeServerMove.remove(input),
         [WS_METHODS.majordomeListVaultHistory]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeVault.listHistory(input)),

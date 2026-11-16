@@ -109,6 +109,17 @@ import {
   MajordomePushEndpointInput,
   MajordomeSavePushSubscriptionInput,
 } from "./majordomePhone.ts";
+import {
+  MajordomeServerMoveCancelInput,
+  MajordomeServerMoveCheck,
+  MajordomeServerMoveCheckInput,
+  MajordomeServerMoveError,
+  MajordomeServerMovePairingLink,
+  MajordomeServerMoveRemoveInput,
+  MajordomeServerMoveSaveKeysInput,
+  MajordomeServerMoveStartInput,
+  MajordomeServerMoveStatus,
+} from "./majordomeServerMove.ts";
 import { MajordomeConnectorsInput, MajordomeConnectorsResult } from "./majordomeConnectors.ts";
 import {
   MajordomeNotesIndexInput,
@@ -734,6 +745,16 @@ export const WS_METHODS = {
   majordomeOpenTopic: "majordome.openTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
+  majordomeServerMoveSubscribe: "majordome.serverMove.subscribe",
+  majordomeServerMoveSaveKeys: "majordome.serverMove.saveKeys",
+  majordomeServerMoveForgetKeys: "majordome.serverMove.forgetKeys",
+  majordomeServerMoveCheck: "majordome.serverMove.check",
+  majordomeServerMoveStart: "majordome.serverMove.start",
+  majordomeServerMoveRetry: "majordome.serverMove.retry",
+  majordomeServerMoveCancel: "majordome.serverMove.cancel",
+  majordomeServerMoveIssuePairingLink: "majordome.serverMove.issuePairingLink",
+  majordomeServerMoveRoutines: "majordome.serverMove.moveRoutines",
+  majordomeServerMoveRemove: "majordome.serverMove.remove",
 } as const;
 
 const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -2419,6 +2440,73 @@ const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   },
 );
 
+const serverMoveErrors = Schema.Union([MajordomeServerMoveError, EnvironmentAuthorizationError]);
+
+// The current state of "Set up a server for me", then every change: progress is never guessed.
+const WsMajordomeServerMoveSubscribeRpc = Rpc.make(WS_METHODS.majordomeServerMoveSubscribe, {
+  payload: Schema.Struct({}),
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+  stream: true,
+});
+
+const WsMajordomeServerMoveSaveKeysRpc = Rpc.make(WS_METHODS.majordomeServerMoveSaveKeys, {
+  payload: MajordomeServerMoveSaveKeysInput,
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveForgetKeysRpc = Rpc.make(WS_METHODS.majordomeServerMoveForgetKeys, {
+  payload: Schema.Struct({}),
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveCheckRpc = Rpc.make(WS_METHODS.majordomeServerMoveCheck, {
+  payload: MajordomeServerMoveCheckInput,
+  success: MajordomeServerMoveCheck,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveStartRpc = Rpc.make(WS_METHODS.majordomeServerMoveStart, {
+  payload: MajordomeServerMoveStartInput,
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveRetryRpc = Rpc.make(WS_METHODS.majordomeServerMoveRetry, {
+  payload: Schema.Struct({}),
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveCancelRpc = Rpc.make(WS_METHODS.majordomeServerMoveCancel, {
+  payload: MajordomeServerMoveCancelInput,
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveIssuePairingLinkRpc = Rpc.make(
+  WS_METHODS.majordomeServerMoveIssuePairingLink,
+  {
+    payload: Schema.Struct({}),
+    success: MajordomeServerMovePairingLink,
+    error: serverMoveErrors,
+  },
+);
+
+const WsMajordomeServerMoveRoutinesRpc = Rpc.make(WS_METHODS.majordomeServerMoveRoutines, {
+  payload: Schema.Struct({}),
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
+const WsMajordomeServerMoveRemoveRpc = Rpc.make(WS_METHODS.majordomeServerMoveRemove, {
+  payload: MajordomeServerMoveRemoveInput,
+  success: MajordomeServerMoveStatus,
+  error: serverMoveErrors,
+});
+
 const WsMajordomeGetBackupStatusRpc = Rpc.make(WS_METHODS.majordomeGetBackupStatus, {
   payload: MajordomeBackupInput,
   success: MajordomeBackupStatus,
@@ -2720,6 +2808,16 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeRunRoutinesHereRpc,
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeGetBackupStatusRpc,
+  WsMajordomeServerMoveSubscribeRpc,
+  WsMajordomeServerMoveSaveKeysRpc,
+  WsMajordomeServerMoveForgetKeysRpc,
+  WsMajordomeServerMoveCheckRpc,
+  WsMajordomeServerMoveStartRpc,
+  WsMajordomeServerMoveRetryRpc,
+  WsMajordomeServerMoveCancelRpc,
+  WsMajordomeServerMoveIssuePairingLinkRpc,
+  WsMajordomeServerMoveRoutinesRpc,
+  WsMajordomeServerMoveRemoveRpc,
   WsMajordomeListConnectorsRpc,
   WsMajordomeSearchNotesRpc,
   WsMajordomeGetNotesIndexStatusRpc,
