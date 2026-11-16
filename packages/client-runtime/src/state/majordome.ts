@@ -110,6 +110,38 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(connectorsRevision(environmentId), (value) => value + 1)),
     }),
+    privateDocuments: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:private-documents",
+      tag: WS_METHODS.majordomeListPrivateDocuments,
+      staleTimeMs: 10_000,
+      refreshTrigger: ({ environmentId }) => privateDocumentsRevision(environmentId),
+    }),
+    addPrivateDocument: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-private-document",
+      tag: WS_METHODS.majordomeAddPrivateDocument,
+      onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
+    }),
+    removePrivateDocument: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-private-document",
+      tag: WS_METHODS.majordomeRemovePrivateDocument,
+      onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
+    }),
+    viewPrivateDocument: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:view-private-document",
+      tag: WS_METHODS.majordomeViewPrivateDocument,
+      onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
+    }),
+    /** One request, read once per card: its turn item id is part of the key. */
+    privateDocumentRequest: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:private-document-request",
+      tag: WS_METHODS.majordomeGetPrivateDocumentRequest,
+      refreshTrigger: ({ environmentId }) => privateDocumentsRevision(environmentId),
+    }),
+    answerPrivateDocumentRequest: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:answer-private-document-request",
+      tag: WS_METHODS.majordomeAnswerPrivateDocumentRequest,
+      onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
+    }),
     backUpNow: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:back-up-now",
       tag: WS_METHODS.majordomeBackUpNow,
@@ -206,6 +238,17 @@ const connectorsRevision = Atom.family((environmentId: EnvironmentId) =>
     Atom.withLabel(`environment-data:majordome:connectors-revision:${environmentId}`),
   ),
 );
+
+/** Bumped after a private document is added, removed, viewed or answered for, so the page reads again. */
+const privateDocumentsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:private-documents-revision:${environmentId}`),
+  ),
+);
+
+const bumpPrivateDocuments = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(privateDocumentsRevision(environmentId), (value) => value + 1));
 
 /** Bumped when a device turns notifications on or off, so the device list reads again. */
 const pushDevicesRevision = Atom.family((environmentId: EnvironmentId) =>

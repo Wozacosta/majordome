@@ -5,6 +5,7 @@ import {
   type MajordomeVaultHistoryEntry,
   type ProjectId,
   type ThreadId,
+  TurnItemId,
 } from "@t3tools/contracts";
 
 import { resolveSidebarRowStatus } from "../Sidebar.logic";
@@ -210,6 +211,8 @@ export interface FeedRunItem {
   readonly title: string;
   readonly status: FeedRunStatus;
   readonly at: string;
+  /** The card only the owner can answer that the run waits on, such as a private document request. */
+  readonly ownerCardId: TurnItemId | null;
 }
 
 type FeedRunThread = Pick<
@@ -232,7 +235,7 @@ type FeedRunThread = Pick<
   | "interactionMode"
   | "blockedOnThreadWait"
   | "lastVisitedAt"
->;
+> & { readonly source?: Pick<EnvironmentThreadShell["source"], "pendingRuntimeRequest"> };
 
 /** `${environmentId}:${runId}` of each run the time limit stopped, from the vault histories. */
 export function stoppedRunKeys(
@@ -280,6 +283,12 @@ function feedRunStatus(
   }
 }
 
+/** A waiting card's id is its turn item's; `userOnly` tells it from a provider's own question. */
+function ownerCardId(thread: FeedRunThread): TurnItemId | null {
+  const request = thread.source?.pendingRuntimeRequest;
+  return request?.userOnly === true ? TurnItemId.make(request.id) : null;
+}
+
 function feedRunAt(thread: FeedRunThread, status: FeedRunStatus): string {
   const run = thread.latestRun;
   return status !== "waiting"
@@ -316,6 +325,7 @@ export function buildFeedRunItems(
       title: thread.title,
       status,
       at,
+      ownerCardId: status === "waiting" ? ownerCardId(thread) : null,
       atMs: Date.parse(at),
     });
   }

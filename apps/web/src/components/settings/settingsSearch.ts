@@ -44,6 +44,7 @@ export type SettingsPath =
   | "/settings/overview"
   | "/settings/backup"
   | "/settings/connectors"
+  | "/settings/private-documents"
   | "/settings/notifications"
   | "/settings/phone"
   | "/settings/always-on";
@@ -129,6 +130,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/overview": msg("Overview"),
   "/settings/backup": msg("Back up my brain"),
   "/settings/connectors": msg("Connections"),
+  "/settings/private-documents": msg("Private documents"),
   "/settings/notifications": msg("Notifications"),
   "/settings/phone": msg("Your phone"),
   "/settings/always-on": msg("Always-on server"),
@@ -206,6 +208,7 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
       "/settings/overview",
       "/settings/backup",
       "/settings/connectors",
+      "/settings/private-documents",
       "/settings/notifications",
       "/settings/phone",
       "/settings/always-on",
@@ -1113,6 +1116,15 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "majordome-private-documents",
+    title: "Private documents",
+    to: "/settings/private-documents",
+    majordomeOnly: true,
+    searchTerms: [
+      "private sensitive documents passport tax return contract encrypted approve allow access log",
+    ],
+  },
+  {
     id: "majordome-notifications",
     title: "Notifications",
     to: "/settings/notifications",
@@ -1525,6 +1537,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/overview": null,
   "/settings/backup": null,
   "/settings/connectors": null,
+  "/settings/private-documents": null,
   "/settings/notifications": null,
   "/settings/phone": null,
   "/settings/always-on": null,

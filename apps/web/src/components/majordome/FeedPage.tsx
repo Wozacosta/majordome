@@ -92,6 +92,7 @@ import {
   statusBrainId,
 } from "./brains.logic";
 import { notesLink } from "./notes.logic";
+import { PrivateDocumentFeedRequest } from "./PrivateDocumentRequestCard";
 import {
   Entry,
   EntryList,
@@ -748,6 +749,13 @@ function FeedRunRow({
       <StatusLine tone={item.status === "waiting" ? "warning" : "error"}>
         {FEED_RUN_STATUS_LABELS[item.status]}
       </StatusLine>
+      {item.ownerCardId !== null ? (
+        <PrivateDocumentFeedRequest
+          environmentId={item.vault.environmentId}
+          threadId={item.threadId}
+          turnItemId={item.ownerCardId}
+        />
+      ) : null}
     </Entry>
   );
 }

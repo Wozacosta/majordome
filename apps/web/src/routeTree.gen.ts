@@ -39,6 +39,7 @@ import { Route as ChatSettingsSecretsRouteImport } from './routes/_chat.settings
 import { Route as ChatSettingsScheduledTasksRouteImport } from './routes/_chat.settings.scheduled-tasks'
 import { Route as ChatSettingsProvidersRouteImport } from './routes/_chat.settings.providers'
 import { Route as ChatSettingsProjectsRouteImport } from './routes/_chat.settings.projects'
+import { Route as ChatSettingsPrivateDocumentsRouteImport } from './routes/_chat.settings.private-documents'
 import { Route as ChatSettingsPhoneRouteImport } from './routes/_chat.settings.phone'
 import { Route as ChatSettingsOverviewRouteImport } from './routes/_chat.settings.overview'
 import { Route as ChatSettingsOpenSourceLicensesRouteImport } from './routes/_chat.settings.open-source-licenses'
@@ -217,6 +218,12 @@ const ChatSettingsProjectsRoute = ChatSettingsProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => ChatSettingsRoute,
 } as any)
+const ChatSettingsPrivateDocumentsRoute =
+  ChatSettingsPrivateDocumentsRouteImport.update({
+    id: '/private-documents',
+    path: '/private-documents',
+    getParentRoute: () => ChatSettingsRoute,
+  } as any)
 const ChatSettingsPhoneRoute = ChatSettingsPhoneRouteImport.update({
   id: '/phone',
   path: '/phone',
@@ -391,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
   '/settings/overview': typeof ChatSettingsOverviewRoute
   '/settings/phone': typeof ChatSettingsPhoneRoute
+  '/settings/private-documents': typeof ChatSettingsPrivateDocumentsRoute
   '/settings/projects': typeof ChatSettingsProjectsRoute
   '/settings/providers': typeof ChatSettingsProvidersRoute
   '/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -447,6 +455,7 @@ export interface FileRoutesByTo {
   '/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
   '/settings/overview': typeof ChatSettingsOverviewRoute
   '/settings/phone': typeof ChatSettingsPhoneRoute
+  '/settings/private-documents': typeof ChatSettingsPrivateDocumentsRoute
   '/settings/projects': typeof ChatSettingsProjectsRoute
   '/settings/providers': typeof ChatSettingsProvidersRoute
   '/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -505,6 +514,7 @@ export interface FileRoutesById {
   '/_chat/settings/open-source-licenses': typeof ChatSettingsOpenSourceLicensesRoute
   '/_chat/settings/overview': typeof ChatSettingsOverviewRoute
   '/_chat/settings/phone': typeof ChatSettingsPhoneRoute
+  '/_chat/settings/private-documents': typeof ChatSettingsPrivateDocumentsRoute
   '/_chat/settings/projects': typeof ChatSettingsProjectsRoute
   '/_chat/settings/providers': typeof ChatSettingsProvidersRoute
   '/_chat/settings/scheduled-tasks': typeof ChatSettingsScheduledTasksRoute
@@ -563,6 +573,7 @@ export interface FileRouteTypes {
     | '/settings/open-source-licenses'
     | '/settings/overview'
     | '/settings/phone'
+    | '/settings/private-documents'
     | '/settings/projects'
     | '/settings/providers'
     | '/settings/scheduled-tasks'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/settings/open-source-licenses'
     | '/settings/overview'
     | '/settings/phone'
+    | '/settings/private-documents'
     | '/settings/projects'
     | '/settings/providers'
     | '/settings/scheduled-tasks'
@@ -676,6 +688,7 @@ export interface FileRouteTypes {
     | '/_chat/settings/open-source-licenses'
     | '/_chat/settings/overview'
     | '/_chat/settings/phone'
+    | '/_chat/settings/private-documents'
     | '/_chat/settings/projects'
     | '/_chat/settings/providers'
     | '/_chat/settings/scheduled-tasks'
@@ -913,6 +926,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSettingsProjectsRouteImport
       parentRoute: typeof ChatSettingsRoute
     }
+    '/_chat/settings/private-documents': {
+      id: '/_chat/settings/private-documents'
+      path: '/private-documents'
+      fullPath: '/settings/private-documents'
+      preLoaderRoute: typeof ChatSettingsPrivateDocumentsRouteImport
+      parentRoute: typeof ChatSettingsRoute
+    }
     '/_chat/settings/phone': {
       id: '/_chat/settings/phone'
       path: '/phone'
@@ -1115,6 +1135,7 @@ interface ChatSettingsRouteChildren {
   ChatSettingsOpenSourceLicensesRoute: typeof ChatSettingsOpenSourceLicensesRoute
   ChatSettingsOverviewRoute: typeof ChatSettingsOverviewRoute
   ChatSettingsPhoneRoute: typeof ChatSettingsPhoneRoute
+  ChatSettingsPrivateDocumentsRoute: typeof ChatSettingsPrivateDocumentsRoute
   ChatSettingsProjectsRoute: typeof ChatSettingsProjectsRoute
   ChatSettingsProvidersRoute: typeof ChatSettingsProvidersRoute
   ChatSettingsScheduledTasksRoute: typeof ChatSettingsScheduledTasksRoute
@@ -1151,6 +1172,7 @@ const ChatSettingsRouteChildren: ChatSettingsRouteChildren = {
   ChatSettingsOpenSourceLicensesRoute: ChatSettingsOpenSourceLicensesRoute,
   ChatSettingsOverviewRoute: ChatSettingsOverviewRoute,
   ChatSettingsPhoneRoute: ChatSettingsPhoneRoute,
+  ChatSettingsPrivateDocumentsRoute: ChatSettingsPrivateDocumentsRoute,
   ChatSettingsProjectsRoute: ChatSettingsProjectsRoute,
   ChatSettingsProvidersRoute: ChatSettingsProvidersRoute,
   ChatSettingsScheduledTasksRoute: ChatSettingsScheduledTasksRoute,
