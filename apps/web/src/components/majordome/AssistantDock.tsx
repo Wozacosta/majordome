@@ -1,5 +1,19 @@
 import { ArrowLeftIcon, MessageCircleIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import {
+  createContext,
+  type ReactNode,
+  type RefObject,
+  use,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { flushSync } from "react-dom";
+
+import type { ChatComposerHandle } from "../chat/ChatComposer";
+import { useComposerDraftStore } from "../../composerDraftStore";
+import { useStableCallback } from "../../hooks/useStableCallback";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -9,6 +23,14 @@ import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 const HINT = "Ask for help, or say what you'd like set up or changed.";
+
+type Ask = (text: string) => void;
+const AssistantAskContext = createContext<Ask | null>(null);
+
+/** Puts words in the assistant's text box for the person to send; null outside the dock. */
+export function useAskAssistant(): Ask | null {
+  return use(AssistantAskContext);
+}
 
 /**
  * A page with the assistant on its right. Where there is no room for both, the page comes first
@@ -27,27 +49,32 @@ export function AssistantDock({
 }) {
   const { activeVault } = useMajordomeVaults();
   const [open, setOpen] = useState(false);
+  const askRef = useRef<Ask | null>(null);
+  const [ask] = useState<Ask>(() => (text: string) => askRef.current?.(text));
   // The page keeps its place in the tree whatever the assistant does, so it never remounts.
   return (
-    <div className={cn("@container/assistant relative flex min-h-0 min-w-0 flex-1", className)}>
-      <div
-        className={cn(
-          "min-h-0 min-w-0 flex-1 @5xl/assistant:flex",
-          open && activeVault !== null ? "hidden" : "flex",
+    <AssistantAskContext value={ask}>
+      <div className={cn("@container/assistant relative flex min-h-0 min-w-0 flex-1", className)}>
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1 @5xl/assistant:flex",
+            open && activeVault !== null ? "hidden" : "flex",
+          )}
+        >
+          {children}
+        </div>
+        {activeVault === null ? null : (
+          <VaultAssistant
+            key={activeVault.key}
+            vault={activeVault}
+            shownThreadId={shownThreadId}
+            open={open}
+            onOpenChange={setOpen}
+            askRef={askRef}
+          />
         )}
-      >
-        {children}
       </div>
-      {activeVault === null ? null : (
-        <VaultAssistant
-          key={activeVault.key}
-          vault={activeVault}
-          shownThreadId={shownThreadId}
-          open={open}
-          onOpenChange={setOpen}
-        />
-      )}
-    </div>
+    </AssistantAskContext>
   );
 }
 
@@ -56,13 +83,36 @@ function VaultAssistant({
   shownThreadId,
   open,
   onOpenChange,
+  askRef,
 }: {
   readonly vault: MajordomeVault;
   readonly shownThreadId: string | null;
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
+  readonly askRef: RefObject<Ask | null>;
 }) {
   const { runner } = useVaultRoutines(vault);
+  const composerRef = useRef<ChatComposerHandle | null>(null);
+  const ask = useStableCallback((text: string) => {
+    if (runner === null) return;
+    // The assistant must be on screen before its text box can take the words and the cursor.
+    flushSync(() => onOpenChange(true));
+    if (composerRef.current?.insertTextAtEnd(text, { ensureLeadingBoundary: true })) {
+      composerRef.current.focusAtEnd();
+    } else if (runner.routinesThreadId !== null) {
+      // Its text box is not there yet; the words wait in the conversation's draft.
+      useComposerDraftStore
+        .getState()
+        .setPrompt(scopeThreadRef(runner.environmentId, runner.routinesThreadId), text);
+    }
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- hands the page beside it the way into this panel's text box, and takes it back on unmount
+  useEffect(() => {
+    askRef.current = ask;
+    return () => {
+      askRef.current = null;
+    };
+  }, [askRef, ask]);
   if (
     runner === null ||
     (runner.routinesThreadId !== null && runner.routinesThreadId === shownThreadId)
@@ -88,7 +138,7 @@ function VaultAssistant({
         <RoutinesAssistant
           key={`${runner.environmentId}:${runner.projectId}`}
           copy={runner}
-          title="Assistant"
+          composerRef={composerRef}
           hint={HINT}
           back={
             <span className="@5xl/assistant:hidden">

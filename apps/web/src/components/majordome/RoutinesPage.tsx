@@ -5,16 +5,12 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { Trash2Icon } from "lucide-react";
+import { useState } from "react";
 
-import type { ChatComposerHandle } from "../chat/ChatComposer";
-import { useComposerDraftStore } from "../../composerDraftStore";
 import { requestConfirmDialog } from "../../confirmDialog";
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
-import { cn } from "../../lib/utils";
 import { useQuietThreadShell } from "../../state/entities";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -25,11 +21,11 @@ import { SidebarInset } from "../ui/sidebar";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { useAskAssistant } from "./AssistantDock";
 import { machineInSentence } from "./brains.logic";
 import { Disclosure, EntryList, Muted, PageHeader, Section, StatusLine } from "./paper";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
 import { RoutineLimits } from "./RoutineLimits";
-import { RoutinesAssistant } from "./RoutinesAssistant";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import {
   changeRoutineMessage,
@@ -74,121 +70,62 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { machineOf } = useMachineNames();
   const { routines, runner, runnerHistory, runnerUnreachable, loading } = useVaultRoutines(vault);
-  const composerRef = useRef<ChatComposerHandle | null>(null);
-  const [assistantOpen, setAssistantOpen] = useState(false);
-
-  const askToChange = (title: string) => {
-    const text = changeRoutineMessage(title);
-    // The assistant must be on screen before its text box can take the words and the cursor.
-    flushSync(() => setAssistantOpen(true));
-    if (composerRef.current?.insertTextAtEnd(text, { ensureLeadingBoundary: true })) {
-      composerRef.current.focusAtEnd();
-    } else if (runner !== null && runner.routinesThreadId !== null) {
-      // Its text box is not there yet; the words wait in the conversation's draft.
-      useComposerDraftStore
-        .getState()
-        .setPrompt(scopeThreadRef(runner.environmentId, runner.routinesThreadId), text);
-    }
-  };
+  const askAssistant = useAskAssistant();
+  const askToChange = (title: string) => askAssistant?.(changeRoutineMessage(title));
 
   return (
-    <div className="@container/routines flex min-h-0 flex-1">
-      <div
-        className={cn(
-          "min-h-0 min-w-0 flex-1 flex-col @4xl/routines:flex",
-          assistantOpen ? "hidden" : "flex",
-        )}
-      >
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pt-6 pb-12 sm:px-6">
-            <PageHeader
-              title="Routines"
-              intro="What Majordome does for you on its own. To add or change one, tell the assistant."
-              action={
-                <span className="@4xl/routines:hidden">
-                  <Button size="sm" onClick={() => setAssistantOpen(true)}>
-                    Set up with the assistant
-                  </Button>
-                </span>
-              }
-            />
-            {runner !== null ? (
-              <div className="mt-3 flex flex-col">
-                {vault.copies.length > 1 && !runnerUnreachable ? (
-                  <Muted>
-                    Routines run on {machineInSentence(machineOf(runner.environmentId))}.
-                  </Muted>
-                ) : null}
-                {runnerUnreachable ? (
-                  <StatusLine tone="warning" className="py-2.5">
-                    Routines run on another computer that this window can't reach right now, so they
-                    aren't listed here.
-                  </StatusLine>
-                ) : (
-                  <RoutinesBlockedLine
-                    environmentId={runner.environmentId}
-                    status={runnerHistory?.routinesStatus}
-                    machine={machineOf(runner.environmentId)}
-                    label={null}
-                  />
-                )}
-              </div>
+    <ScrollArea className="min-h-0 flex-1">
+      <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pt-6 pb-12 sm:px-6">
+        <PageHeader
+          title="Routines"
+          intro="What Majordome does for you on its own. To add or change one, tell the assistant."
+        />
+        {runner !== null ? (
+          <div className="mt-3 flex flex-col">
+            {vault.copies.length > 1 && !runnerUnreachable ? (
+              <Muted>Routines run on {machineInSentence(machineOf(runner.environmentId))}.</Muted>
             ) : null}
-
-            <Section label="Routines">
-              {routines.length > 0 ? (
-                <EntryList aria-label="Routines">
-                  {routines.map((item) => (
-                    <RoutineRow
-                      key={item.key}
-                      item={item}
-                      nowMs={nowMs}
-                      onChange={() => askToChange(item.task.title)}
-                    />
-                  ))}
-                </EntryList>
-              ) : loading ? null : (
-                <Muted className="border-t border-border py-3">
-                  No routines yet. Tell the assistant what you'd like done and when, such as “every
-                  Friday evening, list what I spent this week”.
-                </Muted>
-              )}
-            </Section>
-
-            <Disclosure summary="Limits" className="mt-8">
-              <RoutineLimits />
-            </Disclosure>
+            {runnerUnreachable ? (
+              <StatusLine tone="warning" className="py-2.5">
+                Routines run on another computer that this window can't reach right now, so they
+                aren't listed here.
+              </StatusLine>
+            ) : (
+              <RoutinesBlockedLine
+                environmentId={runner.environmentId}
+                status={runnerHistory?.routinesStatus}
+                machine={machineOf(runner.environmentId)}
+                label={null}
+              />
+            )}
           </div>
-        </ScrollArea>
-      </div>
+        ) : null}
 
-      {runner !== null ? (
-        <div
-          className={cn(
-            "min-h-0 min-w-0 flex-1 flex-col @4xl/routines:flex @4xl/routines:max-w-md @4xl/routines:border-l @4xl/routines:border-border",
-            assistantOpen ? "flex" : "hidden",
+        <Section label="Routines">
+          {routines.length > 0 ? (
+            <EntryList aria-label="Routines">
+              {routines.map((item) => (
+                <RoutineRow
+                  key={item.key}
+                  item={item}
+                  nowMs={nowMs}
+                  onChange={() => askToChange(item.task.title)}
+                />
+              ))}
+            </EntryList>
+          ) : loading ? null : (
+            <Muted className="border-t border-border py-3">
+              No routines yet. Tell the assistant what you'd like done and when, such as “every
+              Friday evening, list what I spent this week”.
+            </Muted>
           )}
-        >
-          <RoutinesAssistant
-            key={`${runner.environmentId}:${runner.projectId}`}
-            copy={runner}
-            composerRef={composerRef}
-            back={
-              <span className="@4xl/routines:hidden">
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label="Back to routines"
-                  onClick={() => setAssistantOpen(false)}
-                >
-                  <ArrowLeftIcon />
-                </Button>
-              </span>
-            }
-          />
-        </div>
-      ) : null}
-    </div>
+        </Section>
+
+        <Disclosure summary="Limits" className="mt-8">
+          <RoutineLimits />
+        </Disclosure>
+      </div>
+    </ScrollArea>
   );
 }
 

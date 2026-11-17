@@ -9,6 +9,7 @@ import { render } from "../../../test/render";
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import { serverEnvironment } from "../../state/server";
 import { SidebarProvider } from "../ui/sidebar";
+import { AssistantDock } from "./AssistantDock";
 import { RemindersPage } from "./RemindersPage";
 import { RoutinesPage } from "./RoutinesPage";
 
@@ -110,9 +111,12 @@ async function setup(width: number) {
   return { [Symbol.asyncDispose]: () => page.viewport(viewport.width, viewport.height) };
 }
 
+// The page as the app shows it: inside the dock that puts the assistant beside every screen.
 const routinesPage = (
   <SidebarProvider>
-    <RoutinesPage />
+    <AssistantDock className="h-dvh">
+      <RoutinesPage />
+    </AssistantDock>
   </SidebarProvider>
 );
 
@@ -147,7 +151,7 @@ it("lists routines in plain words, with the assistant beside them", async () => 
   await expect.element(screen.getByRole("region", { name: "Assistant" })).toBeVisible();
   // Hidden, so it is out of the page for a screen reader too.
   await expect
-    .element(screen.getByRole("button", { name: "Set up with the assistant" }))
+    .element(screen.getByRole("button", { name: "Assistant", exact: true }))
     .not.toBeInTheDocument();
 
   await routine.getByRole("button", { name: "Run now" }).click();
@@ -171,10 +175,10 @@ it("on a phone, shows the list first and opens the assistant over it", async () 
   await expect.element(assistant).not.toBeInTheDocument();
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
 
-  await screen.getByRole("button", { name: "Set up with the assistant" }).click();
+  await screen.getByRole("button", { name: "Assistant", exact: true }).click();
   await expect.element(assistant).toBeVisible();
   await expect.element(heading).not.toBeInTheDocument();
-  await assistant.getByRole("button", { name: "Back to routines" }).click();
+  await assistant.getByRole("button", { name: "Back to the page" }).click();
   await expect.element(heading).toBeVisible();
 
   // Edit hands the routine to the assistant instead of opening a form.

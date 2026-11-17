@@ -47,15 +47,13 @@ const replacedStaleThreads = new Set<string>();
 export function RoutinesAssistant({
   copy,
   composerRef,
-  title = "Set up with the assistant",
-  hint = "Say what you'd like done and when, or what to be reminded of.",
+  hint,
   back,
 }: {
   /** The notes folder's copy on the server that runs its routines. */
   readonly copy: VaultCopy;
   readonly composerRef?: ComposerHandleRef;
-  readonly title?: string;
-  readonly hint?: string;
+  readonly hint: string;
   /** On a narrow screen the assistant covers the page; this control goes back to it. */
   readonly back?: ReactNode;
 }) {
@@ -136,7 +134,7 @@ export function RoutinesAssistant({
       <header className="flex min-h-(--workspace-topbar-height) shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3">
         {back}
         <div className="min-w-0 flex-1 basis-40">
-          <h2 className={`${HEADING_CLASS} text-base`}>{title}</h2>
+          <h2 className={`${HEADING_CLASS} text-base`}>Assistant</h2>
           <Muted className="text-xs">{hint}</Muted>
         </div>
         {routinesThreadId !== null ? (
