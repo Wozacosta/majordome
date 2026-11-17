@@ -129,6 +129,12 @@ import {
   MajordomeNotesSearchResult,
 } from "./majordomeNotesSearch.ts";
 import {
+  MajordomeAnswerApprovalInput,
+  MajordomeApproval,
+  MajordomeApprovalError,
+  MajordomeApprovalInput,
+} from "./majordomeApprovals.ts";
+import {
   MajordomeAddPrivateDocumentInput,
   MajordomeAnswerPrivateDocumentRequestInput,
   MajordomePrivateDocument,
@@ -729,6 +735,8 @@ export const WS_METHODS = {
   majordomeViewPrivateDocument: "majordome.viewPrivateDocument",
   majordomeGetPrivateDocumentRequest: "majordome.getPrivateDocumentRequest",
   majordomeAnswerPrivateDocumentRequest: "majordome.answerPrivateDocumentRequest",
+  majordomeGetApproval: "majordome.getApproval",
+  majordomeAnswerApproval: "majordome.answerApproval",
   majordomeBackUpNow: "majordome.backUpNow",
   majordomeConfigureBackup: "majordome.configureBackup",
   majordomeConnectGitHubStart: "majordome.connectGitHubStart",
@@ -2389,6 +2397,17 @@ const WsMajordomeAnswerPrivateDocumentRequestRpc = Rpc.make(
   },
 );
 
+const WsMajordomeGetApprovalRpc = Rpc.make(WS_METHODS.majordomeGetApproval, {
+  payload: MajordomeApprovalInput,
+  success: Schema.NullOr(MajordomeApproval),
+  error: EnvironmentAuthorizationError,
+});
+
+const WsMajordomeAnswerApprovalRpc = Rpc.make(WS_METHODS.majordomeAnswerApproval, {
+  payload: MajordomeAnswerApprovalInput,
+  error: Schema.Union([MajordomeApprovalError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
   payload: MajordomeTopicsInput,
   success: MajordomeTopicsResult,
@@ -2828,6 +2847,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeViewPrivateDocumentRpc,
   WsMajordomeGetPrivateDocumentRequestRpc,
   WsMajordomeAnswerPrivateDocumentRequestRpc,
+  WsMajordomeGetApprovalRpc,
+  WsMajordomeAnswerApprovalRpc,
   WsMajordomeBackUpNowRpc,
   WsMajordomeConfigureBackupRpc,
   WsMajordomeConnectGitHubStartRpc,

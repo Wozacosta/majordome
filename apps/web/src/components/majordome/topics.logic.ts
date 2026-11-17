@@ -220,8 +220,8 @@ export function topicSubtitle(
 }
 
 /**
- * Changes when a topic's conversation gets a new message from the owner or a finished reply, so
- * the previews are read again then and only then.
+ * Changes when one of these conversations gets a new message from the owner or a finished reply,
+ * so what the servers hold is read again then and only then.
  */
 export function topicPreviewStamp(
   threads: ReadonlyArray<

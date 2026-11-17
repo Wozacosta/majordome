@@ -76,7 +76,7 @@ const withService = <A, E>(
   }) => Effect.Effect<A, E>,
   options: {
     readonly threadId?: ThreadId;
-    readonly delivery?: "file" | "private_document";
+    readonly delivery?: "file" | "private_document" | "approval";
     readonly directory?: string;
     readonly runStatus?: string;
     readonly removeFails?: boolean;
@@ -365,20 +365,22 @@ it.effect("declining stores nothing, and a request is answered once", () =>
   ),
 );
 
-it.effect("a private document card cannot be answered as a secret", () =>
-  withService(
-    ({ service, stored, dispatched }) =>
-      Effect.gen(function* () {
-        // Saving a value would mark the card `saved`, which for this card means "allowed".
-        const error = yield* service
-          .answer({ threadId, turnItemId, answer: { type: "save", secret: "anything" } })
-          .pipe(Effect.flip);
-        assert.equal(error.reason, "not_found");
-        assert.deepEqual(valuesOf(stored), []);
-        assert.equal(dispatched.length, 0);
-      }),
-    { delivery: "private_document" },
-  ),
+it.effect.each(["private_document", "approval"] as const)(
+  "a %s card cannot be answered as a secret",
+  (delivery) =>
+    withService(
+      ({ service, stored, dispatched }) =>
+        Effect.gen(function* () {
+          // Saving a value would mark the card `saved`, which for this card means "allowed".
+          const error = yield* service
+            .answer({ threadId, turnItemId, answer: { type: "save", secret: "anything" } })
+            .pipe(Effect.flip);
+          assert.equal(error.reason, "not_found");
+          assert.deepEqual(valuesOf(stored), []);
+          assert.equal(dispatched.length, 0);
+        }),
+      { delivery },
+    ),
 );
 
 it.effect("traces and counts a saved answer without ever recording the value", () =>

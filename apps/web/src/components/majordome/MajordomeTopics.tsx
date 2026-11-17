@@ -1,5 +1,5 @@
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
-import { topicsRevision } from "@t3tools/client-runtime/state/majordome";
+import { refreshMajordomeSettings } from "@t3tools/client-runtime/state/majordome";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -154,16 +154,22 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
       ? undefined
       : threadByKey.get(scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId)));
 
-  const previewStamp = topicPreviewStamp(vault.topics.map(topicThread));
-  const seenPreviewStamp = useRef(previewStamp);
   const copies = vault.copies;
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the previews come from the servers, so a topic's conversation moving on asks them again
+  // Every conversation in these notes, not only the topics': the assistant changes settings too.
+  const previewStamp = topicPreviewStamp(
+    threads.filter((thread) =>
+      copies.some(
+        (copy) =>
+          copy.environmentId === thread.environmentId && copy.projectId === thread.projectId,
+      ),
+    ),
+  );
+  const seenPreviewStamp = useRef(previewStamp);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- previews and settings live on the servers, so a conversation moving on asks them again
   useEffect(() => {
     if (seenPreviewStamp.current === previewStamp) return;
     seenPreviewStamp.current = previewStamp;
-    for (const copy of copies) {
-      appAtomRegistry.update(topicsRevision(copy.environmentId), (revision) => revision + 1);
-    }
+    for (const copy of copies) refreshMajordomeSettings(copy.environmentId, appAtomRegistry);
   }, [previewStamp, copies, seenPreviewStamp]);
 
   const open = async (topic: VaultTopic) => {

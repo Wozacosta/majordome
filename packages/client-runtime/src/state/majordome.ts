@@ -206,6 +206,15 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeAnswerPrivateDocumentRequest,
       onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
     }),
+    /** One question, read once per card: its turn item id is part of the key. */
+    approval: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:approval",
+      tag: WS_METHODS.majordomeGetApproval,
+    }),
+    answerApproval: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:answer-approval",
+      tag: WS_METHODS.majordomeAnswerApproval,
+    }),
     backUpNow: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:back-up-now",
       tag: WS_METHODS.majordomeBackUpNow,
@@ -286,11 +295,8 @@ export function createMajordomeEnvironmentAtoms<R, E>(
   };
 }
 
-/**
- * Bumped after any topic change, or when a topic's conversation moves on, so every topic list in
- * that environment reads again.
- */
-export const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
+/** Bumped after any topic change, so every topic list in that environment reads again. */
+const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
   Atom.make(0).pipe(
     Atom.keepAlive,
     Atom.withLabel(`environment-data:majordome:topics-revision:${environmentId}`),
@@ -351,3 +357,21 @@ const bumpBackup = (environmentId: EnvironmentId, registry: AtomRegistry.AtomReg
     registry.update(backupRevision(environmentId), (value) => value + 1);
     registry.update(historyRevision(environmentId), (value) => value + 1);
   });
+
+/**
+ * Reads topics, the backup, the feed and private documents again. A conversation that moved on may
+ * have changed any of them: an assistant changes settings on the server, not through this client.
+ */
+export function refreshMajordomeSettings(
+  environmentId: EnvironmentId,
+  registry: AtomRegistry.AtomRegistry,
+): void {
+  for (const revision of [
+    topicsRevision,
+    backupRevision,
+    historyRevision,
+    privateDocumentsRevision,
+  ]) {
+    registry.update(revision(environmentId), (value) => value + 1);
+  }
+}

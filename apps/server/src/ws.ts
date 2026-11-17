@@ -134,6 +134,7 @@ import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
 import {
@@ -1489,6 +1490,7 @@ export const layerWsRpc = (
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
+      const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const secretRequests = yield* SecretRequests.SecretRequests;
@@ -2405,6 +2407,11 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: (input) =>
           Effect.annotateCurrentSpan({ "orchestration_v2.thread_id": input.threadId }).pipe(
             Effect.andThen(privateDocuments.answerRequest(input)),
+          ),
+        [WS_METHODS.majordomeGetApproval]: (input) => majordomeApprovals.getRequest(input),
+        [WS_METHODS.majordomeAnswerApproval]: (input) =>
+          Effect.annotateCurrentSpan({ "orchestration_v2.thread_id": input.threadId }).pipe(
+            Effect.andThen(majordomeApprovals.answer(input)),
           ),
         [WS_METHODS.majordomeBackUpNow]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

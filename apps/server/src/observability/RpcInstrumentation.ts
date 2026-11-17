@@ -138,6 +138,8 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeViewPrivateDocument]: "majordome",
   [WS_METHODS.majordomeGetPrivateDocumentRequest]: "majordome",
   [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: "majordome",
+  [WS_METHODS.majordomeGetApproval]: "majordome",
+  [WS_METHODS.majordomeAnswerApproval]: "majordome",
   [WS_METHODS.majordomeBackUpNow]: "majordome",
   [WS_METHODS.majordomeConfigureBackup]: "majordome",
   [WS_METHODS.majordomeConnectGitHubStart]: "majordome",

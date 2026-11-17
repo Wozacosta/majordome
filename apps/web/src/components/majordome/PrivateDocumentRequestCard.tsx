@@ -12,13 +12,11 @@ import type {
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { CheckIcon, FileLockIcon, MinusIcon } from "lucide-react";
-import { useRef, useState } from "react";
 
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { WorkLogRow } from "../chat/WorkLog";
-import { Button } from "../ui/button";
-import { Spinner } from "../ui/spinner";
+import { OwnerAnswerButtons } from "./OwnerAnswerButtons";
 import { Muted } from "./paper";
 import { privateDocumentFailureMessage, requestOutcomeLabel } from "./privateDocuments.logic";
 
@@ -103,51 +101,17 @@ function PrivateDocumentRequestActions({
   const canAnswer = useAtomValue(
     majordomeEnvironment.answerPrivateDocumentRequest.permissionAtom(environmentId),
   );
-  const [sending, setSending] = useState<"allow" | "deny" | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  // Two taps can both land before a render.
-  const inFlight = useRef(false);
-
-  const send = async (allow: boolean) => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setSending(allow ? "allow" : "deny");
-    setError(null);
-    const result = await answer({ environmentId, input: { threadId, turnItemId, allow } }).finally(
-      () => {
-        inFlight.current = false;
-        setSending(null);
-      },
-    );
-    if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      setError(privateDocumentFailureMessage(squashAtomCommandFailure(result)));
-    }
-  };
-
   if (!canAnswer) return <Muted>This connection can't answer for private documents.</Muted>;
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" disabled={sending !== null} onClick={() => void send(true)}>
-          {sending === "allow" ? <Spinner size="sm" /> : null}
-          Allow once
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={sending !== null}
-          onClick={() => void send(false)}
-        >
-          {sending === "deny" ? <Spinner size="sm" /> : null}
-          Don't allow
-        </Button>
-      </div>
-      {error !== null ? (
-        <p role="alert" className="text-xs text-destructive-foreground">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <OwnerAnswerButtons
+      allowLabel="Allow once"
+      answer={async (allow) => {
+        const result = await answer({ environmentId, input: { threadId, turnItemId, allow } });
+        return result._tag === "Failure" && !isAtomCommandInterrupted(result)
+          ? privateDocumentFailureMessage(squashAtomCommandFailure(result))
+          : null;
+      }}
+    />
   );
 }
 
