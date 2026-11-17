@@ -4,7 +4,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import type { ChatComposerHandle } from "../chat/ChatComposer";
@@ -120,6 +120,7 @@ export function RoutinesAssistant({
   }, [canOpen, environmentId, request, routinesThreadId, shell]);
 
   const router = useRouter();
+  const screenName = useLocation({ select: assistantScreenName });
   const readScreen = useStableCallback(() => {
     const screen = assistantScreenName(router.state.location);
     return screen === null ? null : screenContextRecord(screen);
@@ -135,7 +136,9 @@ export function RoutinesAssistant({
         {back}
         <div className="min-w-0 flex-1 basis-40">
           <h2 className={`${HEADING_CLASS} text-base`}>Assistant</h2>
-          <Muted className="text-xs">{hint}</Muted>
+          <Muted className="text-xs">
+            {screenName === null ? hint : `Sees you're on ${screenName}. ${hint}`}
+          </Muted>
         </div>
         {routinesThreadId !== null ? (
           <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
