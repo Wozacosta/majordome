@@ -1,4 +1,7 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
+
+import { AssistantDock } from "../components/majordome/AssistantDock";
+import { isMajordome } from "../env";
 
 import { ThreadRouteView } from "../components/ThreadRouteView";
 import { isAppModalPage } from "../components/sidebar/mainAppLocation";
@@ -11,6 +14,10 @@ import { useShownThreadRouteTarget } from "../hooks/useShownThreadRouteTarget";
 function ChatRouteLayout() {
   // Render both routes here so draft promotion keeps the same ChatView mounted.
   const { shownTarget, modalOpen } = useShownThreadRouteTarget();
+  // Routines has the assistant built into its own page.
+  const docked = useLocation({
+    select: (location) => isMajordome && location.pathname !== "/routines",
+  });
   return (
     <>
       {shownTarget?.kind === "server" && !modalOpen ? (
@@ -20,6 +27,10 @@ function ChatRouteLayout() {
         <ThreadRouteView target={shownTarget} background={modalOpen} />
       ) : modalOpen ? (
         <SidebarInset className="h-dvh" />
+      ) : docked ? (
+        <AssistantDock className="h-dvh">
+          <Outlet />
+        </AssistantDock>
       ) : (
         <Outlet />
       )}

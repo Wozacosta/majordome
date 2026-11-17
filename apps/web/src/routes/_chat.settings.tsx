@@ -6,6 +6,9 @@ import { Button } from "../components/ui/button";
 import { useSettingsRestore } from "../components/settings/SettingsPanels";
 
 import { AppRouteModal, AppRouteModalClose } from "../components/AppRouteModal";
+import { AssistantDock } from "../components/majordome/AssistantDock";
+import { getAppModalReturnThreadTarget } from "../components/sidebar/mainAppLocation";
+import { isMajordome } from "../env";
 import { SettingsBreadcrumb } from "../components/settings/SettingsBreadcrumb";
 import { SettingsSidebarNav } from "../components/settings/SettingsSidebarNav";
 import {
@@ -116,6 +119,15 @@ function SettingsContentLayout() {
       : JSON.stringify(search);
   const [restoreSignal, setRestoreSignal] = useState(0);
 
+  const returnTarget = getAppModalReturnThreadTarget();
+  const page = (
+    <div key={`${contentScopeKey}:${restoreSignal}`} className="min-h-0 flex flex-1 flex-col">
+      <SettingsScopeBoundary pathname={location.pathname}>
+        <Outlet />
+      </SettingsScopeBoundary>
+    </div>
+  );
+
   return (
     <AppRouteModal label="Settings">
       <div className="relative flex min-h-0 flex-1">
@@ -132,11 +144,18 @@ function SettingsContentLayout() {
               <AppRouteModalClose />
             </div>
           </header>
-          <div key={`${contentScopeKey}:${restoreSignal}`} className="min-h-0 flex flex-1 flex-col">
-            <SettingsScopeBoundary pathname={location.pathname}>
-              <Outlet />
-            </SettingsScopeBoundary>
-          </div>
+          {isMajordome ? (
+            <AssistantDock
+              className="min-h-0"
+              shownThreadId={
+                returnTarget?.kind === "server" ? returnTarget.threadRef.threadId : null
+              }
+            >
+              {page}
+            </AssistantDock>
+          ) : (
+            page
+          )}
         </div>
       </div>
     </AppRouteModal>

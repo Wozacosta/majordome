@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { EnvironmentId, ProjectId, type ScheduledTask, ScheduledTaskId } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
@@ -87,16 +88,15 @@ vi.mock("./useVaultRoutines", () => ({
 }));
 // The real panel mounts the whole conversation view; this one only takes the words Edit hands it.
 vi.mock("./RoutinesAssistant", () => ({
-  RoutinesAssistant: (props: { composerRef: ComposerHandleRef; onBack: () => void }) => {
+  RoutinesAssistant: (props: { composerRef: ComposerHandleRef; back: ReactNode }) => {
     props.composerRef.current = {
       insertTextAtEnd: (text: string) => state.typed.push(text) > 0,
       focusAtEnd: () => {},
     } as never;
     return (
       <section aria-label="Assistant">
-        <button type="button" onClick={props.onBack}>
-          Back to routines
-        </button>
+        {props.back}
+        <p>The conversation</p>
       </section>
     );
   },

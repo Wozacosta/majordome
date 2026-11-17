@@ -202,6 +202,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
         startedBy: { ...startedBy, scheduledTaskId: undefined },
       });
       assert.isTrue(guideOnly.startsWith("<routines>"));
+      assert.include(guideOnly, "<app>");
     }),
   );
 

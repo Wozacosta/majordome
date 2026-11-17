@@ -93,7 +93,7 @@ export class MajordomeTopics extends Context.Service<
 
 const isTopicsError = Schema.is(MajordomeTopicsError);
 
-const ROUTINES_CONVERSATION_TITLE = "Routines and reminders";
+const ROUTINES_CONVERSATION_TITLE = "Assistant";
 
 const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
 /** Enough of the latest messages to find one with words in it. */

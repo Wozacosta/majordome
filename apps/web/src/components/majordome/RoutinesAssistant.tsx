@@ -5,9 +5,9 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import type { ChatComposerHandle } from "../chat/ChatComposer";
 import { ComposerHandleContext, type ComposerHandleRef } from "../../composerHandleContext";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
@@ -28,20 +28,25 @@ const NO_PARENT_PANEL: SideChatParentPanel = {
 };
 
 /**
- * The assistant beside the routine list: the notes folder's one conversation about routines and
- * reminders, on the server that runs them, shown with the app's own conversation view.
+ * The assistant beside a page: the notes folder's one setup conversation, on the server that runs
+ * its routines, shown with the app's own conversation view.
  */
 export function RoutinesAssistant({
   copy,
   composerRef,
-  onBack,
+  title = "Set up with the assistant",
+  hint = "Say what you'd like done and when, or what to be reminded of.",
+  back,
 }: {
   /** The notes folder's copy on the server that runs its routines. */
   readonly copy: VaultCopy;
-  readonly composerRef: ComposerHandleRef;
-  /** On a narrow screen the assistant covers the list; this goes back to it. */
-  readonly onBack: () => void;
+  readonly composerRef?: ComposerHandleRef;
+  readonly title?: string;
+  readonly hint?: string;
+  /** On a narrow screen the assistant covers the page; this control goes back to it. */
+  readonly back?: ReactNode;
 }) {
+  const ownComposerRef = useRef<ChatComposerHandle | null>(null);
   const { environmentId, projectId, routinesThreadId } = copy;
   const canOpen = useAtomValue(
     majordomeEnvironment.openRoutinesConversation.permissionAtom(environmentId),
@@ -88,17 +93,11 @@ export function RoutinesAssistant({
       data-side-chat-pane={routinesThreadId ?? "routines"}
       className="flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3">
-        <span className="@4xl/routines:hidden">
-          <Button size="icon-sm" variant="ghost" aria-label="Back to routines" onClick={onBack}>
-            <ArrowLeftIcon />
-          </Button>
-        </span>
+      <header className="flex min-h-(--workspace-topbar-height) shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3">
+        {back}
         <div className="min-w-0 flex-1 basis-40">
-          <h2 className={`${HEADING_CLASS} text-base`}>Set up with the assistant</h2>
-          <Muted className="text-xs">
-            Say what you'd like done and when, or what to be reminded of.
-          </Muted>
+          <h2 className={`${HEADING_CLASS} text-base`}>{title}</h2>
+          <Muted className="text-xs">{hint}</Muted>
         </div>
         {routinesThreadId !== null ? (
           <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
@@ -135,7 +134,7 @@ export function RoutinesAssistant({
         </Muted>
       ) : (
         <BackgroundThreadContext value>
-          <ComposerHandleContext value={composerRef}>
+          <ComposerHandleContext value={composerRef ?? ownComposerRef}>
             <ChatView
               // A fresh conversation is a new view, not the old one scrolled somewhere.
               key={routinesThreadId}

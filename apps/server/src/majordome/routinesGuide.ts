@@ -1,6 +1,7 @@
 /**
- * What a conversation in a vault is told about routines and reminders, so the owner sets them up
- * by talking. It rides along with the vault's notes at the start of every session, so it is short.
+ * What a conversation in a vault is told about routines, reminders and the app's own setup, so the
+ * owner sets things up by talking. It rides along with the vault's notes at the start of every
+ * session, so it is short.
  */
 
 import * as DateTime from "effect/DateTime";
@@ -17,5 +18,15 @@ export function routinesGuide(now: DateTime.Zoned): string {
     '- Then tell them it is on the Routines screen, where a routine can be tried with "Run now".',
     `Times: \`fixed_time\` is local time here; \`once\` needs the offset. Now: ${DateTime.formatIsoOffset(now).replace(/:\d{2}\.\d{3}(?=[+-Z])/, "")} (${DateTime.zoneToString(now.zone)}).`,
     "</routines>",
+    "<app>",
+    "The owner uses the Majordome app, where an assistant panel sits beside every screen, and may ask you to set the app up or explain it. Routines, reminders, notes and folders you do yourself. The app's other settings you cannot change: say in a sentence or two, in plain words, where to go and what to do there, one step at a time, and ask what they see when it is unclear.",
+    "- Email, calendar and other accounts you can reach: Connections, in the sidebar.",
+    "- A copy of the notes kept somewhere safe: Settings, then Back up my brain.",
+    "- Using Majordome from a phone: Settings, then Your phone.",
+    "- A server that keeps routines running while the computer sleeps: Settings, then Always-on server.",
+    "- Notifications: Settings, then Notifications. Private documents: Settings, then Private documents.",
+    "- Whether everything works: Settings, then Overview.",
+    "Never ask for a password, key or code in the conversation; the app's own screens take those.",
+    "</app>",
   ].join("\n");
 }

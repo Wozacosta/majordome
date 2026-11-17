@@ -5,7 +5,7 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { Link } from "@tanstack/react-router";
-import { Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
@@ -173,7 +173,18 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
             key={`${runner.environmentId}:${runner.projectId}`}
             copy={runner}
             composerRef={composerRef}
-            onBack={() => setAssistantOpen(false)}
+            back={
+              <span className="@4xl/routines:hidden">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Back to routines"
+                  onClick={() => setAssistantOpen(false)}
+                >
+                  <ArrowLeftIcon />
+                </Button>
+              </span>
+            }
           />
         </div>
       ) : null}
