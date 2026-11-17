@@ -237,8 +237,10 @@ function SecureAddressSteps({
               Android, open Chrome's menu and tap “Add to Home screen” or “Install app”.
             </Step>
             <Step>
-              Open Majordome from your Home Screen, go to “Notifications” and turn them on.
+              Open Majordome from your Home Screen. If it asks for a code, press “Show the code”
+              here again and type the letters under the new one.
             </Step>
+            <Step>In Majordome on your phone, go to “Notifications” and turn them on.</Step>
           </Steps>
         </>
       );
@@ -313,9 +315,11 @@ function PairingCode({
   const createPairingCredential = useAtomCommand(authEnvironment.createPairingCredential, {
     reportFailure: false,
   });
-  const [code, setCode] = useState<{ readonly url: string; readonly expiresAt: string } | null>(
-    null,
-  );
+  const [code, setCode] = useState<{
+    readonly url: string;
+    readonly typed: string;
+    readonly expiresAt: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (!readEnvironmentScope(environmentId, AuthAccessWriteScope)) {
@@ -347,6 +351,7 @@ function PairingCode({
     }
     setCode({
       url: resolveDesktopPairingUrl(baseUrl, result.value.credential),
+      typed: result.value.credential,
       expiresAt: DateTime.formatIso(result.value.expiresAt),
     });
   };
@@ -373,6 +378,9 @@ function PairingCode({
           title="Code to open Majordome on your phone"
         />
       </Surface>
+      <Muted className="text-xs">
+        To type it instead: <span className="font-mono text-foreground">{code.typed}</span>
+      </Muted>
       <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
         <span>{formatExpiresInLabel(code.expiresAt)}. Works once.</span>
         <Button size="xs" variant="ghost-muted" onClick={() => setCode(null)}>

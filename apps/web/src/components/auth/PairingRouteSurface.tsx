@@ -4,6 +4,7 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import React, { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { connectPairing } from "../../connection/onboarding";
+import { isMajordome } from "../../env";
 import {
   peekPairingTokenFromUrl,
   stripPairingTokenFromUrl,
@@ -85,14 +86,18 @@ export function PairingRouteSurface({
   return (
     <StandalonePage>
       <StandalonePageHeader
-        title="Pair with this environment"
-        description={describeAuthGate(auth.bootstrapMethods)}
+        title={isMajordome ? "Connect this device" : "Pair with this environment"}
+        description={
+          isMajordome
+            ? "On your computer, open Majordome and go to Settings, then Your phone. Press “Show the code” and type the letters shown under it here."
+            : describeAuthGate(auth.bootstrapMethods)
+        }
       />
 
       <form className="mt-6 space-y-4" onSubmit={(event) => void handleSubmit(event)}>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="pairing-token">
-            Pairing token
+            {isMajordome ? "Code from your computer" : "Pairing token"}
           </label>
           <Input
             id="pairing-token"
@@ -102,7 +107,7 @@ export function PairingRouteSurface({
             disabled={isSubmitting}
             nativeInput
             onChange={(event) => setCredential(event.currentTarget.value)}
-            placeholder="Paste a one-time token or pairing secret"
+            placeholder={isMajordome ? "Code" : "Paste a one-time token or pairing secret"}
             spellCheck={false}
             value={credential}
           />
@@ -116,7 +121,7 @@ export function PairingRouteSurface({
 
         <div className="flex flex-wrap gap-2">
           <Button disabled={isSubmitting} size="sm" type="submit">
-            {isSubmitting ? "Pairing..." : "Continue"}
+            {isSubmitting ? (isMajordome ? "Connecting…" : "Pairing...") : "Continue"}
           </Button>
           <Button
             disabled={isSubmitting}
@@ -124,14 +129,16 @@ export function PairingRouteSurface({
             size="sm"
             variant="outline"
           >
-            Reload app
+            {isMajordome ? "Try again" : "Reload app"}
           </Button>
         </div>
       </form>
 
-      <div className="mt-6 rounded-lg border border-border/70 bg-background/55 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
-        {describeSupportedMethods(auth.bootstrapMethods)}
-      </div>
+      {isMajordome ? null : (
+        <div className="mt-6 rounded-lg border border-border/70 bg-background/55 px-3 py-3 text-xs leading-relaxed text-muted-foreground">
+          {describeSupportedMethods(auth.bootstrapMethods)}
+        </div>
+      )}
     </StandalonePage>
   );
 }
