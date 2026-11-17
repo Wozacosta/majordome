@@ -9,8 +9,6 @@ import type { MajordomeTopic, MajordomeTopicSuggestion } from "@t3tools/contract
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   EllipsisIcon,
   FolderInputIcon,
   NotebookTextIcon,
@@ -50,7 +48,6 @@ import { notesLink } from "./notes.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
 import { TopicIconBadge, TopicIconDialog, topicRowTint } from "./TopicIcon";
 import {
-  moveTopic,
   placeTopic,
   topicPreviewStamp,
   topicSubtitle,
@@ -203,7 +200,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
       ) : null}
       {topics.length > 0 ? (
         <ul aria-label="Topics" className="flex flex-col gap-px">
-          {topics.map((topic, index) => {
+          {topics.map((topic) => {
             const threadKey =
               topic.threadId === null
                 ? null
@@ -221,10 +218,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
                     : threadKey !== null && threadKey === routeThreadKey
                 }
                 isDragging={dragging === topic.id}
-                canMoveUp={index > 0}
-                canMoveDown={index < topics.length - 1}
                 onOpen={() => void open(topic)}
-                onMove={(offset) => void reorder(moveTopic(order, topic.id, offset))}
                 onDragStart={() => setDragging(topic.id)}
                 onDragEnd={() => setDragging(null)}
                 onDropOn={() => {
@@ -272,10 +266,7 @@ function TopicRow(props: {
   readonly thread: SidebarThreadSummary | undefined;
   readonly isActive: boolean;
   readonly isDragging: boolean;
-  readonly canMoveUp: boolean;
-  readonly canMoveDown: boolean;
   readonly onOpen: () => void;
-  readonly onMove: (offset: number) => void;
   readonly onDragStart: () => void;
   readonly onDragEnd: () => void;
   readonly onDropOn: () => void;
@@ -369,15 +360,6 @@ function TopicRow(props: {
             >
               <NotebookTextIcon />
               Open folder in Notes
-            </MenuItem>
-            <MenuSeparator />
-            <MenuItem disabled={!props.canMoveUp} onClick={() => props.onMove(-1)}>
-              <ArrowUpIcon />
-              Move up
-            </MenuItem>
-            <MenuItem disabled={!props.canMoveDown} onClick={() => props.onMove(1)}>
-              <ArrowDownIcon />
-              Move down
             </MenuItem>
             <MenuSeparator />
             <MenuItem variant="destructive" onClick={props.onRemove}>
