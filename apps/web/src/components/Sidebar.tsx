@@ -2992,6 +2992,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         className="min-h-full"
         fixedHeader={
           <SidebarGroup className="z-[1]">
+            {/* The search finds conversations, so it sits right above them, under the screens. */}
+            {isMajordome ? <MajordomeSidebarNav /> : null}
             <SidebarThreadHeader
               hasProjects={!isMajordome && projectGroups.length > 0}
               projectScope={
@@ -3221,7 +3223,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               activeSearchResultIndex={activeSearchResultIndex}
               onClearSearch={clearThreadSearch}
             />
-            {isMajordome ? <MajordomeSidebarNav /> : null}
           </SidebarGroup>
         }
       >

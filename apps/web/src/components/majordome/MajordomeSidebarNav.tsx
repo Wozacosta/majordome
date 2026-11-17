@@ -43,7 +43,7 @@ export function MajordomeSidebarNav() {
   };
 
   return (
-    <nav aria-label="Majordome" className="mt-1">
+    <nav aria-label="Majordome" className="mb-1">
       <SidebarMenu>
         <NewChatRow onOpen={closeMobileSidebar} />
         {MAJORDOME_SIDEBAR_ITEMS.map(({ to, label, icon: Icon }) => {
