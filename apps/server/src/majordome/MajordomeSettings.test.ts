@@ -347,6 +347,8 @@ describe("MajordomeSettings.status", () => {
         assert.deepStrictEqual(yield* service.status({ threadId }), {
           notesFolder: true,
           backup: {
+            summary:
+              "Set up to back up to GitHub, Google Drive, but something is wrong; see the problems below.",
             lastSavedAt: "2026-11-17T08:00:00.000Z",
             problem: null,
             paused: {

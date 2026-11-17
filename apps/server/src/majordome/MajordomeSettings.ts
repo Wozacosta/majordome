@@ -45,6 +45,8 @@ export const MajordomeStatus = Schema.Struct({
   notesFolder: Schema.Boolean,
   backup: Schema.NullOr(
     Schema.Struct({
+      /** The one line the Backup screen leads with: whether the notes are safe anywhere else. */
+      summary: Schema.String,
       lastSavedAt: When,
       problem: When,
       paused: Schema.NullOr(
@@ -184,7 +186,29 @@ function backupReport(status: MajordomeBackupStatus): NonNullable<MajordomeStatu
     (!status.googleDrive.signedIn ||
       drive.problem === "signed-out" ||
       drive.problem === "access-removed");
+  const places = [
+    ...(remote !== null && remote.syncing
+      ? [remote.isGitHub ? "GitHub" : (remote.host ?? "another folder")]
+      : []),
+    ...(status.folder !== null ? ["a backup folder"] : []),
+    ...(drive !== null ? ["Google Drive"] : []),
+  ];
+  const trouble =
+    status.saveError !== null ||
+    status.paused !== null ||
+    gitHubSignIn ||
+    googleSignIn ||
+    (remote !== null && remote.syncing && remote.lastError !== null) ||
+    (status.folder !== null && status.folder.lastError !== null) ||
+    (drive !== null && (drive.problem !== null || drive.lastError !== null));
+  const summary =
+    places.length === 0
+      ? "Not backed up anywhere: the notes and their history are only on this computer."
+      : trouble
+        ? `Set up to back up to ${places.join(", ")}, but something is wrong; see the problems below.`
+        : `Backed up to ${places.join(", ")}.`;
   return {
+    summary,
     lastSavedAt: status.lastSavedAt,
     problem: status.saveError,
     paused:
