@@ -1,3 +1,4 @@
+import { isMajordome } from "~/env";
 import type {
   EditorId,
   EnvironmentId,
@@ -291,23 +292,28 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               ) : null}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}
-              <div className="p-2 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">
-                <ThreadDetailsControl
-                  size="xs"
-                  variant="ghost"
-                  part="row"
-                  panel
-                  onClick={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    setMenuPosition({ x: rect.left, y: rect.bottom });
-                  }}
-                >
-                  <SlidersHorizontalIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
-                  <span className={cn("ml-0.5", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
-                    Choose what to show
-                  </span>
-                </ThreadDetailsControl>
-              </div>
+              {isMajordome ? null : (
+                <div className="p-2 group-has-[>section>:last-child:not(:empty)]/details-items:hidden">
+                  <ThreadDetailsControl
+                    size="xs"
+                    variant="ghost"
+                    part="row"
+                    panel
+                    onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setMenuPosition({ x: rect.left, y: rect.bottom });
+                    }}
+                  >
+                    <SlidersHorizontalIcon
+                      className={THREAD_DETAILS_PANEL_ICON_CLASS}
+                      aria-hidden
+                    />
+                    <span className={cn("ml-0.5", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
+                      Choose what to show
+                    </span>
+                  </ThreadDetailsControl>
+                </div>
+              )}
             </div>
 
             <Menu
