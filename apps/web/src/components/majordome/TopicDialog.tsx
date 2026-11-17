@@ -1,12 +1,18 @@
 import {
   isAtomCommandInterrupted,
+  runAtomCommand,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { MajordomeTopic, ThreadId } from "@t3tools/contracts";
+import type {
+  MajordomeSuggestTopicFolderResult,
+  MajordomeTopic,
+  ThreadId,
+} from "@t3tools/contracts";
 import { FolderIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { cn } from "../../lib/utils";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
@@ -24,10 +30,11 @@ import { Label } from "../ui/label";
 import { Spinner } from "../ui/spinner";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import {
-  defaultTopicFolder,
   filterTopicFolders,
+  topicFolderFields,
   topicFolderRow,
   type MajordomeVault,
+  type TopicFolderMode,
 } from "./topics.logic";
 
 /** What the dialog does: start a topic (maybe from a chat), rename one, or move its folder. */
@@ -41,7 +48,8 @@ export type TopicDialogRequest =
   | { readonly kind: "rename"; readonly topic: MajordomeTopic }
   | { readonly kind: "folder"; readonly topic: MajordomeTopic };
 
-type FolderMode = "new" | "existing";
+/** Long enough that a name still being typed is not asked about. */
+const SUGGESTION_DELAY_MS = 600;
 
 export function TopicDialog({
   vault,
@@ -70,10 +78,15 @@ export function TopicDialog({
     current?.title ?? (request.kind === "create" ? (request.title ?? "") : ""),
   );
   const presetFolder = request.kind === "create" ? request.folder : current?.folder;
-  const [mode, setMode] = useState<FolderMode>(
-    presetFolder !== undefined && vault.folders.includes(presetFolder) ? "existing" : "new",
+  // A new topic with no folder given gets one suggested; null is a choice the owner has not made.
+  const canSuggest = request.kind === "create" && presetFolder === undefined;
+  const [mode, setMode] = useState<TopicFolderMode | null>(
+    canSuggest
+      ? null
+      : presetFolder !== undefined && vault.folders.includes(presetFolder)
+        ? "existing"
+        : "new",
   );
-  // The new folder follows the title until the owner types one.
   const [newFolder, setNewFolder] = useState<string | null>(null);
   const [existingFolder, setExistingFolder] = useState<string | null>(
     presetFolder !== undefined && vault.folders.includes(presetFolder) ? presetFolder : null,
@@ -81,11 +94,57 @@ export function TopicDialog({
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** The server's answer for a name; no result when it could not be asked. */
+  const [answer, setAnswer] = useState<{
+    readonly title: string;
+    readonly result: MajordomeSuggestTopicFolderResult | null;
+  } | null>(null);
 
-  const folder =
-    mode === "new"
-      ? (newFolder ?? defaultTopicFolder(vault.projectsFolder, title))
-      : (existingFolder ?? "");
+  const fields = topicFolderFields({
+    title,
+    projectsFolder: vault.projectsFolder,
+    folders: vault.folders,
+    mode,
+    newFolder,
+    existingFolder,
+    suggestion: answer?.result ? { ...answer.result, title: answer.title } : null,
+  });
+  const folder = fields.mode === "new" ? fields.newFolder : (fields.existingFolder ?? "");
+
+  const untouched = mode === null && newFolder === null && existingFolder === null;
+  const wantedTitle = canSuggest && untouched ? title.trim() : "";
+  const looking = wantedTitle !== "" && answer?.title !== wantedTitle;
+  const presetTitle = request.kind === "create" ? (request.title ?? "").trim() : "";
+  const delay = wantedTitle === presetTitle ? 0 : SUGGESTION_DELAY_MS;
+  const environmentId = vault.environmentId;
+  const projectId = vault.projectId;
+  const threadId = request.kind === "create" ? request.threadId : undefined;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the suggestion comes from the server once the name has settled; the cleanup drops the timer and an answer for a name since changed
+  useEffect(() => {
+    if (!looking) return;
+    let stale = false;
+    const timer = window.setTimeout(() => {
+      void runAtomCommand(
+        appAtomRegistry,
+        majordomeEnvironment.suggestTopicFolder,
+        {
+          environmentId,
+          input: { projectId, title: wantedTitle, ...(threadId === undefined ? {} : { threadId }) },
+        },
+        { label: "suggest a topic's folder", reportFailure: false, reportDefect: false },
+      ).then((result) => {
+        if (stale) return;
+        setAnswer({
+          title: wantedTitle,
+          result: result._tag === "Success" ? result.value : null,
+        });
+      });
+    }, delay);
+    return () => {
+      stale = true;
+      window.clearTimeout(timer);
+    };
+  }, [looking, wantedTitle, delay, environmentId, projectId, threadId]);
   const canSave = (!showTitle || title.trim() !== "") && (!showFolder || folder.trim() !== "");
 
   const save = async () => {
@@ -100,7 +159,7 @@ export function TopicDialog({
               projectId: vault.projectId,
               title: title.trim(),
               folder: folder.trim(),
-              createFolder: mode === "new",
+              createFolder: fields.mode === "new",
               ...(request.threadId === undefined ? {} : { threadId: request.threadId }),
             },
           })
@@ -110,7 +169,7 @@ export function TopicDialog({
               projectId: vault.projectId,
               topicId: request.topic.id,
               ...(showTitle ? { title: title.trim() } : {}),
-              ...(showFolder ? { folder: folder.trim(), createFolder: mode === "new" } : {}),
+              ...(showFolder ? { folder: folder.trim(), createFolder: fields.mode === "new" } : {}),
             },
           });
     setBusy(false);
@@ -184,11 +243,15 @@ export function TopicDialog({
                 <ToggleGroup
                   aria-label="Folder"
                   className="w-full *:flex-1"
-                  value={[mode]}
+                  value={[fields.mode]}
                   onValueChange={(next) => {
                     const value = next[0];
-                    if (value === "new" || value === "existing") setMode(value);
                     setError(null);
+                    if (value !== "new" && value !== "existing") return;
+                    // A suggestion on show stays in its field once the owner starts choosing.
+                    if (fields.suggested && fields.mode === "new") setNewFolder(fields.newFolder);
+                    if (fields.suggested) setExistingFolder(fields.existingFolder);
+                    setMode(value);
                   }}
                 >
                   <Toggle value="new">New folder</Toggle>
@@ -196,7 +259,7 @@ export function TopicDialog({
                     Existing folder
                   </Toggle>
                 </ToggleGroup>
-                {mode === "new" ? (
+                {fields.mode === "new" ? (
                   <Input
                     nativeInput
                     aria-label="New folder"
@@ -233,7 +296,7 @@ export function TopicDialog({
                               paddingLeft: `${0.5 + topicFolderRow(candidate, listedFolders).depth * 1.25}rem`,
                             }}
                             role="option"
-                            aria-selected={candidate === existingFolder}
+                            aria-selected={candidate === fields.existingFolder}
                             tabIndex={0}
                             onClick={() => {
                               setExistingFolder(candidate);
@@ -247,7 +310,7 @@ export function TopicDialog({
                             }}
                             className={cn(
                               "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent",
-                              candidate === existingFolder && "bg-accent font-medium",
+                              candidate === fields.existingFolder && "bg-accent font-medium",
                             )}
                           >
                             <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -260,6 +323,15 @@ export function TopicDialog({
                     </ul>
                   </div>
                 )}
+                {canSuggest ? (
+                  <p aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
+                    {looking
+                      ? "Looking for the best place…"
+                      : fields.suggested
+                        ? "Suggested from your folders."
+                        : null}
+                  </p>
+                ) : null}
               </div>
             ) : null}
             {error ? (

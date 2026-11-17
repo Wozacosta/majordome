@@ -101,6 +101,21 @@ export const MajordomeCreateTopicInput = Schema.Struct({
 });
 export type MajordomeCreateTopicInput = typeof MajordomeCreateTopicInput.Type;
 
+export const MajordomeSuggestTopicFolderInput = Schema.Struct({
+  projectId: ProjectId,
+  title: TrimmedNonEmptyString,
+  /** "Make this a topic": the chat, whose first message says more than its title. */
+  threadId: Schema.optional(ThreadId),
+});
+export type MajordomeSuggestTopicFolderInput = typeof MajordomeSuggestTopicFolderInput.Type;
+
+/** Where a new topic's notes could go. Vault-relative; `existing` when the folder is already there. */
+export const MajordomeSuggestTopicFolderResult = Schema.Struct({
+  folder: Schema.String,
+  existing: Schema.Boolean,
+});
+export type MajordomeSuggestTopicFolderResult = typeof MajordomeSuggestTopicFolderResult.Type;
+
 export const MajordomeUpdateTopicInput = Schema.Struct({
   projectId: ProjectId,
   topicId: TrimmedNonEmptyString,

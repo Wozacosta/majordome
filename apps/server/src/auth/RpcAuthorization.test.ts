@@ -71,6 +71,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeBackUpNow,
       WS_METHODS.majordomeRebuildNotesIndex,
       WS_METHODS.majordomeCreateTopic,
+      WS_METHODS.majordomeSuggestTopicFolder,
       WS_METHODS.majordomeUpdateTopic,
       WS_METHODS.majordomeReorderTopics,
       WS_METHODS.majordomeRemoveTopic,

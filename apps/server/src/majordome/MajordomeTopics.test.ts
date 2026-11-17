@@ -6,6 +6,7 @@ import {
   type ModelSelection,
   type OrchestrationV2ServerCommand,
   ProjectId,
+  TextGenerationError,
   ThreadId,
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
@@ -19,6 +20,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
 import * as VaultLock from "./VaultLock.ts";
 
@@ -108,7 +110,11 @@ const fakeThreads = () => {
 };
 
 const setUp = Effect.fn("test.setUp")(function* (
-  options: { readonly defaultModel?: ModelSelection | null } = {},
+  options: {
+    readonly defaultModel?: ModelSelection | null;
+    /** What the model answers when asked for a folder; without it, no provider is ready. */
+    readonly folderAnswer?: string;
+  } = {},
 ) {
   const fs = yield* FileSystem.FileSystem;
   const vault = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-topics-vault-" });
@@ -127,6 +133,7 @@ const setUp = Effect.fn("test.setUp")(function* (
   yield* write("inbox/scan.md", "scan\n");
   yield* write("attachments/scan.png", "png");
   const fake = fakeThreads();
+  const prompts: Array<string> = [];
   const roots: Record<string, string> = { [vaultProject]: vault, [codeProject]: code };
   const service = yield* Effect.service(MajordomeTopics.MajordomeTopics).pipe(
     Effect.provide(
@@ -155,12 +162,27 @@ const setUp = Effect.fn("test.setUp")(function* (
         Layer.provide(
           Layer.mock(ProviderRegistry.ProviderRegistry)({ getProviders: Effect.succeed([]) }),
         ),
+        Layer.provide(
+          Layer.mock(TextGeneration.TextGeneration)({
+            generateTranscriptionPostProcessing: (input) => {
+              prompts.push(input.prompt);
+              return options.folderAnswer === undefined
+                ? Effect.fail(
+                    new TextGenerationError({
+                      operation: "generateTranscriptionPostProcessing",
+                      detail: "No provider instance registered.",
+                    }),
+                  )
+                : Effect.succeed({ transcription: options.folderAnswer });
+            },
+          }),
+        ),
         Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-topics-" })),
         Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
       ),
     ),
   );
-  return { service, fake, vault, fs };
+  return { service, fake, vault, fs, prompts };
 });
 
 const errorMessage = <A, E extends { readonly message: string }>(exit: Exit.Exit<A, E>) =>
@@ -503,6 +525,73 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.deepEqual(
         (yield* service.list({ projectId: vaultProject })).topics.map((topic) => topic.title),
         ["Lisbon", "Running"],
+      );
+    }),
+  );
+
+  it.effect("suggests a folder for a new topic from the vault's folders", () =>
+    Effect.gen(function* () {
+      const { service, fake, prompts } = yield* setUp({
+        folderAnswer: "personal/finances/electricity",
+      });
+      const chat = ThreadId.make("chat-bill");
+      fake.threads.set(chat, {
+        id: chat,
+        projectId: vaultProject,
+        title: "Paying Electricity Bill Online",
+        archivedAt: null,
+        settledOverride: null,
+        autoSettleDisabledAt: null,
+        modelSelection: model,
+      });
+      fake.timelines.set(chat, [
+        { type: "user_message", createdBy: "user", messageId: "ask", text: "How do I pay EDF?" },
+      ]);
+      yield* service.create({
+        projectId: vaultProject,
+        title: "Fitness",
+        folder: "personal/fitness",
+        createFolder: false,
+      });
+
+      assert.deepEqual(
+        yield* service.suggestFolder({
+          projectId: vaultProject,
+          title: "Paying Electricity Bill Online",
+          threadId: chat,
+        }),
+        { folder: "personal/finances/electricity", existing: false },
+      );
+      assert.include(prompts[0], "Paying Electricity Bill Online");
+      assert.include(prompts[0], "How do I pay EDF?");
+      assert.include(prompts[0], "- personal/fitness (taken)");
+      assert.include(prompts[0], "- projects/lisbon-move\n");
+      assert.notInclude(prompts[0], "- daily");
+    }),
+  );
+
+  it.effect("suggests a folder that is already there as an existing one", () =>
+    Effect.gen(function* () {
+      const { service } = yield* setUp({ folderAnswer: "Projects/Lisbon-Move\n" });
+      assert.deepEqual(
+        yield* service.suggestFolder({ projectId: vaultProject, title: "Moving to Lisbon" }),
+        { folder: "projects/lisbon-move", existing: true },
+      );
+    }),
+  );
+
+  it.effect("falls back to the projects folder when the answer cannot be used", () =>
+    Effect.gen(function* () {
+      const fallback = { folder: "projects/moving-to-lisbon", existing: false };
+      const input = { projectId: vaultProject, title: "Moving to Lisbon" };
+      const outside = yield* setUp({ folderAnswer: "../elsewhere/lisbon" });
+      assert.deepEqual(yield* outside.service.suggestFolder(input), fallback);
+      const noProvider = yield* setUp();
+      assert.deepEqual(yield* noProvider.service.suggestFolder(input), fallback);
+      assert.lengthOf(noProvider.prompts, 1);
+      assert.deepEqual(
+        yield* noProvider.service.suggestFolder({ ...input, projectId: codeProject }),
+        fallback,
       );
     }),
   );

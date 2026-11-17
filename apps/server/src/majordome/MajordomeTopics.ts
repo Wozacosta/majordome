@@ -12,6 +12,8 @@ import {
   type MajordomeOpenRoutinesConversationInput,
   type MajordomeOpenTopicResult,
   type MajordomeReorderTopicsInput,
+  type MajordomeSuggestTopicFolderInput,
+  type MajordomeSuggestTopicFolderResult,
   type MajordomeTopic,
   type MajordomeTopicRefInput,
   MajordomeTopicsError,
@@ -23,6 +25,9 @@ import {
   type OrchestrationV2ServerCommand,
   ThreadId,
 } from "@t3tools/contracts";
+import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
+import { defaultTopicFolder } from "@t3tools/shared/topicFolder";
+import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
@@ -38,6 +43,12 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import * as TextGeneration from "../textGeneration/TextGeneration.ts";
+import {
+  buildTopicFolderPrompt,
+  resolveTopicFolderAnswer,
+  type TopicFolderRequest,
+} from "./topicFolderSuggestion.ts";
 import {
   EMPTY_PROJECT_TOPIC_STATE,
   type ProjectTopicState,
@@ -70,6 +81,13 @@ export class MajordomeTopics extends Context.Service<
     readonly create: (
       input: MajordomeCreateTopicInput,
     ) => Effect.Effect<MajordomeTopic, MajordomeTopicsError>;
+    /**
+     * Where a new topic's notes could go, picked by a model from the vault's folders. Never fails:
+     * without a usable answer in time it is `<projects folder>/<title as a folder name>`.
+     */
+    readonly suggestFolder: (
+      input: MajordomeSuggestTopicFolderInput,
+    ) => Effect.Effect<MajordomeSuggestTopicFolderResult>;
     readonly update: (
       input: MajordomeUpdateTopicInput,
     ) => Effect.Effect<MajordomeTopic, MajordomeTopicsError>;
@@ -98,6 +116,8 @@ const ROUTINES_CONVERSATION_TITLE = "Assistant";
 const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
 /** Enough of the latest messages to find one with words in it. */
 const PREVIEW_MESSAGE_WINDOW = 4;
+/** The dialog waits on this, and a provider CLI takes a few seconds just to start. */
+const FOLDER_SUGGESTION_TIMEOUT = "8 seconds";
 
 const fail = (message: string) => Effect.fail(new MajordomeTopicsError({ message }));
 
@@ -109,6 +129,7 @@ const make = Effect.gen(function* () {
   const threads = yield* ThreadManagementService.ThreadManagementService;
   const settings = yield* ServerSettings.ServerSettingsService;
   const providers = yield* ProviderRegistry.ProviderRegistry;
+  const textGeneration = yield* TextGeneration.TextGeneration;
   const config = yield* ServerConfig.ServerConfig;
   const vaultLock = yield* VaultLock.VaultLock;
   const fileSystem = yield* FileSystem.FileSystem;
@@ -395,6 +416,72 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not add this topic.")),
   );
 
+  /** What the owner first wrote in the thread, looked for among its first few messages only. */
+  const firstOwnerMessage = Effect.fn("MajordomeTopics.firstOwnerMessage")(
+    function* (threadId: ThreadId) {
+      const page = yield* threads.getTimelinePage(threadId, {
+        afterPosition: -1,
+        limit: PREVIEW_MESSAGE_WINDOW,
+        view: "messages",
+      });
+      for (const { sourceThreadId, item } of page.items) {
+        if (item.type !== "user_message" || item.createdBy !== "user") continue;
+        if (!item.textOmitted) return item.text;
+        const messages = yield* threads.getMessagesById(sourceThreadId, [item.messageId]);
+        return messages.get(item.messageId)?.text ?? null;
+      }
+      return null;
+    },
+    Effect.orElseSucceed(() => null),
+  );
+
+  const suggestFolder: MajordomeTopics["Service"]["suggestFolder"] = Effect.fn(
+    "MajordomeTopics.suggestFolder",
+  )(function* (input) {
+    const vault = yield* vaultOf(input.projectId).pipe(Effect.orElseSucceed(() => undefined));
+    const projectsFolder =
+      (vault === undefined ? null : normalizeTopicFolder(vault.layout.projectsFolder)) ??
+      "projects";
+    const fallback = { folder: defaultTopicFolder(projectsFolder, input.title), existing: false };
+    if (vault === undefined) return fallback;
+    const vaultRoot = vault.project.workspaceRoot;
+    return yield* Effect.gen(function* () {
+      const folders = yield* provideFs(listVaultFolders(vaultRoot));
+      const topics = yield* provideFs(readVaultTopics(vaultRoot));
+      const thread = yield* liveThread(input.threadId);
+      const request: TopicFolderRequest = {
+        title: input.title,
+        folders: folders.flatMap((folder) =>
+          canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
+        ),
+        taken: new Set(topics.map((topic) => topic.folder)),
+        projectsFolder,
+        layout: vault.layout,
+        firstMessage:
+          thread?.projectId === input.projectId ? yield* firstOwnerMessage(thread.id) : null,
+      };
+      // Providers run in a working directory; this one must not read or change the notes.
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-topic-folder-" });
+      // The one text-generation operation that takes a prompt as it is.
+      const generated = yield* textGeneration.generateTranscriptionPostProcessing({
+        cwd,
+        prompt: buildTopicFolderPrompt(request),
+        modelSelection: resolveProjectSettings(yield* settings.getSettings, input.projectId)
+          .settings.textGenerationModelSelection,
+      });
+      return resolveTopicFolderAnswer(generated.transcription, request) ?? fallback;
+    }).pipe(
+      Effect.scoped,
+      Effect.timeoutOption(FOLDER_SUGGESTION_TIMEOUT),
+      Effect.map(Option.getOrElse(() => fallback)),
+      Effect.catchCause((cause) =>
+        Cause.hasInterruptsOnly(cause)
+          ? Effect.interrupt
+          : Effect.logDebug("Topic folder suggestion failed", { cause }).pipe(Effect.as(fallback)),
+      ),
+    );
+  });
+
   const update: MajordomeTopics["Service"]["update"] = Effect.fn("MajordomeTopics.update")(
     function* (input) {
       const { project, layout } = yield* requireVault(input.projectId);
@@ -584,6 +671,7 @@ const make = Effect.gen(function* () {
   return MajordomeTopics.of({
     list,
     create,
+    suggestFolder,
     update,
     reorder,
     remove,
