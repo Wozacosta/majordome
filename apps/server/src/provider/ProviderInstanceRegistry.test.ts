@@ -1052,7 +1052,7 @@ describe("ProviderInstanceRegistry secret environment", () => {
 
       // A credential kept outside settings changed: `rebuild` restarts it with the same config.
       const before = yield* registry.getInstance(instanceId);
-      yield* mutator.rebuild(instanceId);
+      yield* mutator.rebuild([instanceId]);
       expect(fixture.created).toHaveLength(3);
       expect(yield* registry.getInstance(instanceId)).not.toBe(before);
     });

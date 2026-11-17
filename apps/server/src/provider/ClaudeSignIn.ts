@@ -343,7 +343,7 @@ const make = Effect.fn("ClaudeSignIn.make")(function* (
       removed.savedToken === "stillSet" ? ("none" as const) : yield* readServerToken(instanceId);
     yield* "settings" in removed
       ? mutator.reconcile(deriveProviderInstanceConfigMap(removed.settings))
-      : mutator.rebuild(instanceId);
+      : mutator.rebuild([instanceId]);
     yield* providerRegistry.refreshInstance(instanceId);
     yield* Effect.logInfo("Claude signed in.", {
       instanceId,

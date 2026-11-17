@@ -4,7 +4,7 @@ import {
   OrchestratorMcpFailure,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Tool, Toolkit } from "effect/ai";
+import { McpSchema, Tool, Toolkit } from "effect/ai";
 
 import * as MajordomePrivateDocuments from "../../../majordome/MajordomePrivateDocuments.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
@@ -31,7 +31,8 @@ const ListPrivateDocumentsTool = Tool.make("list_private_documents", {
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true)
-  .annotate(Tool.OpenWorld, false);
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const RequestPrivateDocumentTool = Tool.make("request_private_document", {
   description:
@@ -67,7 +68,8 @@ const RequestPrivateDocumentTool = Tool.make("request_private_document", {
   .annotate(Tool.Readonly, false)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, false)
-  .annotate(Tool.OpenWorld, false);
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const PrivateDocumentsToolkit = Toolkit.make(
   ListPrivateDocumentsTool,

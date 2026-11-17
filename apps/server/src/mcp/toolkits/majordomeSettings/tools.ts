@@ -1,6 +1,6 @@
 import { OrchestratorMcpFailure } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Tool, Toolkit } from "effect/ai";
+import { McpSchema, Tool, Toolkit } from "effect/ai";
 
 import * as MajordomeSettings from "../../../majordome/MajordomeSettings.ts";
 import {
@@ -29,7 +29,8 @@ const GetMajordomeStatusTool = Tool.make("get_majordome_status", {
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true)
-  .annotate(Tool.OpenWorld, false);
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const ChangeMajordomeSettingTool = Tool.make("change_majordome_setting", {
   description: `Make one change the owner asked for to how the Majordome app is set up for this notes folder. ${SETTING_CHANGES_GUIDE} \`message\` says what happened: done, the owner said no (tell them, don't ask again), still waiting (call again with the same \`change\`), or not possible. A \`topicId\` is the topic's \`id\` in \`get_majordome_status\`; a new topic's \`folder\` is where its notes go, such as \`projects/fitness\`. Routines and reminders: \`schedule_task\`.`,
@@ -53,7 +54,8 @@ const ChangeMajordomeSettingTool = Tool.make("change_majordome_setting", {
   .annotate(Tool.Readonly, false)
   .annotate(Tool.Destructive, true)
   .annotate(Tool.Idempotent, false)
-  .annotate(Tool.OpenWorld, false);
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const MajordomeSettingsToolkit = Toolkit.make(
   GetMajordomeStatusTool,

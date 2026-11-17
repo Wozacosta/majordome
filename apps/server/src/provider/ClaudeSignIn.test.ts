@@ -56,7 +56,7 @@ const makeFakeProcess = Effect.fnUntraced(function* (input: PtyAdapter.PtySpawnI
     input,
     writes,
     killed,
-    write: (data) => void Queue.offerUnsafe(writes, data),
+    write: (data) => void Queue.offerUnsafe(writes, String(data)),
     resize: () => {},
     kill: () => void Deferred.doneUnsafe(killed, Exit.void),
     onData: (listener) => {

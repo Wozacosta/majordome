@@ -209,7 +209,11 @@ import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "~/workspaceTitlebar";
 import { toastManager } from "./ui/toast";
 import { projectScriptIdFromCommand } from "~/projectScripts";
 import { newMessageId } from "~/lib/utils";
-import { isInSideChatPane, type SideChatParentPanel } from "~/lib/sideChatPane";
+import {
+  isInSideChatPane,
+  resolveThreadOpenRoute,
+  type SideChatParentPanel,
+} from "~/lib/sideChatPane";
 import {
   NO_PROVIDER_MODEL_SELECTION,
   providerInstanceEntriesFor,
@@ -929,7 +933,9 @@ export default function ChatView(props: ChatViewProps) {
         open: (): void => {
           void navigate({
             to: "/$environmentId/$threadId",
-            params: buildThreadRouteParams(parentSubagentThreadRef),
+            params: buildThreadRouteParams(
+              resolveThreadOpenRoute(parentSubagentThreadRef, parentSubagentThread),
+            ),
           });
         },
       };
@@ -1386,10 +1392,6 @@ export default function ChatView(props: ChatViewProps) {
     pendingUserInputs,
     activePendingApproval,
     activePendingUserInput,
-    activePendingDraftAnswers,
-    activePendingQuestionIndex,
-    activePendingProgress,
-    activePendingResolvedAnswers,
     activePendingIsResponding,
     respondingRequestIds,
     onRespondToApproval: onRespondToApprovalStable,
@@ -2191,7 +2193,7 @@ export default function ChatView(props: ChatViewProps) {
           if (document.querySelector("[data-mcp-app-fullscreen]") !== null) return;
           if (
             !isInSideChatPane(document.activeElement) &&
-            shouldRefocusComposerOnWindowFocus(document.activeElement)
+            shouldRefocusComposerOnWindowFocus(document.activeElement, document.getSelection())
           ) {
             focusComposerStable();
           }
@@ -2937,6 +2939,7 @@ export default function ChatView(props: ChatViewProps) {
     activeThreadKey,
     activeThreadBranch,
     activeProject,
+    activeProjectIsScratch,
     activeProjectDefaultModelSelection,
     activeMessageCount,
     isServerThread,
@@ -2978,7 +2981,7 @@ export default function ChatView(props: ChatViewProps) {
     readPendingEnvironmentChange,
     pendingApprovals,
     respondingRequestIds,
-    activePendingProgress,
+    activePendingUserInput,
     onAdvanceActivePendingUserInput,
     onRespondToApproval: onRespondToApprovalStable,
     beginLocalDispatch,
@@ -3097,7 +3100,7 @@ export default function ChatView(props: ChatViewProps) {
     clientSettingsHydrated &&
     !needsLoadBalancing &&
     !activeEnvironmentUnavailable &&
-    !activePendingProgress &&
+    !activePendingUserInput &&
     !feedbackUploading;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- switches the draft to local mode, then resends the waiting message once sending is idle
   useEffect(() => {
@@ -3291,6 +3294,7 @@ export default function ChatView(props: ChatViewProps) {
             ? addPullRequestsSurfaceStable
             : undefined,
       }}
+      issuesSupported={serverConfig?.environment.capabilities.issues === true}
       files={{
         projectId: activeProject?.id,
         projectName: activeProject?.title ?? null,
@@ -3734,11 +3738,7 @@ export default function ChatView(props: ChatViewProps) {
                                 pendingApprovals={pendingApprovals}
                                 onHeldRequestIdsChange={onHeldRequestIdsChange}
                                 pendingUserInputs={pendingUserInputs}
-                                activePendingProgress={activePendingProgress}
-                                activePendingResolvedAnswers={activePendingResolvedAnswers}
                                 activePendingIsResponding={activePendingIsResponding}
-                                activePendingDraftAnswers={activePendingDraftAnswers}
-                                activePendingQuestionIndex={activePendingQuestionIndex}
                                 respondingRequestIds={respondingRequestIds}
                                 runtimeMode={runtimeMode}
                                 defaultRuntimeMode={defaultRuntimeMode}
@@ -3756,6 +3756,7 @@ export default function ChatView(props: ChatViewProps) {
                                 resolvedTheme={resolvedTheme}
                                 settings={settings}
                                 keybindings={keybindings}
+                                getShortcutContext={getShortcutContextStable}
                                 terminalOpen={Boolean(terminalUiState.terminalOpen)}
                                 gitCwd={gitCwd}
                                 pullRequestProjectId={

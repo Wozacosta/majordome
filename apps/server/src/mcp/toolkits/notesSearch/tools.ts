@@ -1,6 +1,6 @@
 import { MAJORDOME_NOTES_SEARCH_QUERY_MAX, OrchestratorMcpFailure } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Tool, Toolkit } from "effect/ai";
+import { McpSchema, Tool, Toolkit } from "effect/ai";
 
 import * as MajordomeNotesSearch from "../../../majordome/MajordomeNotesSearch.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
@@ -46,6 +46,7 @@ const SearchNotesTool = Tool.make("search_notes", {
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true)
-  .annotate(Tool.OpenWorld, false);
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const NotesSearchToolkit = Toolkit.make(SearchNotesTool);

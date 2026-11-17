@@ -564,16 +564,6 @@ export const makeProviderInstanceRegistry = Effect.fn(
         ),
       );
 
-  const rebuild: ProviderInstanceRegistryMutator.ProviderInstanceRegistryMutatorShape["rebuild"] = (
-    instanceId,
-  ) =>
-    semaphore.withPermits(1)(
-      Ref.get(configMapRef).pipe(
-        Effect.flatMap((configMap) => reconcileWithR(configMap, new Set([instanceId]))),
-        Effect.provideContext(driverContext),
-      ),
-    );
-
   // Rebuilds an instance only when it was unavailable or its secrets changed, so a refresh does
   // not restart providers whose credentials are the same. Without `checked` the cached values are
   // dropped first; with it, only that reference takes the checked value and the rest carry over.
@@ -647,6 +637,15 @@ export const makeProviderInstanceRegistry = Effect.fn(
         (rawInstanceId) => instanceId === undefined || rawInstanceId === instanceId,
         undefined,
       ).pipe(Effect.asVoid);
+  const rebuild: ProviderInstanceRegistryMutator.ProviderInstanceRegistryMutatorShape["rebuild"] = (
+    instanceIds,
+  ) =>
+    semaphore.withPermits(1)(
+      Ref.get(configMapRef).pipe(
+        Effect.flatMap((configMap) => reconcileWithR(configMap, new Set(instanceIds))),
+        Effect.provideContext(driverContext),
+      ),
+    );
   const applySecret: ProviderInstanceRegistryMutator.ProviderInstanceRegistryMutatorShape["applySecret"] =
     (reference, value) =>
       reloadWhere(
@@ -706,8 +705,8 @@ export const makeProviderInstanceRegistry = Effect.fn(
 
   const mutator: ProviderInstanceRegistryMutator.ProviderInstanceRegistryMutatorShape = {
     reconcile,
-    rebuild,
     reloadSecrets,
+    rebuild,
     applySecret,
   };
 

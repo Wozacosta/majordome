@@ -5,6 +5,7 @@ import { KeepMachinesInStep } from "../components/majordome/useKeepMachinesInSte
 import { isMajordome } from "../env";
 
 import { ThreadRouteView } from "../components/ThreadRouteView";
+import { GlobalVoiceInputIndicator } from "../components/chat/GlobalVoiceInputIndicator";
 import { isAppModalPage } from "../components/sidebar/mainAppLocation";
 import { SidebarInset } from "../components/ui/sidebar";
 import { resolveThreadRouteTarget } from "../threadRoutes";
@@ -34,6 +35,7 @@ function ChatRouteLayout() {
       )}
       {isMajordome ? <KeepMachinesInStep /> : null}
       {modalOpen ? <Outlet /> : null}
+      <GlobalVoiceInputIndicator hidden={modalOpen} />
     </>
   );
 }
