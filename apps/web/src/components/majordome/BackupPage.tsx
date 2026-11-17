@@ -440,8 +440,8 @@ function OtherMachine({
               {peer.linkedHere
                 ? "Catching up"
                 : when === null
-                  ? "Kept in step"
-                  : `Kept in step · last heard from it ${when}`}
+                  ? "Not heard from it yet"
+                  : `Last heard from it ${when}`}
             </StatusLine>
           )}
           <Muted className={READING_MEASURE_CLASS}>
