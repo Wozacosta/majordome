@@ -21,6 +21,7 @@ import { Route as ProjectsProjectKeyRouteImport } from './routes/projects.$proje
 import { Route as ChatUsageRouteImport } from './routes/_chat.usage'
 import { Route as ChatSettingsRouteImport } from './routes/_chat.settings'
 import { Route as ChatRoutinesRouteImport } from './routes/_chat.routines'
+import { Route as ChatRemindersRouteImport } from './routes/_chat.reminders'
 import { Route as ChatPullRequestsRouteImport } from './routes/_chat.pull-requests'
 import { Route as ChatPhoneRouteImport } from './routes/_chat.phone'
 import { Route as ChatOverviewRouteImport } from './routes/_chat.overview'
@@ -124,6 +125,11 @@ const ChatSettingsRoute = ChatSettingsRouteImport.update({
 const ChatRoutinesRoute = ChatRoutinesRouteImport.update({
   id: '/routines',
   path: '/routines',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatRemindersRoute = ChatRemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatPullRequestsRoute = ChatPullRequestsRouteImport.update({
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/overview': typeof ChatOverviewRoute
   '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
+  '/reminders': typeof ChatRemindersRoute
   '/routines': typeof ChatRoutinesRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
@@ -433,6 +440,7 @@ export interface FileRoutesByTo {
   '/overview': typeof ChatOverviewRoute
   '/phone': typeof ChatPhoneRoute
   '/pull-requests': typeof ChatPullRequestsRoute
+  '/reminders': typeof ChatRemindersRoute
   '/routines': typeof ChatRoutinesRoute
   '/settings': typeof ChatSettingsRouteWithChildren
   '/usage': typeof ChatUsageRoute
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/_chat/overview': typeof ChatOverviewRoute
   '/_chat/phone': typeof ChatPhoneRoute
   '/_chat/pull-requests': typeof ChatPullRequestsRoute
+  '/_chat/reminders': typeof ChatRemindersRoute
   '/_chat/routines': typeof ChatRoutinesRoute
   '/_chat/settings': typeof ChatSettingsRouteWithChildren
   '/_chat/usage': typeof ChatUsageRoute
@@ -554,6 +563,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/phone'
     | '/pull-requests'
+    | '/reminders'
     | '/routines'
     | '/settings'
     | '/usage'
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/phone'
     | '/pull-requests'
+    | '/reminders'
     | '/routines'
     | '/settings'
     | '/usage'
@@ -670,6 +681,7 @@ export interface FileRouteTypes {
     | '/_chat/overview'
     | '/_chat/phone'
     | '/_chat/pull-requests'
+    | '/_chat/reminders'
     | '/_chat/routines'
     | '/_chat/settings'
     | '/_chat/usage'
@@ -810,6 +822,13 @@ declare module '@tanstack/react-router' {
       path: '/routines'
       fullPath: '/routines'
       preLoaderRoute: typeof ChatRoutinesRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/reminders': {
+      id: '/_chat/reminders'
+      path: '/reminders'
+      fullPath: '/reminders'
+      preLoaderRoute: typeof ChatRemindersRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_chat/pull-requests': {
@@ -1217,6 +1236,7 @@ interface ChatRouteChildren {
   ChatOverviewRoute: typeof ChatOverviewRoute
   ChatPhoneRoute: typeof ChatPhoneRoute
   ChatPullRequestsRoute: typeof ChatPullRequestsRoute
+  ChatRemindersRoute: typeof ChatRemindersRoute
   ChatRoutinesRoute: typeof ChatRoutinesRoute
   ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
   ChatUsageRoute: typeof ChatUsageRoute
@@ -1234,6 +1254,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatOverviewRoute: ChatOverviewRoute,
   ChatPhoneRoute: ChatPhoneRoute,
   ChatPullRequestsRoute: ChatPullRequestsRoute,
+  ChatRemindersRoute: ChatRemindersRoute,
   ChatRoutinesRoute: ChatRoutinesRoute,
   ChatSettingsRoute: ChatSettingsRouteWithChildren,
   ChatUsageRoute: ChatUsageRoute,

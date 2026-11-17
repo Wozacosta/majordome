@@ -153,7 +153,7 @@ function ComingUp({ vault, nowMs }: { readonly vault: MajordomeVault; readonly n
       <ul className="m-0 list-none p-0">
         {reminders.map(({ key, task }) => (
           <li key={key} className="border-t border-border" data-today-reminder={task.title}>
-            <Link to="/routines" className={cn(ROW_TARGET_CLASS, "flex items-baseline gap-2")}>
+            <Link to="/reminders" className={cn(ROW_TARGET_CLASS, "flex items-baseline gap-2")}>
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                 {task.title}
               </span>

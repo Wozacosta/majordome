@@ -2,11 +2,13 @@ import { useAtomValue } from "@effect/atom-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
+  BellIcon,
   CalendarClockIcon,
   CircleAlertIcon,
   HouseIcon,
   NewspaperIcon,
   NotebookTextIcon,
+  PlugIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +25,8 @@ const MAJORDOME_SIDEBAR_ITEMS = [
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/routines", label: "Routines", icon: CalendarClockIcon },
+  { to: "/reminders", label: "Reminders", icon: BellIcon },
+  { to: "/settings/connectors", label: "Connections", icon: PlugIcon },
 ] as const satisfies ReadonlyArray<{ to: string; label: string; icon: LucideIcon }>;
 
 type NavHint = { readonly tone: "warning" | "error"; readonly label: string };

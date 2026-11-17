@@ -40,7 +40,7 @@ const navLinks = (container: HTMLElement) =>
     (link) => [link.textContent, link.getAttribute("href")],
   );
 
-it("lists only Today, Feed, Notes and Routines while backup is fine", async () => {
+it("lists only Majordome's own screens while backup is fine", async () => {
   setup([healthy]);
   await using screen = await render(
     <SidebarProvider>
@@ -52,6 +52,8 @@ it("lists only Today, Feed, Notes and Routines while backup is fine", async () =
     ["Feed", "/feed"],
     ["Notes", "/notes"],
     ["Routines", "/routines"],
+    ["Reminders", "/reminders"],
+    ["Connections", "/settings/connectors"],
   ]);
 });
 

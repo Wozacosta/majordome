@@ -8,6 +8,7 @@ import { render } from "../../../test/render";
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import { serverEnvironment } from "../../state/server";
 import { SidebarProvider } from "../ui/sidebar";
+import { RemindersPage } from "./RemindersPage";
 import { RoutinesPage } from "./RoutinesPage";
 
 const environmentId = EnvironmentId.make("env-mac");
@@ -115,7 +116,20 @@ const routinesPage = (
   </SidebarProvider>
 );
 
-it("lists routines and reminders in plain words, with the assistant beside them", async () => {
+it("lists reminders on their own page", async () => {
+  await using _viewport = await setup(1280);
+  await using screen = await render(
+    <SidebarProvider>
+      <RemindersPage />
+    </SidebarProvider>,
+  );
+  const reminder = screen.getByRole("list", { name: "Reminders" }).getByRole("listitem");
+  await expect.element(reminder.getByText("Call the bank", { exact: true })).toBeVisible();
+  await expect.element(reminder.getByText(/ · in 1 day$/)).toBeVisible();
+  await expect.element(screen.getByRole("list", { name: "Routines" })).not.toBeInTheDocument();
+});
+
+it("lists routines in plain words, with the assistant beside them", async () => {
   await using _viewport = await setup(1280);
   await using screen = await render(routinesPage);
 
@@ -128,9 +142,7 @@ it("lists routines and reminders in plain words, with the assistant beside them"
   const outside = screen.getByRole("list", { name: "Routines" }).getByRole("listitem").nth(1);
   await expect.element(outside.getByText("Runs when called from outside")).toBeVisible();
   await expect.element(outside.getByRole("button", { name: "Run now" })).not.toBeInTheDocument();
-  const reminder = screen.getByRole("list", { name: "Reminders" }).getByRole("listitem");
-  await expect.element(reminder.getByText("Call the bank", { exact: true })).toBeVisible();
-  await expect.element(reminder.getByText(/ · in 1 day$/)).toBeVisible();
+  await expect.element(screen.getByRole("list", { name: "Reminders" })).not.toBeInTheDocument();
 
   await expect.element(screen.getByRole("region", { name: "Assistant" })).toBeVisible();
   // Hidden, so it is out of the page for a screen reader too.

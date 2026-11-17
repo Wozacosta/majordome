@@ -1720,11 +1720,21 @@ function OpenCommandPaletteDialog(props: {
     actionItems.push({
       kind: "action",
       value: "action:routines",
-      searchTerms: ["routines", "reminders", "schedule", "new routine", "new task", "automation"],
+      searchTerms: ["routines", "schedule", "new routine", "new task", "automation"],
       title: "Open routines",
       icon: <CalendarClockIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/routines" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:reminders",
+      searchTerms: ["reminders", "remind me", "coming up"],
+      title: "Open reminders",
+      icon: <BellIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/reminders" });
       },
     });
     actionItems.push({

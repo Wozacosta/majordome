@@ -45,7 +45,7 @@ import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 /**
- * A notes folder's routines and reminders beside the assistant that sets them up. On a narrow
+ * A notes folder's routines beside the assistant that sets them up. On a narrow
  * screen the list comes first and the assistant opens over it.
  */
 export function RoutinesPage() {
@@ -73,8 +73,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { machineOf } = useMachineNames();
-  const { routines, reminders, runner, runnerHistory, runnerUnreachable, loading } =
-    useVaultRoutines(vault);
+  const { routines, runner, runnerHistory, runnerUnreachable, loading } = useVaultRoutines(vault);
   const composerRef = useRef<ChatComposerHandle | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
 
@@ -104,7 +103,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
           <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pt-6 pb-12 sm:px-6">
             <PageHeader
               title="Routines"
-              intro="What Majordome does for you on its own, and what it will remind you of. To add or change one, tell the assistant."
+              intro="What Majordome does for you on its own. To add or change one, tell the assistant."
               action={
                 <span className="@4xl/routines:hidden">
                   <Button size="sm" onClick={() => setAssistantOpen(true)}>
@@ -152,21 +151,6 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
                 <Muted className="border-t border-border py-3">
                   No routines yet. Tell the assistant what you'd like done and when, such as “every
                   Friday evening, list what I spent this week”.
-                </Muted>
-              )}
-            </Section>
-
-            <Section label="Reminders">
-              {reminders.length > 0 ? (
-                <EntryList aria-label="Reminders">
-                  {reminders.map((item) => (
-                    <ReminderRow key={item.key} item={item} nowMs={nowMs} />
-                  ))}
-                </EntryList>
-              ) : loading ? null : (
-                <Muted className="border-t border-border py-3">
-                  Nothing coming up. Ask in any conversation, such as “remind me on Friday at 9 to
-                  call the bank”.
                 </Muted>
               )}
             </Section>
@@ -298,7 +282,13 @@ function RoutineRow({
   );
 }
 
-function ReminderRow({ item, nowMs }: { readonly item: RoutineItem; readonly nowMs: number }) {
+export function ReminderRow({
+  item,
+  nowMs,
+}: {
+  readonly item: RoutineItem;
+  readonly nowMs: number;
+}) {
   const { task, environmentId } = item;
   const { act, disabled } = useTaskAction(item);
   const threadRef = task.threadId === null ? null : scopeThreadRef(environmentId, task.threadId);
