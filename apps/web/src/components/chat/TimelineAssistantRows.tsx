@@ -14,6 +14,8 @@ import { HtmlRenderFrame } from "./HtmlRenderFrame";
 import { McpAppFrame } from "./McpAppFrame";
 import { checkpointFileTotals } from "@t3tools/client-runtime/state/thread-checkpoints";
 import { ChangedFilesCard } from "./ChangedFilesTree";
+import { SavedNotesCard } from "../majordome/SavedNotesCard";
+import { isMajordome } from "~/env";
 import { useFileContextMenuHandler } from "../../fileContextMenu";
 import {
   readResponseSubagents,
@@ -474,6 +476,17 @@ function AssistantChangedFilesSectionInner({
       : NO_VCS_STATUS,
     (status) => AsyncResult.getOrElse(status, () => null)?.workingTree.rootPath,
   );
+
+  if (isMajordome && thread?.projectId) {
+    return (
+      <SavedNotesCard
+        files={checkpointFiles.map((file) => file.path)}
+        projectId={thread.projectId}
+        environmentId={thread.environmentId}
+        onSeeChanges={() => onOpenTurnDiff(turnSummary.runId, checkpointFiles[0]?.path)}
+      />
+    );
+  }
 
   return (
     <ChangedFilesCard
