@@ -31,6 +31,16 @@ const testLayer = Layer.mergeAll(GitVcsDriver.layer, ProcessRunner.layer, VaultL
 
 const SERVER_ID = EnvironmentId.make("env-server");
 
+// Git tidies a repository in a detached process after some commands, and that process can still be
+// writing when a test's folder is removed. Every git these tests start inherits this.
+Object.assign(process.env, {
+  GIT_CONFIG_COUNT: "2",
+  GIT_CONFIG_KEY_0: "gc.auto",
+  GIT_CONFIG_VALUE_0: "0",
+  GIT_CONFIG_KEY_1: "maintenance.auto",
+  GIT_CONFIG_VALUE_1: "false",
+});
+
 /** A new server: an empty home folder, no projects, and whichever providers the test says. */
 const makeServer = Effect.fn("test.makeServer")(function* (options?: {
   readonly providerReady?: boolean;
