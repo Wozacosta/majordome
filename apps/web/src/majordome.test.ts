@@ -56,9 +56,16 @@ describe("Majordome hides T3 Code's coding UI", () => {
       threadDetailsItems: {},
       threadDetailsUsageEnabled: false,
     });
-    for (const id of ["environment", "openIn", "scripts", "branch", "gitActions", "servers"]) {
+    for (const id of [
+      "environment",
+      "openIn",
+      "scripts",
+      "branch",
+      "gitActions",
+      "changes",
+      "servers",
+    ]) {
       assert.isFalse(visibility[id as keyof typeof visibility], id);
     }
-    assert.isTrue(visibility.changes);
   });
 });

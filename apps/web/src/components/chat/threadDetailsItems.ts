@@ -9,7 +9,7 @@ export const THREAD_DETAILS_ITEMS = [
   { id: "scripts", label: "Project scripts", defaultVisible: !isMajordome },
   { id: "branch", label: "Branch and pull request", defaultVisible: !isMajordome },
   { id: "gitActions", label: "Git actions", defaultVisible: !isMajordome },
-  { id: "changes", label: "Changes", defaultVisible: true },
+  { id: "changes", label: "Changes", defaultVisible: !isMajordome },
   { id: "servers", label: "Servers", defaultVisible: !isMajordome },
   { id: "automations", label: "Automations", defaultVisible: true },
   { id: "lineage", label: "Lineage", defaultVisible: true },
