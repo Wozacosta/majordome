@@ -47,4 +47,4 @@ Upcoming reminders are listed under **Reminders** on the Routines screen, and th
 - **Limits**, at the bottom of the list, stop a run that takes too long and cap how many runs start
   in a day. Reminders always go off and do not count toward that number.
 - The conversation beside the list keeps what you set up earlier. **Start over** begins a new one;
-  the old one moves to your recent chats.
+  the old one moves to the archive, under Settings.

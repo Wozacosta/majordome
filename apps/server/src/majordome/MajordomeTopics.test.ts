@@ -94,6 +94,8 @@ const fakeThreads = () => {
         if (thread === undefined) return { sequence: commands.length } as never;
         if (command.type === "thread.auto-settle.set") {
           thread.autoSettleDisabledAt = command.enabled ? null : "2026-11-15T09:00:00.000Z";
+        } else if (command.type === "thread.archive") {
+          thread.archivedAt = "2026-11-15T09:00:00.000Z";
         } else if (command.type === "thread.unsettle") {
           thread.settledOverride = null;
         } else if (command.type === "thread.metadata.update" && command.title !== undefined) {
@@ -354,13 +356,13 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         );
         assert.equal((yield* service.list({ projectId: vaultProject })).routinesThreadId, threadId);
 
-        // The old conversation goes back to the recent chats and settles like them.
+        // The old conversation leaves the chats for the archive.
         const fresh = yield* service.openRoutinesConversation({
           projectId: vaultProject,
           fresh: true,
         });
         assert.notEqual(fresh.threadId, threadId);
-        assert.isNull(thread.autoSettleDisabledAt);
+        assert.isNotNull(thread.archivedAt);
         assert.equal(
           (yield* service.list({ projectId: vaultProject })).routinesThreadId,
           fresh.threadId,

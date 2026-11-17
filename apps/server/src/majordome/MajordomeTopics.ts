@@ -513,6 +513,19 @@ const make = Effect.gen(function* () {
     });
   });
 
+  /** Puts a replaced assistant conversation in the archive, so they do not pile up as chats. */
+  const retireThread = Effect.fn("MajordomeTopics.retireThread")(function* (threadId: ThreadId) {
+    if ((yield* liveThread(threadId)) === null) return;
+    yield* dispatch({
+      type: "thread.archive",
+      commandId: yield* commandId("retire"),
+      threadId,
+    }).pipe(
+      // One still at work cannot be archived; it settles as a recent chat instead.
+      Effect.catch(() => releaseThread(threadId)),
+    );
+  });
+
   const open: MajordomeTopics["Service"]["open"] = Effect.fn("MajordomeTopics.open")(
     function* (input) {
       const { project } = yield* requireVault(input.projectId);
@@ -547,7 +560,7 @@ const make = Effect.gen(function* () {
           ...current,
           routinesThread: threadId,
         }));
-        if (previous !== undefined) yield* releaseThread(previous);
+        if (previous !== undefined) yield* retireThread(previous);
         return { threadId };
       },
       (effect) => lock.withPermits(1)(effect),
