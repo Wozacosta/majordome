@@ -22,6 +22,7 @@ import type {
   PreviewAnnotationPayload,
   ResponseContextRecord,
   ReviewCommentContextRecord,
+  ScreenContextRecord,
   TerminalContextRecord,
   ThreadContextRecord,
   ThreadId,
@@ -383,6 +384,8 @@ export function buildMessageContext(input: {
   threadContexts?: ReadonlyArray<ThreadContextRecord>;
   environmentContexts?: ReadonlyArray<EnvironmentContextRecord>;
   replyTo?: ResponseContextRecord | null;
+  /** The screen beside the conversation. It has no reference in the text and no chip. */
+  screen?: ScreenContextRecord | null;
   attachments?: ReadonlyArray<BoundComposerAttachment>;
 }): OrchestrationMessageContext | undefined {
   const screenshotAttachmentIds = new Set(
@@ -402,6 +405,7 @@ export function buildMessageContext(input: {
       }),
     ),
     ...(input.attachments ?? []).map(attachmentContextRecord),
+    ...(input.screen ? [input.screen] : []),
   ];
   return records.length === 0 ? undefined : { version: 1, records };
 }

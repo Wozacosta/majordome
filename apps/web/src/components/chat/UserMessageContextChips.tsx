@@ -340,6 +340,12 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
         ),
     },
     {
+      kind: "screen",
+      // No message text references a screen, so there is nothing to show for one.
+      canRender: () => false,
+      render: (_record, context) => <UnavailableUserMessageContextChip {...context} />,
+    },
+    {
       kind: "environment",
       canRender: (record) => record.kind === "environment",
       render: (record, context) =>

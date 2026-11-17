@@ -139,6 +139,12 @@ const knownRecords: Record<(typeof COMPOSER_CONTEXT_KINDS)[number], Record<strin
       { threadId: "thread-3", title: "review pr 413", environmentId: "environment-2" },
     ],
   },
+  screen: {
+    ...base,
+    kind: "screen",
+    label: "Settings, Back up my brain",
+    screen: "Settings, Back up my brain",
+  },
 };
 
 describe("ComposerContextRecord", () => {

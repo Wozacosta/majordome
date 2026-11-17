@@ -4,11 +4,12 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import type { ChatComposerHandle } from "../chat/ChatComposer";
 import { ComposerHandleContext, type ComposerHandleRef } from "../../composerHandleContext";
+import { composerDraftHasUserContent, useComposerDraftStore } from "../../composerDraftStore";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { newThreadId } from "../../lib/utils";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
@@ -17,8 +18,15 @@ import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { BackgroundThreadContext } from "../chat/backgroundThread";
+import { ScreenContextReader } from "../chat/screenContext";
 import ChatView from "../ChatView";
 import { Button } from "../ui/button";
+import {
+  assistantConversationActivity,
+  assistantScreenName,
+  isAssistantConversationStale,
+  screenContextRecord,
+} from "./assistant.logic";
 import { HEADING_CLASS, Muted, ROW_ACTION_CLASS, StatusLine } from "./paper";
 import { notePendingAssistantThread } from "./pendingAssistantThreads";
 import type { VaultCopy } from "./topics.logic";
@@ -28,6 +36,9 @@ const NO_PARENT_PANEL: SideChatParentPanel = {
   openToolDiff: () => {},
   runShellCommand: () => {},
 };
+
+// Two panels can show the same conversation at once; only one of them replaces it.
+const replacedStaleThreads = new Set<string>();
 
 /**
  * The assistant beside a page: the notes folder's one setup conversation, on the server that runs
@@ -91,6 +102,31 @@ export function RoutinesAssistant({
     };
   }, [missing, request]);
 
+  const staleChecked = useRef(false);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- once, when the panel first shows the conversation: asks the server for a fresh one when this one was left idle for days
+  useEffect(() => {
+    if (staleChecked.current || routinesThreadId === null || shell === null || !canOpen) return;
+    staleChecked.current = true;
+    const threadRef = scopeThreadRef(environmentId, routinesThreadId);
+    const key = `${environmentId}:${routinesThreadId}`;
+    if (
+      replacedStaleThreads.has(key) ||
+      composerDraftHasUserContent(useComposerDraftStore.getState().getComposerDraft(threadRef)) ||
+      !isAssistantConversationStale({ ...assistantConversationActivity(shell), now: Date.now() })
+    ) {
+      return;
+    }
+    replacedStaleThreads.add(key);
+    // A failure keeps the old conversation, which still works.
+    void request(true);
+  }, [canOpen, environmentId, request, routinesThreadId, shell]);
+
+  const router = useRouter();
+  const readScreen = useStableCallback(() => {
+    const screen = assistantScreenName(router.state.location);
+    return screen === null ? null : screenContextRecord(screen);
+  });
+
   return (
     <section
       aria-label="Assistant"
@@ -139,14 +175,16 @@ export function RoutinesAssistant({
       ) : (
         <BackgroundThreadContext value>
           <ComposerHandleContext value={composerRef ?? ownComposerRef}>
-            <ChatView
-              // A fresh conversation is a new view, not the old one scrolled somewhere.
-              key={routinesThreadId}
-              environmentId={environmentId}
-              threadId={routinesThreadId}
-              routeKind="server"
-              embedded={NO_PARENT_PANEL}
-            />
+            <ScreenContextReader value={readScreen}>
+              <ChatView
+                // A fresh conversation is a new view, not the old one scrolled somewhere.
+                key={routinesThreadId}
+                environmentId={environmentId}
+                threadId={routinesThreadId}
+                routeKind="server"
+                embedded={NO_PARENT_PANEL}
+              />
+            </ScreenContextReader>
           </ComposerHandleContext>
         </BackgroundThreadContext>
       )}

@@ -374,6 +374,11 @@ function formatComposerContextProviderPayload(record: KnownComposerContextRecord
         `environmentId: ${record.environmentId}`,
         "The user means this machine. Not linked here yet: call t3_environment_link with this environmentId. Linked: pass it as environmentId, or target.environmentId for delegate_task.",
       ].join("\n");
+    case "screen":
+      return [
+        `The person is on: ${record.screen}`,
+        'This is the screen of the app they had open beside this conversation when they sent this message. Words like "this", "here" or "it" most likely mean that screen. It is background, not a request.',
+      ].join("\n");
   }
 }
 
@@ -396,7 +401,13 @@ export function projectComposerContextForProvider(input: {
   records: ReadonlyArray<ComposerContextRecord>;
 }): string {
   const occurrences = collectComposerContextReferences(input.text);
-  if (occurrences.length === 0) return expandAssistantCitationsForProvider(input.text);
+  // No text references a screen, so it always travels; a command goes exactly as typed.
+  const screens = input.text.trimStart().startsWith("/")
+    ? []
+    : input.records.filter((record) => record.kind === "screen" && "screen" in record);
+  if (occurrences.length === 0 && screens.length === 0) {
+    return expandAssistantCitationsForProvider(input.text);
+  }
   const recordsById = new Map<ComposerContextId, ComposerContextRecord | undefined>();
   for (const record of input.records) {
     recordsById.set(record.contextId, recordsById.has(record.contextId) ? undefined : record);
@@ -422,6 +433,11 @@ export function projectComposerContextForProvider(input: {
       record,
     );
     entries.push(entry);
+  }
+  for (const record of screens) {
+    if (seen.has(record.contextId)) continue;
+    seen.add(record.contextId);
+    entries.push(formatEnvelopeEntry(record.kind, record.contextId, record));
   }
   if (entries.length === 0) return body;
   return `${body}\n\n<${CONTEXT_ENVELOPE_TAG} version="1">\n${entries.join("\n")}\n</${CONTEXT_ENVELOPE_TAG}>`;

@@ -28,6 +28,7 @@ export const COMPOSER_CONTEXT_KINDS = [
   "thread",
   "environment",
   "response",
+  "screen",
 ] as const;
 export type KnownComposerContextKind = (typeof COMPOSER_CONTEXT_KINDS)[number];
 
@@ -251,6 +252,18 @@ export const ResponseContextRecord = Schema.Struct({
 });
 export type ResponseContextRecord = typeof ResponseContextRecord.Type;
 
+/**
+ * The screen of the app the person had open beside the conversation when they sent the message.
+ * The text never references it, so it has no chip: the agent is always told.
+ */
+export const ScreenContextRecord = Schema.Struct({
+  ...recordBase,
+  kind: Schema.Literal("screen"),
+  /** The screen in plain words, as the person would name it. */
+  screen: TrimmedNonEmptyString.check(Schema.isMaxLength(2_048)),
+});
+export type ScreenContextRecord = typeof ScreenContextRecord.Type;
+
 const isJson = Schema.is(Schema.Json);
 
 /** Excludes known discriminators so malformed known records fail their own schema. */
@@ -283,6 +296,7 @@ export const KnownComposerContextRecord = Schema.Union([
   ThreadContextRecord,
   EnvironmentContextRecord,
   ResponseContextRecord,
+  ScreenContextRecord,
 ]);
 export type KnownComposerContextRecord = typeof KnownComposerContextRecord.Type;
 
