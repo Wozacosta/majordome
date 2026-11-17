@@ -157,6 +157,8 @@ import {
   MajordomeOpenRoutinesConversationInput,
   MajordomeOpenTopicResult,
   MajordomeReorderTopicsInput,
+  MajordomeSuggestTopicFolderInput,
+  MajordomeSuggestTopicFolderResult,
   MajordomeTopic,
   MajordomeTopicRefInput,
   MajordomeTopicsError,
@@ -747,6 +749,7 @@ export const WS_METHODS = {
   majordomeConnectGoogleDriveCancel: "majordome.connectGoogleDriveCancel",
   majordomeListTopics: "majordome.listTopics",
   majordomeCreateTopic: "majordome.createTopic",
+  majordomeSuggestTopicFolder: "majordome.suggestTopicFolder",
   majordomeUpdateTopic: "majordome.updateTopic",
   majordomeReorderTopics: "majordome.reorderTopics",
   majordomeRemoveTopic: "majordome.removeTopic",
@@ -2420,6 +2423,12 @@ const WsMajordomeCreateTopicRpc = Rpc.make(WS_METHODS.majordomeCreateTopic, {
   error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeSuggestTopicFolderRpc = Rpc.make(WS_METHODS.majordomeSuggestTopicFolder, {
+  payload: MajordomeSuggestTopicFolderInput,
+  success: MajordomeSuggestTopicFolderResult,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsMajordomeUpdateTopicRpc = Rpc.make(WS_METHODS.majordomeUpdateTopic, {
   payload: MajordomeUpdateTopicInput,
   success: MajordomeTopic,
@@ -2859,6 +2868,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeConnectGoogleDriveCancelRpc,
   WsMajordomeListTopicsRpc,
   WsMajordomeCreateTopicRpc,
+  WsMajordomeSuggestTopicFolderRpc,
   WsMajordomeUpdateTopicRpc,
   WsMajordomeReorderTopicsRpc,
   WsMajordomeRemoveTopicRpc,

@@ -2,12 +2,15 @@ import { scopedProjectKey, scopedThreadKey } from "@t3tools/client-runtime/envir
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import type {
   EnvironmentId,
+  MajordomeSuggestTopicFolderResult,
   MajordomeTopic,
   MajordomeTopicSuggestion,
   MajordomeTopicsResult,
   ProjectId,
   ThreadId,
 } from "@t3tools/contracts";
+
+import { defaultTopicFolder } from "@t3tools/shared/topicFolder";
 
 import { groupBrains } from "./brains.logic";
 
@@ -237,18 +240,42 @@ export function topicPreviewStamp(
     .join(",");
 }
 
-/** Where a new topic's folder goes: `<projects folder>/<title as a folder name>`. */
-export function defaultTopicFolder(projectsFolder: string, title: string): string {
-  const name = title
-    .normalize("NFKD")
-    .replaceAll(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")
-    .slice(0, 60);
-  const base = projectsFolder.replace(/\/+$/, "");
-  if (name === "") return base;
-  return base === "" ? name : `${base}/${name}`;
+export type TopicFolderMode = "new" | "existing";
+
+/**
+ * What the folder part of the new-topic dialog shows. Each choice the owner has not made (null)
+ * follows the server's suggestion for this very name, and until one is there, the fixed place
+ * `<projects folder>/<name>`. Once the owner chooses anything, the suggestion is left alone.
+ */
+export function topicFolderFields(input: {
+  readonly title: string;
+  readonly projectsFolder: string;
+  readonly folders: ReadonlyArray<string>;
+  readonly mode: TopicFolderMode | null;
+  readonly newFolder: string | null;
+  readonly existingFolder: string | null;
+  /** The latest answer and the name it was asked for. */
+  readonly suggestion: (MajordomeSuggestTopicFolderResult & { readonly title: string }) | null;
+}): {
+  readonly mode: TopicFolderMode;
+  readonly newFolder: string;
+  readonly existingFolder: string | null;
+  /** The fields show a suggestion that differs from the fixed place. */
+  readonly suggested: boolean;
+} {
+  const fixed = defaultTopicFolder(input.projectsFolder, input.title);
+  const untouched =
+    input.mode === null && input.newFolder === null && input.existingFolder === null;
+  const suggestion =
+    untouched && input.suggestion?.title === input.title.trim() ? input.suggestion : null;
+  // A folder this window has not listed yet cannot be picked from the list, only typed.
+  const existing = suggestion?.existing === true && input.folders.includes(suggestion.folder);
+  return {
+    mode: input.mode ?? (existing ? "existing" : "new"),
+    newFolder: input.newFolder ?? (suggestion !== null && !existing ? suggestion.folder : fixed),
+    existingFolder: input.existingFolder ?? (existing && suggestion ? suggestion.folder : null),
+    suggested: suggestion !== null && (existing || suggestion.folder !== fixed),
+  };
 }
 
 /** The topic ids with `topicId` moved by `offset` places, kept within the list. */

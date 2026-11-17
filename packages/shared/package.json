@@ -7,6 +7,10 @@
       "types": "./src/majordome.ts",
       "import": "./src/majordome.ts"
     },
+    "./topicFolder": {
+      "types": "./src/topicFolder.ts",
+      "import": "./src/topicFolder.ts"
+    },
     "./majord": {
       "types": "./src/majord.ts",
       "import": "./src/majord.ts"

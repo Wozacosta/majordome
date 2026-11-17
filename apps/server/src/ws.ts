@@ -2453,6 +2453,10 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.create(input)),
           ),
+        [WS_METHODS.majordomeSuggestTopicFolder]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.suggestFolder(input)),
+          ),
         [WS_METHODS.majordomeUpdateTopic]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.update(input)),

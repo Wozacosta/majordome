@@ -110,6 +110,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeConnectGoogleDriveWait]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGoogleDriveCancel]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeCreateTopic]: AuthOrchestrationOperateScope,
+  // Asks a model, on the owner's plan.
+  [WS_METHODS.majordomeSuggestTopicFolder]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeUpdateTopic]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeReorderTopics]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRemoveTopic]: AuthOrchestrationOperateScope,

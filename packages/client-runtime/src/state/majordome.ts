@@ -262,6 +262,10 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeCreateTopic,
       onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
     }),
+    suggestTopicFolder: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:suggest-topic-folder",
+      tag: WS_METHODS.majordomeSuggestTopicFolder,
+    }),
     updateTopic: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:update-topic",
       tag: WS_METHODS.majordomeUpdateTopic,

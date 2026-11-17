@@ -3,7 +3,6 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   collectVaults,
-  defaultTopicFolder,
   mergeVaultCopies,
   moveTopic,
   pickActiveVault,
@@ -13,6 +12,7 @@ import {
   topicSubtitle,
   topicThreadKeys,
   filterTopicFolders,
+  topicFolderFields,
   topicFolderRow,
 } from "./topics.logic";
 
@@ -196,11 +196,74 @@ describe("topic order and folders", () => {
     expect(placeTopic(ids, "d", "a")).toEqual(["d", "a", "b", "c"]);
     expect(placeTopic(ids, "a", "c")).toEqual(["b", "c", "a", "d"]);
   });
+});
 
-  it("puts a new topic's folder in the projects folder, named after the topic", () => {
-    expect(defaultTopicFolder("projects", "Moving to Lisbon")).toBe("projects/moving-to-lisbon");
-    expect(defaultTopicFolder("1. Projects/", "Café")).toBe("1. Projects/cafe");
-    expect(defaultTopicFolder("projects", "")).toBe("projects");
+describe("topicFolderFields", () => {
+  const base = {
+    title: "Paying the electricity bill ",
+    projectsFolder: "projects",
+    folders: ["personal", "personal/finances"],
+    mode: null,
+    newFolder: null,
+    existingFolder: null,
+    suggestion: null,
+  } as const;
+  const fixed = "projects/paying-the-electricity-bill";
+  const title = "Paying the electricity bill";
+  const created = { title, folder: "personal/finances/electricity", existing: false };
+  const found = { title, folder: "personal/finances", existing: true };
+
+  it.each([
+    ["the fixed place before any answer", {}, "new", fixed, null, false],
+    ["a suggested new folder", { suggestion: created }, "new", created.folder, null, true],
+    ["a suggested existing folder", { suggestion: found }, "existing", fixed, found.folder, true],
+    [
+      "an existing folder this window has not listed, as one to type",
+      { suggestion: { ...found, folder: "personal/bills" } },
+      "new",
+      "personal/bills",
+      null,
+      true,
+    ],
+    [
+      "nothing new when the answer is the fixed place",
+      { suggestion: { title, folder: fixed, existing: false } },
+      "new",
+      fixed,
+      null,
+      false,
+    ],
+    [
+      "the fixed place when the answer was for another name",
+      { suggestion: { ...found, title: "Paying" } },
+      "new",
+      fixed,
+      null,
+      false,
+    ],
+    [
+      "what the owner typed over an answer that came later",
+      { newFolder: "bills", suggestion: found },
+      "new",
+      "bills",
+      null,
+      false,
+    ],
+    [
+      "the owner's own pick of folder",
+      { mode: "existing", existingFolder: "personal", suggestion: created },
+      "existing",
+      fixed,
+      "personal",
+      false,
+    ],
+  ] as const)("shows %s", (_what, change, mode, newFolder, existingFolder, suggested) => {
+    expect(topicFolderFields({ ...base, ...change })).toEqual({
+      mode,
+      newFolder,
+      existingFolder,
+      suggested,
+    });
   });
 });
 
