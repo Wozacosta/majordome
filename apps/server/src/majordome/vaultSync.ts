@@ -216,6 +216,13 @@ export const replayOnto = Effect.fn("majordome.replayOnto")(function* (input: {
     const arrived = stages.has("2");
     const mine = stages.has("3");
     if (!arrived && !mine) return false;
+    // Majordome's own files are settings, not notes: a second copy beside one would be read as
+    // nothing, so what arrived stands and both machines agree.
+    if (arrived && mine && file.startsWith(".majordome/")) {
+      return (
+        ok(yield* run(["checkout", "--ours", "--", file])) && ok(yield* run(["add", "--", file]))
+      );
+    }
     if (!arrived || !mine) {
       return (
         ok(yield* run(["checkout", arrived ? "--ours" : "--theirs", "--", file])) &&

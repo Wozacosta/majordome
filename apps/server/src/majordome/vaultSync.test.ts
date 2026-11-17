@@ -125,6 +125,26 @@ it.layer(testLayer)("syncVault", (it) => {
     }),
   );
 
+  it.effect("takes what arrived for Majordome's own files, with no second copy", () =>
+    Effect.gen(function* () {
+      const { root, bare, fs } = yield* makeVault({ remote: true });
+      const elsewhere = yield* cloneElsewhere(bare!);
+      yield* fs.writeFileString(`${elsewhere}/.majordome/runner`, "server\n");
+      yield* commitAll(elsewhere, "Your edits");
+      yield* gitIn(elsewhere, ["push", "--quiet"]);
+      yield* fs.writeFileString(`${root}/.majordome/runner`, "mac\n");
+      yield* commitAll(root, "Your edits");
+
+      assert.deepStrictEqual((yield* sync(root)).status, "synced");
+      assert.equal(yield* fs.readFileString(`${root}/.majordome/runner`), "server\n");
+      assert.deepStrictEqual(yield* fs.readDirectory(`${root}/.majordome`), [
+        "config.json",
+        "runner",
+      ]);
+      assert.equal(yield* gitIn(root, ["status", "--porcelain"]), "");
+    }),
+  );
+
   it.effect("an edit wins over a delete, whichever machine made it", () =>
     Effect.gen(function* () {
       const { root, bare, fs } = yield* makeVault({ remote: true });
