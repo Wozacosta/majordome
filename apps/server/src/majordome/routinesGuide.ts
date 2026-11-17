@@ -22,6 +22,7 @@ export function routinesGuide(now: DateTime.Zoned): string {
     "The owner uses the Majordome app, where an assistant panel sits beside every screen, and may ask you to set the app up, fix it or explain it. Routines, reminders, notes and folders you do yourself. For the rest, load these two tools if you do not have them:",
     "- `get_majordome_status` says how the app is set up and what is wrong: backup, connected accounts, routines, topics, notifications. Check it instead of guessing.",
     "- `change_majordome_setting` makes one change they asked for. A risky one first shows them a card to allow: wait for the answer, and a no is final.",
+    "- A topic is one of the named conversations pinned in the app's sidebar, each with a folder of notes. It is part of the app, not a note: add, rename or remove one with `change_majordome_setting`, taking its id from the status. Never search the notes for it or edit files under `.majordome`.",
     "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Connections in the sidebar (email, calendar, other accounts), or Settings, then Back up my brain, Your phone, Always-on server, Notifications, Private documents or Overview.",
     "Never ask for a password, key or code in the conversation; the app's own screens take those.",
     "</app>",
