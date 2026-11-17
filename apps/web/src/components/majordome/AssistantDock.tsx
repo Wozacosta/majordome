@@ -40,14 +40,18 @@ export function AssistantDock({
   children,
   /** The conversation already on screen elsewhere, which must not be mounted twice. */
   shownThreadId = null,
+  withoutAssistant = false,
   className,
 }: {
   readonly children: ReactNode;
   /** The height of the area the dock fills. */
   readonly className: string;
   readonly shownThreadId?: string | null;
+  /** A page that is itself the place to type, such as Today, goes without the assistant. */
+  readonly withoutAssistant?: boolean;
 }) {
-  const { activeVault } = useMajordomeVaults();
+  const { activeVault: vault } = useMajordomeVaults();
+  const activeVault = withoutAssistant ? null : vault;
   const [open, setOpen] = useState(false);
   const askRef = useRef<Ask | null>(null);
   const [ask] = useState<Ask>(() => (text: string) => askRef.current?.(text));

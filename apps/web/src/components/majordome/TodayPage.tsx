@@ -74,6 +74,14 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
   );
 }
 
+/** Ways in for someone facing an empty box: each puts the start of a sentence in it. */
+const STARTERS = [
+  { label: "Remember something", text: "Remember that " },
+  { label: "Ask about my notes", text: "What do my notes say about " },
+  { label: "Remind me", text: "Remind me to " },
+  { label: "Plan my day", text: "Help me plan my day. " },
+] as const;
+
 /** Starts a conversation in the notes folder with what was typed, as the new-thread page does. */
 function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const handleNewThread = useNewThreadHandler();
@@ -82,6 +90,7 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const prompt = text.trim();
 
   const fileInput = useRef<HTMLInputElement>(null);
+  const textArea = useRef<HTMLTextAreaElement>(null);
 
   /** With files, the conversation opens holding them and the words, for the owner to send. */
   const submit = async (files: ReadonlyArray<File> = []) => {
@@ -119,61 +128,85 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   };
 
   return (
-    <form
-      className="mt-6 flex items-end gap-2 rounded-xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void submit();
-      }}
-      onDragOver={(event) => {
-        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
-      }}
-      onDrop={(event) => {
-        if (event.dataTransfer.files.length === 0) return;
-        event.preventDefault();
-        void submit([...event.dataTransfer.files]);
-      }}
-    >
-      <input
-        ref={fileInput}
-        type="file"
-        multiple
-        hidden
-        onChange={(event) => {
-          const files = [...(event.target.files ?? [])];
-          event.target.value = "";
-          void submit(files);
-        }}
-      />
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        aria-label="Add a file or a picture"
-        disabled={sending}
-        onClick={() => fileInput.current?.click()}
-      >
-        <PaperclipIcon />
-      </Button>
-      <textarea
-        aria-label="Write a note, or ask anything"
-        placeholder="Write a note, or ask anything…"
-        rows={1}
-        value={text}
-        disabled={sending}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={onKeyDown}
-        onPaste={(event) => {
-          if (event.clipboardData.files.length === 0) return;
+    <>
+      <form
+        className="mt-6 flex flex-col rounded-2xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
+        onSubmit={(event) => {
           event.preventDefault();
-          void submit([...event.clipboardData.files]);
+          void submit();
         }}
-        className="field-sizing-content max-h-48 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-base text-foreground outline-hidden placeholder:text-muted-foreground sm:min-h-8 sm:py-1 sm:text-sm"
-      />
-      <Button type="submit" size="icon" aria-label="Send" disabled={prompt === "" || sending}>
-        <ArrowUpIcon />
-      </Button>
-    </form>
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (event.dataTransfer.files.length === 0) return;
+          event.preventDefault();
+          void submit([...event.dataTransfer.files]);
+        }}
+      >
+        <textarea
+          ref={textArea}
+          aria-label="Ask anything, or tell me what to remember"
+          placeholder="Ask anything, or tell me what to remember…"
+          rows={3}
+          // Today is where a day starts, and typing is what it is for.
+          autoFocus
+          value={text}
+          disabled={sending}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={(event) => {
+            if (event.clipboardData.files.length === 0) return;
+            event.preventDefault();
+            void submit([...event.clipboardData.files]);
+          }}
+          className="field-sizing-content max-h-64 min-h-20 min-w-0 resize-none bg-transparent px-2 py-1.5 text-base text-foreground outline-hidden placeholder:text-muted-foreground"
+        />
+        <div className="flex items-center justify-between gap-2">
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            onChange={(event) => {
+              const files = [...(event.target.files ?? [])];
+              event.target.value = "";
+              void submit(files);
+            }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={sending}
+            onClick={() => fileInput.current?.click()}
+          >
+            <PaperclipIcon />
+            Add a file or picture
+          </Button>
+          <Button type="submit" size="icon" aria-label="Send" disabled={prompt === "" || sending}>
+            <ArrowUpIcon />
+          </Button>
+        </div>
+      </form>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {STARTERS.map((starter) => (
+          <Button
+            key={starter.label}
+            type="button"
+            size="xs"
+            variant="outline"
+            disabled={sending}
+            onClick={() => {
+              setText(starter.text);
+              textArea.current?.focus();
+            }}
+          >
+            {starter.label}
+          </Button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -269,7 +302,7 @@ function TodayRoutines({
   const loading = results.some((result) => result._tag === "Initial");
 
   return (
-    <Section title="From your routines">
+    <Section title="Lately in your notes">
       {copies.map((copy) => (
         <RoutinesBlockedLine
           key={copy.vault.environmentId}

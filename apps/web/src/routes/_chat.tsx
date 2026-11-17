@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 
 import { AssistantDock } from "../components/majordome/AssistantDock";
 import { isMajordome } from "../env";
@@ -14,6 +14,7 @@ import { useShownThreadRouteTarget } from "../hooks/useShownThreadRouteTarget";
 function ChatRouteLayout() {
   // Render both routes here so draft promotion keeps the same ChatView mounted.
   const { shownTarget, modalOpen } = useShownThreadRouteTarget();
+  const onToday = useLocation({ select: (location) => location.pathname === "/" });
   return (
     <>
       {shownTarget?.kind === "server" && !modalOpen ? (
@@ -24,7 +25,7 @@ function ChatRouteLayout() {
       ) : modalOpen ? (
         <SidebarInset className="h-dvh" />
       ) : isMajordome ? (
-        <AssistantDock className="h-dvh">
+        <AssistantDock className="h-dvh" withoutAssistant={onToday}>
           <Outlet />
         </AssistantDock>
       ) : (

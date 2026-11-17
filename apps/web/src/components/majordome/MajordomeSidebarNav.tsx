@@ -18,6 +18,7 @@ import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { backupAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
+import { NewChatRow } from "./NewChatRow";
 
 /** The screens Majordome is used through; its setup lives in Settings. */
 const MAJORDOME_SIDEBAR_ITEMS = [
@@ -44,6 +45,7 @@ export function MajordomeSidebarNav() {
   return (
     <nav aria-label="Majordome" className="mt-1">
       <SidebarMenu>
+        <NewChatRow onOpen={closeMobileSidebar} />
         {MAJORDOME_SIDEBAR_ITEMS.map(({ to, label, icon: Icon }) => {
           const hint = to === "/feed" ? feedHint : null;
           return (
