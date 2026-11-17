@@ -1,6 +1,7 @@
 /**
- * "Back up my brain": every 5 minutes, per vault, save the owner's edits, sync with the remote, and
- * nightly write an encrypted copy to the chosen folder. Every git write takes the shared vault lock.
+ * "Back up my brain": every 5 minutes, per vault, save the owner's edits, get in step with the
+ * owner's other machine, sync with the remote, and nightly write an encrypted copy to the chosen
+ * folder. Every git write takes the shared vault lock.
  * Settings stay in this server's state dir; secrets in the Keychain or secret store, never the vault.
  */
 
@@ -16,6 +17,7 @@ import {
   type MajordomeBackupStatus,
   type MajordomeConfigureBackupInput,
   type MajordomeGitHubConnectPrompt,
+  type MajordomeLinkPeerInput,
   MajordomeVaultError,
   majordomeVaultSlug,
 } from "@t3tools/contracts";
@@ -55,6 +57,7 @@ import {
   requestDeviceCode,
 } from "./githubBackup.ts";
 import * as GoogleDriveAuth from "./GoogleDriveAuth.ts";
+import * as MajordomePeerSync from "./MajordomePeerSync.ts";
 import {
   findOrCreateDriveFolder,
   type GoogleDriveError,
@@ -83,6 +86,7 @@ import {
   remoteWebUrl,
   resolveVaultRemote,
   backgroundSshCommand,
+  gitRemoteTransport,
   syncVault,
   VERSION_COPY_PATHSPEC,
   versionCopyOf,
@@ -107,6 +111,8 @@ const VaultBackupState = Schema.Struct({
   lastSyncedAt: Schema.optional(Schema.String),
   syncError: Schema.optional(Schema.String),
   syncPause: Schema.optional(MajordomeBackupPause),
+  /** What stopped the exchange with the owner's other machine. */
+  peerPause: Schema.optional(MajordomeBackupPause),
   lastFolderBackupAt: Schema.optional(Schema.String),
   lastFolderFile: Schema.optional(Schema.String),
   folderError: Schema.optional(Schema.String),
@@ -154,6 +160,13 @@ export class MajordomeBackup extends Context.Service<
     ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     readonly configure: (
       input: MajordomeConfigureBackupInput,
+    ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
+    /** Keeps this vault in step with the same vault on another of the owner's machines. */
+    readonly linkPeer: (
+      input: MajordomeLinkPeerInput,
+    ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
+    readonly unlinkPeer: (
+      input: MajordomeBackupInput,
     ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     readonly connectGitHubStart: (
       input: MajordomeBackupInput,
@@ -206,6 +219,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   const vaultLock = yield* VaultLock.VaultLock;
   const activeRuns = yield* VaultActiveRuns.VaultActiveRuns;
   const googleAuth = yield* GoogleDriveAuth.GoogleDriveAuth;
+  const peers = yield* MajordomePeerSync.MajordomePeerSync;
   const services = yield* Effect.context<
     | FileSystem.FileSystem
     | Path.Path
@@ -347,19 +361,56 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     }
   });
 
-  const sync = Effect.fn("MajordomeBackup.sync")(function* (
-    vaultRoot: string,
-    gitleaks: string | null,
-  ) {
+  /** The remote this vault is backed up to, unless the owner turned that off. */
+  const syncingRemote = Effect.fn("MajordomeBackup.syncingRemote")(function* (vaultRoot: string) {
     const state = yield* readState(vaultRoot);
-    if (state.syncing === false) return;
-    const remote = yield* resolveVaultRemote({
+    if (state.syncing === false) return null;
+    return yield* resolveVaultRemote({
       cwd: vaultRoot,
       preferred: state.remoteName ?? null,
     }).pipe(
       Effect.provide(services),
       Effect.orElseSucceed(() => null),
     );
+  });
+
+  /**
+   * The exchange with the owner's other machine. It runs before the backup, so what goes to the
+   * backup is what both machines agreed on, and it stands on its own: neither stops the other.
+   */
+  const syncPeer = Effect.fn("MajordomeBackup.syncPeer")(function* (
+    vaultRoot: string,
+    gitleaks: string | null,
+  ) {
+    const remote = yield* syncingRemote(vaultRoot);
+    const outcome = yield* peers.sync({
+      vaultRoot,
+      gitleaks,
+      published: remote === null ? null : `refs/remotes/${remote.name}/${remote.remoteBranch}`,
+    });
+    const state = yield* readState(vaultRoot);
+    switch (outcome?.status) {
+      case "conflict":
+        return yield* updateState(vaultRoot, {
+          peerPause: yield* pause(state.peerPause, "conflict", outcome.files),
+        });
+      case "secret":
+        return yield* updateState(vaultRoot, {
+          peerPause: yield* pause(state.peerPause, "secret-not-sent", outcome.files),
+        });
+      case "skipped":
+        return;
+      default:
+        if (state.peerPause !== undefined) yield* updateState(vaultRoot, { peerPause: undefined });
+    }
+  });
+
+  const sync = Effect.fn("MajordomeBackup.sync")(function* (
+    vaultRoot: string,
+    gitleaks: string | null,
+  ) {
+    const state = yield* readState(vaultRoot);
+    const remote = yield* syncingRemote(vaultRoot);
     if (remote === null) return;
     const token = yield* githubToken;
     const credentialEnv =
@@ -369,17 +420,20 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     // Only the steps that change the vault hold its lock; a slow network never blocks other work.
     const result = yield* syncVault({
       cwd: vaultRoot,
-      remote,
+      transport: yield* gitRemoteTransport({
+        cwd: vaultRoot,
+        remote,
+        sshCommand: backgroundSshCommand({ hasKeyFile: yield* hasSshKeyFile }),
+        ...(credentialEnv === undefined ? {} : { credentialEnv }),
+      }).pipe(Effect.provide(services)),
       gitleaks,
       local: (effect) => vaultLock.withLock(vaultRoot, effect),
-      sshCommand: backgroundSshCommand({ hasKeyFile: yield* hasSshKeyFile }),
       machineName,
       today: DateTime.formatIsoDate(
         DateTime.makeZonedUnsafe(yield* Clock.currentTimeMillis, {
           timeZone: DateTime.zoneMakeLocal(),
         }),
       ),
-      ...(credentialEnv === undefined ? {} : { credentialEnv }),
     }).pipe(Effect.provide(services), Effect.result);
     if (result._tag === "Failure") {
       yield* Effect.logWarning("Majordome could not sync a vault.", {
@@ -397,6 +451,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           syncPause: undefined,
         });
       case "skipped":
+      case "moved":
         return;
       case "conflict":
         return yield* updateState(vaultRoot, {
@@ -591,6 +646,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
             Effect.orElseSucceed(() => null),
           );
           yield* save(vaultRoot, gitleaks);
+          yield* syncPeer(vaultRoot, gitleaks);
           yield* sync(vaultRoot, gitleaks);
           yield* encryptedCopies(vaultRoot, cycleOptions?.forceCopies === true);
         }),
@@ -656,7 +712,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       brainId: yield* brainIdOf(vaultRoot).pipe(Effect.provide(services)),
       lastSavedAt: state.lastSavedAt ?? null,
       saveError: state.saveError ?? null,
-      paused: state.savePause ?? (syncing ? (state.syncPause ?? null) : null),
+      paused: state.savePause ?? (syncing ? state.syncPause : undefined) ?? state.peerPause ?? null,
       otherVersions: copies.flatMap((copy) => {
         const note = versionCopyOf(copy);
         return note === null ? [] : [{ path: note, copy }];
@@ -679,6 +735,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
               lastSyncedAt: state.lastSyncedAt ?? null,
               lastError: syncing ? (state.syncError ?? null) : null,
             },
+      peer: yield* peers.status(vaultRoot),
       folder:
         state.folder === undefined
           ? null
@@ -830,6 +887,26 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       return yield* statusOf(vaultRoot);
     },
   );
+
+  const linkPeer: MajordomeBackup["Service"]["linkPeer"] = Effect.fn("MajordomeBackup.linkPeer")(
+    function* (input) {
+      const vaultRoot = yield* requireVault(input.projectId);
+      yield* peers
+        .link({ vaultRoot, url: input.url, credential: input.credential, label: input.label })
+        .pipe(Effect.mapError((error) => vaultError(error.message)));
+      yield* runCycle(vaultRoot);
+      return yield* statusOf(vaultRoot);
+    },
+  );
+
+  const unlinkPeer: MajordomeBackup["Service"]["unlinkPeer"] = Effect.fn(
+    "MajordomeBackup.unlinkPeer",
+  )(function* (input) {
+    const vaultRoot = yield* requireVault(input.projectId);
+    yield* peers.unlink(vaultRoot);
+    yield* updateState(vaultRoot, { peerPause: undefined });
+    return yield* statusOf(vaultRoot);
+  });
 
   /**
    * The vault's GitHub remote, however it is reached. Notes that already have a repository keep
@@ -1042,6 +1119,8 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     getStatus,
     backUpNow,
     configure,
+    linkPeer,
+    unlinkPeer,
     connectGitHubStart,
     connectGitHubWait,
     connectGitHubCancel,

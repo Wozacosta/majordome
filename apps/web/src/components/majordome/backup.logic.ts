@@ -47,6 +47,10 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
     return { tone: "warning", title: copy.title, detail: copy.detail };
   }
   const { remote, folder, drive } = status;
+  const peer = status.peer ?? null;
+  if (peer !== null && peer.problem !== null) {
+    return { tone: "warning", title: `Not in step with ${peer.label}`, detail: peer.problem };
+  }
   if (remote !== null && remote.syncing && remote.backedUp) {
     return {
       tone: "ok",
@@ -83,6 +87,13 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
       detail: "Your latest changes are on their way.",
     };
   }
+  if (peer !== null) {
+    return {
+      tone: "neutral",
+      title: "On two of your machines",
+      detail: `These notes are also on ${peer.label}, and the two are kept in step. A backup somewhere else (GitHub, a folder or Google Drive) still protects you if both machines are lost, or if a mistake reaches both.`,
+    };
+  }
   return {
     tone: "warning",
     title: "Not backed up yet",
@@ -91,14 +102,15 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 }
 
 /**
- * The sidebar's short alert when saving or a chosen backup is paused or failing, or a note waits
- * in two versions, else null.
- * "Not backed up yet" alone does not count: it is a choice still to make, and a mark that never
- * goes away teaches people to ignore it.
+ * The sidebar's short alert when saving, a chosen backup or keeping in step with another machine
+ * is paused or failing, or a note waits in two versions, else null.
+ * "Not backed up yet" and "On two of your machines" alone do not count: a backup is a choice still
+ * to make, and a mark that never goes away teaches people to ignore it.
  */
 export function backupAttention(status: MajordomeBackupStatus): string | null {
   if (status.paused !== null) return "Backup paused";
   if (status.saveError !== null) return "Saving isn't working";
+  if (status.peer != null && status.peer.problem !== null) return "Notes aren't in step";
   const chosen = status.remote?.syncing === true || status.folder !== null || status.drive !== null;
   if (chosen && backupHeadline(status).tone === "warning") return "Backup isn't working";
   // Nothing is wrong or lost, but only the owner can say which version of a note is the one.

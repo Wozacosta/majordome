@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 
 import { AssistantDock } from "../components/majordome/AssistantDock";
+import { KeepMachinesInStep } from "../components/majordome/useKeepMachinesInStep";
 import { isMajordome } from "../env";
 
 import { ThreadRouteView } from "../components/ThreadRouteView";
@@ -31,6 +32,7 @@ function ChatRouteLayout() {
       ) : (
         <Outlet />
       )}
+      {isMajordome ? <KeepMachinesInStep /> : null}
       {modalOpen ? <Outlet /> : null}
     </>
   );

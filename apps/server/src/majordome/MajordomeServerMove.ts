@@ -70,6 +70,7 @@ import {
   waitForAction,
 } from "./hetznerApi.ts";
 import { GITHUB_TOKEN_SECRET } from "./MajordomeBackup.ts";
+import * as MajordomePeerSync from "./MajordomePeerSync.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
 import {
   downloadVault,
@@ -326,6 +327,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
   const vaultLock = yield* VaultLock.VaultLock;
   const activeRuns = yield* VaultActiveRuns.VaultActiveRuns;
   const routines = yield* MajordomeRoutines.MajordomeRoutines;
+  const peers = yield* MajordomePeerSync.MajordomePeerSync;
   const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const random = yield* SecureRandom.SecureRandom;
@@ -563,13 +565,9 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
         Effect.provide(services),
         Effect.orElseSucceed(() => null),
       );
-      if (remote === null) {
+      if (remote !== null && !remote.url.startsWith("https://")) {
         notices.push(
-          "Your notes are not backed up to GitHub, so after the move this computer's copy stops following the server's. Connect GitHub in Back up my brain first to keep both in step.",
-        );
-      } else if (!remote.url.startsWith("https://")) {
-        notices.push(
-          "Your notes are backed up with a key that only this computer has, so the server will not send its changes to that backup. Connect GitHub in Back up my brain to keep both in step.",
+          "Your notes are backed up with a key that only this computer has, so the server cannot send to that backup itself. This computer sends the server's changes there whenever it is on.",
         );
       }
     }
@@ -1032,6 +1030,24 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
     if (Option.isSome(githubToken) && remote?.url.startsWith("https://github.com/")) {
       yield* sendGitHubToken(session.url, session.token, githubToken.value);
     }
+    // From here on the two copies follow each other. The app links them itself if this fails.
+    if (move.environmentId !== undefined) {
+      yield* peers
+        .linkWithSession({
+          vaultRoot: move.vaultRoot,
+          url: session.url,
+          token: session.token,
+          label: move.serverLabel ?? "your server",
+          environmentId: move.environmentId,
+        })
+        .pipe(
+          Effect.catch((error) =>
+            Effect.logWarning("The new server's notes could not be linked to this computer's.", {
+              reason: error.reason,
+            }),
+          ),
+        );
+    }
   });
 
   const stepFallback = (id: MajordomeServerMoveStepId) =>
@@ -1265,6 +1281,10 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       yield* Effect.forEach([AUTH_KEY_SECRET, SETUP_SECRET, SESSION_SECRET], dropSecret, {
         discard: true,
       });
+      const linked = yield* peers.status(move.vaultRoot);
+      if (linked?.linkedHere === true && linked.environmentId === move.environmentId) {
+        yield* peers.unlink(move.vaultRoot);
+      }
       const at = isoTime(yield* Clock.currentTimeMillis);
       yield* updateLedger(() => ({ move: null, removal: { at, did, problems } }));
     }).pipe(Effect.provide(services));

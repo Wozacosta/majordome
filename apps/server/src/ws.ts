@@ -2421,6 +2421,14 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.configure(input)),
           ),
+        [WS_METHODS.majordomeLinkPeer]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.linkPeer(input)),
+          ),
+        [WS_METHODS.majordomeUnlinkPeer]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeBackup.unlinkPeer(input)),
+          ),
         [WS_METHODS.majordomeConnectGitHubStart]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.connectGitHubStart(input)),

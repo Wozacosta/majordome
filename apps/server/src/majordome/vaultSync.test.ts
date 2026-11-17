@@ -10,6 +10,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { findGitleaks } from "./vaultSecretScan.ts";
 import {
   backgroundSshCommand,
+  gitRemoteTransport,
   remoteHost,
   remoteWebUrl,
   resolveVaultRemote,
@@ -35,7 +36,7 @@ const sync = (root: string, gitleaks: string | null = null) =>
     assert.isNotNull(remote);
     return yield* syncVault({
       cwd: root,
-      remote: remote!,
+      transport: yield* gitRemoteTransport({ cwd: root, remote: remote! }),
       gitleaks,
       machineName: "Mac",
       today: "2026-11-17",

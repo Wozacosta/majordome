@@ -140,6 +140,8 @@ import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
+import * as MajordomePeerSync from "./majordome/MajordomePeerSync.ts";
+import * as PeerSyncHttp from "./majordome/peerSyncHttp.ts";
 import * as MajordomeMoveReceiver from "./majordome/MajordomeMoveReceiver.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MoveReceiverHttp from "./majordome/moveReceiverHttp.ts";
@@ -695,8 +697,17 @@ const layerServerRestart = Layer.effect(
   }),
 );
 
+// One instance, shared by reference: the backup cycle, the routes another machine calls and the
+// server move use the same links.
+const layerMajordomePeerSync = MajordomePeerSync.layer.pipe(
+  Layer.provide(VaultActiveRuns.layer),
+  Layer.provide(ProjectionStoreV2.layer),
+  Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer)),
+);
+
 // One instance, shared by reference: the backup RPCs and "Move routines here" use the same ledger.
 const layerMajordomeBackup = MajordomeBackup.layer.pipe(
+  Layer.provide(layerMajordomePeerSync),
   Layer.provide(ProjectionStoreV2.layer),
   Layer.provide(VaultLock.layer),
 );
@@ -797,6 +808,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provideMerge(MajordomeServerMove.layer),
     Layer.provide(MajordomeRoutines.layer),
     Layer.provide(layerMajordomeBackup),
+    Layer.provide(layerMajordomePeerSync),
     Layer.provide(MajordomePush.layer),
     Layer.provide(
       Layer.mergeAll(
@@ -1000,6 +1012,8 @@ const layerMakeRoutes = Layer.mergeAll(
         ),
       ),
     ),
+    // What a server answers to another of the owner's machines keeping the notes in step.
+    PeerSyncHttp.layer.pipe(Layer.provide(layerMajordomePeerSync)),
     GuestHttp.layer,
     DeviceHubProxy.layer,
     ServerBrowserStream.routeLayer,

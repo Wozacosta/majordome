@@ -225,6 +225,16 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeConfigureBackup,
       onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
     }),
+    linkPeer: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:link-peer",
+      tag: WS_METHODS.majordomeLinkPeer,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
+    unlinkPeer: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:unlink-peer",
+      tag: WS_METHODS.majordomeUnlinkPeer,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
     connectGitHubStart: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:connect-github-start",
       tag: WS_METHODS.majordomeConnectGitHubStart,

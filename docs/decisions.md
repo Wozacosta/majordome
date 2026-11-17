@@ -74,12 +74,26 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit. Google
   Drive comes after GitHub and folder: the same encrypted bundle, with the limited `drive.file`
   permission (needs a Google OAuth app registration).
-- **Multi-machine sync is an advanced setting** (several servers on one vault). Any number of servers (Mac, VPS), auth always on.
-  The vault syncs through a git remote. Majordome never force-pushes. A note changed on two
-  machines keeps both versions as files, the way Dropbox and iCloud do: what arrived keeps the
-  name, this machine's version sits beside it as `name (version from <machine>, <date>).md`, and
-  syncing carries on. An edit wins over a delete. No conflict branches: choosing between branches
-  is a git idea, and two files are something anyone can read, and the assistant can combine.
+- **Two machines stay in step directly, with no forge between them.** One server (the owner's
+  computer) holds a link to the other: its address and an owner session there, kept in the secret
+  store. Every 5 minutes it asks the other for what is new since the last commit it knows, rebases
+  its own saved changes on top, and sends them as a git bundle over Tailscale HTTPS; the other only
+  answers and only fast-forwards. The desktop app makes the link by itself when it sees the same
+  brain on its own server and on another connected one, and the one-button move makes it when the
+  notes are copied. The session is replaced before its 30 days run out; a link the other machine
+  no longer accepts is made again by the app. A vault may have a link, a git remote, both or
+  neither, and neither waits for the other.
+- **The backup's history is never rewritten to fit the other machine.** The exchange with the
+  other machine runs before the push to the git remote, so both normally get the same history.
+  When this machine's commits are already on the remote and the other machine has new ones too
+  (the two were out of touch), this machine does not rebase: the other one replays its own new
+  commits on top instead. Without this the two upstreams would each ask for a different order
+  forever.
+- **A note changed on two machines keeps both versions as files**, the way Dropbox and iCloud do:
+  what arrived keeps the name, this machine's version sits beside it as
+  `name (version from <machine>, <date>).md`, and syncing carries on. An edit wins over a delete.
+  Majordome never force-pushes. No conflict branches: choosing between branches is a git idea, and
+  two files are something anyone can read, and the assistant can combine.
 - **Phone access:** a home-screen web app over Tailscale with HTTPS (a `*.ts.net` address), which
   iPhone web push needs. Majordome guides the Tailscale setup once and shows a QR code. Same-Wi-Fi
   QR pairing stays as a fallback without notifications. A hosted Majordome relay waits until
@@ -93,7 +107,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   "Digest my inbox" auto-accepts edits, since it reads files from outside the vault.
 - **Your edits are saved too.** Every 5 minutes Majordome commits the owner's own edits as "Your
   edits", authored by the owner, after a gitleaks check. It replaces `brain-sync`.
-- **GitHub backup** uses a "Majordome" OAuth app with GitHub's device sign-in (public client id, no
+- **GitHub backup** is an optional off-site copy, not how machines stay in step. It uses a "Majordome" OAuth app with GitHub's device sign-in (public client id, no
   secret) and creates a private `majordome-brain` repo, pushing after every save. OAuth apps can only
   ask for the broad `repo` permission; the screen says so. A vault that already pushes somewhere
   shows as backed up.
@@ -222,11 +236,12 @@ takes over.
    `search_notes` agent tool. Overview is a health page: one verdict, then machines, routines,
    notes, AI and access, and phone, each line linking to where it is fixed; it lists secret sources
    but not whether each secret resolves, which needs a server check that reads them.
-7. **M7.** Advanced. _Done:_ multi-machine sync through the vault's git remote every 5 minutes,
-   and both versions kept when a note changes in two places. _Dropped unless asked for:_ session
-   replication (the app already lists every server's conversations together, and a conversation
-   can be handed to another server), and a git remote served by the server for Obsidian on a
-   laptop (the GitHub backup is that remote).
+7. **M7.** Advanced. _Done:_ two machines keep the notes in step directly every 5 minutes, linked
+   by the app with nothing to set up, with GitHub as an optional backup beside it; both versions
+   kept when a note changes in two places. _Untested between two real servers._ _Dropped unless
+   asked for:_ session replication (the app already lists every server's conversations together,
+   and a conversation can be handed to another server), and a git remote served by the server for
+   Obsidian on a laptop (the GitHub backup is that remote).
 8. **One-button move.** _Done, for Hetzner; untested against real accounts._ "Set up a server for
    me" in Settings > Always-on server: the owner pastes a Hetzner API token and a Tailscale OAuth
    secret once; this computer's server creates a firewalled Hetzner server whose first-boot script

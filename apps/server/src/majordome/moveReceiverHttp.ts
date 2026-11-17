@@ -3,7 +3,6 @@
  * session able to grant access, which the computer gets by spending the server's setup secret.
  */
 
-import { AuthAccessWriteScope } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -17,6 +16,7 @@ import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as ServerConfig from "../config.ts";
 import { requestUrl } from "../requestUrl.ts";
 import * as MajordomeMoveReceiver from "./MajordomeMoveReceiver.ts";
+import { makeOwnerGuard } from "./ownerHttp.ts";
 
 export const MOVE_VAULT_PATH = "/api/majordome/move/vault";
 export const MOVE_GITHUB_TOKEN_PATH = "/api/majordome/move/github-token";
@@ -40,25 +40,9 @@ export const layer = Layer.unwrap(
     // Kept between requests: the response streams it after the handler has returned.
     const outgoingBundle = path.join(config.stateDir, "majordome", "outgoing.bundle");
 
-    /** Runs `handle` for an owner session; anyone else gets 401 or 403 and nothing happens. */
-    const owner = Effect.fn("majordome.moveReceiver.owner")(function* <E, R>(
-      handle: (
-        request: HttpServerRequest.HttpServerRequest,
-      ) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
-    ) {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const session = yield* auth.authenticateHttpRequest(request).pipe(Effect.result);
-      if (session._tag === "Failure") return HttpServerResponse.empty({ status: 401 });
-      if (!session.success.scopes.includes(AuthAccessWriteScope)) {
-        return HttpServerResponse.empty({ status: 403 });
-      }
-      return yield* handle(request).pipe(
-        Effect.catchCause((cause) =>
-          Effect.logWarning("A server move request failed.", { cause }).pipe(
-            Effect.as(HttpServerResponse.empty({ status: 500 })),
-          ),
-        ),
-      );
+    const owner = makeOwnerGuard(auth, {
+      span: "majordome.moveReceiver.owner",
+      failure: "A server move request failed.",
     });
 
     const receiveVault = owner((request) =>

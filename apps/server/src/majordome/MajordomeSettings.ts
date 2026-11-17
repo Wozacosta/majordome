@@ -67,6 +67,17 @@ export const MajordomeStatus = Schema.Struct({
           problem: When,
         }),
       ),
+      otherMachine: Schema.NullOr(
+        Schema.Struct({
+          name: Schema.String,
+          inStep: Schema.Boolean,
+          lastInStepAt: When,
+          problem: When,
+        }),
+      ).annotate({
+        description:
+          "Another of the owner's machines that holds the same notes; the two are kept in step directly, every few minutes. It protects against losing one machine, not against a mistake that reaches both.",
+      }),
       folder: Schema.NullOr(
         Schema.Struct({ path: Schema.String, lastCopyAt: When, problem: When }),
       ),
@@ -159,8 +170,7 @@ const NOT_A_NOTES_FOLDER: MajordomeStatus = {
 const PAUSED: Record<NonNullable<MajordomeBackupStatus["paused"]>["reason"], string> = {
   secret: "A possible secret was found in the notes, so saving is paused.",
   "secret-not-sent": "A possible secret was found in the notes, so syncing is paused.",
-  conflict:
-    "The notes here and in the online backup changed in the same place, so syncing is paused.",
+  conflict: "The notes here and somewhere else changed in the same place, so syncing is paused.",
   "unfinished-merge":
     "Bringing two versions of the notes together was left unfinished, so saving is paused.",
 };
@@ -185,6 +195,7 @@ const CONNECTOR_STATES = {
 
 function backupReport(status: MajordomeBackupStatus): NonNullable<MajordomeStatus["backup"]> {
   const { remote, drive } = status;
+  const peer = status.peer ?? null;
   const gitHubSignIn =
     remote?.isGitHub === true && remote.usesSignIn !== false && !status.github.signedIn;
   const googleSignIn =
@@ -205,11 +216,16 @@ function backupReport(status: MajordomeBackupStatus): NonNullable<MajordomeStatu
     gitHubSignIn ||
     googleSignIn ||
     (remote !== null && remote.syncing && remote.lastError !== null) ||
+    (peer !== null && peer.problem !== null) ||
     (status.folder !== null && status.folder.lastError !== null) ||
     (drive !== null && (drive.problem !== null || drive.lastError !== null));
   const summary =
     places.length === 0
-      ? "Not backed up anywhere: the notes and their history are only on this computer."
+      ? peer === null
+        ? "Not backed up anywhere: the notes and their history are only on this computer."
+        : peer.problem === null
+          ? `On two of the owner's machines (this one and ${peer.label}), kept in step directly, but not backed up anywhere else.`
+          : `Set up to stay in step with ${peer.label}, but that is not working, and the notes are not backed up anywhere else.`
       : trouble
         ? `Set up to back up to ${places.join(", ")}, but something is wrong; see the problems below.`
         : `Backed up to ${places.join(", ")}.`;
@@ -234,6 +250,15 @@ function backupReport(status: MajordomeBackupStatus): NonNullable<MajordomeStatu
             upToDate: remote.backedUp,
             lastSentAt: remote.lastSyncedAt,
             problem: remote.lastError,
+          },
+    otherMachine:
+      peer === null
+        ? null
+        : {
+            name: peer.label,
+            inStep: peer.inStep,
+            lastInStepAt: peer.lastInStepAt,
+            problem: peer.problem,
           },
     folder:
       status.folder === null

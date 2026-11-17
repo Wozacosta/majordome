@@ -72,6 +72,23 @@ export const MajordomeBackupDrive = Schema.Struct({
 });
 export type MajordomeBackupDrive = typeof MajordomeBackupDrive.Type;
 
+/** Another of the owner's machines these notes are kept in step with, directly. */
+export const MajordomeBackupPeer = Schema.Struct({
+  /** The other machine's name. */
+  label: Schema.String,
+  environmentId: Schema.NullOr(Schema.String),
+  /** True on the machine that holds the link and does the work; false on the one that answers. */
+  linkedHere: Schema.Boolean,
+  /** Both machines hold the same notes, as far as this one knows. */
+  inStep: Schema.Boolean,
+  lastInStepAt: Schema.NullOr(Schema.String),
+  /** What is wrong, in plain words. */
+  problem: Schema.NullOr(Schema.String),
+  /** The other machine no longer accepts this one; the app links them again when it is open. */
+  needsReconnect: Schema.Boolean,
+});
+export type MajordomeBackupPeer = typeof MajordomeBackupPeer.Type;
+
 export const MajordomeBackupStatus = Schema.Struct({
   isVault: Schema.Boolean,
   /**
@@ -90,6 +107,8 @@ export const MajordomeBackupStatus = Schema.Struct({
     Schema.Array(Schema.Struct({ path: Schema.String, copy: Schema.String })),
   ),
   remote: Schema.NullOr(MajordomeBackupRemote),
+  /** Absent from older servers; null when the notes are not kept in step with another machine. */
+  peer: Schema.optional(Schema.NullOr(MajordomeBackupPeer)),
   folder: Schema.NullOr(MajordomeBackupFolder),
   /** The nightly copy to Google Drive, when this vault has one. */
   drive: Schema.NullOr(MajordomeBackupDrive),
@@ -128,6 +147,17 @@ export const MajordomeConfigureBackupInput = Schema.Struct({
   change: MajordomeBackupChange,
 });
 export type MajordomeConfigureBackupInput = typeof MajordomeConfigureBackupInput.Type;
+
+export const MajordomeLinkPeerInput = Schema.Struct({
+  projectId: ProjectId,
+  /** The other machine's address. */
+  url: TrimmedNonEmptyString,
+  /** A one-time pairing credential made on the other machine. */
+  credential: TrimmedNonEmptyString,
+  /** The other machine's name, as the owner knows it. */
+  label: TrimmedNonEmptyString,
+});
+export type MajordomeLinkPeerInput = typeof MajordomeLinkPeerInput.Type;
 
 export const MajordomeGitHubConnectPrompt = Schema.Union([
   /** This server already holds a GitHub sign-in; waiting creates the repository. */
