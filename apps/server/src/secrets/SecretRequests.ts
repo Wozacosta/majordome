@@ -122,12 +122,13 @@ const make = Effect.gen(function* () {
         })
         .pipe(Effect.mapError((cause) => new SecretRequestError({ reason: "load_failed", cause })));
       const item = records.turnItems.find((candidate) => candidate.id === input.turnItemId);
-      // A private document card asks for an allow or a deny, which only its own service takes.
+      // These cards ask for an allow or a deny, which only their own services take.
       if (
         item?.type !== "secret_request" ||
         item.runId === null ||
         item.nodeId === null ||
-        item.delivery === "private_document"
+        item.delivery === "private_document" ||
+        item.delivery === "approval"
       ) {
         return yield* new SecretRequestError({ reason: "not_found" });
       }

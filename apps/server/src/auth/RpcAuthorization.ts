@@ -135,6 +135,7 @@ export const RPC_REQUIRED_SCOPES = {
   // Names, sizes and the access log; the content needs an approval or `viewPrivateDocument`.
   [WS_METHODS.majordomeListPrivateDocuments]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetPrivateDocumentRequest]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeGetApproval]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
   [WS_METHODS.secretsAnswerRequest]: AuthOrchestrationOperateScope,
   // Delivery logs hold request bodies, so they need the same scope as the URL.

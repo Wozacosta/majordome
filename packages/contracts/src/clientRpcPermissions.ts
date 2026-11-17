@@ -101,6 +101,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   // Hands out the decrypted file, so it needs more than the scope that lists the names.
   [WS_METHODS.majordomeViewPrivateDocument]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: AuthOrchestrationOperateScope,
+  // A yes changes a setting, so it takes the scope that could change it directly.
+  [WS_METHODS.majordomeAnswerApproval]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubStart]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubWait]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeConnectGitHubCancel]: AuthSettingsWriteScope,

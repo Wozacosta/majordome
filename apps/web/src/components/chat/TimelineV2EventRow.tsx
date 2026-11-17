@@ -12,6 +12,8 @@ import { cn } from "~/lib/utils";
 import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from "../ui/collapsible";
 import { EnvironmentSubagentAvatar, SubagentElapsed, V2LifecycleRow } from "./V2LifecycleRow";
 import { LinkRequestCard } from "./LinkRequestCard";
+import { ApprovalRequestCard } from "../majordome/ApprovalRequestCard";
+import { isApprovalRequest } from "../majordome/approvals.logic";
 import { PrivateDocumentRequestCard } from "../majordome/PrivateDocumentRequestCard";
 import { isPrivateDocumentRequest } from "../majordome/privateDocuments.logic";
 import { SecretRequestCard } from "./SecretRequestCard";
@@ -27,6 +29,15 @@ export function V2EventTimelineRow({ row }: { row: Extract<TimelineRow, { kind: 
   if (isPrivateDocumentRequest(item)) {
     return (
       <PrivateDocumentRequestCard
+        environmentId={ctx.activeThreadEnvironmentId}
+        item={item}
+        visibility={visibility}
+      />
+    );
+  }
+  if (isApprovalRequest(item)) {
+    return (
+      <ApprovalRequestCard
         environmentId={ctx.activeThreadEnvironmentId}
         item={item}
         visibility={visibility}

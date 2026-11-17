@@ -146,6 +146,8 @@ import * as MoveReceiverHttp from "./majordome/moveReceiverHttp.ts";
 import * as VaultActiveRuns from "./majordome/VaultActiveRuns.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
+import * as MajordomeSettings from "./majordome/MajordomeSettings.ts";
 import * as PrivateDocumentsKey from "./majordome/PrivateDocumentsKey.ts";
 import * as RoutineLimits from "./majordome/RoutineLimits.ts";
 import * as RoutineRunLedger from "./majordome/RoutineRunLedger.ts";
@@ -704,6 +706,20 @@ const layerMajordomeNotesSearch = MajordomeNotesSearch.layer.pipe(
   Layer.provide(ProjectionStoreV2.layer),
 );
 
+const layerMajordomeVault = MajordomeVaultService.layer.pipe(
+  Layer.provide(layerMajordomeNotesSearch),
+  Layer.provide(VaultLock.layer),
+  Layer.provide(ProjectionStoreV2.layer),
+);
+
+const layerMajordomeTopics = MajordomeTopics.layer.pipe(Layer.provide(VaultLock.layer));
+
+// One instance, shared by reference: agents ask from /mcp and the owner answers over WebSocket.
+const layerMajordomePrivateDocuments = MajordomePrivateDocuments.layer.pipe(
+  Layer.provide(PrivateDocumentsKey.layer.pipe(Layer.provide(ProcessRunner.layer))),
+  Layer.provide(MajordomePush.layer),
+);
+
 const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   AgentAwarenessRelay.layer,
   HeldHooksWaker.layer,
@@ -790,12 +806,8 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
       ),
     ),
   ),
-  MajordomeVaultService.layer.pipe(
-    Layer.provide(layerMajordomeNotesSearch),
-    Layer.provide(VaultLock.layer),
-    Layer.provide(ProjectionStoreV2.layer),
-  ),
-  MajordomeTopics.layer.pipe(Layer.provide(VaultLock.layer)),
+  layerMajordomeVault,
+  layerMajordomeTopics,
   MajordomeConnectors.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
@@ -814,12 +826,34 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     }),
   ).pipe(
     Layer.provide(Layer.merge(MajordomePushReactor.layer, RoutineLimits.layer)),
-    Layer.provideMerge(
-      MajordomePrivateDocuments.layer.pipe(
-        Layer.provide(PrivateDocumentsKey.layer.pipe(Layer.provide(ProcessRunner.layer))),
+    Layer.provideMerge(layerMajordomePrivateDocuments),
+    Layer.provideMerge(MajordomePush.layer),
+  ),
+  // provideMerge keeps both in the context: agents change settings from /mcp, and the owner
+  // answers their questions over WebSocket.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      yield* (yield* MajordomeApprovals.MajordomeApprovals).start();
+    }),
+  ).pipe(
+    Layer.provideMerge(MajordomeSettings.layer),
+    Layer.provideMerge(MajordomeApprovals.layer),
+    Layer.provide(
+      Layer.mergeAll(
+        layerMajordomeBackup,
+        layerMajordomeVault,
+        layerMajordomeTopics,
+        layerMajordomePrivateDocuments,
+        MajordomeConnectors.layer,
+        MajordomePush.layer,
+        ProjectionStoreV2.layer,
+        MajordomeRoutines.layer.pipe(
+          Layer.provide(layerMajordomeBackup),
+          Layer.provide(MajordomePush.layer),
+          Layer.provide(VaultLock.layer),
+        ),
       ),
     ),
-    Layer.provideMerge(MajordomePush.layer),
   ),
   ProviderUsageLimitsIngestion.layer,
   layerProviderInstallationRefresh,

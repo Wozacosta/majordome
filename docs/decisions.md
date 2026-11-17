@@ -157,6 +157,14 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - Unattended runs can read and write the vault and read the web. A shell, Tier B, and any outward
   action (sending email, posting) need approval.
 - Approvals go to a queue and send a push. With no answer they are denied after a timeout (24h).
+- **The assistant sets the app up too.** An agent reads what the settings screens show with
+  `get_majordome_status` and makes one change at a time with `change_majordome_setting`. One table
+  (`apps/server/src/majordome/settingsChanges.ts`) sorts every change: safe ones happen at once
+  (back up now, routine limits, adding or renaming a topic); ones that are hard to take back
+  (stopping a backup, forgetting a sign-in, removing a topic or a private document) first show the
+  owner a card in the conversation, the secret request card with `delivery: "approval"`, and
+  nothing happens without a yes; sign-ins, passphrases, adding a private document, a phone and the
+  always-on server are never done by an agent, which answers with the screen to open.
 - Each server uses its own provider logins. **Limits, not money** (providers don't report cost the
   same way): an unattended run stops after 20 minutes of work (time waiting for the owner doesn't
   count), and a vault starts at most 20 unattended runs a day, then routines pause until tomorrow

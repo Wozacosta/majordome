@@ -15,6 +15,7 @@ import { ServerEnvironment } from "../environment/ServerEnvironment.ts";
 import { GitWorkflowService } from "../git/GitWorkflowService.ts";
 import { MajordomeNotesSearch } from "../majordome/MajordomeNotesSearch.ts";
 import { MajordomePrivateDocuments } from "../majordome/MajordomePrivateDocuments.ts";
+import { MajordomeSettings } from "../majordome/MajordomeSettings.ts";
 import { MajordomePush } from "../majordome/MajordomePush.ts";
 import * as McpHttpServer from "../mcp/McpHttpServer.ts";
 import { PreviewAutomationBroker } from "../mcp/PreviewAutomationBroker.ts";
@@ -62,6 +63,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(MajordomeNotesSearch)({}),
   Layer.mock(MajordomePrivateDocuments)({}),
   Layer.mock(MajordomePush)({}),
+  Layer.mock(MajordomeSettings)({}),
   Layer.mock(ManagedProjectFolders)({ namedProjectsRoot: "" }),
   Layer.mock(McpProviderSessions)({}),
   Layer.mock(OrchestratorV2)({}),

@@ -1652,10 +1652,14 @@ export type OrchestrationV2SecretRequestStatus = typeof OrchestrationV2SecretReq
 
 /**
  * `file`: the value goes to an owner-only file the agent's shell commands can read.
- * `private_document`: no value is asked for. The card asks the owner to let the agent open one of
- * Majordome's private documents, named by `label`; `saved` then means allowed.
+ * `private_document` and `approval` ask for no value: the owner allows or denies opening the
+ * private document `label` names, or the Majordome change it names; `saved` then means allowed.
  */
-export const OrchestrationV2SecretRequestDelivery = Schema.Literals(["file", "private_document"]);
+export const OrchestrationV2SecretRequestDelivery = Schema.Literals([
+  "file",
+  "private_document",
+  "approval",
+]);
 
 const OrchestrationV2SecretRequestFields = {
   type: Schema.Literal("secret_request"),

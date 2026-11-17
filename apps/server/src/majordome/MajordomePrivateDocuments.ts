@@ -5,7 +5,6 @@
  */
 
 import {
-  CommandId,
   MAJORDOME_PRIVATE_DOCUMENT_MAX_BYTES,
   MajordomePrivateDocumentError,
   type MajordomeAddPrivateDocumentInput,
@@ -17,16 +16,13 @@ import {
   type MajordomePrivateDocumentRequestInput,
   type MajordomePrivateDocumentsResult,
   type MajordomeViewPrivateDocumentResult,
-  type NodeId,
   type RunId,
   type ThreadId,
-  TurnItemId,
 } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
-import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Hex from "effect/encoding/Hex";
@@ -38,7 +34,6 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 import * as Semaphore from "effect/Semaphore";
-import * as Stream from "effect/Stream";
 
 import * as AssetSigner from "../assets/AssetSigner.ts";
 import {
@@ -48,10 +43,7 @@ import {
 } from "../attachmentStore.ts";
 import { base64UrlDecodeUtf8, base64UrlEncode } from "../auth/utils.ts";
 import * as ServerConfig from "../config.ts";
-import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
-import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
-import { forkParked } from "../serverActivation.ts";
-import * as MajordomePush from "./MajordomePush.ts";
+import * as OwnerRequestCards from "./ownerRequestCards.ts";
 import * as PrivateDocumentsKey from "./PrivateDocumentsKey.ts";
 import {
   accessLogLine,
@@ -66,10 +58,6 @@ import {
 
 /** An opened document is deleted this long after the owner allowed it, if its run has not ended. */
 const OPEN_LIFETIME = Duration.minutes(15);
-/** A request nobody answers is denied after this long. */
-const REQUEST_TIMEOUT = Duration.hours(24);
-/** One `request` call waits this long, under the 65 minutes providers give an MCP tool call. */
-const REQUEST_WAIT = Duration.minutes(60);
 const VIEW_URL_TTL_MS = 60_000;
 
 export const PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX = "/api/majordome/private-documents";
@@ -78,15 +66,6 @@ export type PrivateDocumentRequestResult =
   | { readonly status: "allowed"; readonly path: string; readonly expiresAt: string }
   | { readonly status: "denied" | "timed_out" | "cancelled" | "waiting" }
   | { readonly status: "unknown_document"; readonly available: ReadonlyArray<string> };
-
-type RequestOutcome = "allowed" | "denied" | "timed_out" | "cancelled";
-
-interface PendingRequest {
-  readonly request: MajordomePrivateDocumentRequest;
-  readonly runId: RunId;
-  readonly nodeId: NodeId;
-  readonly settled: Deferred.Deferred<RequestOutcome>;
-}
 
 interface OpenDocument {
   readonly id: string;
@@ -165,9 +144,6 @@ export const make = Effect.gen(function* () {
   const random = yield* SecureRandom.SecureRandom;
   const key = yield* PrivateDocumentsKey.PrivateDocumentsKey;
   const signer = yield* AssetSigner.AssetSigner;
-  const threads = yield* ThreadManagement.ThreadManagementService;
-  const push = yield* MajordomePush.MajordomePush;
-  const environment = yield* ServerEnvironment.ServerEnvironment;
   const serviceScope = yield* Effect.scope;
 
   // Protects against notes backups and sync, copies of these files, a look at the disk, and an
@@ -181,7 +157,6 @@ export const make = Effect.gen(function* () {
   // provider may already read. Nothing else is stored under this name, so start-up can empty it.
   const openRoot = path.join(config.attachmentsDir, "private-documents-open");
 
-  const pending = new Map<TurnItemId, PendingRequest>();
   const opens = new Map<string, OpenDocument>();
   const openKey = (runId: RunId, documentId: string) => `${runId}\u0000${documentId}`;
   const indexLock = yield* Semaphore.make(1);
@@ -322,71 +297,23 @@ export const make = Effect.gen(function* () {
     Effect.forEach([...opens.values()], closeOpen, { discard: true }),
   );
 
-  const record = (
-    entry: PendingRequest,
-    secretStatus: "pending" | "saved" | "declined" | "cancelled",
-  ) =>
-    threads.dispatch({
-      type: "secret_request.record",
-      commandId: CommandId.make(`private-document:${entry.request.turnItemId}:${secretStatus}`),
-      threadId: entry.request.threadId,
-      runId: entry.runId,
-      nodeId: entry.nodeId,
-      turnItemId: entry.request.turnItemId,
-      label: entry.request.documentName,
-      reason: entry.request.reason,
-      delivery: "private_document",
-      secretStatus,
-    });
-
-  /** Closes a request that was already taken out of `pending`: the card, the log, the waiter. */
-  const finish = Effect.fn("MajordomePrivateDocuments.finish")(function* (
-    entry: PendingRequest,
-    outcome: RequestOutcome,
-  ) {
+  const requests = yield* OwnerRequestCards.make<MajordomePrivateDocumentRequest>({
+    delivery: "private_document",
+    kind: "private-document",
     // An allowed request was logged before its document was handed over.
-    if (outcome !== "allowed") {
-      yield* appendLogOrWarn({
-        documentId: entry.request.documentId,
-        documentName: entry.request.documentName,
-        outcome,
-        requester: { threadId: entry.request.threadId, title: entry.request.threadTitle },
-        reason: entry.request.reason,
-      });
-    }
-    yield* record(
-      entry,
-      outcome === "allowed" ? "saved" : outcome === "denied" ? "declined" : "cancelled",
-    ).pipe(
-      Effect.catch((cause) =>
-        Effect.logWarning("Majordome could not close a private document request card.", {
-          cause,
-        }),
-      ),
-    );
-    yield* Deferred.succeed(entry.settled, outcome);
-  }, Effect.uninterruptible);
-
-  const settle = (turnItemId: TurnItemId, outcome: Exclude<RequestOutcome, "allowed">) =>
-    Effect.suspend(() => {
-      const entry = pending.get(turnItemId);
-      if (entry === undefined) return Effect.void;
-      pending.delete(turnItemId);
-      return finish(entry, outcome);
-    });
-
-  const runEnded = Effect.fn("MajordomePrivateDocuments.runEnded")(function* (runId: RunId) {
-    yield* Effect.forEach(
-      [...opens.values()].filter((open) => open.runId === runId),
-      closeOpen,
-      { discard: true },
-    );
-    yield* Effect.forEach(
-      [...pending.values()].filter((entry) => entry.runId === runId),
-      (entry) => settle(entry.request.turnItemId, "cancelled"),
-      { discard: true },
-    );
+    beforeClose: (entry, outcome) =>
+      outcome === "allowed"
+        ? Effect.void
+        : appendLogOrWarn({
+            documentId: entry.request.documentId,
+            documentName: entry.request.documentName,
+            outcome,
+            requester: { threadId: entry.request.threadId, title: entry.request.threadTitle },
+            reason: entry.request.reason,
+          }),
   });
+  const unavailable = (error: OwnerRequestCards.OwnerRequestUnavailable) =>
+    new MajordomePrivateDocumentError({ reason: error.reason, cause: error.cause });
 
   const list: MajordomePrivateDocuments["Service"]["list"] = Effect.fn(
     "MajordomePrivateDocuments.list",
@@ -489,11 +416,7 @@ export const make = Effect.gen(function* () {
       closeOpen,
       { discard: true },
     );
-    yield* Effect.forEach(
-      [...pending.values()].filter((entry) => entry.request.documentId === document.id),
-      (entry) => settle(entry.request.turnItemId, "cancelled"),
-      { discard: true },
-    );
+    yield* requests.cancelWhere((entry) => entry.request.documentId === document.id);
     yield* appendLogOrWarn({
       documentId: document.id,
       documentName: document.name,
@@ -553,114 +476,50 @@ export const make = Effect.gen(function* () {
         available: documents.map((candidate) => candidate.name),
       };
     }
-    const records = yield* threads
-      .getThreadRecords(input.threadId, ["runs"])
-      .pipe(
-        Effect.mapError(
-          (cause) => new MajordomePrivateDocumentError({ reason: "thread_unavailable", cause }),
-        ),
-      );
-    const run = ThreadManagement.latestActiveRun(records);
-    if (run === undefined || run.rootNodeId === null) {
-      return yield* new MajordomePrivateDocumentError({ reason: "agent_stopped" });
-    }
+    const run = yield* requests.activeRun(input.threadId).pipe(Effect.mapError(unavailable));
     const allowed = (open: OpenDocument) => ({
       status: "allowed" as const,
       path: open.path,
       expiresAt: open.expiresAt,
     });
     // Allowed moments ago for this run: the same file, no second prompt.
-    const alreadyOpen = opens.get(openKey(run.id, document.id));
+    const alreadyOpen = opens.get(openKey(run.runId, document.id));
     if (alreadyOpen !== undefined) return allowed(alreadyOpen);
 
-    let entry = [...pending.values()].find(
-      (candidate) => candidate.runId === run.id && candidate.request.documentId === document.id,
-    );
-    if (entry === undefined) {
-      const now = yield* DateTime.now;
-      const turnItemId = TurnItemId.make(`turn-item:private-document:${yield* randomId}`);
-      const created: PendingRequest = {
-        request: {
+    const reason = input.reason.trim();
+    const entry =
+      requests.find(
+        (candidate) =>
+          candidate.runId === run.runId && candidate.request.documentId === document.id,
+      ) ??
+      (yield* requests
+        .open({
           threadId: input.threadId,
-          turnItemId,
-          documentId: document.id,
-          documentName: document.name,
-          threadTitle: records.thread.title.trim() || "A conversation",
-          reason: input.reason.trim(),
-          requestedAt: DateTime.formatIso(now),
-          expiresAt: DateTime.formatIso(DateTime.addDuration(now, REQUEST_TIMEOUT)),
-        },
-        runId: run.id,
-        nodeId: run.rootNodeId,
-        settled: yield* Deferred.make<RequestOutcome>(),
-      };
-      yield* record(created, "pending").pipe(
-        Effect.mapError(
-          (cause) => new MajordomePrivateDocumentError({ reason: "thread_unavailable", cause }),
-        ),
-      );
-      pending.set(turnItemId, created);
-      yield* Effect.sleep(REQUEST_TIMEOUT).pipe(
-        Effect.andThen(settle(turnItemId, "timed_out")),
-        Effect.forkIn(serviceScope),
-      );
-      const environmentId = yield* environment.getEnvironmentId;
-      // Delivery waits on the network; the request must not.
-      yield* push
-        .notifyAll({
-          title: "Waiting for you",
-          body: `${created.request.threadTitle} asks to open ${document.name}.`,
-          tag: `majordome:${input.threadId}`,
-          url: `/threads/${encodeURIComponent(environmentId)}/${encodeURIComponent(input.threadId)}`,
+          runId: run.runId,
+          nodeId: run.nodeId,
+          label: document.name,
+          reason,
+          pushBody: `${run.threadTitle} asks to open ${document.name}.`,
+          request: (card) => ({
+            threadId: input.threadId,
+            documentId: document.id,
+            documentName: document.name,
+            threadTitle: run.threadTitle,
+            reason,
+            ...card,
+          }),
         })
-        .pipe(Effect.forkIn(serviceScope));
-      entry = created;
-    }
-    const outcome = yield* Deferred.await(entry.settled).pipe(Effect.timeoutOption(REQUEST_WAIT));
+        .pipe(Effect.mapError(unavailable)));
+    const outcome = yield* requests.wait(entry);
     if (Option.isNone(outcome)) return { status: "waiting" as const };
     if (outcome.value !== "allowed") return { status: outcome.value };
-    const open = opens.get(openKey(run.id, document.id));
+    const open = opens.get(openKey(run.runId, document.id));
     // Allowed, and already past its lifetime before this call came back for it.
     return open === undefined ? { status: "timed_out" as const } : allowed(open);
   });
 
   const getRequest: MajordomePrivateDocuments["Service"]["getRequest"] = (input) =>
-    Effect.sync(() => {
-      const entry = pending.get(input.turnItemId);
-      return entry?.request.threadId === input.threadId ? entry.request : null;
-    });
-
-  /** A card left open by a server that stopped: nobody waits behind it, so close it. */
-  const closeStaleCard = Effect.fn("MajordomePrivateDocuments.closeStaleCard")(function* (
-    input: MajordomePrivateDocumentRequestInput,
-  ) {
-    const records = yield* threads.getThreadRecords(input.threadId, ["turnItems"], {
-      turnItemTypes: ["secret_request"],
-      messageRoles: [],
-    });
-    const item = records.turnItems.find((candidate) => candidate.id === input.turnItemId);
-    if (
-      item?.type !== "secret_request" ||
-      item.delivery !== "private_document" ||
-      item.secretStatus !== "pending" ||
-      item.runId === null ||
-      item.nodeId === null
-    ) {
-      return;
-    }
-    yield* threads.dispatch({
-      type: "secret_request.record",
-      commandId: CommandId.make(`private-document:${item.id}:cancelled`),
-      threadId: input.threadId,
-      runId: item.runId,
-      nodeId: item.nodeId,
-      turnItemId: item.id,
-      label: item.label,
-      reason: item.reason,
-      delivery: "private_document",
-      secretStatus: "cancelled",
-    });
-  });
+    Effect.sync(() => requests.get(input)?.request ?? null);
 
   const answerRequest: MajordomePrivateDocuments["Service"]["answerRequest"] = Effect.fn(
     "MajordomePrivateDocuments.answerRequest",
@@ -669,14 +528,13 @@ export const make = Effect.gen(function* () {
       "orchestration_v2.thread_id": input.threadId,
       "private_document.allow": input.allow,
     });
-    const entry = pending.get(input.turnItemId);
-    if (entry === undefined || entry.request.threadId !== input.threadId) {
-      yield* closeStaleCard(input).pipe(Effect.ignore);
+    // Taken out first so a second answer, the timeout or the run ending cannot also close it.
+    const entry = requests.take(input);
+    if (entry === undefined) {
+      yield* requests.closeStaleCard(input).pipe(Effect.ignore);
       return yield* new MajordomePrivateDocumentError({ reason: "request_closed" });
     }
-    if (!input.allow) return yield* settle(input.turnItemId, "denied");
-    // Taken out first so a second answer, the timeout or the run ending cannot also close it.
-    pending.delete(input.turnItemId);
+    if (!input.allow) return yield* requests.finish(entry, "denied");
     yield* Effect.gen(function* () {
       const document = yield* documentById(entry.request.documentId);
       const open = yield* openForRun(document, entry.runId);
@@ -690,8 +548,8 @@ export const make = Effect.gen(function* () {
       }).pipe(Effect.tapError(() => closeOpen(open)));
     }).pipe(
       // Still unanswered: the owner can try again or deny.
-      Effect.tapError(() => Effect.sync(() => pending.set(input.turnItemId, entry))),
-      Effect.andThen(finish(entry, "allowed")),
+      Effect.tapError(() => Effect.sync(() => requests.restore(entry))),
+      Effect.andThen(requests.finish(entry, "allowed")),
       Effect.uninterruptible,
     );
   });
@@ -699,15 +557,11 @@ export const make = Effect.gen(function* () {
   const start: MajordomePrivateDocuments["Service"]["start"] = Effect.fn(
     "MajordomePrivateDocuments.start",
   )(function* () {
-    yield* forkParked(
-      Stream.runForEach(threads.streamDomainEvents, (event) =>
-        event.type === "run.updated" && ThreadManagement.isTerminalRunStatus(event.payload.status)
-          ? runEnded(event.payload.id)
-          : Effect.void,
-      ).pipe(
-        Effect.catchCause((cause) =>
-          Effect.logWarning("Majordome stopped following runs for private documents.", { cause }),
-        ),
+    yield* requests.followRuns((runId) =>
+      Effect.forEach(
+        [...opens.values()].filter((open) => open.runId === runId),
+        closeOpen,
+        { discard: true },
       ),
     );
   });

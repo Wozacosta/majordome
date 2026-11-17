@@ -60,6 +60,8 @@ import { HtmlToolkit } from "../../apps/server/src/mcp/toolkits/html/tools.ts";
 import { MessageToolkit } from "../../apps/server/src/mcp/toolkits/message/tools.ts";
 import { OrchestratorToolkit } from "../../apps/server/src/mcp/toolkits/orchestrator/tools.ts";
 import { PreviewToolkit } from "../../apps/server/src/mcp/toolkits/preview/tools.ts";
+import { SETTING_CHANGE_NOTES } from "../../apps/server/src/mcp/toolkits/majordomeSettings/handlers.ts";
+import { MajordomeSettingsToolkit } from "../../apps/server/src/mcp/toolkits/majordomeSettings/tools.ts";
 import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolkits/privateDocuments/handlers.ts";
 import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
@@ -472,6 +474,7 @@ const t3SourceTools: ReadonlyArray<Tool.Any> = [
   MessageToolkit,
   PrivateDocumentsToolkit,
   NotesSearchToolkit,
+  MajordomeSettingsToolkit,
 ].flatMap((toolkit): ReadonlyArray<Tool.Any> => Object.values(toolkit.tools));
 // McpHttpServer decodes arguments with each tool's JSON codec, which drops undeclared keys.
 const t3InputDecoders = new Map(
@@ -1416,6 +1419,12 @@ const withProductFields = (name: string, value: unknown, child: boolean): unknow
       const notes: Readonly<Record<string, string>> = PRIVATE_DOCUMENT_REQUEST_NOTES;
       const note = typeof value.status === "string" ? notes[value.status] : undefined;
       return note === undefined || value.note !== undefined ? value : { ...value, note };
+    }
+    case "change_majordome_setting": {
+      // As above: a mock that waited for the owner names only how that ended.
+      const notes: Readonly<Record<string, string>> = SETTING_CHANGE_NOTES;
+      const message = typeof value.status === "string" ? notes[value.status] : undefined;
+      return message === undefined || value.message !== undefined ? value : { ...value, message };
     }
     case "delegate_task":
     case "task_status": {

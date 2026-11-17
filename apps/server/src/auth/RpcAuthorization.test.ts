@@ -151,10 +151,15 @@ describe("RPC authorization scopes", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.majordomeAnswerPrivateDocumentRequest)).toBe(
       AuthOrchestrationOperateScope,
     );
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetApproval)).toBe(
+      AuthOrchestrationReadScope,
+    );
     for (const method of [
       WS_METHODS.majordomeAddPrivateDocument,
       WS_METHODS.majordomeRemovePrivateDocument,
       WS_METHODS.majordomeViewPrivateDocument,
+      // Allowing a setting change takes the scope that could make the change directly.
+      WS_METHODS.majordomeAnswerApproval,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthSettingsWriteScope);
     }
