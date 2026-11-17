@@ -58,7 +58,10 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
     return {
       tone: "warning",
       title: `Couldn't back up to ${remoteLabel(remote)}`,
-      detail: `${remote.lastError} Majordome tries again every few minutes.`,
+      // Trying again cannot fix a sign-in; only the person can.
+      detail: /sign in/i.test(remote.lastError)
+        ? remote.lastError
+        : `${remote.lastError} Majordome tries again every few minutes.`,
     };
   }
   if (drive !== null && drive.lastError !== null) {

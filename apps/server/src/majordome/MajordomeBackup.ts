@@ -46,6 +46,8 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as BackupPassphraseStore from "./BackupPassphraseStore.ts";
 import {
   createBackupRepo,
+  githubTokenRejected,
+  isGitHubSignInFailure,
   DEFAULT_GITHUB_CLIENT_ID,
   GITHUB_CLIENT_ID_VARIABLE,
   githubCredentialEnv,
@@ -86,6 +88,8 @@ import {
 
 const SAVE_INTERVAL = "5 minutes";
 export const GITHUB_TOKEN_SECRET = "majordome-github-token";
+const GITHUB_SIGN_IN_NEEDED =
+  "GitHub no longer accepts the sign-in saved here. Sign in to GitHub again, under GitHub below.";
 // Nightly: the first save cycle of a new day from this hour on.
 const NIGHTLY_FROM_HOUR = 2;
 const MIN_PASSPHRASE_LENGTH = 8;
@@ -392,8 +396,22 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
         return yield* updateState(vaultRoot, {
           syncPause: yield* pause(state.syncPause, "secret-not-sent", outcome.files),
         });
-      case "failed":
+      case "failed": {
+        if (
+          remote.url.startsWith("https://github.com/") &&
+          isGitHubSignInFailure(outcome.message)
+        ) {
+          // A sign-in GitHub has withdrawn is forgotten, so the page asks for a new one.
+          if (
+            Option.isSome(token) &&
+            (yield* githubTokenRejected(token.value).pipe(Effect.provide(services)))
+          ) {
+            yield* secrets.remove(GITHUB_TOKEN_SECRET).pipe(Effect.ignore);
+          }
+          return yield* updateState(vaultRoot, { syncError: GITHUB_SIGN_IN_NEEDED });
+        }
         return yield* updateState(vaultRoot, { syncError: outcome.message });
+      }
     }
   });
 

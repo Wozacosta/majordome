@@ -10,6 +10,8 @@ import * as TestClock from "effect/testing/TestClock";
 import {
   createBackupRepo,
   githubCredentialEnv,
+  githubTokenRejected,
+  isGitHubSignInFailure,
   pollDeviceToken,
   requestDeviceCode,
 } from "./githubBackup.ts";
@@ -159,3 +161,28 @@ it("signs git in through config in the environment, with credential helpers off"
     `Authorization: Basic ${Buffer.from("x-access-token:gho_token").toString("base64")}`,
   );
 });
+
+it.effect("calls a sign-in withdrawn only when GitHub says so", () =>
+  Effect.gen(function* () {
+    const answer = (status: number) =>
+      githubTokenRejected("gho_token").pipe(
+        Effect.provide(fakeGitHub(() => ({ status, body: {} })).layer),
+      );
+    expect(yield* answer(401)).toBe(true);
+    expect(yield* answer(200)).toBe(false);
+    // GitHub being down or slow says nothing about the sign-in.
+    expect(yield* answer(503)).toBe(false);
+    const unreachable = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make(() => Effect.die("no network")),
+    );
+    expect(yield* githubTokenRejected("gho_token").pipe(Effect.provide(unreachable))).toBe(false);
+
+    expect(
+      isGitHubSignInFailure(
+        "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
+      ),
+    ).toBe(true);
+    expect(isGitHubSignInFailure("fatal: unable to access: Could not resolve host")).toBe(false);
+  }),
+);

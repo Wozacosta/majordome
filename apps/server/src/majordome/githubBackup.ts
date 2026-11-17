@@ -166,6 +166,36 @@ export const pollDeviceToken = Effect.fn("majordome.github.pollDeviceToken")(fun
   }
 });
 
+/** What git says when GitHub turns a push or fetch away for who is asking. */
+export function isGitHubSignInFailure(message: string): boolean {
+  return /could not read Username|Authentication failed|Invalid username or (password|token)|HTTP 401|returned error: 40[13]/i.test(
+    message,
+  );
+}
+
+/** True only when GitHub itself says the sign-in is no longer good; unreachable is not rejected. */
+export const githubTokenRejected = Effect.fn("majordome.github.tokenRejected")(function* (
+  token: string,
+) {
+  const http = yield* HttpClient.HttpClient;
+  return yield* http
+    .execute(
+      HttpClientRequest.get("https://api.github.com/user").pipe(
+        HttpClientRequest.setHeaders({
+          accept: "application/vnd.github+json",
+          authorization: `Bearer ${token}`,
+          "user-agent": "majordome",
+          "x-github-api-version": "2022-11-28",
+        }),
+      ),
+    )
+    .pipe(
+      Effect.timeout(REQUEST_TIMEOUT),
+      Effect.map((response) => response.status === 401),
+      Effect.catchCause(() => Effect.succeed(false)),
+    );
+});
+
 /** Creates a private repository, adding `-2`, `-3`… when the name is taken. */
 export const createBackupRepo = Effect.fn("majordome.github.createBackupRepo")(function* (
   token: string,
