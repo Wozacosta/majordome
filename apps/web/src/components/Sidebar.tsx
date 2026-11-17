@@ -253,6 +253,7 @@ import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
 import { MajordomeTopicsSection } from "./majordome/MajordomeTopics";
+import { usePendingAssistantThreadKeys } from "./majordome/pendingAssistantThreads";
 import { selectRecentThreads, selectTopicThreads, topicThreadKeys } from "./majordome/topics.logic";
 import { useMajordomeVaults } from "./majordome/useMajordomeVaults";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
@@ -1116,10 +1117,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         );
   // Majordome lists only the shown brain's one-off chats here; its topics have their own list.
   const majordomeVaults = useMajordomeVaults();
+  const pendingAssistantThreadKeys = usePendingAssistantThreadKeys();
   const listedThreads = isMajordome
     ? selectRecentThreads(promotedThreads, {
         vault: majordomeVaults.activeVault,
-        topicKeys: topicThreadKeys(majordomeVaults.copies),
+        topicKeys: new Set([
+          ...topicThreadKeys(majordomeVaults.copies),
+          ...pendingAssistantThreadKeys,
+        ]),
       })
     : promotedThreads;
   const routeRowThreadKey =

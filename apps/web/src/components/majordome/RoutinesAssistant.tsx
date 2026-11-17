@@ -10,6 +10,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ChatComposerHandle } from "../chat/ChatComposer";
 import { ComposerHandleContext, type ComposerHandleRef } from "../../composerHandleContext";
 import { useStableCallback } from "../../hooks/useStableCallback";
+import { newThreadId } from "../../lib/utils";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
 import { useQuietThreadShell } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
@@ -19,6 +20,7 @@ import { BackgroundThreadContext } from "../chat/backgroundThread";
 import ChatView from "../ChatView";
 import { Button } from "../ui/button";
 import { HEADING_CLASS, Muted, ROW_ACTION_CLASS, StatusLine } from "./paper";
+import { notePendingAssistantThread } from "./pendingAssistantThreads";
 import type { VaultCopy } from "./topics.logic";
 
 // The panel has no diff panel or terminal of its own; the full conversation does.
@@ -63,7 +65,9 @@ export function RoutinesAssistant({
 
   /** Resolves to why the conversation could not be opened, or null when it was. */
   const request = useStableCallback(async (fresh: boolean) => {
-    const result = await open({ environmentId, input: { projectId, fresh } });
+    const threadId = newThreadId();
+    notePendingAssistantThread(environmentId, threadId);
+    const result = await open({ environmentId, input: { projectId, fresh, threadId } });
     if (result._tag === "Success" || isAtomCommandInterrupted(result)) return null;
     const failure = squashAtomCommandFailure(result);
     return failure instanceof Error ? failure.message : String(failure);

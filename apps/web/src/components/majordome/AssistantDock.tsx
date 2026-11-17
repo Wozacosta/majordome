@@ -26,46 +26,54 @@ export function AssistantDock({
   readonly shownThreadId?: string | null;
 }) {
   const { activeVault } = useMajordomeVaults();
-  if (activeVault === null) return <>{children}</>;
+  const [open, setOpen] = useState(false);
+  // The page keeps its place in the tree whatever the assistant does, so it never remounts.
   return (
-    <VaultAssistantDock
-      key={activeVault.key}
-      vault={activeVault}
-      shownThreadId={shownThreadId}
-      className={className}
-    >
-      {children}
-    </VaultAssistantDock>
+    <div className={cn("@container/assistant relative flex min-h-0 min-w-0 flex-1", className)}>
+      <div
+        className={cn(
+          "min-h-0 min-w-0 flex-1 @5xl/assistant:flex",
+          open && activeVault !== null ? "hidden" : "flex",
+        )}
+      >
+        {children}
+      </div>
+      {activeVault === null ? null : (
+        <VaultAssistant
+          key={activeVault.key}
+          vault={activeVault}
+          shownThreadId={shownThreadId}
+          open={open}
+          onOpenChange={setOpen}
+        />
+      )}
+    </div>
   );
 }
 
-function VaultAssistantDock({
+function VaultAssistant({
   vault,
   shownThreadId,
-  className,
-  children,
+  open,
+  onOpenChange,
 }: {
   readonly vault: MajordomeVault;
-  readonly className: string;
   readonly shownThreadId: string | null;
-  readonly children: ReactNode;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
 }) {
   const { runner } = useVaultRoutines(vault);
-  const [open, setOpen] = useState(false);
   if (
     runner === null ||
     (runner.routinesThreadId !== null && runner.routinesThreadId === shownThreadId)
   ) {
-    return <>{children}</>;
+    return null;
   }
   return (
-    <div className={cn("@container/assistant relative flex min-h-0 min-w-0 flex-1", className)}>
-      <div className={cn("min-h-0 min-w-0 flex-1 @5xl/assistant:flex", open ? "hidden" : "flex")}>
-        {children}
-      </div>
+    <>
       {open ? null : (
         <div className="absolute end-4 bottom-4 z-10 @5xl/assistant:hidden">
-          <Button size="sm" onClick={() => setOpen(true)}>
+          <Button size="sm" onClick={() => onOpenChange(true)}>
             <MessageCircleIcon />
             Assistant
           </Button>
@@ -88,7 +96,7 @@ function VaultAssistantDock({
                 size="icon-sm"
                 variant="ghost"
                 aria-label="Back to the page"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
               >
                 <ArrowLeftIcon />
               </Button>
@@ -96,6 +104,6 @@ function VaultAssistantDock({
           }
         />
       </aside>
-    </div>
+    </>
   );
 }

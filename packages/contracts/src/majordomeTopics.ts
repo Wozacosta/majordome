@@ -129,6 +129,8 @@ export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
   projectId: ProjectId,
   /** Starts a new conversation and lets the previous one go to the recent chats. */
   fresh: Schema.optional(Schema.Boolean),
+  /** The id a conversation started now gets, so the asking client can keep it out of its lists at once. */
+  threadId: Schema.optional(ThreadId),
 });
 export type MajordomeOpenRoutinesConversationInput =
   typeof MajordomeOpenRoutinesConversationInput.Type;

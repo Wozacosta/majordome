@@ -473,6 +473,7 @@ const make = Effect.gen(function* () {
   const startKeptThread = Effect.fn("MajordomeTopics.startKeptThread")(function* (
     project: ProjectStore.ProjectRow,
     title: string,
+    requestedThreadId?: ThreadId,
   ) {
     const modelSelection = yield* chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
@@ -482,7 +483,7 @@ const make = Effect.gen(function* () {
     if (modelSelection === null) {
       return yield* fail("No AI provider is ready yet. Set one up in Settings, then try again.");
     }
-    const threadId = ThreadId.make(yield* random.uuidV4());
+    const threadId = requestedThreadId ?? ThreadId.make(yield* random.uuidV4());
     yield* dispatch({
       type: "thread.create",
       createdBy: "user",
@@ -537,7 +538,11 @@ const make = Effect.gen(function* () {
         const previous = (yield* projectState(input.projectId)).routinesThread;
         const existing = yield* liveThread(previous);
         if (existing !== null && input.fresh !== true) return { threadId: existing.id };
-        const threadId = yield* startKeptThread(project, ROUTINES_CONVERSATION_TITLE);
+        const threadId = yield* startKeptThread(
+          project,
+          ROUTINES_CONVERSATION_TITLE,
+          input.threadId,
+        );
         yield* updateProjectState(input.projectId, (current) => ({
           ...current,
           routinesThread: threadId,
