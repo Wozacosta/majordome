@@ -23,6 +23,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { requestConfirmDialog } from "../../confirmDialog";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useProjects } from "../../state/entities";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
@@ -341,7 +342,17 @@ function GitHubOption({
   const remote = status.remote?.isGitHub === true ? status.remote : null;
   const connected = remote !== null;
   // Notes cloned from GitHub onto a new server keep their repository; signing in lets it push.
-  const needsSignIn = connected && !status.github.signedIn;
+  // A repository this computer reaches with its own keys needs no sign-in here.
+  const needsSignIn = connected && remote.usesSignIn !== false && !status.github.signedIn;
+  const offersConnect = !connected || needsSignIn || status.github.signedIn;
+  const connect = async () => {
+    if (connected && !needsSignIn) {
+      const message = `Your notes are already backed up to ${remote.webUrl ?? "GitHub"}.\nThis creates a new repository and sends them there instead. Other computers keep using the old one until you change them too.`;
+      const confirmed = (await requestConfirmDialog(message)) ?? window.confirm(message);
+      if (!confirmed) return;
+    }
+    setOpen(true);
+  };
 
   const forget = async () => {
     const result = await configure({
@@ -390,18 +401,20 @@ function GitHubOption({
         <Muted>Connecting GitHub isn't set up on this server yet.</Muted>
       ) : canConfigure ? (
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="xs"
-            variant={connected && !needsSignIn ? "outline" : "default"}
-            onClick={() => setOpen(true)}
-          >
-            <GithubIcon />
-            {needsSignIn
-              ? "Sign in to GitHub"
-              : connected
-                ? "Connect another GitHub repository"
-                : "Connect GitHub"}
-          </Button>
+          {offersConnect ? (
+            <Button
+              size="xs"
+              variant={connected && !needsSignIn ? "outline" : "default"}
+              onClick={() => void connect()}
+            >
+              <GithubIcon />
+              {needsSignIn
+                ? "Sign in to GitHub"
+                : connected
+                  ? "Connect another GitHub repository"
+                  : "Connect GitHub"}
+            </Button>
+          ) : null}
           {status.github.signedIn ? (
             <Button size="xs" variant="ghost-muted" onClick={() => void forget()}>
               Forget GitHub sign-in

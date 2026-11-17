@@ -32,6 +32,8 @@ export const MajordomeBackupRemote = Schema.Struct({
   /** The server's host name, or null when the remote is a folder on this computer. */
   host: Schema.NullOr(Schema.String),
   isGitHub: Schema.Boolean,
+  /** Sent with the GitHub sign-in saved in Majordome; false when the computer's own keys send it. */
+  usesSignIn: Schema.optional(Schema.Boolean),
   /** A page a person can open, such as the GitHub repository; null when there is none. */
   webUrl: Schema.NullOr(Schema.String),
   syncing: Schema.Boolean,

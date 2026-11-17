@@ -643,6 +643,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
               name: remote.name,
               host,
               isGitHub: host === "github.com",
+              usesSignIn: remote.url.startsWith("https://github.com/"),
               webUrl: remoteWebUrl(remote.url),
               syncing,
               backedUp:
@@ -805,7 +806,10 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
     },
   );
 
-  /** The vault's GitHub remote over HTTPS, which the stored sign-in can push to. */
+  /**
+   * The vault's GitHub remote, however it is reached. Notes that already have a repository keep
+   * it: a second one would leave this computer and the others on different copies.
+   */
   const gitHubRemoteOf = Effect.fn("MajordomeBackup.gitHubRemoteOf")(function* (vaultRoot: string) {
     const state = yield* readState(vaultRoot);
     const remote = yield* resolveVaultRemote({
@@ -815,7 +819,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       Effect.provide(services),
       Effect.orElseSucceed(() => null),
     );
-    return remote !== null && remote.url.startsWith("https://github.com/") ? remote.name : null;
+    return remote !== null && remoteHost(remote.url) === "github.com" ? remote.name : null;
   });
 
   /**
