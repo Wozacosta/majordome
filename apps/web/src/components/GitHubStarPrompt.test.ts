@@ -16,6 +16,8 @@ const { add, update, openExternal, commands, starred, page } = vi.hoisted(() => 
   },
 }));
 vi.mock("./ui/toast", () => ({ toastManager: { add, update, close: vi.fn() } }));
+// Majordome never asks for a star; these cover T3 Code's prompt.
+vi.mock("../env", () => ({ isMajordome: false }));
 vi.mock("../localApi", () => ({ readLocalApi: () => ({ shell: { openExternal } }) }));
 vi.mock("../rpc/atomRegistry", () => ({ appAtomRegistry: {} }));
 vi.mock("../state/sourceControl", () => ({ sourceControlEnvironment: commands }));

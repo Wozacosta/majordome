@@ -4,6 +4,7 @@ import * as Schema from "effect/Schema";
 import { StarIcon } from "lucide-react";
 
 import { getLocalStorageItem, setLocalStorageItem } from "../hooks/useLocalStorage";
+import { isMajordome } from "../env";
 import { readLocalApi } from "../localApi";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { sourceControlEnvironment } from "../state/sourceControl";
@@ -143,7 +144,8 @@ async function starRepository(environmentId: EnvironmentId) {
  * unless the environment's GitHub account already starred the repo. Waits until the user is idle.
  */
 export async function recordPromptSent(environmentId: EnvironmentId): Promise<void> {
-  if (shownThisSession) return;
+  // Majordome's users are not asked for GitHub stars, least of all for another project.
+  if (isMajordome || shownThisSession) return;
   try {
     if (getLocalStorageItem(DISMISSED_KEY, Schema.Boolean)) return;
     const sent = (getLocalStorageItem(SENT_KEY, Schema.Number) ?? 0) + 1;

@@ -135,6 +135,9 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
   const routeTarget = useThreadRouteTarget();
   const routeThreadKey =
     routeTarget?.kind === "server" ? scopedThreadKey(routeTarget.threadRef) : null;
+  // Once the route has moved, the tap is over; kept, it would light the topic again on any later
+  // page with the same route key, such as Notes or Settings, which have none.
+  if (opening !== null && opening.fromRouteKey !== routeThreadKey) setOpening(null);
   const threads = useQuietThreadShells();
   const threadByKey = new Map(
     threads.map((thread) => [

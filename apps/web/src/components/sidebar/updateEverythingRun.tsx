@@ -1,3 +1,4 @@
+import { APP_BASE_NAME } from "~/branding";
 import { useAtomValue } from "@effect/atom-react";
 import { AVAILABLE_CONNECTION_STATE } from "@t3tools/client-runtime/connection";
 import {
@@ -381,7 +382,7 @@ export function startDesktopUpdateLaunchNotice(): () => void {
         stackedThreadToast({
           type: "error",
           title: "Update did not apply",
-          description: `T3 Code is still on ${APP_VERSION}. Install ${notAppliedVersion} again from the update button.`,
+          description: `${APP_BASE_NAME} is still on ${APP_VERSION}. Install ${notAppliedVersion} again from the update button.`,
         }),
       );
     },
