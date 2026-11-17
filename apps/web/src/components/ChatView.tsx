@@ -3218,7 +3218,11 @@ export default function ChatView(props: ChatViewProps) {
   useEffect(() => {
     if (!draftId || pendingDraftSendId !== draftId || !activeThread) return;
     const send = () => {
-      if (composerRef.current && consumeDraftSend(draftId)) void onComposerSendStable();
+      if (!composerRef.current) return;
+      const files = consumeDraftSend(draftId);
+      if (files === null) return;
+      if (files.length > 0) composerRef.current.addDroppedFiles([...files]);
+      else void onComposerSendStable();
     };
     if (composerRef.current) {
       send();

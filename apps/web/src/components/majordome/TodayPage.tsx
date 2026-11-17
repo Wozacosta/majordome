@@ -2,8 +2,8 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { ArrowUpIcon } from "lucide-react";
-import { type KeyboardEvent, type ReactNode, useState } from "react";
+import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
+import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { isElectron } from "../../env";
@@ -81,11 +81,14 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const [sending, setSending] = useState(false);
   const prompt = text.trim();
 
-  const submit = async () => {
-    if (prompt === "" || sending) return;
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  /** With files, the conversation opens holding them and the words, for the owner to send. */
+  const submit = async (files: ReadonlyArray<File> = []) => {
+    if ((prompt === "" && files.length === 0) || sending) return;
     setSending(true);
     const opened = await handleNewThread(scopeProjectRef(vault.environmentId, vault.projectId), {
-      prompt,
+      ...(prompt === "" ? {} : { prompt }),
     }).catch((error: unknown) => {
       toastManager.add({
         type: "error",
@@ -96,6 +99,10 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
     });
     if (opened === null) {
       setSending(false);
+      return;
+    }
+    if (files.length > 0) {
+      requestDraftSend(opened.draftId, files);
       return;
     }
     // A draft that already held other text kept it; that one is the owner's to send.
@@ -117,7 +124,36 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
         event.preventDefault();
         void submit();
       }}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (event.dataTransfer.files.length === 0) return;
+        event.preventDefault();
+        void submit([...event.dataTransfer.files]);
+      }}
     >
+      <input
+        ref={fileInput}
+        type="file"
+        multiple
+        hidden
+        onChange={(event) => {
+          const files = [...(event.target.files ?? [])];
+          event.target.value = "";
+          void submit(files);
+        }}
+      />
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        aria-label="Add a file or a picture"
+        disabled={sending}
+        onClick={() => fileInput.current?.click()}
+      >
+        <PaperclipIcon />
+      </Button>
       <textarea
         aria-label="Write a note, or ask anything"
         placeholder="Write a note, or ask anything…"
@@ -126,6 +162,11 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
         disabled={sending}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={onKeyDown}
+        onPaste={(event) => {
+          if (event.clipboardData.files.length === 0) return;
+          event.preventDefault();
+          void submit([...event.clipboardData.files]);
+        }}
         className="field-sizing-content max-h-48 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-base text-foreground outline-hidden placeholder:text-muted-foreground sm:min-h-8 sm:py-1 sm:text-sm"
       />
       <Button type="submit" size="icon" aria-label="Send" disabled={prompt === "" || sending}>
