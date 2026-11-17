@@ -11,12 +11,12 @@ you. Ask in plain words:
 
 ## What it does at once
 
-Backing up now, turning backup syncing on, changing the routine limits, and adding, renaming or
-reordering topics.
+Backing up now, turning backup syncing on, and adding, renaming or reordering topics.
 
 ## What it asks you first
 
-Anything that is hard to take back: turning backup syncing off, removing the folder backup,
+Anything that is hard to take back, or that lets it do more on its own: changing the routine
+limits, turning backup syncing off, removing the folder backup,
 disconnecting Google Drive, forgetting the GitHub sign-in, removing a topic, deleting a private
 document, and moving routines to this computer.
 

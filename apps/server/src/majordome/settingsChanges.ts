@@ -82,10 +82,15 @@ export const SETTING_CHANGE_RULES: {
 } = {
   back_up_now: { risk: "free" },
   turn_backup_syncing_on: { risk: "free" },
-  set_routine_limits: { risk: "free" },
   create_topic: { risk: "free" },
   update_topic: { risk: "free" },
   reorder_topics: { risk: "free" },
+  // The limits cap what Majordome does on its own, so it never moves them by itself.
+  set_routine_limits: {
+    risk: "approval",
+    detail:
+      "This changes how many routines Majordome may run each day and how long one may take. Higher limits can use more of your AI plan.",
+  },
   turn_backup_syncing_off: {
     risk: "approval",
     detail:
