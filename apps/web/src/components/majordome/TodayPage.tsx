@@ -87,9 +87,10 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const submit = async (files: ReadonlyArray<File> = []) => {
     if ((prompt === "" && files.length === 0) || sending) return;
     setSending(true);
-    const opened = await handleNewThread(scopeProjectRef(vault.environmentId, vault.projectId), {
-      ...(prompt === "" ? {} : { prompt }),
-    }).catch((error: unknown) => {
+    const opened = await handleNewThread(
+      scopeProjectRef(vault.environmentId, vault.projectId),
+      prompt === "" ? {} : { prompt },
+    ).catch((error: unknown) => {
       toastManager.add({
         type: "error",
         title: "Could not start the conversation",

@@ -12,6 +12,8 @@ import {
   selectTopicThreads,
   topicSubtitle,
   topicThreadKeys,
+  filterTopicFolders,
+  topicFolderRow,
 } from "./topics.logic";
 
 const env = EnvironmentId.make("env-1");
@@ -211,5 +213,21 @@ describe("topicSubtitle", () => {
     expect(topicSubtitle({ ...topic, lastMessagePreview: you })).toBe("You: 5k today");
     expect(topicSubtitle({ ...topic, lastMessagePreview: null })).toBe("projects/fitness");
     expect(topicSubtitle(topic)).toBe("projects/fitness");
+  });
+});
+
+describe("topic folder tree", () => {
+  it("lists each folder under its parent and names it from the nearest listed one", () => {
+    const folders = ["personal", "personal-old", "projects/app/docs", "personal/fitness"];
+    const shown = filterTopicFolders(folders, "");
+    expect(shown).toEqual(["personal", "personal/fitness", "personal-old", "projects/app/docs"]);
+    const listed = new Set(shown);
+    expect(shown.map((folder) => topicFolderRow(folder, listed))).toEqual([
+      { depth: 0, name: "personal" },
+      { depth: 1, name: "fitness" },
+      { depth: 0, name: "personal-old" },
+      { depth: 0, name: "projects/app/docs" },
+    ]);
+    expect(filterTopicFolders(folders, "FIT")).toEqual(["personal/fitness"]);
   });
 });

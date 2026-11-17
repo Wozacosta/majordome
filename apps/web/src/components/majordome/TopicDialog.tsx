@@ -23,7 +23,12 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Spinner } from "../ui/spinner";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
-import { defaultTopicFolder, filterTopicFolders, type MajordomeVault } from "./topics.logic";
+import {
+  defaultTopicFolder,
+  filterTopicFolders,
+  topicFolderRow,
+  type MajordomeVault,
+} from "./topics.logic";
 
 /** What the dialog does: start a topic (maybe from a chat), rename one, or move its folder. */
 export type TopicDialogRequest =
@@ -134,6 +139,8 @@ export function TopicDialog({
         ? "The topic reads and keeps its log in this folder. No notes are moved."
         : "A topic is one ongoing conversation. Its notes and running log live in a folder of your notes, so nothing is lost when the chat gets long.";
   const shownFolders = filterTopicFolders(vault.folders, query);
+  // A search lists matches without their parents, so those keep their whole path.
+  const listedFolders = new Set(query.trim() === "" ? shownFolders : []);
 
   return (
     <Dialog
@@ -222,6 +229,9 @@ export function TopicDialog({
                         shownFolders.map((candidate) => (
                           <li
                             key={candidate}
+                            style={{
+                              paddingLeft: `${0.5 + topicFolderRow(candidate, listedFolders).depth * 1.25}rem`,
+                            }}
                             role="option"
                             aria-selected={candidate === existingFolder}
                             tabIndex={0}
@@ -241,7 +251,9 @@ export function TopicDialog({
                             )}
                           >
                             <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                            <span className="min-w-0 truncate">{candidate}</span>
+                            <span className="min-w-0 truncate">
+                              {topicFolderRow(candidate, listedFolders).name}
+                            </span>
                           </li>
                         ))
                       )}

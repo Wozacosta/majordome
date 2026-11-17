@@ -267,13 +267,43 @@ export function moveTopic(
 }
 
 /** Folders matching what the owner typed, in their listed order. */
+/** Each folder right under its parent, so the list reads as a tree; a search lists the matches. */
 export function filterTopicFolders(
   folders: ReadonlyArray<string>,
   query: string,
 ): ReadonlyArray<string> {
   const wanted = query.trim().toLowerCase();
-  if (wanted === "") return folders;
-  return folders.filter((folder) => folder.toLowerCase().includes(wanted));
+  const shown =
+    wanted === "" ? folders : folders.filter((folder) => folder.toLowerCase().includes(wanted));
+  // Segment by segment, so "a/b" follows "a" and not "a-z".
+  return shown.toSorted((a, b) => {
+    const left = a.split("/");
+    const right = b.split("/");
+    for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
+      const order = left[index]!.localeCompare(right[index]!);
+      if (order !== 0) return order;
+    }
+    return left.length - right.length;
+  });
+}
+
+/**
+ * How a folder shows in the tree `filterTopicFolders` orders: under how many listed folders it
+ * sits, and its name from the nearest one down. A parent that is not listed stays in the name.
+ */
+export function topicFolderRow(
+  folder: string,
+  listed: ReadonlySet<string>,
+): { readonly depth: number; readonly name: string } {
+  const parts = folder.split("/");
+  let depth = 0;
+  let from = 0;
+  for (let index = 1; index < parts.length; index += 1) {
+    if (!listed.has(parts.slice(0, index).join("/"))) continue;
+    depth += 1;
+    from = index;
+  }
+  return { depth, name: parts.slice(from).join("/") };
 }
 
 /** The topic ids with `topicId` dropped in `targetId`'s place, for drag and drop. */
