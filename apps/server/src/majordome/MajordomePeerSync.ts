@@ -39,6 +39,7 @@ import {
   renewPeerSession,
   sendPeerNews,
 } from "./peerRemote.ts";
+import * as VaultActiveRuns from "./VaultActiveRuns.ts";
 import { autosaveVault, hasUnfinishedMerge } from "./vaultAutosave.ts";
 import { makeVaultBrainIds } from "./vaultBrainId.ts";
 import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
@@ -229,6 +230,7 @@ const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;
   const secrets = yield* ServerSecretStore.ServerSecretStore;
   const vaultLock = yield* VaultLock.VaultLock;
+  const activeRuns = yield* VaultActiveRuns.VaultActiveRuns;
   const environment = yield* ServerEnvironment.ServerEnvironment;
   const git = yield* GitVcsDriver.GitVcsDriver;
   const services = yield* Effect.context<
@@ -267,9 +269,12 @@ const make = Effect.gen(function* () {
         yield* fileSystem.rename(temp, ledgerPath);
       }).pipe(
         Effect.catchCause((cause) =>
-          Effect.logWarning("Majordome could not record which machine the notes are in step with.", {
-            cause,
-          }),
+          Effect.logWarning(
+            "Majordome could not record which machine the notes are in step with.",
+            {
+              cause,
+            },
+          ),
         ),
       ),
     );
@@ -328,8 +333,7 @@ const make = Effect.gen(function* () {
         label: input.label,
         sessionAt,
         // Linking again with the same machine keeps when the two were last in step.
-        ...(previous?.environmentId === input.environmentId &&
-        previous.lastInStepAt !== undefined
+        ...(previous?.environmentId === input.environmentId && previous.lastInStepAt !== undefined
           ? { lastInStepAt: previous.lastInStepAt }
           : {}),
       },
@@ -368,59 +372,64 @@ const make = Effect.gen(function* () {
     return true;
   }, Effect.scoped);
 
-  const link: MajordomePeerSync["Service"]["link"] = Effect.fn("MajordomePeerSync.link")(
-    function* (input) {
-      const { label, vaultRoot } = input;
-      const fail = (reason: PeerLinkError["reason"]) => new PeerLinkError({ reason, label });
-      const url = yield* Effect.try({
-        try: () => new URL(input.url),
-        catch: () => fail("bad-address"),
-      });
-      if (url.protocol !== "https:" && url.protocol !== "http:") {
-        return yield* fail("bad-address");
-      }
-      const brainId = yield* brainIdOf(vaultRoot);
-      if (brainId === null) return yield* fail("no-notes");
-      const self = yield* caller;
-      const answering = yield* fetchEnvironment(url.origin);
-      if (Option.isNone(answering)) return yield* fail("unreachable");
-      if (answering.value.environmentId === self.environmentId) return yield* fail("this-machine");
-      const token = yield* openPeerSession(url.origin, {
-        credential: input.credential,
-        label: yield* sessionLabel,
-      }).pipe(
-        Effect.mapError((error) => fail(error.reason === "unreachable" ? "unreachable" : "signed-out")),
-      );
-      // Asking for what is new proves the other machine answers and holds these same notes.
-      yield* bring(
-        vaultRoot,
-        { url: url.origin, token, brainId, from: self },
-        peerRef(answering.value.environmentId),
-      ).pipe(
-        Effect.catchTags({
-          PeerRemoteError: (error) =>
-            Effect.fail(
-              fail(
-                error.reason === "refused"
-                  ? "other-notes"
-                  : error.reason === "moved"
-                    ? "failed"
-                    : error.reason,
-              ),
+  const link: MajordomePeerSync["Service"]["link"] = Effect.fn("MajordomePeerSync.link")(function* (
+    input,
+  ) {
+    const { label, vaultRoot } = input;
+    const fail = (reason: PeerLinkError["reason"]) => new PeerLinkError({ reason, label });
+    const url = yield* Effect.try({
+      try: () => new URL(input.url),
+      catch: () => fail("bad-address"),
+    });
+    // An address on this machine is the app's own tunnel, which closes with the app.
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/.test(url.hostname)
+    ) {
+      return yield* fail("bad-address");
+    }
+    const brainId = yield* brainIdOf(vaultRoot);
+    if (brainId === null) return yield* fail("no-notes");
+    const self = yield* caller;
+    const answering = yield* fetchEnvironment(url.origin);
+    if (Option.isNone(answering)) return yield* fail("unreachable");
+    if (answering.value.environmentId === self.environmentId) return yield* fail("this-machine");
+    const token = yield* openPeerSession(url.origin, {
+      credential: input.credential,
+      label: yield* sessionLabel,
+    }).pipe(
+      Effect.mapError((error) =>
+        fail(error.reason === "unreachable" ? "unreachable" : "signed-out"),
+      ),
+    );
+    // Asking for what is new proves the other machine answers and holds these same notes.
+    yield* bring(
+      vaultRoot,
+      { url: url.origin, token, brainId, from: self },
+      peerRef(answering.value.environmentId),
+    ).pipe(
+      Effect.catchTags({
+        PeerRemoteError: (error) =>
+          Effect.fail(
+            fail(
+              error.reason === "refused"
+                ? "other-notes"
+                : error.reason === "moved"
+                  ? "failed"
+                  : error.reason,
             ),
-        }),
-        Effect.mapError((error) => (error._tag === "PeerLinkError" ? error : fail("failed"))),
-      );
-      yield* storeLink({
-        vaultRoot,
-        url: url.origin,
-        token,
-        label,
-        environmentId: answering.value.environmentId,
-      });
-    },
-    Effect.provide(services),
-  );
+          ),
+      }),
+      Effect.mapError((error) => (error._tag === "PeerLinkError" ? error : fail("failed"))),
+    );
+    yield* storeLink({
+      vaultRoot,
+      url: url.origin,
+      token,
+      label,
+      environmentId: answering.value.environmentId,
+    });
+  }, Effect.provide(services));
 
   const linkWithSession: MajordomePeerSync["Service"]["linkWithSession"] = Effect.fn(
     "MajordomePeerSync.linkWithSession",
@@ -512,107 +521,104 @@ const make = Effect.gen(function* () {
     return renewed.value;
   });
 
-  const sync: MajordomePeerSync["Service"]["sync"] = Effect.fn("MajordomePeerSync.sync")(
-    function* (input) {
-      const { vaultRoot } = input;
-      const linked = (yield* readState(vaultRoot)).link;
-      if (linked === undefined) return null;
-      const brainId = yield* brainIdOf(vaultRoot);
-      if (brainId === null) return null;
-      const stored = yield* readToken(vaultRoot);
-      if (Option.isNone(stored)) {
-        yield* recordTrouble(vaultRoot, "signed-out", undefined);
-        return { status: "failed", message: "The other machine needs linking again." } as const;
-      }
-      const request: PeerRequest = {
-        url: linked.url,
-        token: yield* freshToken(vaultRoot, linked, stored.value),
-        brainId,
-        from: yield* caller,
-      };
-      const ref = peerRef(linked.environmentId);
-      let trouble: PeerRemoteError | undefined;
-      const failed = (error?: { readonly _tag: string }): Effect.Effect<SyncFailure> =>
-        Effect.sync(() => {
-          if (error?._tag === "PeerRemoteError") trouble = error as PeerRemoteError;
-          return { status: "failed", message: "Could not keep the notes in step." };
-        });
-      const transport: SyncTransport = {
-        ref,
-        bring: bring(vaultRoot, request, ref).pipe(
-          Effect.flatMap((brought) => (brought ? Effect.succeed(null) : failed())),
-          Effect.catch(failed),
+  const sync: MajordomePeerSync["Service"]["sync"] = Effect.fn("MajordomePeerSync.sync")(function* (
+    input,
+  ) {
+    const { vaultRoot } = input;
+    const linked = (yield* readState(vaultRoot)).link;
+    if (linked === undefined) return null;
+    const brainId = yield* brainIdOf(vaultRoot);
+    if (brainId === null) return null;
+    const stored = yield* readToken(vaultRoot);
+    if (Option.isNone(stored)) {
+      yield* recordTrouble(vaultRoot, "signed-out", undefined);
+      return { status: "failed", message: "The other machine needs linking again." } as const;
+    }
+    const request: PeerRequest = {
+      url: linked.url,
+      token: yield* freshToken(vaultRoot, linked, stored.value),
+      brainId,
+      from: yield* caller,
+    };
+    const ref = peerRef(linked.environmentId);
+    let trouble: PeerRemoteError | undefined;
+    const failed = (error?: { readonly _tag: string }): Effect.Effect<SyncFailure> =>
+      Effect.sync(() => {
+        if (error?._tag === "PeerRemoteError") trouble = error as PeerRemoteError;
+        return { status: "failed", message: "Could not keep the notes in step." };
+      });
+    const transport: SyncTransport = {
+      ref,
+      bring: bring(vaultRoot, request, ref).pipe(
+        Effect.flatMap((brought) => (brought ? Effect.succeed(null) : failed())),
+        Effect.catch(failed),
+        Effect.provide(services),
+      ),
+      send: (head, options) =>
+        Effect.scoped(
+          Effect.gen(function* () {
+            const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-peer-" });
+            const bundlePath = path.join(temp, "news.bundle");
+            const known = yield* revParse(vaultRoot, ref);
+            yield* run(vaultRoot, ["update-ref", OUTGOING_REF, head]);
+            const bundled = yield* run(vaultRoot, [
+              "bundle",
+              "create",
+              "--quiet",
+              bundlePath,
+              OUTGOING_REF,
+              ...(known === null ? [] : [`^${known}`]),
+            ]);
+            if (bundled.exitCode !== 0) return yield* failed();
+            yield* sendPeerNews({ ...request, bundlePath, theyReplay: options.theyReplay });
+            // The other machine holds `head` now, whatever it added on top.
+            yield* run(vaultRoot, ["update-ref", ref, head]);
+            return "sent" as const;
+          }),
+        ).pipe(
+          Effect.catch((error): Effect.Effect<"moved" | SyncFailure> =>
+            error._tag === "PeerRemoteError" && error.reason === "moved"
+              ? Effect.succeed("moved")
+              : failed(error),
+          ),
           Effect.provide(services),
         ),
-        send: (head, options) =>
-          Effect.scoped(
-            Effect.gen(function* () {
-              const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-peer-" });
-              const bundlePath = path.join(temp, "news.bundle");
-              const known = yield* revParse(vaultRoot, ref);
-              yield* run(vaultRoot, ["update-ref", OUTGOING_REF, head]);
-              const bundled = yield* run(vaultRoot, [
-                "bundle",
-                "create",
-                "--quiet",
-                bundlePath,
-                OUTGOING_REF,
-                ...(known === null ? [] : [`^${known}`]),
-              ]);
-              if (bundled.exitCode !== 0) return yield* failed();
-              yield* sendPeerNews({ ...request, bundlePath, theyReplay: options.theyReplay });
-              // The other machine holds `head` now, whatever it added on top.
-              yield* run(vaultRoot, ["update-ref", ref, head]);
-              return "sent" as const;
-            }),
-          ).pipe(
-            Effect.catch((error): Effect.Effect<"moved" | SyncFailure> =>
-              error._tag === "PeerRemoteError" && error.reason === "moved"
-                ? Effect.succeed("moved")
-                : failed(error),
-            ),
-            Effect.provide(services),
-          ),
-      };
-      const now = yield* Clock.currentTimeMillis;
-      const result = yield* syncVault({
-        cwd: vaultRoot,
-        transport,
-        gitleaks: input.gitleaks,
-        published: input.published,
-        local: (effect) => vaultLock.withLock(vaultRoot, effect),
-        machineName,
-        today: DateTime.formatIsoDate(
-          DateTime.makeZonedUnsafe(now, { timeZone: DateTime.zoneMakeLocal() }),
-        ),
-      }).pipe(
-        Effect.provide(services),
-        Effect.catchCause((cause) =>
-          Effect.logWarning("Majordome could not keep a vault in step with another machine.", {
-            vaultRoot,
-            cause,
-          }).pipe(
-            Effect.as({ status: "failed", message: "Keeping in step stopped." } as SyncResult),
-          ),
-        ),
-      );
-      if (result.status === "synced") {
-        yield* patchLink(vaultRoot, ({ problem: _, needsReconnect: __, misses: ___, ...kept }) => ({
-          ...kept,
-          lastInStepAt: isoTime(now),
-        }));
-      } else if (result.status === "moved" || result.status === "failed") {
-        const known: PeerRemoteError | undefined = trouble;
-        yield* recordTrouble(
+    };
+    const now = yield* Clock.currentTimeMillis;
+    const result = yield* syncVault({
+      cwd: vaultRoot,
+      transport,
+      gitleaks: input.gitleaks,
+      published: input.published,
+      local: (effect) => vaultLock.withLock(vaultRoot, effect),
+      machineName,
+      today: DateTime.formatIsoDate(
+        DateTime.makeZonedUnsafe(now, { timeZone: DateTime.zoneMakeLocal() }),
+      ),
+    }).pipe(
+      Effect.provide(services),
+      Effect.catchCause((cause) =>
+        Effect.logWarning("Majordome could not keep a vault in step with another machine.", {
           vaultRoot,
-          known?.reason ?? (result.status === "moved" ? "moved" : "failed"),
-          known?.detail,
-        );
-      }
-      return result;
-    },
-    Effect.provide(services),
-  );
+          cause,
+        }).pipe(Effect.as({ status: "failed", message: "Keeping in step stopped." } as SyncResult)),
+      ),
+    );
+    if (result.status === "synced") {
+      yield* patchLink(vaultRoot, ({ problem: _, needsReconnect: __, misses: ___, ...kept }) => ({
+        ...kept,
+        lastInStepAt: isoTime(now),
+      }));
+    } else if (result.status === "moved" || result.status === "failed") {
+      const known: PeerRemoteError | undefined = trouble;
+      yield* recordTrouble(
+        vaultRoot,
+        known?.reason ?? (result.status === "moved" ? "moved" : "failed"),
+        known?.detail,
+      );
+    }
+    return result;
+  }, Effect.provide(services));
 
   const status: MajordomePeerSync["Service"]["status"] = Effect.fn("MajordomePeerSync.status")(
     function* (vaultRoot) {
@@ -676,6 +682,8 @@ const make = Effect.gen(function* () {
   });
 
   const saveHere = Effect.fn("MajordomePeerSync.saveHere")(function* (vaultRoot: string) {
+    // A run's half-made changes are its own to save, as in the backup cycle.
+    if (yield* activeRuns.isBusy(vaultRoot)) return;
     const gitleaks = yield* findGitleaks().pipe(Effect.orElseSucceed(() => null));
     // A paused save sends or keeps what is committed.
     yield* autosaveVault({ cwd: vaultRoot, gitleaks }).pipe(Effect.ignore);

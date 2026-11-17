@@ -712,8 +712,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       brainId: yield* brainIdOf(vaultRoot).pipe(Effect.provide(services)),
       lastSavedAt: state.lastSavedAt ?? null,
       saveError: state.saveError ?? null,
-      paused:
-        state.savePause ?? (syncing ? state.syncPause : undefined) ?? state.peerPause ?? null,
+      paused: state.savePause ?? (syncing ? state.syncPause : undefined) ?? state.peerPause ?? null,
       otherVersions: copies.flatMap((copy) => {
         const note = versionCopyOf(copy);
         return note === null ? [] : [{ path: note, copy }];

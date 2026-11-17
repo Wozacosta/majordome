@@ -34,6 +34,17 @@ const remote = (overrides: Partial<NonNullable<MajordomeBackupStatus["remote"]>>
   ...overrides,
 });
 
+const peer = (overrides: Partial<NonNullable<MajordomeBackupStatus["peer"]>>) => ({
+  label: "majordome",
+  environmentId: "env-server",
+  linkedHere: true,
+  inStep: true,
+  lastInStepAt: "2026-11-17T08:00:00Z",
+  problem: null,
+  needsReconnect: false,
+  ...overrides,
+});
+
 describe("backupHeadline", () => {
   it("names where a vault is backed up, in plain words", () => {
     expect(backupHeadline({ ...base, remote: remote({}) }).title).toBe("Backed up to GitHub ✓");
@@ -69,6 +80,35 @@ describe("backupHeadline", () => {
     expect(backupHeadline({ ...base, remote: remote({ syncing: false }) }).title).toBe(
       "Not backed up yet",
     );
+  });
+
+  it("says notes on two machines are on two machines, without calling that a backup", () => {
+    const onTwo = { ...base, peer: peer({}) };
+    expect(backupHeadline(onTwo)).toMatchObject({
+      tone: "neutral",
+      title: "On two of your machines",
+    });
+    expect(backupHeadline(onTwo).detail).toContain("also on majordome");
+    expect(backupAttention(onTwo)).toBeNull();
+    // Still catching up is not a problem, and a real backup keeps its own line.
+    expect(backupAttention({ ...base, peer: peer({ inStep: false }) })).toBeNull();
+    expect(backupHeadline({ ...onTwo, remote: remote({}) }).title).toBe("Backed up to GitHub ✓");
+
+    const failing = {
+      ...base,
+      remote: remote({}),
+      peer: peer({
+        inStep: false,
+        needsReconnect: true,
+        problem: "majordome no longer accepts this computer.",
+      }),
+    };
+    expect(backupHeadline(failing)).toEqual({
+      tone: "warning",
+      title: "Not in step with majordome",
+      detail: "majordome no longer accepts this computer.",
+    });
+    expect(backupAttention(failing)).toBe("Notes aren't in step");
   });
 
   it("flags a pause, a failed save or a failing backup, but not a backup never set up", () => {

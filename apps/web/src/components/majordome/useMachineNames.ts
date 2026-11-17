@@ -22,6 +22,8 @@ export function useMachineNames() {
   );
   return {
     primaryEnvironmentId,
+    /** This computer's own server: the desktop app's. Null in a browser or on the phone. */
+    localEnvironmentId: DESKTOP === null ? null : primaryEnvironmentId,
     machineOf: (environmentId: EnvironmentId) =>
       machineName(environmentId, { primaryEnvironmentId, desktop: DESKTOP, labels }),
     /** In the desktop app, whether the server runs on another machine than this one. */

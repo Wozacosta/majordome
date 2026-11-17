@@ -700,6 +700,8 @@ const layerServerRestart = Layer.effect(
 // One instance, shared by reference: the backup cycle, the routes another machine calls and the
 // server move use the same links.
 const layerMajordomePeerSync = MajordomePeerSync.layer.pipe(
+  Layer.provide(VaultActiveRuns.layer),
+  Layer.provide(ProjectionStoreV2.layer),
   Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer)),
 );
 

@@ -71,16 +71,26 @@ drops every incoming connection, and Majordome answers only on your Tailscale ne
   assistant on the server to set them up again. The check names them before you start.
 - **Add it to your phone** with the code the screen shows.
 
-If your notes are backed up to GitHub, the server signs in to the same backup, and your computer's
-copy stays in step with it. Without a GitHub backup your computer's copy stops following the
-server's once routines run there: connect GitHub in **Back up my brain** first if you edit notes on
-both.
+### Your computer and the server stay in step
+
+Your computer keeps its own copy of the notes. Every few minutes, while it is on, it and the server
+exchange what changed, directly over your Tailscale network. Nothing else is needed: no GitHub, no
+account. **Back up my brain** shows the server under **Your other machine**, with when the two were
+last in step, and **Stop keeping in step** if you want them apart.
+
+While your computer is asleep or off, the server carries on by itself, and your computer catches up
+when it wakes. If the server stops accepting your computer (after a month or more apart, for
+example), opening Majordome on your computer links them again.
+
+Two machines are not a backup: a note deleted by mistake is deleted on both. GitHub, a folder or
+Google Drive in **Back up my brain** still protect you from that, and from losing both machines.
+If your notes are backed up to GitHub, the server signs in to the same backup.
 
 ### When a note changes in two places
 
 If the same note is changed on your computer and on the server before they catch up, Majordome keeps
 both: the note holds one version, and a file beside it named like `memory (version from Samys
-MacBook Pro, 2026-11-17).md` holds the other. Nothing is lost and syncing carries on. The sidebar
+MacBook Pro, 2026-11-17).md` holds the other. Nothing is lost and the two keep exchanging changes. The sidebar
 says "Two versions of a note" until you delete or rename the other version; **Back up my brain**
 lists them. You can also ask the assistant to combine the two.
 
@@ -98,8 +108,9 @@ move would be lost.
 
 ## Do it by hand
 
-For any other provider, or if you prefer a terminal. You need a GitHub backup of your notes
-(**Settings > Back up my brain > Connect GitHub**).
+For any other provider, or if you prefer a terminal. These steps copy your notes to the server from
+a GitHub backup (**Settings > Back up my brain > Connect GitHub**), which is the simplest way to get
+them there; after that the two machines no longer need it.
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.
@@ -145,12 +156,16 @@ For any other provider, or if you prefer a terminal. You need a GitHub backup of
      your home screen.
 
 7. **Finish on the server's Majordome:**
-   - **Back up my brain > Sign in to GitHub**, so the server saves your notes back to GitHub.
+   - Optional: **Back up my brain > Sign in to GitHub**, so the server sends its notes to the
+     GitHub backup too. Without it, your computer sends them whenever it is on.
    - **Settings > Providers > Claude > Sign in to Claude**, or **Codex > Continue with ChatGPT**
      (below).
    - **Feed > Move routines here.** Your computer stops running them once it gets your latest notes.
 
-Your computer keeps its own copy of the notes and stays in step through GitHub.
+Your computer keeps its own copy of the notes. Once the Majordome app on your computer is connected
+to the server, it links the two by itself, and they [stay in step](#your-computer-and-the-server-stay-in-step)
+directly. If **Back up my brain** on your computer shows the server as **Not kept in step**, choose
+**Keep in step** there.
 
 ## Sign in to Claude and ChatGPT on the server
 

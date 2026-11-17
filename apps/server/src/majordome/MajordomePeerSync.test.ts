@@ -20,6 +20,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomePeerSync from "./MajordomePeerSync.ts";
 import { PEER_HEAD_HEADER, PEER_VAULT_PATH } from "./peerRemote.ts";
 import { peerRefusalAnswer, readPeerCall } from "./peerSyncHttp.ts";
+import * as VaultActiveRuns from "./VaultActiveRuns.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { findGitleaks } from "./vaultSecretScan.ts";
 import { commitAll, FAKE_GITHUB_TOKEN, gitIn, makeVault } from "./vaultTestRepos.ts";
@@ -78,7 +79,7 @@ const makeMachine = Effect.fn("test.makeMachine")(function* (input: {
     } as unknown as ServerEnvironment.ServerEnvironment["Service"]),
     Effect.provideService(HttpClient.HttpClient, input.http ?? noNetwork),
     Effect.provideService(HostProcess.Hostname, `${input.label}.local`),
-    Effect.provide(Layer.fresh(VaultLock.layer)),
+    Effect.provide(Layer.merge(Layer.fresh(VaultLock.layer), VaultActiveRuns.layerIdle)),
   );
   return {
     peers: Context.get(built, MajordomePeerSync.MajordomePeerSync),
@@ -93,7 +94,7 @@ interface Wire {
   /** An older Majordome: it has no such address and answers with the app's page. */
   outdated: boolean;
   /** Runs once, after the server has given its news and before it takes the next ones. */
-  beforeAccept: Effect.Effect<void, unknown, GitVcsDriver.GitVcsDriver> | null;
+  beforeAccept: Effect.Effect<void> | null;
   readonly calls: Array<string>;
 }
 
@@ -103,7 +104,6 @@ interface Wire {
  */
 const wireTo = Effect.fn("test.wireTo")(function* (server: Peers) {
   const fs = yield* FileSystem.FileSystem;
-  const services = yield* Effect.context<GitVcsDriver.GitVcsDriver>();
   const wire: Wire = { token: "session-1", outdated: false, beforeAccept: null, calls: [] };
   const http = HttpClient.make((request) =>
     Effect.gen(function* () {
@@ -171,12 +171,12 @@ const wireTo = Effect.fn("test.wireTo")(function* (server: Peers) {
           : answer(204, undefined, headers);
       }
       if (request.body._tag === "Stream") {
-        yield* Stream.run(request.body.stream, fs.sink(bundlePath));
+        yield* Stream.run(Stream.orDie(request.body.stream), fs.sink(bundlePath));
       }
       if (wire.beforeAccept !== null) {
         const before = wire.beforeAccept;
         wire.beforeAccept = null;
-        yield* before.pipe(Effect.provide(services));
+        yield* before;
       }
       const accepted = yield* server.accept({ ...call, bundlePath }).pipe(Effect.result);
       if (accepted._tag === "Failure") {
@@ -290,7 +290,7 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
       wire.beforeAccept = Effect.gen(function* () {
         yield* fs.writeFileString(`${server}/trips.md`, "- Lisbon\n");
         yield* commitAll(server, "A routine's notes");
-      });
+      }).pipe(Effect.provide(yield* Effect.context<GitVcsDriver.GitVcsDriver>()), Effect.orDie);
       wire.calls.length = 0;
 
       assert.deepStrictEqual(yield* sync(), { status: "moved" });
@@ -313,9 +313,9 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
       yield* fs.writeFileString(`${mac}/memory.md`, "- Likes tea\n- Reads at night\n");
       yield* commitAll(mac, "Your edits");
       // Unsaved edits to the same note on the server: taking the Mac's would write over them.
-      const busy = Effect.gen(function* () {
-        yield* fs.writeFileString(`${server}/memory.md`, "- Being typed right now\n");
-      });
+      const busy = fs
+        .writeFileString(`${server}/memory.md`, "- Being typed right now\n")
+        .pipe(Effect.orDie);
       for (const expected of [null, null, "keep changing"]) {
         yield* fs.writeFileString(`${server}/memory.md`, "- Likes tea\n");
         wire.beforeAccept = busy;
@@ -324,10 +324,7 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
         if (expected === null) assert.isNull(problem);
         else assert.include(problem, expected);
       }
-      assert.equal(
-        yield* fs.readFileString(`${server}/memory.md`),
-        "- Being typed right now\n",
-      );
+      assert.equal(yield* fs.readFileString(`${server}/memory.md`), "- Being typed right now\n");
 
       yield* gitIn(server, ["checkout", "--", "memory.md"]);
       assert.equal((yield* sync())?.status, "synced");
@@ -344,11 +341,7 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
       yield* fs.writeFileString(`${mac}/memory.md`, "- Likes tea\n- Reads at night\n");
       yield* commitAll(mac, "Your edits");
       // As after the server was restored from an older copy: it never saw this commit.
-      yield* gitIn(mac, [
-        "update-ref",
-        MajordomePeerSync.peerRef(SERVER),
-        yield* head(mac),
-      ]);
+      yield* gitIn(mac, ["update-ref", MajordomePeerSync.peerRef(SERVER), yield* head(mac)]);
       wire.calls.length = 0;
 
       assert.equal((yield* sync())?.status, "synced");
@@ -358,28 +351,30 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
     }),
   );
 
-  it.effect("leaves what the backup already holds as it is, and the server adds its own on top", () =>
-    Effect.gen(function* () {
-      const { mac, server, fs, wire, link, sync, head } = yield* twoMachines();
-      yield* link;
-      yield* fs.writeFileString(`${mac}/memory.md`, "- Likes tea\n- Reads at night\n");
-      yield* commitAll(mac, "Your edits");
-      const backedUp = yield* head(mac);
-      yield* gitIn(mac, ["update-ref", "refs/remotes/origin/main", backedUp]);
-      yield* fs.writeFileString(`${server}/trips.md`, "- Lisbon\n");
-      yield* commitAll(server, "A routine's notes");
-      wire.calls.length = 0;
+  it.effect(
+    "leaves what the backup already holds as it is, and the server adds its own on top",
+    () =>
+      Effect.gen(function* () {
+        const { mac, server, fs, wire, link, sync, head } = yield* twoMachines();
+        yield* link;
+        yield* fs.writeFileString(`${mac}/memory.md`, "- Likes tea\n- Reads at night\n");
+        yield* commitAll(mac, "Your edits");
+        const backedUp = yield* head(mac);
+        yield* gitIn(mac, ["update-ref", "refs/remotes/origin/main", backedUp]);
+        yield* fs.writeFileString(`${server}/trips.md`, "- Lisbon\n");
+        yield* commitAll(server, "A routine's notes");
+        wire.calls.length = 0;
 
-      assert.equal((yield* sync({ published: "refs/remotes/origin/main" }))?.status, "synced");
-      assert.deepStrictEqual(wire.calls, ["news", "sent, server replays"]);
-      assert.equal(yield* head(mac), backedUp);
-      assert.equal(yield* gitIn(server, ["rev-parse", "HEAD~1"]), backedUp);
+        assert.equal((yield* sync({ published: "refs/remotes/origin/main" }))?.status, "synced");
+        assert.deepStrictEqual(wire.calls, ["news", "sent, server replays"]);
+        assert.equal(yield* head(mac), backedUp);
+        assert.equal(yield* gitIn(server, ["rev-parse", "HEAD~1"]), backedUp);
 
-      assert.equal((yield* sync({ published: "refs/remotes/origin/main" }))?.status, "synced");
-      assert.equal(yield* head(mac), yield* head(server));
-      assert.equal(yield* gitIn(mac, ["rev-parse", "HEAD~1"]), backedUp);
-      assert.equal(yield* fs.readFileString(`${mac}/trips.md`), "- Lisbon\n");
-    }),
+        assert.equal((yield* sync({ published: "refs/remotes/origin/main" }))?.status, "synced");
+        assert.equal(yield* head(mac), yield* head(server));
+        assert.equal(yield* gitIn(mac, ["rev-parse", "HEAD~1"]), backedUp);
+        assert.equal(yield* fs.readFileString(`${mac}/trips.md`), "- Lisbon\n");
+      }),
   );
 
   it.effect("does not send a commit that holds a possible secret", () =>
@@ -451,6 +446,10 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
       assert.isNull(yield* here.peers.status(mac));
 
       wire.outdated = false;
+      const tunnel = yield* here.peers
+        .link({ vaultRoot: mac, url: "http://127.0.0.1:3774", credential: PAIRING, label: "x" })
+        .pipe(Effect.flip);
+      assert.equal(tunnel.reason, "bad-address");
       const other = yield* otherNotes();
       const elsewhere = yield* makeMachine({
         id: "env-other",
@@ -539,10 +538,7 @@ it.layer(testLayer)("MajordomePeerSync, the answering machine", (it) => {
         .pipe(Effect.flip);
       assert.equal(dirty.reason, "moved");
       assert.equal(yield* head(server), behind);
-      assert.equal(
-        yield* fs.readFileString(`${server}/memory.md`),
-        "- Being typed right now\n",
-      );
+      assert.equal(yield* fs.readFileString(`${server}/memory.md`), "- Being typed right now\n");
 
       // An unsaved edit to another note does not stand in the way.
       yield* gitIn(server, ["checkout", "--", "memory.md"]);

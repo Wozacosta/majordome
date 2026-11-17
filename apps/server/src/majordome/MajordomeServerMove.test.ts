@@ -469,8 +469,13 @@ const startService = Effect.fn("test.startService")(function* (
   },
 ) {
   const ranHere: Array<ProjectId> = [];
-  const linked: Array<{ readonly vaultRoot: string; readonly url: string; readonly token: string }> =
-    [];
+  const linked: Array<{
+    readonly vaultRoot: string;
+    readonly url: string;
+    readonly token: string;
+    readonly label: string;
+    readonly environmentId: string;
+  }> = [];
   const service = yield* MajordomeServerMove.make({
     localTailscale: Effect.succeed(options?.tailscale ?? signedIn),
     timeZone: "Europe/Paris",

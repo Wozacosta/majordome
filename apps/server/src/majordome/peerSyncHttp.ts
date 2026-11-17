@@ -72,7 +72,9 @@ export const layer = Layer.unwrap(
         if (call === null) return HttpServerResponse.empty({ status: 400 });
         // Not scoped: the response streams the file after the handler has returned.
         const temp = yield* fileSystem.makeTempDirectory({ prefix: "majordome-peer-out-" });
-        const discard = fileSystem.remove(temp, { recursive: true, force: true }).pipe(Effect.ignore);
+        const discard = fileSystem
+          .remove(temp, { recursive: true, force: true })
+          .pipe(Effect.ignore);
         const bundlePath = path.join(temp, "news.bundle");
         const packed = yield* peers.offer({ ...call, bundlePath }).pipe(Effect.result);
         if (packed._tag === "Failure") {

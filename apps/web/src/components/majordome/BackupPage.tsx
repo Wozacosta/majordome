@@ -55,7 +55,7 @@ import {
   restoreCommands,
   twoVersionsTitle,
 } from "./backup.logic";
-import { groupBrains, labelCopies } from "./brains.logic";
+import { brainKey, groupBrains, labelCopies } from "./brains.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   Disclosure,
@@ -72,6 +72,8 @@ import {
   Surface,
   SwitchLabel,
 } from "./paper";
+import { linkedPairKey, type PeerLinkPlan, peerLinkPlans } from "./peerLink.logic";
+import { useDeclinedPeerLinks, useLinkMachines } from "./useKeepMachinesInStep";
 import { useMachineNames } from "./useMachineNames";
 
 interface BackupVault {
@@ -80,6 +82,7 @@ interface BackupVault {
   readonly title: string;
   readonly folderName: string;
   readonly brainId?: string | null | undefined;
+  readonly peer: MajordomeBackupStatus["peer"];
 }
 
 function reportFailure(title: string, result: AtomCommandResult<unknown, unknown>) {
@@ -102,7 +105,7 @@ export function BackupPage() {
     ),
   );
 
-  const { primaryEnvironmentId, machineOf, isElsewhere } = useMachineNames();
+  const { primaryEnvironmentId, localEnvironmentId, machineOf, isElsewhere } = useMachineNames();
 
   const copies: Array<BackupVault & { readonly status: MajordomeBackupStatus }> = [];
   const errors: Array<string> = [];
@@ -124,12 +127,16 @@ export function BackupPage() {
         title: project.title,
         folderName: project.workspaceRoot.split(/[\\/]/).findLast((part) => part !== "") ?? "",
         brainId: status.brainId,
+        peer: status.peer,
         status,
       });
     }
   });
   // Each server saves and backs up its own copy, so a brain on several shows each, by machine.
-  const vaults = labelCopies(groupBrains(copies, primaryEnvironmentId), machineOf);
+  const brains = groupBrains(copies, primaryEnvironmentId);
+  const vaults = labelCopies(brains, machineOf);
+  // Offered by hand too: for a pair the owner turned off, or one the app could not link itself.
+  const offers = peerLinkPlans({ brains, localEnvironmentId, declined: new Set() });
 
   return (
     <MajordomeSettingsPage searchId="majordome-backup">
@@ -148,6 +155,7 @@ export function BackupPage() {
             status={copy.status}
             label={label}
             elsewhere={isElsewhere(copy.environmentId)}
+            offer={offers.find((offer) => offer.local === copy)}
             nowMs={nowMs}
           />
         ))
@@ -180,6 +188,7 @@ function VaultBackup({
   status,
   label,
   elsewhere,
+  offer,
   nowMs,
 }: {
   readonly vault: BackupVault;
@@ -187,6 +196,8 @@ function VaultBackup({
   /** The brain or machine this is, when several are listed. */
   readonly label: string | null;
   readonly elsewhere: boolean;
+  /** Another machine these notes could be kept in step with, when they are not yet. */
+  readonly offer: PeerLinkPlan<BackupVault> | undefined;
   readonly nowMs: number;
 }) {
   const headline = backupHeadline(status);
@@ -296,7 +307,14 @@ function VaultBackup({
           </Button>
         ) : null}
       </div>
-      <Section label="Where your notes are kept" labelAs={label === null ? "h2" : "h3"}>
+      <OtherMachine
+        vault={vault}
+        offer={offer}
+        canConfigure={canConfigure}
+        labelAs={label === null ? "h2" : "h3"}
+        nowMs={nowMs}
+      />
+      <Section label="Backups" labelAs={label === null ? "h2" : "h3"}>
         <EntryList>
           <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
           {remote !== null && !remote.isGitHub ? (
@@ -320,7 +338,131 @@ function VaultBackup({
   );
 }
 
-/** "Keep in sync with GitHub": whether saved changes are sent on, with a link to where they go. */
+/**
+ * The machine these notes are kept in step with, and the way to stop; or the offer to start, for
+ * notes that are on this computer and on another server with nothing between them.
+ */
+function OtherMachine({
+  vault,
+  offer,
+  canConfigure,
+  labelAs,
+  nowMs,
+}: {
+  readonly vault: BackupVault;
+  readonly offer: PeerLinkPlan<BackupVault> | undefined;
+  readonly canConfigure: boolean;
+  readonly labelAs: "h2" | "h3";
+  readonly nowMs: number;
+}) {
+  const unlinkPeer = useAtomCommand(majordomeEnvironment.unlinkPeer, {
+    label: "stop keeping in step",
+  });
+  const link = useLinkMachines();
+  const { machineOf } = useMachineNames();
+  const { decline, allow } = useDeclinedPeerLinks();
+  const [busy, setBusy] = useState(false);
+  const peer = vault.peer ?? null;
+  if (peer === null && offer === undefined) return null;
+
+  if (peer === null) {
+    const machine = machineOf(offer!.other.environmentId);
+    const start = async () => {
+      setBusy(true);
+      allow(offer!.key);
+      const problem = await link(offer!);
+      setBusy(false);
+      if (problem === null) return;
+      toastManager.add({
+        type: "error",
+        title: `Could not keep these notes in step with ${machine}`,
+        description:
+          problem === "no-access"
+            ? `This app is not allowed to do that on ${machine}. Add ${machine} again in Connections with a new code, then try again.`
+            : problem,
+      });
+    };
+    return (
+      <Section label="Your other machine" labelAs={labelAs}>
+        <EntryList>
+          <Entry title={machine} data-backup-destination="machine">
+            <StatusLine tone="neutral">Not kept in step</StatusLine>
+            <Muted className={READING_MEASURE_CLASS}>
+              These notes are also on {machine}. Majordome can carry changes between the two every
+              few minutes, over your private network, with no account anywhere.
+            </Muted>
+            {canConfigure ? (
+              <div>
+                <Button size="xs" disabled={busy} onClick={() => void start()}>
+                  {busy ? <Spinner size="sm" /> : null}
+                  Keep in step with {machine}
+                </Button>
+              </div>
+            ) : null}
+          </Entry>
+        </EntryList>
+      </Section>
+    );
+  }
+
+  const when =
+    peer.lastInStepAt === null ? null : formatRelativeTimeLabel(peer.lastInStepAt, nowMs);
+  const pairKey = linkedPairKey(brainKey(vault), vault);
+  const stop = async () => {
+    const message = `Stop keeping these notes in step with ${peer.label}?\nBoth machines keep their notes as they are now. Changes made on one no longer reach the other.`;
+    const confirmed = (await requestConfirmDialog(message)) ?? window.confirm(message);
+    if (!confirmed) return;
+    setBusy(true);
+    const result = await unlinkPeer({
+      environmentId: vault.environmentId,
+      input: { projectId: vault.projectId },
+    });
+    setBusy(false);
+    if (result._tag === "Failure") return reportFailure("Could not stop keeping in step", result);
+    // Remembered, so the app does not link the two again by itself.
+    if (pairKey !== null) decline(pairKey);
+  };
+  return (
+    <Section label="Your other machine" labelAs={labelAs}>
+      <EntryList>
+        <Entry title={peer.label} data-backup-destination="machine">
+          {peer.problem !== null ? (
+            <>
+              <StatusLine tone="warning">Not in step</StatusLine>
+              <Muted className={READING_MEASURE_CLASS}>{peer.problem}</Muted>
+            </>
+          ) : peer.inStep ? (
+            <StatusLine tone="ok">
+              {when === null ? "In step" : `In step · checked ${when}`}
+            </StatusLine>
+          ) : (
+            <StatusLine tone="neutral">
+              {peer.linkedHere
+                ? "Catching up"
+                : when === null
+                  ? "Kept in step"
+                  : `Kept in step · last heard from it ${when}`}
+            </StatusLine>
+          )}
+          <Muted className={READING_MEASURE_CLASS}>
+            Majordome carries changes between the two every few minutes, over your private network.
+            A note changed on both keeps both versions.
+          </Muted>
+          {peer.linkedHere && canConfigure ? (
+            <div>
+              <Button size="xs" variant="outline" disabled={busy} onClick={() => void stop()}>
+                {busy ? <Spinner size="sm" /> : null}
+                Stop keeping in step
+              </Button>
+            </div>
+          ) : null}
+        </Entry>
+      </EntryList>
+    </Section>
+  );
+}
+
+/** Whether saved changes are sent on to the backup, with a link to where they go. */
 function RemoteSync({
   vault,
   remote,
@@ -338,7 +480,7 @@ function RemoteSync({
       environmentId: vault.environmentId,
       input: { projectId: vault.projectId, change: { type: "set-syncing", enabled } },
     });
-    if (result._tag === "Failure") reportFailure("Could not change syncing", result);
+    if (result._tag === "Failure") reportFailure("Could not change that", result);
   };
   return (
     <div className="flex flex-wrap items-center gap-x-3">
@@ -348,7 +490,7 @@ function RemoteSync({
           disabled={!canConfigure}
           onCheckedChange={(checked) => void setSyncing(checked)}
         />
-        Keep in sync with {remote.isGitHub ? "GitHub" : (remote.host ?? "the backup")}
+        Send every saved change to {remote.isGitHub ? "GitHub" : (remote.host ?? "the backup")}
       </SwitchLabel>
       {remote.webUrl ? (
         <a
@@ -425,7 +567,7 @@ function GitHubOption({
           Sign in to GitHub so this computer can send your notes there
         </StatusLine>
       ) : !remote.syncing ? (
-        <StatusLine tone="neutral">Connected, but syncing is off</StatusLine>
+        <StatusLine tone="neutral">Connected, but sending is off</StatusLine>
       ) : (
         <StatusLine tone="ok">
           {remote.lastSyncedAt
