@@ -30,10 +30,11 @@ vi.mock("../../state/desktopUpdate", async (importOriginal) => ({
     () => mocks.update,
   ),
 }));
-// The pill only renders in the desktop app.
+// The pill only renders in the desktop app. Majordome shows a plain list; these cover the table.
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../env")>()),
   isElectron: true,
+  isMajordome: false,
 }));
 vi.mock("./useUpdateEverything", () => ({
   useUpdateEverything: () => ({
