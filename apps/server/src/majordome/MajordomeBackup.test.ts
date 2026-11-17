@@ -300,7 +300,7 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
     }),
   );
 
-  it.effect("keeps saving but pauses syncing when the notes changed in two places", () =>
+  it.effect("keeps both versions when a note changed in two places, and says so", () =>
     Effect.gen(function* () {
       const { root, bare, fs } = yield* makeVault({ remote: true });
       const backup = yield* backupFor(root);
@@ -308,16 +308,23 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
       yield* fs.writeFileString(`${elsewhere}/memory.md`, "- Likes coffee\n");
       yield* commitAll(elsewhere, "Your edits");
       yield* gitIn(elsewhere, ["push", "--quiet"]);
-      const remoteHead = yield* remoteMain(bare!);
       yield* fs.writeFileString(`${root}/memory.md`, "- Likes green tea\n");
 
       yield* backup.runCycle(root);
 
-      assert.equal(yield* lastCommit(root), "Owner|Your edits");
-      assert.equal(yield* remoteMain(bare!), remoteHead);
       const status = yield* backup.getStatus({ projectId });
-      assert.deepInclude(status.paused, { reason: "conflict", files: ["memory.md"] });
-      assert.isFalse(status.remote?.backedUp);
+      assert.isNull(status.paused);
+      assert.isTrue(status.remote?.backedUp);
+      assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
+      assert.equal(yield* fs.readFileString(`${root}/memory.md`), "- Likes coffee\n");
+      const [kept] = status.otherVersions ?? [];
+      assert.equal(kept?.path, "memory.md");
+      assert.equal(yield* fs.readFileString(`${root}/${kept!.copy}`), "- Likes green tea\n");
+
+      // The notice lasts as long as the other version does.
+      yield* fs.remove(`${root}/${kept!.copy}`);
+      yield* backup.runCycle(root);
+      assert.deepStrictEqual((yield* backup.getStatus({ projectId })).otherVersions, []);
     }),
   );
 

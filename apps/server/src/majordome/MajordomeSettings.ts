@@ -52,6 +52,12 @@ export const MajordomeStatus = Schema.Struct({
       paused: Schema.NullOr(
         Schema.Struct({ why: Schema.String, files: Schema.Array(Schema.String) }),
       ),
+      twoVersions: Schema.Array(
+        Schema.Struct({ note: Schema.String, otherVersion: Schema.String }),
+      ).annotate({
+        description:
+          "Notes changed on two machines at once. Both versions were kept as two files; nothing is lost and nothing is paused. Offer to combine them into the note and delete the other version.",
+      }),
       online: Schema.NullOr(
         Schema.Struct({
           where: Schema.String,
@@ -215,6 +221,10 @@ function backupReport(status: MajordomeBackupStatus): NonNullable<MajordomeStatu
       status.paused === null
         ? null
         : { why: PAUSED[status.paused.reason], files: status.paused.files },
+    twoVersions: (status.otherVersions ?? []).map((kept) => ({
+      note: kept.path,
+      otherVersion: kept.copy,
+    })),
     online:
       remote === null
         ? null

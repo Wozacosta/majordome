@@ -84,6 +84,8 @@ import {
   resolveVaultRemote,
   backgroundSshCommand,
   syncVault,
+  VERSION_COPY_PATHSPEC,
+  versionCopyOf,
 } from "./vaultSync.ts";
 
 const SAVE_INTERVAL = "5 minutes";
@@ -213,6 +215,8 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   >();
   const git = yield* GitVcsDriver.GitVcsDriver;
   const homeDirectory = yield* HostProcess.HomeDirectory;
+  // "Samys-MacBook-Pro.local" reads as "Samys MacBook Pro" in a file name.
+  const machineName = (yield* HostProcess.Hostname).split(".")[0]!.replaceAll("-", " ");
   const hasSshKeyFile = Effect.forEach(["id_ed25519", "id_ecdsa", "id_rsa"], (name) =>
     fileSystem
       .exists(path.join(homeDirectory, ".ssh", name))
@@ -369,6 +373,12 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       gitleaks,
       local: (effect) => vaultLock.withLock(vaultRoot, effect),
       sshCommand: backgroundSshCommand({ hasKeyFile: yield* hasSshKeyFile }),
+      machineName,
+      today: DateTime.formatIsoDate(
+        DateTime.makeZonedUnsafe(yield* Clock.currentTimeMillis, {
+          timeZone: DateTime.zoneMakeLocal(),
+        }),
+      ),
       ...(credentialEnv === undefined ? {} : { credentialEnv }),
     }).pipe(Effect.provide(services), Effect.result);
     if (result._tag === "Failure") {
@@ -630,12 +640,27 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           );
     const host = remote === null ? null : remoteHost(remote.url);
     const syncing = state.syncing !== false;
+    const copies = yield* git
+      .execute({
+        operation: "majordome.versionCopies",
+        cwd: vaultRoot,
+        args: ["ls-files", "-z", "--", VERSION_COPY_PATHSPEC],
+        allowNonZeroExit: true,
+      })
+      .pipe(
+        Effect.map((result) => result.stdout.split("\0")),
+        Effect.orElseSucceed((): ReadonlyArray<string> => []),
+      );
     return {
       isVault: true,
       brainId: yield* brainIdOf(vaultRoot).pipe(Effect.provide(services)),
       lastSavedAt: state.lastSavedAt ?? null,
       saveError: state.saveError ?? null,
       paused: state.savePause ?? (syncing ? (state.syncPause ?? null) : null),
+      otherVersions: copies.flatMap((copy) => {
+        const note = versionCopyOf(copy);
+        return note === null ? [] : [{ path: note, copy }];
+      }),
       remote:
         remote === null
           ? null

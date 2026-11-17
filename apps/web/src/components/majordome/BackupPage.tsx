@@ -11,6 +11,7 @@ import type {
   MajordomeGoogleDriveProblem,
   ProjectId,
 } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
   CircleAlertIcon,
@@ -48,7 +49,12 @@ import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
-import { backupHeadline, folderFormProblem, restoreCommands } from "./backup.logic";
+import {
+  backupHeadline,
+  folderFormProblem,
+  restoreCommands,
+  twoVersionsTitle,
+} from "./backup.logic";
 import { groupBrains, labelCopies } from "./brains.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
@@ -58,6 +64,7 @@ import {
   EntryTitle,
   Muted,
   READING_MEASURE_CLASS,
+  ROW_ACTION_CLASS,
   Section,
   SectionTitle,
   HEADING_CLASS,
@@ -238,6 +245,39 @@ function VaultBackup({
             </ul>
           ) : null}
           {status.saveError ? <ErrorLine>{status.saveError}</ErrorLine> : null}
+          {(status.otherVersions ?? []).length > 0 ? (
+            <div className={cn("flex flex-col gap-1.5", READING_MEASURE_CLASS)}>
+              <StatusLine tone="warning">{twoVersionsTitle(status.otherVersions ?? [])}</StatusLine>
+              <Muted>
+                They changed on two machines at the same time, so Majordome kept both. Keep what you
+                want in the note and delete the other version, or ask the assistant to combine them.
+              </Muted>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
+                {(status.otherVersions ?? []).map((kept) => (
+                  <li key={kept.copy} className="flex flex-wrap gap-x-3 break-all">
+                    <span className="text-foreground">{kept.path}</span>
+                    {[
+                      ["Open the note", kept.path],
+                      ["Open the other version", kept.copy],
+                    ].map(([label, path]) => (
+                      <Link
+                        key={label}
+                        to="/notes"
+                        search={{
+                          project: vault.projectId,
+                          environment: vault.environmentId,
+                          path: path!,
+                        }}
+                        className={ROW_ACTION_CLASS}
+                      >
+                        {label}
+                      </Link>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {facts.length > 0 ? (
             <p className="text-xs text-muted-foreground">{facts.join(" · ")}</p>
           ) : null}

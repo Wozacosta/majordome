@@ -74,6 +74,13 @@ describe("backupHeadline", () => {
   it("flags a pause, a failed save or a failing backup, but not a backup never set up", () => {
     expect(backupAttention(base)).toBeNull();
     expect(backupAttention({ ...base, remote: remote({ syncing: false }) })).toBeNull();
+    expect(
+      backupAttention({
+        ...base,
+        remote: remote({}),
+        otherVersions: [{ path: "memory.md", copy: "memory (version from Mac, 2026-11-17).md" }],
+      }),
+    ).toBe("Two versions of a note");
     expect(backupAttention({ ...base, remote: remote({}) })).toBeNull();
     expect(
       backupAttention({

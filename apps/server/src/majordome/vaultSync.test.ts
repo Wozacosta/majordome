@@ -33,7 +33,13 @@ const sync = (root: string, gitleaks: string | null = null) =>
   Effect.gen(function* () {
     const remote = yield* resolveVaultRemote({ cwd: root, preferred: null });
     assert.isNotNull(remote);
-    return yield* syncVault({ cwd: root, remote: remote!, gitleaks });
+    return yield* syncVault({
+      cwd: root,
+      remote: remote!,
+      gitleaks,
+      machineName: "Mac",
+      today: "2026-11-17",
+    });
   });
 
 it.layer(testLayer)("syncVault", (it) => {
@@ -43,9 +49,9 @@ it.layer(testLayer)("syncVault", (it) => {
       yield* fs.writeFileString(`${root}/memory.md`, "- Likes tea\n- Reads at night\n");
       yield* commitAll(root, "Your edits");
 
-      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: true });
+      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: true, keptBoth: [] });
       assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
-      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: false });
+      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: false, keptBoth: [] });
     }),
   );
 
@@ -59,31 +65,85 @@ it.layer(testLayer)("syncVault", (it) => {
       yield* fs.writeFileString(`${root}/memory.md`, "- Likes tea\n- Reads at night\n");
       yield* commitAll(root, "Your edits");
 
-      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: true });
+      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: true, keptBoth: [] });
       assert.equal(yield* fs.readFileString(`${root}/trips.md`), "- Lisbon\n");
       assert.equal(yield* gitIn(root, ["rev-list", "--count", "--merges", "HEAD"]), "0");
       assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
     }),
   );
 
-  it.effect("stops on a conflict, leaves both sides as they were, and never forces", () =>
+  it.effect("keeps both versions of a note changed in two places, and both machines agree", () =>
     Effect.gen(function* () {
       const { root, bare, fs } = yield* makeVault({ remote: true });
       const elsewhere = yield* cloneElsewhere(bare!);
       yield* fs.writeFileString(`${elsewhere}/memory.md`, "- Likes coffee\n");
       yield* commitAll(elsewhere, "Your edits");
       yield* gitIn(elsewhere, ["push", "--quiet"]);
-      const remoteHead = yield* remoteMain(bare!);
+      // Two saves here touch the note, so the second meets the first's outcome.
       yield* fs.writeFileString(`${root}/memory.md`, "- Likes green tea\n");
       yield* commitAll(root, "Your edits");
-      const localHead = yield* gitIn(root, ["rev-parse", "HEAD"]);
+      yield* fs.writeFileString(`${root}/memory.md`, "- Likes green tea\n- Reads at night\n");
+      yield* fs.writeFileString(`${root}/trips.md`, "- Lisbon\n");
+      yield* commitAll(root, "Your edits");
 
-      assert.deepStrictEqual(yield* sync(root), { status: "conflict", files: ["memory.md"] });
-      assert.equal(yield* gitIn(root, ["rev-parse", "HEAD"]), localHead);
+      const copy = "memory (version from Mac, 2026-11-17).md";
+      assert.deepStrictEqual(yield* sync(root), {
+        status: "synced",
+        pushed: true,
+        keptBoth: [{ path: "memory.md", copy }],
+      });
+      assert.equal(yield* fs.readFileString(`${root}/memory.md`), "- Likes coffee\n");
+      assert.equal(
+        yield* fs.readFileString(`${root}/${copy}`),
+        "- Likes green tea\n- Reads at night\n",
+      );
+      assert.equal(yield* fs.readFileString(`${root}/trips.md`), "- Lisbon\n");
       assert.equal(yield* gitIn(root, ["status", "--porcelain"]), "");
       assert.isFalse(yield* fs.exists(`${root}/.git/rebase-merge`));
+      assert.equal(yield* gitIn(root, ["rev-list", "--count", "--merges", "HEAD"]), "0");
+      assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
+
+      // A later clash the same day does not write over the copy that is already there.
+      yield* gitIn(elsewhere, ["pull", "--quiet", "--rebase"]);
+      yield* fs.writeFileString(`${elsewhere}/memory.md`, "- Likes espresso\n");
+      yield* commitAll(elsewhere, "Your edits");
+      yield* gitIn(elsewhere, ["push", "--quiet"]);
+      yield* fs.writeFileString(`${root}/memory.md`, "- Likes matcha\n");
+      yield* commitAll(root, "Your edits");
+      const second = "memory (version from Mac, 2026-11-17) 2.md";
+      assert.deepStrictEqual(yield* sync(root), {
+        status: "synced",
+        pushed: true,
+        keptBoth: [{ path: "memory.md", copy: second }],
+      });
+      assert.equal(yield* fs.readFileString(`${root}/${second}`), "- Likes matcha\n");
+      assert.equal(
+        yield* fs.readFileString(`${root}/${copy}`),
+        "- Likes green tea\n- Reads at night\n",
+      );
+    }),
+  );
+
+  it.effect("an edit wins over a delete, whichever machine made it", () =>
+    Effect.gen(function* () {
+      const { root, bare, fs } = yield* makeVault({ remote: true });
+      yield* fs.writeFileString(`${root}/trips.md`, "- Lisbon\n");
+      yield* commitAll(root, "Your edits");
+      yield* gitIn(root, ["push", "--quiet"]);
+      const elsewhere = yield* cloneElsewhere(bare!);
+      yield* fs.remove(`${elsewhere}/memory.md`);
+      yield* fs.writeFileString(`${elsewhere}/trips.md`, "- Lisbon\n- Porto\n");
+      yield* commitAll(elsewhere, "Your edits");
+      yield* gitIn(elsewhere, ["push", "--quiet"]);
+      yield* fs.writeFileString(`${root}/memory.md`, "- Likes green tea\n");
+      yield* fs.remove(`${root}/trips.md`);
+      yield* commitAll(root, "Your edits");
+
+      assert.deepStrictEqual(yield* sync(root), { status: "synced", pushed: true, keptBoth: [] });
       assert.equal(yield* fs.readFileString(`${root}/memory.md`), "- Likes green tea\n");
-      assert.equal(yield* remoteMain(bare!), remoteHead);
+      assert.equal(yield* fs.readFileString(`${root}/trips.md`), "- Lisbon\n- Porto\n");
+      assert.equal(yield* gitIn(root, ["status", "--porcelain"]), "");
+      assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
     }),
   );
 
@@ -124,10 +184,18 @@ it.layer(testLayer)("syncVault", (it) => {
       assert.equal((yield* sync(root, gitleaks)).status, "failed");
       yield* fs.remove(`${bare}/hooks/pre-receive`);
       const firstHead = yield* gitIn(root, ["rev-parse", "HEAD"]);
-      assert.deepStrictEqual(yield* sync(root, gitleaks), { status: "synced", pushed: true });
+      assert.deepStrictEqual(yield* sync(root, gitleaks), {
+        status: "synced",
+        pushed: true,
+        keptBoth: [],
+      });
       yield* fs.writeFileString(`${root}/trips.md`, "- Lisbon\n");
       yield* commitAll(root, "Your edits");
-      assert.deepStrictEqual(yield* sync(root, gitleaks), { status: "synced", pushed: true });
+      assert.deepStrictEqual(yield* sync(root, gitleaks), {
+        status: "synced",
+        pushed: true,
+        keptBoth: [],
+      });
 
       assert.deepStrictEqual((yield* fs.readFileString(scans)).trim().split("\n"), [
         firstHead,

@@ -75,8 +75,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Drive comes after GitHub and folder: the same encrypted bundle, with the limited `drive.file`
   permission (needs a Google OAuth app registration).
 - **Multi-machine sync is an advanced setting** (several servers on one vault). Any number of servers (Mac, VPS), auth always on.
-  The vault syncs through a git remote. Majordome never force-pushes. When its change conflicts
-  with yours, it pushes a `majordome/conflict-*` branch and the feed lets you choose.
+  The vault syncs through a git remote. Majordome never force-pushes. A note changed on two
+  machines keeps both versions as files, the way Dropbox and iCloud do: what arrived keeps the
+  name, this machine's version sits beside it as `name (version from <machine>, <date>).md`, and
+  syncing carries on. An edit wins over a delete. No conflict branches: choosing between branches
+  is a git idea, and two files are something anyone can read, and the assistant can combine.
 - **Phone access:** a home-screen web app over Tailscale with HTTPS (a `*.ts.net` address), which
   iPhone web push needs. Majordome guides the Tailscale setup once and shows a QR code. Same-Wi-Fi
   QR pairing stays as a fallback without notifications. A hosted Majordome relay waits until
@@ -219,8 +222,11 @@ takes over.
    `search_notes` agent tool. Overview is a health page: one verdict, then machines, routines,
    notes, AI and access, and phone, each line linking to where it is fixed; it lists secret sources
    but not whether each secret resolves, which needs a server check that reads them.
-7. **M7.** Advanced: multi-machine sync, session replication, conflict branches, git remote for
-   Obsidian on a laptop.
+7. **M7.** Advanced. _Done:_ multi-machine sync through the vault's git remote every 5 minutes,
+   and both versions kept when a note changes in two places. _Dropped unless asked for:_ session
+   replication (the app already lists every server's conversations together, and a conversation
+   can be handed to another server), and a git remote served by the server for Obsidian on a
+   laptop (the GitHub backup is that remote).
 8. **One-button move.** _Done, for Hetzner; untested against real accounts._ "Set up a server for
    me" in Settings > Always-on server: the owner pastes a Hetzner API token and a Tailscale OAuth
    secret once; this computer's server creates a firewalled Hetzner server whose first-boot script

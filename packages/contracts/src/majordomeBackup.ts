@@ -10,6 +10,8 @@ export type MajordomeBackupInput = typeof MajordomeBackupInput.Type;
 /**
  * Why saving or syncing stopped. `secret` and `unfinished-merge` stop saving the owner's edits;
  * `secret-not-sent` and `conflict` stop syncing only, so edits are still saved on this computer.
+ * A note changed in two places keeps both versions (`otherVersions`); `conflict` is what is left
+ * when that could not be done.
  */
 export const MajordomeBackupPauseReason = Schema.Literals([
   "secret",
@@ -80,6 +82,13 @@ export const MajordomeBackupStatus = Schema.Struct({
   lastSavedAt: Schema.NullOr(Schema.String),
   saveError: Schema.NullOr(Schema.String),
   paused: Schema.NullOr(MajordomeBackupPause),
+  /**
+   * Notes changed on two machines at once: `path` holds one version and `copy` the other, until
+   * the owner removes or renames the copy. Absent from older servers.
+   */
+  otherVersions: Schema.optional(
+    Schema.Array(Schema.Struct({ path: Schema.String, copy: Schema.String })),
+  ),
   remote: Schema.NullOr(MajordomeBackupRemote),
   folder: Schema.NullOr(MajordomeBackupFolder),
   /** The nightly copy to Google Drive, when this vault has one. */

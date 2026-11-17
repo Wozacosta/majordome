@@ -91,7 +91,8 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 }
 
 /**
- * The sidebar's short alert when saving or a chosen backup is paused or failing, else null.
+ * The sidebar's short alert when saving or a chosen backup is paused or failing, or a note waits
+ * in two versions, else null.
  * "Not backed up yet" alone does not count: it is a choice still to make, and a mark that never
  * goes away teaches people to ignore it.
  */
@@ -99,7 +100,14 @@ export function backupAttention(status: MajordomeBackupStatus): string | null {
   if (status.paused !== null) return "Backup paused";
   if (status.saveError !== null) return "Saving isn't working";
   const chosen = status.remote?.syncing === true || status.folder !== null || status.drive !== null;
-  return chosen && backupHeadline(status).tone === "warning" ? "Backup isn't working" : null;
+  if (chosen && backupHeadline(status).tone === "warning") return "Backup isn't working";
+  // Nothing is wrong or lost, but only the owner can say which version of a note is the one.
+  const kept = status.otherVersions ?? [];
+  return kept.length > 0 ? twoVersionsTitle(kept) : null;
+}
+
+export function twoVersionsTitle(kept: ReadonlyArray<unknown>): string {
+  return kept.length === 1 ? "Two versions of a note" : `Two versions of ${kept.length} notes`;
 }
 
 const MIN_PASSPHRASE_LENGTH = 8;

@@ -1,10 +1,13 @@
 /**
  * Syncs a vault with its git remote after a save: fetch, rebase onto what arrived, scan what is
- * about to leave, push. Never force-pushes. A conflict aborts the rebase and leaves the vault as it
- * was. Callers hold the vault's lock.
+ * about to leave, push. Never force-pushes. A note changed in two places keeps what arrived under
+ * its name and this machine's version beside it, so syncing never waits on the owner. Callers hold
+ * the vault's lock.
  */
 
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
+import * as Path from "effect/Path";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { hasUnfinishedMerge, identityEnv, listLines, ownerIdentity } from "./vaultAutosave.ts";
@@ -82,8 +85,50 @@ export function remoteWebUrl(url: string): string | null {
   return match ? `https://github.com/${match[1]}/${match[2]}` : null;
 }
 
+/** A note changed in two places: `path` holds what arrived, `copy` this machine's version. */
+export interface KeptBoth {
+  readonly path: string;
+  readonly copy: string;
+}
+
+const VERSION_COPY = / \(version from [^()/]*\)(?: \d+)?(?=(?:\.[^./]+)?$)/;
+/** Matches the copies `versionCopyPath` names, for `git ls-files`. */
+export const VERSION_COPY_PATHSPEC = ":(glob)**/* (version from *";
+
+/** Where this machine's version of `path` goes; `attempt` 1 is the plain name. */
+function versionCopyPath(input: {
+  readonly path: string;
+  readonly machineName: string;
+  readonly today: string;
+  readonly attempt: number;
+}): string {
+  const slash = input.path.lastIndexOf("/");
+  const name = input.path.slice(slash + 1);
+  const dot = name.lastIndexOf(".");
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const machine = input.machineName.replaceAll(/[\\/:*?"<>|()]/g, " ").trim() || "another computer";
+  return [
+    input.path.slice(0, slash + 1),
+    `${stem} (version from ${machine}, ${input.today})`,
+    input.attempt > 1 ? ` ${input.attempt}` : "",
+    dot > 0 ? name.slice(dot) : "",
+  ].join("");
+}
+
+/** The note a copy made by `versionCopyPath` is another version of; null for any other path. */
+export function versionCopyOf(copy: string): string | null {
+  return VERSION_COPY.test(copy) ? copy.replace(VERSION_COPY, "") : null;
+}
+
+// Each step replays one saved change; a vault never has this many waiting.
+const REBASE_STEP_LIMIT = 500;
+
 export type SyncResult =
-  | { readonly status: "synced"; readonly pushed: boolean }
+  | {
+      readonly status: "synced";
+      readonly pushed: boolean;
+      readonly keptBoth: ReadonlyArray<KeptBoth>;
+    }
   | {
       readonly status: "skipped";
       readonly reason: "unsaved-changes" | "unfinished-merge";
@@ -123,9 +168,15 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   readonly local?: LocalSection;
   /** `GIT_SSH_COMMAND` for fetch and push, see `backgroundSshCommand`. */
   readonly sshCommand?: string;
+  /** Names this machine's version of a note that changed in two places. */
+  readonly machineName: string;
+  /** The local date, as `YYYY-MM-DD`. */
+  readonly today: string;
 }) {
   const local: LocalSection = input.local ?? ((effect) => effect);
   const git = yield* GitVcsDriver.GitVcsDriver;
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   const { cwd, remote } = input;
   const identity = yield* ownerIdentity(cwd);
   const env = { ...identityEnv(identity), GIT_TERMINAL_PROMPT: "0" };
@@ -170,7 +221,48 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   const hasRemoteBranch =
     (yield* run(["rev-parse", "--verify", "--quiet", `${remoteRef}^{commit}`])).exitCode === 0;
 
-  // Rebasing re-creates commits; unsigned, so it never waits on a signing prompt.
+  const keptBoth = new Map<string, string>();
+  const ok = (result: { readonly exitCode: number }) => result.exitCode === 0;
+  const nulList = (text: string) => text.split("\0").filter((entry) => entry !== "");
+  const unmergedFiles = run(["diff", "--name-only", "--diff-filter=U", "-z"]).pipe(
+    Effect.map((result) => nulList(result.stdout)),
+  );
+  /**
+   * Settles one file a replayed change clashes on. Mid-rebase, "ours" is what arrived and
+   * "theirs" is this machine's change. An edit wins over a delete.
+   */
+  const settle = Effect.fn("majordome.syncVault.settle")(function* (file: string) {
+    const stages = new Set(
+      nulList((yield* run(["ls-files", "-u", "-z", "--", file])).stdout).map(
+        (entry) => entry.split("\t")[0]?.split(" ")[2],
+      ),
+    );
+    const arrived = stages.has("2");
+    const mine = stages.has("3");
+    if (!arrived && !mine) return false;
+    if (!arrived || !mine) {
+      return (
+        ok(yield* run(["checkout", arrived ? "--ours" : "--theirs", "--", file])) &&
+        ok(yield* run(["add", "--", file]))
+      );
+    }
+    let copy = keptBoth.get(file);
+    for (let attempt = 1; copy === undefined; attempt += 1) {
+      const candidate = versionCopyPath({ ...input, path: file, attempt });
+      if (!(yield* fileSystem.exists(path.join(cwd, candidate)))) copy = candidate;
+    }
+    // Through the working tree rather than git's output, so a picture survives as it is.
+    if (!ok(yield* run(["checkout", "--theirs", "--", file]))) return false;
+    yield* fileSystem.rename(path.join(cwd, file), path.join(cwd, copy));
+    if (!ok(yield* run(["checkout", "--ours", "--", file]))) return false;
+    if (!ok(yield* run(["add", "--", file, copy]))) return false;
+    keptBoth.set(file, copy);
+    return true;
+  });
+
+  // Rebasing re-creates commits; unsigned, so it never waits on a signing prompt or an editor.
+  const rebaseStep = (...args: ReadonlyArray<string>) =>
+    run(["-c", "commit.gpgsign=false", "-c", "core.editor=true", "rebase", ...args]);
   const rebased = yield* local(
     Effect.gen(function* () {
       if (!hasRemoteBranch) return null;
@@ -178,21 +270,37 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
         (yield* run(["rev-list", "--count", `HEAD..${remoteRef}`])).stdout.trim(),
       );
       if (!(behind > 0)) return null;
-      const rebase = yield* run([
-        "-c",
-        "commit.gpgsign=false",
-        "rebase",
-        "--quiet",
-        "--no-autostash",
-        remoteRef,
-      ]);
-      if (rebase.exitCode === 0) return null;
-      const files = listLines((yield* run(["diff", "--name-only", "--diff-filter=U"])).stdout);
+      let step = yield* rebaseStep("--quiet", "--no-autostash", remoteRef);
+      for (let steps = 0; !ok(step) && steps < REBASE_STEP_LIMIT; steps += 1) {
+        const files = yield* unmergedFiles;
+        if (files.length === 0) {
+          // Nothing clashes and no replay is under way: git refused for another reason.
+          if (!(yield* hasUnfinishedMerge(cwd))) {
+            return {
+              status: "failed",
+              message: firstLine(step.stderr) || "Could not bring in the changes from elsewhere.",
+            } as SyncResult;
+          }
+          // A change that settled into nothing new, such as a delete that lost to an edit.
+          step = yield* rebaseStep("--skip");
+          continue;
+        }
+        let settled = true;
+        for (const file of files) {
+          settled = yield* settle(file).pipe(Effect.orElseSucceed(() => false));
+          if (!settled) break;
+        }
+        if (!settled) break;
+        step = yield* rebaseStep("--continue");
+      }
+      if (ok(step)) return null;
+      const files = yield* unmergedFiles;
       yield* run(["rebase", "--abort"]);
       return { status: "conflict", files } as SyncResult;
     }),
   );
   if (rebased !== null) return rebased;
+  const keptBothList = [...keptBoth].map(([file, copy]) => ({ path: file, copy }));
 
   // Pinned, so a commit made meanwhile is neither sent nor marked scanned without a scan.
   const head = (yield* run(["rev-parse", "--verify", "HEAD^{commit}"])).stdout.trim();
@@ -200,7 +308,8 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
   const ahead = Number(
     (yield* run(["rev-list", "--count", head, "--not", ...onRemote])).stdout.trim(),
   );
-  if (!(ahead > 0)) return { status: "synced", pushed: false } as SyncResult;
+  if (!(ahead > 0))
+    return { status: "synced", pushed: false, keptBoth: keptBothList } as SyncResult;
 
   if (input.gitleaks !== null) {
     const hasScanned =
@@ -232,7 +341,7 @@ export const syncVault = Effect.fn("majordome.syncVault")(function* (input: {
       message: firstLine(push.stderr) || "Could not send your notes to the backup.",
     } as SyncResult;
   }
-  return { status: "synced", pushed: true } as SyncResult;
+  return { status: "synced", pushed: true, keptBoth: keptBothList } as SyncResult;
 });
 
 /** How many saved changes have not reached the remote yet; null when that is unknown. */

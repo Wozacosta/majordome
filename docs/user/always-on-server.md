@@ -76,6 +76,14 @@ copy stays in step with it. Without a GitHub backup your computer's copy stops f
 server's once routines run there: connect GitHub in **Back up my brain** first if you edit notes on
 both.
 
+### When a note changes in two places
+
+If the same note is changed on your computer and on the server before they catch up, Majordome keeps
+both: the note holds one version, and a file beside it named like `memory (version from Samys
+MacBook Pro, 2026-11-17).md` holds the other. Nothing is lost and syncing carries on. The sidebar
+says "Two versions of a note" until you delete or rename the other version; **Back up my brain**
+lists them. You can also ask the assistant to combine the two.
+
 Majordome keeps the two keys on your computer, never in your notes. **Forget these keys** deletes
 them; removing the server later asks for them again.
 

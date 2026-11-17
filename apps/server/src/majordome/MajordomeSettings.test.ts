@@ -355,6 +355,7 @@ describe("MajordomeSettings.status", () => {
               why: "A possible secret was found in the notes, so syncing is paused.",
               files: ["inbox/keys.md"],
             },
+            twoVersions: [],
             online: {
               where: "GitHub",
               syncing: true,
