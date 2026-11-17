@@ -19,6 +19,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as BackupPassphraseStore from "./BackupPassphraseStore.ts";
 import * as GoogleDriveAuth from "./GoogleDriveAuth.ts";
 import * as MajordomeBackup from "./MajordomeBackup.ts";
+import * as MajordomePeerSync from "./MajordomePeerSync.ts";
 import { commitVaultRun } from "./VaultCommitReactor.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
 import { readVaultBrainId } from "./vaultBrainId.ts";
@@ -73,6 +74,13 @@ const backupFor = Effect.fn("test.backupFor")(function* (
     } as unknown as ProjectStore.ProjectStoreV2["Service"]),
     Effect.provideService(GoogleDriveAuth.GoogleDriveAuth, googleAuth),
     Effect.provideService(HttpClient.HttpClient, http),
+    // These vaults are on one machine only; MajordomePeerSync.test.ts covers two.
+    Effect.provide(
+      Layer.mock(MajordomePeerSync.MajordomePeerSync)({
+        sync: () => Effect.succeed(null),
+        status: () => Effect.succeed(null),
+      }),
+    ),
   );
 });
 

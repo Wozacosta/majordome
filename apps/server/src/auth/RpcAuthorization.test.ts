@@ -82,6 +82,8 @@ describe("RPC authorization scopes", () => {
     }
     for (const method of [
       WS_METHODS.majordomeConfigureBackup,
+      WS_METHODS.majordomeLinkPeer,
+      WS_METHODS.majordomeUnlinkPeer,
       WS_METHODS.majordomeSetRoutineLimits,
       WS_METHODS.majordomeConnectGitHubStart,
       WS_METHODS.majordomeConnectGitHubWait,

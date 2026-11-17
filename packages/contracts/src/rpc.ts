@@ -151,6 +151,7 @@ import {
   MajordomeConfigureBackupInput,
   MajordomeGitHubConnectPrompt,
   MajordomeGoogleDriveConnectPrompt,
+  MajordomeLinkPeerInput,
 } from "./majordomeBackup.ts";
 import {
   MajordomeCreateTopicInput,
@@ -739,6 +740,8 @@ export const WS_METHODS = {
   majordomeAnswerApproval: "majordome.answerApproval",
   majordomeBackUpNow: "majordome.backUpNow",
   majordomeConfigureBackup: "majordome.configureBackup",
+  majordomeLinkPeer: "majordome.linkPeer",
+  majordomeUnlinkPeer: "majordome.unlinkPeer",
   majordomeConnectGitHubStart: "majordome.connectGitHubStart",
   majordomeConnectGitHubWait: "majordome.connectGitHubWait",
   majordomeConnectGitHubCancel: "majordome.connectGitHubCancel",
@@ -2544,6 +2547,18 @@ const WsMajordomeConfigureBackupRpc = Rpc.make(WS_METHODS.majordomeConfigureBack
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeLinkPeerRpc = Rpc.make(WS_METHODS.majordomeLinkPeer, {
+  payload: MajordomeLinkPeerInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeUnlinkPeerRpc = Rpc.make(WS_METHODS.majordomeUnlinkPeer, {
+  payload: MajordomeBackupInput,
+  success: MajordomeBackupStatus,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeConnectGitHubStartRpc = Rpc.make(WS_METHODS.majordomeConnectGitHubStart, {
   payload: MajordomeBackupInput,
   success: MajordomeGitHubConnectPrompt,
@@ -2851,6 +2866,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeAnswerApprovalRpc,
   WsMajordomeBackUpNowRpc,
   WsMajordomeConfigureBackupRpc,
+  WsMajordomeLinkPeerRpc,
+  WsMajordomeUnlinkPeerRpc,
   WsMajordomeConnectGitHubStartRpc,
   WsMajordomeConnectGitHubWaitRpc,
   WsMajordomeConnectGitHubCancelRpc,

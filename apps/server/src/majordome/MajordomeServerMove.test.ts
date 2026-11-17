@@ -30,6 +30,7 @@ import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { fakeHttp, type FakeReply, type SentRequest } from "./fakeHttp.testkit.ts";
 import { GITHUB_TOKEN_SECRET } from "./MajordomeBackup.ts";
+import * as MajordomePeerSync from "./MajordomePeerSync.ts";
 import * as MajordomeRoutines from "./MajordomeRoutines.ts";
 import * as MajordomeServerMove from "./MajordomeServerMove.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
@@ -468,6 +469,8 @@ const startService = Effect.fn("test.startService")(function* (
   },
 ) {
   const ranHere: Array<ProjectId> = [];
+  const linked: Array<{ readonly vaultRoot: string; readonly url: string; readonly token: string }> =
+    [];
   const service = yield* MajordomeServerMove.make({
     localTailscale: Effect.succeed(options?.tailscale ?? signedIn),
     timeZone: "Europe/Paris",
@@ -486,6 +489,10 @@ const startService = Effect.fn("test.startService")(function* (
         Layer.mock(MajordomeRoutines.MajordomeRoutines)({
           runHere: (id) => Effect.sync(() => void ranHere.push(id)),
         }),
+        Layer.mock(MajordomePeerSync.MajordomePeerSync)({
+          linkWithSession: (input) => Effect.sync(() => void linked.push(input)),
+          status: () => Effect.succeed(null),
+        }),
         Layer.mock(ScheduledTaskService.ScheduledTaskService)({
           list: () => Effect.succeed({ tasks: options?.tasks ?? [] } as never),
         }),
@@ -497,7 +504,7 @@ const startService = Effect.fn("test.startService")(function* (
       ),
     ),
   );
-  return { service, ranHere };
+  return { service, ranHere, linked };
 });
 
 type Service = MajordomeServerMove.MajordomeServerMove["Service"];
@@ -527,9 +534,9 @@ const ready = Effect.fn("test.ready")(function* (options?: { readonly remote?: b
   const head = yield* gitIn(vault.root, ["rev-parse", "HEAD"]);
   const brainId = yield* readVaultBrainId(vault.root);
   world.server.vault = () => ({ body: { projectId: "remote-project", head, brainId } });
-  const { service, ranHere } = yield* startService(world, vault.root);
+  const { service, ranHere, linked } = yield* startService(world, vault.root);
   yield* saveKeys(service);
-  return { vault, world, service, ranHere };
+  return { vault, world, service, ranHere, linked };
 });
 
 const begin = (service: Service) => service.begin({ projectId, location: "fsn1" });
@@ -537,7 +544,7 @@ const begin = (service: Service) => service.begin({ projectId, location: "fsn1" 
 it.layer(baseLayer)("MajordomeServerMove", (it) => {
   it.effect("creates the server, joins it to the tailnet, pairs and copies the notes", () =>
     Effect.gen(function* () {
-      const { vault, world, service } = yield* ready();
+      const { vault, world, service, linked } = yield* ready();
 
       const check = yield* service.check({ projectId });
       assert.deepStrictEqual(check.problems, []);
@@ -559,7 +566,8 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
       ]);
       assert.strictEqual(check.defaultLocation, "nbg1");
       assert.strictEqual(check.currency, "EUR");
-      assert.match(check.notices[0] ?? "", /not backed up to GitHub/);
+      // Notes with no GitHub backup still follow the server's, so there is nothing to warn about.
+      assert.deepStrictEqual(check.notices, []);
       // The check made a firewall and a key to prove it may, and removed both.
       assert.strictEqual(world.hetzner.firewalls.size, 0);
       assert.strictEqual(world.tailscale.keys.size, 0);
@@ -584,6 +592,16 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
         environmentId: THERE,
       });
       assert.isFalse(done.move?.routinesOnServer);
+      // The two copies are kept in step from the session the move already holds.
+      assert.deepStrictEqual(linked, [
+        {
+          vaultRoot: vault.root,
+          url: `https://majordome.${TAILNET}`,
+          token: SESSION,
+          label: "majordome",
+          environmentId: THERE,
+        },
+      ]);
 
       const [server] = [...world.hetzner.servers.values()];
       assert.strictEqual(server?.labels["managed-by"], "majordome");

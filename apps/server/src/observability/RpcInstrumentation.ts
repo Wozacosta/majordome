@@ -142,6 +142,8 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeAnswerApproval]: "majordome",
   [WS_METHODS.majordomeBackUpNow]: "majordome",
   [WS_METHODS.majordomeConfigureBackup]: "majordome",
+  [WS_METHODS.majordomeLinkPeer]: "majordome",
+  [WS_METHODS.majordomeUnlinkPeer]: "majordome",
   [WS_METHODS.majordomeConnectGitHubStart]: "majordome",
   [WS_METHODS.majordomeConnectGitHubWait]: "majordome",
   [WS_METHODS.majordomeConnectGitHubCancel]: "majordome",
