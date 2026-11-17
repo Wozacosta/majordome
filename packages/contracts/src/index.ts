@@ -73,6 +73,7 @@ export * from "./majordomeConnectors.ts";
 export * from "./majordomeNotesSearch.ts";
 export * from "./majordomePrivateDocuments.ts";
 export * from "./majordomeApprovals.ts";
+export * from "./majordomeTodos.ts";
 export * from "./majordomeTopics.ts";
 export * from "./majordomeServerMove.ts";
 export * from "./worktreeMcp.ts";

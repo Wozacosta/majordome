@@ -154,6 +154,13 @@ import {
   MajordomeLinkPeerInput,
 } from "./majordomeBackup.ts";
 import {
+  MajordomeAddTodoInput,
+  MajordomeSetTodoDoneInput,
+  MajordomeTodosError,
+  MajordomeTodosInput,
+  MajordomeTodosResult,
+} from "./majordomeTodos.ts";
+import {
   MajordomeCreateTopicInput,
   MajordomeOpenRoutinesConversationInput,
   MajordomeOpenTopicResult,
@@ -798,6 +805,9 @@ export const WS_METHODS = {
   majordomeOpenTopic: "majordome.openTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
+  majordomeListTodos: "majordome.listTodos",
+  majordomeSetTodoDone: "majordome.setTodoDone",
+  majordomeAddTodo: "majordome.addTodo",
   majordomeServerMoveSubscribe: "majordome.serverMove.subscribe",
   majordomeServerMoveSaveKeys: "majordome.serverMove.saveKeys",
   majordomeServerMoveForgetKeys: "majordome.serverMove.forgetKeys",
@@ -2606,6 +2616,22 @@ const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   },
 );
 
+const WsMajordomeListTodosRpc = Rpc.make(WS_METHODS.majordomeListTodos, {
+  payload: MajordomeTodosInput,
+  success: MajordomeTodosResult,
+  error: Schema.Union([MajordomeTodosError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeSetTodoDoneRpc = Rpc.make(WS_METHODS.majordomeSetTodoDone, {
+  payload: MajordomeSetTodoDoneInput,
+  error: Schema.Union([MajordomeTodosError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeAddTodoRpc = Rpc.make(WS_METHODS.majordomeAddTodo, {
+  payload: MajordomeAddTodoInput,
+  error: Schema.Union([MajordomeTodosError, EnvironmentAuthorizationError]),
+});
+
 const serverMoveErrors = Schema.Union([MajordomeServerMoveError, EnvironmentAuthorizationError]);
 
 // The current state of "Set up a server for me", then every change: progress is never guessed.
@@ -3040,4 +3066,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeOpenTopicRpc,
   WsMajordomeOpenRoutinesConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,
+  WsMajordomeListTodosRpc,
+  WsMajordomeSetTodoDoneRpc,
+  WsMajordomeAddTodoRpc,
 ).middleware(RpcScopeAuthorization);

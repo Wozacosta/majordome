@@ -52,6 +52,7 @@ it("lists only Majordome's own screens while backup is fine", async () => {
     ["Today", "/"],
     ["Feed", "/feed"],
     ["Notes", "/notes"],
+    ["To-dos", "/todos"],
     ["Routines", "/routines"],
     ["Reminders", "/reminders"],
     ["Connections", "/settings/connectors"],

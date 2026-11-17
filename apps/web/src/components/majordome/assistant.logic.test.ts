@@ -12,6 +12,7 @@ describe("assistantScreenName", () => {
     ["/", undefined, "Today"],
     ["/feed", undefined, "Feed"],
     ["/reminders", undefined, "Reminders"],
+    ["/todos", undefined, "To-dos"],
     ["/routines/", undefined, "Routines"],
     ["/notes", {}, "Notes"],
     ["/notes", { path: "people/Ada.md" }, 'Notes, reading the note "people/Ada.md"'],

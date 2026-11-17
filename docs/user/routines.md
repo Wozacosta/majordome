@@ -39,6 +39,18 @@ When the time comes, Majordome sends a notification and posts in the conversatio
 Upcoming reminders are listed under **Reminders** on the Routines screen, and the next few under
 **Coming up** on **Today**. **Cancel** removes one. To move a reminder, cancel it and ask again.
 
+## To-dos
+
+A to-do has no time: it is an unticked box in a note, written `- [ ] Call the bank`. **To-dos** in
+the sidebar lists every one of them, grouped by note, most recently changed notes first. Notes in
+an `archive` folder at the top of your notes are left out.
+
+- **Add one** by typing in **Add a to-do…** and pressing Enter. It goes to `To-dos.md` in your inbox
+  folder. You can also write a box in any note, or ask your assistant to add one.
+- **Tick one** on the page and its box is ticked in the note itself. Nothing is kept anywhere else,
+  so the page and your notes always agree.
+- Click a note's name to open it.
+
 ## Good to know
 
 - With an [always-on server](./always-on-server.md), routines run there, and the Routines screen

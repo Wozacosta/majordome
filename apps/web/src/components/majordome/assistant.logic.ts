@@ -12,6 +12,7 @@ const SCREENS: Readonly<Record<string, string>> = {
   "/feed": "Feed",
   "/reminders": "Reminders",
   "/routines": "Routines",
+  "/todos": "To-dos",
   "/usage": "Usage",
   // The sidebar's own Connections entry opens this page.
   "/settings/connectors": "Connections",

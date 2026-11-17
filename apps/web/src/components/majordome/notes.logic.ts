@@ -41,6 +41,7 @@ export function selectNotesVault(
 export const NOTES_RETURN_SCREENS = {
   feed: { to: "/feed", label: "Feed" },
   overview: { to: "/settings/overview", label: "Overview" },
+  todos: { to: "/todos", label: "To-dos" },
 } as const;
 export type NotesReturnScreen = keyof typeof NOTES_RETURN_SCREENS;
 

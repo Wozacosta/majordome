@@ -62,6 +62,7 @@ import {
   BugIcon,
   ChartNoAxesColumnIcon,
   CalendarClockIcon,
+  ListTodoIcon,
   NewspaperIcon,
   SmartphoneIcon,
   CloudUploadIcon,
@@ -1666,6 +1667,7 @@ function OpenCommandPaletteDialog(props: {
   }
 
   if (
+    !isMajordome &&
     environments.some(
       (environment) => environment.serverConfig?.environment.capabilities.issues === true,
     )
@@ -1741,6 +1743,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <CalendarClockIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/routines" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:todos",
+      searchTerms: ["to-dos", "todos", "to do", "tasks", "checklist", "checkboxes"],
+      title: "Open to-dos",
+      icon: <ListTodoIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/todos" });
       },
     });
     actionItems.push({

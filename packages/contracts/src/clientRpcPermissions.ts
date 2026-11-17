@@ -130,6 +130,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeOpenTopic]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeOpenRoutinesConversation]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeDismissTopicSuggestions]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeSetTodoDone]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeAddTodo]: AuthOrchestrationOperateScope,
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: AuthOrchestrationOperateScope,
   // Force stop kills agent processes, as Stop on a terminal does.
   [ORCHESTRATION_V2_WS_METHODS.forceStopThread]: AuthOrchestrationOperateScope,

@@ -64,6 +64,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeSearchNotes,
       WS_METHODS.majordomeGetNotesIndexStatus,
       WS_METHODS.majordomeListTopics,
+      WS_METHODS.majordomeListTodos,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
     }
@@ -80,6 +81,8 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeOpenTopic,
       WS_METHODS.majordomeOpenRoutinesConversation,
       WS_METHODS.majordomeDismissTopicSuggestions,
+      WS_METHODS.majordomeSetTodoDone,
+      WS_METHODS.majordomeAddTodo,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }

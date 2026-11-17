@@ -261,6 +261,23 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:connect-google-drive-cancel",
       tag: WS_METHODS.majordomeConnectGoogleDriveCancel,
     }),
+    /** Read again on every mount and after each change; the notes can change under it. */
+    todos: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:todos",
+      tag: WS_METHODS.majordomeListTodos,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => todosRevision(environmentId),
+    }),
+    setTodoDone: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:set-todo-done",
+      tag: WS_METHODS.majordomeSetTodoDone,
+      onSettled: ({ environmentId }, registry) => bumpTodos(environmentId, registry),
+    }),
+    addTodo: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-todo",
+      tag: WS_METHODS.majordomeAddTodo,
+      onSettled: ({ environmentId }, registry) => bumpTodos(environmentId, registry),
+    }),
     topics: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:topics",
       tag: WS_METHODS.majordomeListTopics,
@@ -319,6 +336,17 @@ const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpTopics = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(topicsRevision(environmentId), (value) => value + 1));
+
+/** Bumped after a to-do is added or ticked, so every to-do list in that environment reads again. */
+const todosRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:todos-revision:${environmentId}`),
+  ),
+);
+
+const bumpTodos = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(todosRevision(environmentId), (value) => value + 1));
 
 /** Bumped after a rebuild, so the notes search status reads again. */
 const notesIndexRevision = Atom.family((environmentId: EnvironmentId) =>

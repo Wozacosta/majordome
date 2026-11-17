@@ -301,7 +301,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={handlePullRequestsClick}
             />
           ) : null}
-          {issuesSupported ? (
+          {issuesSupported && !isMajordome ? (
             <SidebarUtilityItem
               icon={<IssueGlyph.issue />}
               label="Issues"

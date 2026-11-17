@@ -19,6 +19,7 @@ import { Route as ChatRouteImport } from './routes/_chat'
 import { Route as ChatIndexRouteImport } from './routes/_chat.index'
 import { Route as ProjectsProjectKeyRouteImport } from './routes/projects.$projectKey'
 import { Route as ChatUsageRouteImport } from './routes/_chat.usage'
+import { Route as ChatTodosRouteImport } from './routes/_chat.todos'
 import { Route as ChatSettingsRouteImport } from './routes/_chat.settings'
 import { Route as ChatRoutinesRouteImport } from './routes/_chat.routines'
 import { Route as ChatRemindersRouteImport } from './routes/_chat.reminders'
@@ -116,6 +117,11 @@ const ProjectsProjectKeyRoute = ProjectsProjectKeyRouteImport.update({
 const ChatUsageRoute = ChatUsageRouteImport.update({
   id: '/usage',
   path: '/usage',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatTodosRoute = ChatTodosRouteImport.update({
+  id: '/todos',
+  path: '/todos',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatSettingsRoute = ChatSettingsRouteImport.update({
@@ -392,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/reminders': typeof ChatRemindersRoute
   '/routines': typeof ChatRoutinesRoute
   '/settings': typeof ChatSettingsRouteWithChildren
+  '/todos': typeof ChatTodosRoute
   '/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
   '/$environmentId/$threadId': typeof ChatEnvironmentIdThreadIdRoute
@@ -451,6 +458,7 @@ export interface FileRoutesByTo {
   '/reminders': typeof ChatRemindersRoute
   '/routines': typeof ChatRoutinesRoute
   '/settings': typeof ChatSettingsRouteWithChildren
+  '/todos': typeof ChatTodosRoute
   '/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
   '/': typeof ChatIndexRoute
@@ -513,6 +521,7 @@ export interface FileRoutesById {
   '/_chat/reminders': typeof ChatRemindersRoute
   '/_chat/routines': typeof ChatRoutinesRoute
   '/_chat/settings': typeof ChatSettingsRouteWithChildren
+  '/_chat/todos': typeof ChatTodosRoute
   '/_chat/usage': typeof ChatUsageRoute
   '/projects/$projectKey': typeof ProjectsProjectKeyRoute
   '/_chat/': typeof ChatIndexRoute
@@ -576,6 +585,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/routines'
     | '/settings'
+    | '/todos'
     | '/usage'
     | '/projects/$projectKey'
     | '/$environmentId/$threadId'
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/reminders'
     | '/routines'
     | '/settings'
+    | '/todos'
     | '/usage'
     | '/projects/$projectKey'
     | '/'
@@ -696,6 +707,7 @@ export interface FileRouteTypes {
     | '/_chat/reminders'
     | '/_chat/routines'
     | '/_chat/settings'
+    | '/_chat/todos'
     | '/_chat/usage'
     | '/projects/$projectKey'
     | '/_chat/'
@@ -820,6 +832,13 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/usage'
       preLoaderRoute: typeof ChatUsageRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/_chat/todos': {
+      id: '/_chat/todos'
+      path: '/todos'
+      fullPath: '/todos'
+      preLoaderRoute: typeof ChatTodosRouteImport
       parentRoute: typeof ChatRoute
     }
     '/_chat/settings': {
@@ -1259,6 +1278,7 @@ interface ChatRouteChildren {
   ChatRemindersRoute: typeof ChatRemindersRoute
   ChatRoutinesRoute: typeof ChatRoutinesRoute
   ChatSettingsRoute: typeof ChatSettingsRouteWithChildren
+  ChatTodosRoute: typeof ChatTodosRoute
   ChatUsageRoute: typeof ChatUsageRoute
   ChatIndexRoute: typeof ChatIndexRoute
   ChatEnvironmentIdThreadIdRoute: typeof ChatEnvironmentIdThreadIdRoute
@@ -1278,6 +1298,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatRemindersRoute: ChatRemindersRoute,
   ChatRoutinesRoute: ChatRoutinesRoute,
   ChatSettingsRoute: ChatSettingsRouteWithChildren,
+  ChatTodosRoute: ChatTodosRoute,
   ChatUsageRoute: ChatUsageRoute,
   ChatIndexRoute: ChatIndexRoute,
   ChatEnvironmentIdThreadIdRoute: ChatEnvironmentIdThreadIdRoute,

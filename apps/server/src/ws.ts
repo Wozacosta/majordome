@@ -131,6 +131,7 @@ import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
+import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
@@ -1503,6 +1504,7 @@ export const layerWsRpc = (
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
+      const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
       const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
@@ -2530,6 +2532,18 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeDismissTopicSuggestions]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.dismissSuggestions(input)),
+          ),
+        [WS_METHODS.majordomeListTodos]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTodos.list(input)),
+          ),
+        [WS_METHODS.majordomeSetTodoDone]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTodos.setDone(input)),
+          ),
+        [WS_METHODS.majordomeAddTodo]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTodos.add(input)),
           ),
         [WS_METHODS.serverProbe]: (_input) => Effect.succeed({}),
         [WS_METHODS.serverGetConfig]: (_input) =>
