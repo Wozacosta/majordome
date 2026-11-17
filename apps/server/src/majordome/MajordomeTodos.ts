@@ -1,6 +1,6 @@
 /**
  * To-dos for a vault project: the markdown checkboxes of its notes. Nothing is stored elsewhere;
- * ticking one rewrites its line in the note, and a new one goes to `To-dos.md` in the inbox
+ * ticking one rewrites its line in the note, and a new one goes to `To-dos.md` at the top of the vault (not the inbox, which the digest empties)
  * folder. Writes hold the vault's lock and are saved with the owner's other edits.
  */
 
@@ -258,12 +258,10 @@ const make = Effect.gen(function* () {
         return yield* new MajordomeTodosError({ message: "Keep a to-do on one line." });
       }
       const vault = yield* requireVault(input.projectId);
-      const folder = path.join(vault.root, vault.layout.inboxFolder);
-      const file = path.join(folder, TODOS_FILENAME);
+      const file = path.join(vault.root, TODOS_FILENAME);
       yield* vaultLock.withLock(
         vault.root,
         Effect.gen(function* () {
-          yield* fileSystem.makeDirectory(folder, { recursive: true });
           const existing = yield* fileSystem.readFile(file).pipe(Effect.option);
           const lead = Option.match(existing, {
             onNone: () => "# To-dos\n\n",

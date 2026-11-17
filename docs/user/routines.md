@@ -45,8 +45,8 @@ A to-do has no time: it is an unticked box in a note, written `- [ ] Call the ba
 the sidebar lists every one of them, grouped by note, most recently changed notes first. Notes in
 an `archive` folder at the top of your notes are left out.
 
-- **Add one** by typing in **Add a to-do…** and pressing Enter. It goes to `To-dos.md` in your inbox
-  folder. You can also write a box in any note, or ask your assistant to add one.
+- **Add one** by typing in **Add a to-do…** and pressing Enter. It goes to `To-dos.md` at the top of
+  your notes folder. You can also write a box in any note, or ask your assistant to add one.
 - **Tick one** on the page and its box is ticked in the note itself. Nothing is kept anywhere else,
   so the page and your notes always agree.
 - Click a note's name to open it.

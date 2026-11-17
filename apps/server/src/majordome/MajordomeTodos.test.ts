@@ -220,16 +220,13 @@ it.layer(NodeServices.layer)("MajordomeTodos", (it) => {
     }),
   );
 
-  it.effect("adds a to-do to To-dos.md in the inbox folder, creating it when missing", () =>
+  it.effect("adds a to-do to To-dos.md at the top of the vault, creating it when missing", () =>
     Effect.gen(function* () {
       const { service, read } = yield* setUp({});
       yield* service.add({ projectId: vaultProject, text: "  Call the bank  " });
-      assert.equal(yield* read("inbox/To-dos.md"), "# To-dos\n\n- [ ] Call the bank\n");
+      assert.equal(yield* read("To-dos.md"), "# To-dos\n\n- [ ] Call the bank\n");
       yield* service.add({ projectId: vaultProject, text: "Buy bread" });
-      assert.equal(
-        yield* read("inbox/To-dos.md"),
-        "# To-dos\n\n- [ ] Call the bank\n- [ ] Buy bread\n",
-      );
+      assert.equal(yield* read("To-dos.md"), "# To-dos\n\n- [ ] Call the bank\n- [ ] Buy bread\n");
 
       for (const [text, message] of [
         ["   ", "Write what there is to do first."],
@@ -243,14 +240,11 @@ it.layer(NodeServices.layer)("MajordomeTodos", (it) => {
     }),
   );
 
-  it.effect("appends on a new line in the vault's own inbox folder", () =>
+  it.effect("appends on a new line when the file does not end with one", () =>
     Effect.gen(function* () {
-      const { service, read } = yield* setUp(
-        { "in/To-dos.md": "- [x] Old one" },
-        JSON.stringify({ folders: { inbox: "in" } }),
-      );
+      const { service, read } = yield* setUp({ "To-dos.md": "- [x] Old one" });
       yield* service.add({ projectId: vaultProject, text: "New one" });
-      assert.equal(yield* read("in/To-dos.md"), "- [x] Old one\n- [ ] New one\n");
+      assert.equal(yield* read("To-dos.md"), "- [x] Old one\n- [ ] New one\n");
     }),
   );
 });

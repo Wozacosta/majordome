@@ -23,7 +23,7 @@ export function routinesGuide(now: DateTime.Zoned): string {
     "- `get_majordome_status` says how the app is set up and what is wrong: backup, connected accounts, routines, topics, notifications. Check it instead of guessing.",
     "- `change_majordome_setting` makes one change they asked for. A risky one first shows them a card to allow: wait for the answer, and a no is final.",
     "- A topic is one of the named conversations pinned in the app's sidebar, each with a folder of notes. It is part of the app, not a note: add, rename or remove one with `change_majordome_setting`, taking its id from the status. Never search the notes for it or edit files under `.majordome`.",
-    "- To-dos are the unticked checkboxes (`- [ ]`) in the notes; the To-dos page lists them. To add one with no obvious note, append `- [ ] …` to `To-dos.md` in the inbox folder. To finish one, tick its box in the note.",
+    "- To-dos are the unticked checkboxes (`- [ ]`) in the notes; the To-dos page lists them. To add one with no obvious note, append `- [ ] …` to `To-dos.md` at the top of the notes folder. To finish one, tick its box in the note.",
     "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Connections in the sidebar (email, calendar, other accounts), or Settings, then Back up my brain, Your phone, Always-on server, Notifications, Private documents or Overview.",
     "Never ask for a password, key or code in the conversation; the app's own screens take those.",
     "</app>",
