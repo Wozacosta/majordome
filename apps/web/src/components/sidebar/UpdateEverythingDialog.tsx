@@ -4,6 +4,7 @@ import { Atom } from "effect/reactivity";
 import { ChevronRightIcon } from "lucide-react";
 import { Fragment, type RefObject, useRef } from "react";
 
+import { isMajordome } from "~/env";
 import { environmentThreadShells } from "~/state/threads";
 import {
   AlertDialog,
@@ -76,7 +77,7 @@ export function UpdateEverythingDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       {/* Refocusing the trigger after a pointer close shows its focus ring and opens its tooltip. */}
       <AlertDialogPopup
-        className="sm:max-w-xl"
+        className={isMajordome ? "sm:max-w-md" : "sm:max-w-xl"}
         initialFocus={cancelRef}
         finalFocus={(closeType) => closeType === "keyboard"}
       >
@@ -123,29 +124,35 @@ function UpdateEverythingDialogContent({
     ),
   );
   const running = stopped + continuing;
-  const threads = `${running} running ${running === 1 ? "thread" : "threads"}`;
+  const noun = isMajordome ? "conversation" : "thread";
+  const threads = `${running} running ${running === 1 ? noun : `${noun}s`}`;
   const restarting = new Set(restarts.map((machine) => machine.environmentId));
   const updating = rows.filter((row) => row.app !== null || row.providers.length > 0);
   const skipped = rows.filter((row) => row.skipped !== null);
+  const shownProviderCount = isMajordome ? 0 : providerCount;
+  const majordomeTitle = isMajordome ? majordomeUpdateTitle(updating) : null;
 
   return (
     <>
       <AlertDialogHeader className="shrink-0">
         <AlertDialogTitle>
-          {title ?? `Update ${updating.length} ${updating.length === 1 ? "machine" : "machines"}?`}
+          {title ??
+            majordomeTitle ??
+            `Update ${updating.length} ${updating.length === 1 ? "machine" : "machines"}?`}
         </AlertDialogTitle>
-        <AlertDialogDescription>
+        <AlertDialogDescription hidden={isMajordome && version === null && !checking}>
           {version !== null ? (
             <>
-              T3 Code <span className="font-mono text-xs">{version}</span>
+              {isMajordome ? "Majordome" : "T3 Code"}{" "}
+              <span className="font-mono text-xs">{version}</span>
             </>
           ) : null}
-          {version !== null && providerCount > 0 ? " · " : null}
-          {providerCount > 0
-            ? `${providerCount} provider ${providerCount === 1 ? "update" : "updates"}`
+          {version !== null && shownProviderCount > 0 ? " · " : null}
+          {shownProviderCount > 0
+            ? `${shownProviderCount} provider ${shownProviderCount === 1 ? "update" : "updates"}`
             : null}
           {checking
-            ? `${version !== null || providerCount > 0 ? " · " : ""}Checking for more…`
+            ? `${version !== null || shownProviderCount > 0 ? " · " : ""}Checking for more…`
             : null}
         </AlertDialogDescription>
       </AlertDialogHeader>
@@ -156,55 +163,76 @@ function UpdateEverythingDialogContent({
               {note}
             </p>
           ))}
-          {/* Machine names truncate first. Provider lists wrap between names, never inside one. */}
-          <div
-            role="table"
-            className="grid grid-cols-[minmax(4rem,max-content)_max-content_minmax(min-content,1fr)_max-content] gap-x-4 text-sm"
-          >
+          {isMajordome ? (
+            <ul className="flex flex-col text-sm">
+              {updating.map((row) => (
+                <li
+                  key={row.environmentId ?? "this-app"}
+                  className="flex items-baseline justify-between gap-4 border-b border-border/50 py-2 last:border-b-0"
+                >
+                  <span className="min-w-0 truncate">{row.label}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {[...(row.app !== null ? ["Majordome"] : []), ...row.providers].join(", ")}
+                    {row.environmentId !== null && restarting.has(row.environmentId) ? (
+                      <>
+                        {" "}
+                        <RunningThreads environmentId={row.environmentId} />
+                      </>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
             <div
-              role="row"
-              className="col-span-full grid grid-cols-subgrid border-b pb-1.5 text-muted-foreground text-xs"
+              role="table"
+              className="grid grid-cols-[minmax(4rem,max-content)_max-content_minmax(min-content,1fr)_max-content] gap-x-4 text-sm"
             >
-              <span role="columnheader">Machine</span>
-              <span role="columnheader">T3 Code</span>
-              <span role="columnheader">Providers</span>
-              <span role="columnheader" />
-            </div>
-            {updating.map((row) => (
               <div
-                key={row.environmentId ?? "this-app"}
                 role="row"
-                className="col-span-full grid grid-cols-subgrid border-b border-border/50 py-1.5 last:border-b-0"
+                className="col-span-full grid grid-cols-subgrid border-b pb-1.5 text-muted-foreground text-xs"
               >
-                <span role="cell" className="max-w-32 min-w-0">
-                  <span className="sr-only">{row.label}</span>
-                  <MiddleTruncate value={row.label} aria-hidden />
-                </span>
-                <span role="cell">
-                  {row.app !== null ? APP_LABELS[row.app] : null}
-                  {row.app === null && row.skipped !== null ? (
-                    <span className="text-muted-foreground">Skipped</span>
-                  ) : null}
-                  {row.app === "this-app" ? (
-                    <span className="block text-muted-foreground text-xs">restarts last</span>
-                  ) : null}
-                </span>
-                <span role="cell">
-                  {row.providers.map((provider, index) => (
-                    <Fragment key={provider}>
-                      <span className="whitespace-nowrap">{provider}</span>
-                      {index < row.providers.length - 1 ? ", " : null}
-                    </Fragment>
-                  ))}
-                </span>
-                <span role="cell" className="text-right">
-                  {row.environmentId !== null && restarting.has(row.environmentId) ? (
-                    <RunningThreads environmentId={row.environmentId} />
-                  ) : null}
-                </span>
+                <span role="columnheader">Machine</span>
+                <span role="columnheader">T3 Code</span>
+                <span role="columnheader">Providers</span>
+                <span role="columnheader" />
               </div>
-            ))}
-          </div>
+              {updating.map((row) => (
+                <div
+                  key={row.environmentId ?? "this-app"}
+                  role="row"
+                  className="col-span-full grid grid-cols-subgrid border-b border-border/50 py-1.5 last:border-b-0"
+                >
+                  <span role="cell" className="max-w-32 min-w-0">
+                    <span className="sr-only">{row.label}</span>
+                    <MiddleTruncate value={row.label} aria-hidden />
+                  </span>
+                  <span role="cell">
+                    {row.app !== null ? APP_LABELS[row.app] : null}
+                    {row.app === null && row.skipped !== null ? (
+                      <span className="text-muted-foreground">Skipped</span>
+                    ) : null}
+                    {row.app === "this-app" ? (
+                      <span className="block text-muted-foreground text-xs">restarts last</span>
+                    ) : null}
+                  </span>
+                  <span role="cell">
+                    {row.providers.map((provider, index) => (
+                      <Fragment key={provider}>
+                        <span className="whitespace-nowrap">{provider}</span>
+                        {index < row.providers.length - 1 ? ", " : null}
+                      </Fragment>
+                    ))}
+                  </span>
+                  <span role="cell" className="text-right">
+                    {row.environmentId !== null && restarting.has(row.environmentId) ? (
+                      <RunningThreads environmentId={row.environmentId} />
+                    ) : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {skipped.length > 0 ? (
             <Collapsible>
               <CollapsibleTrigger className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground data-panel-open:[&_svg]:rotate-90">
@@ -250,6 +278,16 @@ function UpdateEverythingDialogContent({
       </AlertDialogFooter>
     </>
   );
+}
+
+/** Names what is updated when every machine gets the same thing: "Update Claude on 2 machines?". */
+function majordomeUpdateTitle(rows: ReadonlyArray<UpdateEverythingRow>) {
+  const names = new Set(
+    rows.flatMap((row) => [...(row.app !== null ? ["Majordome"] : []), ...row.providers]),
+  );
+  const what = names.size === 1 ? [...names][0] : null;
+  if (what === null) return null;
+  return rows.length === 1 ? `Update ${what}?` : `Update ${what} on ${rows.length} machines?`;
 }
 
 function RunningThreads({ environmentId }: { readonly environmentId: EnvironmentId }) {
