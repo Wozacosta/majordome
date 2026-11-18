@@ -112,7 +112,19 @@ export const layer = Layer.unwrap(
       }).pipe(Effect.scoped),
     );
 
+    const forget = owner((request) =>
+      Effect.gen(function* () {
+        const call = callOf(request);
+        if (call === null) return HttpServerResponse.empty({ status: 400 });
+        return yield* peers.forget(call).pipe(
+          Effect.as(HttpServerResponse.empty({ status: 204 })),
+          Effect.catch((error) => Effect.succeed(refusal(error))),
+        );
+      }),
+    );
+
     return Layer.mergeAll(
+      HttpRouter.add("DELETE", PEER_VAULT_PATH, forget),
       HttpRouter.add("GET", PEER_VAULT_PATH, offer),
       HttpRouter.add("POST", PEER_VAULT_PATH, accept),
     );

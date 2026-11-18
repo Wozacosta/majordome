@@ -36,6 +36,7 @@ import {
   type PeerRemoteError,
   type PeerRequest,
   renewPeerSession,
+  sendPeerGoodbye,
   sendPeerNews,
 } from "./peerRemote.ts";
 import * as VaultActiveRuns from "./VaultActiveRuns.ts";
@@ -61,6 +62,8 @@ const RENEW_SESSION_AFTER = Duration.days(20);
 const MISSES_BEFORE_PROBLEM = 3;
 /** The answering machine counts as in step while the other has been in touch this recently. */
 const HEARD_RECENTLY = Duration.minutes(15);
+/** Unlinking does not wait on a machine that is off. */
+const GOODBYE_TIMEOUT = Duration.seconds(5);
 
 const PeerLink = Schema.Struct({
   url: Schema.String,
@@ -217,6 +220,11 @@ export class MajordomePeerSync extends Context.Service<
       readonly replay: boolean;
       readonly from: PeerCaller;
     }) => Effect.Effect<{ readonly head: string }, PeerSyncRefusal>;
+    /** The answering side: the machine that kept these notes in step with this one has stopped. */
+    readonly forget: (input: {
+      readonly brainId: string;
+      readonly from: PeerCaller;
+    }) => Effect.Effect<void, PeerSyncRefusal>;
   }
 >()("t3/majordome/MajordomePeerSync") {}
 
@@ -449,9 +457,23 @@ const make = Effect.gen(function* () {
     yield* storeLink({ ...input, token });
   }, Effect.provide(services));
 
+  /** Best effort: a machine that is off stops showing this one once it has been quiet a while. */
+  const sayGoodbye = Effect.fn("MajordomePeerSync.sayGoodbye")(
+    function* (vaultRoot: string, url: string) {
+      const brainId = yield* brainIdOf(vaultRoot);
+      const token = Option.getOrNull(yield* readToken(vaultRoot));
+      if (brainId === null || token === null) return;
+      yield* sendPeerGoodbye({ url, token, brainId, from: yield* caller });
+    },
+    Effect.provide(services),
+    Effect.timeout(GOODBYE_TIMEOUT),
+    Effect.ignore(),
+  );
+
   const unlink: MajordomePeerSync["Service"]["unlink"] = Effect.fn("MajordomePeerSync.unlink")(
     function* (vaultRoot) {
       const linked = (yield* readState(vaultRoot)).link;
+      if (linked !== undefined) yield* sayGoodbye(vaultRoot, linked.url);
       yield* secrets.remove(peerSessionSecret(vaultRoot)).pipe(Effect.ignore);
       yield* updateState(vaultRoot, ({ link: _, ...rest }) => rest);
       if (linked !== undefined) {
@@ -778,7 +800,31 @@ const make = Effect.gen(function* () {
     Effect.mapError(refused),
   );
 
-  return MajordomePeerSync.of({ link, linkWithSession, unlink, sync, status, offer, accept });
+  const forget: MajordomePeerSync["Service"]["forget"] = Effect.fn("MajordomePeerSync.forget")(
+    function* (input) {
+      const vaultRoot = yield* vaultOf(input.brainId);
+      yield* updateState(vaultRoot, ({ heardFrom, ...rest }) =>
+        // Another machine has been in touch since: it is the one to keep showing.
+        heardFrom?.environmentId !== undefined &&
+        heardFrom.environmentId !== input.from.environmentId
+          ? { ...rest, heardFrom }
+          : rest,
+      );
+    },
+    Effect.provide(services),
+    Effect.mapError(refused),
+  );
+
+  return MajordomePeerSync.of({
+    link,
+    linkWithSession,
+    unlink,
+    sync,
+    status,
+    offer,
+    accept,
+    forget,
+  });
 });
 
 export const layer = Layer.effect(MajordomePeerSync, make);

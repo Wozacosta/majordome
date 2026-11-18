@@ -110,7 +110,11 @@ export interface PeerRequest {
   readonly from: { readonly label: string; readonly environmentId: string };
 }
 
-const peerRequest = (method: "GET" | "POST", input: PeerRequest, extra: Record<string, string>) =>
+const peerRequest = (
+  method: "GET" | "POST" | "DELETE",
+  input: PeerRequest,
+  extra: Record<string, string>,
+) =>
   HttpClientRequest.make(method)(new URL(PEER_VAULT_PATH, input.url)).pipe(
     HttpClientRequest.bearerToken(input.token),
     HttpClientRequest.setUrlParams({
@@ -144,6 +148,13 @@ export const fetchPeerNews = Effect.fn("majordome.peerRemote.fetchNews")(functio
     Effect.mapError(() => new PeerRemoteError({ reason: "unreachable" })),
   );
   return { arrived: true, head };
+});
+
+/** Tells the other machine this one no longer keeps these notes in step with it. */
+export const sendPeerGoodbye = Effect.fn("majordome.peerRemote.sendGoodbye")(function* (
+  input: PeerRequest,
+) {
+  yield* execute(peerRequest("DELETE", input, {}));
 });
 
 /** Sends this machine's new changes; answers with the commit the other machine is at now. */

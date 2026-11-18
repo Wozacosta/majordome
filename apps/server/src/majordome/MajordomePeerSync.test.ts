@@ -153,6 +153,11 @@ const wireTo = Effect.fn("test.wireTo")(function* (server: Peers) {
       if (call === null) return answer(400);
       const temp = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-wire-" });
       const bundlePath = `${temp}/news.bundle`;
+      if (request.method === "DELETE") {
+        yield* server.forget(call).pipe(Effect.ignore);
+        wire.calls.push("goodbye");
+        return answer(204);
+      }
       if (request.method === "GET") {
         const packed = yield* server.offer({ ...call, bundlePath }).pipe(Effect.result);
         if (packed._tag === "Failure") {
@@ -395,7 +400,7 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
 
   it.effect("keeps the session in the secret store, and forgets it when unlinked", () =>
     Effect.gen(function* () {
-      const { mac, fs, here, wire, link } = yield* twoMachines();
+      const { mac, server, fs, here, there, wire, link } = yield* twoMachines();
       yield* link;
       const secretName = MajordomePeerSync.peerSessionSecret(mac);
       const stored = yield* here.secrets.get(secretName);
@@ -409,7 +414,9 @@ it.layer(testLayer)("MajordomePeerSync", (it) => {
       assert.notInclude(ledger, PAIRING);
       assert.notInclude(ledger, "/some/page");
 
+      assert.equal((yield* there.peers.status(server))?.label, "MacBook");
       yield* here.peers.unlink(mac);
+      assert.isNull(yield* there.peers.status(server));
       assert.isTrue(Option.isNone(yield* here.secrets.get(secretName)));
       assert.isNull(yield* here.peers.status(mac));
       assert.notInclude(yield* fs.readFileString(here.ledgerPath), SERVER_URL);
