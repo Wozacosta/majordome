@@ -36,3 +36,19 @@ export function withoutTicked(
 export function todosSummary(totalOpen: number, totalNotes: number): string {
   return `${totalOpen} to do in ${totalNotes} ${totalNotes === 1 ? "note" : "notes"}`;
 }
+
+/**
+ * A to-do's words as read, without the Markdown marks around them. For showing only: ticking
+ * sends the line as written.
+ */
+export function todoDisplayText(text: string): string {
+  const plain = text
+    .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, "$1")
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/(\*\*|__|~~|==)(?=\S)(.+?)(?<=\S)\1/g, "$2")
+    .replace(/(?<![\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/g, "$1")
+    .replace(/(?<![\w_])_(?=\S)([^_]+?)(?<=\S)_(?![\w_])/g, "$1")
+    .trim();
+  return plain.length > 0 ? plain : text;
+}

@@ -1,7 +1,7 @@
 import type { MajordomeTodoNote } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
-import { todoKey, todosSummary, withoutTicked } from "./todos.logic";
+import { todoDisplayText, todoKey, todosSummary, withoutTicked } from "./todos.logic";
 
 const note = (path: string, texts: ReadonlyArray<string>, more = 0): MajordomeTodoNote => ({
   path,
@@ -40,4 +40,20 @@ it("hides the to-dos ticked here, drops a note left empty and recounts", () => {
 it("says how much there is to do", () => {
   expect(todosSummary(12, 4)).toBe("12 to do in 4 notes");
   expect(todosSummary(1, 1)).toBe("1 to do in 1 note");
+});
+
+it("shows a to-do's words without their Markdown marks", () => {
+  expect(todoDisplayText("Ask Catarina if **Dec 30** night can be added")).toBe(
+    "Ask Catarina if Dec 30 night can be added",
+  );
+  expect(todoDisplayText("Read [[projects/move|the move plan]] and [[Lease]]")).toBe(
+    "Read the move plan and Lease",
+  );
+  expect(todoDisplayText("Pay [the bill](https://example.com/b) with `IBAN` _today_")).toBe(
+    "Pay the bill with IBAN today",
+  );
+  expect(todoDisplayText("Compare 3 * 4 and snake_case_name, 5*6*7")).toBe(
+    "Compare 3 * 4 and snake_case_name, 5*6*7",
+  );
+  expect(todoDisplayText("****")).toBe("****");
 });

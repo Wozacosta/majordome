@@ -21,7 +21,7 @@ import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { notesLink } from "./notes.logic";
 import { EntryList, Muted, PageHeader, ROW_ACTION_CLASS, Section, StatusLine } from "./paper";
-import { todoKey, todosSummary, withoutTicked } from "./todos.logic";
+import { todoDisplayText, todoKey, todosSummary, withoutTicked } from "./todos.logic";
 import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
@@ -134,7 +134,7 @@ function VaultTodos({ vault }: { readonly vault: MajordomeVault }) {
                         />
                       </span>
                       <span className="min-w-0 flex-1 text-sm wrap-break-word text-foreground">
-                        {todo.text}
+                        {todoDisplayText(todo.text)}
                       </span>
                     </label>
                   </li>
