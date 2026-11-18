@@ -729,14 +729,17 @@ function FeedOwnDayRow({
 function OpenChatButton({
   environmentId,
   threadId,
+  answer = false,
 }: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
+  /** The chat holds a question to answer, so the button says so and stands out. */
+  readonly answer?: boolean;
 }) {
   return (
     <Button
       size="xs"
-      variant="ghost-muted"
+      variant={answer ? "outline" : "ghost-muted"}
       render={
         <Link
           to="/$environmentId/$threadId"
@@ -745,7 +748,7 @@ function OpenChatButton({
       }
     >
       <MessageSquareIcon />
-      Open chat
+      {answer ? "Answer in chat" : "Open chat"}
     </Button>
   );
 }
@@ -766,16 +769,30 @@ function FeedRunRow({
   ]
     .filter((part) => part !== null && part !== "")
     .join(" · ");
+  const answersInChat = item.status === "waiting" && item.ownerCardId === null;
   return (
     <Entry
       data-feed-run={item.status}
       title={item.title}
       meta={meta}
-      actions={<OpenChatButton environmentId={item.vault.environmentId} threadId={item.threadId} />}
+      actions={
+        answersInChat ? undefined : (
+          <OpenChatButton environmentId={item.vault.environmentId} threadId={item.threadId} />
+        )
+      }
     >
       <StatusLine tone={item.status === "waiting" ? "warning" : "error"}>
         {FEED_RUN_STATUS_LABELS[item.status]}
       </StatusLine>
+      {answersInChat ? (
+        <div>
+          <OpenChatButton
+            environmentId={item.vault.environmentId}
+            threadId={item.threadId}
+            answer
+          />
+        </div>
+      ) : null}
       {item.ownerCardId !== null ? (
         <>
           <PrivateDocumentFeedRequest
