@@ -108,9 +108,7 @@ move would be lost.
 
 ## Do it by hand
 
-For any other provider, or if you prefer a terminal. These steps copy your notes to the server from
-a GitHub backup (**Settings > Back up my brain > Connect GitHub**), which is the simplest way to get
-them there; after that the two machines no longer need it.
+For any other provider, or if you prefer a terminal.
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.
@@ -137,16 +135,32 @@ them there; after that the two machines no longer need it.
    address, `MAJORDOME_PUBLIC_URL=https://majordome.<your-tailnet>.ts.net` (shown in Tailscale's
    admin page). Then run `docker compose up -d` again.
 
-5. **Bring your notes** from your GitHub backup:
+5. **Bring your notes.** On your computer, in a terminal, pack your notes folder (here `~/brain`)
+   into one file and send it to the server:
 
    ```bash
-   docker compose exec -it majordome git clone https://github.com/<you>/majordome-brain.git /data/brain
-   docker compose exec majordome majord project add /data/brain
+   git -C ~/brain bundle create ~/brain.bundle --all
+   scp ~/brain.bundle root@<server address>:majordome/
    ```
 
-   GitHub asks for your username and a password. Your usual password does not work there: make a
-   key on [GitHub's token page](https://github.com/settings/tokens/new?scopes=repo&description=Majordome%20server)
-   that expires in a day, and paste it.
+   Then on the server, in the `majordome` folder:
+
+   ```bash
+   docker compose cp brain.bundle majordome:/tmp/brain.bundle
+   docker compose exec majordome git clone /tmp/brain.bundle /data/brain
+   docker compose exec majordome git -C /data/brain remote remove origin
+   docker compose exec majordome majord project add /data/brain
+   rm brain.bundle
+   ```
+
+   Delete `~/brain.bundle` on your computer too. The file holds your notes as Majordome last saved
+   them, with their history; private documents stay on your computer.
+
+   If your notes are backed up to GitHub, you can copy them from there instead of the first three
+   server commands: `docker compose exec -it majordome git clone https://github.com/<you>/majordome-brain.git /data/brain`.
+   GitHub asks for a username and a key from
+   [its token page](https://github.com/settings/tokens/new?scopes=repo&description=Majordome%20server),
+   not your password.
 
 6. **Connect.** Get a one-time code with `docker compose exec majordome majord pair`.
    - On your computer, open **Settings > Advanced > Environments**, add an environment, and enter

@@ -5,6 +5,8 @@ you. Ask in plain words:
 
 > Is my backup working?
 >
+> Are my computer and my server in step?
+>
 > Let routines work for up to 45 minutes.
 >
 > Remove the Fitness topic.
