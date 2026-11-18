@@ -13,6 +13,7 @@ import * as TestClock from "effect/testing/TestClock";
 
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -73,6 +74,9 @@ const backupFor = Effect.fn("test.backupFor")(function* (
       list: () => Effect.succeed([{ projectId, workspaceRoot: root }]),
     } as unknown as ProjectStore.ProjectStoreV2["Service"]),
     Effect.provideService(GoogleDriveAuth.GoogleDriveAuth, googleAuth),
+    Effect.provideService(ServerEnvironment.ServerEnvironment, {
+      getDescriptor: Effect.succeed({ label: "MacBook" }),
+    } as unknown as ServerEnvironment.ServerEnvironment["Service"]),
     Effect.provideService(HttpClient.HttpClient, http),
     // These vaults are on one machine only; MajordomePeerSync.test.ts covers two.
     Effect.provide(

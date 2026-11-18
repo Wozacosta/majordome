@@ -41,6 +41,7 @@ import { HttpClient } from "effect/http";
 
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import { forkParked } from "../serverActivation.ts";
@@ -229,8 +230,8 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   >();
   const git = yield* GitVcsDriver.GitVcsDriver;
   const homeDirectory = yield* HostProcess.HomeDirectory;
-  // "Samys-MacBook-Pro.local" reads as "Samys MacBook Pro" in a file name.
-  const machineName = (yield* HostProcess.Hostname).split(".")[0]!.replaceAll("-", " ");
+  // The name its owner knows this machine by; a container's host name says nothing.
+  const machineName = (yield* (yield* ServerEnvironment.ServerEnvironment).getDescriptor).label;
   const hasSshKeyFile = Effect.forEach(["id_ed25519", "id_ecdsa", "id_rsa"], (name) =>
     fileSystem
       .exists(path.join(homeDirectory, ".ssh", name))

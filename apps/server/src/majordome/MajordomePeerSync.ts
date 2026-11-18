@@ -9,7 +9,6 @@
 import * as NodeCrypto from "node:crypto";
 
 import type { MajordomeBackupPeer } from "@t3tools/contracts";
-import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -240,8 +239,8 @@ const make = Effect.gen(function* () {
     | ProcessRunner.ProcessRunner
     | HttpClient.HttpClient
   >();
-  // "Samys-MacBook-Pro.local" reads as "Samys MacBook Pro" in a file name.
-  const machineName = (yield* HostProcess.Hostname).split(".")[0]!.replaceAll("-", " ");
+  // The name its owner knows this machine by; a container's host name says nothing.
+  const machineName = (yield* environment.getDescriptor).label;
   const ledgerPath = path.join(config.stateDir, "majordome", "peers.json");
   const ledgerLock = yield* Semaphore.make(1);
   const ledger = yield* Ref.make<PeerLedger>(

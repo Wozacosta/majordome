@@ -1,7 +1,6 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -78,7 +77,6 @@ const makeMachine = Effect.fn("test.makeMachine")(function* (input: {
       getDescriptor: Effect.succeed({ environmentId: input.id, label: input.label }),
     } as unknown as ServerEnvironment.ServerEnvironment["Service"]),
     Effect.provideService(HttpClient.HttpClient, input.http ?? noNetwork),
-    Effect.provideService(HostProcess.Hostname, `${input.label}.local`),
     Effect.provide(Layer.merge(Layer.fresh(VaultLock.layer), VaultActiveRuns.layerIdle)),
   );
   return {
