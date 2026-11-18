@@ -590,7 +590,8 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
             folder: folder.path,
             slug,
             date,
-            keep: folder.keep,
+            // Not the stored count: copies set up when it was 14 follow today's.
+            keep: FOLDER_BACKUP_KEEP,
           }).pipe(Effect.provide(services), Effect.result);
           yield* stored._tag === "Failure"
             ? updateState(vaultRoot, { folderError: stored.failure.message })
@@ -742,7 +743,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           ? null
           : {
               path: state.folder.path,
-              keep: state.folder.keep,
+              keep: FOLDER_BACKUP_KEEP,
               lastBackupAt: state.lastFolderBackupAt ?? null,
               lastFile: state.lastFolderFile ?? null,
               lastError: state.folderError ?? null,

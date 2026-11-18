@@ -35,8 +35,15 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   - Searched: everything else, through a SQLite full-text index the server rebuilds. Not in git.
   - Nightly dreaming: a routine moves anything worth keeping into `memory.md` or project notes.
 - Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in
-  `attachments/` next to the note. Large files stay in your
-  file store, and notes link to them.
+  `attachments/` next to the note.
+- **A topic's documents live in its folder, in git like notes** (a bill, a lease scan), up to 25 MB
+  each, with no git-lfs and no gitignore: one place to look, one backup, and the agent reads them
+  like any file. Anything that is not Markdown in the folder is a "file"; the Files card in the
+  topic's conversation lists them. The costs are accepted: about twice the disk (the working file
+  plus its copy in history), deleting a file frees nothing, and backups grow. So the card warns
+  once history passes about 1 GB, and nightly folder and Drive copies are kept 5 deep, not 14.
+  Sensitive ones go to Tier B instead ("Keep private"), linked to the topic but outside the vault.
+  Larger files still stay in your file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
   Edits to `CLAUDE.md` wait for approval.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting

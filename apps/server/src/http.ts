@@ -51,6 +51,7 @@ import {
 } from "./auth/http.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import { WEBHOOK_ROUTE_PREFIX } from "./scheduledTasks/ScheduledTaskService.ts";
 import {
   browserApiCorsAllowedHeaders,
@@ -430,7 +431,8 @@ const layerUntracedRequests = Layer.succeed(HttpMiddleware.TracerDisabledWhen)((
     path.startsWith(`${WEBHOOK_ROUTE_PREFIX}/`) ||
     path.startsWith(`${ASSET_ROUTE_PREFIX}/`) ||
     path.startsWith(`${ATTACHMENT_UPLOAD_ROUTE_PREFIX}/`) ||
-    path.startsWith(`${MajordomePrivateDocuments.PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX}/`)
+    path.startsWith(`${MajordomePrivateDocuments.PRIVATE_DOCUMENT_VIEW_ROUTE_PREFIX}/`) ||
+    path.startsWith(`${MajordomeTopicFiles.TOPIC_FILE_VIEW_ROUTE_PREFIX}/`)
   );
 });
 
@@ -573,6 +575,28 @@ export const layerPrivateDocumentViewRoute = HttpRouter.add(
         "Cache-Control": "no-store",
       },
     });
+  }),
+);
+
+/** The owner's download of one file kept with a topic, behind the minute-long link they asked for. */
+export const layerTopicFileViewRoute = HttpRouter.add(
+  "GET",
+  `${MajordomeTopicFiles.TOPIC_FILE_VIEW_ROUTE_PREFIX}/*`,
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const url = requestUrl(request);
+    if (Option.isNone(url)) return HttpServerResponse.text("Bad Request", { status: 400 });
+    const token = url.value.pathname.slice(
+      `${MajordomeTopicFiles.TOPIC_FILE_VIEW_ROUTE_PREFIX}/`.length,
+    );
+    const files = yield* MajordomeTopicFiles.MajordomeTopicFiles;
+    const file = yield* files.readForOwner(token);
+    if (Option.isNone(file)) return HttpServerResponse.text("Not Found", { status: 404 });
+    return yield* assetFileResponse({
+      path: file.value.path,
+      download: true,
+      fileName: file.value.fileName,
+    }).pipe(Effect.orElseSucceed(() => HttpServerResponse.text("Not Found", { status: 404 })));
   }),
 );
 

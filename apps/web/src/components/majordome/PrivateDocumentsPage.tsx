@@ -17,7 +17,6 @@ import { AsyncResult } from "effect/reactivity";
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
 import { useEnvironments } from "../../state/environments";
-import { attachmentEnvironment } from "../../state/attachments";
 import { majordomeEnvironment } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { readPreparedConnection } from "../../state/session";
@@ -59,6 +58,7 @@ import {
   privateDocumentFailureMessage,
 } from "./privateDocuments.logic";
 import { useMachineNames } from "./useMachineNames";
+import { usePendingUpload } from "./usePendingUpload";
 
 /** Documents the assistant may open only after the owner says yes, per machine that keeps them. */
 export function PrivateDocumentsPage() {
@@ -300,11 +300,7 @@ function AddDocument({
 }) {
   const id = useId();
   const fileInput = useRef<HTMLInputElement>(null);
-  const createUploadUrl = useAtomCommand(attachmentEnvironment.createUploadUrl, {
-    label: "upload private document",
-    reportFailure: false,
-    reportDefect: false,
-  });
+  const sendFile = usePendingUpload(environmentId, "upload private document");
   const add = useAtomCommand(majordomeEnvironment.addPrivateDocument, {
     label: "add private document",
     reportFailure: false,
@@ -355,34 +351,16 @@ function AddDocument({
 
   /** Sends the file the way attachments go, then has the server encrypt it. Null when it worked. */
   const upload = async (picked: File): Promise<string | null> => {
-    const mediaType = picked.type || "application/octet-stream";
-    const minted = await createUploadUrl({
-      environmentId,
-      input: { type: "file", name: picked.name, mimeType: mediaType, sizeBytes: picked.size },
-    });
-    const connection = readPreparedConnection(environmentId);
-    const url =
-      minted._tag === "Success" && connection !== null
-        ? resolveAssetUrl(connection.httpBaseUrl, minted.value.relativeUrl)
-        : null;
-    if (minted._tag !== "Success" || url === null) return "Could not start the upload. Try again.";
-    const sent = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": mediaType },
-      body: picked,
-    }).then(
-      (response) => response.ok,
-      () => false,
-    );
-    if (!sent) return "The upload did not arrive. Try again.";
+    const sent = await sendFile(picked);
+    if (!sent.ok) return sent.message;
     const added = await add({
       environmentId,
       input: {
-        attachmentId: minted.value.attachmentId,
+        attachmentId: sent.attachmentId,
         name: name.trim(),
         ...(description.trim() === "" ? {} : { description: description.trim() }),
         fileName: picked.name,
-        mediaType,
+        mediaType: sent.mediaType,
       },
     });
     return added._tag === "Success"

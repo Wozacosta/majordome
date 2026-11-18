@@ -360,6 +360,7 @@ export const make = Effect.gen(function* () {
         mediaType: input.mediaType,
         sizeBytes: plain.byteLength,
         addedAt: yield* nowIso,
+        ...(input.topic === undefined ? {} : { topic: input.topic }),
       };
       yield* Effect.gen(function* () {
         const documents = yield* readIndex;

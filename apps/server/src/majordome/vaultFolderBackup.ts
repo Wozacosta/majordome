@@ -18,7 +18,7 @@ import * as Schema from "effect/Schema";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 
-export const FOLDER_BACKUP_KEEP = 14;
+export const FOLDER_BACKUP_KEEP = 5;
 
 export class FolderBackupError extends Schema.TaggedError<FolderBackupError>()(
   "FolderBackupError",

@@ -139,6 +139,9 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeGetApproval]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTodos]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeListTopicFiles]: AuthOrchestrationReadScope,
+  // The files sit beside the notes, which this scope already reads.
+  [WS_METHODS.majordomeViewTopicFile]: AuthOrchestrationReadScope,
   [WS_METHODS.secretsAnswerRequest]: AuthOrchestrationOperateScope,
   // Delivery logs hold request bodies, so they need the same scope as the URL.
   [WS_METHODS.scheduledTasksListWebhookDeliveries]: AuthOrchestrationOperateScope,

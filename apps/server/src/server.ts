@@ -141,6 +141,7 @@ import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
+import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
@@ -836,6 +837,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   layerMajordomeVault,
   layerMajordomeTopics,
   MajordomeTodos.layer.pipe(Layer.provide(VaultLock.layer)),
+  MajordomeTopicFiles.layer.pipe(Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer))),
   MajordomeConnectors.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
@@ -1020,6 +1022,7 @@ const layerMakeRoutes = Layer.mergeAll(
     ServerHttp.layerAssetRoute,
     ServerHttp.layerAttachmentUploadRoute,
     ServerHttp.layerPrivateDocumentViewRoute,
+    ServerHttp.layerTopicFileViewRoute,
     // What a server answers while the owner's computer sets it up and copies the notes to it.
     MoveReceiverHttp.layer.pipe(
       Layer.provide(

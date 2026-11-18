@@ -278,6 +278,27 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeAddTodo,
       onSettled: ({ environmentId }, registry) => bumpTodos(environmentId, registry),
     }),
+    /** Read again on every mount and after each change; the assistant adds files too. */
+    topicFiles: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:topic-files",
+      tag: WS_METHODS.majordomeListTopicFiles,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => topicFilesRevision(environmentId),
+    }),
+    addTopicFile: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-topic-file",
+      tag: WS_METHODS.majordomeAddTopicFile,
+      onSettled: ({ environmentId }, registry) => bumpTopicFiles(environmentId, registry),
+    }),
+    removeTopicFile: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-topic-file",
+      tag: WS_METHODS.majordomeRemoveTopicFile,
+      onSettled: ({ environmentId }, registry) => bumpTopicFiles(environmentId, registry),
+    }),
+    viewTopicFile: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:view-topic-file",
+      tag: WS_METHODS.majordomeViewTopicFile,
+    }),
     topics: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:topics",
       tag: WS_METHODS.majordomeListTopics,
@@ -347,6 +368,17 @@ const todosRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpTodos = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(todosRevision(environmentId), (value) => value + 1));
+
+/** Bumped after a file is added or removed, so every topic's files in that environment read again. */
+const topicFilesRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:topic-files-revision:${environmentId}`),
+  ),
+);
+
+const bumpTopicFiles = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(topicFilesRevision(environmentId), (value) => value + 1));
 
 /** Bumped after a rebuild, so the notes search status reads again. */
 const notesIndexRevision = Atom.family((environmentId: EnvironmentId) =>

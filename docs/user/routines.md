@@ -51,6 +51,25 @@ an `archive` folder at the top of your notes are left out.
   so the page and your notes always agree.
 - Click a note's name to open it.
 
+## Files kept with a topic
+
+A topic can hold documents as well as notes: an electricity bill, a lease scan, a contract. Open
+the topic's conversation and use the **Files** card in the panel on the right: **Add a file**, or
+drop files onto the card. Each file can be up to 25 MB.
+
+- A file goes into the topic's folder in your notes, beside its notes. Your assistant can read it,
+  and it is backed up with your notes. You can also say "keep this with Finances" in a conversation.
+- **Keep private**, offered when you add a file, sends it to
+  [private documents](./private-documents.md) instead: encrypted on that machine, outside your
+  notes and their backups, and your assistant asks before opening it. It shows on the card with a
+  lock.
+- Click a file to download it. The cross removes it from the topic.
+- Markdown files are notes, so they show in **Notes**, not on the card.
+
+Files make your notes folder bigger, and a removed file still takes room in its history. Past
+about 1 GB the card says so, because backups then take longer. A backup folder and Google Drive
+keep the last 5 nightly copies.
+
 ## Good to know
 
 - With an [always-on server](./always-on-server.md), routines run there, and the Routines screen

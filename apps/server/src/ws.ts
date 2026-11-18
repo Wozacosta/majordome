@@ -132,6 +132,7 @@ import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
+import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
@@ -1505,6 +1506,7 @@ export const layerWsRpc = (
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
+      const majordomeTopicFiles = yield* MajordomeTopicFiles.MajordomeTopicFiles;
       const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const secretRequests = yield* SecretRequests.SecretRequests;
       const guestShares = yield* GuestShareService.GuestShareService;
@@ -2544,6 +2546,22 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeAddTodo]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTodos.add(input)),
+          ),
+        [WS_METHODS.majordomeListTopicFiles]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopicFiles.list(input)),
+          ),
+        [WS_METHODS.majordomeAddTopicFile]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopicFiles.add(input)),
+          ),
+        [WS_METHODS.majordomeRemoveTopicFile]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopicFiles.remove(input)),
+          ),
+        [WS_METHODS.majordomeViewTopicFile]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopicFiles.viewUrl(input)),
           ),
         [WS_METHODS.serverProbe]: (_input) => Effect.succeed({}),
         [WS_METHODS.serverGetConfig]: (_input) =>

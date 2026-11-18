@@ -20,6 +20,8 @@ const extensionOf = (name: string) => {
 
 export const isNoteFile = (name: string) => NOTE_EXTENSIONS.has(extensionOf(name));
 
+export const isMarkdownFile = (name: string) => MARKDOWN_EXTENSIONS.has(extensionOf(name));
+
 export interface NoteHeading {
   /** Where the heading's line starts in the body, in characters as SQLite counts them. */
   readonly offset: number;

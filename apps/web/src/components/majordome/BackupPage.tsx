@@ -857,7 +857,7 @@ function GoogleDriveOption({
       <Muted className={READING_MEASURE_CLASS}>
         Every night Majordome puts an encrypted copy of your notes and their history in a “Majordome
         backups” folder in your Google Drive. It can only see the files it puts there, and keeps the
-        last 14 copies.
+        last 5 copies.
       </Muted>
       <Muted className={READING_MEASURE_CLASS}>
         Majordome's Google app is still in testing: only people Majordome invited can connect, and
@@ -988,7 +988,7 @@ function FolderOption({
   const how = (
     <Muted className={READING_MEASURE_CLASS}>
       Every night Majordome puts an encrypted copy of your notes and their history in a folder you
-      choose, such as iCloud Drive, Dropbox or a USB drive. It keeps the last 14 copies.
+      choose, such as iCloud Drive, Dropbox or a USB drive. It keeps the last 5 copies.
     </Muted>
   );
 

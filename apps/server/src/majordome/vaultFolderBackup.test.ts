@@ -43,7 +43,7 @@ it.layer(testLayer)("folder backup", (it) => {
         folder,
         slug: "brain",
         date: "2026-11-15",
-        keep: 14,
+        keep: 5,
       });
 
       assert.equal(file, `${folder}/majordome-brain-2026-11-15.age`);

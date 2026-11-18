@@ -15,6 +15,9 @@ Majordome encrypts the file and keeps only the encrypted copy. It does not move 
 original, so keep that somewhere safe: Majordome's copy can only be opened on the machine that
 holds it.
 
+You can also add one from a topic's conversation: **Add a file** on the **Files** card, then **Keep
+private**. It is then listed with that topic as well as here.
+
 With several machines, each has its own list. A document lives on the machine you added it to, and
 only conversations and routines that run there can ask for it.
 

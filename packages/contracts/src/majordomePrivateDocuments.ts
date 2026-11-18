@@ -1,6 +1,12 @@
 import * as Schema from "effect/Schema";
 
-import { IsoDateTime, ThreadId, TrimmedNonEmptyString, TurnItemId } from "./baseSchemas.ts";
+import {
+  IsoDateTime,
+  ProjectId,
+  ThreadId,
+  TrimmedNonEmptyString,
+  TurnItemId,
+} from "./baseSchemas.ts";
 
 /** One private document may be this large; the whole file is encrypted and decrypted in memory. */
 export const MAJORDOME_PRIVATE_DOCUMENT_MAX_BYTES = 25 * 1024 * 1024;
@@ -10,6 +16,13 @@ export const MAJORDOME_PRIVATE_DOCUMENT_REASON_MAX = 500;
 
 export const MajordomePrivateDocumentId = Schema.String.check(Schema.isPattern(/^[0-9a-f]{32}$/));
 export type MajordomePrivateDocumentId = typeof MajordomePrivateDocumentId.Type;
+
+/** The topic a private document is kept with, on the machine that holds both. */
+export const MajordomePrivateDocumentTopic = Schema.Struct({
+  projectId: ProjectId,
+  topicId: TrimmedNonEmptyString,
+});
+export type MajordomePrivateDocumentTopic = typeof MajordomePrivateDocumentTopic.Type;
 
 /** What is known about a private document without opening it. Never its content. */
 export const MajordomePrivateDocument = Schema.Struct({
@@ -21,6 +34,8 @@ export const MajordomePrivateDocument = Schema.Struct({
   mediaType: Schema.String,
   sizeBytes: Schema.Number,
   addedAt: IsoDateTime,
+  /** Absent for a document kept with no topic, and for those added before topics had files. */
+  topic: Schema.optional(MajordomePrivateDocumentTopic),
 });
 export type MajordomePrivateDocument = typeof MajordomePrivateDocument.Type;
 
@@ -69,6 +84,7 @@ export const MajordomeAddPrivateDocumentInput = Schema.Struct({
   ),
   fileName: TrimmedNonEmptyString.check(Schema.isMaxLength(255)),
   mediaType: Schema.String.check(Schema.isMaxLength(255)),
+  topic: Schema.optional(MajordomePrivateDocumentTopic),
 });
 export type MajordomeAddPrivateDocumentInput = typeof MajordomeAddPrivateDocumentInput.Type;
 

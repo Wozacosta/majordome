@@ -161,6 +161,15 @@ import {
   MajordomeTodosResult,
 } from "./majordomeTodos.ts";
 import {
+  MajordomeAddTopicFileInput,
+  MajordomeTopicFile,
+  MajordomeTopicFileInput,
+  MajordomeTopicFilesError,
+  MajordomeTopicFilesInput,
+  MajordomeTopicFilesResult,
+  MajordomeViewTopicFileResult,
+} from "./majordomeTopicFiles.ts";
+import {
   MajordomeCreateTopicInput,
   MajordomeOpenRoutinesConversationInput,
   MajordomeOpenTopicResult,
@@ -808,6 +817,10 @@ export const WS_METHODS = {
   majordomeListTodos: "majordome.listTodos",
   majordomeSetTodoDone: "majordome.setTodoDone",
   majordomeAddTodo: "majordome.addTodo",
+  majordomeListTopicFiles: "majordome.listTopicFiles",
+  majordomeAddTopicFile: "majordome.addTopicFile",
+  majordomeRemoveTopicFile: "majordome.removeTopicFile",
+  majordomeViewTopicFile: "majordome.viewTopicFile",
   majordomeServerMoveSubscribe: "majordome.serverMove.subscribe",
   majordomeServerMoveSaveKeys: "majordome.serverMove.saveKeys",
   majordomeServerMoveForgetKeys: "majordome.serverMove.forgetKeys",
@@ -2632,6 +2645,31 @@ const WsMajordomeAddTodoRpc = Rpc.make(WS_METHODS.majordomeAddTodo, {
   error: Schema.Union([MajordomeTodosError, EnvironmentAuthorizationError]),
 });
 
+const topicFilesErrors = Schema.Union([MajordomeTopicFilesError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListTopicFilesRpc = Rpc.make(WS_METHODS.majordomeListTopicFiles, {
+  payload: MajordomeTopicFilesInput,
+  success: MajordomeTopicFilesResult,
+  error: topicFilesErrors,
+});
+
+const WsMajordomeAddTopicFileRpc = Rpc.make(WS_METHODS.majordomeAddTopicFile, {
+  payload: MajordomeAddTopicFileInput,
+  success: MajordomeTopicFile,
+  error: topicFilesErrors,
+});
+
+const WsMajordomeRemoveTopicFileRpc = Rpc.make(WS_METHODS.majordomeRemoveTopicFile, {
+  payload: MajordomeTopicFileInput,
+  error: topicFilesErrors,
+});
+
+const WsMajordomeViewTopicFileRpc = Rpc.make(WS_METHODS.majordomeViewTopicFile, {
+  payload: MajordomeTopicFileInput,
+  success: MajordomeViewTopicFileResult,
+  error: topicFilesErrors,
+});
+
 const serverMoveErrors = Schema.Union([MajordomeServerMoveError, EnvironmentAuthorizationError]);
 
 // The current state of "Set up a server for me", then every change: progress is never guessed.
@@ -3069,4 +3107,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListTodosRpc,
   WsMajordomeSetTodoDoneRpc,
   WsMajordomeAddTodoRpc,
+  WsMajordomeListTopicFilesRpc,
+  WsMajordomeAddTopicFileRpc,
+  WsMajordomeRemoveTopicFileRpc,
+  WsMajordomeViewTopicFileRpc,
 ).middleware(RpcScopeAuthorization);

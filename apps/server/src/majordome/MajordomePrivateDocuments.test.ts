@@ -5,6 +5,7 @@ import {
   EnvironmentId,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ServerCommand,
+  ProjectId,
   RunId,
   ThreadId,
 } from "@t3tools/contracts";
@@ -174,6 +175,7 @@ describe("MajordomePrivateDocuments", () => {
         name: "Passport",
         fileName: "passport.pdf",
         mediaType: "application/pdf",
+        topic: { projectId: ProjectId.make("brain"), topicId: "travel" },
       });
 
       assert.isFalse(yield* fileSystem.exists(uploaded));
@@ -183,8 +185,12 @@ describe("MajordomePrivateDocuments", () => {
       assert.isTrue(new TextDecoder().decode(stored).startsWith("age-encryption.org/v1"));
       assert.notInclude(new TextDecoder().decode(stored), "12AB34567");
       assert.deepStrictEqual(
-        (yield* harness.service.list()).documents.map(({ name, sizeBytes }) => [name, sizeBytes]),
-        [["Passport", PASSPORT.byteLength]],
+        (yield* harness.service.list()).documents.map(({ name, sizeBytes, topic }) => [
+          name,
+          sizeBytes,
+          topic?.topicId,
+        ]),
+        [["Passport", PASSPORT.byteLength, "travel"]],
       );
 
       const sameName = yield* harness.upload(PASSPORT);
