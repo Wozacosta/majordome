@@ -4,6 +4,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   resolveWikiTarget,
   rewriteWikiLinks,
+  taskMarkerOffsetInSource,
   wikiLinkTargets,
   wikiSearchName,
 } from "./wikiLinks.logic";
@@ -39,6 +40,19 @@ describe("wikiLinkTargets", () => {
     const text =
       "`[[inline]]` and ``a ` [[double]]``\n```md\n[[fenced]]\n```\n~~~\n[[tilde]]\n~~~\n[[real]]";
     expect(wikiLinkTargets(text)).toEqual(["real"]);
+  });
+});
+
+describe("taskMarkerOffsetInSource", () => {
+  it("finds a checkbox of the rewritten note in the note as written", () => {
+    const source = "See [[Plan]]\n- [ ] Ask [[Ana]]\n  - [x] Book [[Trip|the trip]]";
+    const rewritten = rewriteWikiLinks(source, () => null);
+    const second = rewritten.indexOf("[x]");
+    expect(rewritten.length).not.toBe(source.length);
+    expect([
+      taskMarkerOffsetInSource(source, rewritten, rewritten.indexOf("[ ]")),
+      taskMarkerOffsetInSource(source, rewritten, second),
+    ]).toEqual([source.indexOf("[ ]"), source.indexOf("[x]")]);
   });
 });
 

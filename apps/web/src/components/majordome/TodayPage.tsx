@@ -195,15 +195,19 @@ function DailyNote({
     ) : null;
   }
 
-  const save = async () => {
-    if (draft === null || busy) return;
+  const write = async (content: string) => {
+    if (busy) return false;
     setBusy(true);
     const outcome = await saveNote({
       environmentId,
-      input: { projectId, date: day, content: draft, base: note.content },
+      input: { projectId, date: day, content, base: note.content },
     });
     setBusy(false);
-    if (!reportFailure(outcome, "Could not save the note")) setDraft(null);
+    return !reportFailure(outcome, "Could not save the note");
+  };
+
+  const save = async () => {
+    if (draft !== null && (await write(draft))) setDraft(null);
   };
 
   const add = async (event: FormEvent) => {
@@ -243,28 +247,8 @@ function DailyNote({
         </form>
       ) : null}
       <div className="mt-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
-        {draft !== null ? (
-          <textarea
-            aria-label="This day's note"
-            autoFocus
-            value={draft}
-            disabled={busy}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            className="field-sizing-content max-h-[60vh] min-h-40 w-full min-w-0 resize-none bg-transparent font-mono text-sm text-foreground outline-hidden"
-          />
-        ) : note.content === null || note.content.trim() === "" ? (
-          <p className="text-sm text-muted-foreground">Nothing written for this day yet.</p>
-        ) : workspaceRoot === undefined ? null : (
-          <NoteMarkdown
-            vault={{ environmentId, projectId, title: vault.title, workspaceRoot }}
-            path={note.path}
-            text={note.content}
-            noteLink={(path) => notesLink({ projectId, environmentId, path })}
-          />
-        )}
         {canWrite ? (
-          <div className="mt-3 flex items-center justify-end gap-2">
+          <div className="mb-2 flex items-center justify-end gap-2">
             {draft === null ? (
               <Button
                 type="button"
@@ -292,6 +276,30 @@ function DailyNote({
             )}
           </div>
         ) : null}
+        {draft !== null ? (
+          <textarea
+            aria-label="This day's note"
+            autoFocus
+            value={draft}
+            disabled={busy}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
+            className="field-sizing-content max-h-[70vh] min-h-40 w-full min-w-0 resize-none bg-transparent font-mono text-sm text-foreground outline-hidden"
+          />
+        ) : note.content === null || note.content.trim() === "" ? (
+          <p className="text-sm text-muted-foreground">Nothing written for this day yet.</p>
+        ) : workspaceRoot === undefined ? null : (
+          // A double click is how a page is entered to write; one click still follows links.
+          <div onDoubleClick={canWrite ? () => setDraft(note.content ?? "") : undefined}>
+            <NoteMarkdown
+              vault={{ environmentId, projectId, title: vault.title, workspaceRoot }}
+              path={note.path}
+              text={note.content}
+              noteLink={(path) => notesLink({ projectId, environmentId, path })}
+              {...(canWrite && !busy ? { onTextChange: (text: string) => void write(text) } : {})}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

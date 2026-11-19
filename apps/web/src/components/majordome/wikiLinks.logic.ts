@@ -127,6 +127,22 @@ export function rewriteWikiLinks(
 }
 
 /**
+ * Where a task list marker of the rewritten text sits in the note as written. Rewriting changes
+ * no line breaks and nothing before a line's marker, so the line and the column carry over.
+ */
+export function taskMarkerOffsetInSource(
+  source: string,
+  rewritten: string,
+  markerOffset: number,
+): number {
+  const before = rewritten.slice(0, markerOffset);
+  const lineStart = before.lastIndexOf("\n") + 1;
+  const line = before.split("\n").length - 1;
+  const sourceLineStart = source.split("\n").slice(0, line).join("\n").length + (line > 0 ? 1 : 0);
+  return sourceLineStart + (markerOffset - lineStart);
+}
+
+/**
  * Where Obsidian finds a link's target among the vault's files: the exact path from the vault's
  * top first, otherwise the files whose path ends with it (a bare name matches anywhere), the
  * shortest path winning. Names are matched as written and with `.md`, ignoring case. Null when

@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { type EnvironmentId, type ProjectEntry, ThreadId } from "@t3tools/contracts";
+import { setMarkdownTaskChecked } from "@t3tools/shared/markdownTaskList";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
@@ -19,6 +20,7 @@ import { READING_MEASURE_CLASS } from "./paper";
 import {
   resolveWikiTarget,
   rewriteWikiLinks,
+  taskMarkerOffsetInSource,
   WIKI_LINK_KIND,
   wikiLinkTargets,
   wikiSearchName,
@@ -177,12 +179,15 @@ export function NoteMarkdown({
   text,
   noteLink,
   className,
+  onTextChange,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly text: string;
   readonly noteLink: NoteLink;
   readonly className?: string;
+  /** Given the whole note with one checkbox ticked or unticked; without it the boxes are read-only. */
+  readonly onTextChange?: (text: string) => void;
 }) {
   const navigate = useNavigate();
   const targets = wikiLinkTargets(text);
@@ -243,6 +248,18 @@ export function NoteMarkdown({
         workspaceMutationId={null}
         renderContextReference={renderWikiLink}
         {...(className === undefined ? {} : { className })}
+        {...(onTextChange === undefined
+          ? {}
+          : {
+              onTaskListChange: ({ markerOffset, checked }) =>
+                onTextChange(
+                  setMarkdownTaskChecked(
+                    text,
+                    taskMarkerOffsetInSource(text, rendered, markerOffset),
+                    checked,
+                  ),
+                ),
+            })}
       />
     </div>
   );
