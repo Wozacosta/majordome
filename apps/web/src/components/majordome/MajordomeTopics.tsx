@@ -14,6 +14,7 @@ import {
   NotebookTextIcon,
   PencilIcon,
   PlusIcon,
+  RepeatIcon,
   ShapesIcon,
   TrashIcon,
   XIcon,
@@ -27,6 +28,7 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import type { SidebarThreadSummary } from "../../types";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
@@ -45,6 +47,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { notesLink } from "./notes.logic";
+import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
 import { TopicIconBadge, TopicIconDialog, topicRowTint } from "./TopicIcon";
 import {
@@ -56,6 +59,7 @@ import {
 } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
+import { useVaultRoutines } from "./useVaultRoutines";
 
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
@@ -76,7 +80,7 @@ function reportFailure(title: string, result: AtomCommandResult<unknown, unknown
  * once, and switches between brains when there are several (one brain on several servers is one).
  */
 export function MajordomeTopicsSection() {
-  const { vaults, loading, activeVault, setActiveVaultKey } = useMajordomeVaults();
+  const { vaults, copies, loading, activeVault, setActiveVaultKey } = useMajordomeVaults();
   if (activeVault === null) {
     return loading ? null : (
       <div className="mx-2 mb-2 flex flex-col items-start gap-2 rounded-lg border border-dashed border-sidebar-border p-3 text-xs text-sidebar-muted-foreground">
@@ -110,13 +114,20 @@ export function MajordomeTopicsSection() {
           </Select>
         </div>
       ) : null}
-      <VaultTopics key={activeVault.key} vault={activeVault} />
+      <VaultTopics key={activeVault.key} vault={activeVault} serverCopies={copies} />
       <h2 className={cn(HEADING_CLASS, "mt-2")}>Recent</h2>
     </section>
   );
 }
 
-function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
+function VaultTopics({
+  vault,
+  serverCopies,
+}: {
+  readonly vault: MajordomeVault;
+  /** Every server's copy of every vault, kept apart: a routine posts in its own server's chat. */
+  readonly serverCopies: ReadonlyArray<MajordomeVault>;
+}) {
   const [dialog, setDialog] = useState<TopicDialogRequest | null>(null);
   const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
   const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
@@ -145,6 +156,9 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
       thread,
     ]),
   );
+
+  const { routines } = useVaultRoutines(vault);
+  const routineTopics = routineTopicIds(routines, serverCopies);
 
   const ids = vault.topics.map((topic) => topic.id);
   const order = pendingOrder ?? ids;
@@ -221,6 +235,7 @@ function VaultTopics({ vault }: { readonly vault: MajordomeVault }) {
                 vault={vault}
                 topic={topic}
                 thread={thread}
+                routines={routines.filter((item) => routineTopics.get(item.key) === topic.id)}
                 isActive={
                   opening !== null && opening.fromRouteKey === routeThreadKey
                     ? opening.topicId === topic.id
@@ -273,6 +288,8 @@ function TopicRow(props: {
   readonly vault: MajordomeVault;
   readonly topic: MajordomeTopic;
   readonly thread: SidebarThreadSummary | undefined;
+  /** The routines that post in this topic, listed under it. */
+  readonly routines: ReadonlyArray<RoutineItem>;
   readonly isActive: boolean;
   readonly isDragging: boolean;
   readonly onOpen: () => void;
@@ -378,6 +395,41 @@ function TopicRow(props: {
           </MenuPopup>
         </Menu>
       </span>
+      {props.routines.length > 0 ? (
+        <ul
+          aria-label={`Routines in ${topic.title}`}
+          className="mt-px mb-1 ml-5 flex flex-col gap-px border-l border-sidebar-border pl-2"
+        >
+          {props.routines.map((item) =>
+            item.task.threadId === null ? null : (
+              <li key={item.key}>
+                <Link
+                  to="/$environmentId/$threadId"
+                  params={buildThreadRouteParams(
+                    scopeThreadRef(item.environmentId, item.task.threadId),
+                  )}
+                  onClick={() => {
+                    if (isMobile) setOpenMobile(false);
+                  }}
+                  className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  <RepeatIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sidebar-foreground">{item.task.title}</span>
+                    <span className="truncate">
+                      {item.task.enabled
+                        ? routineScheduleWords(item.task.schedule, {
+                            serverTimeZone: item.timeZone,
+                          })
+                        : "Off"}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ),
+          )}
+        </ul>
+      ) : null}
     </li>
   );
 }

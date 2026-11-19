@@ -11,6 +11,7 @@ export function RoutineEntry({
   when,
   lastRunStatus,
   lastRunError,
+  place,
   controls,
 }: {
   readonly title: string;
@@ -20,6 +21,8 @@ export function RoutineEntry({
   readonly when: string;
   readonly lastRunStatus: ScheduledTaskRunStatus;
   readonly lastRunError: string | null | undefined;
+  /** Where its runs arrive, and the way to change that. */
+  readonly place?: ReactNode;
   readonly controls: ReactNode;
 }) {
   const lastRun = lastRunStatus === "never" ? null : ROUTINE_LAST_RUN[lastRunStatus];
@@ -34,6 +37,7 @@ export function RoutineEntry({
       ) : lastRunError ? (
         <StatusLine tone="error">{lastRunError}</StatusLine>
       ) : null}
+      {place}
     </Entry>
   );
 }

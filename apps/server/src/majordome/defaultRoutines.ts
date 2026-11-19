@@ -11,6 +11,7 @@ import {
   type RuntimeMode,
   type ScheduledTask,
   ScheduledTaskId,
+  scheduledTaskThreadMode,
   type ScheduledTaskUpsertInput,
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
@@ -65,7 +66,8 @@ function defaultRoutines(input: {
   const { dailyFolder, inboxFolder, memory } = input.layout;
   const common = {
     projectId: input.projectId,
-    threadMode: "new_thread",
+    // One conversation per routine: each run adds to it, starting from a clean session.
+    threadMode: "fresh_session",
     workspaceStrategy: { type: "root" },
     modelSelection: input.modelSelection,
     // Unattended runs may edit notes; anything else waits for the user's approval.
@@ -146,6 +148,8 @@ const RoutineLedger = Schema.Struct({
   projects: Schema.Array(Schema.String),
   /** Projects whose routines had their one move to Auto; ledgers from before it lack the key. */
   autoMode: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** Projects whose routines had their one move to a conversation each; older ledgers lack the key. */
+  oneChat: Schema.optionalKey(Schema.Array(Schema.String)),
   /** By routine key, the projects that were offered a default added later (`LATER_ROUTINES`). */
   added: Schema.optionalKey(Schema.Record(Schema.String, Schema.Array(Schema.String))),
 });
@@ -187,6 +191,7 @@ const writeLedger = Effect.fn("majordome.writeRoutineLedger")(function* (
     encodeLedger({
       projects: [...new Set(ledger.projects)].toSorted(),
       autoMode: [...new Set(ledger.autoMode)].toSorted(),
+      oneChat: [...new Set(ledger.oneChat)].toSorted(),
       added: Object.fromEntries(
         Object.entries(ledger.added ?? {}).map(([key, projects]) => [
           key,
@@ -242,6 +247,42 @@ const moveRoutinesToAuto = Effect.fn("majordome.moveRoutinesToAuto")(function* (
   return settled;
 });
 
+/**
+ * Moves the project's routines that opened a new conversation on every run, as they all once did,
+ * to one conversation each. Reminders and routines already tied to a conversation are left alone.
+ */
+const moveRoutinesToOneChat = Effect.fn("majordome.moveRoutinesToOneChat")(function* (input: {
+  readonly projectId: ProjectId;
+  readonly tasks: ReadonlyArray<ScheduledTask>;
+}) {
+  const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
+  for (const task of input.tasks) {
+    if (
+      task.projectId !== input.projectId ||
+      task.schedule.type === "once" ||
+      task.schedule.type === "webhook" ||
+      scheduledTaskThreadMode(task) !== "new_thread"
+    ) {
+      continue;
+    }
+    yield* scheduledTasks.upsert({
+      id: task.id,
+      requireExisting: true,
+      title: task.title,
+      prompt: task.prompt,
+      enabled: task.enabled,
+      schedule: task.schedule,
+      projectId: task.projectId,
+      threadMode: "fresh_session",
+      workspaceStrategy: task.workspaceStrategy,
+      modelSelection: task.modelSelection,
+      runtimeMode: task.runtimeMode,
+      interactionMode: task.interactionMode,
+      creationSource: task.creationSource,
+    });
+  }
+});
+
 const withAdded = (
   added: RoutineLedger["added"],
   keys: ReadonlyArray<RoutineKey>,
@@ -276,7 +317,8 @@ export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines"
       const missing = LATER_ROUTINES.filter(
         (key) => !ledger.added?.[key]?.includes(input.projectId),
       );
-      if (!needsAuto && missing.length === 0) return "exists" as const;
+      const needsOneChat = !ledger.oneChat?.includes(input.projectId);
+      if (!needsAuto && !needsOneChat && missing.length === 0) return "exists" as const;
       const tasks = (yield* scheduledTasks.list()).tasks;
       const settled =
         needsAuto &&
@@ -299,10 +341,18 @@ export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines"
           added = true;
         }
       }
-      if (settled || modelSelection !== null) {
+      if (needsOneChat) {
+        // Listed again: the move to Auto above may have saved some of them.
+        yield* moveRoutinesToOneChat({
+          projectId: input.projectId,
+          tasks: (yield* scheduledTasks.list()).tasks,
+        });
+      }
+      if (settled || needsOneChat || modelSelection !== null) {
         yield* writeLedger(input.ledgerPath, {
           ...ledger,
           autoMode: movedToAuto(settled),
+          oneChat: [...(ledger.oneChat ?? []), input.projectId],
           added:
             modelSelection === null
               ? (ledger.added ?? {})
@@ -333,9 +383,14 @@ export const ensureDefaultRoutines = Effect.fn("majordome.ensureDefaultRoutines"
         tasks: existing,
         autoMode: input.autoMode,
       }));
+    yield* moveRoutinesToOneChat({
+      projectId: input.projectId,
+      tasks: (yield* scheduledTasks.list()).tasks,
+    });
     yield* writeLedger(input.ledgerPath, {
       projects: [...ledger.projects, input.projectId],
       autoMode: movedToAuto(settled),
+      oneChat: [...(ledger.oneChat ?? []), input.projectId],
       added: withAdded(ledger.added, LATER_ROUTINES, input.projectId),
     });
     return "created" as const;

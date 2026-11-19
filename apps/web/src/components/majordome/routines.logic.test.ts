@@ -1,9 +1,18 @@
-import { EnvironmentId, ProjectId, type ScheduledTask, ScheduledTaskId } from "@t3tools/contracts";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
+import {
+  EnvironmentId,
+  ProjectId,
+  type ScheduledTask,
+  ScheduledTaskId,
+  ThreadId,
+} from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   routineKind,
   routineScheduleWords,
+  routineThreadKeys,
+  routineTopicIds,
   routineWhenLine,
   selectRoutines,
   untilWords,
@@ -167,5 +176,50 @@ describe("untilWords", () => {
     ["2026-11-18T10:00:00.000Z", "in 2 days"],
   ])("%s is %s", (at, expected) => {
     expect(untilWords(at, NOW)).toBe(expected);
+  });
+});
+
+describe("a routine's chats", () => {
+  const kept = ThreadId.make("kept");
+  const finances = ThreadId.make("finances");
+  const item = (id: string, threadId: ThreadId | null) => ({
+    key: `${server}:${id}`,
+    environmentId: server,
+    task: task(id, { threadId }),
+    timeZone: undefined,
+  });
+  const routines = [item("Start my day", kept), item("Review my money", finances)];
+
+  it("are the one it keeps and the per-run chats it opened before, never the owner's own", () => {
+    const thread = (id: string, title: string, createdBy: string, environmentId = server) => ({
+      environmentId,
+      id: ThreadId.make(id),
+      projectId: notes,
+      title,
+      source: { createdBy },
+    });
+    const keys = routineThreadKeys(routines, [
+      thread("kept", "Start my day", "system"),
+      thread("old-run", "Start my day", "system"),
+      thread("mine", "Start my day", "user"),
+      thread("elsewhere", "Start my day", "system", mac),
+      thread("chat", "Trip to Lisbon", "user"),
+    ]);
+    expect([...keys].toSorted()).toEqual(
+      [kept, finances, ThreadId.make("old-run")]
+        .map((threadId) => scopedThreadKey({ environmentId: server, threadId }))
+        .toSorted(),
+    );
+  });
+
+  it("belong to the topic whose conversation on the routine's server they post in", () => {
+    const topics = [{ id: "finances", threadId: finances }];
+    expect([
+      ...routineTopicIds(routines, [
+        { environmentId: mac, topics },
+        { environmentId: server, topics: [...topics, { id: "unopened", threadId: null }] },
+      ]),
+    ]).toEqual([[`${server}:Review my money`, "finances"]]);
+    expect(routineTopicIds(routines, [{ environmentId: mac, topics }]).size).toBe(0);
   });
 });

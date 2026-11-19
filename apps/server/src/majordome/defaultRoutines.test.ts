@@ -110,7 +110,7 @@ it.layer(testLayer)("default routines", (it) => {
       assert.deepEqual(startMyDay?.schedule, { type: "fixed_time", timeOfDay: "08:00" });
       assert.equal(startMyDay?.runtimeMode, "auto");
       assert.equal(byTitle.get("Review my week")?.runtimeMode, "auto");
-      assert.equal(startMyDay?.threadMode, "new_thread");
+      assert.equal(startMyDay?.threadMode, "fresh_session");
       assert.equal(startMyDay?.createdBy, "system");
       assert.equal(startMyDay?.creationSource, "server");
       assert.deepEqual(startMyDay?.modelSelection, model);
@@ -262,6 +262,65 @@ it.layer(testLayer)("default routines", (it) => {
       const after = yield* taskFor("start-my-day");
       assert.equal(after?.creationSource, "server");
       assert.equal(after?.createdBy, "system");
+    }),
+  );
+
+  it.effect("moves routines that opened a chat per run to one chat each, once", () =>
+    Effect.gen(function* () {
+      const projectId = ProjectId.make("project-one-chat");
+      const service = yield* ScheduledTaskService.ScheduledTaskService;
+      const fileSystem = yield* FileSystem.FileSystem;
+      const ledgerPath = yield* makeLedgerPath();
+      const threadModes = Effect.map(service.list(), ({ tasks }) =>
+        Object.fromEntries(
+          tasks
+            .filter((task) => task.projectId === projectId)
+            .map((task) => [task.title, task.threadMode]),
+        ),
+      );
+      const perRun = Effect.fn("test.perRun")(function* (title: string) {
+        const task = (yield* service.list()).tasks.find(
+          (entry) => entry.projectId === projectId && entry.title === title,
+        );
+        yield* service.upsert({
+          ...task!,
+          schedule: task!.schedule.type === "webhook" ? { type: "webhook" } : task!.schedule,
+          threadMode: "new_thread",
+        });
+      });
+
+      // Routines and a reminder as an earlier Majordome made them, with a ledger from then.
+      assert.equal(yield* setUp(ledgerPath, projectId), "created");
+      yield* perRun("Start my day");
+      yield* perRun("Tidy my memory");
+      yield* service.upsert({
+        title: "Call the bank",
+        prompt: "Remind me to call the bank.",
+        enabled: true,
+        schedule: { type: "once", runAt: "2099-01-01T10:00:00.000Z" },
+        projectId,
+        threadMode: "new_thread",
+        workspaceStrategy: { type: "root" },
+        modelSelection: model,
+        runtimeMode: "auto-accept-edits",
+        interactionMode: "default",
+      });
+      yield* fileSystem.writeFileString(
+        ledgerPath,
+        JSON.stringify({ projects: [projectId], autoMode: [projectId] }),
+      );
+
+      assert.equal(yield* setUp(ledgerPath, projectId), "exists");
+      assert.deepInclude(yield* threadModes, {
+        "Start my day": "fresh_session",
+        "Tidy my memory": "fresh_session",
+        "Call the bank": "new_thread",
+      });
+
+      // Choosing a chat per run again sticks.
+      yield* perRun("Start my day");
+      assert.equal(yield* setUp(ledgerPath, projectId), "exists");
+      assert.equal((yield* threadModes)["Start my day"], "new_thread");
     }),
   );
 

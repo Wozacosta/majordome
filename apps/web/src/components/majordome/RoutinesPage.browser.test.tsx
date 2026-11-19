@@ -53,7 +53,11 @@ vi.mock("./useMachineNames", () => ({ useMachineNames: () => ({ machineOf: () =>
 vi.mock("./RoutineLimits", () => ({ RoutineLimits: () => null }));
 vi.mock("./RoutinesBlockedLine", () => ({ RoutinesBlockedLine: () => null }));
 vi.mock("./useMajordomeVaults", () => ({
-  useMajordomeVaults: () => ({ activeVault: { key: "brain", copies: [copy] }, loading: false }),
+  useMajordomeVaults: () => ({
+    activeVault: { key: "brain", copies: [copy], topics: [] },
+    copies: [],
+    loading: false,
+  }),
 }));
 vi.mock("./useVaultRoutines", () => ({
   useVaultRoutines: () => ({

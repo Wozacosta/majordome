@@ -257,7 +257,9 @@ import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrom
 import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
 import { MajordomeTopicsSection } from "./majordome/MajordomeTopics";
 import { usePendingAssistantThreadKeys } from "./majordome/pendingAssistantThreads";
+import { routineThreadKeys } from "./majordome/routines.logic";
 import { selectRecentThreads, selectTopicThreads, topicThreadKeys } from "./majordome/topics.logic";
+import { useVaultRoutines } from "./majordome/useVaultRoutines";
 import { useMajordomeVaults } from "./majordome/useMajordomeVaults";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
@@ -1121,12 +1123,17 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   // Majordome lists only the shown brain's one-off chats here; its topics have their own list.
   const majordomeVaults = useMajordomeVaults();
   const pendingAssistantThreadKeys = usePendingAssistantThreadKeys();
+  // A routine's chats are reached from the routine, on the Routines screen or under its topic.
+  const { routines: vaultRoutines } = useVaultRoutines(
+    isMajordome ? majordomeVaults.activeVault : null,
+  );
   const listedThreads = isMajordome
     ? selectRecentThreads(promotedThreads, {
         vault: majordomeVaults.activeVault,
         topicKeys: new Set([
           ...topicThreadKeys(majordomeVaults.copies),
           ...pendingAssistantThreadKeys,
+          ...routineThreadKeys(vaultRoutines, promotedThreads),
         ]),
       })
     : promotedThreads;

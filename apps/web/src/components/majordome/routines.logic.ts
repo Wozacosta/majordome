@@ -1,3 +1,4 @@
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { scheduleTimeZoneLabel } from "@t3tools/client-runtime/scheduled-task-time-zone";
 import type {
   EnvironmentId,
@@ -5,6 +6,7 @@ import type {
   ScheduledTask,
   ScheduledTaskRunStatus,
   ScheduledTaskSchedule,
+  ThreadId,
 } from "@t3tools/contracts";
 
 /** How a routine's last run went, in the owner's words. */
@@ -88,6 +90,73 @@ export function selectRoutines(input: {
         left.key.localeCompare(right.key),
     ),
   };
+}
+
+/**
+ * `scopedThreadKey`s of the chats that are a routine's, which Recent leaves out: the one each
+ * routine keeps, and the chats routines opened on every run before they kept one. Those carry the
+ * routine's name and were not started by the owner.
+ */
+export function routineThreadKeys(
+  routines: ReadonlyArray<RoutineItem>,
+  threads: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly id: ThreadId;
+    readonly projectId: ProjectId;
+    readonly title: string;
+    readonly source: { readonly createdBy: string };
+  }>,
+): ReadonlySet<string> {
+  const keys = new Set<string>();
+  const runTitles = new Set<string>();
+  for (const { environmentId, task } of routines) {
+    runTitles.add(`${environmentId}:${task.projectId}:${task.title}`);
+    if (task.threadId !== null) {
+      keys.add(scopedThreadKey({ environmentId, threadId: task.threadId }));
+    }
+  }
+  for (const thread of threads) {
+    if (
+      thread.source.createdBy !== "user" &&
+      runTitles.has(`${thread.environmentId}:${thread.projectId}:${thread.title}`)
+    ) {
+      keys.add(scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id }));
+    }
+  }
+  return keys;
+}
+
+/**
+ * The topic each routine posts in, by routine key: the topic whose conversation, on the routine's
+ * own server, is the one the routine is tied to. `copies` are the servers' copies kept apart,
+ * since each server has its own conversation per topic.
+ */
+export function routineTopicIds(
+  routines: ReadonlyArray<RoutineItem>,
+  copies: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly topics: ReadonlyArray<{ readonly id: string; readonly threadId: ThreadId | null }>;
+  }>,
+): ReadonlyMap<string, string> {
+  const topicByThreadKey = new Map<string, string>();
+  for (const copy of copies) {
+    for (const topic of copy.topics) {
+      if (topic.threadId === null) continue;
+      topicByThreadKey.set(
+        scopedThreadKey({ environmentId: copy.environmentId, threadId: topic.threadId }),
+        topic.id,
+      );
+    }
+  }
+  const topicIds = new Map<string, string>();
+  for (const item of routines) {
+    if (item.task.threadId === null) continue;
+    const topicId = topicByThreadKey.get(
+      scopedThreadKey({ environmentId: item.environmentId, threadId: item.task.threadId }),
+    );
+    if (topicId !== undefined) topicIds.set(item.key, topicId);
+  }
+  return topicIds;
 }
 
 /** The few reminders Today shows: the soonest ones. */

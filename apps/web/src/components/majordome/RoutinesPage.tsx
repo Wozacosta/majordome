@@ -26,6 +26,7 @@ import { machineInSentence } from "./brains.logic";
 import { Disclosure, EntryList, Muted, PageHeader, Section, StatusLine } from "./paper";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
 import { RoutineLimits } from "./RoutineLimits";
+import { RoutinePlace } from "./RoutinePlace";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import {
   changeRoutineMessage,
@@ -70,6 +71,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { machineOf } = useMachineNames();
   const { routines, runner, runnerHistory, runnerUnreachable, loading } = useVaultRoutines(vault);
+  const { copies } = useMajordomeVaults();
   const askAssistant = useAskAssistant();
   const askToChange = (title: string) => askAssistant?.(changeRoutineMessage(title));
 
@@ -108,6 +110,8 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
                 <RoutineRow
                   key={item.key}
                   item={item}
+                  vault={vault}
+                  copies={copies}
                   nowMs={nowMs}
                   onChange={() => askToChange(item.task.title)}
                 />
@@ -180,10 +184,14 @@ function useTaskAction(item: RoutineItem) {
 
 function RoutineRow({
   item,
+  vault,
+  copies,
   nowMs,
   onChange,
 }: {
   readonly item: RoutineItem;
+  readonly vault: MajordomeVault;
+  readonly copies: ReadonlyArray<MajordomeVault>;
   readonly nowMs: number;
   readonly onChange: () => void;
 }) {
@@ -197,6 +205,11 @@ function RoutineRow({
       when={routineWhenLine(task, nowMs, { serverTimeZone: item.timeZone })}
       lastRunStatus={task.lastRunStatus}
       lastRunError={task.lastRunError}
+      place={
+        calledFromOutside ? null : (
+          <RoutinePlace item={item} vault={vault} copies={copies} disabled={disabled} />
+        )
+      }
       controls={
         <>
           <Switch
