@@ -147,9 +147,44 @@ function MarkdownNote({
   readonly revision: string | null;
   readonly noteLink: NoteLink;
 }) {
-  const navigate = useNavigate();
   const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
-  const text = file.data?.contents ?? "";
+  if (file.data === null) {
+    return file.error ? (
+      <Centered>{file.error}</Centered>
+    ) : (
+      <Centered>
+        <Spinner size="lg" />
+      </Centered>
+    );
+  }
+  return (
+    <div className="min-h-0 flex-1 overflow-auto">
+      <NoteMarkdown
+        vault={vault}
+        path={path}
+        text={file.data.contents}
+        noteLink={noteLink}
+        className={NOTE_READING_CLASS}
+      />
+    </div>
+  );
+}
+
+/** A note's Markdown as it reads, with its wiki links and links to other notes resolved in the vault. */
+export function NoteMarkdown({
+  vault,
+  path,
+  text,
+  noteLink,
+  className,
+}: {
+  readonly vault: NotesVault;
+  readonly path: string;
+  readonly text: string;
+  readonly noteLink: NoteLink;
+  readonly className?: string;
+}) {
+  const navigate = useNavigate();
   const targets = wikiLinkTargets(text);
   const names = [...new Set(targets.map(wikiSearchName))];
   const searches = useAtomValue(
@@ -198,17 +233,8 @@ function MarkdownNote({
     void navigate(noteLink(target));
   };
 
-  if (file.data === null) {
-    return file.error ? (
-      <Centered>{file.error}</Centered>
-    ) : (
-      <Centered>
-        <Spinner size="lg" />
-      </Centered>
-    );
-  }
   return (
-    <div className="min-h-0 flex-1 overflow-auto" onClickCapture={onClickCapture}>
+    <div onClickCapture={onClickCapture}>
       <FileMarkdownPreview
         cwd={vault.workspaceRoot}
         relativePath={path}
@@ -216,7 +242,7 @@ function MarkdownNote({
         threadRef={scopeThreadRef(vault.environmentId, NOTES_THREAD_ID)}
         workspaceMutationId={null}
         renderContextReference={renderWikiLink}
-        className={NOTE_READING_CLASS}
+        {...(className === undefined ? {} : { className })}
       />
     </div>
   );

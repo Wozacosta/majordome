@@ -282,6 +282,23 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeAddTodo,
       onSettled: ({ environmentId }, registry) => bumpTodos(environmentId, registry),
     }),
+    /** Read again on every mount and after each change; routines write daily notes too. */
+    dailyNote: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:daily-note",
+      tag: WS_METHODS.majordomeGetDailyNote,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => dailyNotesRevision(environmentId),
+    }),
+    saveDailyNote: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:save-daily-note",
+      tag: WS_METHODS.majordomeSaveDailyNote,
+      onSettled: ({ environmentId }, registry) => bumpDailyNotes(environmentId, registry),
+    }),
+    addToDailyNote: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-to-daily-note",
+      tag: WS_METHODS.majordomeAddToDailyNote,
+      onSettled: ({ environmentId }, registry) => bumpDailyNotes(environmentId, registry),
+    }),
     /** Read again on every mount and after each change; the assistant adds files too. */
     topicFiles: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:topic-files",
@@ -369,6 +386,16 @@ const todosRevision = Atom.family((environmentId: EnvironmentId) =>
     Atom.withLabel(`environment-data:majordome:todos-revision:${environmentId}`),
   ),
 );
+
+const dailyNotesRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:daily-notes-revision:${environmentId}`),
+  ),
+);
+
+const bumpDailyNotes = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(dailyNotesRevision(environmentId), (value) => value + 1));
 
 const bumpTodos = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(todosRevision(environmentId), (value) => value + 1));

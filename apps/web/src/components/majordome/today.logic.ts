@@ -26,6 +26,30 @@ export function todayTitle(now: Date, locale?: string): string {
   );
 }
 
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** A day on the device's calendar as `YYYY-MM-DD`, which is how its daily note is named. */
+export function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Noon of that day, so a clock change never lands it on the day before or after. */
+export function dateOfDay(key: string): Date {
+  const [year = 0, month = 1, day = 1] = key.split("-").map(Number);
+  return new Date(year, month - 1, day, 12);
+}
+
+export function shiftDay(key: string, days: number): string {
+  const date = dateOfDay(key);
+  date.setDate(date.getDate() + days);
+  return dayKey(date);
+}
+
+/** `HH:MM` on the device's clock, written before a line added to the daily note. */
+export function timeOfDay(date: Date): string {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export interface TodayRun {
   readonly key: string;
   readonly environmentId: EnvironmentId;

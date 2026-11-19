@@ -134,6 +134,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeDismissTopicSuggestions]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetTodoDone]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeAddTodo]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeSaveDailyNote]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeAddToDailyNote]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeAddTopicFile]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRemoveTopicFile]: AuthOrchestrationOperateScope,
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: AuthOrchestrationOperateScope,

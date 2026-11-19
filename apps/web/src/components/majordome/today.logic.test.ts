@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import { buildFeedItems, type FeedRunItem, feedVaultNotes } from "./feed.logic";
-import { greetingForHour, selectTodayRuns } from "./today.logic";
+import { dayKey, greetingForHour, selectTodayRuns, shiftDay, timeOfDay } from "./today.logic";
 
 const vault = {
   environmentId: EnvironmentId.make("env-1"),
@@ -53,6 +53,18 @@ const select = (
     notesOf: () => feedVaultNotes({}),
     ...options,
   });
+
+describe("daily note days", () => {
+  it("names a day on the device's calendar and steps across months and years", () => {
+    const lateEvening = new Date(2026, 10, 19, 23, 5);
+    expect([dayKey(lateEvening), timeOfDay(lateEvening)]).toEqual(["2026-11-19", "23:05"]);
+    expect([
+      shiftDay("2026-03-01", -1),
+      shiftDay("2026-12-31", 1),
+      shiftDay("2026-11-19", 0),
+    ]).toEqual(["2026-02-28", "2027-01-01", "2026-11-19"]);
+  });
+});
 
 describe("greetingForHour", () => {
   it("follows the day, with the small hours as the evening", () => {

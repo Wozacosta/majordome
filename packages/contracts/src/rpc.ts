@@ -163,6 +163,13 @@ import {
   MajordomeTodosResult,
 } from "./majordomeTodos.ts";
 import {
+  MajordomeAddToDailyNoteInput,
+  MajordomeDailyNoteError,
+  MajordomeDailyNoteInput,
+  MajordomeDailyNoteResult,
+  MajordomeSaveDailyNoteInput,
+} from "./majordomeDaily.ts";
+import {
   MajordomeAddTopicFileInput,
   MajordomeTopicFile,
   MajordomeTopicFileInput,
@@ -820,6 +827,9 @@ export const WS_METHODS = {
   majordomeListTodos: "majordome.listTodos",
   majordomeSetTodoDone: "majordome.setTodoDone",
   majordomeAddTodo: "majordome.addTodo",
+  majordomeGetDailyNote: "majordome.getDailyNote",
+  majordomeSaveDailyNote: "majordome.saveDailyNote",
+  majordomeAddToDailyNote: "majordome.addToDailyNote",
   majordomeListTopicFiles: "majordome.listTopicFiles",
   majordomeAddTopicFile: "majordome.addTopicFile",
   majordomeRemoveTopicFile: "majordome.removeTopicFile",
@@ -2654,6 +2664,22 @@ const WsMajordomeAddTodoRpc = Rpc.make(WS_METHODS.majordomeAddTodo, {
   error: Schema.Union([MajordomeTodosError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeGetDailyNoteRpc = Rpc.make(WS_METHODS.majordomeGetDailyNote, {
+  payload: MajordomeDailyNoteInput,
+  success: MajordomeDailyNoteResult,
+  error: Schema.Union([MajordomeDailyNoteError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeSaveDailyNoteRpc = Rpc.make(WS_METHODS.majordomeSaveDailyNote, {
+  payload: MajordomeSaveDailyNoteInput,
+  error: Schema.Union([MajordomeDailyNoteError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeAddToDailyNoteRpc = Rpc.make(WS_METHODS.majordomeAddToDailyNote, {
+  payload: MajordomeAddToDailyNoteInput,
+  error: Schema.Union([MajordomeDailyNoteError, EnvironmentAuthorizationError]),
+});
+
 const topicFilesErrors = Schema.Union([MajordomeTopicFilesError, EnvironmentAuthorizationError]);
 
 const WsMajordomeListTopicFilesRpc = Rpc.make(WS_METHODS.majordomeListTopicFiles, {
@@ -3117,6 +3143,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListTodosRpc,
   WsMajordomeSetTodoDoneRpc,
   WsMajordomeAddTodoRpc,
+  WsMajordomeGetDailyNoteRpc,
+  WsMajordomeSaveDailyNoteRpc,
+  WsMajordomeAddToDailyNoteRpc,
   WsMajordomeListTopicFilesRpc,
   WsMajordomeAddTopicFileRpc,
   WsMajordomeRemoveTopicFileRpc,

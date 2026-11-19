@@ -2,8 +2,13 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
-import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
+import {
+  type AtomCommandResult,
+  isAtomCommandInterrupted,
+  squashAtomCommandFailure,
+} from "@t3tools/client-runtime/state/runtime";
+import { ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, PaperclipIcon } from "lucide-react";
+import { type FormEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { isElectron } from "../../env";
@@ -11,12 +16,14 @@ import { useNewThreadHandler } from "../../hooks/useHandleNewThread";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
-import { useQuietThreadShells } from "../../state/entities";
-import { vaultHistoriesAtom } from "../../state/majordome";
+import { useProjects, useQuietThreadShells } from "../../state/entities";
+import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
@@ -28,10 +35,21 @@ import {
   feedVaultNotes,
   stoppedRunKeys,
 } from "./feed.logic";
+import { NoteMarkdown } from "./NotePreview";
+import { notesLink } from "./notes.logic";
 import { requestDraftSend } from "./pendingDraftSend";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
-import { greetingForHour, selectTodayRuns, type TodayRun, todayTitle } from "./today.logic";
+import {
+  dateOfDay,
+  dayKey,
+  greetingForHour,
+  selectTodayRuns,
+  shiftDay,
+  timeOfDay,
+  type TodayRun,
+  todayTitle,
+} from "./today.logic";
 import { TopicIconBadge } from "./TopicIcon";
 import { type MajordomeVault, topicSubtitle, type VaultTopic } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
@@ -43,11 +61,20 @@ const SECTION_LABEL_CLASS = "mb-2 text-2xs font-semibold uppercase tracking-wide
 const ROW_TARGET_CLASS =
   "-mx-2 block rounded-md px-2 py-3 outline-hidden hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
 
-/** The owner's day in the active notes folder: a place to write, what routines did, and their topics. */
+/**
+ * The owner's day in the active notes folder: the day's note, a place to ask, what routines did,
+ * and their topics. Earlier days show their note alone.
+ */
 export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const now = new Date(nowMs);
+  const today = dayKey(now);
+  // Null follows the calendar, so a page left open overnight moves on to the new day.
+  const [picked, setPicked] = useState<string | null>(null);
+  const day = picked ?? today;
+  const isToday = day === today;
+  const show = (next: string) => setPicked(next === today ? null : next);
 
   return (
     <SidebarInset
@@ -59,18 +86,214 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
         <WorkspacePageHeader electron={isElectron} />
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-184 px-5 pt-2 pb-12 sm:px-6 sm:pt-6">
-            <p className="text-sm text-muted-foreground">{greetingForHour(now.getHours())}</p>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              {todayTitle(now)}
-            </h1>
-            <CaptureBox key={vault.key} vault={vault} />
-            <ComingUp vault={vault} nowMs={nowMs} />
-            <TodayRoutines vault={vault} nowMs={nowMs} />
-            {vault.topics.length > 0 ? <TodayTopics vault={vault} /> : null}
+            <p className="text-sm text-muted-foreground">
+              {isToday ? greetingForHour(now.getHours()) : "Daily note"}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-foreground">
+                {todayTitle(dateOfDay(day))}
+              </h1>
+              <div className="flex items-center gap-1">
+                {isToday ? null : (
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPicked(null)}>
+                    Today
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Previous day"
+                  onClick={() => show(shiftDay(day, -1))}
+                >
+                  <ChevronLeftIcon />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Next day"
+                  onClick={() => show(shiftDay(day, 1))}
+                >
+                  <ChevronRightIcon />
+                </Button>
+                <div className="w-38">
+                  <Input
+                    nativeInput
+                    type="date"
+                    aria-label="Go to a day"
+                    value={day}
+                    onChange={(event) => {
+                      if (event.target.value !== "") show(event.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <DailyNote key={`${vault.key}:${day}`} vault={vault} day={day} isToday={isToday} />
+            {isToday ? (
+              <>
+                <CaptureBox key={vault.key} vault={vault} />
+                <ComingUp vault={vault} nowMs={nowMs} />
+                <TodayRoutines vault={vault} nowMs={nowMs} />
+                {vault.topics.length > 0 ? <TodayTopics vault={vault} /> : null}
+              </>
+            ) : null}
           </div>
         </ScrollArea>
       </div>
     </SidebarInset>
+  );
+}
+
+function reportFailure(result: AtomCommandResult<unknown, unknown>, title: string): boolean {
+  if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return false;
+  const error = squashAtomCommandFailure(result);
+  toastManager.add({
+    type: "error",
+    title,
+    description: error instanceof Error ? error.message : String(error),
+  });
+  return true;
+}
+
+/** One day's note from the daily folder: read as a page, edited as its Markdown, added to a line at a time. */
+function DailyNote({
+  vault,
+  day,
+  isToday,
+}: {
+  readonly vault: MajordomeVault;
+  readonly day: string;
+  readonly isToday: boolean;
+}) {
+  const { environmentId, projectId } = vault;
+  const workspaceRoot = useProjects().find(
+    (project) => project.environmentId === environmentId && project.id === projectId,
+  )?.workspaceRoot;
+  const result = useAtomValue(
+    majordomeEnvironment.dailyNote({ environmentId, input: { projectId, date: day } }),
+  );
+  const note = AsyncResult.getOrElse(result, () => null);
+  const canWrite = useAtomValue(majordomeEnvironment.saveDailyNote.permissionAtom(environmentId));
+  const saveNote = useAtomCommand(majordomeEnvironment.saveDailyNote, {
+    label: "save daily note",
+    reportFailure: false,
+  });
+  const addLine = useAtomCommand(majordomeEnvironment.addToDailyNote, {
+    label: "add to daily note",
+    reportFailure: false,
+  });
+  // The Markdown being edited; null while the note is only read.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [line, setLine] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (note === null) {
+    return result._tag === "Failure" ? (
+      <p className="mt-6 text-sm text-muted-foreground">This day's note could not be read.</p>
+    ) : null;
+  }
+
+  const save = async () => {
+    if (draft === null || busy) return;
+    setBusy(true);
+    const outcome = await saveNote({
+      environmentId,
+      input: { projectId, date: day, content: draft, base: note.content },
+    });
+    setBusy(false);
+    if (!reportFailure(outcome, "Could not save the note")) setDraft(null);
+  };
+
+  const add = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = line.trim();
+    if (text === "" || busy) return;
+    setBusy(true);
+    const outcome = await addLine({
+      environmentId,
+      input: { projectId, date: day, time: timeOfDay(new Date()), text },
+    });
+    setBusy(false);
+    if (!reportFailure(outcome, "Could not add that to the note")) setLine("");
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Escape") setDraft(null);
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void save();
+  };
+
+  return (
+    <section className="mt-6" aria-label="Daily note" data-daily-note={day}>
+      {isToday && draft === null && canWrite ? (
+        <form onSubmit={(event) => void add(event)}>
+          <Input
+            nativeInput
+            size="lg"
+            // Today is where a day starts, and writing it down is what the note is for.
+            autoFocus
+            aria-label="Add a line to today's note"
+            placeholder="Add a line to today's note…"
+            maxLength={2000}
+            value={line}
+            disabled={busy}
+            onChange={(event) => setLine(event.target.value)}
+          />
+        </form>
+      ) : null}
+      <div className="mt-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+        {draft !== null ? (
+          <textarea
+            aria-label="This day's note"
+            autoFocus
+            value={draft}
+            disabled={busy}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
+            className="field-sizing-content max-h-[60vh] min-h-40 w-full min-w-0 resize-none bg-transparent font-mono text-sm text-foreground outline-hidden"
+          />
+        ) : note.content === null || note.content.trim() === "" ? (
+          <p className="text-sm text-muted-foreground">Nothing written for this day yet.</p>
+        ) : workspaceRoot === undefined ? null : (
+          <NoteMarkdown
+            vault={{ environmentId, projectId, title: vault.title, workspaceRoot }}
+            path={note.path}
+            text={note.content}
+            noteLink={(path) => notesLink({ projectId, environmentId, path })}
+          />
+        )}
+        {canWrite ? (
+          <div className="mt-3 flex items-center justify-end gap-2">
+            {draft === null ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setDraft(note.content ?? "")}
+              >
+                {note.content === null ? "Write" : "Edit"}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setDraft(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="button" size="sm" disabled={busy} onClick={() => void save()}>
+                  Save
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -130,7 +353,7 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   return (
     <>
       <form
-        className="mt-6 flex flex-col rounded-2xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
+        className="mt-8 flex flex-col rounded-2xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -149,8 +372,6 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
           aria-label="Ask anything, or tell me what to remember"
           placeholder="Ask anything, or tell me what to remember…"
           rows={3}
-          // Today is where a day starts, and typing is what it is for.
-          autoFocus
           value={text}
           disabled={sending}
           onChange={(event) => setText(event.target.value)}
