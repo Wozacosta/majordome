@@ -782,7 +782,13 @@ function FeedRunRow({
       }
     >
       <StatusLine tone={item.status === "waiting" ? "warning" : "error"}>
-        {FEED_RUN_STATUS_LABELS[item.status]}
+        <Link
+          to="/$environmentId/$threadId"
+          params={buildThreadRouteParams(scopeThreadRef(item.vault.environmentId, item.threadId))}
+          className="rounded-sm underline decoration-border underline-offset-4 outline-none hover:decoration-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {FEED_RUN_STATUS_LABELS[item.status]}
+        </Link>
       </StatusLine>
       {answersInChat ? (
         <div>
