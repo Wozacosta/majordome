@@ -45,6 +45,37 @@ export function shiftDay(key: string, days: number): string {
   return dayKey(date);
 }
 
+/** The seven days of that day's week, Monday first. */
+export function weekOf(key: string): ReadonlyArray<string> {
+  const sinceMonday = (dateOfDay(key).getDay() + 6) % 7;
+  return Array.from({ length: 7 }, (_, index) => shiftDay(key, index - sinceMonday));
+}
+
+export interface OpenTask {
+  /** Where the box's `[` sits in the note, which is what ticking it needs. */
+  readonly markerOffset: number;
+  readonly text: string;
+}
+
+const OPEN_TASK = /^(\s*[-*+]\s+)\[ \]\s+(\S.*?)\s*$/;
+const CODE_FENCE = /^\s*(?:```|~~~)/;
+
+/** A note's unticked checkboxes outside code blocks, in the note's order. */
+export function openTasks(content: string): ReadonlyArray<OpenTask> {
+  const tasks: Array<OpenTask> = [];
+  let offset = 0;
+  let fenced = false;
+  for (const line of content.split("\n")) {
+    if (CODE_FENCE.test(line)) fenced = !fenced;
+    else if (!fenced) {
+      const match = OPEN_TASK.exec(line);
+      if (match) tasks.push({ markerOffset: offset + match[1]!.length, text: match[2]! });
+    }
+    offset += line.length + 1;
+  }
+  return tasks;
+}
+
 /** `HH:MM` on the device's clock, written before a line added to the daily note. */
 export function timeOfDay(date: Date): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;

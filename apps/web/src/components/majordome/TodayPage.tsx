@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { setMarkdownTaskChecked } from "@t3tools/shared/markdownTaskList";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
@@ -23,10 +24,13 @@ import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
+import { Toggle } from "../ui/toggle";
+import { ToggleGroup } from "../ui/toggle-group";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
   buildFeedItems,
@@ -44,16 +48,17 @@ import {
   dateOfDay,
   dayKey,
   greetingForHour,
+  openTasks,
   selectTodayRuns,
   shiftDay,
   timeOfDay,
   type TodayRun,
   todayTitle,
+  weekOf,
 } from "./today.logic";
-import { TopicIconBadge } from "./TopicIcon";
-import { type MajordomeVault, topicSubtitle, type VaultTopic } from "./topics.logic";
+import { todoDisplayText } from "./todos.logic";
+import type { MajordomeVault } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
-import { useOpenTopic } from "./useOpenTopic";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 const SECTION_LABEL_CLASS = "mb-2 text-2xs font-semibold uppercase tracking-widest text-primary";
@@ -61,20 +66,23 @@ const SECTION_LABEL_CLASS = "mb-2 text-2xs font-semibold uppercase tracking-wide
 const ROW_TARGET_CLASS =
   "-mx-2 block rounded-md px-2 py-3 outline-hidden hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
 
+type TodayView = "overview" | "journal";
+
 /**
- * The owner's day in the active notes folder: the day's note, a place to ask, what routines did,
- * and their topics. Earlier days show their note alone.
+ * The owner's day in the active notes folder. Overview is short: a place to ask, what the day's
+ * note leaves to do, reminders and what routines did. Journal is the daily note, for any day.
  */
 export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const now = new Date(nowMs);
   const today = dayKey(now);
+  const [view, setView] = useState<TodayView>("overview");
   // Null follows the calendar, so a page left open overnight moves on to the new day.
   const [picked, setPicked] = useState<string | null>(null);
   const day = picked ?? today;
-  const isToday = day === today;
   const show = (next: string) => setPicked(next === today ? null : next);
+  const shownDay = view === "journal" ? day : today;
 
   return (
     <SidebarInset
@@ -87,62 +95,198 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-184 px-5 pt-2 pb-12 sm:px-6 sm:pt-6">
             <p className="text-sm text-muted-foreground">
-              {isToday ? greetingForHour(now.getHours()) : "Daily note"}
+              {shownDay === today ? greetingForHour(now.getHours()) : "Journal"}
             </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-foreground">
-                {todayTitle(dateOfDay(day))}
-              </h1>
-              <div className="flex items-center gap-1">
-                {isToday ? null : (
-                  <Button type="button" size="sm" variant="outline" onClick={() => setPicked(null)}>
-                    Today
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Previous day"
-                  onClick={() => show(shiftDay(day, -1))}
-                >
-                  <ChevronLeftIcon />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label="Next day"
-                  onClick={() => show(shiftDay(day, 1))}
-                >
-                  <ChevronRightIcon />
-                </Button>
-                <div className="w-38">
-                  <Input
-                    nativeInput
-                    type="date"
-                    aria-label="Go to a day"
-                    value={day}
-                    onChange={(event) => {
-                      if (event.target.value !== "") show(event.target.value);
-                    }}
-                  />
-                </div>
-              </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              {todayTitle(dateOfDay(shownDay))}
+            </h1>
+            <div className="mt-4 flex">
+              <ToggleGroup
+                aria-label="View"
+                value={[view]}
+                onValueChange={(next) => {
+                  const value = next[0];
+                  if (value === "overview" || value === "journal") setView(value);
+                }}
+              >
+                <Toggle value="overview">Overview</Toggle>
+                <Toggle value="journal">Journal</Toggle>
+              </ToggleGroup>
             </div>
-            <DailyNote key={`${vault.key}:${day}`} vault={vault} day={day} isToday={isToday} />
-            {isToday ? (
+            {view === "overview" ? (
               <>
                 <CaptureBox key={vault.key} vault={vault} />
+                <TodayTasks
+                  key={`${vault.key}:${today}`}
+                  vault={vault}
+                  day={today}
+                  onOpenJournal={() => {
+                    setPicked(null);
+                    setView("journal");
+                  }}
+                />
                 <ComingUp vault={vault} nowMs={nowMs} />
                 <TodayRoutines vault={vault} nowMs={nowMs} />
-                {vault.topics.length > 0 ? <TodayTopics vault={vault} /> : null}
               </>
-            ) : null}
+            ) : (
+              <>
+                <WeekStrip day={day} today={today} onShow={show} />
+                <DailyNote
+                  key={`${vault.key}:${day}`}
+                  vault={vault}
+                  day={day}
+                  isToday={day === today}
+                />
+              </>
+            )}
           </div>
         </ScrollArea>
       </div>
     </SidebarInset>
+  );
+}
+
+/** The week around the shown day, each day one press away, with a way to any other date. */
+function WeekStrip({
+  day,
+  today,
+  onShow,
+}: {
+  readonly day: string;
+  readonly today: string;
+  readonly onShow: (day: string) => void;
+}) {
+  const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-1">
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        aria-label="Previous week"
+        onClick={() => onShow(shiftDay(day, -7))}
+      >
+        <ChevronLeftIcon />
+      </Button>
+      {weekOf(day).map((key) => (
+        <Button
+          key={key}
+          type="button"
+          size="sm"
+          variant={key === day ? "secondary" : "ghost"}
+          aria-pressed={key === day}
+          aria-label={todayTitle(dateOfDay(key))}
+          onClick={() => onShow(key)}
+        >
+          <span className={cn(key === today && "font-semibold text-primary")}>
+            {weekday.format(dateOfDay(key))} {dateOfDay(key).getDate()}
+          </span>
+        </Button>
+      ))}
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        aria-label="Next week"
+        onClick={() => onShow(shiftDay(day, 7))}
+      >
+        <ChevronRightIcon />
+      </Button>
+      <div className="ms-auto flex items-center gap-1">
+        {day === today ? null : (
+          <Button type="button" size="sm" variant="outline" onClick={() => onShow(today)}>
+            Today
+          </Button>
+        )}
+        <div className="w-38">
+          <Input
+            nativeInput
+            type="date"
+            aria-label="Go to a day"
+            value={day}
+            onChange={(event) => {
+              if (event.target.value !== "") onShow(event.target.value);
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TODAY_TASKS_SHOWN = 6;
+
+/** What today's note still leaves to do, to tick without opening the note; nothing when it has none. */
+function TodayTasks({
+  vault,
+  day,
+  onOpenJournal,
+}: {
+  readonly vault: MajordomeVault;
+  readonly day: string;
+  readonly onOpenJournal: () => void;
+}) {
+  const { environmentId, projectId } = vault;
+  const note = AsyncResult.getOrElse(
+    useAtomValue(
+      majordomeEnvironment.dailyNote({ environmentId, input: { projectId, date: day } }),
+    ),
+    () => null,
+  );
+  const canWrite = useAtomValue(majordomeEnvironment.saveDailyNote.permissionAtom(environmentId));
+  const saveNote = useAtomCommand(majordomeEnvironment.saveDailyNote, {
+    label: "tick daily note to-do",
+    reportFailure: false,
+  });
+  const [busy, setBusy] = useState(false);
+  const content = note?.content ?? null;
+  const tasks = content === null ? [] : openTasks(content);
+  if (content === null || tasks.length === 0) return null;
+
+  const tick = async (markerOffset: number) => {
+    if (busy) return;
+    setBusy(true);
+    const outcome = await saveNote({
+      environmentId,
+      input: {
+        projectId,
+        date: day,
+        content: setMarkdownTaskChecked(content, markerOffset, true),
+        base: content,
+      },
+    });
+    setBusy(false);
+    reportFailure(outcome, "Could not tick that");
+  };
+
+  return (
+    <Section title="To do today">
+      <ul className="m-0 list-none p-0">
+        {tasks.slice(0, TODAY_TASKS_SHOWN).map((task) => (
+          <li key={task.markerOffset} className="border-t border-border" data-today-task>
+            <label className="flex min-h-10 cursor-pointer items-start gap-2.5 py-2.5">
+              <span className="flex h-5 shrink-0 items-center">
+                <Checkbox
+                  checked={false}
+                  disabled={!canWrite || busy}
+                  onCheckedChange={() => void tick(task.markerOffset)}
+                />
+              </span>
+              <span className="min-w-0 flex-1 text-sm wrap-break-word text-foreground">
+                {todoDisplayText(task.text)}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="border-t border-border pt-2">
+        <Button type="button" size="xs" variant="ghost" onClick={onOpenJournal}>
+          {tasks.length > TODAY_TASKS_SHOWN
+            ? `${tasks.length - TODAY_TASKS_SHOWN} more in today's note`
+            : "Open today's note"}
+        </Button>
+      </div>
+    </Section>
   );
 }
 
@@ -235,8 +379,6 @@ function DailyNote({
           <Input
             nativeInput
             size="lg"
-            // Today is where a day starts, and writing it down is what the note is for.
-            autoFocus
             aria-label="Add a line to today's note"
             placeholder="Add a line to today's note…"
             maxLength={2000}
@@ -361,7 +503,7 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   return (
     <>
       <form
-        className="mt-8 flex flex-col rounded-2xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
+        className="mt-6 flex flex-col rounded-2xl border border-border bg-card p-2 shadow-xs focus-within:border-ring"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -380,6 +522,8 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
           aria-label="Ask anything, or tell me what to remember"
           placeholder="Ask anything, or tell me what to remember…"
           rows={3}
+          // Today is where a day starts, and typing is what it is for.
+          autoFocus
           value={text}
           disabled={sending}
           onChange={(event) => setText(event.target.value)}
@@ -597,41 +741,5 @@ function RunRow({ run, nowMs }: { readonly run: TodayRun; readonly nowMs: number
         </Link>
       )}
     </li>
-  );
-}
-
-function TodayTopics({ vault }: { readonly vault: MajordomeVault }) {
-  const openTopic = useOpenTopic(vault);
-  const [opening, setOpening] = useState<string | null>(null);
-  const open = async (topic: VaultTopic) => {
-    if (opening !== null) return;
-    setOpening(topic.id);
-    if (!(await openTopic(topic))) setOpening(null);
-  };
-  return (
-    <Section title="Pick up where you left off">
-      <ul className="m-0 list-none p-0">
-        {vault.topics.map((topic) => (
-          <li key={topic.id} className="border-t border-border" data-today-topic={topic.id}>
-            <button
-              type="button"
-              onClick={() => void open(topic)}
-              className={cn(
-                ROW_TARGET_CLASS,
-                "flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 text-left",
-              )}
-            >
-              <TopicIconBadge topic={topic} statusDotClass={null} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-medium text-foreground">{topic.title}</span>
-                <span className="truncate text-sm text-muted-foreground">
-                  {topicSubtitle(topic)}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Section>
   );
 }

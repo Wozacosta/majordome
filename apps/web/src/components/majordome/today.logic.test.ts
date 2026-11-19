@@ -7,7 +7,15 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import { buildFeedItems, type FeedRunItem, feedVaultNotes } from "./feed.logic";
-import { dayKey, greetingForHour, selectTodayRuns, shiftDay, timeOfDay } from "./today.logic";
+import {
+  dayKey,
+  greetingForHour,
+  openTasks,
+  selectTodayRuns,
+  shiftDay,
+  timeOfDay,
+  weekOf,
+} from "./today.logic";
 
 const vault = {
   environmentId: EnvironmentId.make("env-1"),
@@ -63,6 +71,34 @@ describe("daily note days", () => {
       shiftDay("2026-12-31", 1),
       shiftDay("2026-11-19", 0),
     ]).toEqual(["2026-02-28", "2027-01-01", "2026-11-19"]);
+  });
+});
+
+describe("weekOf", () => {
+  it("runs Monday to Sunday around the day, a Sunday included", () => {
+    expect(weekOf("2026-11-19")).toEqual([
+      "2026-11-16",
+      "2026-11-17",
+      "2026-11-18",
+      "2026-11-19",
+      "2026-11-20",
+      "2026-11-21",
+      "2026-11-22",
+    ]);
+    expect(weekOf("2026-11-22")[0]).toBe("2026-11-16");
+  });
+});
+
+describe("openTasks", () => {
+  it("lists unticked boxes with where they sit, skipping ticked ones and code", () => {
+    const note =
+      "# Day\n- [ ] **Call** the bank\n- [x] Done\n```\n- [ ] not a task\n```\n  * [ ] Nested";
+    const tasks = openTasks(note);
+    expect(tasks.map((task) => task.text)).toEqual(["**Call** the bank", "Nested"]);
+    expect(tasks.map((task) => note.slice(task.markerOffset, task.markerOffset + 3))).toEqual([
+      "[ ]",
+      "[ ]",
+    ]);
   });
 });
 
