@@ -2649,3 +2649,114 @@ code {
 .messages-timeline-scroll:focus-visible {
   outline: none;
 }
+
+/* A note's Markdown source, shown the way it reads; see NoteSourceEditor. */
+.note-source {
+  outline: none;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.note-source > p {
+  margin: 0;
+}
+.note-source > p[data-placeholder]::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.note-source-hidden {
+  display: none;
+}
+.note-source-syntax {
+  color: var(--color-muted-foreground);
+  opacity: 0.7;
+}
+.note-source :is(.note-source-h1, .note-source-h2, .note-source-h3) {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+.note-source .note-source-h1 {
+  font-size: 1.6rem;
+  margin: 0.2em 0 0.35em;
+}
+.note-source .note-source-h2 {
+  font-size: 1.3rem;
+  margin: 0.9em 0 0.3em;
+}
+.note-source .note-source-h3 {
+  font-size: 1.1rem;
+  margin: 0.7em 0 0.2em;
+}
+.note-source :is(.note-source-h4, .note-source-h5, .note-source-h6) {
+  font-weight: 650;
+}
+.note-source > p:first-child {
+  margin-top: 0;
+}
+.note-source-bold {
+  font-weight: 650;
+}
+.note-source-italic {
+  font-style: italic;
+}
+.note-source-strike {
+  text-decoration: line-through;
+}
+.note-source-code,
+.note-source .note-source-code,
+.note-source .note-source-meta {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+span.note-source-code {
+  background: color-mix(in srgb, var(--color-muted-foreground) 16%, transparent);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+}
+.note-source p.note-source-code {
+  background: color-mix(in srgb, var(--color-muted-foreground) 10%, transparent);
+  padding: 0 0.6em;
+}
+.note-source .note-source-meta {
+  color: var(--color-muted-foreground);
+}
+.note-source-link,
+.note-source-wiki {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.note-source :is(.note-source-link, .note-source-wiki)[data-note-target] {
+  cursor: pointer;
+}
+.note-source .note-source-quote {
+  border-left: 3px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  padding-left: 0.75em;
+}
+.note-source .note-source-rule {
+  color: var(--color-muted-foreground);
+}
+.note-source-bullet {
+  font-size: 0;
+}
+.note-source-bullet::before {
+  content: "•";
+  font-size: 0.9375rem;
+}
+.note-source .note-source-task-done {
+  color: var(--color-muted-foreground);
+}
+.note-source-checkbox {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  height: 1em;
+  margin: 0 0.5em 0 0;
+  vertical-align: -0.12em;
+  width: 1em;
+}

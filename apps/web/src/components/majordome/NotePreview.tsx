@@ -1,12 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { type EnvironmentId, type ProjectEntry, ThreadId } from "@t3tools/contracts";
-import { setMarkdownTaskChecked } from "@t3tools/shared/markdownTaskList";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
 
 import { useAssetUrlState } from "../../assets/assetUrls";
+import { useOpenLink } from "../../browser/useOpenLink";
 import { projectEnvironment } from "../../state/projects";
 import { FileMarkdownPreview } from "../files/FileMarkdownPreview";
 import { FILE_SURFACE_SUBHEADER_CLASS, FileSurfaceLoading } from "../files/fileSurfaceChrome";
@@ -16,11 +16,11 @@ import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { Spinner } from "../ui/spinner";
 import { cn } from "../../lib/utils";
 import { type notesLink, noteKind, type NotesVault, vaultLinkTarget } from "./notes.logic";
+import type { NoteSourceLink } from "./NoteSourceEditor";
 import { READING_MEASURE_CLASS } from "./paper";
 import {
   resolveWikiTarget,
   rewriteWikiLinks,
-  taskMarkerOffsetInSource,
   WIKI_LINK_KIND,
   wikiLinkTargets,
   wikiSearchName,
@@ -172,22 +172,50 @@ function MarkdownNote({
   );
 }
 
+/** Opens what a link in a note's source points at: another note here, a web page outside. */
+export function useNoteSourceLinkOpener(input: {
+  readonly vault: NotesVault;
+  readonly path: string;
+  readonly text: string;
+  readonly noteLink: NoteLink;
+}): (link: NoteSourceLink) => void {
+  const { vault, path, text, noteLink } = input;
+  const navigate = useNavigate();
+  const openLink = useOpenLink(null);
+  const names = [...new Set(wikiLinkTargets(text).map(wikiSearchName))];
+  const searches = useAtomValue(
+    wikiSearchesAtom(JSON.stringify([vault.environmentId, vault.workspaceRoot, names])),
+  );
+  return (link) => {
+    if (link.kind === "wiki") {
+      const entries = searches[names.indexOf(wikiSearchName(link.target))]?.entries;
+      const found = entries === undefined ? undefined : resolveWikiTarget(link.target, entries);
+      if (typeof found === "string") void navigate(noteLink(found));
+      return;
+    }
+    const target = vaultLinkTarget({
+      href: link.target,
+      workspaceRoot: vault.workspaceRoot,
+      notePath: path,
+    });
+    if (target !== null) void navigate(noteLink(target));
+    else if (/^https?:/i.test(link.target)) void openLink(link.target).catch(() => undefined);
+  };
+}
+
 /** A note's Markdown as it reads, with its wiki links and links to other notes resolved in the vault. */
-export function NoteMarkdown({
+function NoteMarkdown({
   vault,
   path,
   text,
   noteLink,
   className,
-  onTextChange,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly text: string;
   readonly noteLink: NoteLink;
   readonly className?: string;
-  /** Given the whole note with one checkbox ticked or unticked; without it the boxes are read-only. */
-  readonly onTextChange?: (text: string) => void;
 }) {
   const navigate = useNavigate();
   const targets = wikiLinkTargets(text);
@@ -248,18 +276,6 @@ export function NoteMarkdown({
         workspaceMutationId={null}
         renderContextReference={renderWikiLink}
         {...(className === undefined ? {} : { className })}
-        {...(onTextChange === undefined
-          ? {}
-          : {
-              onTaskListChange: ({ markerOffset, checked }) =>
-                onTextChange(
-                  setMarkdownTaskChecked(
-                    text,
-                    taskMarkerOffsetInSource(text, rendered, markerOffset),
-                    checked,
-                  ),
-                ),
-            })}
       />
     </div>
   );
