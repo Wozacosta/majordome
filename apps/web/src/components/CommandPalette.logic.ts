@@ -799,6 +799,38 @@ export function buildRootGroups(input: {
   return groups;
 }
 
+/** What Majordome's palette offers, in order; a string renames the action. The rest is for developers. */
+const MAJORDOME_ACTIONS: ReadonlyArray<readonly [value: string, title: string | null]> = [
+  ["action:new-thread", "New chat"],
+  ["find-current-thread", "Find in this chat"],
+  ["action:open-file-picker", "Find a note"],
+  ["action:search-project-contents", "Search my notes"],
+  ["action:feed", null],
+  ["action:routines", null],
+  ["action:todos", null],
+  ["action:reminders", null],
+  ["action:phone", null],
+  ["action:notifications", null],
+  ["action:backup", null],
+  ["action:change-theme", null],
+  ["action:change-appearance", null],
+  ["action:usage", null],
+  ["action:settings", null],
+  ["find-in-browser-page", null],
+  ["action:workspace-focus:1", "Move to the next area"],
+  ["action:workspace-focus:-1", "Move to the previous area"],
+];
+
+export function majordomeActionItems<T extends CommandPaletteItem>(
+  items: ReadonlyArray<T>,
+): Array<T> {
+  return MAJORDOME_ACTIONS.flatMap(([value, title]) => {
+    const item = items.find((candidate) => candidate.value === value);
+    if (!item) return [];
+    return [title === null ? item : { ...item, title, searchTitle: title }];
+  });
+}
+
 export function getCommandPaletteInputPlaceholder(mode: CommandPaletteMode): string {
   switch (mode) {
     case "root":

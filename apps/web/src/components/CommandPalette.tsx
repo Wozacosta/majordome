@@ -223,6 +223,7 @@ import {
   filterPinnedBrowseEntries,
   getCommandPaletteInputPlaceholder,
   getCommandPaletteMode,
+  majordomeActionItems,
   ITEM_ICON_CLASS,
   RECENT_THREAD_LIMIT,
   createCommandPaletteSearchState,
@@ -1879,7 +1880,11 @@ function OpenCommandPaletteDialog(props: {
     });
   }
 
-  const rootGroups = buildRootGroups({ actionItems, recentThreadItems });
+  const shownActionItems = isMajordome ? majordomeActionItems(actionItems) : actionItems;
+  const rootGroups = buildRootGroups({ actionItems: shownActionItems, recentThreadItems }).map(
+    (group) =>
+      isMajordome && group.value === "recent-threads" ? { ...group, label: "Recent chats" } : group,
+  );
   // Every setting goes to the palette's own matcher, so settings get the same
   // word starts and typo tolerance as threads.
   const settingsSearchItems: CommandPaletteActionItem[] = settingsForThisPlatform(
@@ -1938,7 +1943,7 @@ function OpenCommandPaletteDialog(props: {
       ? {
           allOptions: {
             rootGroups,
-            nestedItems: buildNestedSearchItems(actionItems, deferredQuery),
+            nestedItems: buildNestedSearchItems(shownActionItems, deferredQuery),
           },
         }
       : {}),
@@ -2590,7 +2595,9 @@ function OpenCommandPaletteDialog(props: {
     newProjectFlow !== null
       ? "Project name"
       : (remoteProjectInputPlaceholder(addProjectCloneFlow) ??
-        getCommandPaletteInputPlaceholder(paletteMode));
+        (isMajordome && paletteMode === "root"
+          ? "Search actions, chats and settings..."
+          : getCommandPaletteInputPlaceholder(paletteMode)));
   const isSubmenu = paletteMode === "submenu" || paletteMode === "submenu-browse";
   const hasHighlightedBrowseItem = highlightedItemValue?.startsWith("browse:") ?? false;
   const canWriteSourceControl = useEnvironmentScope(

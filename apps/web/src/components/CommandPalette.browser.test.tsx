@@ -18,6 +18,11 @@ const entities = vi.hoisted(() => ({
   delegatedUnderParent: new Set<string>() as ReadonlySet<string>,
   handleNewThread: vi.fn(async () => undefined),
 }));
+// These cover T3 Code's full palette; Majordome shows a short list of its own actions.
+vi.mock("../env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../env")>()),
+  isMajordome: false,
+}));
 vi.mock("../state/server", async (original) => {
   const actual = await original<typeof import("../state/server")>();
   const { Atom } = await import("effect/reactivity");
