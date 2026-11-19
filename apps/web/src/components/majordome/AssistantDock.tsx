@@ -3,6 +3,7 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   createContext,
   type ReactNode,
+  type CSSProperties,
   type RefObject,
   use,
   useEffect,
@@ -13,9 +14,11 @@ import { flushSync } from "react-dom";
 
 import type { ChatComposerHandle } from "../chat/ChatComposer";
 import { useComposerDraftStore } from "../../composerDraftStore";
+import { usePreviewPanelInlineSize } from "../../hooks/usePreviewPanelInlineSize";
+import { RESIZABLE_WIDTH_PROPERTY } from "../../hooks/useResizableWidth";
 import { useStableCallback } from "../../hooks/useStableCallback";
-
 import { cn } from "../../lib/utils";
+import { RightPanelResizeHandle } from "../preview/RightPanelResizeHandle";
 import { Button } from "../ui/button";
 import { RoutinesAssistant } from "./RoutinesAssistant";
 import type { MajordomeVault } from "./topics.logic";
@@ -117,6 +120,10 @@ function VaultAssistant({
       askRef.current = null;
     };
   }, [askRef, ask]);
+  const { width, handlers, observeRow } = usePreviewPanelInlineSize({
+    widthStorageKey: "majordome:assistant-width",
+    defaultWidth: 448,
+  });
   if (
     runner === null ||
     (runner.routinesThreadId !== null && runner.routinesThreadId === shownThreadId)
@@ -134,11 +141,18 @@ function VaultAssistant({
         </div>
       )}
       <aside
+        ref={observeRow}
+        style={{ [RESIZABLE_WIDTH_PROPERTY]: `${width}px` } as CSSProperties}
         className={cn(
-          "h-full min-h-0 min-w-0 flex-1 flex-col bg-background @5xl/assistant:flex @5xl/assistant:max-w-md @5xl/assistant:border-l @5xl/assistant:border-border",
+          "relative h-full min-h-0 min-w-0 flex-1 flex-col bg-background @5xl/assistant:flex @5xl/assistant:w-(--resizable-width) @5xl/assistant:flex-none @5xl/assistant:border-l @5xl/assistant:border-border",
           open ? "flex" : "hidden",
         )}
       >
+        <RightPanelResizeHandle
+          handlers={handlers}
+          label="Resize the assistant"
+          className="hidden @5xl/assistant:block"
+        />
         <RoutinesAssistant
           key={`${runner.environmentId}:${runner.projectId}`}
           copy={runner}
