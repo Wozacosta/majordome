@@ -134,6 +134,18 @@ export const MajordomeSetRoutineLimitsInput = Schema.Struct({
 });
 export type MajordomeSetRoutineLimitsInput = typeof MajordomeSetRoutineLimitsInput.Type;
 
+/** `folder` null means a new folder in the default place; otherwise an absolute path on the server. */
+export const MajordomeStartNotesInput = Schema.Struct({
+  folder: Schema.NullOr(TrimmedNonEmptyString),
+});
+export type MajordomeStartNotesInput = typeof MajordomeStartNotesInput.Type;
+
+export const MajordomeStartNotesResult = Schema.Struct({
+  projectId: ProjectId,
+  folder: Schema.String,
+});
+export type MajordomeStartNotesResult = typeof MajordomeStartNotesResult.Type;
+
 export class MajordomeVaultError extends Schema.TaggedError<MajordomeVaultError>()(
   "MajordomeVaultError",
   {

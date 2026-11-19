@@ -23,6 +23,7 @@
     "start": "node dist/bin.mjs",
     "typecheck": "effect-tsgo tsrs --noEmit",
     "speech:catalog:sync": "node scripts/sync-speech-catalog.ts",
+    "starter-notes:sync": "node scripts/sync-starter-notes.ts",
     "speech:catalog:check": "node scripts/sync-speech-catalog.ts --check",
     "test": "vp test run",
     "record:codex-replay": "bun scripts/record-codex-app-server-replay-fixture.ts",

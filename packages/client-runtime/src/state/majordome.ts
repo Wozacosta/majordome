@@ -136,6 +136,10 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
     }),
+    startNotes: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:start-notes",
+      tag: WS_METHODS.majordomeStartNotes,
+    }),
     backupStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:backup-status",
       tag: WS_METHODS.majordomeGetBackupStatus,

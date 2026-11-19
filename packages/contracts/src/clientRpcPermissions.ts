@@ -100,6 +100,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeUndoVaultRun]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRunRoutinesHere]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetRoutineLimits]: AuthSettingsWriteScope,
+  // Writes files and a git history into a folder on the server and opens it as a project.
+  [WS_METHODS.majordomeStartNotes]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeBackUpNow]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRebuildNotesIndex]: AuthOrchestrationOperateScope,
   // Backup settings hold a passphrase and a GitHub sign-in, like credentials saved in Settings.

@@ -2427,6 +2427,7 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeVault.setRoutineLimits(input)),
           ),
+        [WS_METHODS.majordomeStartNotes]: (input) => majordomeVault.startNotes(input),
         [WS_METHODS.majordomeGetBackupStatus]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.getStatus(input)),

@@ -345,7 +345,7 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
 }
 
 // Each part of the page is one band: its label on the left, its rows on the right.
-function WelcomeSection({
+export function WelcomeSection({
   title,
   children,
 }: {
@@ -404,7 +404,7 @@ const revealOnMount = (node: HTMLElement | null) => node?.scrollIntoView({ block
 
 const ACP_REGISTRY_DRIVER_KIND = ProviderDriverKind.make("acpRegistry");
 
-function AgentsSection({
+export function AgentsSection({
   environmentId,
   label,
   isPrimary,

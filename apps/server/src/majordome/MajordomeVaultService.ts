@@ -8,13 +8,19 @@ import {
   type MajordomeVaultChangesInput,
   type MajordomeRoutineLimits,
   type MajordomeSetRoutineLimitsInput,
+  type MajordomeStartNotesInput,
+  type MajordomeStartNotesResult,
   MajordomeVaultError,
+  ProjectId,
+  CommandId,
   type MajordomeVaultHistoryInput,
   type MajordomeVaultHistoryResult,
   type MajordomeVaultUndoInput,
   type MajordomeVaultUndoResult,
 } from "@t3tools/contracts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Context from "effect/Context";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -27,6 +33,7 @@ import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ProjectService from "../project/ProjectService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -36,6 +43,7 @@ import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
+import { isTooBroadForNotes, NotesFolderError, setUpNotesFolder } from "./starterNotes.ts";
 import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -45,6 +53,9 @@ import { describeVaultHistory } from "./vaultRunSummaries.ts";
 
 const DEFAULT_HISTORY_LIMIT = 100;
 const isVaultError = Schema.is(MajordomeVaultError);
+/** Under the home folder, not Documents: macOS asks before a background service may read that. */
+const DEFAULT_NOTES_FOLDER = "Majordome";
+const isNotesFolderError = Schema.is(NotesFolderError);
 
 export class MajordomeVaultService extends Context.Service<
   MajordomeVaultService,
@@ -62,6 +73,10 @@ export class MajordomeVaultService extends Context.Service<
     readonly setRoutineLimits: (
       input: MajordomeSetRoutineLimitsInput,
     ) => Effect.Effect<MajordomeRoutineLimits, MajordomeVaultError>;
+    /** Makes a folder a notes folder, keeping what it holds, and opens it as a project. */
+    readonly startNotes: (
+      input: MajordomeStartNotesInput,
+    ) => Effect.Effect<MajordomeStartNotesResult, MajordomeVaultError>;
   }
 >()("t3/majordome/MajordomeVaultService") {}
 
@@ -77,6 +92,8 @@ const make = Effect.gen(function* () {
   const scheduledTasks = yield* ScheduledTaskService.ScheduledTaskService;
   const providers = yield* ProviderRegistry.ProviderRegistry;
   const notesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
+  const random = yield* SecureRandom.SecureRandom;
+  const projectService = yield* ProjectService.ProjectService;
   const ledgerPath = routineLedgerPath(path, (yield* ServerConfig.ServerConfig).stateDir);
 
   const toVaultError = (message: string) => (cause: unknown) =>
@@ -230,7 +247,52 @@ const make = Effect.gen(function* () {
     ),
   );
 
-  return MajordomeVaultService.of({ listHistory, undo, changes, setRoutineLimits });
+  const startNotes: MajordomeVaultService["Service"]["startNotes"] = Effect.fn(
+    "MajordomeVaultService.startNotes",
+  )(
+    function* (input) {
+      const home = yield* HostProcess.HomeDirectory;
+      const folder = path.resolve(input.folder ?? path.join(home, DEFAULT_NOTES_FOLDER));
+      if (input.folder !== null && !path.isAbsolute(input.folder)) {
+        return yield* new MajordomeVaultError({ message: "Give the folder's full path." });
+      }
+      if (isTooBroadForNotes({ folder, home, path })) {
+        return yield* new MajordomeVaultError({
+          message: "That folder holds more than notes. Pick a folder used only for your notes.",
+        });
+      }
+      yield* vaultLock.withLock(
+        folder,
+        setUpNotesFolder(folder).pipe(
+          Effect.provide(services),
+          Effect.provideService(FileSystem.FileSystem, fileSystem),
+          Effect.provideService(Path.Path, path),
+        ),
+      );
+      const existing = yield* projectService.getByWorkspaceRoot(folder);
+      const project = Option.isSome(existing)
+        ? existing.value
+        : yield* projectService.create({
+            commandId: CommandId.make(`majordome:start-notes:${yield* random.uuidV4()}`),
+            projectId: ProjectId.make(yield* random.uuidV4()),
+            title: path.basename(folder),
+            workspaceRoot: folder,
+          });
+      return { projectId: project.id, folder };
+    },
+    Effect.mapError((cause) =>
+      isVaultError(cause)
+        ? cause
+        : new MajordomeVaultError({
+            message: isNotesFolderError(cause)
+              ? "That folder is part of another project. Pick a folder of its own."
+              : "Could not set up that folder for your notes.",
+            cause,
+          }),
+    ),
+  );
+
+  return MajordomeVaultService.of({ listHistory, undo, changes, setRoutineLimits, startNotes });
 });
 
 export const layer = Layer.effect(MajordomeVaultService, make);

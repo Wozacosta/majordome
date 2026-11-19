@@ -18,11 +18,13 @@ for the design.
 
 Majordome runs on a Mac. It uses your own Claude subscription, through Claude Code.
 
-1. Install [Claude Code](https://code.claude.com/docs/en/setup) and sign in with `claude auth login`.
-2. Download Majordome from the [latest release](https://github.com/Wozacosta/majordome/releases/latest):
+1. Download Majordome from the [latest release](https://github.com/Wozacosta/majordome/releases/latest):
    the file ending in `arm64.dmg` for a Mac with Apple silicon, `x64.dmg` for an Intel Mac.
-3. Open the file, drag Majordome to Applications, and open it.
-4. Choose **Open notes folder** and pick the folder that holds your notes, or an empty one to start.
+2. Open the file, drag Majordome to Applications, and open it.
+3. On the welcome screen, sign in to Claude. If [Claude Code](https://code.claude.com/docs/en/setup)
+   is not on your Mac yet, the same screen installs it.
+4. Choose **Start new notes**, or **Choose folder** to use notes you already have, such as an
+   Obsidian vault. Majordome adds a few files of its own and changes nothing that is there.
 
 Then, when you want them:
 

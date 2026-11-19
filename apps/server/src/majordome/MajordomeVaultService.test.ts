@@ -1,6 +1,7 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -13,6 +14,7 @@ import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ProjectService from "../project/ProjectService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -128,8 +130,9 @@ const fakeProjections = (threads: Readonly<Record<string, ReadonlyArray<FakeRun>
 const makeService = (
   roots: Readonly<Record<string, string>>,
   threads: Readonly<Record<string, ReadonlyArray<FakeRun>>> = {},
-) =>
-  Effect.service(MajordomeVaultService.MajordomeVaultService).pipe(
+) => {
+  const opened = new Map<string, { readonly id: ProjectId; readonly workspaceRoot: string }>();
+  return Effect.service(MajordomeVaultService.MajordomeVaultService).pipe(
     Effect.provide(
       MajordomeVaultService.layer.pipe(
         Layer.provide(VaultLock.layer),
@@ -155,6 +158,18 @@ const makeService = (
           }),
         ),
         Layer.provide(
+          Layer.mock(ProjectService.ProjectService)({
+            getByWorkspaceRoot: (workspaceRoot) =>
+              Effect.succeed(Option.fromNullishOr(opened.get(workspaceRoot)) as never),
+            create: (input) =>
+              Effect.sync(() => {
+                const project = { id: input.projectId, workspaceRoot: input.workspaceRoot };
+                opened.set(input.workspaceRoot, project);
+                return project as never;
+              }),
+          }),
+        ),
+        Layer.provide(
           Layer.mock(ProjectStore.ProjectStoreV2)({
             get: (projectId) =>
               Effect.succeed(
@@ -167,6 +182,7 @@ const makeService = (
       ),
     ),
   );
+};
 
 it.layer(testLayer)("MajordomeVaultService", (it) => {
   it.effect("lists a vault's runs with the thread that made them, and undoes one", () =>
@@ -319,6 +335,25 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       );
       assert.equal(failed.message, "Could not save the limits.");
       assert.equal(yield* vault.fs.readFileString(config), "{ not json");
+    }),
+  );
+
+  it.effect("starts notes in a new folder, once, and refuses the whole home folder", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-home-" });
+      const service = yield* makeService({});
+      const start = (folder: string | null) =>
+        service.startNotes({ folder }).pipe(Effect.provideService(HostProcess.HomeDirectory, home));
+
+      const refused = yield* Effect.flip(start(home));
+      assert.include(refused.message, "more than notes");
+      assert.isFalse(yield* fs.exists(`${home}/.majordome`));
+
+      const first = yield* start(null);
+      assert.equal(first.folder, `${home}/Majordome`);
+      assert.isTrue(yield* fs.exists(`${home}/Majordome/.majordome/config.json`));
+      assert.deepEqual(yield* start(first.folder), first);
     }),
   );
 

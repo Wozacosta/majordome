@@ -80,9 +80,9 @@ export function MajordomeTopicsSection() {
   if (activeVault === null) {
     return loading ? null : (
       <div className="mx-2 mb-2 flex flex-col items-start gap-2 rounded-lg border border-dashed border-sidebar-border p-3 text-xs text-sidebar-muted-foreground">
-        <span>Open your notes folder to start your topics and chats.</span>
-        <Button size="xs" variant="outline" render={<Link to="/settings/projects" />}>
-          Open notes folder
+        <span>Set up your notes folder to start your topics and chats.</span>
+        <Button size="xs" variant="outline" render={<Link to="/" />}>
+          Set up notes
         </Button>
       </div>
     );

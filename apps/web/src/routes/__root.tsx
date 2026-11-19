@@ -218,7 +218,8 @@ function RootRouteBranch() {
         </>
       ) : (
         <FirstRunGate
-          enabled={primaryEnvironmentAuthenticated}
+          // Majordome's own setup opens on its home page whenever there is no notes folder.
+          enabled={primaryEnvironmentAuthenticated && !isMajordome}
           hostedStatic={authGateState.status === "hosted-static"}
         >
           {appHosts}
