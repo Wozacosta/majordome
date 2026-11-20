@@ -26,6 +26,7 @@ import { useStableCallback } from "../../hooks/useStableCallback";
 import { cn } from "../../lib/utils";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
+import { useEnvironmentProviders } from "../../state/environments";
 import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -36,6 +37,7 @@ import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
+import { Skeleton } from "../ui/skeleton";
 import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
 import { ToggleGroup } from "../ui/toggle-group";
@@ -54,6 +56,7 @@ import { requestDraftSend } from "./pendingDraftSend";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
 import {
+  assistantNotSetUp,
   dateOfDay,
   dayKey,
   greetingForHour,
@@ -124,6 +127,7 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
             </div>
             {view === "overview" ? (
               <>
+                <AssistantSetupLine vault={vault} />
                 <CaptureBox key={vault.key} vault={vault} />
                 <TodayTasks
                   key={`${vault.key}:${today}`}
@@ -152,6 +156,27 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
         </ScrollArea>
       </div>
     </SidebarInset>
+  );
+}
+
+const INLINE_LINK_CLASS =
+  "rounded-sm text-foreground underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
+
+/** One quiet line while no AI account on the notes folder's computer can answer. */
+function AssistantSetupLine({ vault }: { readonly vault: MajordomeVault }) {
+  const providers = useEnvironmentProviders().get(vault.environmentId);
+  if (!assistantNotSetUp(providers)) return null;
+  return (
+    <p className="mt-4 text-sm text-muted-foreground" data-assistant-not-set-up>
+      The assistant isn't set up yet.{" "}
+      <Link
+        to="/settings/providers"
+        search={{ environmentId: vault.environmentId }}
+        className={INLINE_LINK_CLASS}
+      >
+        Finish setup
+      </Link>
+    </p>
   );
 }
 
@@ -328,7 +353,11 @@ function DailyNote({
   if (note === null) {
     return result._tag === "Failure" ? (
       <p className="mt-6 text-sm text-muted-foreground">This day's note could not be read.</p>
-    ) : null;
+    ) : (
+      <div className="mt-6" aria-hidden>
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
   }
   return <DailyNoteCard key={day} vault={vault} day={day} isToday={isToday} note={note} />;
 }
@@ -426,6 +455,13 @@ function DailyNoteCard({
     state.timer = setTimeout(() => void flush(), NOTE_SAVE_DELAY_MS);
   };
 
+  /** After a save failed for a passing reason, such as a lost connection: the same save again. */
+  const retry = () => {
+    work.current.blocked = false;
+    setProblem(null);
+    void flush();
+  };
+
   /** After a save was refused: write over the file as it now is, or take the file's version. */
   const resolve = (keepMine: boolean) => {
     const state = work.current;
@@ -489,6 +525,9 @@ function DailyNoteCard({
             className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm"
           >
             <span className="min-w-0 flex-1">Not saved. {problem}</span>
+            <Button type="button" size="sm" variant="ghost" onClick={retry}>
+              Try again
+            </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => resolve(false)}>
               Discard my changes
             </Button>
@@ -532,6 +571,13 @@ const STARTERS = [
   { label: "Remind me", text: "Remind me to " },
   { label: "Plan my day", text: "Help me plan my day. " },
 ] as const;
+
+/** A starter fills an empty box or replaces another starter; words already typed stay, after it. */
+function starterFill(typed: string, starter: string): string {
+  const untouched =
+    typed.trim() === "" || STARTERS.some((candidate) => candidate.text.trim() === typed.trim());
+  return untouched ? starter : `${starter}${typed}`;
+}
 
 /** Starts a conversation in the notes folder with what was typed, as the new-thread page does. */
 function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
@@ -649,7 +695,7 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
             variant="outline"
             disabled={sending}
             onClick={() => {
-              setText(starter.text);
+              setText((typed) => starterFill(typed, starter.text));
               textArea.current?.focus();
             }}
           >
@@ -751,6 +797,7 @@ function TodayRoutines({
   });
   // Until every server has answered, an empty list may only mean "not known yet".
   const loading = results.some((result) => result._tag === "Initial");
+  const failed = results.some((result) => result._tag === "Failure");
 
   return (
     <Section title="Lately in your notes">
@@ -769,13 +816,15 @@ function TodayRoutines({
             <RunRow key={run.key} run={run} nowMs={nowMs} />
           ))}
         </ul>
-      ) : loading ? null : (
+      ) : loading ? null : failed ? (
         <p className="border-t border-border py-3 text-sm text-muted-foreground">
-          What your routines do will show here after they run.{" "}
-          <Link
-            to="/routines"
-            className="rounded-sm text-foreground underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-          >
+          Couldn't load what happened in your notes. Open this page again to retry.
+        </p>
+      ) : (
+        <p className="border-t border-border py-3 text-sm text-muted-foreground">
+          Routines are things Majordome does for you on its own, at times you choose. What they do
+          shows here after they run.{" "}
+          <Link to="/routines" className={INLINE_LINK_CLASS}>
             See your routines
           </Link>
         </p>

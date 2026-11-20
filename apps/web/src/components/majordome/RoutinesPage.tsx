@@ -12,6 +12,7 @@ import { requestConfirmDialog } from "../../confirmDialog";
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useQuietThreadShell } from "../../state/entities";
+import { majordomeEnvironment } from "../../state/majordome";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -23,7 +24,17 @@ import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { useAskAssistant } from "./AssistantDock";
 import { machineInSentence } from "./brains.logic";
-import { Disclosure, EntryList, Muted, PageHeader, Section, StatusLine } from "./paper";
+import { MoveRoutinesDialog } from "./MoveRoutinesDialog";
+import {
+  Disclosure,
+  EntryList,
+  ListSkeleton,
+  LoadFailed,
+  Muted,
+  PageHeader,
+  Section,
+  StatusLine,
+} from "./paper";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
 import { RoutineLimits } from "./RoutineLimits";
 import { RoutinePlace } from "./RoutinePlace";
@@ -70,7 +81,15 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { machineOf } = useMachineNames();
-  const { routines, runner, runnerHistory, runnerUnreachable, loading } = useVaultRoutines(vault);
+  const { routines, runner, runnerHistory, runnerUnreachable, loading, routinesFailed, retry } =
+    useVaultRoutines(vault);
+  const canChange = useAtomValue(
+    serverEnvironment.upsertScheduledTask.permissionAtom((runner ?? vault).environmentId),
+  );
+  const canMoveHere = useAtomValue(
+    majordomeEnvironment.runRoutinesHere.permissionAtom(vault.environmentId),
+  );
+  const [moving, setMoving] = useState(false);
   const { copies } = useMajordomeVaults();
   const askAssistant = useAskAssistant();
   const askToChange = (title: string) => askAssistant?.(changeRoutineMessage(title));
@@ -88,10 +107,18 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
               <Muted>Routines run on {machineInSentence(machineOf(runner.environmentId))}.</Muted>
             ) : null}
             {runnerUnreachable ? (
-              <StatusLine tone="warning" className="py-2.5">
-                Routines run on another computer that this window can't reach right now, so they
-                aren't listed here.
-              </StatusLine>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <StatusLine tone="warning" className="flex-1 basis-64 py-2.5">
+                  Routines run on another computer that this window can't reach right now, so they
+                  aren't listed here.
+                  {canMoveHere ? " You can have this computer run them instead." : ""}
+                </StatusLine>
+                {canMoveHere ? (
+                  <Button size="xs" variant="outline" onClick={() => setMoving(true)}>
+                    Move routines here
+                  </Button>
+                ) : null}
+              </div>
             ) : (
               <RoutinesBlockedLine
                 environmentId={runner.environmentId}
@@ -103,31 +130,46 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
           </div>
         ) : null}
 
-        <Section label="Routines">
-          {routines.length > 0 ? (
-            <EntryList aria-label="Routines">
-              {routines.map((item) => (
-                <RoutineRow
-                  key={item.key}
-                  item={item}
-                  vault={vault}
-                  copies={copies}
-                  nowMs={nowMs}
-                  onChange={() => askToChange(item.task.title)}
-                />
-              ))}
-            </EntryList>
-          ) : loading ? null : (
-            <Muted className="border-t border-border py-3">
-              No routines yet. Tell the assistant what you'd like done and when, such as “every
-              Friday evening, list what I spent this week”.
-            </Muted>
-          )}
-        </Section>
+        {runnerUnreachable ? null : (
+          <Section label="Routines">
+            {!canChange && routines.length > 0 ? (
+              <Muted className="mb-2">
+                You can look at routines from this device, but it isn't allowed to change them.
+              </Muted>
+            ) : null}
+            {routines.length > 0 ? (
+              <EntryList aria-label="Routines">
+                {routines.map((item) => (
+                  <RoutineRow
+                    key={item.key}
+                    item={item}
+                    vault={vault}
+                    copies={copies}
+                    nowMs={nowMs}
+                    onChange={() => askToChange(item.task.title)}
+                  />
+                ))}
+              </EntryList>
+            ) : loading ? (
+              <ListSkeleton />
+            ) : routinesFailed ? (
+              <LoadFailed onRetry={retry}>Couldn't load your routines.</LoadFailed>
+            ) : (
+              <Muted className="border-t border-border py-3">
+                No routines yet. Tell the assistant what you'd like done and when, such as “every
+                Friday evening, list what I spent this week”.
+              </Muted>
+            )}
+          </Section>
+        )}
 
         <Disclosure summary="Limits" className="mt-8">
           <RoutineLimits />
         </Disclosure>
+        <MoveRoutinesDialog
+          vault={moving ? { ...vault, routinesRunner: "another-server" } : null}
+          onClose={() => setMoving(false)}
+        />
       </div>
     </ScrollArea>
   );

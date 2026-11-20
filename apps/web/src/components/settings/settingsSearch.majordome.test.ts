@@ -1,6 +1,12 @@
 import { expect, it, vi } from "vite-plus/test";
 
-import { SETTINGS_NAV_GROUPS, SETTINGS_SECTION_LABELS, searchSettings } from "./settingsSearch";
+import {
+  SETTINGS_NAV_GROUPS,
+  SETTINGS_SECTION_LABELS,
+  SETTINGS_SEARCH_ITEMS,
+  searchSettings,
+  settingsForThisPlatform,
+} from "./settingsSearch";
 
 vi.mock("~/env", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/env")>()),
@@ -36,21 +42,19 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
       ],
     },
     // Routines have their own screen, in the sidebar.
-    { heading: "AI", collapsible: false, labels: ["Providers"] },
+    { heading: "AI", collapsible: false, labels: ["AI accounts"] },
     {
       heading: "Advanced",
       collapsible: true,
       labels: [
-        "Threads",
+        "Chats",
         "Browser",
-        "Diffs",
         "Keybindings",
-        "SnapShots",
-        "Environments",
+        "Computers",
         "Sharing & access",
         "Maintenance",
         "Labs",
-        "Archive",
+        "Archived chats",
       ],
     },
     { heading: null, collapsible: false, labels: ["About"] },
@@ -73,18 +77,32 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
   expect(searchSettings("scheduled tasks").map((item) => item.to)).not.toContain(
     "/settings/scheduled-tasks",
   );
+  const shown = settingsForThisPlatform(SETTINGS_SEARCH_ITEMS);
+  const pages = shown.map((item) => item.to);
+  expect(pages).not.toContain("/settings/diffs");
+  expect(pages).not.toContain("/settings/snap-shot");
+  const ids = shown.map((item) => item.id);
+  for (const id of [
+    "project-grouping",
+    "terminal-close-confirmation",
+    "new-threads",
+    "keep-threads-with-pull-requests",
+    "git-fetch-interval",
+    "boring-sidebar-multiline",
+    "preview-tunnel",
+    "mobile-app",
+  ]) {
+    expect(ids, id).not.toContain(id);
+  }
+  expect(ids).toEqual(expect.arrayContaining(["default-model", "auto-settle-inactive-threads"]));
 });
 
 it("says Earlier for the shelf, and still finds it for people who search T3's word", () => {
   const titles = (query: string) => searchSettings(query).map((item) => item.title);
   expect(titles("move chats to earlier")).toContain("Move inactive chats to Earlier");
   expect(titles("auto-settle")).toEqual(
-    expect.arrayContaining([
-      "Move inactive chats to Earlier",
-      "Move merged chats to Earlier",
-      "Days before chats move to Earlier",
-    ]),
+    expect.arrayContaining(["Move inactive chats to Earlier", "Days before chats move to Earlier"]),
   );
-  expect(titles("settle")).toContain("Thread: Mark as Done");
+  expect(titles("settle")).toContain("Chat: Mark as done");
   expect(titles("settle").some((title) => /settle/i.test(title))).toBe(false);
 });

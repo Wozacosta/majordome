@@ -21,6 +21,7 @@ import { BackgroundThreadContext } from "../chat/backgroundThread";
 import { ScreenContextReader } from "../chat/screenContext";
 import ChatView from "../ChatView";
 import { Button } from "../ui/button";
+import { toastManager } from "../ui/toast";
 import {
   assistantConversationActivity,
   assistantScreenName,
@@ -72,11 +73,28 @@ export function RoutinesAssistant({
     routinesThreadId === null ? null : scopeThreadRef(environmentId, routinesThreadId),
   );
 
+  const router = useRouter();
   /** Resolves to why the conversation could not be opened, or null when it was. */
-  const request = useStableCallback(async (fresh: boolean) => {
+  const request = useStableCallback(async (fresh: boolean, leftIdle = false) => {
     const threadId = newThreadId();
     notePendingAssistantThread(environmentId, threadId);
     const result = await open({ environmentId, input: { projectId, fresh, threadId } });
+    if (result._tag === "Success" && fresh && routinesThreadId !== null) {
+      const toastId = toastManager.add({
+        type: "success",
+        title: "Started a new chat",
+        description: leftIdle
+          ? "The last one had been quiet for a few days. It is kept with your archived chats."
+          : "The previous one is kept with your archived chats.",
+        actionProps: {
+          children: "See archived chats",
+          onClick: () => {
+            toastManager.close(toastId);
+            void router.navigate({ to: "/settings/archived" });
+          },
+        },
+      });
+    }
     if (result._tag === "Success" || isAtomCommandInterrupted(result)) return null;
     const failure = squashAtomCommandFailure(result);
     return failure instanceof Error ? failure.message : String(failure);
@@ -116,10 +134,9 @@ export function RoutinesAssistant({
     }
     replacedStaleThreads.add(key);
     // A failure keeps the old conversation, which still works.
-    void request(true);
+    void request(true, true);
   }, [canOpen, environmentId, request, routinesThreadId, shell]);
 
-  const router = useRouter();
   const screenName = useLocation({ select: assistantScreenName });
   const readScreen = useStableCallback(() => {
     const screen = assistantScreenName(router.state.location);
@@ -155,7 +172,7 @@ export function RoutinesAssistant({
               disabled={!canOpen || busy}
               onClick={() => void start(true)}
             >
-              Start over
+              New chat
             </Button>
           </div>
         ) : null}
@@ -168,7 +185,10 @@ export function RoutinesAssistant({
           </Button>
         </div>
       ) : !canOpen && routinesThreadId === null ? (
-        <Muted className="p-4">This connection can't start conversations.</Muted>
+        <Muted className="p-4">
+          This device isn't allowed to start chats, so the assistant isn't available here. Open
+          Majordome on your computer to use it.
+        </Muted>
       ) : routinesThreadId === null || shell === null ? (
         <Muted className="p-4" role="status">
           Getting the assistant ready…

@@ -1,6 +1,17 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { buildThreadActionMenuItems, type ThreadActionMenuState } from "./threadActionMenu.logic";
+import {
+  buildDraftActionMenuItems,
+  buildThreadActionMenuItems,
+  majordomeMenuItems,
+  type ThreadActionMenuState,
+} from "./threadActionMenu.logic";
+
+// These tests cover T3 Code's full menus; Majordome's cut is tested on its own below.
+vi.mock("../env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../env")>()),
+  isMajordome: false,
+}));
 
 const baseState: ThreadActionMenuState = {
   canOperate: true,
@@ -78,5 +89,39 @@ describe("buildThreadActionMenuItems", () => {
   it("disables only rename where no inline title editor exists", () => {
     const items = buildThreadActionMenuItems({ ...baseState, canRename: false });
     expect(items.filter((item) => item.disabled).map((item) => item.id)).toEqual(["rename"]);
+  });
+
+  it("leaves the developer items out of Majordome's menus", () => {
+    const ids = (items: ReadonlyArray<{ id: string; children?: ReadonlyArray<{ id: string }> }>) =>
+      items.flatMap((item) => [item.id, ...(item.children ?? []).map((child) => child.id)]);
+    const thread = majordomeMenuItems(
+      buildThreadActionMenuItems({
+        ...baseState,
+        branch: "main",
+        projectFilter: { label: "Notes", isActive: false },
+        canTurnIntoProject: true,
+      }),
+    );
+    expect(ids(thread)).toEqual([
+      "pin",
+      "settle",
+      "snooze",
+      "snooze:hour",
+      "snooze:custom",
+      "rename",
+      "regenerate-title",
+      "mark-unread",
+      "auto-settle",
+      "auto-settle:enabled",
+      "auto-settle:disabled",
+      "copy",
+      "copy-thread",
+      "archive",
+      "delete",
+    ]);
+    const draft = majordomeMenuItems(
+      buildDraftActionMenuItems({ hasPath: true, hasBranch: true, hasProject: true }),
+    );
+    expect(ids(draft)).toEqual(["discard"]);
   });
 });

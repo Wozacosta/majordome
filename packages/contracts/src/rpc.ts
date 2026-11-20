@@ -180,6 +180,7 @@ import {
 } from "./majordomeTopicFiles.ts";
 import {
   MajordomeCreateTopicInput,
+  MajordomeDismissTopicSuggestionsInput,
   MajordomeOpenRoutinesConversationInput,
   MajordomeOpenTopicInput,
   MajordomeOpenTopicResult,
@@ -2660,7 +2661,7 @@ const WsMajordomeOpenRoutinesConversationRpc = Rpc.make(
 const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   WS_METHODS.majordomeDismissTopicSuggestions,
   {
-    payload: MajordomeTopicsInput,
+    payload: MajordomeDismissTopicSuggestionsInput,
     error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
   },
 );

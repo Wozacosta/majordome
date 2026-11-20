@@ -111,13 +111,14 @@ import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collaps
 import { QRCodeSvg } from "../ui/qr-code";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import { ScrollArea } from "../ui/scroll-area";
+import { Spinner } from "../ui/spinner";
 import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { cn } from "../../lib/utils";
 import { formatRelativeTime } from "../../timestampFormat";
 
-const AGENT_ONBOARDING_THREAD_ID = ThreadId.make("onboarding-agent-setup");
+export const AGENT_ONBOARDING_THREAD_ID = ThreadId.make("onboarding-agent-setup");
 const SCAN_LIMIT_MESSAGE = msg(
   "Scan limit reached. Some projects or conversations may be missing.",
 );
@@ -424,7 +425,7 @@ interface AgentTerminalSession {
 }
 
 // Shared by the page (to enable Start) and the agents section, so both agree on what is ready.
-function useWelcomeAgents(environmentId: EnvironmentId) {
+export function useWelcomeAgents(environmentId: EnvironmentId) {
   const providers = useAtomValue(serverEnvironment.providersValueAtom(environmentId));
   const serverConfig = useAtomValue(serverEnvironment.configValueAtom(environmentId));
   const managedPolicy = serverConfig?.managedPolicy;
@@ -489,7 +490,8 @@ export function AgentsSection({
   // status can be wrong, so this waits for the checks, and a later check never closes it.
   if (moreOpen === null && !checking && found.length === 0) setMoreOpen(true);
   const showMore = moreOpen ?? false;
-  const acpAllowed = isManagedDriverAllowed(serverConfig?.managedPolicy, ACP_REGISTRY_DRIVER_KIND);
+  const acpAllowed =
+    !isMajordome && isManagedDriverAllowed(serverConfig?.managedPolicy, ACP_REGISTRY_DRIVER_KIND);
   const stateOf = (provider: ServerProvider) => welcomeAgentState(provider, serverConfig?.settings);
   const needsInstallOrSignIn = (provider: ServerProvider) => {
     const state = stateOf(provider);
@@ -669,6 +671,24 @@ export function AgentsSection({
       : null,
   ].filter((note) => note !== null);
 
+  const installTerminal =
+    terminalSession !== null ? (
+      <AgentInstallTerminal
+        key={`${terminalSession.environmentId}:${terminalSession.providerInstanceId}:${terminalSession.driver}:${terminalSession.signIn}`}
+        session={terminalSession}
+        onCommandFinished={() =>
+          void refreshProviders({
+            environmentId,
+            input: { instanceId: terminalSession.providerInstanceId },
+          })
+        }
+        onClose={() => {
+          setTerminalSession(null);
+          void refreshProviders({ environmentId, input: {} });
+        }}
+      />
+    ) : null;
+
   return (
     <WelcomeSection title={isMajordome ? gt("Assistant") : gt("Agents")}>
       {found.map((provider) => (
@@ -679,6 +699,8 @@ export function AgentsSection({
           action={actionFor(provider)}
         />
       ))}
+      {/* Majordome hides the terminal, so its status line sits right under the row it is about. */}
+      {isMajordome ? installTerminal : null}
       {checking && found.length === 0 ? (
         <p className="text-sm leading-10 text-muted-foreground">
           <T>
@@ -705,7 +727,7 @@ export function AgentsSection({
             {found.length === 0
               ? gt("Set up an agent")
               : isMajordome
-                ? gt("Use a different AI")
+                ? gt("Use a different AI (optional)")
                 : gt("Add more agents")}
           </span>
           {showMore || isMajordome ? null : (
@@ -757,23 +779,8 @@ export function AgentsSection({
           />
         </div>
       ) : null}
-      {isPrimary ? <CliPathSetup /> : null}
-      {terminalSession !== null ? (
-        <AgentInstallTerminal
-          key={`${terminalSession.environmentId}:${terminalSession.providerInstanceId}:${terminalSession.driver}:${terminalSession.signIn}`}
-          session={terminalSession}
-          onCommandFinished={() =>
-            void refreshProviders({
-              environmentId,
-              input: { instanceId: terminalSession.providerInstanceId },
-            })
-          }
-          onClose={() => {
-            setTerminalSession(null);
-            void refreshProviders({ environmentId, input: {} });
-          }}
-        />
-      ) : null}
+      {isPrimary && !isMajordome ? <CliPathSetup /> : null}
+      {isMajordome ? null : installTerminal}
       {addingProvider ? (
         <AddProviderInstanceDialog
           open
@@ -1232,7 +1239,7 @@ function TerminalAction({
       disabled={disabled}
       onClick={onClick}
     >
-      <TerminalIcon className="size-3.5" />
+      {isMajordome ? null : <TerminalIcon className="size-3.5" />}
       {label}
     </Button>
   );
@@ -1414,6 +1421,7 @@ function AgentInstallTerminal({
       });
       if (activeSetupGenerationRef.current !== generation) return;
       setSetupState(wrote._tag === "Success" ? "ready" : "writeFailed");
+      if (isMajordome && wrote._tag !== "Success") setShowTerminal(true);
     });
 
     // Revocation leaves the PTY running; close only while terminal access remains.
@@ -1445,12 +1453,27 @@ function AgentInstallTerminal({
   return (
     <div
       data-thread-terminal-drawer
-      className="mt-4 overflow-hidden rounded-lg border border-border/70 bg-background text-foreground"
+      className={cn(
+        "overflow-hidden rounded-lg border border-border/70 bg-background text-foreground",
+        isMajordome ? "my-2" : "mt-4",
+      )}
     >
       <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-3 py-1.5">
-        <span className="text-2xs font-medium text-muted-foreground">
+        <span
+          className={cn(
+            "font-medium text-muted-foreground",
+            isMajordome ? "flex items-center gap-2 text-xs" : "text-2xs",
+          )}
+        >
+          {isMajordome &&
+          canOperateTerminal &&
+          (setupState === "preparing" || (setupState === "ready" && !finished)) ? (
+            <Spinner size="xs" className="shrink-0" />
+          ) : null}
           {!canOperateTerminal ? (
             gt("This connection cannot control terminals.")
+          ) : setupState === "writeFailed" && isMajordome ? (
+            gt("That did not start. Press Retry.")
           ) : setupState === "writeFailed" ? (
             <T>
               Run{" "}
@@ -1486,7 +1509,7 @@ function AgentInstallTerminal({
           )}
         </span>
         <div className="flex items-center gap-1">
-          {setupState === "openFailed" ? (
+          {setupState === "openFailed" || (isMajordome && setupState === "writeFailed") ? (
             <Button
               size="xs"
               variant="ghost"

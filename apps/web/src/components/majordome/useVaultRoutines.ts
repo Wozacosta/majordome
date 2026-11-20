@@ -1,7 +1,9 @@
-import { useAtomValue } from "@effect/atom-react";
+import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
+import { useContext } from "react";
 
 import { environmentScheduledTasksAtom, vaultHistoriesAtom } from "../../state/majordome";
+import { serverEnvironment } from "../../state/server";
 import { selectRoutines } from "./routines.logic";
 import type { MajordomeVault } from "./topics.logic";
 
@@ -11,6 +13,7 @@ import type { MajordomeVault } from "./topics.logic";
  */
 export function useVaultRoutines(vault: Pick<MajordomeVault, "copies"> | null) {
   const copies = vault?.copies ?? [];
+  const registry = useContext(RegistryContext);
   const tasks = useAtomValue(
     environmentScheduledTasksAtom(JSON.stringify(copies.map((copy) => copy.environmentId))),
   );
@@ -35,5 +38,16 @@ export function useVaultRoutines(vault: Pick<MajordomeVault, "copies"> | null) {
     runnerUnreachable:
       runnerIndex < 0 && histories.some((history) => history?.routinesRunner === "another-server"),
     loading: tasks.some((result) => result._tag === "Initial"),
+    /** The runner's list could not be read, so no routines does not mean there are none. */
+    routinesFailed: tasks[Math.max(runnerIndex, 0)]?._tag === "Failure",
+    /** Some computer's list could not be read, so its reminders are missing. */
+    remindersFailed: tasks.some((result) => result._tag === "Failure"),
+    retry: () => {
+      for (const copy of copies) {
+        registry.refresh(
+          serverEnvironment.scheduledTasksLive({ environmentId: copy.environmentId, input: {} }),
+        );
+      }
+    },
   };
 }

@@ -40,9 +40,18 @@ function ChatIndexRouteView() {
 /** Majordome opens on Today; with no notes folder yet, on the setup that makes one. */
 function MajordomeLanding() {
   const { activeVault, loading } = useMajordomeVaults();
-  if (activeVault !== null) return <TodayPage vault={activeVault} />;
+  // Setup asks to stay open when the folder is chosen before the assistant is ready.
+  const [settingUp, setSettingUp] = useState(false);
+  if (activeVault !== null && !settingUp) return <TodayPage vault={activeVault} />;
   // A project still being asked about may be the notes folder.
-  return loading ? null : <MajordomeWelcomePage />;
+  if (loading && !settingUp) return null;
+  return (
+    <MajordomeWelcomePage
+      notesFolder={activeVault?.title ?? null}
+      onStay={() => setSettingUp(true)}
+      onLeave={() => setSettingUp(false)}
+    />
+  );
 }
 
 function IndexDraftLanding() {

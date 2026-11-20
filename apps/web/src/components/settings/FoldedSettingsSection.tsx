@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { useSettingsSearchTarget, useSettingsSearchTargetId } from "./settingsLayout";
+import { isHiddenSetting } from "./settingsSearch";
 
 export function FoldedSettingsSection({
   id,
@@ -34,6 +35,7 @@ export function FoldedSettingsSection({
     if (!open) setOpen(true);
   }
 
+  if (isHiddenSetting(id)) return null;
   if (headerPlacement === "outside") {
     return (
       <section id={id} ref={targetRef} tabIndex={-1} className="outline-none">

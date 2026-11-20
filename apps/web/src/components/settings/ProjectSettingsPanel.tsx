@@ -20,6 +20,7 @@ import { lazy, Suspense, useRef, useState, type ReactNode } from "react";
 import { T, useGT, useMessages } from "gt-react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
+import { isMajordome } from "../../env";
 import { releaseProjectDraftUploads } from "../../lib/composerDraftUploads";
 import { persistClientSettingsUpdate, useClientSettings } from "../../hooks/useSettings";
 import { readLocalApi } from "../../localApi";
@@ -457,7 +458,7 @@ function ProjectDetail({
     </div>
   );
   const checkoutChoices = (
-    <SettingsSection title={gt("Checkouts")}>
+    <SettingsSection id="project-checkouts" title={gt("Checkouts")}>
       <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
         <T>
           Grouping rule decides how each checkout joins project groups in the sidebar. Changing it
@@ -644,6 +645,7 @@ function ProjectDetail({
           {canOrganize ? (
             <>
               <SettingsRow
+                id="project-pin"
                 title={gt("Pin")}
                 description={gt("Pinned projects come first in project pickers.")}
                 control={
@@ -690,7 +692,7 @@ function ProjectDetail({
             </>
           ) : null}
         </SettingsSection>
-        <ProjectDefaultsSettings category="project" />
+        {isMajordome ? null : <ProjectDefaultsSettings category="project" />}
         <ProjectActionsSettings />
         {checkoutChoices}
         <SettingsSection title={gt("Danger")}>

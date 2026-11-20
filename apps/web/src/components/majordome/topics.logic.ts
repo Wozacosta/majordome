@@ -39,6 +39,8 @@ export interface MajordomeVault {
   readonly brainId: string | null;
   readonly topics: ReadonlyArray<VaultTopic>;
   readonly suggestions: ReadonlyArray<MajordomeTopicSuggestion>;
+  /** How many suggestions the owner skipped and can ask for again. */
+  readonly skippedSuggestions?: number;
   readonly folders: ReadonlyArray<string>;
   readonly projectsFolder: string;
   /** Every server's copy of this brain, the shown one first. */
@@ -94,6 +96,7 @@ export function collectVaults(
         })),
       })),
       suggestions: result.suggestions,
+      skippedSuggestions: result.skippedSuggestions ?? 0,
       folders: result.folders,
       projectsFolder: result.projectsFolder,
       copies: [copy],
@@ -255,7 +258,7 @@ export function topicSubtitle(
   topic: Pick<MajordomeTopic, "folder" | "lastMessagePreview">,
 ): string {
   const preview = topic.lastMessagePreview;
-  if (preview == null) return topic.folder;
+  if (preview == null) return `Notes in ${topic.folder}`;
   return preview.author === "you" ? `You: ${preview.text}` : preview.text;
 }
 

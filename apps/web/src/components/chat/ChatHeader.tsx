@@ -222,7 +222,7 @@ export const ChatHeader = memo(function ChatHeader({
   };
   const handleHeaderContextMenu = (event: ReactMouseEvent) => {
     if (renamingTitle !== null) return;
-    if (!isServerThread && onOpenProjectSettings === undefined) return;
+    if (!isServerThread && (isMajordome || onOpenProjectSettings === undefined)) return;
     event.preventDefault();
     if (!isServerThread) {
       const api = readLocalApi();

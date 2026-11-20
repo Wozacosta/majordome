@@ -12,13 +12,16 @@ import type {
   ThreadId,
 } from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   EllipsisIcon,
   FolderInputIcon,
+  FolderSearchIcon,
   MessageCircleIcon,
   MessageCirclePlusIcon,
   NotebookTextIcon,
@@ -58,11 +61,13 @@ import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/men
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { notesLink } from "./notes.logic";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
 import { TopicIconBadge, TopicIconDialog, topicRowTint } from "./TopicIcon";
 import {
+  moveTopic,
   placeTopic,
   topicPreviewStamp,
   topicSubtitle,
@@ -96,13 +101,16 @@ function reportFailure(title: string, result: AtomCommandResult<unknown, unknown
  */
 export function MajordomeTopicsSection() {
   const { vaults, copies, loading, activeVault, setActiveVaultKey } = useMajordomeVaults();
+  const onWelcome = useLocation({ select: (location) => location.pathname === "/" });
   if (activeVault === null) {
     return loading ? null : (
       <div className="mx-2 mb-2 flex flex-col items-start gap-2 rounded-lg border border-dashed border-sidebar-border p-3 text-xs text-sidebar-muted-foreground">
         <span>Set up your notes folder to start your topics and chats.</span>
-        <Button size="xs" variant="outline" render={<Link to="/" />}>
-          Set up notes
-        </Button>
+        {onWelcome ? null : (
+          <Button size="xs" variant="outline" render={<Link to="/" />}>
+            Set up notes
+          </Button>
+        )}
       </div>
     );
   }
@@ -156,6 +164,10 @@ function VaultTopics({
   const openTopic = useOpenTopic(vault);
   const reorderTopics = useAtomCommand(majordomeEnvironment.reorderTopics, {
     label: "reorder topics",
+    reportFailure: false,
+  });
+  const restoreSuggestions = useAtomCommand(majordomeEnvironment.dismissTopicSuggestions, {
+    label: "show topic suggestions again",
     reportFailure: false,
   });
   const routeTarget = useThreadRouteTarget();
@@ -221,14 +233,45 @@ function VaultTopics({
     <>
       <div className={HEADING_CLASS}>
         <h2 className="min-w-0 flex-1">Topics</h2>
-        <Button
-          size="icon-xs"
-          variant="ghost-muted"
-          aria-label="New topic"
-          onClick={() => setDialog({ kind: "create" })}
-        >
-          <PlusIcon />
-        </Button>
+        {(vault.skippedSuggestions ?? 0) > 0 ? (
+          <Menu>
+            <MenuTrigger
+              render={<Button size="icon-xs" variant="ghost-muted" aria-label="New topic" />}
+            >
+              <PlusIcon />
+            </MenuTrigger>
+            <MenuPopup align="end">
+              <MenuItem onClick={() => setDialog({ kind: "create" })}>
+                <PlusIcon />
+                New topic
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  void restoreSuggestions({
+                    environmentId: vault.environmentId,
+                    input: { projectId: vault.projectId, restore: true },
+                  }).then((result) => {
+                    if (result._tag === "Failure") {
+                      reportFailure("Could not bring the suggestions back", result);
+                    }
+                  });
+                }}
+              >
+                <FolderSearchIcon />
+                Suggest topics from my folders
+              </MenuItem>
+            </MenuPopup>
+          </Menu>
+        ) : (
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label="New topic"
+            onClick={() => setDialog({ kind: "create" })}
+          >
+            <PlusIcon />
+          </Button>
+        )}
       </div>
       {vault.suggestions.length > 0 ? (
         <TopicSuggestions
@@ -238,7 +281,7 @@ function VaultTopics({
       ) : null}
       {topics.length > 0 ? (
         <ul aria-label="Topics" className="flex flex-col gap-px">
-          {topics.map((topic) => {
+          {topics.map((topic, index) => {
             const threadKey =
               topic.threadId === null
                 ? null
@@ -259,8 +302,19 @@ function VaultTopics({
                 isDragging={dragging === topic.id}
                 sideChats={(topic.sideChats ?? []).flatMap((chat) => {
                   const shell = threadByKey.get(scopedThreadKey(chat));
-                  return shell === undefined ? [] : [{ ...chat, title: shell.title }];
+                  return shell === undefined
+                    ? []
+                    : [{ ...chat, title: shell.title, done: shell.settledOverride === "settled" }];
                 })}
+                onMove={
+                  topics.length < 2
+                    ? null
+                    : {
+                        up: index > 0,
+                        down: index < topics.length - 1,
+                        by: (offset) => void reorder(moveTopic(order, topic.id, offset)),
+                      }
+                }
                 onOpen={() => void open(topic)}
                 onNewChat={() => void openTopic(topic, { sideChat: true })}
                 onDragStart={() => setDragging(topic.id)}
@@ -315,7 +369,15 @@ function TopicRow(props: {
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId;
     readonly title: string;
+    /** Marked as done: folded away until asked for. */
+    readonly done: boolean;
   }>;
+  /** The ways to move it in the list without dragging; null when it is the only topic. */
+  readonly onMove: {
+    readonly up: boolean;
+    readonly down: boolean;
+    readonly by: (offset: number) => void;
+  } | null;
   readonly isActive: boolean;
   readonly isDragging: boolean;
   readonly onOpen: () => void;
@@ -348,6 +410,9 @@ function TopicRow(props: {
   );
   const hasNested = props.routines.length + props.sideChats.length + otherChats.length > 0;
   const collapsed = collapsedTopics.includes(topic.id);
+  const [showDone, setShowDone] = useState(false);
+  const doneCount = props.sideChats.filter((chat) => chat.done).length;
+  const sideChats = showDone ? props.sideChats : props.sideChats.filter((chat) => !chat.done);
   return (
     <li
       data-topic-id={topic.id}
@@ -435,6 +500,19 @@ function TopicRow(props: {
               <NotebookTextIcon />
               Open folder in Notes
             </MenuItem>
+            {props.onMove === null ? null : (
+              <>
+                <MenuSeparator />
+                <MenuItem disabled={!props.onMove.up} onClick={() => props.onMove?.by(-1)}>
+                  <ArrowUpIcon />
+                  Move up
+                </MenuItem>
+                <MenuItem disabled={!props.onMove.down} onClick={() => props.onMove?.by(1)}>
+                  <ArrowDownIcon />
+                  Move down
+                </MenuItem>
+              </>
+            )}
             <MenuSeparator />
             <MenuItem variant="destructive" onClick={props.onRemove}>
               <TrashIcon />
@@ -491,7 +569,7 @@ function TopicRow(props: {
               </li>
             ),
           )}
-          {props.sideChats.map((chat) => (
+          {sideChats.map((chat) => (
             <li key={`${chat.environmentId}:${chat.threadId}`}>
               <Link
                 to="/$environmentId/$threadId"
@@ -511,6 +589,20 @@ function TopicRow(props: {
               </Link>
             </li>
           ))}
+          {doneCount > 0 ? (
+            <li>
+              <button
+                type="button"
+                aria-expanded={showDone}
+                onClick={() => setShowDone((shown) => !shown)}
+                className="w-full cursor-pointer rounded-md px-2 py-1 text-left text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              >
+                {showDone
+                  ? "Hide chats marked as done"
+                  : `Show ${doneCount} earlier ${doneCount === 1 ? "chat" : "chats"}`}
+              </button>
+            </li>
+          ) : null}
           {otherChats.map((chat) => (
             <li key={`${chat.environmentId}:${chat.threadId}`}>
               <Link
@@ -594,22 +686,31 @@ function TopicSuggestions({
         <p className="min-w-0 flex-1 text-xs text-sidebar-muted-foreground">
           Make these folders topics?
         </p>
-        <Button
-          size="icon-xs"
-          variant="ghost-muted"
-          aria-label="Not now"
-          onClick={() => {
-            void dismiss({
-              environmentId: vault.environmentId,
-              input: { projectId: vault.projectId },
-            }).then((result) => {
-              if (result._tag === "Failure")
-                reportFailure("Could not hide the suggestions", result);
-            });
-          }}
-        >
-          <XIcon />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon-xs"
+                variant="ghost-muted"
+                aria-label="Hide these suggestions"
+                onClick={() => {
+                  void dismiss({
+                    environmentId: vault.environmentId,
+                    input: { projectId: vault.projectId },
+                  }).then((result) => {
+                    if (result._tag === "Failure")
+                      reportFailure("Could not hide the suggestions", result);
+                  });
+                }}
+              />
+            }
+          >
+            <XIcon />
+          </TooltipTrigger>
+          <TooltipPopup side="bottom">
+            Hide these suggestions. The + above brings them back.
+          </TooltipPopup>
+        </Tooltip>
       </div>
       <ul className="flex flex-col gap-0.5">
         {(showAll ? vault.suggestions : vault.suggestions.slice(0, FIRST_SUGGESTIONS)).map(
@@ -687,8 +788,8 @@ function RemoveTopicDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {topic.title} from your topics?</AlertDialogTitle>
           <AlertDialogDescription>
-            Its notes stay in {topic.folder}.
-            {topic.threadId !== null ? " Its chat moves to Recent." : ""}
+            Its notes stay in {topic.folder}. Its chats move to Recent, and a routine that posts in
+            this topic keeps posting in the same chat.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

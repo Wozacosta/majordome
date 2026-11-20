@@ -1,6 +1,8 @@
 import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
 import { OVERVIEW_TONE_DOT_CLASS, type OverviewTone } from "./overview.logic";
 
 /**
@@ -194,6 +196,44 @@ export function StatusLine({
       <ToneDot tone={tone} className="mt-1.5" />
       <span className="min-w-0 flex-1">{children}</span>
     </p>
+  );
+}
+
+/** Stands in for a list while it loads, so an empty page is never read as "none". */
+export function ListSkeleton({ rows = 3 }: { readonly rows?: number }) {
+  return (
+    <div className="flex flex-col gap-3 border-t border-border pt-3" aria-hidden>
+      {Array.from({ length: rows }, (_, index) => (
+        <Skeleton key={index} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+/** A list that could not be read: what failed, and the way to ask again. */
+export function LoadFailed({
+  onRetry,
+  className,
+  children,
+}: {
+  readonly onRetry: () => void;
+  readonly className?: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3",
+        className,
+      )}
+    >
+      <StatusLine tone="error" className="flex-1 basis-48">
+        {children}
+      </StatusLine>
+      <Button size="xs" variant="outline" onClick={onRetry}>
+        Try again
+      </Button>
+    </div>
   );
 }
 

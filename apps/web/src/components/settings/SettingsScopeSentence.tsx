@@ -5,6 +5,7 @@ import { CheckIcon, ChevronDownIcon, FolderIcon, LayersIcon } from "lucide-react
 import { Fragment, useState, type ReactNode } from "react";
 import { T, useGT, useMessages, Var } from "gt-react";
 
+import { isMajordome } from "../../env";
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import { useEnvironments, type EnvironmentPresentation } from "../../state/environments";
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
@@ -62,6 +63,7 @@ export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
   "/settings/overview",
   "/settings/backup",
   "/settings/connectors",
+  "/settings/private-documents",
   "/settings/notifications",
   "/settings/phone",
   "/settings/always-on",
@@ -80,6 +82,17 @@ export function SettingsScopeSentence() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { environments } = useEnvironments();
   if (scope === null || SETTINGS_DEVICE_ONLY_PATHS.has(pathname)) return null;
+  // With one computer and one notes folder there is nothing to choose, except on the folder's page.
+  if (
+    isMajordome &&
+    pathname !== "/settings/projects" &&
+    environments.length <= 1 &&
+    scope.groups.length <= 1 &&
+    scope.scope.kind !== "unavailable" &&
+    !scope.search.project &&
+    !scope.search.checkout
+  )
+    return null;
   const props: SettingsScopeMenuProps = {
     value: scope.search,
     singleEnvironment: scope.singleEnvironment,

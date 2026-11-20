@@ -10,6 +10,9 @@ import { TypographySection } from "./TypographySettings";
 
 const state = vi.hoisted(() => ({ searchTargetId: null as string | null }));
 
+// isMajordome: false keeps covering T3 Code's settings rows, which Majordome hides.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 vi.mock(import("./useScopedSettings"), async (original) => ({
   ...(await original()),
   useScopedSettings: (() => DEFAULT_UNIFIED_SETTINGS) as never,

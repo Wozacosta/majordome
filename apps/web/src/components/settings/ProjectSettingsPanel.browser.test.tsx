@@ -55,6 +55,9 @@ const state = vi.hoisted(() => ({
 }));
 
 // Session grants come from the server; each test drives them through these atoms.
+// isMajordome: false keeps covering T3 Code's settings rows, which Majordome hides.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 vi.mock(import("@t3tools/client-runtime/state/session"), async (original) => {
   const actual = await original();
   return {

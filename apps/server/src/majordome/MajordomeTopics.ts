@@ -19,6 +19,7 @@ import {
   type MajordomeTopic,
   type MajordomeTopicRefInput,
   MajordomeTopicsError,
+  type MajordomeDismissTopicSuggestionsInput,
   type MajordomeTopicsInput,
   type MajordomeTopicsResult,
   type MajordomeUpdateTopicInput,
@@ -113,8 +114,9 @@ export class MajordomeTopics extends Context.Service<
     readonly openRoutinesConversation: (
       input: MajordomeOpenRoutinesConversationInput,
     ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
+    /** Hides the suggested topics, or with `restore` shows them again. */
     readonly dismissSuggestions: (
-      input: MajordomeTopicsInput,
+      input: MajordomeDismissTopicSuggestionsInput,
     ) => Effect.Effect<void, MajordomeTopicsError>;
   }
 >()("t3/majordome/MajordomeTopics") {}
@@ -377,12 +379,12 @@ const make = Effect.gen(function* () {
       const topics = yield* provideFs(readVaultTopics(vaultRoot));
       const state = yield* projectState(input.projectId);
       const folders = yield* provideFs(listVaultFolders(vaultRoot));
+      const suggestions = suggestionsFor(vault.layout, folders, topics);
       return {
         isVault: true,
         topics: yield* Effect.forEach(topics, (topic) => viewOf(vaultRoot, topic, state)),
-        suggestions: state.suggestionsDismissed
-          ? []
-          : suggestionsFor(vault.layout, folders, topics),
+        suggestions: state.suggestionsDismissed ? [] : suggestions,
+        skippedSuggestions: state.suggestionsDismissed ? suggestions.length : 0,
         folders: folders.flatMap((folder) =>
           canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
         ),
@@ -720,7 +722,7 @@ const make = Effect.gen(function* () {
       yield* requireVault(input.projectId);
       yield* updateProjectState(input.projectId, (current) => ({
         ...current,
-        suggestionsDismissed: true,
+        suggestionsDismissed: input.restore !== true,
       }));
     },
     (effect) => lock.withPermits(1)(effect),

@@ -1,6 +1,7 @@
 import type { ScheduledTaskRunStatus } from "@t3tools/contracts";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
+import { cn } from "../../lib/utils";
 import { Entry, Muted, StatusLine } from "./paper";
 import { ROUTINE_LAST_RUN } from "./routines.logic";
 
@@ -26,9 +27,20 @@ export function RoutineEntry({
   readonly controls: ReactNode;
 }) {
   const lastRun = lastRunStatus === "never" ? null : ROUTINE_LAST_RUN[lastRunStatus];
+  const [open, setOpen] = useState(false);
   return (
     <Entry title={title} meta={when} actions={controls} data-routine={title}>
-      <Muted className="line-clamp-2 break-words">{prompt}</Muted>
+      <Muted className={cn("break-words", open ? "whitespace-pre-wrap" : "line-clamp-2")}>
+        {prompt}
+      </Muted>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((shown) => !shown)}
+        className="-mx-2 w-fit cursor-pointer rounded-md px-2 py-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        {open ? "Hide instructions" : "Show instructions"}
+      </button>
       {lastRun ? (
         <StatusLine tone={lastRun.tone} data-routine-last-run={lastRunStatus}>
           {lastRun.text}

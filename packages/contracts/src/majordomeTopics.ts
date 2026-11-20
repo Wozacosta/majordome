@@ -76,12 +76,22 @@ export const MajordomeTopicsInput = Schema.Struct({
 });
 export type MajordomeTopicsInput = typeof MajordomeTopicsInput.Type;
 
+export const MajordomeDismissTopicSuggestionsInput = Schema.Struct({
+  projectId: ProjectId,
+  /** True shows the skipped suggestions again. */
+  restore: Schema.optional(Schema.Boolean),
+});
+export type MajordomeDismissTopicSuggestionsInput =
+  typeof MajordomeDismissTopicSuggestionsInput.Type;
+
 export const MajordomeTopicsResult = Schema.Struct({
   isVault: Schema.Boolean,
   /** In the owner's order. */
   topics: Schema.Array(MajordomeTopic),
   /** Empty once the owner has accepted or skipped them. */
   suggestions: Schema.Array(MajordomeTopicSuggestion),
+  /** How many suggestions the owner skipped and can ask for again. Absent from older servers. */
+  skippedSuggestions: Schema.optional(Schema.Number),
   /** The vault's folders a topic can use, shallowest first, plumbing left out. */
   folders: Schema.Array(Schema.String),
   /** Where new topic folders go, from the vault's config (`projects` by default). */

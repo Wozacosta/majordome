@@ -110,6 +110,7 @@ export function PairingRouteSurface({
             id="pairing-token"
             autoCapitalize="none"
             autoComplete="off"
+            autoFocus={isMajordome}
             autoCorrect="off"
             disabled={isSubmitting}
             nativeInput
@@ -134,14 +135,16 @@ export function PairingRouteSurface({
           <Button disabled={isSubmitting} size="sm" type="submit">
             {isSubmitting ? (isMajordome ? gt("Connecting…") : gt("Pairing...")) : gt("Continue")}
           </Button>
-          <Button
-            disabled={isSubmitting}
-            onClick={() => window.location.reload()}
-            size="sm"
-            variant="outline"
-          >
-            {isMajordome ? gt("Try again") : gt("Reload app")}
-          </Button>
+          {isMajordome ? null : (
+            <Button
+              disabled={isSubmitting}
+              onClick={() => window.location.reload()}
+              size="sm"
+              variant="outline"
+            >
+              {gt("Reload app")}
+            </Button>
+          )}
         </div>
       </form>
 

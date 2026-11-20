@@ -19,12 +19,12 @@ export const SETTLE_WORDS = isMajordome
       unsettleFailed: "Could not bring it back",
       undoSettleFailed: "Could not undo marking as done",
       settleUnsupported:
-        "This environment's server cannot mark chats as done yet. Update the server to use Done.",
+        "Majordome on this computer is too old to mark chats as done. Update it to use Done.",
       autoSettleMenu: "Move to Earlier when inactive",
       autoSettleFailed: "Could not change moving to Earlier",
       autoSettleUnsupported:
-        "This environment's server cannot keep a chat out of Earlier yet. Update the server to use it.",
-      keybinding: "Thread: Mark as Done",
+        "Majordome on this computer is too old to keep a chat out of Earlier. Update it to use this.",
+      keybinding: "Chat: Mark as done",
       settingsSection: "Moving chats to Earlier",
       autoSettleMergedTitle: "Move merged chats to Earlier",
       autoSettleMergedDescription:

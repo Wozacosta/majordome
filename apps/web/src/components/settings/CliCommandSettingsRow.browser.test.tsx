@@ -7,6 +7,9 @@ import { act, render, stubGlobal } from "../../../test/render";
 import { desktopCliCommandStateAtom } from "../../state/desktopCliCommand";
 import { CliCommandSettingsRow } from "./CliCommandSettingsRow";
 
+// isMajordome: false keeps covering T3 Code's settings rows, which Majordome hides.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 it("blocks installation behind another t3 without blocking removal of our installation", async () => {
   const state: DesktopCliCommandState = {
     supported: true,

@@ -232,7 +232,12 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       );
 
       yield* service.dismissSuggestions({ projectId: vaultProject });
-      assert.deepEqual((yield* service.list({ projectId: vaultProject })).suggestions, []);
+      const skipped = yield* service.list({ projectId: vaultProject });
+      assert.deepEqual(skipped.suggestions, []);
+      assert.equal(skipped.skippedSuggestions, 1);
+
+      yield* service.dismissSuggestions({ projectId: vaultProject, restore: true });
+      assert.deepEqual(yield* service.list({ projectId: vaultProject }), accepted);
     }),
   );
 

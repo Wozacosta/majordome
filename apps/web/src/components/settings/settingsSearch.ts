@@ -109,24 +109,24 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/general": msg("General"),
   "/settings/appearance": msg("Appearance"),
   "/settings/chat": msg("Chat"),
-  "/settings/diffs": isMajordome ? msg("Diffs") : msg("Diffs & pull requests"),
+  "/settings/diffs": msg("Diffs & pull requests"),
   "/settings/keybindings": msg("Keybindings"),
   "/settings/snap-shot": msg("SnapShots"),
-  "/settings/providers": msg("Providers"),
-  "/settings/threads": msg("Threads"),
+  "/settings/providers": isMajordome ? msg("AI accounts") : msg("Providers"),
+  "/settings/threads": isMajordome ? msg("Chats") : msg("Threads"),
   "/settings/browser": msg("Browser"),
   "/settings/devices": msg("Devices"),
   "/settings/scheduled-tasks": msg("Scheduled tasks"),
   "/settings/source-control": msg("Source control & issues"),
   "/settings/worktrees": msg("Worktrees"),
-  "/settings/connections": msg("Environments"),
+  "/settings/connections": isMajordome ? msg("Computers") : msg("Environments"),
   "/settings/access": msg("Sharing & access"),
   "/settings/secrets": msg("Secrets"),
   "/settings/maintenance": msg("Maintenance"),
   "/settings/labs": msg("Labs"),
   "/settings/about": msg("About"),
   "/settings/voice": msg("Voice"),
-  "/settings/archived": msg("Archive"),
+  "/settings/archived": isMajordome ? msg("Archived chats") : msg("Archive"),
   "/settings/overview": msg("Overview"),
   "/settings/backup": msg("Back up my brain"),
   "/settings/connectors": msg("Connections"),
@@ -142,10 +142,56 @@ const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
   "/settings/source-control",
   "/settings/worktrees",
   "/settings/devices",
+  "/settings/diffs",
+  "/settings/snap-shot",
 ]);
 
-/** Single settings Majordome decides for the owner, left out of search. */
-const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set(["working-shelf"]);
+/**
+ * Rows and sections Majordome leaves off their page and out of search: what it decides for the
+ * owner, and what only matters when writing code. A section is named once all its rows are.
+ */
+const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
+  // General
+  "sidebar",
+  "project-grouping",
+  "project-order",
+  "working-shelf",
+  "terminal-close-confirmation",
+  // Appearance
+  "composer-context",
+  "terminal-font",
+  // Chats
+  "new-projects",
+  "add-project-starts-in",
+  "ghq-clone-layout",
+  "new-threads",
+  "auto-settle-merged-threads",
+  "keep-threads-with-pull-requests",
+  // Notes folders
+  "project-pin",
+  "project-actions",
+  "project-checkouts",
+  // Computers, Sharing & access
+  "load-balancing",
+  "pull-request-routing",
+  "preview-tunnel",
+  // Maintenance
+  "git-fetch-interval",
+  // Labs
+  "boring-sidebar",
+  "boring-sidebar-multiline",
+  "simlock-hosts",
+  "worktree-fast-checkout",
+  // About
+  "mobile-app",
+  "cli-command",
+  "welcome-page",
+]);
+
+/** Whether this build leaves the row or section with this id off its page. */
+export function isHiddenSetting(id: string | undefined): boolean {
+  return isMajordome && id !== undefined && MAJORDOME_HIDDEN_SETTING_IDS.has(id);
+}
 
 /** Sidebar labels; an entry of its own lets a translator shorten one below its page title. */
 export const SETTINGS_NAV_LABELS: Readonly<Record<SettingsPath, string>> = {
@@ -233,9 +279,7 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
     paths: [
       "/settings/threads",
       "/settings/browser",
-      "/settings/diffs",
       "/settings/keybindings",
-      "/settings/snap-shot",
       "/settings/connections",
       "/settings/access",
       ...secrets,
@@ -1111,7 +1155,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "providers",
-    title: msg("Providers"),
+    title: isMajordome ? msg("AI accounts") : msg("Providers"),
     to: "/settings/providers",
     searchTerms: [
       msg(
@@ -1555,7 +1599,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "remote-environments",
-    title: msg("Environments"),
+    title: isMajordome ? msg("Computers") : msg("Environments"),
     to: "/settings/connections",
     searchTerms: [msg("add pair backend host code ssh config agent tunnel saved t3 connect")],
   },

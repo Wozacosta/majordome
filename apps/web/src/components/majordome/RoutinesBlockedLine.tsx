@@ -32,7 +32,7 @@ export function RoutinesBlockedLine({
             search={{ environmentId }}
             className="rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
-            Open Providers
+            Sign in to the AI
           </Link>
         </>
       ) : null}

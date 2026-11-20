@@ -3,7 +3,15 @@ import { useNowMinute } from "../../hooks/useNowMinute";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
-import { EntryList, Muted, PageHeader, Section, StatusLine } from "./paper";
+import {
+  EntryList,
+  ListSkeleton,
+  LoadFailed,
+  Muted,
+  PageHeader,
+  Section,
+  StatusLine,
+} from "./paper";
 import { ReminderRow } from "./RoutinesPage";
 import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -39,13 +47,13 @@ export function RemindersPage() {
 function VaultReminders({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
-  const { reminders, runnerUnreachable, loading } = useVaultRoutines(vault);
+  const { reminders, runnerUnreachable, loading, remindersFailed, retry } = useVaultRoutines(vault);
   return (
     <>
       {runnerUnreachable ? (
         <StatusLine tone="warning" className="mt-3 py-2.5">
-          Reminders are kept on another computer that this window can't reach right now, so they
-          aren't listed here.
+          Another of your computers can't be reached from this window right now. Reminders you asked
+          for there aren't listed here.
         </StatusLine>
       ) : null}
       <Section label="Coming up">
@@ -55,7 +63,11 @@ function VaultReminders({ vault }: { readonly vault: MajordomeVault }) {
               <ReminderRow key={item.key} item={item} nowMs={nowMs} />
             ))}
           </EntryList>
-        ) : loading ? null : (
+        ) : loading ? (
+          <ListSkeleton rows={2} />
+        ) : remindersFailed ? (
+          <LoadFailed onRetry={retry}>Couldn't load your reminders.</LoadFailed>
+        ) : (
           <Muted className="border-t border-border py-3">Nothing coming up.</Muted>
         )}
       </Section>

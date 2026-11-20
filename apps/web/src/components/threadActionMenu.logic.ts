@@ -2,6 +2,7 @@ import type { ContextMenuItem } from "@t3tools/contracts";
 import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
 import { msg } from "gt-react";
 
+import { isMajordome } from "../env";
 import { SETTLE_WORDS } from "../settleWording";
 
 import { m, type MessageResolver } from "../i18n/messages";
@@ -41,6 +42,28 @@ export type DraftActionMenuId =
   | "project-settings"
   | "discard";
 
+const MAJORDOME_HIDDEN_ACTIONS: ReadonlySet<string> = new Set([
+  "new-thread-on-branch",
+  "filter-by-project",
+  "turn-into-project",
+  "project-settings",
+  "copy-path",
+  "copy-branch",
+  "copy-thread-id",
+]);
+
+/** Majordome's menus leave out what only a developer would use; a submenu left empty goes too. */
+export function majordomeMenuItems<T extends string>(
+  items: ReadonlyArray<ContextMenuItem<T>>,
+): ReadonlyArray<ContextMenuItem<T>> {
+  return items.flatMap((item) => {
+    if (MAJORDOME_HIDDEN_ACTIONS.has(item.id)) return [];
+    if (!item.children) return [item];
+    const children = majordomeMenuItems(item.children);
+    return children.length > 0 ? [{ ...item, children }] : [];
+  });
+}
+
 export function buildDraftActionMenuItems(
   options: {
     readonly hasPath: boolean;
@@ -49,7 +72,7 @@ export function buildDraftActionMenuItems(
   },
   resolve: MessageResolver = m,
 ): ReadonlyArray<ContextMenuItem<DraftActionMenuId>> {
-  return [
+  const items: ReadonlyArray<ContextMenuItem<DraftActionMenuId>> = [
     {
       id: "copy",
       label: resolve(msg("Copy", { $context: "submenu of things to copy" })),
@@ -93,6 +116,7 @@ export function buildDraftActionMenuItems(
       separatorBefore: true,
     },
   ];
+  return isMajordome ? majordomeMenuItems(items) : items;
 }
 
 export interface ThreadActionMenuState {
@@ -147,7 +171,7 @@ export function buildThreadActionMenuItems(
   state: ThreadActionMenuState,
   resolve: MessageResolver = m,
 ): ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> {
-  const items: ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> = [
+  const allItems: ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> = [
     ...(state.canFind
       ? [{ id: "find" as const, label: resolve(msg("Find in thread")), icon: "text-search" }]
       : []),
@@ -310,6 +334,7 @@ export function buildThreadActionMenuItems(
       icon: "trash",
     },
   ];
+  const items = isMajordome ? majordomeMenuItems(allItems) : allItems;
   return state.canOperate
     ? items
     : items.map((item) =>

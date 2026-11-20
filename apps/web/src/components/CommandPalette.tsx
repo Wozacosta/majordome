@@ -1113,6 +1113,8 @@ function OpenCommandPaletteDialog(props: {
         },
       },
     ];
+    // A notes folder is a folder on disk; starting or cloning a repository is for developers.
+    if (isMajordome) return [{ value: `sources:${environmentId}`, label: "", items: sourceItems }];
 
     if (newProjectsRootFor(environmentId) !== null) {
       sourceItems.unshift({
@@ -2041,6 +2043,9 @@ function OpenCommandPaletteDialog(props: {
   );
   // Jump shortcuts number the project rows as shown, so a pin cannot move a number to another row.
   const filteredGroups = searchedGroups.map((group) => {
+    if (isMajordome && group.value === "projects-search") {
+      return { ...group, label: gt("Notes folders") };
+    }
     if (group.value !== NEW_THREAD_IN_GROUP) return group;
     const jumpItems = new Map(
       enumerateCommandPaletteItems(

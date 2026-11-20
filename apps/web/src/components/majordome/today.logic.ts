@@ -1,4 +1,4 @@
-import { type EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { type EnvironmentId, type ServerProvider, ThreadId } from "@t3tools/contracts";
 
 import {
   classifyFeedEntry,
@@ -9,6 +9,28 @@ import {
   type FeedVault,
   type FeedVaultNotes,
 } from "./feed.logic";
+
+/**
+ * True when the computer's AI accounts are known and none could answer a chat: each is off, not
+ * installed, signed out or failing. Not known yet (undefined) is not "not set up".
+ */
+export function assistantNotSetUp(
+  providers:
+    | ReadonlyArray<
+        Pick<ServerProvider, "enabled" | "installed" | "status" | "availability" | "auth">
+      >
+    | undefined,
+): boolean {
+  if (providers === undefined) return false;
+  return !providers.some(
+    (provider) =>
+      provider.enabled &&
+      provider.installed &&
+      (provider.status === "ready" || provider.status === "warning") &&
+      provider.availability !== "unavailable" &&
+      provider.auth.status !== "unauthenticated",
+  );
+}
 
 export type Greeting = "Good morning" | "Good afternoon" | "Good evening";
 

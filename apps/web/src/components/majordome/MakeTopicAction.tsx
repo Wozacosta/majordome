@@ -65,22 +65,35 @@ export function MakeTopicAction(props: {
     <>
       {vault.topics.length > 0 ? (
         <Menu>
-          <MenuTrigger
-            render={
-              <Button
-                size="xs"
-                variant="ghost-muted"
-                aria-label={
-                  placedIn === undefined ? "Add to a topic" : `In ${placedIn.title}. Move this chat`
-                }
-              />
-            }
-          >
-            <FolderInputIcon />
-            <span className="max-w-40 truncate max-sm:hidden">
-              {placedIn === undefined ? "Add to a topic" : `In ${placedIn.title}`}
-            </span>
-          </MenuTrigger>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <MenuTrigger
+                  render={
+                    <Button
+                      size="xs"
+                      variant="ghost-muted"
+                      aria-label={
+                        placedIn === undefined
+                          ? "Add to a topic"
+                          : `In ${placedIn.title}. Move this chat`
+                      }
+                    />
+                  }
+                />
+              }
+            >
+              <FolderInputIcon />
+              <span className="max-w-40 truncate max-sm:hidden">
+                {placedIn === undefined ? "Add to a topic" : `In ${placedIn.title}`}
+              </span>
+            </TooltipTrigger>
+            <TooltipPopup side="bottom">
+              {placedIn === undefined
+                ? "List this chat under one of your topics"
+                : `Listed under ${placedIn.title}. Move it to another topic or back to Recent`}
+            </TooltipPopup>
+          </Tooltip>
           <MenuPopup align="start">
             {vault.topics.map((topic) => (
               <MenuItem

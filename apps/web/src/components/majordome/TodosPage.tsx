@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -20,7 +20,15 @@ import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { notesLink } from "./notes.logic";
-import { EntryList, Muted, PageHeader, ROW_ACTION_CLASS, Section, StatusLine } from "./paper";
+import {
+  EntryList,
+  ListSkeleton,
+  LoadFailed,
+  Muted,
+  PageHeader,
+  ROW_ACTION_CLASS,
+  Section,
+} from "./paper";
 import { todoDisplayText, todoKey, todosSummary, withoutTicked } from "./todos.logic";
 import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -64,7 +72,9 @@ function reportFailure(result: AtomCommandResult<unknown, unknown>, title: strin
 
 function VaultTodos({ vault }: { readonly vault: MajordomeVault }) {
   const { environmentId, projectId } = vault;
-  const result = useAtomValue(majordomeEnvironment.todos({ environmentId, input: { projectId } }));
+  const todosAtom = majordomeEnvironment.todos({ environmentId, input: { projectId } });
+  const result = useAtomValue(todosAtom);
+  const retry = useAtomRefresh(todosAtom);
   const canChange = useAtomValue(majordomeEnvironment.setTodoDone.permissionAtom(environmentId));
   const setTodoDone = useAtomCommand(majordomeEnvironment.setTodoDone, {
     label: "tick to-do",
@@ -75,34 +85,63 @@ function VaultTodos({ vault }: { readonly vault: MajordomeVault }) {
 
   const tick = async (note: MajordomeTodoNote, todo: MajordomeTodo) => {
     const key = todoKey(note.path, todo);
-    setTicked((current) => new Set(current).add(key));
-    const outcome = await setTodoDone({
-      environmentId,
-      input: { projectId, path: note.path, line: todo.line, text: todo.text, done: true },
-    });
-    if (reportFailure(outcome, "Could not tick that to-do")) {
+    const input = { projectId, path: note.path, line: todo.line, text: todo.text };
+    const show = () =>
       setTicked((current) => {
         const next = new Set(current);
         next.delete(key);
         return next;
       });
+    setTicked((current) => new Set(current).add(key));
+    const outcome = await setTodoDone({ environmentId, input: { ...input, done: true } });
+    if (reportFailure(outcome, "Could not tick that to-do")) {
+      show();
+      return;
     }
+    if (outcome._tag !== "Success") return;
+    const toastId = toastManager.add({
+      type: "success",
+      title: "Ticked",
+      description: todoDisplayText(todo.text),
+      actionProps: {
+        children: "Undo",
+        onClick: () => {
+          toastManager.close(toastId);
+          void setTodoDone({ environmentId, input: { ...input, done: false } }).then((undone) => {
+            if (!reportFailure(undone, "Could not untick that to-do")) show();
+          });
+        },
+      },
+    });
   };
 
   const data = AsyncResult.getOrElse(result, () => null);
   const shown = data === null ? null : withoutTicked(data, ticked);
   return (
     <>
-      {canChange ? <AddTodo vault={vault} /> : null}
+      {canChange ? (
+        <AddTodo vault={vault} />
+      ) : (
+        <Muted className="mt-6">
+          You can look at to-dos from this device, but it isn't allowed to add or tick them.
+        </Muted>
+      )}
       {shown === null ? (
         result._tag === "Failure" ? (
-          <StatusLine tone="error" className="mt-6">
-            Your to-dos could not be read. Open this page again to retry.
-          </StatusLine>
-        ) : null
+          <LoadFailed className="mt-8" onRetry={retry}>
+            Couldn't load your to-dos.
+          </LoadFailed>
+        ) : (
+          <div className="mt-8">
+            <ListSkeleton />
+          </div>
+        )
       ) : shown.totalOpen === 0 ? (
         <Muted className="mt-8 border-t border-border py-3">
-          Nothing to do. Write <code>- [ ]</code> in any note, or add one above.
+          Nothing to do.{" "}
+          {canChange
+            ? "Add a to-do above, or put a checkbox in any note and it shows up here."
+            : "A checkbox left unticked in any note shows up here."}
         </Muted>
       ) : (
         <>
@@ -191,6 +230,7 @@ function AddTodo({ vault }: { readonly vault: MajordomeVault }) {
         disabled={busy}
         onChange={(event) => setDraft(event.target.value)}
       />
+      <Muted className="mt-1.5 text-xs">What you add here is kept in your “To-dos” note.</Muted>
     </form>
   );
 }

@@ -304,8 +304,8 @@ describe("topicSubtitle", () => {
     const you = { author: "you", text: "5k today" } as const;
     expect(topicSubtitle({ ...topic, lastMessagePreview: agent })).toBe("Logged.");
     expect(topicSubtitle({ ...topic, lastMessagePreview: you })).toBe("You: 5k today");
-    expect(topicSubtitle({ ...topic, lastMessagePreview: null })).toBe("projects/fitness");
-    expect(topicSubtitle(topic)).toBe("projects/fitness");
+    expect(topicSubtitle({ ...topic, lastMessagePreview: null })).toBe("Notes in projects/fitness");
+    expect(topicSubtitle(topic)).toBe("Notes in projects/fitness");
   });
 });
 

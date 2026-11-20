@@ -31,6 +31,18 @@ export const THREAD_DETAILS_ITEMS = [
   { id: "context", label: msg("Context window"), defaultVisible: isMajordome },
 ] as const;
 
+const MAJORDOME_OFFERED_ITEMS: ReadonlySet<string> = new Set([
+  "automations",
+  "sideChats",
+  "usage",
+  "context",
+]);
+
+/** The items a person can show or hide. Majordome leaves the coding rows out of the choice. */
+export const OFFERED_THREAD_DETAILS_ITEMS = isMajordome
+  ? THREAD_DETAILS_ITEMS.filter((item) => MAJORDOME_OFFERED_ITEMS.has(item.id))
+  : THREAD_DETAILS_ITEMS;
+
 export type ThreadDetailsItemId = (typeof THREAD_DETAILS_ITEMS)[number]["id"];
 export type ThreadDetailsVisibility = Readonly<Record<ThreadDetailsItemId, boolean>>;
 

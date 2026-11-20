@@ -3,28 +3,46 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { ArrowUpIcon, FolderIcon } from "lucide-react";
+import { ArrowUpIcon, CheckIcon, FolderIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { isElectron } from "../../env";
+import { cn } from "../../lib/utils";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
 import { filesystemEnvironment } from "../../state/filesystem";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useEnvironmentQuery } from "../../state/query";
+import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { AgentsSection, WelcomeSection } from "../onboarding/WelcomePage";
+import {
+  AGENT_ONBOARDING_THREAD_ID,
+  AgentsSection,
+  useWelcomeAgents,
+  WelcomeSection,
+} from "../onboarding/WelcomePage";
 import { Button } from "../ui/button";
 import { SidebarInset } from "../ui/sidebar";
+import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 
 /**
- * Majordome before it has a notes folder: the assistant to install or sign in to, and the folder
- * to start or pick. It closes by itself, since the home page shows Today once a folder is open.
+ * Majordome's setup: the assistant to install or sign in to, and the folder to start or pick.
+ * Choosing the folder while the assistant is ready opens Today. Otherwise the page stays, so an
+ * install or sign-in is not cut short, until the person leaves it.
  */
-export function MajordomeWelcomePage() {
+export function MajordomeWelcomePage({
+  notesFolder,
+  onStay,
+  onLeave,
+}: {
+  /** The name of the notes folder once there is one. */
+  readonly notesFolder: string | null;
+  readonly onStay: () => void;
+  readonly onLeave: () => void;
+}) {
   const environmentId = usePrimaryEnvironmentId();
   const { environments } = useEnvironments();
   if (environmentId === null) return null;
@@ -57,9 +75,16 @@ export function MajordomeWelcomePage() {
                 onImportSourceEnabled={() => undefined}
               />
               <WelcomeSection title="Notes">
-                <NotesFolderSetup environmentId={environmentId} />
+                <NotesFolderSetup
+                  environmentId={environmentId}
+                  notesFolder={notesFolder}
+                  onStay={onStay}
+                />
               </WelcomeSection>
             </div>
+            {notesFolder === null ? null : (
+              <SetupEnd environmentId={environmentId} onLeave={onLeave} />
+            )}
           </div>
         </div>
       </div>
@@ -67,15 +92,60 @@ export function MajordomeWelcomePage() {
   );
 }
 
-function NotesFolderSetup({ environmentId }: { readonly environmentId: EnvironmentId }) {
+/** True once an AI is ready and no install or sign-in started here is still running. */
+function useAssistantSettled(environmentId: EnvironmentId) {
+  const ready = useWelcomeAgents(environmentId).readyCount > 0;
+  const running =
+    useThreadRunningTerminalIds({ environmentId, threadId: AGENT_ONBOARDING_THREAD_ID }).length > 0;
+  return { ready, settled: ready && !running };
+}
+
+/** The way out of a setup that stayed open: on to Today, with or without the assistant. */
+function SetupEnd({
+  environmentId,
+  onLeave,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly onLeave: () => void;
+}) {
+  const { ready } = useAssistantSettled(environmentId);
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+      {ready ? (
+        <Button onClick={onLeave}>Go to Today</Button>
+      ) : (
+        <>
+          <span className="text-xs text-muted-foreground">
+            The assistant is not ready yet. Finish its step above.
+          </span>
+          <Button variant="ghost-muted" onClick={onLeave}>
+            Continue without the assistant
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function NotesFolderSetup({
+  environmentId,
+  notesFolder,
+  onStay,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly notesFolder: string | null;
+  readonly onStay: () => void;
+}) {
   const startNotes = useAtomCommand(majordomeEnvironment.startNotes, {
     reportFailure: false,
   });
+  const { settled } = useAssistantSettled(environmentId);
   const [busy, setBusy] = useState(false);
   // Only the desktop app can show the computer's own folder picker.
   const canPickFolder = typeof window !== "undefined" && window.desktopBridge !== undefined;
 
   const start = async (folder: string | null) => {
+    if (!settled) onStay();
     setBusy(true);
     const result = await startNotes({ environmentId, input: { folder } });
     setBusy(false);
@@ -99,6 +169,19 @@ function NotesFolderSetup({ environmentId }: { readonly environmentId: Environme
     if (picked) await start(picked);
   };
 
+  if (notesFolder !== null) {
+    return (
+      <div className="flex min-h-10 items-center gap-3 py-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          {notesFolder}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-success-foreground">
+          <CheckIcon className="size-3.5" aria-hidden />
+          Ready
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col">
       <NotesChoice
@@ -133,6 +216,8 @@ function NotesFolderSetup({ environmentId }: { readonly environmentId: Environme
   );
 }
 
+const withoutEndSlash = (folder: string) => folder.replace(/(?<=.)\/+$/, "");
+
 /**
  * Picks a folder on the server's computer by walking its folders, for a browser, which has no
  * folder picker of its own. Starts in the home folder.
@@ -151,9 +236,25 @@ function FolderBrowser({
   const listing = useEnvironmentQuery(
     open ? filesystemEnvironment.browse({ environmentId, input: { partialPath: path } }) : null,
   );
-  const here = listing.data?.parentPath ?? null;
-  const folders = (listing.data?.entries ?? []).filter((entry) => !entry.name.startsWith("."));
+  // The last folder that opened stays on screen while the next one loads or fails to open.
+  const [shown, setShown] = useState(listing.data);
+  const [home, setHome] = useState<string | null>(null);
+  const [confirmingHome, setConfirmingHome] = useState(false);
+  if (listing.data !== null && listing.data !== shown) {
+    setShown(listing.data);
+    if (path === "~/") setHome(withoutEndSlash(listing.data.parentPath));
+  }
+  const here = shown?.parentPath ?? null;
+  const folders = (shown?.entries ?? []).filter((entry) => !entry.name.startsWith("."));
   const parent = here === null ? null : here.replace(/[^/]+\/?$/, "");
+  const loading = open && listing.data === null && listing.error === null;
+  const nameOf = (folder: string) => withoutEndSlash(folder).split("/").pop() ?? "";
+  const hereName = here === null ? "" : nameOf(here);
+  const go = (next: string) => {
+    setConfirmingHome(false);
+    if (next === path) listing.refresh();
+    else setPath(next);
+  };
 
   if (!open) {
     return (
@@ -172,40 +273,79 @@ function FolderBrowser({
           variant="ghost-muted"
           aria-label="Up one folder"
           disabled={parent === null || parent === "" || parent === here}
-          onClick={() => parent && setPath(parent)}
+          onClick={() => parent && go(parent)}
         >
           <ArrowUpIcon />
         </Button>
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          {here === null ? "Looking…" : shortFolder(here)}
+          {here === null ? (listing.error === null ? "Looking…" : "") : shortFolder(here)}
         </span>
+        {loading ? <Spinner size="xs" tone="muted" /> : null}
         <Button
           size="xs"
-          disabled={disabled || here === null}
-          onClick={() => here !== null && onUse(here)}
+          variant="ghost-muted"
+          onClick={() => {
+            setConfirmingHome(false);
+            setOpen(false);
+          }}
         >
-          Use this folder
+          Cancel
+        </Button>
+        <Button
+          size="xs"
+          disabled={disabled || here === null || loading || confirmingHome}
+          onClick={() => {
+            if (here === null) return;
+            if (withoutEndSlash(here) === home) setConfirmingHome(true);
+            else onUse(here);
+          }}
+        >
+          {hereName === "" ? "Use this folder" : `Use “${hereName}”`}
         </Button>
       </div>
-      <ul aria-label="Folders here" className="max-h-56 overflow-y-auto py-1">
+      {confirmingHome && here !== null ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
+          <p className="min-w-0 flex-1 basis-64 text-xs leading-relaxed text-foreground">
+            This is your whole home folder. Everything in it would count as your notes. A folder
+            inside it is usually the better choice.
+          </p>
+          <Button size="xs" variant="outline" onClick={() => setConfirmingHome(false)}>
+            Pick another
+          </Button>
+          <Button size="xs" variant="outline" disabled={disabled} onClick={() => onUse(here)}>
+            Use my home folder
+          </Button>
+        </div>
+      ) : null}
+      {listing.error === null ? null : (
+        <p role="alert" className="border-b border-border/60 px-3 py-1.5 text-xs text-destructive">
+          {nameOf(path) === "" || path === "~/"
+            ? "This folder could not be opened."
+            : `“${nameOf(path)}” could not be opened.`}
+        </p>
+      )}
+      <ul
+        aria-label="Folders here"
+        aria-busy={loading}
+        className={cn("max-h-56 overflow-y-auto py-1", loading && "opacity-60")}
+      >
         {folders.map((entry) => (
           <li key={entry.fullPath}>
             <button
               type="button"
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-sm text-foreground hover:bg-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-              onClick={() => setPath(`${entry.fullPath}/`)}
+              disabled={loading}
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-sm text-foreground hover:bg-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
+              onClick={() => go(`${entry.fullPath}/`)}
             >
               <FolderIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <span className="truncate">{entry.name}</span>
             </button>
           </li>
         ))}
-        {listing.data !== null && folders.length === 0 ? (
-          <li className="px-3 py-1 text-xs text-muted-foreground">No folders inside this one.</li>
-        ) : null}
-        {listing.error ? (
-          <li className="px-3 py-1 text-xs text-muted-foreground">
-            This folder could not be opened.
+        {shown !== null && folders.length === 0 ? (
+          <li className="px-3 py-1 text-xs leading-relaxed text-muted-foreground">
+            No folders to show here. If you expected some, Majordome may not be allowed to look
+            inside this one.
           </li>
         ) : null}
       </ul>

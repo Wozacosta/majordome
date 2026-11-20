@@ -87,6 +87,7 @@ import {
   withDayHeadings,
 } from "./feed.logic";
 import { BackupStatusLine } from "./BackupStatusLine";
+import { MoveRoutinesDialog } from "./MoveRoutinesDialog";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import {
   copyLabel,
@@ -869,90 +870,6 @@ function RoutinesRunnerLine({
         </Button>
       ) : null}
     </div>
-  );
-}
-
-function MoveRoutinesDialog({
-  vault,
-  onClose,
-}: {
-  readonly vault: FeedVaultState | null;
-  readonly onClose: () => void;
-}) {
-  return (
-    <AlertDialog
-      open={vault !== null}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      {vault ? (
-        <MoveRoutinesDialogPopup
-          key={`${vault.environmentId}:${vault.projectId}`}
-          vault={vault}
-          onClose={onClose}
-        />
-      ) : null}
-    </AlertDialog>
-  );
-}
-
-function MoveRoutinesDialogPopup({
-  vault,
-  onClose,
-}: {
-  readonly vault: FeedVaultState;
-  readonly onClose: () => void;
-}) {
-  const runHere = useAtomCommand(majordomeEnvironment.runRoutinesHere, {
-    label: "run routines here",
-  });
-  const [busy, setBusy] = useState(false);
-
-  const confirm = async () => {
-    setBusy(true);
-    const result = await runHere({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId },
-    });
-    setBusy(false);
-    if (result._tag === "Failure") {
-      if (!isAtomCommandInterrupted(result)) {
-        const error = squashAtomCommandFailure(result);
-        toastManager.add({
-          type: "error",
-          title: "Could not move routines here",
-          description: error instanceof Error ? error.message : String(error),
-        });
-      }
-    } else {
-      toastManager.add({ type: "success", title: "Routines now run on this computer" });
-    }
-    onClose();
-  };
-
-  return (
-    <AlertDialogPopup>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Move routines to this computer?</AlertDialogTitle>
-        <AlertDialogDescription>
-          Your routines for {vault.title}, and digesting new files in your inbox, will run on this
-          computer from now on.
-          {vault.routinesRunner === "another-server"
-            ? " The other computer stops running them once it gets your latest notes."
-            : ""}
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
-          Cancel
-        </AlertDialogClose>
-        <Button disabled={busy} onClick={() => void confirm()}>
-          {busy && <Spinner size="sm" />}
-          Move routines here
-        </Button>
-      </AlertDialogFooter>
-    </AlertDialogPopup>
   );
 }
 

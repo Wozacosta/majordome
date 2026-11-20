@@ -36,6 +36,9 @@ const githubAvailable = {
   ],
 };
 
+// isMajordome: false keeps covering T3 Code's ways to add a project, which Majordome leaves out.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 vi.mock("@effect/atom-react", async (original) => ({
   ...(await original<typeof import("@effect/atom-react")>()),
   useAtomValue: (atom: unknown) =>

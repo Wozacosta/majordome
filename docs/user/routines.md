@@ -77,5 +77,5 @@ keep the last 5 nightly copies.
   not a routine; it tells you to use the Routines screen instead.
 - **Limits**, at the bottom of the list, stop a run that takes too long and cap how many runs start
   in a day. Reminders always go off and do not count toward that number.
-- The conversation beside the list keeps what you set up earlier. **Start over** begins a new one;
+- The conversation beside the list keeps what you set up earlier. **New chat** begins a new one;
   the old one moves to the archive, under Settings.

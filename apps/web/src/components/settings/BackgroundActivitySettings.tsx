@@ -35,7 +35,7 @@ import {
 } from "./SettingsPanels.logic";
 import { IntervalSecondsField } from "./IntervalSecondsField";
 import { PolicyTooltip, SettingResetButton, SettingsRow } from "./settingsLayout";
-import { useSearchableSetting } from "./settingsSearch";
+import { isHiddenSetting, useSearchableSetting } from "./settingsSearch";
 
 const BACKGROUND_ACTIVITY_PROFILE_LABELS: Record<BackgroundActivityProfile, string> = {
   balanced: msg("Balanced"),
@@ -176,7 +176,10 @@ function BackgroundActivityAdvancedDialog({
               </Select>
             </div>
 
-            <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              hidden={isHiddenSetting("git-fetch-interval")}
+              className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
               <div className="min-w-0 space-y-1">
                 <div className="text-sm font-medium">
                   {searchableSetting("git-fetch-interval").title}

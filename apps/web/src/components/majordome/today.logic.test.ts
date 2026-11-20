@@ -8,6 +8,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { buildFeedItems, type FeedRunItem, feedVaultNotes } from "./feed.logic";
 import {
+  assistantNotSetUp,
   dayKey,
   greetingForHour,
   openTasks,
@@ -182,5 +183,26 @@ describe("selectTodayRuns", () => {
       topicThreads: new Set(["env-1:t-topic"]),
     });
     expect(runs).toEqual([]);
+  });
+});
+
+describe("assistantNotSetUp", () => {
+  const account = {
+    enabled: true,
+    installed: true,
+    status: "ready",
+    auth: { status: "authenticated" },
+  } as const;
+
+  it("is true only once the accounts are known and none can answer", () => {
+    expect(assistantNotSetUp(undefined)).toBe(false);
+    expect(assistantNotSetUp([])).toBe(true);
+    expect(assistantNotSetUp([account])).toBe(false);
+    expect(assistantNotSetUp([{ ...account, status: "warning" }])).toBe(false);
+    expect(assistantNotSetUp([{ ...account, installed: false }])).toBe(true);
+    expect(assistantNotSetUp([{ ...account, auth: { status: "unauthenticated" } }])).toBe(true);
+    expect(
+      assistantNotSetUp([{ ...account, status: "error" }, { ...account, enabled: false }, account]),
+    ).toBe(false);
   });
 });
