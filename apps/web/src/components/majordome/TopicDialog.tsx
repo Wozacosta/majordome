@@ -48,6 +48,9 @@ export type TopicDialogRequest =
   | { readonly kind: "rename"; readonly topic: MajordomeTopic }
   | { readonly kind: "folder"; readonly topic: MajordomeTopic };
 
+/** Subjects most people keep, offered while the name is empty. */
+const STARTER_TOPICS = ["Health", "Money", "Home", "Travel", "Work", "Family"];
+
 /** Long enough that a name still being typed is not asked about. */
 const SUGGESTION_DELAY_MS = 600;
 
@@ -92,6 +95,8 @@ export function TopicDialog({
     presetFolder !== undefined && vault.folders.includes(presetFolder) ? presetFolder : null,
   );
   const [query, setQuery] = useState("");
+  // A new topic needs only its name: the folder is picked for it and can be changed on request.
+  const [choosingFolder, setChoosingFolder] = useState(request.kind === "folder");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /** The server's answer for a name; no result when it could not be asked. */
@@ -195,7 +200,13 @@ export function TopicDialog({
       ? "The folder and its notes stay as they are."
       : request.kind === "folder"
         ? "The topic reads and keeps its log in this folder. No notes are moved."
-        : "A topic is one ongoing conversation. Its notes and running log live in a folder of your notes, so nothing is lost when the chat gets long.";
+        : "One ongoing conversation about a subject, with its own notes, so nothing is lost when the chat gets long.";
+  const starters =
+    request.kind === "create" && request.threadId === undefined && title.trim() === ""
+      ? STARTER_TOPICS.filter(
+          (name) => !vault.topics.some((topic) => topic.title.toLowerCase() === name.toLowerCase()),
+        )
+      : [];
   const shownFolders = filterTopicFolders(vault.folders, query);
   // A search lists matches without their parents, so those keep their whole path.
   const listedFolders = new Set(query.trim() === "" ? shownFolders : []);
@@ -236,9 +247,53 @@ export function TopicDialog({
                 />
               </Label>
             ) : null}
-            {showFolder ? (
+            {starters.length > 0 ? (
+              <div role="group" aria-label="Ideas" className="flex flex-wrap gap-1.5">
+                {starters.map((name) => (
+                  <Button
+                    key={name}
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => setTitle(name)}
+                  >
+                    {name}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            {showFolder && !choosingFolder ? (
+              title.trim() === "" ? null : (
+                <p
+                  aria-live="polite"
+                  className="flex min-h-6 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground"
+                >
+                  {looking ? (
+                    "Finding a place for its notes…"
+                  ) : (
+                    <>
+                      <span className="min-w-0 break-all">
+                        {fields.mode === "existing"
+                          ? "Its notes are already in "
+                          : "Its notes will go in "}
+                        <span className="font-medium text-foreground">{folder}</span>
+                      </span>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost-muted"
+                        onClick={() => setChoosingFolder(true)}
+                      >
+                        Change
+                      </Button>
+                    </>
+                  )}
+                </p>
+              )
+            ) : null}
+            {showFolder && choosingFolder ? (
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Folder</span>
+                <span className="text-sm font-medium">Folder for its notes</span>
                 <ToggleGroup
                   aria-label="Folder"
                   className="w-full *:flex-1"
