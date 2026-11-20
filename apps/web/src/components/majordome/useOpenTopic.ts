@@ -14,8 +14,8 @@ import { toastManager } from "../ui/toast";
 import type { MajordomeVault, VaultTopic } from "./topics.logic";
 
 /**
- * Opens a topic's conversation, starting it the first time. Resolves false, after saying why, when
- * the conversation could not be started.
+ * Opens a topic's conversation, starting it the first time, or with `sideChat` starts another chat
+ * about the topic. Resolves false, after saying why, when the conversation could not be started.
  */
 export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "projectId">) {
   const navigate = useNavigate();
@@ -33,14 +33,15 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
     });
   };
 
-  return async (topic: VaultTopic): Promise<boolean> => {
-    if (topic.threadId !== null) {
+  return async (topic: VaultTopic, options?: { readonly sideChat?: boolean }): Promise<boolean> => {
+    const sideChat = options?.sideChat === true;
+    if (topic.threadId !== null && !sideChat) {
       goToThread(topic.threadEnvironmentId, topic.threadId);
       return true;
     }
     const result = await openTopic({
       environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicId: topic.id },
+      input: { projectId: vault.projectId, topicId: topic.id, ...(sideChat ? { sideChat } : {}) },
     });
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {

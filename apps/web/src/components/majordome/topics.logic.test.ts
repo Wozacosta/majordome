@@ -1,3 +1,4 @@
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -186,7 +187,11 @@ describe("mergeVaultCopies", () => {
       ...copy,
       topics: copy.topics.map((topic) =>
         topic.threadId === "vps-fitness"
-          ? { ...topic, lastMessagePreview: { text: "10 km done" } as never }
+          ? {
+              ...topic,
+              lastMessagePreview: { text: "10 km done" } as never,
+              sideChats: [{ environmentId: vps, threadId: "vps-shoes" as never }],
+            }
           : topic,
       ),
     }));
@@ -197,6 +202,13 @@ describe("mergeVaultCopies", () => {
       ["new", null, undefined],
     ]);
     expect(vaults[0]!.topics[0]!.otherChats).toBeUndefined();
+    // A chat started about the topic on any server is listed under it and kept out of Recent.
+    expect(merged!.topics[0]!.sideChats).toEqual([{ environmentId: vps, threadId: "vps-shoes" }]);
+    expect(
+      topicThreadKeys(withWords).has(
+        scopedThreadKey({ environmentId: vps, threadId: "vps-shoes" as never }),
+      ),
+    ).toBe(true);
   });
 
   it("waits for each copy's brain id before showing it", () => {

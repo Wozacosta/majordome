@@ -2530,6 +2530,10 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.open(input)),
           ),
+        [WS_METHODS.majordomeSetThreadTopic]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.setThreadTopic(input)),
+          ),
         [WS_METHODS.majordomeOpenRoutinesConversation]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.openRoutinesConversation(input)),

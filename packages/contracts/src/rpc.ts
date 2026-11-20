@@ -181,7 +181,9 @@ import {
 import {
   MajordomeCreateTopicInput,
   MajordomeOpenRoutinesConversationInput,
+  MajordomeOpenTopicInput,
   MajordomeOpenTopicResult,
+  MajordomeSetThreadTopicInput,
   MajordomeReorderTopicsInput,
   MajordomeSuggestTopicFolderInput,
   MajordomeSuggestTopicFolderResult,
@@ -822,6 +824,7 @@ export const WS_METHODS = {
   majordomeReorderTopics: "majordome.reorderTopics",
   majordomeRemoveTopic: "majordome.removeTopic",
   majordomeOpenTopic: "majordome.openTopic",
+  majordomeSetThreadTopic: "majordome.setThreadTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
   majordomeListTodos: "majordome.listTodos",
@@ -2626,8 +2629,13 @@ const WsMajordomeRemoveTopicRpc = Rpc.make(WS_METHODS.majordomeRemoveTopic, {
 });
 
 const WsMajordomeOpenTopicRpc = Rpc.make(WS_METHODS.majordomeOpenTopic, {
-  payload: MajordomeTopicRefInput,
+  payload: MajordomeOpenTopicInput,
   success: MajordomeOpenTopicResult,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeSetThreadTopicRpc = Rpc.make(WS_METHODS.majordomeSetThreadTopic, {
+  payload: MajordomeSetThreadTopicInput,
   error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
 });
 
@@ -3138,6 +3146,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeReorderTopicsRpc,
   WsMajordomeRemoveTopicRpc,
   WsMajordomeOpenTopicRpc,
+  WsMajordomeSetThreadTopicRpc,
   WsMajordomeOpenRoutinesConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,
   WsMajordomeListTodosRpc,

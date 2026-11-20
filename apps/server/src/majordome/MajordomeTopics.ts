@@ -10,7 +10,9 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   type MajordomeCreateTopicInput,
   type MajordomeOpenRoutinesConversationInput,
+  type MajordomeOpenTopicInput,
   type MajordomeOpenTopicResult,
+  type MajordomeSetThreadTopicInput,
   type MajordomeReorderTopicsInput,
   type MajordomeSuggestTopicFolderInput,
   type MajordomeSuggestTopicFolderResult,
@@ -54,6 +56,7 @@ import {
   type ProjectTopicState,
   readTopicThreadsState,
   topicThreadsStatePath,
+  withSideThread,
   writeTopicThreadsState,
 } from "./topicThreads.ts";
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
@@ -95,10 +98,17 @@ export class MajordomeTopics extends Context.Service<
       input: MajordomeReorderTopicsInput,
     ) => Effect.Effect<void, MajordomeTopicsError>;
     readonly remove: (input: MajordomeTopicRefInput) => Effect.Effect<void, MajordomeTopicsError>;
-    /** The topic's thread on this server, started now if it has none yet. */
+    /**
+     * The topic's thread on this server, started now if it has none yet. With `sideChat`, a new
+     * chat about the topic instead, listed under it and settling like any other chat.
+     */
     readonly open: (
-      input: MajordomeTopicRefInput,
+      input: MajordomeOpenTopicInput,
     ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
+    /** Lists a chat under a topic as one of its other chats, or takes it back out. */
+    readonly setThreadTopic: (
+      input: MajordomeSetThreadTopicInput,
+    ) => Effect.Effect<void, MajordomeTopicsError>;
     /** The thread behind the Routines screen on this server, started now if there is none. */
     readonly openRoutinesConversation: (
       input: MajordomeOpenRoutinesConversationInput,
@@ -112,6 +122,8 @@ export class MajordomeTopics extends Context.Service<
 const isTopicsError = Schema.is(MajordomeTopicsError);
 
 const ROUTINES_CONVERSATION_TITLE = "Assistant";
+/** The title a thread keeps until its first message names it. */
+const UNTITLED_THREAD = "New thread";
 
 const KEY_NOTES = ["log.md", "README.md", "index.md"] as const;
 /** Enough of the latest messages to find one with words in it. */
@@ -329,6 +341,10 @@ const make = Effect.gen(function* () {
         onSome: (name) => `${topic.folder}/${name}`,
       }),
       lastMessagePreview: thread === null ? null : yield* lastMessagePreview(thread.id),
+      sideThreadIds: (yield* Effect.forEach(
+        state.sideThreads?.[topic.id] ?? [],
+        liveThread,
+      )).flatMap((shell) => (shell === null ? [] : [shell.id])),
     } satisfies MajordomeTopic;
   });
 
@@ -546,9 +562,15 @@ const make = Effect.gen(function* () {
       );
       const state = yield* projectState(input.projectId);
       const threadId = state.threads[input.topicId];
-      if (threadId === undefined) return;
       const { [input.topicId]: _removed, ...rest } = state.threads;
-      yield* updateProjectState(input.projectId, (current) => ({ ...current, threads: rest }));
+      // Its other chats settle on their own already; they only stop being listed under it.
+      const { [input.topicId]: _chats, ...sideThreads } = state.sideThreads ?? {};
+      yield* updateProjectState(input.projectId, (current) => ({
+        ...current,
+        threads: rest,
+        sideThreads,
+      }));
+      if (threadId === undefined) return;
       // The conversation stays, as a recent chat that settles like the others.
       yield* releaseThread(threadId);
     },
@@ -556,11 +578,11 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not remove this topic.")),
   );
 
-  /** A new thread in the vault that stays out of Settled, as a topic's conversation does. */
-  const startKeptThread = Effect.fn("MajordomeTopics.startKeptThread")(function* (
+  /** A new thread in the vault. Kept, it stays out of Settled, as a topic's conversation does. */
+  const startThread = Effect.fn("MajordomeTopics.startThread")(function* (
     project: ProjectStore.ProjectRow,
     title: string,
-    requestedThreadId?: ThreadId,
+    options: { readonly threadId?: ThreadId | undefined; readonly kept: boolean },
   ) {
     const modelSelection = yield* chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
@@ -570,7 +592,7 @@ const make = Effect.gen(function* () {
     if (modelSelection === null) {
       return yield* fail("No AI provider is ready yet. Set one up in Settings, then try again.");
     }
-    const threadId = requestedThreadId ?? ThreadId.make(yield* random.uuidV4());
+    const threadId = options.threadId ?? ThreadId.make(yield* random.uuidV4());
     yield* dispatch({
       type: "thread.create",
       createdBy: "user",
@@ -585,7 +607,7 @@ const make = Effect.gen(function* () {
       branch: null,
       worktreePath: null,
     });
-    yield* keepThreadAsTopic(threadId, undefined);
+    if (options.kept) yield* keepThreadAsTopic(threadId, undefined);
     return threadId;
   });
 
@@ -617,10 +639,19 @@ const make = Effect.gen(function* () {
     function* (input) {
       const { project } = yield* requireVault(input.projectId);
       const { topic } = yield* findTopic(project.workspaceRoot, input.topicId);
+      if (input.sideChat === true) {
+        // Untitled, so its first message names it as it would any new chat.
+        const threadId = yield* startThread(project, UNTITLED_THREAD, { kept: false });
+        yield* updateProjectState(input.projectId, (current) => ({
+          ...current,
+          sideThreads: withSideThread(current.sideThreads, threadId, topic.id),
+        }));
+        return { threadId };
+      }
       const state = yield* projectState(input.projectId);
       const existing = yield* liveThread(state.threads[topic.id]);
       if (existing !== null) return { threadId: existing.id };
-      const threadId = yield* startKeptThread(project, topic.title);
+      const threadId = yield* startThread(project, topic.title, { kept: true });
       yield* updateProjectState(input.projectId, (current) => ({
         ...current,
         threads: { ...current.threads, [topic.id]: threadId },
@@ -631,6 +662,35 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not open this topic.")),
   );
 
+  const setThreadTopic: MajordomeTopics["Service"]["setThreadTopic"] = Effect.fn(
+    "MajordomeTopics.setThreadTopic",
+  )(
+    function* (input) {
+      const { project } = yield* requireVault(input.projectId);
+      const shell = yield* liveThread(input.threadId);
+      if (shell === null || shell.projectId !== input.projectId) {
+        return yield* fail("That chat is no longer in these notes.");
+      }
+      const state = yield* projectState(input.projectId);
+      if (
+        state.routinesThread === input.threadId ||
+        Object.values(state.threads).includes(input.threadId)
+      ) {
+        return yield* fail("That chat already has its own place.");
+      }
+      const topicId =
+        input.topicId === null
+          ? null
+          : (yield* findTopic(project.workspaceRoot, input.topicId)).topic.id;
+      yield* updateProjectState(input.projectId, (current) => ({
+        ...current,
+        sideThreads: withSideThread(current.sideThreads, input.threadId, topicId),
+      }));
+    },
+    (effect) => lock.withPermits(1)(effect),
+    Effect.mapError(toTopicsError("Could not move this chat.")),
+  );
+
   const openRoutinesConversation: MajordomeTopics["Service"]["openRoutinesConversation"] =
     Effect.fn("MajordomeTopics.openRoutinesConversation")(
       function* (input) {
@@ -638,11 +698,10 @@ const make = Effect.gen(function* () {
         const previous = (yield* projectState(input.projectId)).routinesThread;
         const existing = yield* liveThread(previous);
         if (existing !== null && input.fresh !== true) return { threadId: existing.id };
-        const threadId = yield* startKeptThread(
-          project,
-          ROUTINES_CONVERSATION_TITLE,
-          input.threadId,
-        );
+        const threadId = yield* startThread(project, ROUTINES_CONVERSATION_TITLE, {
+          threadId: input.threadId,
+          kept: true,
+        });
         yield* updateProjectState(input.projectId, (current) => ({
           ...current,
           routinesThread: threadId,
@@ -676,6 +735,7 @@ const make = Effect.gen(function* () {
     reorder,
     remove,
     open,
+    setThreadTopic,
     openRoutinesConversation,
     dismissSuggestions,
   });

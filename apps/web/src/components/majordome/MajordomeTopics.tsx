@@ -5,7 +5,12 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { MajordomeTopic, MajordomeTopicSuggestion } from "@t3tools/contracts";
+import type {
+  EnvironmentId,
+  MajordomeTopic,
+  MajordomeTopicSuggestion,
+  ThreadId,
+} from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { Link, useNavigate } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
@@ -15,6 +20,7 @@ import {
   EllipsisIcon,
   FolderInputIcon,
   MessageCircleIcon,
+  MessageCirclePlusIcon,
   NotebookTextIcon,
   PencilIcon,
   PlusIcon,
@@ -251,7 +257,12 @@ function VaultTopics({
                     : threadKey !== null && threadKey === routeThreadKey
                 }
                 isDragging={dragging === topic.id}
+                sideChats={(topic.sideChats ?? []).flatMap((chat) => {
+                  const shell = threadByKey.get(scopedThreadKey(chat));
+                  return shell === undefined ? [] : [{ ...chat, title: shell.title }];
+                })}
                 onOpen={() => void open(topic)}
+                onNewChat={() => void openTopic(topic, { sideChat: true })}
                 onDragStart={() => setDragging(topic.id)}
                 onDragEnd={() => setDragging(null)}
                 onDropOn={() => {
@@ -299,9 +310,16 @@ function TopicRow(props: {
   readonly thread: SidebarThreadSummary | undefined;
   /** The routines that post in this topic, listed under it. */
   readonly routines: ReadonlyArray<RoutineItem>;
+  /** The other chats about this topic, apart from its conversation. */
+  readonly sideChats: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+    readonly title: string;
+  }>;
   readonly isActive: boolean;
   readonly isDragging: boolean;
   readonly onOpen: () => void;
+  readonly onNewChat: () => void;
   readonly onDragStart: () => void;
   readonly onDragEnd: () => void;
   readonly onDropOn: () => void;
@@ -328,7 +346,7 @@ function TopicRow(props: {
     NO_TOPICS,
     COLLAPSED_TOPICS,
   );
-  const hasNested = props.routines.length + otherChats.length > 0;
+  const hasNested = props.routines.length + props.sideChats.length + otherChats.length > 0;
   const collapsed = collapsedTopics.includes(topic.id);
   return (
     <li
@@ -400,6 +418,11 @@ function TopicRow(props: {
             <EllipsisIcon />
           </MenuTrigger>
           <MenuPopup align="end">
+            <MenuItem onClick={props.onNewChat}>
+              <MessageCirclePlusIcon />
+              New chat about this
+            </MenuItem>
+            <MenuSeparator />
             <MenuItem onClick={props.onRename}>
               <PencilIcon />
               Rename
@@ -468,6 +491,26 @@ function TopicRow(props: {
               </li>
             ),
           )}
+          {props.sideChats.map((chat) => (
+            <li key={`${chat.environmentId}:${chat.threadId}`}>
+              <Link
+                to="/$environmentId/$threadId"
+                params={buildThreadRouteParams(scopeThreadRef(chat.environmentId, chat.threadId))}
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false);
+                }}
+                className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              >
+                <MessageCircleIcon
+                  className="size-3.5 shrink-0 text-sidebar-muted-foreground"
+                  aria-hidden
+                />
+                <span className="truncate">
+                  {chat.title === "New thread" ? "New chat" : chat.title}
+                </span>
+              </Link>
+            </li>
+          ))}
           {otherChats.map((chat) => (
             <li key={`${chat.environmentId}:${chat.threadId}`}>
               <Link

@@ -23,6 +23,11 @@ export interface VaultTopic extends MajordomeTopic {
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId;
   }>;
+  /** The other chats about this topic, on every server, listed under it. */
+  readonly sideChats?: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+  }>;
 }
 
 export interface MajordomeVault {
@@ -83,6 +88,10 @@ export function collectVaults(
       topics: result.topics.map((topic) => ({
         ...topic,
         threadEnvironmentId: project.environmentId,
+        sideChats: (topic.sideThreadIds ?? []).map((threadId) => ({
+          environmentId: project.environmentId,
+          threadId,
+        })),
       })),
       suggestions: result.suggestions,
       folders: result.folders,
@@ -129,7 +138,13 @@ export function mergeVaultCopies(
             ? []
             : [{ environmentId: candidate.threadEnvironmentId, threadId: candidate.threadId }],
         );
-        return otherChats.length === 0 ? main : { ...main, otherChats };
+        const sideChats = [
+          ...(topic.sideChats ?? []),
+          ...others
+            .flatMap((other) => other.topics)
+            .flatMap((candidate) => (candidate.id === topic.id ? (candidate.sideChats ?? []) : [])),
+        ];
+        return { ...main, sideChats, ...(otherChats.length === 0 ? {} : { otherChats }) };
       }),
     };
   });
@@ -144,8 +159,8 @@ export function pickActiveVault(
 }
 
 /**
- * `scopedThreadKey`s of every thread that has its own place, in every vault: each topic's, and the
- * conversation behind the Routines screen.
+ * `scopedThreadKey`s of every thread that has its own place, in every vault: each topic's, the
+ * other chats listed under a topic, and the conversation behind the Routines screen.
  */
 export function topicThreadKeys(vaults: ReadonlyArray<MajordomeVault>): ReadonlySet<string> {
   const keys = new Set<string>();
@@ -163,6 +178,7 @@ export function topicThreadKeys(vaults: ReadonlyArray<MajordomeVault>): Readonly
           scopedThreadKey({ environmentId: topic.threadEnvironmentId, threadId: topic.threadId }),
         );
       }
+      for (const chat of topic.sideChats ?? []) keys.add(scopedThreadKey(chat));
     }
   }
   return keys;
@@ -195,7 +211,10 @@ export function selectRecentThreads<
   );
 }
 
-/** The vault's topic chats, titled as the Topics list names them, for search to find. */
+/**
+ * The vault's topic chats, titled as the Topics list names them, for search to find. The other
+ * chats under a topic keep their own titles.
+ */
 export function selectTopicThreads<
   T extends {
     readonly environmentId: EnvironmentId;
@@ -220,11 +239,14 @@ export function selectTopicThreads<
       ...(topic.otherChats ?? []).map((chat) => [scopedThreadKey(chat), topic.title] as const),
     ]),
   );
+  const sideKeys = new Set(
+    vault.topics.flatMap((topic) => (topic.sideChats ?? []).map((chat) => scopedThreadKey(chat))),
+  );
   return threads.flatMap((thread) => {
-    const title = titleByThreadKey.get(
-      scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id }),
-    );
-    return title === undefined ? [] : [{ ...thread, title }];
+    const key = scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id });
+    const title = titleByThreadKey.get(key);
+    if (title !== undefined) return [{ ...thread, title }];
+    return sideKeys.has(key) ? [thread] : [];
   });
 }
 

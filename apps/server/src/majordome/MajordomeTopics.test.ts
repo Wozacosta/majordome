@@ -253,6 +253,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         folderExists: true,
         keyNote: "projects/quitting-nicotine/README.md",
         lastMessagePreview: null,
+        sideThreadIds: [],
       });
       assert.include(
         yield* fs.readFileString(`${vault}/projects/quitting-nicotine/README.md`),
@@ -358,6 +359,44 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       fake.threads.delete(threadId);
       const fresh = yield* service.open({ projectId: vaultProject, topicId: topic.id });
       assert.notEqual(fresh.threadId, threadId);
+    }),
+  );
+
+  it.effect("lists other chats under a topic, new ones and ones moved in, until moved out", () =>
+    Effect.gen(function* () {
+      const { service, fake } = yield* setUp();
+      const create = (title: string, folder: string) =>
+        service.create({ projectId: vaultProject, title, folder, createFolder: true });
+      const fitness = yield* create("Fitness", "projects/fitness");
+      const money = yield* create("Money", "projects/money");
+      const main = yield* service.open({ projectId: vaultProject, topicId: fitness.id });
+
+      const side = yield* service.open({
+        projectId: vaultProject,
+        topicId: fitness.id,
+        sideChat: true,
+      });
+      assert.notEqual(side.threadId, main.threadId);
+      // Unlike the topic's own conversation, it is named by its first message and settles.
+      assert.equal(fake.threads.get(side.threadId)?.title, "New thread");
+      assert.isNull(fake.threads.get(side.threadId)?.autoSettleDisabledAt);
+      const topics = () =>
+        service
+          .list({ projectId: vaultProject })
+          .pipe(Effect.map((listed) => listed.topics.map((topic) => topic.sideThreadIds)));
+      assert.deepEqual(yield* topics(), [[side.threadId], []]);
+
+      const move = (threadId: ThreadId, topicId: string | null) =>
+        service.setThreadTopic({ projectId: vaultProject, threadId, topicId });
+      yield* move(side.threadId, money.id);
+      assert.deepEqual(yield* topics(), [[], [side.threadId]]);
+      yield* move(side.threadId, null);
+      assert.deepEqual(yield* topics(), [[], []]);
+
+      assert.equal(
+        errorMessage(yield* Effect.exit(move(main.threadId, money.id))),
+        "That chat already has its own place.",
+      );
     }),
   );
 

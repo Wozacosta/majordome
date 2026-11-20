@@ -130,6 +130,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeRemoveTopic]: AuthOrchestrationOperateScope,
   // Starts the topic's thread the first time it is opened.
   [WS_METHODS.majordomeOpenTopic]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeSetThreadTopic]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeOpenRoutinesConversation]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeDismissTopicSuggestions]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetTodoDone]: AuthOrchestrationOperateScope,

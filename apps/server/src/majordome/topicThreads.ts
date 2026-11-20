@@ -14,6 +14,8 @@ import * as Schema from "effect/Schema";
 const ProjectTopicState = Schema.Struct({
   /** Topic id → thread id. */
   threads: Schema.Record(Schema.String, ThreadId),
+  /** Topic id → the other chats about it, listed under it. */
+  sideThreads: Schema.optional(Schema.Record(Schema.String, Schema.Array(ThreadId))),
   suggestionsDismissed: Schema.optional(Schema.Boolean),
   /** The conversation behind the Routines screen. */
   routinesThread: Schema.optional(ThreadId),
@@ -57,7 +59,7 @@ export const writeTopicThreadsState = Effect.fn("majordome.writeTopicThreadsStat
   yield* fileSystem.rename(temporary, statePath);
 });
 
-/** The topic whose conversation `threadId` holds, if any. */
+/** The topic `threadId` belongs to: as its conversation, or as one of its other chats. */
 export function findThreadTopic(
   state: TopicThreadsState,
   threadId: string,
@@ -66,6 +68,24 @@ export function findThreadTopic(
     for (const [topicId, candidate] of Object.entries(project.threads)) {
       if (candidate === threadId) return { projectId, topicId };
     }
+    for (const [topicId, candidates] of Object.entries(project.sideThreads ?? {})) {
+      if (candidates.includes(ThreadId.make(threadId))) return { projectId, topicId };
+    }
   }
   return undefined;
+}
+
+/** `sideThreads` with the thread under `topicId` alone, or under no topic for null. */
+export function withSideThread(
+  sideThreads: ProjectTopicState["sideThreads"],
+  threadId: ThreadId,
+  topicId: string | null,
+): NonNullable<ProjectTopicState["sideThreads"]> {
+  const next: Record<string, ReadonlyArray<ThreadId>> = {};
+  for (const [id, threads] of Object.entries(sideThreads ?? {})) {
+    const rest = threads.filter((candidate) => candidate !== threadId);
+    if (rest.length > 0) next[id] = rest;
+  }
+  if (topicId !== null) next[topicId] = [...(next[topicId] ?? []), threadId];
+  return next;
 }

@@ -59,6 +59,8 @@ export const MajordomeTopic = Schema.Struct({
   keyNote: Schema.NullOr(Schema.String),
   /** The conversation's latest message; null before there is one. Absent from older servers. */
   lastMessagePreview: Schema.optional(Schema.NullOr(MajordomeTopicMessagePreview)),
+  /** This server's other chats about the topic, oldest first. Absent from older servers. */
+  sideThreadIds: Schema.optional(Schema.Array(ThreadId)),
 });
 export type MajordomeTopic = typeof MajordomeTopic.Type;
 
@@ -132,6 +134,21 @@ export const MajordomeTopicRefInput = Schema.Struct({
   topicId: TrimmedNonEmptyString,
 });
 export type MajordomeTopicRefInput = typeof MajordomeTopicRefInput.Type;
+
+export const MajordomeOpenTopicInput = Schema.Struct({
+  ...MajordomeTopicRefInput.fields,
+  /** Starts another chat about the topic, apart from its conversation. */
+  sideChat: Schema.optional(Schema.Boolean),
+});
+export type MajordomeOpenTopicInput = typeof MajordomeOpenTopicInput.Type;
+
+export const MajordomeSetThreadTopicInput = Schema.Struct({
+  projectId: ProjectId,
+  threadId: ThreadId,
+  /** The topic the chat is listed under; null puts it back among the recent chats. */
+  topicId: Schema.NullOr(TrimmedNonEmptyString),
+});
+export type MajordomeSetThreadTopicInput = typeof MajordomeSetThreadTopicInput.Type;
 
 export const MajordomeReorderTopicsInput = Schema.Struct({
   projectId: ProjectId,
