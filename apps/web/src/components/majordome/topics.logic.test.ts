@@ -181,29 +181,22 @@ describe("mergeVaultCopies", () => {
     ]);
   });
 
-  it("keeps the topics on the server that runs the routines, and the other chat as the earlier one", () => {
-    const [onRunner] = mergeVaultCopies(
-      copies.map((copy) => ({ ...copy, runsRoutines: copy.environmentId === vps })),
-      mac,
-    );
-    expect(onRunner!.environmentId).toBe(mac);
-    expect(onRunner!.topicsCopy).toEqual({ environmentId: vps, projectId: onVps.id });
-    expect(
-      onRunner!.topics.map((topic) => [
-        topic.id,
-        topic.threadEnvironmentId,
-        topic.threadId,
-        topic.earlier?.threadId,
-      ]),
-    ).toEqual([
-      ["fitness", vps, "vps-fitness", "mac-fitness"],
-      ["reading", vps, "vps-reading", undefined],
+  it("lists another server's chat for a topic under it, unless that chat is empty", () => {
+    const withWords = copies.map((copy) => ({
+      ...copy,
+      topics: copy.topics.map((topic) =>
+        topic.threadId === "vps-fitness"
+          ? { ...topic, lastMessagePreview: { text: "10 km done" } as never }
+          : topic,
+      ),
+    }));
+    const [merged] = mergeVaultCopies(withWords, mac);
+    expect(merged!.topics.map((topic) => [topic.id, topic.threadId, topic.otherChats])).toEqual([
+      ["fitness", "mac-fitness", [{ environmentId: vps, threadId: "vps-fitness" }]],
+      ["reading", "vps-reading", undefined],
+      ["new", null, undefined],
     ]);
-    const threads = [at(mac, "mac-fitness", onMac.id), at(vps, "vps-fitness", onVps.id)];
-    expect(selectTopicThreads(threads, onRunner!).map((found) => found.title)).toEqual([
-      "fitness (earlier)",
-      "fitness",
-    ]);
+    expect(vaults[0]!.topics[0]!.otherChats).toBeUndefined();
   });
 
   it("waits for each copy's brain id before showing it", () => {

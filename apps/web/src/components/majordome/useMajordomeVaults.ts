@@ -7,11 +7,7 @@ import { isMajordome } from "../../env";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useProjects } from "../../state/entities";
 import { usePrimaryEnvironmentId } from "../../state/environments";
-import {
-  vaultBackupStatusesAtom,
-  vaultHistoriesAtom,
-  vaultTopicsAtom,
-} from "../../state/majordome";
+import { vaultBackupStatusesAtom, vaultTopicsAtom } from "../../state/majordome";
 import { statusBrainId } from "./brains.logic";
 import { collectVaults, mergeVaultCopies, pickActiveVault } from "./topics.logic";
 
@@ -41,8 +37,6 @@ export function useMajordomeVaults() {
   const results = useAtomValue(vaultTopicsAtom(key));
   // The backup status says which brain each copy is.
   const statuses = useAtomValue(vaultBackupStatusesAtom(key));
-  // The server that runs a brain's routines keeps its topics' conversations.
-  const histories = useAtomValue(vaultHistoriesAtom(key));
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const { vaults: copies, loading } = collectVaults(
     projects,
@@ -51,9 +45,6 @@ export function useMajordomeVaults() {
       result._tag === "Failure" ? NOT_A_VAULT : AsyncResult.getOrElse(result, () => null),
     ),
     statuses.map(statusBrainId),
-    histories.map(
-      (history) => AsyncResult.getOrElse(history, () => null)?.routinesRunner === "this-server",
-    ),
   );
   const vaults = mergeVaultCopies(copies, primaryEnvironmentId);
   const [chosenKey, setActiveVaultKey] = useLocalStorage(

@@ -186,8 +186,8 @@ export function TopicIconDialog({
     setBusy(true);
     setError(null);
     const result = await updateTopic({
-      environmentId: vault.topicsCopy.environmentId,
-      input: { projectId: vault.topicsCopy.projectId, topicId: topic.id, icon },
+      environmentId: vault.environmentId,
+      input: { projectId: vault.projectId, topicId: topic.id, icon },
     });
     setBusy(false);
     if (result._tag === "Failure") {

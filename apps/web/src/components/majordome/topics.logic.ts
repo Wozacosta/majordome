@@ -16,10 +16,13 @@ import { groupBrains } from "./brains.logic";
 
 /** A topic with the server its conversation is on. */
 export interface VaultTopic extends MajordomeTopic {
-  /** The server the topics are kept on, or another one when only that one has the conversation. */
+  /** The shown copy's server, or another copy's when only that one has the conversation. */
   readonly threadEnvironmentId: EnvironmentId;
-  /** The conversation another server had for this topic before one server kept them all. */
-  readonly earlier?: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId };
+  /** The conversations other servers have for this topic, listed under it; empty ones left out. */
+  readonly otherChats?: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+  }>;
 }
 
 export interface MajordomeVault {
@@ -29,13 +32,6 @@ export interface MajordomeVault {
   readonly projectId: ProjectId;
   readonly title: string;
   readonly brainId: string | null;
-  /**
-   * The copy that keeps the topics and their conversations: the one whose server runs the
-   * routines, so the owner, their phone and the routines all meet in one conversation per topic.
-   */
-  readonly topicsCopy: { readonly environmentId: EnvironmentId; readonly projectId: ProjectId };
-  /** True when its server says it runs the brain's routines. */
-  readonly runsRoutines: boolean;
   readonly topics: ReadonlyArray<VaultTopic>;
   readonly suggestions: ReadonlyArray<MajordomeTopicSuggestion>;
   readonly folders: ReadonlyArray<string>;
@@ -66,8 +62,6 @@ export function collectVaults(
   projects: ReadonlyArray<ListedProject>,
   results: ReadonlyArray<MajordomeTopicsResult | null | undefined>,
   brainIds?: ReadonlyArray<string | null | undefined>,
-  /** Whether each project's server says it runs the vault's routines. */
-  runsRoutines?: ReadonlyArray<boolean>,
 ): { readonly vaults: ReadonlyArray<MajordomeVault>; readonly loading: boolean } {
   const vaults: Array<MajordomeVault> = [];
   let loading = false;
@@ -86,8 +80,6 @@ export function collectVaults(
       ...ref,
       title: project.title,
       brainId,
-      topicsCopy: ref,
-      runsRoutines: runsRoutines?.[index] === true,
       topics: result.topics.map((topic) => ({
         ...topic,
         threadEnvironmentId: project.environmentId,
@@ -102,46 +94,42 @@ export function collectVaults(
 }
 
 /**
- * One vault per brain, shown from the window's own server. Each server keeps its own thread per
- * topic, so every window takes the topics from the copy that runs the routines; another copy's
- * thread is the topic's earlier one. With no such copy in reach, the shown copy keeps the topics.
+ * One vault per brain: the copy on the window's own server when there is one, else the first.
+ * Each server keeps its own thread per topic. The topic opens the shown copy's, its long-running
+ * one, or another copy's when the shown copy has none; the rest are listed under the topic.
  */
 export function mergeVaultCopies(
   copies: ReadonlyArray<MajordomeVault>,
   primaryEnvironmentId: EnvironmentId | null,
 ): ReadonlyArray<MajordomeVault> {
   return groupBrains(copies, primaryEnvironmentId).map((brain) => {
-    const [shown] = brain.copies;
-    const runner = brain.copies.find((copy) => copy.runsRoutines);
-    const keeper = runner ?? shown;
-    const others = brain.copies.filter((copy) => copy !== keeper);
-    const elsewhere = (topicId: string) =>
-      others
-        .flatMap((other) => other.topics)
-        .find((candidate) => candidate.id === topicId && candidate.threadId !== null);
+    const [shown, ...others] = brain.copies;
     return {
       ...shown,
       key: brain.key,
       copies: brain.copies.flatMap((copy) => copy.copies),
-      topicsCopy: keeper.topicsCopy,
-      suggestions: keeper.suggestions,
-      topics: keeper.topics.map((topic) => {
-        const other = elsewhere(topic.id);
-        if (other === undefined || other.threadId === null) return topic;
-        const earlier = { environmentId: other.threadEnvironmentId, threadId: other.threadId };
-        if (runner !== undefined) {
-          return topic.threadId === null
-            ? { ...topic, earlier, lastMessagePreview: other.lastMessagePreview }
-            : { ...topic, earlier };
-        }
-        return topic.threadId !== null
-          ? topic
-          : {
-              ...topic,
-              threadId: other.threadId,
-              threadEnvironmentId: other.threadEnvironmentId,
-              lastMessagePreview: other.lastMessagePreview,
-            };
+      topics: shown.topics.map((topic) => {
+        const elsewhere = others
+          .flatMap((other) => other.topics)
+          .filter((candidate) => candidate.id === topic.id && candidate.threadId !== null);
+        const first = elsewhere[0];
+        const main =
+          topic.threadId !== null || first === undefined
+            ? topic
+            : {
+                ...topic,
+                threadId: first.threadId,
+                threadEnvironmentId: first.threadEnvironmentId,
+                lastMessagePreview: first.lastMessagePreview,
+              };
+        const otherChats = elsewhere.flatMap((candidate) =>
+          candidate.threadId === null ||
+          candidate.threadId === main.threadId ||
+          candidate.lastMessagePreview == null
+            ? []
+            : [{ environmentId: candidate.threadEnvironmentId, threadId: candidate.threadId }],
+        );
+        return otherChats.length === 0 ? main : { ...main, otherChats };
       }),
     };
   });
@@ -229,9 +217,7 @@ export function selectTopicThreads<
               topic.title,
             ] as const,
           ]),
-      ...(topic.earlier === undefined
-        ? []
-        : [[scopedThreadKey(topic.earlier), `${topic.title} (earlier)`] as const]),
+      ...(topic.otherChats ?? []).map((chat) => [scopedThreadKey(chat), topic.title] as const),
     ]),
   );
   return threads.flatMap((thread) => {

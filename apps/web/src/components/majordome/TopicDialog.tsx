@@ -116,7 +116,7 @@ export function TopicDialog({
   const looking = wantedTitle !== "" && answer?.title !== wantedTitle;
   const presetTitle = request.kind === "create" ? (request.title ?? "").trim() : "";
   const delay = wantedTitle === presetTitle ? 0 : SUGGESTION_DELAY_MS;
-  const { environmentId, projectId } = vault.topicsCopy;
+  const { environmentId, projectId } = vault;
   const threadId = request.kind === "create" ? request.threadId : undefined;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the suggestion comes from the server once the name has settled; the cleanup drops the timer and an answer for a name since changed
   useEffect(() => {

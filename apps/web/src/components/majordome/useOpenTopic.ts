@@ -17,7 +17,7 @@ import type { MajordomeVault, VaultTopic } from "./topics.logic";
  * Opens a topic's conversation, starting it the first time. Resolves false, after saying why, when
  * the conversation could not be started.
  */
-export function useOpenTopic({ topicsCopy }: Pick<MajordomeVault, "topicsCopy">) {
+export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "projectId">) {
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
@@ -39,8 +39,8 @@ export function useOpenTopic({ topicsCopy }: Pick<MajordomeVault, "topicsCopy">)
       return true;
     }
     const result = await openTopic({
-      environmentId: topicsCopy.environmentId,
-      input: { projectId: topicsCopy.projectId, topicId: topic.id },
+      environmentId: vault.environmentId,
+      input: { projectId: vault.projectId, topicId: topic.id },
     });
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {
@@ -53,7 +53,7 @@ export function useOpenTopic({ topicsCopy }: Pick<MajordomeVault, "topicsCopy">)
       }
       return false;
     }
-    goToThread(topicsCopy.environmentId, result.value.threadId);
+    goToThread(vault.environmentId, result.value.threadId);
     return true;
   };
 }
