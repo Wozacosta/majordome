@@ -116,8 +116,7 @@ export function TopicDialog({
   const looking = wantedTitle !== "" && answer?.title !== wantedTitle;
   const presetTitle = request.kind === "create" ? (request.title ?? "").trim() : "";
   const delay = wantedTitle === presetTitle ? 0 : SUGGESTION_DELAY_MS;
-  const environmentId = vault.environmentId;
-  const projectId = vault.projectId;
+  const { environmentId, projectId } = vault.topicsCopy;
   const threadId = request.kind === "create" ? request.threadId : undefined;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the suggestion comes from the server once the name has settled; the cleanup drops the timer and an answer for a name since changed
   useEffect(() => {
@@ -154,9 +153,9 @@ export function TopicDialog({
     const result =
       request.kind === "create"
         ? await createTopic({
-            environmentId: vault.environmentId,
+            environmentId,
             input: {
-              projectId: vault.projectId,
+              projectId,
               title: title.trim(),
               folder: folder.trim(),
               createFolder: fields.mode === "new",
@@ -164,9 +163,9 @@ export function TopicDialog({
             },
           })
         : await updateTopic({
-            environmentId: vault.environmentId,
+            environmentId,
             input: {
-              projectId: vault.projectId,
+              projectId,
               topicId: request.topic.id,
               ...(showTitle ? { title: title.trim() } : {}),
               ...(showFolder ? { folder: folder.trim(), createFolder: fields.mode === "new" } : {}),

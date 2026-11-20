@@ -11,6 +11,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   EllipsisIcon,
   FolderInputIcon,
+  HistoryIcon,
   NotebookTextIcon,
   PencilIcon,
   PlusIcon,
@@ -195,8 +196,8 @@ function VaultTopics({
     if (next === order) return;
     setPendingOrder(next);
     const result = await reorderTopics({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicIds: [...next] },
+      environmentId: vault.topicsCopy.environmentId,
+      input: { projectId: vault.topicsCopy.projectId, topicIds: [...next] },
     });
     if (result._tag === "Failure") reportFailure("Could not reorder your topics", result);
     setPendingOrder(null);
@@ -269,7 +270,7 @@ function VaultTopics({
           onClose={() => setDialog(null)}
           onCreated={(topic) => {
             if (dialog.kind === "create") {
-              void open({ ...topic, threadEnvironmentId: vault.environmentId });
+              void open({ ...topic, threadEnvironmentId: vault.topicsCopy.environmentId });
             }
           }}
         />
@@ -286,7 +287,7 @@ function VaultTopics({
 
 function TopicRow(props: {
   readonly vault: MajordomeVault;
-  readonly topic: MajordomeTopic;
+  readonly topic: VaultTopic;
   readonly thread: SidebarThreadSummary | undefined;
   /** The routines that post in this topic, listed under it. */
   readonly routines: ReadonlyArray<RoutineItem>;
@@ -306,6 +307,16 @@ function TopicRow(props: {
   const { isMobile, setOpenMobile } = useSidebar();
   const status = thread === undefined ? null : resolveThreadStatusPill({ thread });
   const activity = thread === undefined ? null : resolveThreadActivityTimestamp(thread);
+  const openEarlier = () => {
+    if (topic.earlier === undefined) return;
+    if (isMobile) setOpenMobile(false);
+    void navigate({
+      to: "/$environmentId/$threadId",
+      params: buildThreadRouteParams(
+        scopeThreadRef(topic.earlier.environmentId, topic.earlier.threadId),
+      ),
+    });
+  };
   return (
     <li
       data-topic-id={topic.id}
@@ -387,6 +398,12 @@ function TopicRow(props: {
               <NotebookTextIcon />
               Open folder in Notes
             </MenuItem>
+            {topic.earlier === undefined ? null : (
+              <MenuItem onClick={openEarlier}>
+                <HistoryIcon />
+                Earlier conversation
+              </MenuItem>
+            )}
             <MenuSeparator />
             <MenuItem variant="destructive" onClick={props.onRemove}>
               <TrashIcon />
@@ -395,6 +412,16 @@ function TopicRow(props: {
           </MenuPopup>
         </Menu>
       </span>
+      {topic.earlier !== undefined && topic.threadId === null ? (
+        <button
+          type="button"
+          onClick={openEarlier}
+          className="mt-px mb-1 ml-5 flex w-[calc(100%-1.25rem)] cursor-pointer items-center gap-2 rounded-md border-l border-sidebar-border py-1 pr-2 pl-4 text-left text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          <HistoryIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">Earlier conversation</span>
+        </button>
+      ) : null}
       {props.routines.length > 0 ? (
         <ul
           aria-label={`Routines in ${topic.title}`}
@@ -467,9 +494,9 @@ function TopicSuggestions({
   const accept = async (suggestion: MajordomeTopicSuggestion) => {
     setBusy(suggestion.folder);
     const result = await createTopic({
-      environmentId: vault.environmentId,
+      environmentId: vault.topicsCopy.environmentId,
       input: {
-        projectId: vault.projectId,
+        projectId: vault.topicsCopy.projectId,
         title: suggestion.title,
         folder: suggestion.folder,
         createFolder: false,
@@ -497,8 +524,8 @@ function TopicSuggestions({
           aria-label="Not now"
           onClick={() => {
             void dismiss({
-              environmentId: vault.environmentId,
-              input: { projectId: vault.projectId },
+              environmentId: vault.topicsCopy.environmentId,
+              input: { projectId: vault.topicsCopy.projectId },
             }).then((result) => {
               if (result._tag === "Failure")
                 reportFailure("Could not hide the suggestions", result);
@@ -566,8 +593,8 @@ function RemoveTopicDialog({
   const confirm = async () => {
     setBusy(true);
     const result = await removeTopic({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicId: topic.id },
+      environmentId: vault.topicsCopy.environmentId,
+      input: { projectId: vault.topicsCopy.projectId, topicId: topic.id },
     });
     setBusy(false);
     if (result._tag === "Failure") reportFailure(`Could not remove ${topic.title}`, result);

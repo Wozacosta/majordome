@@ -181,6 +181,31 @@ describe("mergeVaultCopies", () => {
     ]);
   });
 
+  it("keeps the topics on the server that runs the routines, and the other chat as the earlier one", () => {
+    const [onRunner] = mergeVaultCopies(
+      copies.map((copy) => ({ ...copy, runsRoutines: copy.environmentId === vps })),
+      mac,
+    );
+    expect(onRunner!.environmentId).toBe(mac);
+    expect(onRunner!.topicsCopy).toEqual({ environmentId: vps, projectId: onVps.id });
+    expect(
+      onRunner!.topics.map((topic) => [
+        topic.id,
+        topic.threadEnvironmentId,
+        topic.threadId,
+        topic.earlier?.threadId,
+      ]),
+    ).toEqual([
+      ["fitness", vps, "vps-fitness", "mac-fitness"],
+      ["reading", vps, "vps-reading", undefined],
+    ]);
+    const threads = [at(mac, "mac-fitness", onMac.id), at(vps, "vps-fitness", onVps.id)];
+    expect(selectTopicThreads(threads, onRunner!).map((found) => found.title)).toEqual([
+      "fitness (earlier)",
+      "fitness",
+    ]);
+  });
+
   it("waits for each copy's brain id before showing it", () => {
     const pending = collectVaults([onMac], [vaultResult([])], [undefined]);
     expect(pending).toEqual({ vaults: [], loading: true });
