@@ -10,10 +10,12 @@ import * as Path from "effect/Path";
 const resolved = await Effect.gen(function* () {
   const path = yield* Path.Path;
   const scripts = yield* path.fromFileUrl(new URL(".", import.meta.url));
+  const env = yield* HostProcess.Environment;
   return {
     node: yield* HostProcess.ExecutablePath,
     appDir: path.resolve(scripts, ".."),
-    home: path.resolve(scripts, "../.t3/first-run"),
+    // Outside the checkout: notes cannot be started in a folder that is part of a repository.
+    home: path.join(env.RUNNER_TEMP ?? env.TMPDIR ?? "/tmp", "majordome-first-run"),
     start: path.join(scripts, "first-run/start.ts"),
   };
 }).pipe(Effect.provide(NodeServices.layer), Effect.runPromise);
