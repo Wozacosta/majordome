@@ -15,7 +15,7 @@ const KEEPS_UPSTREAM_NAME = /\/packages\/shared\/src\/majordome\.ts$/;
 
 type Catalog = Readonly<Record<string, unknown>>;
 
-export const rebrand = (text: string) => text.replaceAll(UPSTREAM_NAME, MAJORDOME_NAME);
+const rebrand = (text: string) => text.replaceAll(UPSTREAM_NAME, MAJORDOME_NAME);
 
 const rebrandValue = (value: unknown): unknown =>
   JSON.parse(rebrand(JSON.stringify(value))) as unknown;
