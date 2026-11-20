@@ -5,6 +5,7 @@
   "scripts": {
     "typecheck": "effect-tsgo tsrs --noEmit",
     "scenarios": "E2E_TELEMETRY_DISABLED=1 e2e run",
+    "first-run": "E2E_TELEMETRY_DISABLED=1 e2e run --config first-run.e2e.config.ts",
     "test": "vp test run --config ../vite.config.ts --dir ."
   },
   "dependencies": {

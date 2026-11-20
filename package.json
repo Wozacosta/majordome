@@ -42,6 +42,7 @@
     "mobile:behavior": "node scripts/mobile-behavior.ts",
     "mobile:e2e": "node scripts/mobile-e2e.ts",
     "scenarios": "vp run --filter @t3tools/scripts scenarios",
+    "first-run": "vp run --filter @t3tools/scripts first-run",
     "scenarios:prove": "node scripts/prove-scenario.ts",
     "test": "vp run -r test",
     "test:cached": "node scripts/test-cached.ts",

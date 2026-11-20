@@ -75,6 +75,14 @@ jobs:
             exit 1
           fi
 
+  # A version a new owner cannot set up is not published.
+  first_run:
+    name: First run
+    needs: [preflight]
+    uses: ./.github/workflows/first-run.yml
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
   build:
     name: macOS ${{ matrix.arch }}
     needs: [preflight]
@@ -164,7 +172,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    needs: [preflight, build]
+    needs: [preflight, build, first_run]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
