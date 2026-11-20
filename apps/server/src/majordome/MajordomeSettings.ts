@@ -508,6 +508,36 @@ const make = Effect.gen(function* () {
           }),
         };
       }
+      case "move_routine": {
+        const known = yield* routines.list(projectId);
+        const routine = known.find((candidate) => candidate.id === change.routineId);
+        if (routine === undefined) {
+          return `No routine has the id “${change.routineId}”. Routines: ${
+            known.map((candidate) => `${candidate.title} (${candidate.id})`).join("; ") || "none"
+          }.`;
+        }
+        if (change.topicId === null) {
+          return {
+            what: `Give the routine “${routine.title}” a conversation of its own`,
+            apply: routines.place({ routine, threadId: null }),
+          };
+        }
+        const topicId = change.topicId;
+        const allTopics = (yield* topics.list({ projectId })).topics;
+        const topic = allTopics.find((candidate) => candidate.id === topicId);
+        if (topic === undefined) {
+          return `No topic has the id “${topicId}”. Topics: ${
+            allTopics.map((candidate) => `${candidate.title} (${candidate.id})`).join("; ") ||
+            "none"
+          }.`;
+        }
+        return {
+          what: `Put the routine “${routine.title}” in the topic “${topic.title}”`,
+          apply: topics
+            .open({ projectId, topicId })
+            .pipe(Effect.flatMap(({ threadId }) => routines.place({ routine, threadId }))),
+        };
+      }
       case "remove_private_document": {
         const { documents } = yield* privateDocuments.list();
         const document = findDocumentByName(documents, change.name);

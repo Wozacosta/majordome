@@ -33,7 +33,7 @@ const GetMajordomeStatusTool = Tool.make("get_majordome_status", {
   .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const ChangeMajordomeSettingTool = Tool.make("change_majordome_setting", {
-  description: `Make one change the owner asked for to how the Majordome app is set up for this notes folder. ${SETTING_CHANGES_GUIDE} \`message\` says what happened: done, the owner said no (tell them, don't ask again), still waiting (call again with the same \`change\`), or not possible. A \`topicId\` is the topic's \`id\` in \`get_majordome_status\`; a new topic's \`folder\` is where its notes go, such as \`projects/fitness\`. Routines and reminders: \`schedule_task\`.`,
+  description: `Make one change the owner asked for to how the Majordome app is set up for this notes folder. ${SETTING_CHANGES_GUIDE} \`message\` says what happened: done, the owner said no (tell them, don't ask again), still waiting (call again with the same \`change\`), or not possible. A \`topicId\` is the topic's \`id\` in \`get_majordome_status\`; a new topic's \`folder\` is where its notes go, such as \`projects/fitness\`. \`move_routine\` files a routine under a topic: its results arrive in that topic's conversation and the sidebar lists it there. Making or changing routines and reminders: \`schedule_task\`.`,
   parameters: Schema.Struct({ change: MajordomeSettingChange }),
   success: Schema.Struct({
     status: Schema.Literals([

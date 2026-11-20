@@ -34,6 +34,7 @@ const SAMPLES: {
   };
 } = {
   back_up_now: { type: "back_up_now" },
+  move_routine: { type: "move_routine", routineId: "routine-1", topicId: "taxes" },
   turn_backup_syncing_on: { type: "turn_backup_syncing_on" },
   set_routine_limits: { type: "set_routine_limits", runMinutes: 30, runsPerDay: 10 },
   create_topic: { type: "create_topic", title: "Fitness", folder: "projects/fitness" },
@@ -71,6 +72,7 @@ const ACTS: Partial<Record<MajordomeSettingChange["type"], string>> = {
   remove_topic: "topics.remove taxes",
   remove_private_document: `privateDocuments.remove ${PASSPORT_ID}`,
   run_routines_here: "routines.runHere",
+  move_routine: "routines.place routine-1 in thread:taxes",
 };
 
 const backupStatus: MajordomeBackupStatus = {
@@ -195,7 +197,11 @@ const withSettings = <A, E>(
           ],
         }),
     }),
-    Layer.mock(MajordomeRoutines.MajordomeRoutines)({ runHere: () => did("routines.runHere") }),
+    Layer.mock(MajordomeRoutines.MajordomeRoutines)({
+      runHere: () => did("routines.runHere"),
+      list: () => Effect.succeed([{ id: "routine-1", title: "Log my week" } as never]),
+      place: ({ routine, threadId: to }) => did(`routines.place ${routine.id} in ${to}`),
+    }),
     Layer.mock(MajordomeTopics.MajordomeTopics)({
       list: () =>
         Effect.succeed({
@@ -220,6 +226,7 @@ const withSettings = <A, E>(
         did("topics.update", topic).pipe(Effect.as({} as never)),
       reorder: ({ topicIds }) => did("topics.reorder", topicIds),
       remove: ({ topicId }) => did(`topics.remove ${topicId}`),
+      open: ({ topicId }) => Effect.succeed({ threadId: ThreadId.make(`thread:${topicId}`) }),
     }),
     Layer.mock(MajordomeVaultService.MajordomeVaultService)({
       listHistory: () =>

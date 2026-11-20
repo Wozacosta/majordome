@@ -5,7 +5,13 @@
  * also notices a `.majordome/` folder added later and a runner moved from another machine.
  */
 
-import { type ModelSelection, type ProjectId, type ThreadId } from "@t3tools/contracts";
+import {
+  type ModelSelection,
+  type ProjectId,
+  type ScheduledTask,
+  type ScheduledTaskUpsertInput,
+  type ThreadId,
+} from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -75,6 +81,15 @@ export class MajordomeRoutines extends Context.Service<
     readonly start: () => Effect.Effect<void, never, Scope.Scope>;
     /** Makes this server the vault's runner, for "Move routines here". */
     readonly runHere: (projectId: ProjectId) => Effect.Effect<void, MajordomeRoutinesError>;
+    /** The vault's routines, without reminders. */
+    readonly list: (
+      projectId: ProjectId,
+    ) => Effect.Effect<ReadonlyArray<ScheduledTask>, MajordomeRoutinesError>;
+    /** Sends a routine's results to a conversation, or with null to one of its own. */
+    readonly place: (input: {
+      readonly routine: ScheduledTask;
+      readonly threadId: ThreadId | null;
+    }) => Effect.Effect<void, MajordomeRoutinesError>;
   }
 >()("t3/majordome/MajordomeRoutines") {}
 
@@ -401,7 +416,43 @@ const make = Effect.gen(function* () {
     ),
   );
 
-  return MajordomeRoutines.of({ start, runHere });
+  const routinesFailed = (cause: unknown) =>
+    new MajordomeRoutinesError({ message: "The routines could not be read or saved.", cause });
+
+  const list: MajordomeRoutines["Service"]["list"] = Effect.fn("MajordomeRoutines.list")(function* (
+    projectId,
+  ) {
+    const { tasks } = yield* scheduledTasks.list();
+    return tasks.filter((task) => task.projectId === projectId && task.schedule.type !== "once");
+  }, Effect.mapError(routinesFailed));
+
+  const place: MajordomeRoutines["Service"]["place"] = Effect.fn("MajordomeRoutines.place")(
+    function* ({ routine, threadId }) {
+      const save = (to: Pick<ScheduledTaskUpsertInput, "threadId" | "threadMode">) =>
+        scheduledTasks.upsert({
+          id: routine.id,
+          requireExisting: true,
+          title: routine.title,
+          prompt: routine.prompt,
+          enabled: routine.enabled,
+          schedule: routine.schedule.type === "webhook" ? { type: "webhook" } : routine.schedule,
+          projectId: routine.projectId,
+          workspaceStrategy: routine.workspaceStrategy,
+          modelSelection: routine.modelSelection,
+          runtimeMode: routine.runtimeMode,
+          interactionMode: routine.interactionMode,
+          creationSource: routine.creationSource,
+          ...to,
+        });
+      if (threadId !== null) return yield* save({ threadId, threadMode: "continue" });
+      // A routine only leaves a conversation by opening one per run; then it keeps a new one.
+      yield* save({ threadMode: "new_thread" });
+      yield* save({ threadMode: "fresh_session" });
+    },
+    Effect.mapError(routinesFailed),
+  );
+
+  return MajordomeRoutines.of({ start, runHere, list, place });
 });
 
 export const layer = Layer.effect(MajordomeRoutines, make);

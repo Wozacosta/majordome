@@ -58,6 +58,16 @@ export const MajordomeSettingChange = Schema.Union([
   }),
   Schema.Struct({ type: Schema.Literal("remove_topic"), topicId: TrimmedNonEmptyString }),
   Schema.Struct({
+    type: Schema.Literal("move_routine"),
+    routineId: TrimmedNonEmptyString.annotate({
+      description: "The routine's `scheduledTaskId`.",
+    }),
+    topicId: Schema.NullOr(TrimmedNonEmptyString).annotate({
+      description:
+        "The topic whose conversation gets its results. Null: a conversation of its own.",
+    }),
+  }),
+  Schema.Struct({
     type: Schema.Literal("remove_private_document"),
     name: Schema.String.check(
       Schema.isMinLength(1),
@@ -85,6 +95,7 @@ export const SETTING_CHANGE_RULES: {
   create_topic: { risk: "free" },
   update_topic: { risk: "free" },
   reorder_topics: { risk: "free" },
+  move_routine: { risk: "free" },
   // The limits cap what Majordome does on its own, so it never moves them by itself.
   set_routine_limits: {
     risk: "approval",
