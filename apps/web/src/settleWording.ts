@@ -24,9 +24,6 @@ export const SETTLE_WORDS = isMajordome
       autoSettleFailed: "Could not change moving to Earlier",
       autoSettleUnsupported:
         "This environment's server cannot keep a chat out of Earlier yet. Update the server to use it.",
-      undoneAction: "marking as done",
-      settledNotice: "Done",
-      settledSummary: (count: string) => `Marked ${count} as done`,
       keybinding: "Thread: Mark as Done",
       settingsSection: "Moving chats to Earlier",
       autoSettleMergedTitle: "Move merged chats to Earlier",
@@ -70,9 +67,6 @@ export const SETTLE_WORDS = isMajordome
       autoSettleFailed: "Failed to update auto-settle",
       autoSettleUnsupported:
         "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it.",
-      undoneAction: "settle",
-      settledNotice: "Settled",
-      settledSummary: (count: string) => `Settled ${count}`,
       keybinding: "Thread: Settle",
       settingsSection: "Auto-settle",
       autoSettleMergedTitle: "Auto-settle merged threads",

@@ -1,21 +1,34 @@
 import type { ClientSettings } from "@t3tools/contracts";
+import { msg } from "gt-react";
 
 import { isMajordome } from "../../env";
 
 // Ids are stored in client settings, so never rename one.
 export const THREAD_DETAILS_ITEMS = [
-  { id: "environment", label: "Environment and worktree", defaultVisible: !isMajordome },
-  { id: "openIn", label: "Open in editor", defaultVisible: !isMajordome },
-  { id: "scripts", label: "Project scripts", defaultVisible: !isMajordome },
-  { id: "branch", label: "Branch and pull request", defaultVisible: !isMajordome },
-  { id: "gitActions", label: "Git actions", defaultVisible: !isMajordome },
-  { id: "changes", label: "Changes", defaultVisible: !isMajordome },
-  { id: "servers", label: "Servers", defaultVisible: !isMajordome },
-  { id: "automations", label: "Automations", defaultVisible: true },
-  { id: "lineage", label: "Lineage", defaultVisible: true },
-  { id: "sideChats", label: "Side chats", defaultVisible: true },
-  { id: "usage", label: "Usage limits", defaultVisible: isMajordome },
-  { id: "context", label: "Context window", defaultVisible: isMajordome },
+  { id: "environment", label: msg("Environment and worktree"), defaultVisible: !isMajordome },
+  { id: "openIn", label: msg("Open in editor"), defaultVisible: !isMajordome },
+  { id: "scripts", label: msg("Project scripts"), defaultVisible: !isMajordome },
+  { id: "branch", label: msg("Branch and pull request"), defaultVisible: !isMajordome },
+  { id: "gitActions", label: msg("Git actions"), defaultVisible: !isMajordome },
+  {
+    id: "changes",
+    label: msg("Changes", { $context: "thread details item: version control changes" }),
+    defaultVisible: !isMajordome,
+  },
+  {
+    id: "servers",
+    label: msg("Servers", { $context: "thread details item: running dev servers" }),
+    defaultVisible: !isMajordome,
+  },
+  { id: "automations", label: msg("Automations"), defaultVisible: true },
+  {
+    id: "lineage",
+    label: msg("Lineage", { $context: "thread details item: parent and child agents" }),
+    defaultVisible: true,
+  },
+  { id: "sideChats", label: msg("Side chats"), defaultVisible: true },
+  { id: "usage", label: msg("Usage limits"), defaultVisible: isMajordome },
+  { id: "context", label: msg("Context window"), defaultVisible: isMajordome },
 ] as const;
 
 export type ThreadDetailsItemId = (typeof THREAD_DETAILS_ITEMS)[number]["id"];

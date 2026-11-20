@@ -14,7 +14,7 @@ import * as Redacted from "effect/Redacted";
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 import { useId, useState } from "react";
 
-import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
+import { namedClipboardTarget, writeTextToClipboard } from "../../hooks/useCopyToClipboard";
 import { ensureLocalApi } from "../../localApi";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -200,9 +200,10 @@ export function ClaudeSignInSection({
                       size="icon-sm"
                       variant="ghost-muted"
                       onClick={() =>
-                        void writeTextToClipboard(step.attempt.url, "Claude sign-in link").catch(
-                          () => setError("Couldn't copy the sign-in link."),
-                        )
+                        void writeTextToClipboard(
+                          step.attempt.url,
+                          namedClipboardTarget("Claude sign-in link"),
+                        ).catch(() => setError("Couldn't copy the sign-in link."))
                       }
                     >
                       <CopyIcon />

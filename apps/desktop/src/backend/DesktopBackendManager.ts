@@ -86,6 +86,7 @@ export interface DesktopBackendStartConfig extends BackendProcessContext {
   readonly wslRuntimeId?: string;
   /** The `majord` launch agent already runs this server: connect to it, never spawn or stop it. */
   readonly attachToService?: boolean;
+  readonly wslT3Home?: string | null;
 }
 
 export interface PreflightFailure {
@@ -1021,6 +1022,7 @@ export const makeBackendInstance = Effect.fn("makeBackendInstance")(function* (
               yield* wslEnvironment.pruneRuntimes(
                 config.value.runningDistro,
                 config.value.wslRuntimeId,
+                config.value.wslT3Home ?? null,
               );
             }
           }),

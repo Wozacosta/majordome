@@ -45,9 +45,12 @@ export const providerClients = makeProviderClientRegistry([
     environmentFields: [
       {
         name: "CLAUDE_CODE_OAUTH_TOKEN",
+        // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
         label: "Claude sign-in token",
         description:
+          // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
           "Another way to sign in, without your connectors (Gmail, Calendar, Drive): run `claude setup-token` on a computer where you use Claude, then paste the token here.",
+        // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
         placeholder: "Paste token",
         sensitive: true,
       },

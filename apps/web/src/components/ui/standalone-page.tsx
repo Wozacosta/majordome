@@ -28,11 +28,13 @@ export function StandalonePageHeader({
         {isMajordome ? (
           <span className="flex items-center gap-1.5 text-foreground">
             <MajordomeCloche className="size-4 shrink-0" aria-hidden />
+            {/* oxlint-disable-next-line t3code/no-untranslated-copy -- product wordmark */}
             <span className="text-lg font-medium tracking-tight">Majordome</span>
           </span>
         ) : (
           <span className="flex items-baseline gap-1.5" role="img" aria-label="T3 Code">
             <T3Wordmark className="h-3 w-auto shrink-0 text-foreground" aria-hidden />
+            {/* oxlint-disable-next-line t3code/no-untranslated-copy -- product wordmark */}
             <span className="text-lg font-medium tracking-tight">Code</span>
           </span>
         )}

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { SettingsPageContainer, SettingsSearchTarget } from "../settings/settingsLayout";
-import { searchableSetting, type SettingsSearchItemId } from "../settings/settingsSearch";
+import { type SettingsSearchItemId, useSearchableSetting } from "../settings/settingsSearch";
 import type { WorkspacePageWidth } from "../WorkspacePageContainer";
 import { PageHeader } from "./paper";
 
@@ -20,7 +20,7 @@ export function MajordomeSettingsPage({
   readonly action?: ReactNode;
   readonly children: ReactNode;
 }) {
-  const target = searchableSetting(searchId);
+  const target = useSearchableSetting()(searchId);
   return (
     <SettingsPageContainer {...(width ? { width } : {})}>
       {/* The page is the destination, so no focus ring around all of it. */}

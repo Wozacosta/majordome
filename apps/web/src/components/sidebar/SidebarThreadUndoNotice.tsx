@@ -1,9 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
+import { msg, useMessages } from "gt-react";
 import { Undo2Icon } from "lucide-react";
 import { useState } from "react";
 
 import {
-  threadUndoActionLabel,
   threadUndoLabel,
   undoLatestThreadAction,
   useThreadUndoNotice,
@@ -12,17 +12,25 @@ import { cn } from "../../lib/utils";
 import { primaryServerKeybindingsAtom } from "../../state/server";
 import { InlineButton } from "../ui/button";
 import { SidebarMenuItem } from "../ui/sidebar";
+import { isMajordome } from "../../env";
+
+const SHORT_SUMMARY = {
+  Settled: isMajordome
+    ? msg("{count, plural, =1 {Done,} other {Done {count},}}")
+    : msg("{count, plural, =1 {Settled,} other {Settled {count},}}"),
+  Snoozed: msg("{count, plural, =1 {Snoozed,} other {Snoozed {count},}}"),
+  Unpinned: msg("{count, plural, =1 {Unpinned,} other {Unpinned {count},}}"),
+  Archived: msg("{count, plural, =1 {Archived,} other {Archived {count},}}"),
+  Discarded: msg("{count, plural, =1 {Discarded,} other {Discarded {count},}}"),
+};
 
 /** Fills the free space in the sidebar footer's utility row, so it never moves or covers the list. */
 export function SidebarThreadUndoNotice() {
   const notice = useThreadUndoNotice((state) => state.notice);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
+  const m = useMessages();
   // Short enough to fit beside the utility icons; screen readers hear the full summary.
-  const summary = notice
-    ? notice.count === 1
-      ? threadUndoActionLabel(notice.action)
-      : `${threadUndoActionLabel(notice.action)} ${notice.count}`
-    : null;
+  const summary = notice ? m(SHORT_SUMMARY[notice.action], { count: notice.count }) : null;
 
   // Keeps the last text on screen while it fades out, then unmounts on transitionend.
   const [shownSummary, setShownSummary] = useState(summary);
@@ -53,10 +61,10 @@ export function SidebarThreadUndoNotice() {
               clipped space; once the label is too wide it wraps away and the icon shows. */}
           <span className="flex h-6 min-w-0 flex-wrap justify-end overflow-hidden">
             <Undo2Icon className="-ml-4 h-6 w-4 @max-[1rem]:invisible" />
-            <span>{threadUndoLabel(keybindings)}</span>
+            <span>{threadUndoLabel(keybindings, m)}</span>
           </span>
         </InlineButton>
-        <span>{text},</span>
+        <span>{text}</span>
       </div>
     </SidebarMenuItem>
   );

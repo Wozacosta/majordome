@@ -24,11 +24,12 @@ import {
 } from "./ProviderSettingsPanel.logic";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { SecretProviderIcon } from "./secretProviderIcons";
 
 export function SecretsSettingsPanel() {
+  const searchableSetting = useSearchableSetting();
   const { scope, environment } = useSettingsScope();
   const connected = environment?.connection.phase === "connected";
   return (
@@ -66,6 +67,7 @@ function EnvironmentSecretProviders({
   readonly projectScoped: boolean;
 }) {
   const environmentId = environment.environmentId;
+  const searchableSetting = useSearchableSetting();
   const sessionState = useEnvironmentSessionState(environmentId);
   // The server requires the same grant for secret providers as for provider settings.
   const access = classifyProviderEnvironmentAccess({

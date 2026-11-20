@@ -1,3 +1,4 @@
+import { invalidSecretReferenceText } from "@t3tools/client-runtime/secret-request";
 import {
   SecretReference,
   type EnvironmentId,
@@ -307,7 +308,9 @@ export function SecretSourceInput({
         </div>
         {rejectedReference !== null ? (
           <p className="text-2xs text-destructive">
-            {definition?.invalidReferenceMessage ?? "Enter a valid secret reference."}
+            {definition?.invalidReferenceMessage === undefined
+              ? "Enter a valid secret reference."
+              : invalidSecretReferenceText(definition.invalidReferenceMessage)}
           </p>
         ) : null}
       </div>
