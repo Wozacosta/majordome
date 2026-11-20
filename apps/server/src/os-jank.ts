@@ -99,6 +99,17 @@ function hydratePosixPath(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): vo
   applyLoginShellEnvironment(env, platform, shellEnvironment, launchctlPath);
 }
 
+/**
+ * Installers such as Claude Code's put their program in `~/.local/bin` and only tell the person to
+ * add it to PATH. Looked up last, so it never shadows what the shell already finds.
+ */
+function addUserLocalBin(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): void {
+  const home = env.HOME?.trim();
+  if (!home) return;
+  const merged = mergePathEntries(env.PATH, `${home.replace(/\/+$/, "")}/.local/bin`, platform);
+  if (merged) env.PATH = merged;
+}
+
 export function hydratePosixHome(
   env: NodeJS.ProcessEnv,
   resolveHomeDir = () => NodeOS.userInfo().homedir,
@@ -148,14 +159,16 @@ export const fixPath = Effect.fn("fixPath")(function* (options?: {
       }),
     ),
   );
-  if (options?.shellEnvironmentPrepared === true) return;
-  yield* Effect.sync(() => hydratePosixPath(env, platform)).pipe(
-    Effect.catchDefect((defect) =>
-      Effect.sync(() => {
-        logPathHydrationWarning("Failed to hydrate PATH from the user environment.", defect);
-      }),
-    ),
-  );
+  if (options?.shellEnvironmentPrepared !== true) {
+    yield* Effect.sync(() => hydratePosixPath(env, platform)).pipe(
+      Effect.catchDefect((defect) =>
+        Effect.sync(() => {
+          logPathHydrationWarning("Failed to hydrate PATH from the user environment.", defect);
+        }),
+      ),
+    );
+  }
+  addUserLocalBin(env, platform);
 });
 
 const readLoginShellOutput = Effect.fn("readLoginShellOutput")(

@@ -41,7 +41,7 @@ import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "rea
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
 import { MOBILE_APP_URL } from "../../branding";
-import { isElectron } from "../../env";
+import { isElectron, isMajordome } from "../../env";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { usePersistEnvironmentProviderInstanceMutation } from "../../hooks/useSettings";
 import { useCloudLinkState } from "../../cloud/cloudLinkState";
@@ -380,6 +380,8 @@ interface AgentTerminalSession {
   readonly providerInstanceId: ServerProvider["instanceId"];
   readonly cwd: string;
   readonly command: string;
+  /** The agent is installed and the command signs in to it. */
+  readonly signIn: boolean;
   readonly keybindings: ServerConfig["keybindings"];
 }
 
@@ -416,7 +418,17 @@ export function AgentsSection({
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
-  const { providers, serverConfig, checking, found, available } = useWelcomeAgents(environmentId);
+  const agents = useWelcomeAgents(environmentId);
+  const { providers, serverConfig, checking } = agents;
+  // Majordome is set up around Claude, so its row is shown before it is installed.
+  const leading = isMajordome
+    ? agents.available.find((provider) => provider.driver === "claudeAgent")
+    : undefined;
+  const found = leading === undefined ? agents.found : [leading, ...agents.found];
+  const available =
+    leading === undefined
+      ? agents.available
+      : agents.available.filter((provider) => provider !== leading);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
@@ -478,6 +490,7 @@ export function AgentsSection({
       driver: provider.driver,
       providerInstanceId: provider.instanceId,
       cwd: serverConfig.cwd,
+      signIn: provider.installed,
       command: provider.installed
         ? resolveOnboardingProviderLoginCommand(
             provider,
@@ -615,7 +628,7 @@ export function AgentsSection({
   ].filter((note) => note !== null);
 
   return (
-    <WelcomeSection title="Agents">
+    <WelcomeSection title={isMajordome ? "Assistant" : "Agents"}>
       {found.map((provider) => (
         <AgentRow
           key={provider.instanceId}
@@ -643,9 +656,15 @@ export function AgentsSection({
               found.length > 0 ? "text-muted-foreground" : "text-foreground",
             )}
           >
-            {found.length > 0 ? "Add more agents" : "Set up an agent"}
+            {found.length === 0
+              ? "Set up an agent"
+              : isMajordome
+                ? "Use a different AI"
+                : "Add more agents"}
           </span>
-          {showMore ? null : <AgentLogoStack providers={available} acp={acpAllowed} />}
+          {showMore || isMajordome ? null : (
+            <AgentLogoStack providers={available} acp={acpAllowed} />
+          )}
           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground group-data-panel-open:rotate-180" />
         </CollapsibleTrigger>
         <CollapsiblePanel>
@@ -1158,19 +1177,27 @@ function AgentRow({
   const brokenMessage = isBrokenVersion(provider)
     ? (provider.compatibilityAdvisory?.message ?? null)
     : null;
+  const needsTerminal =
+    isInstallableDriver(provider.driver) &&
+    brokenMessage === null &&
+    (state === "install" || state === "signIn");
   const detail =
-    state === "install"
-      ? isInstallableDriver(provider.driver)
-        ? null
-        : "Not installed"
-      : compact || state === "ready" || state === "checking"
-        ? null
-        : state === "attention"
-          ? (provider.unavailableReason ??
-            brokenMessage ??
-            provider.message ??
-            getProviderSummary(provider).headline)
-          : (brokenMessage ?? getProviderSummary(provider).headline);
+    isMajordome && !compact && needsTerminal
+      ? state === "install"
+        ? "Not on this computer yet. Installing takes about a minute."
+        : "Installed. Sign in with your account to use it."
+      : state === "install"
+        ? isInstallableDriver(provider.driver)
+          ? null
+          : "Not installed"
+        : compact || state === "ready" || state === "checking"
+          ? null
+          : state === "attention"
+            ? (provider.unavailableReason ??
+              brokenMessage ??
+              provider.message ??
+              getProviderSummary(provider).headline)
+            : (brokenMessage ?? getProviderSummary(provider).headline);
   return (
     <div className={cn("flex items-center gap-3", compact ? "min-h-9" : "min-h-10 py-1")}>
       <RowIcon>
@@ -1215,7 +1242,7 @@ function AgentInstallTerminal({
   readonly onCommandFinished: () => void;
   readonly onClose: () => void;
 }) {
-  const { command, cwd, driver, environmentId, keybindings, providerInstanceId } = session;
+  const { command, cwd, driver, environmentId, keybindings, providerInstanceId, signIn } = session;
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const [advancedTypography] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
@@ -1337,7 +1364,15 @@ function AgentInstallTerminal({
               terminal.
             </>
           ) : setupState === "ready" ? (
-            "Review the command, then press Enter to run it."
+            isMajordome ? (
+              signIn ? (
+                "Press Enter, then sign in on the page that opens in your browser."
+              ) : (
+                "Press Enter to install. It is done when the button above says Sign in."
+              )
+            ) : (
+              "Review the command, then press Enter to run it."
+            )
           ) : setupState === "openFailed" ? (
             "Could not open the setup terminal."
           ) : (
