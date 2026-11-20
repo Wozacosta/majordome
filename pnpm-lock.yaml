@@ -1356,6 +1356,9 @@ importers:
       compression:
         specifier: ^1.8.2
         version: 1.8.2(supports-color@8.1.1)
+      generaltranslation:
+        specifier: 9.5.9
+        version: 9.5.9
       gt:
         specifier: 2.27.0
         version: 2.27.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)

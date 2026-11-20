@@ -14,7 +14,10 @@ import * as Schema from "effect/Schema";
 const ProjectTopicState = Schema.Struct({
   /** Topic id → thread id. */
   threads: Schema.Record(Schema.String, ThreadId),
-  /** Topic id → the other chats about it, listed under it. */
+  /**
+   * Topic id → the other chats about it, listed under it. Separate threads with the topic's notes
+   * as context, not upstream's side chats: those fork one thread's history and live inside it.
+   */
   sideThreads: Schema.optional(Schema.Record(Schema.String, Schema.Array(ThreadId))),
   suggestionsDismissed: Schema.optional(Schema.Boolean),
   /** The conversation behind the Routines screen. */

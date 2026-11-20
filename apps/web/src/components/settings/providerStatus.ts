@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import type {
   ServerProvider,
   ServerProviderVersionAdvisory,
@@ -74,11 +73,7 @@ export function getProviderSummary(
       headline: resolve(msg("Disabled", { $context: "provider status" })),
       detail:
         provider.message ??
-        resolve(
-          msg("This provider is installed but disabled for new sessions in {appName}.", {
-            appName: APP_BASE_NAME,
-          }),
-        ),
+        resolve(msg("This provider is installed but disabled for new sessions in T3 Code.")),
     };
   }
   if (!provider.installed) {

@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { useGT, useMessages } from "gt-react";
 import { useState } from "react";
@@ -29,8 +28,7 @@ export function NotificationSettings() {
       description={
         permissionMessage ??
         gt(
-          "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while {appName} is open.",
-          { appName: APP_BASE_NAME },
+          "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open.",
         )
       }
       control={

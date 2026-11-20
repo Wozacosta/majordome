@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import type {
   EnvironmentId,
   ServerConfig,
@@ -78,9 +77,7 @@ export function resolveVersionMismatch(
     clientVersion: normalizedClientVersion,
     serverVersion: normalizedServerVersion,
     hint: resolve(
-      msg("Version mismatch. Try syncing the client and server to the same {appName} version.", {
-        appName: APP_BASE_NAME,
-      }),
+      msg("Version mismatch. Try syncing the client and server to the same T3 Code version."),
     ),
   };
 }

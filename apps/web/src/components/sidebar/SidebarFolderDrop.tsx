@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import {
   DESKTOP_APP_ACTIVATION_PROTOCOL_VERSION,
   DesktopAppActivationPlatform,
@@ -77,9 +76,7 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
         stackedThreadToast({
           type: "error",
           title: gt('Could not add "{name}"', { name: folder.name }),
-          description:
-            response?.message ??
-            gt("{appName} could not read the folder's path.", { appName: APP_BASE_NAME }),
+          description: response?.message ?? gt("T3 Code could not read the folder's path."),
         }),
       );
     }

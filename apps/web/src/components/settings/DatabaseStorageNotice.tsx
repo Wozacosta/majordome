@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { m } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
@@ -162,8 +161,7 @@ function ReclaimRow({
       toastManager.add({
         type: "success",
         title: gt("Reclaiming {amount} on {environment}", { amount, environment: label }),
-        description: gt("{appName} there restarts and is back in about {minutes} min.", {
-          appName: APP_BASE_NAME,
+        description: gt("T3 Code there restarts and is back in about {minutes} min.", {
           minutes,
         }),
       });
@@ -186,10 +184,7 @@ function ReclaimRow({
       title={gt("{amount} on {environment}", { amount, environment: label })}
       description={
         status.reclaimFailure === undefined
-          ? gt("Restarts {appName} there. It will be offline for about {minutes} min.", {
-              appName: APP_BASE_NAME,
-              minutes,
-            })
+          ? gt("Restarts T3 Code there. It will be offline for about {minutes} min.", { minutes })
           : gt("The last attempt failed: {reason}", { reason: status.reclaimFailure })
       }
       control={
@@ -213,9 +208,9 @@ function ReclaimRow({
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                   <T>
-                    <Var>{APP_BASE_NAME}</Var> on <Var>{label}</Var> stops, rebuilds its database,
-                    and starts again. It will be offline for about <Var>{minutes}</Var> min. Running
-                    agents stop when it restarts.
+                    T3 Code on <Var>{label}</Var> stops, rebuilds its database, and starts again. It
+                    will be offline for about <Var>{minutes}</Var> min. Running agents stop when it
+                    restarts.
                   </T>
                 </AlertDialogDescription>
               </AlertDialogHeader>

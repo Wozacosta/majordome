@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProviderDriverKind } from "@t3tools/contracts";
 import { T, Var } from "gt-react";
@@ -37,8 +36,7 @@ export function MultipleAccountsNote({
       <AlertDescription>
         <p>
           <T>
-            We do not recommend managing multiple <Var>{providerName}</Var> accounts in{" "}
-            <Var>{APP_BASE_NAME}</Var>.{" "}
+            We do not recommend managing multiple <Var>{providerName}</Var> accounts in T3 Code.{" "}
             <a
               href={MULTIPLE_ACCOUNTS_FAQ_URL}
               target="_blank"

@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
@@ -2515,10 +2514,7 @@ export function AboutSettingsPanel() {
           {...setting("privacy-policy")}
           description={
             telemetryOff === undefined
-              ? gt(
-                  "How we handle your data, including the anonymous usage data {appName} collects.",
-                  { appName: APP_BASE_NAME },
-                )
+              ? gt("How we handle your data, including the anonymous usage data T3 Code collects.")
               : gt("How we handle your data. {telemetryOff}", { telemetryOff })
           }
           control={
@@ -2533,10 +2529,7 @@ export function AboutSettingsPanel() {
         />
         <SettingsRow
           {...setting("open-source-licenses")}
-          description={gt(
-            "Notices for dependencies, assets, and optional tools used by {appName}.",
-            { appName: APP_BASE_NAME },
-          )}
+          description={gt("Notices for dependencies, assets, and optional tools used by T3 Code.")}
           control={
             <Button
               render={<Link to="/settings/open-source-licenses" />}

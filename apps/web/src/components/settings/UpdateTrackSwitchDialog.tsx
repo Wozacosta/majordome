@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
@@ -215,11 +214,7 @@ function SwitchPlan({
           ? [gt("This app's updates are off here, so reinstall it yourself to switch.")]
           : []),
         ...(switchesLocal && isMacPlatform(navigator.platform)
-          ? [
-              gt("If {appName} does not reopen after it restarts, open it again.", {
-                appName: APP_BASE_NAME,
-              }),
-            ]
+          ? [gt("If T3 Code does not reopen after it restarts, open it again.")]
           : []),
       ]}
       restarts={everything.restarts}

@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import {
   ClientSettingsSchema,
@@ -675,11 +674,7 @@ async function persistScopedSettingsPlan(
       return [
         {
           ...environment,
-          message: m(
-            msg("This environment does not support this setting. Update {appName} on it.", {
-              appName: APP_BASE_NAME,
-            }),
-          ),
+          message: m(msg("This environment does not support this setting. Update T3 Code on it.")),
         },
       ];
     }

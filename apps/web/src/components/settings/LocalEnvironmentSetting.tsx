@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { m } from "~/i18n/messages";
 import { T, useGT } from "gt-react";
@@ -53,8 +52,7 @@ export function LocalEnvironmentSetting() {
         description={
           enabled
             ? gt(
-                "Run agents on this computer. Turn off to use {appName} only with remote environments.",
-                { appName: APP_BASE_NAME },
+                "Run agents on this computer. Turn off to use T3 Code only with remote environments.",
               )
             : gt("Turned off. Agents only run in remote environments.")
         }
@@ -83,12 +81,9 @@ export function LocalEnvironmentSetting() {
             <AlertDialogDescription>
               {enabled
                 ? gt(
-                    "{appName} will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected.",
-                    { appName: APP_BASE_NAME },
+                    "T3 Code will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected.",
                   )
-                : gt("{appName} will restart and start running a server on this computer again.", {
-                    appName: APP_BASE_NAME,
-                  })}
+                : gt("T3 Code will restart and start running a server on this computer again.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? <p className="px-6 pb-4 text-sm text-destructive">{error}</p> : null}

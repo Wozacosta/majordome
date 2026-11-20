@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import {
   findProjectByPath,
@@ -75,7 +74,7 @@ export function useOpenLocalWorkspace() {
           const error = squashAtomCommandFailure(result);
           throw error instanceof Error
             ? error
-            : new Error(m(msg("{appName} could not add the project.", { appName: APP_BASE_NAME })));
+            : new Error(m(msg("T3 Code could not add the project.")));
         }
         return projectId;
       },

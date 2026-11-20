@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
@@ -29,7 +28,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { T, useGT, useMessages, Var } from "gt-react";
+import { T, useGT, useMessages } from "gt-react";
 
 import { ensureLocalApi } from "../../localApi";
 import { managedInstanceLocks, useManagedPolicy } from "../../state/managedPolicy";
@@ -649,15 +648,11 @@ function ManagedCodexSetup({
                 ? gt("Using your installed Codex · v{version}.", {
                     version: installation.installedVersion,
                   })
-                : gt("Managed by {appName} · v{version}.", {
-                    appName: APP_BASE_NAME,
-                    version: installation.installedVersion,
-                  })
+                : gt("Managed by T3 Code · v{version}.", { version: installation.installedVersion })
               : installation?.source === "local"
                 ? gt("Using your installed Codex.")
-                : gt("Managed by {appName}.", { appName: APP_BASE_NAME })
-            : (installation?.message ??
-              gt("{appName} downloads and manages Codex for you.", { appName: APP_BASE_NAME }));
+                : gt("Managed by T3 Code.")
+            : (installation?.message ?? gt("T3 Code downloads and manages Codex for you."));
   const accountDescription = finishingSignIn ? (
     gt("Finishing sign-in...")
   ) : installActive ? (
@@ -737,10 +732,7 @@ function ManagedCodexSetup({
     !handoff && auth?.phase === "waiting" && url ? (
       <div className="flex w-full flex-col gap-3 text-xs leading-relaxed text-muted-foreground">
         <p>
-          <T>
-            If sign-in doesn't return to <Var>{APP_BASE_NAME}</Var>, paste the URL from the final
-            localhost page.
-          </T>
+          <T>If sign-in doesn't return to T3 Code, paste the URL from the final localhost page.</T>
         </p>
         <form
           className="flex flex-col gap-2 sm:flex-row sm:items-center"
@@ -1150,7 +1142,7 @@ export function CodexManagedRuntimeFields({
     <>
       <SettingsRow
         title={gt("Binary path")}
-        description={gt("Selected by {appName}.", { appName: APP_BASE_NAME })}
+        description={gt("Selected by T3 Code.")}
         control={
           <div className="w-full sm:w-80">
             <Input

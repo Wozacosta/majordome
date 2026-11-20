@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
@@ -29,7 +28,7 @@ import {
   XIcon,
 } from "lucide-react";
 import * as DateTime from "effect/DateTime";
-import { msg, T, useGT, useMessages, Var } from "gt-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { useId, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 
@@ -505,9 +504,7 @@ function QueuedMessage(props: {
     <>
       {attribution === "t3code" ? (
         <p className="me-1 text-2xs text-muted-foreground/70">
-          <T>
-            Sent by <Var>{APP_BASE_NAME}</Var>
-          </T>
+          <T>Sent by T3 Code</T>
         </p>
       ) : null}
       {presentation?.guestName === undefined ? null : (

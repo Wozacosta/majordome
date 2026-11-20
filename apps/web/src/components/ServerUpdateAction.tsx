@@ -1,4 +1,3 @@
-import { APP_BASE_NAME } from "~/branding";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -223,11 +222,8 @@ export function ServerUpdatesAction({
         const confirmed =
           (await requestConfirmDialog(
             gt(
-              "Update the {appName} desktop apps on {servers}? They will close and relaunch on those machines.",
-              {
-                appName: APP_BASE_NAME,
-                servers: desktopTargets.map((target) => target.serverLabel).join(", "),
-              },
+              "Update the T3 Code desktop apps on {servers}? They will close and relaunch on those machines.",
+              { servers: desktopTargets.map((target) => target.serverLabel).join(", ") },
             ),
             { initialFocus: "confirm" },
           )) ?? true;
@@ -359,8 +355,8 @@ export function ServerUpdateAction({
       const confirmed =
         (await requestConfirmDialog(
           gt(
-            "Update the {appName} desktop app that runs the {serverLabel}? It will close and relaunch on that machine.",
-            { appName: APP_BASE_NAME, serverLabel },
+            "Update the T3 Code desktop app that runs the {serverLabel}? It will close and relaunch on that machine.",
+            { serverLabel },
           ),
           { initialFocus: "confirm" },
         )) ?? true;
