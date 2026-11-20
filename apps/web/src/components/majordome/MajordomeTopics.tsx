@@ -394,21 +394,6 @@ function TopicRow(props: {
         </span>
       </button>
       <span className="absolute top-2 right-1 flex items-center">
-        {hasNested ? (
-          <Button
-            size="icon-xs"
-            variant="ghost-muted"
-            aria-expanded={!collapsed}
-            aria-label={`${collapsed ? "Show" : "Hide"} routines and chats in ${topic.title}`}
-            onClick={() =>
-              setCollapsedTopics((ids) =>
-                ids.includes(topic.id) ? ids.filter((id) => id !== topic.id) : [...ids, topic.id],
-              )
-            }
-          >
-            {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
-          </Button>
-        ) : null}
         <Menu>
           <MenuTrigger
             render={
@@ -457,6 +442,21 @@ function TopicRow(props: {
             </MenuItem>
           </MenuPopup>
         </Menu>
+        {hasNested ? (
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? "Show" : "Hide"} routines and chats in ${topic.title}`}
+            onClick={() =>
+              setCollapsedTopics((ids) =>
+                ids.includes(topic.id) ? ids.filter((id) => id !== topic.id) : [...ids, topic.id],
+              )
+            }
+          >
+            {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+          </Button>
+        ) : null}
       </span>
       {hasNested && !collapsed ? (
         <ul
