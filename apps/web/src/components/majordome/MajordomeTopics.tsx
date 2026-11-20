@@ -8,7 +8,10 @@ import {
 import type { MajordomeTopic, MajordomeTopicSuggestion } from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { Link, useNavigate } from "@tanstack/react-router";
+import * as Schema from "effect/Schema";
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   EllipsisIcon,
   FolderInputIcon,
   MessageCircleIcon,
@@ -22,6 +25,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
 import { cn } from "../../lib/utils";
@@ -62,6 +66,9 @@ import {
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 import { useVaultRoutines } from "./useVaultRoutines";
+
+const COLLAPSED_TOPICS = Schema.Array(Schema.String);
+const NO_TOPICS: ReadonlyArray<string> = [];
 
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
@@ -316,6 +323,13 @@ function TopicRow(props: {
         (item) => item.environmentId === chat.environmentId && item.task.threadId === chat.threadId,
       ),
   );
+  const [collapsedTopics, setCollapsedTopics] = useLocalStorage(
+    "majordome:collapsed-topics",
+    NO_TOPICS,
+    COLLAPSED_TOPICS,
+  );
+  const hasNested = props.routines.length + otherChats.length > 0;
+  const collapsed = collapsedTopics.includes(topic.id);
   return (
     <li
       data-topic-id={topic.id}
@@ -344,7 +358,8 @@ function TopicRow(props: {
         onClick={props.onOpen}
         aria-current={props.isActive ? "page" : undefined}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2.5 rounded-lg py-1.5 pr-9 pl-1.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "flex w-full cursor-pointer items-center gap-2.5 rounded-lg py-1.5 pl-1.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          hasNested ? "pr-15" : "pr-9",
           props.isActive && topicRowTint(topic),
         )}
       >
@@ -360,7 +375,22 @@ function TopicRow(props: {
           </span>
         </span>
       </button>
-      <span className="absolute top-2 right-1">
+      <span className="absolute top-2 right-1 flex items-center">
+        {hasNested ? (
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? "Show" : "Hide"} routines and chats in ${topic.title}`}
+            onClick={() =>
+              setCollapsedTopics((ids) =>
+                ids.includes(topic.id) ? ids.filter((id) => id !== topic.id) : [...ids, topic.id],
+              )
+            }
+          >
+            {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+          </Button>
+        ) : null}
         <Menu>
           <MenuTrigger
             render={
@@ -405,7 +435,7 @@ function TopicRow(props: {
           </MenuPopup>
         </Menu>
       </span>
-      {props.routines.length + otherChats.length > 0 ? (
+      {hasNested && !collapsed ? (
         <ul
           aria-label={`Routines and chats in ${topic.title}`}
           className="mt-px mb-1 ml-5 flex flex-col gap-px border-l border-sidebar-border pl-2"
