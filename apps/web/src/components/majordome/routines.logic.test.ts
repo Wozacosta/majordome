@@ -202,13 +202,16 @@ describe("a routine's chats", () => {
       thread("kept", "Start my day", "system"),
       thread("old-run", "Start my day", "system"),
       thread("mine", "Start my day", "user"),
-      thread("elsewhere", "Start my day", "system", mac),
+      thread("other-server", "Start my day", "system", mac),
       thread("chat", "Trip to Lisbon", "user"),
     ]);
     expect([...keys].toSorted()).toEqual(
-      [kept, finances, ThreadId.make("old-run")]
-        .map((threadId) => scopedThreadKey({ environmentId: server, threadId }))
-        .toSorted(),
+      [
+        ...[kept, finances, ThreadId.make("old-run")].map((threadId) =>
+          scopedThreadKey({ environmentId: server, threadId }),
+        ),
+        scopedThreadKey({ environmentId: mac, threadId: ThreadId.make("other-server") }),
+      ].toSorted(),
     );
   });
 

@@ -75,14 +75,14 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
   );
 });
 
-it("says Done for settling, and still finds it for people who search T3's word", () => {
+it("says Earlier for the shelf, and still finds it for people who search T3's word", () => {
   const titles = (query: string) => searchSettings(query).map((item) => item.title);
-  expect(titles("move chats to done")).toContain("Move inactive chats to Done");
+  expect(titles("move chats to earlier")).toContain("Move inactive chats to Earlier");
   expect(titles("auto-settle")).toEqual(
     expect.arrayContaining([
-      "Move inactive chats to Done",
-      "Move merged chats to Done",
-      "Days before chats move to Done",
+      "Move inactive chats to Earlier",
+      "Move merged chats to Earlier",
+      "Days before chats move to Earlier",
     ]),
   );
   expect(titles("settle")).toContain("Thread: Mark as Done");

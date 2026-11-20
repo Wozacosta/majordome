@@ -95,14 +95,13 @@ export function selectRoutines(input: {
 /**
  * `scopedThreadKey`s of the chats that are a routine's, which Recent leaves out: the one each
  * routine keeps, and the chats routines opened on every run before they kept one. Those carry the
- * routine's name and were not started by the owner.
+ * routine's name and were not started by the owner, on whichever server ran the routine then.
  */
 export function routineThreadKeys(
   routines: ReadonlyArray<RoutineItem>,
   threads: ReadonlyArray<{
     readonly environmentId: EnvironmentId;
     readonly id: ThreadId;
-    readonly projectId: ProjectId;
     readonly title: string;
     readonly source: { readonly createdBy: string };
   }>,
@@ -110,16 +109,13 @@ export function routineThreadKeys(
   const keys = new Set<string>();
   const runTitles = new Set<string>();
   for (const { environmentId, task } of routines) {
-    runTitles.add(`${environmentId}:${task.projectId}:${task.title}`);
+    runTitles.add(task.title);
     if (task.threadId !== null) {
       keys.add(scopedThreadKey({ environmentId, threadId: task.threadId }));
     }
   }
   for (const thread of threads) {
-    if (
-      thread.source.createdBy !== "user" &&
-      runTitles.has(`${thread.environmentId}:${thread.projectId}:${thread.title}`)
-    ) {
+    if (thread.source.createdBy !== "user" && runTitles.has(thread.title)) {
       keys.add(scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id }));
     }
   }
