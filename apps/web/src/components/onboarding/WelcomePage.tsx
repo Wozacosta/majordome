@@ -596,7 +596,9 @@ export function AgentsSection({
           name={name}
           signIn={state === "signIn"}
           disabled={
-            terminalSession?.providerInstanceId === provider.instanceId ||
+            // An install that has finished leaves its box open, and sign-in must still start.
+            (terminalSession?.providerInstanceId === provider.instanceId &&
+              terminalSession.signIn === (state === "signIn")) ||
             serverConfig === null ||
             !canOperateTerminal
           }
@@ -714,7 +716,7 @@ export function AgentsSection({
       {isPrimary ? <CliPathSetup /> : null}
       {terminalSession !== null ? (
         <AgentInstallTerminal
-          key={`${terminalSession.environmentId}:${terminalSession.providerInstanceId}:${terminalSession.driver}`}
+          key={`${terminalSession.environmentId}:${terminalSession.providerInstanceId}:${terminalSession.driver}:${terminalSession.signIn}`}
           session={terminalSession}
           onCommandFinished={() =>
             void refreshProviders({
