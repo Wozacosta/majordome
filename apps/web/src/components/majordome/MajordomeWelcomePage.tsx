@@ -3,17 +3,19 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { ArrowUpIcon, FolderIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { isElectron } from "../../env";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
+import { filesystemEnvironment } from "../../state/filesystem";
 import { majordomeEnvironment } from "../../state/majordome";
+import { useEnvironmentQuery } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { AgentsSection, WelcomeSection } from "../onboarding/WelcomePage";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
@@ -70,7 +72,6 @@ function NotesFolderSetup({ environmentId }: { readonly environmentId: Environme
     reportFailure: false,
   });
   const [busy, setBusy] = useState(false);
-  const [typedFolder, setTypedFolder] = useState("");
   // Only the desktop app can show the computer's own folder picker.
   const canPickFolder = typeof window !== "undefined" && window.desktopBridge !== undefined;
 
@@ -121,33 +122,101 @@ function NotesFolderSetup({ environmentId }: { readonly environmentId: Environme
         }
       >
         {canPickFolder ? null : (
-          <form
-            className="mt-2 flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (typedFolder.trim() !== "") void start(typedFolder.trim());
-            }}
-          >
-            <Input
-              size="sm"
-              aria-label="Folder on this computer"
-              placeholder="/home/me/notes"
-              value={typedFolder}
-              onChange={(event) => setTypedFolder(event.target.value)}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              type="submit"
-              disabled={busy || typedFolder.trim() === ""}
-            >
-              Use this folder
-            </Button>
-          </form>
+          <FolderBrowser
+            environmentId={environmentId}
+            disabled={busy}
+            onUse={(folder) => void start(folder)}
+          />
         )}
       </NotesChoice>
     </div>
   );
+}
+
+/**
+ * Picks a folder on the server's computer by walking its folders, for a browser, which has no
+ * folder picker of its own. Starts in the home folder.
+ */
+function FolderBrowser({
+  environmentId,
+  disabled,
+  onUse,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly disabled: boolean;
+  readonly onUse: (folder: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [path, setPath] = useState("~/");
+  const listing = useEnvironmentQuery(
+    open ? filesystemEnvironment.browse({ environmentId, input: { partialPath: path } }) : null,
+  );
+  const here = listing.data?.parentPath ?? null;
+  const folders = (listing.data?.entries ?? []).filter((entry) => !entry.name.startsWith("."));
+  const parent = here === null ? null : here.replace(/[^/]+\/?$/, "");
+
+  if (!open) {
+    return (
+      <div className="mt-2">
+        <Button size="sm" variant="outline" disabled={disabled} onClick={() => setOpen(true)}>
+          Choose folder
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 overflow-hidden rounded-lg border border-border/70">
+      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-1.5">
+        <Button
+          size="icon-xs"
+          variant="ghost-muted"
+          aria-label="Up one folder"
+          disabled={parent === null || parent === "" || parent === here}
+          onClick={() => parent && setPath(parent)}
+        >
+          <ArrowUpIcon />
+        </Button>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+          {here === null ? "Looking…" : shortFolder(here)}
+        </span>
+        <Button
+          size="xs"
+          disabled={disabled || here === null}
+          onClick={() => here !== null && onUse(here)}
+        >
+          Use this folder
+        </Button>
+      </div>
+      <ul aria-label="Folders here" className="max-h-56 overflow-y-auto py-1">
+        {folders.map((entry) => (
+          <li key={entry.fullPath}>
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-sm text-foreground hover:bg-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              onClick={() => setPath(`${entry.fullPath}/`)}
+            >
+              <FolderIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="truncate">{entry.name}</span>
+            </button>
+          </li>
+        ))}
+        {listing.data !== null && folders.length === 0 ? (
+          <li className="px-3 py-1 text-xs text-muted-foreground">No folders inside this one.</li>
+        ) : null}
+        {listing.error ? (
+          <li className="px-3 py-1 text-xs text-muted-foreground">
+            This folder could not be opened.
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+/** The last two folders of a path, which is the part that tells folders apart. */
+function shortFolder(folder: string): string {
+  const parts = folder.split("/").filter((part) => part !== "");
+  return parts.length <= 2 ? folder : `…/${parts.slice(-2).join("/")}`;
 }
 
 function NotesChoice({

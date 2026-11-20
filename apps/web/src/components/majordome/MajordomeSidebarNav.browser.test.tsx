@@ -13,6 +13,9 @@ vi.mock("@effect/atom-react", async (importOriginal) => ({
 }));
 vi.mock("../../state/majordome", () => ({ vaultBackupStatusesAtom: () => ({}) }));
 vi.mock("./NewChatRow", () => ({ NewChatRow: () => null }));
+vi.mock("./useMajordomeVaults", () => ({
+  useMajordomeVaults: () => ({ activeVault: {}, loading: false }),
+}));
 vi.mock("../../state/entities", () => ({
   useProjects: () => [],
   useQuietThreadShells: () => [],

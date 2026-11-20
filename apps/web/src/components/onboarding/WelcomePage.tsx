@@ -1267,7 +1267,13 @@ function AgentInstallTerminal({
     threadId: AGENT_ONBOARDING_THREAD_ID,
   }).includes(terminalId);
   const commandStartedRef = useRef(false);
-  const handleCommandFinished = useEffectEvent(onCommandFinished);
+  // Majordome runs the command itself and keeps the terminal out of sight unless it is asked for.
+  const [showTerminal, setShowTerminal] = useState(!isMajordome);
+  const [finished, setFinished] = useState(false);
+  const handleCommandFinished = useEffectEvent(() => {
+    setFinished(true);
+    onCommandFinished();
+  });
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the shell stays open after an install or sign-in, so its command exiting is the only signal to check the agent again
   useEffect(() => {
@@ -1317,7 +1323,11 @@ function AgentInstallTerminal({
 
       const wrote = await writeTerminal({
         environmentId,
-        input: { threadId: AGENT_ONBOARDING_THREAD_ID, terminalId, data: command },
+        input: {
+          threadId: AGENT_ONBOARDING_THREAD_ID,
+          terminalId,
+          data: isMajordome ? `${command}\r` : command,
+        },
       });
       if (activeSetupGenerationRef.current !== generation) return;
       setSetupState(wrote._tag === "Success" ? "ready" : "writeFailed");
@@ -1365,10 +1375,16 @@ function AgentInstallTerminal({
             </>
           ) : setupState === "ready" ? (
             isMajordome ? (
-              signIn ? (
-                "Press Enter, then sign in on the page that opens in your browser."
+              finished ? (
+                signIn ? (
+                  "Finished. If Claude does not say Ready above, show the details to see why."
+                ) : (
+                  "Finished. Now sign in with the button above. Still says Install? Show the details."
+                )
+              ) : signIn ? (
+                "A sign-in page opened in your browser. Finish there, then come back. No page? Show the details for a link."
               ) : (
-                "Press Enter to install. It is done when the button above says Sign in."
+                "Installing, about a minute. It is done when the button above says Sign in."
               )
             ) : (
               "Review the command, then press Enter to run it."
@@ -1394,12 +1410,22 @@ function AgentInstallTerminal({
               Retry
             </Button>
           ) : null}
+          {isMajordome ? (
+            <Button
+              size="xs"
+              variant="ghost-muted"
+              aria-expanded={showTerminal}
+              onClick={() => setShowTerminal((shown) => !shown)}
+            >
+              {showTerminal ? "Hide details" : "Show details"}
+            </Button>
+          ) : null}
           <Button size="xs" variant="ghost-muted" onClick={onClose}>
             Close
           </Button>
         </div>
       </div>
-      <div className="h-64">
+      <div className={showTerminal ? "h-64" : "hidden"}>
         {terminalReady ? (
           <TerminalViewport
             threadRef={threadRef}
@@ -1410,8 +1436,8 @@ function AgentInstallTerminal({
             providerInstanceId={providerInstanceId}
             advancedTypography={advancedTypography}
             onSessionExited={onClose}
-            autoFocus
-            visible
+            autoFocus={showTerminal}
+            visible={showTerminal}
             keybindings={keybindings}
           />
         ) : null}

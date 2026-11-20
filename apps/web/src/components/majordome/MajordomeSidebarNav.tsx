@@ -20,6 +20,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../
 import { backupAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 import { NewChatRow } from "./NewChatRow";
+import { useMajordomeVaults } from "./useMajordomeVaults";
 
 /** The screens Majordome is used through; its setup lives in Settings. */
 const MAJORDOME_SIDEBAR_ITEMS = [
@@ -43,6 +44,9 @@ export function MajordomeSidebarNav() {
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
   };
+  // Before there is a notes folder every screen is empty; the welcome page is the only place to be.
+  const { activeVault, loading } = useMajordomeVaults();
+  if (activeVault === null && !loading) return null;
 
   return (
     <nav aria-label="Majordome" className="mb-1">
