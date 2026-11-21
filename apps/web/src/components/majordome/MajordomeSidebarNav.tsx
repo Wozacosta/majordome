@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
   BellIcon,
+  BookOpenIcon,
   CalendarClockIcon,
   ChevronRightIcon,
   CircleAlertIcon,
@@ -33,6 +34,7 @@ const DAILY_ITEMS = [
   { to: "/feed", label: "Feed", icon: NewspaperIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/todos", label: "To-dos", icon: ListTodoIcon },
+  { to: "/reading", label: "Reading list", icon: BookOpenIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
 
 /** What the assistant does without being asked each time. */

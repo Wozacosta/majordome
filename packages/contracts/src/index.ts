@@ -77,6 +77,7 @@ export * from "./majordomeTodos.ts";
 export * from "./majordomeDaily.ts";
 export * from "./majordomeTopicFiles.ts";
 export * from "./majordomeTopics.ts";
+export * from "./majordomeReadingList.ts";
 export * from "./majordomeServerMove.ts";
 export * from "./worktreeMcp.ts";
 export * from "./resourceTelemetry.ts";

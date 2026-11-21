@@ -377,6 +377,38 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeOpenRoutinesConversation,
       onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
     }),
+    /** Read again on every mount and after each change; the assistant adds to the list too. */
+    readingItems: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:reading-items",
+      tag: WS_METHODS.majordomeListReadingItems,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => readingListRevision(environmentId),
+    }),
+    addReadingItem: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-reading-item",
+      tag: WS_METHODS.majordomeAddReadingItem,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
+    updateReadingItem: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:update-reading-item",
+      tag: WS_METHODS.majordomeUpdateReadingItem,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
+    reorderReadingItems: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:reorder-reading-items",
+      tag: WS_METHODS.majordomeReorderReadingItems,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
+    removeReadingItem: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-reading-item",
+      tag: WS_METHODS.majordomeRemoveReadingItem,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
+    restoreReadingItem: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:restore-reading-item",
+      tag: WS_METHODS.majordomeRestoreReadingItem,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
     dismissTopicSuggestions: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:dismiss-topic-suggestions",
       tag: WS_METHODS.majordomeDismissTopicSuggestions,
@@ -395,6 +427,17 @@ const topicsRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpTopics = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(topicsRevision(environmentId), (value) => value + 1));
+
+/** Bumped after any reading list change, so the list in that environment reads again. */
+const readingListRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:reading-list-revision:${environmentId}`),
+  ),
+);
+
+const bumpReadingList = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(readingListRevision(environmentId), (value) => value + 1));
 
 /** Bumped after a to-do is added or ticked, so every to-do list in that environment reads again. */
 const todosRevision = Atom.family((environmentId: EnvironmentId) =>

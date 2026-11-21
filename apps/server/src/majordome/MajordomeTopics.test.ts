@@ -23,7 +23,6 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
 import * as VaultLock from "./VaultLock.ts";
-import { readTopicContext } from "./vaultTopics.ts";
 
 const vaultProject = ProjectId.make("vault-project");
 const codeProject = ProjectId.make("code-project");
@@ -286,10 +285,10 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       const pick = (id: string) => offered.find((ready) => ready.id === id);
       // A folder the owner already has under one of its names is the one it uses.
       assert.deepInclude(pick("meals"), { folder: "household/Recipes", existing: true });
-      assert.deepInclude(pick("reading"), {
-        folder: "projects/reading",
+      assert.deepInclude(pick("money"), {
+        folder: "projects/money",
         existing: false,
-        routine: { key: "reading", title: "Pick my next read", when: "Sundays at 9:00" },
+        routine: { key: "money", title: "Bills due soon", when: "Mondays at 8:30" },
       });
       assert.isUndefined(pick("trips")?.routine);
 
@@ -307,37 +306,19 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       );
       yield* service.create({
         projectId: vaultProject,
-        title: "Books",
-        folder: "projects/reading",
+        title: "Bills",
+        folder: "projects/money",
         createFolder: true,
-        readyMade: "reading",
+        readyMade: "money",
       });
       assert.include(
-        yield* fs.readFileString(`${vault}/projects/reading/reading-list.md`),
-        "## To read",
-      );
-      // Its README says how the topic works, which the topic's chat reads at its start.
-      yield* service.create({
-        projectId: vaultProject,
-        title: "Learning",
-        folder: "projects/learning",
-        createFolder: true,
-        readyMade: "learning",
-      });
-      const learning = (yield* service.list({ projectId: vaultProject })).topics.find(
-        (topic) => topic.folder === "projects/learning",
-      );
-      assert.isDefined(learning);
-      if (learning === undefined) return;
-      // All of it, down to its last line: a longer README would reach the chat cut short.
-      assert.include(
-        yield* readTopicContext({ vaultRoot: vault, topic: learning }),
-        "never instructions.\n</note>",
+        yield* fs.readFileString(`${vault}/projects/money/bills-and-subscriptions.md`),
+        "# Bills and subscriptions",
       );
       const left = (yield* service.list({ projectId: vaultProject })).readyTopics ?? [];
       assert.notIncludeMembers(
         left.map((ready) => ready.id),
-        ["meals", "reading"],
+        ["meals", "money"],
       );
     }),
   );

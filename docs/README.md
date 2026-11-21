@@ -30,6 +30,7 @@
 - [Always-on server](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)
 - [Searching your notes](./user/notes-search.md)
+- [Reading list](./user/reading-list.md)
 - [Memory](./user/memory.md)
 - [Routines and reminders](./user/routines.md)
 - [Setting Majordome up by asking](./user/assistant-settings.md)

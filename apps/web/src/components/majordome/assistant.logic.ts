@@ -10,6 +10,7 @@ import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 const SCREENS: Readonly<Record<string, string>> = {
   "/": "Today",
   "/feed": "Feed",
+  "/reading": "Reading list",
   "/reminders": "Reminders",
   "/routines": "Routines",
   "/todos": "To-dos",

@@ -449,17 +449,17 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
 
         yield* fs.writeFileString(
           `${vaultRoot}/.majordome/topics.json`,
-          JSON.stringify({ topics: [{ id: "books", title: "Books", folder: "projects/reading" }] }),
+          JSON.stringify({ topics: [{ id: "bills", title: "Bills", folder: "projects/money" }] }),
         );
         const offered = (yield* service.ready(projectId)).routines;
         assert.deepInclude(
-          offered.find((routine) => routine.key === "reading"),
-          { title: "Pick my next read", topicId: "books" },
+          offered.find((routine) => routine.key === "money"),
+          { title: "Bills due soon", topicId: "bills" },
         );
         // A topic the owner does not have brings no routine; ones without a topic are always there.
         assert.isUndefined(offered.find((routine) => routine.key === "meals"));
         assert.equal(offered.find((routine) => routine.key === "inbox-summary")?.needs, "Gmail");
-        const elsewhere = yield* Effect.flip(service.addReady({ projectId, key: "reading" }));
+        const elsewhere = yield* Effect.flip(service.addReady({ projectId, key: "money" }));
         assert.include(elsewhere.message, "another of your computers");
 
         const missing = yield* Effect.flip(service.runHere(ProjectId.make("missing")));
@@ -477,19 +477,19 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
 
         yield* service.addReady({
           projectId,
-          key: "reading",
-          threadId: ThreadId.make("thread-books"),
+          key: "money",
+          threadId: ThreadId.make("thread-bills"),
         });
         yield* service.addReady({ projectId, key: "evening-journal" });
         const added = (yield* scheduledTasks.list()).tasks;
-        const reading = added.find((task) => task.title === "Pick my next read");
-        assert.deepInclude(reading, {
+        const money = added.find((task) => task.title === "Bills due soon");
+        assert.deepInclude(money, {
           enabled: true,
-          threadId: ThreadId.make("thread-books"),
+          threadId: ThreadId.make("thread-bills"),
           threadMode: "continue",
-          schedule: { type: "fixed_time", timeOfDay: "09:00", weekdays: [0] },
+          schedule: { type: "fixed_time", timeOfDay: "08:30", weekdays: [1] },
         });
-        assert.include(reading?.prompt, "`projects/reading/`");
+        assert.include(money?.prompt, "`projects/money/`");
         assert.equal(
           added.find((task) => task.title === "Evening journal prompt")?.threadMode,
           "fresh_session",
@@ -497,9 +497,9 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         // Once added it is no longer offered, and asking again adds no second one.
         assert.notIncludeMembers(
           (yield* service.ready(projectId)).routines.map((routine) => routine.key),
-          ["reading", "evening-journal"],
+          ["money", "evening-journal"],
         );
-        const twice = yield* Effect.flip(service.addReady({ projectId, key: "reading" }));
+        const twice = yield* Effect.flip(service.addReady({ projectId, key: "money" }));
         assert.include(twice.message, "already in your list");
         // Committed and sent at once, so the other computer stops running them.
         assert.equal(

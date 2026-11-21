@@ -208,8 +208,6 @@ const make = Effect.gen(function* () {
     readonly folder: string;
     readonly createFolder: boolean;
     readonly title: string;
-    /** For a ready-made topic's new folder, in place of the short README. */
-    readonly readme?: string | undefined;
   }) {
     const folder = normalizeTopicFolder(input.folder);
     if (folder === null) return yield* fail("Choose a folder inside your notes.");
@@ -228,10 +226,7 @@ const make = Effect.gen(function* () {
       input.vaultRoot,
       Effect.gen(function* () {
         yield* fileSystem.makeDirectory(absolute, { recursive: true });
-        yield* fileSystem.writeFileString(
-          path.join(absolute, "README.md"),
-          input.readme ?? readmeFor(input.title),
-        );
+        yield* fileSystem.writeFileString(path.join(absolute, "README.md"), readmeFor(input.title));
       }),
     );
     return folder;
@@ -464,15 +459,12 @@ const make = Effect.gen(function* () {
         input.readyMade === undefined
           ? undefined
           : READY_TOPICS.find((candidate) => candidate.id === input.readyMade);
-      const folder = yield* resolveFolder({ vaultRoot, layout, ...input, readme: ready?.readme });
+      const folder = yield* resolveFolder({ vaultRoot, layout, ...input });
       if (topics.some((topic) => topic.folder === folder)) {
         return yield* fail(`Another topic already uses ${folder}.`);
       }
       if (ready !== undefined) {
-        yield* writeStarterNotes(vaultRoot, folder, [
-          ...ready.notes,
-          ...(ready.readme === undefined ? [] : [{ name: "README.md", content: ready.readme }]),
-        ]);
+        yield* writeStarterNotes(vaultRoot, folder, ready.notes);
       }
       const topic: MajordomeVaultTopic = {
         id: newTopicId(input.title, new Set(topics.map((candidate) => candidate.id))),

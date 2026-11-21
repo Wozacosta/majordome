@@ -141,6 +141,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeGetPrivateDocumentRequest]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetApproval]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeListReadingItems]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListReadyRoutines]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTodos]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetDailyNote]: AuthOrchestrationReadScope,

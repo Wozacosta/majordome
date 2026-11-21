@@ -199,6 +199,18 @@ import {
   MajordomeUpdateTopicInput,
 } from "./majordomeTopics.ts";
 import {
+  MajordomeAddReadingItemInput,
+  MajordomeAddReadingItemResult,
+  MajordomeReadingItem,
+  MajordomeReadingItemRefInput,
+  MajordomeReadingListError,
+  MajordomeReadingListInput,
+  MajordomeReadingListResult,
+  MajordomeReorderReadingItemsInput,
+  MajordomeRestoreReadingItemInput,
+  MajordomeUpdateReadingItemInput,
+} from "./majordomeReadingList.ts";
+import {
   FilesystemGetMetadataInput,
   FilesystemGetMetadataResult,
   FilesystemBrowseInput,
@@ -836,6 +848,12 @@ export const WS_METHODS = {
   majordomeSetThreadTopic: "majordome.setThreadTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
+  majordomeListReadingItems: "majordome.listReadingItems",
+  majordomeAddReadingItem: "majordome.addReadingItem",
+  majordomeUpdateReadingItem: "majordome.updateReadingItem",
+  majordomeReorderReadingItems: "majordome.reorderReadingItems",
+  majordomeRemoveReadingItem: "majordome.removeReadingItem",
+  majordomeRestoreReadingItem: "majordome.restoreReadingItem",
   majordomeListTodos: "majordome.listTodos",
   majordomeSetTodoDone: "majordome.setTodoDone",
   majordomeAddTodo: "majordome.addTodo",
@@ -2682,6 +2700,41 @@ const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   },
 );
 
+const readingListError = Schema.Union([MajordomeReadingListError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListReadingItemsRpc = Rpc.make(WS_METHODS.majordomeListReadingItems, {
+  payload: MajordomeReadingListInput,
+  success: MajordomeReadingListResult,
+  error: readingListError,
+});
+
+const WsMajordomeAddReadingItemRpc = Rpc.make(WS_METHODS.majordomeAddReadingItem, {
+  payload: MajordomeAddReadingItemInput,
+  success: MajordomeAddReadingItemResult,
+  error: readingListError,
+});
+
+const WsMajordomeUpdateReadingItemRpc = Rpc.make(WS_METHODS.majordomeUpdateReadingItem, {
+  payload: MajordomeUpdateReadingItemInput,
+  success: MajordomeReadingItem,
+  error: readingListError,
+});
+
+const WsMajordomeReorderReadingItemsRpc = Rpc.make(WS_METHODS.majordomeReorderReadingItems, {
+  payload: MajordomeReorderReadingItemsInput,
+  error: readingListError,
+});
+
+const WsMajordomeRemoveReadingItemRpc = Rpc.make(WS_METHODS.majordomeRemoveReadingItem, {
+  payload: MajordomeReadingItemRefInput,
+  error: readingListError,
+});
+
+const WsMajordomeRestoreReadingItemRpc = Rpc.make(WS_METHODS.majordomeRestoreReadingItem, {
+  payload: MajordomeRestoreReadingItemInput,
+  error: readingListError,
+});
+
 const WsMajordomeListTodosRpc = Rpc.make(WS_METHODS.majordomeListTodos, {
   payload: MajordomeTodosInput,
   success: MajordomeTodosResult,
@@ -3178,6 +3231,12 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeSetThreadTopicRpc,
   WsMajordomeOpenRoutinesConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,
+  WsMajordomeListReadingItemsRpc,
+  WsMajordomeAddReadingItemRpc,
+  WsMajordomeUpdateReadingItemRpc,
+  WsMajordomeReorderReadingItemsRpc,
+  WsMajordomeRemoveReadingItemRpc,
+  WsMajordomeRestoreReadingItemRpc,
   WsMajordomeListTodosRpc,
   WsMajordomeSetTodoDoneRpc,
   WsMajordomeAddTodoRpc,

@@ -136,6 +136,7 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
+import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
@@ -1510,6 +1511,7 @@ export const layerWsRpc = (
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
+      const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
       const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
       const majordomeDailyNotes = yield* MajordomeDailyNotes.MajordomeDailyNotes;
       const majordomeTopicFiles = yield* MajordomeTopicFiles.MajordomeTopicFiles;
@@ -2563,6 +2565,30 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeDismissTopicSuggestions]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.dismissSuggestions(input)),
+          ),
+        [WS_METHODS.majordomeListReadingItems]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.list(input)),
+          ),
+        [WS_METHODS.majordomeAddReadingItem]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.add(input)),
+          ),
+        [WS_METHODS.majordomeUpdateReadingItem]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.update(input)),
+          ),
+        [WS_METHODS.majordomeReorderReadingItems]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.reorder(input)),
+          ),
+        [WS_METHODS.majordomeRemoveReadingItem]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.remove(input)),
+          ),
+        [WS_METHODS.majordomeRestoreReadingItem]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeReadingList.restore(input)),
           ),
         [WS_METHODS.majordomeListTodos]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

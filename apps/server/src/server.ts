@@ -145,6 +145,7 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
+import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
@@ -842,6 +843,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ),
   layerMajordomeVault,
   layerMajordomeTopics,
+  MajordomeReadingList.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeTodos.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeDailyNotes.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeTopicFiles.layer.pipe(Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer))),

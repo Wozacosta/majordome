@@ -62,6 +62,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
   BellIcon,
+  BookOpenIcon,
   BugIcon,
   ChartNoAxesColumnIcon,
   CalendarClockIcon,
@@ -1802,6 +1803,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <ListTodoIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/todos" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:reading-list",
+      searchTerms: ["reading list", "read later", "links", "watch later", "saved", "bookmarks"],
+      title: gt("Open reading list"),
+      icon: <BookOpenIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/reading" });
       },
     });
     actionItems.push({
