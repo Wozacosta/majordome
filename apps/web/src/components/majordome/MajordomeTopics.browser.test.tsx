@@ -80,7 +80,7 @@ const middle = (element: HTMLElement) => {
 const mouse = (type: string, at: { clientX: number; clientY: number }) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...at });
 
-it("moves a topic to where it is dragged, the others making room on the way", async () => {
+it("moves a topic to where it is dragged and keeps it there once saved", async () => {
   setup();
   await using screen = await render(
     <SidebarProvider>
@@ -107,6 +107,17 @@ it("moves a topic to where it is dragged, the others making room on the way", as
     ]),
   );
   expect(state.opened).toEqual([]);
+  // The save has answered and the list has not been read again: the new order stays on screen.
+  await screen.rerender(
+    <SidebarProvider>
+      <MajordomeTopicsSection />
+    </SidebarProvider>,
+  );
+  expect(
+    [...screen.container.querySelectorAll("[data-topic-id]")].map((item) =>
+      item.getAttribute("data-topic-id"),
+    ),
+  ).toEqual(["b", "c", "a"]);
 });
 
 it("still opens a topic on a plain click", async () => {

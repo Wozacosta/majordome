@@ -171,7 +171,12 @@ function VaultTopics({
   const [dialog, setDialog] = useState<TopicDialogRequest | null>(null);
   const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
   const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
-  const [pendingOrder, setPendingOrder] = useState<ReadonlyArray<string> | null>(null);
+  // The order just chosen, shown until the list read from the server changes from `from`:
+  // dropping it as soon as the save answers would show the old order for a moment.
+  const [pendingOrder, setPendingOrder] = useState<{
+    readonly order: ReadonlyArray<string>;
+    readonly from: string;
+  } | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, MOUSE_DRAG),
     useSensor(TouchSensor, TOUCH_DRAG),
@@ -208,7 +213,8 @@ function VaultTopics({
   const routineTopics = routineTopicIds(routines, serverCopies);
 
   const ids = vault.topics.map((topic) => topic.id);
-  const order = pendingOrder ?? ids;
+  const idsKey = ids.join("\n");
+  const order = pendingOrder !== null && pendingOrder.from === idsKey ? pendingOrder.order : ids;
   const topics = order.flatMap((id) => vault.topics.find((topic) => topic.id === id) ?? []);
   const topicThread = (topic: VaultTopic) =>
     topic.threadId === null
@@ -240,13 +246,15 @@ function VaultTopics({
 
   const reorder = async (next: ReadonlyArray<string>) => {
     if (next === order) return;
-    setPendingOrder(next);
+    setPendingOrder({ order: next, from: idsKey });
     const result = await reorderTopics({
       environmentId: vault.environmentId,
       input: { projectId: vault.projectId, topicIds: [...next] },
     });
-    if (result._tag === "Failure") reportFailure("Could not reorder your topics", result);
-    setPendingOrder(null);
+    if (result._tag === "Failure") {
+      reportFailure("Could not reorder your topics", result);
+      setPendingOrder(null);
+    }
   };
 
   return (
