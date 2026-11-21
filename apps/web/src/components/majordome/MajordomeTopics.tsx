@@ -1,3 +1,15 @@
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { refreshMajordomeSettings } from "@t3tools/client-runtime/state/majordome";
 import {
@@ -79,6 +91,11 @@ import { useOpenTopic } from "./useOpenTopic";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 const COLLAPSED_TOPICS = Schema.Array(Schema.String);
+// A short move starts the drag, so a plain click still opens the topic.
+const MOUSE_DRAG = { activationConstraint: { distance: 6 } };
+// A held finger drags; a swipe still scrolls the list.
+const TOUCH_DRAG = { activationConstraint: { delay: 250, tolerance: 8 } };
+const TOPIC_DRAG_MODIFIERS = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
 const NO_TOPICS: ReadonlyArray<string> = [];
 
 const HEADING_CLASS =
@@ -155,7 +172,10 @@ function VaultTopics({
   const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
   const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
   const [pendingOrder, setPendingOrder] = useState<ReadonlyArray<string> | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(MouseSensor, MOUSE_DRAG),
+    useSensor(TouchSensor, TOUCH_DRAG),
+  );
   // The route moves only once the chat has rendered; until then, the topic tapped shows as open.
   const [opening, setOpening] = useState<{
     readonly topicId: string;
@@ -280,57 +300,67 @@ function VaultTopics({
         />
       ) : null}
       {topics.length > 0 ? (
-        <ul aria-label="Topics" className="flex flex-col gap-px">
-          {topics.map((topic, index) => {
-            const threadKey =
-              topic.threadId === null
-                ? null
-                : scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId));
-            const thread = topicThread(topic);
-            return (
-              <TopicRow
-                key={topic.id}
-                vault={vault}
-                topic={topic}
-                thread={thread}
-                routines={routines.filter((item) => routineTopics.get(item.key) === topic.id)}
-                isActive={
-                  opening !== null && opening.fromRouteKey === routeThreadKey
-                    ? opening.topicId === topic.id
-                    : threadKey !== null && threadKey === routeThreadKey
-                }
-                isDragging={dragging === topic.id}
-                sideChats={(topic.sideChats ?? []).flatMap((chat) => {
-                  const shell = threadByKey.get(scopedThreadKey(chat));
-                  return shell === undefined
-                    ? []
-                    : [{ ...chat, title: shell.title, done: shell.settledOverride === "settled" }];
-                })}
-                onMove={
-                  topics.length < 2
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={TOPIC_DRAG_MODIFIERS}
+          onDragEnd={({ active, over }: DragEndEvent) => {
+            if (over !== null) void reorder(placeTopic(order, String(active.id), String(over.id)));
+          }}
+        >
+          <SortableContext items={[...order]} strategy={verticalListSortingStrategy}>
+            <ul aria-label="Topics" className="flex flex-col gap-px">
+              {topics.map((topic, index) => {
+                const threadKey =
+                  topic.threadId === null
                     ? null
-                    : {
-                        up: index > 0,
-                        down: index < topics.length - 1,
-                        by: (offset) => void reorder(moveTopic(order, topic.id, offset)),
-                      }
-                }
-                onOpen={() => void open(topic)}
-                onNewChat={() => void openTopic(topic, { sideChat: true })}
-                onDragStart={() => setDragging(topic.id)}
-                onDragEnd={() => setDragging(null)}
-                onDropOn={() => {
-                  if (dragging !== null) void reorder(placeTopic(order, dragging, topic.id));
-                  setDragging(null);
-                }}
-                onRename={() => setDialog({ kind: "rename", topic })}
-                onChangeFolder={() => setDialog({ kind: "folder", topic })}
-                onChangeIcon={() => setChoosingIcon(topic)}
-                onRemove={() => setRemoving(topic)}
-              />
-            );
-          })}
-        </ul>
+                    : scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId));
+                const thread = topicThread(topic);
+                return (
+                  <TopicRow
+                    key={topic.id}
+                    vault={vault}
+                    topic={topic}
+                    thread={thread}
+                    routines={routines.filter((item) => routineTopics.get(item.key) === topic.id)}
+                    isActive={
+                      opening !== null && opening.fromRouteKey === routeThreadKey
+                        ? opening.topicId === topic.id
+                        : threadKey !== null && threadKey === routeThreadKey
+                    }
+                    sideChats={(topic.sideChats ?? []).flatMap((chat) => {
+                      const shell = threadByKey.get(scopedThreadKey(chat));
+                      return shell === undefined
+                        ? []
+                        : [
+                            {
+                              ...chat,
+                              title: shell.title,
+                              done: shell.settledOverride === "settled",
+                            },
+                          ];
+                    })}
+                    onMove={
+                      topics.length < 2
+                        ? null
+                        : {
+                            up: index > 0,
+                            down: index < topics.length - 1,
+                            by: (offset) => void reorder(moveTopic(order, topic.id, offset)),
+                          }
+                    }
+                    onOpen={() => void open(topic)}
+                    onNewChat={() => void openTopic(topic, { sideChat: true })}
+                    onRename={() => setDialog({ kind: "rename", topic })}
+                    onChangeFolder={() => setDialog({ kind: "folder", topic })}
+                    onChangeIcon={() => setChoosingIcon(topic)}
+                    onRemove={() => setRemoving(topic)}
+                  />
+                );
+              })}
+            </ul>
+          </SortableContext>
+        </DndContext>
       ) : vault.suggestions.length === 0 ? (
         <p className="px-2 pb-1 text-xs text-sidebar-muted-foreground">
           Keep each ongoing subject here: one conversation, with its own folder of notes.
@@ -379,18 +409,17 @@ function TopicRow(props: {
     readonly by: (offset: number) => void;
   } | null;
   readonly isActive: boolean;
-  readonly isDragging: boolean;
   readonly onOpen: () => void;
   readonly onNewChat: () => void;
-  readonly onDragStart: () => void;
-  readonly onDragEnd: () => void;
-  readonly onDropOn: () => void;
   readonly onRename: () => void;
   readonly onChangeFolder: () => void;
   readonly onChangeIcon: () => void;
   readonly onRemove: () => void;
 }) {
   const { topic, thread, vault } = props;
+  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: topic.id,
+  });
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const status = thread === undefined ? null : resolveThreadStatusPill({ thread });
@@ -416,34 +445,26 @@ function TopicRow(props: {
   return (
     <li
       data-topic-id={topic.id}
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("application/x-majordome-topic", topic.id);
-        props.onDragStart();
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
       }}
-      onDragEnd={props.onDragEnd}
-      onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes("application/x-majordome-topic")) return;
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onDrop={(event) => {
-        if (!event.dataTransfer.types.includes("application/x-majordome-topic")) return;
-        event.preventDefault();
-        event.stopPropagation();
-        props.onDropOn();
-      }}
-      className={cn("group/topic relative", props.isDragging && "opacity-50")}
+      className={cn(
+        "group/topic relative",
+        isDragging && "z-10 rounded-lg bg-sidebar shadow-lg ring-1 ring-sidebar-border",
+      )}
     >
       <button
         type="button"
+        {...listeners}
         onClick={props.onOpen}
         aria-current={props.isActive ? "page" : undefined}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2.5 rounded-lg py-1.5 pl-1.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "flex w-full cursor-pointer touch-manipulation items-center gap-2.5 rounded-lg py-1.5 pl-1.5 text-left text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           hasNested ? "pr-15" : "pr-9",
           props.isActive && topicRowTint(topic),
+          isDragging && "cursor-grabbing",
         )}
       >
         <TopicIconBadge topic={topic} statusDotClass={status?.dotClass ?? null} />
