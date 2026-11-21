@@ -312,14 +312,21 @@ rebuilds("was made by another version", (file) =>
 
 it.effect("rebuilds on request, and says so when the index cannot be opened", () =>
   Effect.gen(function* () {
-    const vault = yield* makeFolder(NOTES);
-    const service = yield* makeService({ [vaultProject]: vault.root });
-    yield* service.refresh(vault.root);
-    yield* vault.write("inbox/new.md", "A fresh idea.\n");
-    const rebuilt = yield* service.rebuild({ projectId: vaultProject });
-    assert.strictEqual(rebuilt.status?.state, "ready");
-    assert.strictEqual(rebuilt.status?.noteCount, 4);
-    assert.deepStrictEqual(yield* service.rebuild({ projectId: codeProject }), { status: null });
+    // Closed before its files are removed below: an open index still writes beside them.
+    yield* Effect.scoped(
+      Effect.gen(function* () {
+        const vault = yield* makeFolder(NOTES);
+        const service = yield* makeService({ [vaultProject]: vault.root });
+        yield* service.refresh(vault.root);
+        yield* vault.write("inbox/new.md", "A fresh idea.\n");
+        const rebuilt = yield* service.rebuild({ projectId: vaultProject });
+        assert.strictEqual(rebuilt.status?.state, "ready");
+        assert.strictEqual(rebuilt.status?.noteCount, 4);
+        assert.deepStrictEqual(yield* service.rebuild({ projectId: codeProject }), {
+          status: null,
+        });
+      }),
+    );
 
     // Nothing can be written where the index files live.
     const fs = yield* FileSystem.FileSystem;
