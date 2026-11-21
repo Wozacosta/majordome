@@ -305,13 +305,22 @@ export function ReminderRow({
   const { act, disabled } = useTaskAction(item);
   const threadRef = task.threadId === null ? null : scopeThreadRef(environmentId, task.threadId);
   const thread = useQuietThreadShell(threadRef);
+  const { copies } = useMajordomeVaults();
+  // That chat is the panel beside this page and is in no list, so a link would lead nowhere findable.
+  const postsInAssistant = copies.some((vault) =>
+    vault.copies.some(
+      (copy) => copy.environmentId === environmentId && copy.routinesThreadId === task.threadId,
+    ),
+  );
   const at = task.nextRunAt ?? "";
   return (
     <ReminderEntry
       title={task.title}
       when={`${plainDateTime(at)} · ${untilWords(at, nowMs)}`}
       conversation={
-        threadRef === null || thread === null ? null : (
+        threadRef === null || thread === null ? null : postsInAssistant ? (
+          "Posts in your chat with the assistant"
+        ) : (
           <>
             Posts in{" "}
             <Link
