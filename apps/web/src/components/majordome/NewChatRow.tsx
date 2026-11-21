@@ -13,6 +13,7 @@ export function NewChatRow({ onOpen }: { readonly onOpen: () => void }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
+        variant="outline"
         onClick={() => {
           onOpen();
           void handleNewThread(scopeProjectRef(activeVault.environmentId, activeVault.projectId));

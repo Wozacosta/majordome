@@ -42,6 +42,7 @@ import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { isMajordome } from "~/env";
+import { MajordomeSidebarAlert } from "../majordome/MajordomeSidebarNav";
 import { MajordomeCloche } from "~/components/MajordomeCloche";
 import { observeResize } from "~/lib/observeResize";
 
@@ -332,6 +333,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
 export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   return (
     <SidebarFooter>
+      {isMajordome ? <MajordomeSidebarAlert /> : null}
       <SidebarProviderUpdatePill />
       <SidebarUpdateArchitectureWarning />
       <SidebarUtilityMenu />
