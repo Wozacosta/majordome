@@ -232,6 +232,8 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     HIDE_FINISHED,
   );
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  /** Rows whose tags and summary the owner's AI is still writing. */
+  const [describing, setDescribing] = useState<ReadonlyArray<string>>([]);
   // The order just chosen, shown until the list read from the server changes from `from`:
   // dropping it as soon as the save answers would show the old order for a moment.
   const [pendingOrder, setPendingOrder] = useState<{
@@ -269,6 +271,12 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
       input: { projectId, itemId: item.id, ...patch },
     });
     return !reportFailure(outcome, `Could not change “${item.title}”`);
+  };
+
+  const describe = async (itemId: string) => {
+    setDescribing((ids) => [...ids, itemId]);
+    await updateItem({ environmentId, input: { projectId, itemId, enrich: true } });
+    setDescribing((ids) => ids.filter((id) => id !== itemId));
   };
 
   const reorder = async (next: ReadonlyArray<string>) => {
@@ -319,6 +327,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
       draggable={draggable}
       handleGap={reorderable}
       highlighted={highlighted === item.id}
+      describing={describing.includes(item.id)}
       onUpdate={(patch) => update(item, patch)}
       onRemove={() => void remove(item)}
       onAsk={askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item))}
@@ -329,7 +338,19 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     <>
       {canChange ? (
         <AddReadingItem
-          onAdd={(text) => addItem({ environmentId, input: { projectId, text } })}
+          onAdd={async (text) => {
+            const outcome = await addItem({ environmentId, input: { projectId, text } });
+            if (
+              outcome._tag === "Success" &&
+              !outcome.value.duplicate &&
+              outcome.value.item.url !== null
+            ) {
+              // Not waited for: the row is there already, and its tags and summary arrive when
+              // the owner's AI answers. No answer leaves the row as it is.
+              void describe(outcome.value.item.id);
+            }
+            return outcome;
+          }}
           onDuplicate={showExisting}
         />
       ) : (
@@ -504,6 +525,7 @@ function ReadingRow({
   draggable,
   handleGap,
   highlighted,
+  describing,
   onUpdate,
   onRemove,
   onAsk,
@@ -515,6 +537,7 @@ function ReadingRow({
   /** Keeps a row without a handle in line with the rows that have one. */
   readonly handleGap: boolean;
   readonly highlighted: boolean;
+  readonly describing: boolean;
   readonly onUpdate: (patch: Patch) => Promise<boolean>;
   readonly onRemove: () => void;
   readonly onAsk: (() => void) | null;
@@ -589,6 +612,13 @@ function ReadingRow({
             )}
           </p>
         )}
+        {item.summary !== undefined ? (
+          <p className="text-xs wrap-break-word text-muted-foreground">{item.summary}</p>
+        ) : describing ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Adding tags and a summary…
+          </p>
+        ) : null}
         {editing === "note" ? (
           <InlineEdit
             multiline
@@ -599,7 +629,7 @@ function ReadingRow({
             onSave={(text) => void save({ notes: text === "" ? null : text })}
           />
         ) : item.notes ? (
-          <p className="text-xs whitespace-pre-wrap wrap-break-word text-muted-foreground">
+          <p className="border-l-2 border-border pl-2 text-xs whitespace-pre-wrap wrap-break-word text-muted-foreground">
             {item.notes}
           </p>
         ) : null}
@@ -717,7 +747,7 @@ function ReadingRow({
               Rename
             </MenuItem>
             {item.url === null ? null : (
-              <MenuItem onClick={() => void onUpdate({ lookUp: true })}>
+              <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
                 <RefreshCwIcon />
                 Look it up again
               </MenuItem>

@@ -1,7 +1,12 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { type MajordomeReadingItem, ProjectId } from "@t3tools/contracts";
+import {
+  DEFAULT_SERVER_SETTINGS,
+  type MajordomeReadingItem,
+  ProjectId,
+  TextGenerationError,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -11,6 +16,8 @@ import * as TestClock from "effect/testing/TestClock";
 import { HttpClient } from "effect/http";
 
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ServerSettings from "../serverSettings.ts";
+import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import { type FakeReply, fakeHttp, type SentRequest } from "./fakeHttp.testkit.ts";
 import * as MajordomeReadingList from "./MajordomeReadingList.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -31,7 +38,10 @@ const ARTICLE = `<html><head><title>Fallback title</title>
 
 const setUp = Effect.fn("test.setUp")(function* (
   handle: (sent: SentRequest) => FakeReply = () => html(ARTICLE),
+  /** What the owner's AI answers when asked to describe a link; absent, it is not ready. */
+  described?: string,
 ) {
+  const prompts: Array<string> = [];
   const fs = yield* FileSystem.FileSystem;
   const vault = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-reading-vault-" });
   const code = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-reading-code-" });
@@ -57,6 +67,26 @@ const setUp = Effect.fn("test.setUp")(function* (
           }),
         ),
         Layer.provide(Layer.succeed(HttpClient.HttpClient, http.client)),
+        Layer.provide(
+          Layer.mock(ServerSettings.ServerSettingsService)({
+            getSettings: Effect.succeed(DEFAULT_SERVER_SETTINGS),
+          }),
+        ),
+        Layer.provide(
+          Layer.mock(TextGeneration.TextGeneration)({
+            generateTranscriptionPostProcessing: (input) => {
+              prompts.push(input.prompt);
+              return described === undefined
+                ? Effect.fail(
+                    new TextGenerationError({
+                      operation: "generateTranscriptionPostProcessing",
+                      detail: "No provider instance registered.",
+                    }),
+                  )
+                : Effect.succeed({ transcription: described });
+            },
+          }),
+        ),
         Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
       ),
     ),
@@ -67,7 +97,7 @@ const setUp = Effect.fn("test.setUp")(function* (
     .pipe(Effect.map((result) => result.items));
   const addTitle = (text: string) =>
     service.add({ projectId: vaultProject, text }).pipe(Effect.map((added) => added.item));
-  return { service, fs, vault, filePath, items, addTitle, requests: http.requests };
+  return { service, fs, vault, filePath, items, addTitle, requests: http.requests, prompts };
 });
 
 const now = DateTime.now.pipe(Effect.map(DateTime.formatIso));
@@ -200,6 +230,51 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       assert.deepInclude(video.item, { title: "A talk", site: "The Channel", kind: "video" });
       assert.notProperty(video.item, "minutes");
       assert.equal(requests.at(-1)?.url.searchParams.get("url"), "https://youtu.be/abc123");
+    }),
+  );
+
+  it.effect("has the owner's AI tag and sum up a link, keeping what is already there", () =>
+    Effect.gen(function* () {
+      const { service, prompts } = yield* setUp(
+        () => html(ARTICLE),
+        "tags: Compilers, parsing || summary: How source code becomes a program.",
+      );
+      const tagged = yield* service.add({ projectId: vaultProject, text: "https://a.example/one" });
+      yield* service.update({ projectId: vaultProject, itemId: tagged.item.id, tags: ["mine"] });
+      const kept = yield* service.update({
+        projectId: vaultProject,
+        itemId: tagged.item.id,
+        enrich: true,
+      });
+      // The owner's tags stay; the summary it lacked is filled in.
+      assert.deepEqual(kept.tags, ["mine"]);
+      assert.equal(kept.summary, "How source code becomes a program.");
+
+      const bare = yield* service.add({ projectId: vaultProject, text: "https://a.example/two" });
+      const filled = yield* service.update({
+        projectId: vaultProject,
+        itemId: bare.item.id,
+        enrich: true,
+      });
+      assert.deepEqual(filled.tags, ["compilers", "parsing"]);
+      // It is asked with the page's words and the tags already in use.
+      assert.include(prompts.at(-1), "title: How compilers work");
+      assert.include(prompts.at(-1), "word word word");
+      assert.include(prompts.at(-1), "mine");
+    }),
+  );
+
+  it.effect("leaves a link as it is when the owner's AI is not ready", () =>
+    Effect.gen(function* () {
+      const { service, prompts } = yield* setUp();
+      const added = yield* service.add({ projectId: vaultProject, text: "https://a.example/one" });
+      const same = yield* service.update({
+        projectId: vaultProject,
+        itemId: added.item.id,
+        enrich: true,
+      });
+      assert.lengthOf(prompts, 1);
+      assert.deepEqual(same, added.item);
     }),
   );
 

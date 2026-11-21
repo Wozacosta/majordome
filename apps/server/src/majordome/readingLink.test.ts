@@ -112,13 +112,19 @@ describe("readingLink", () => {
          <meta content="Tom &amp; Jerry&#39;s &quot;day&quot; &#x2014; out" property="og:title">
          <meta property='og:site_name' content='The Daily'></head><body>Short.</body></html>`,
       ),
-      { title: 'Tom & Jerry\'s "day" — out', site: "The Daily" },
+      { title: 'Tom & Jerry\'s "day" — out', site: "The Daily", excerpt: "Short." },
     );
     assert.deepEqual(
       extractPage("<html><head><title>\n  A &lt;plain&gt;\n  title </title></head></html>"),
       { title: "A <plain> title" },
     );
-    assert.deepEqual(extractPage("<html><body><p>No title here.</p></body></html>"), {});
+    // Its opening words are kept for describing it, the page's own description first.
+    assert.deepEqual(
+      extractPage(
+        '<html><head><meta name="description" content="About cats."></head><body><p>No title here.</p></body></html>',
+      ),
+      { excerpt: "About cats. No title here." },
+    );
   });
 
   it("finds a page's picture, whole and over https only", () => {

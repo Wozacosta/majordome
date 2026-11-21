@@ -16,6 +16,8 @@ import {
   type MajordomeRestoreReadingItemInput,
   type MajordomeUpdateReadingItemInput,
 } from "@t3tools/contracts";
+import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
+import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
@@ -29,6 +31,9 @@ import * as Semaphore from "effect/Semaphore";
 import { HttpClient } from "effect/http";
 
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ServerSettings from "../serverSettings.ts";
+import * as TextGeneration from "../textGeneration/TextGeneration.ts";
+import { buildReadingEnrichmentPrompt, parseReadingEnrichment } from "./readingEnrichment.ts";
 import { lookUpLink, normalizeLink, parseLink } from "./readingLink.ts";
 import { readVaultLayout, VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -60,6 +65,8 @@ export class MajordomeReadingList extends Context.Service<
 >()("t3/majordome/MajordomeReadingList") {}
 
 const READING_LIST_FILENAME = "reading-list.json";
+/** A provider CLI takes a few seconds just to start; past this the link simply stays untagged. */
+const ENRICHMENT_TIMEOUT = "30 seconds";
 
 const isReadingListError = Schema.is(MajordomeReadingListError);
 const decodeItem = Schema.decodeUnknownOption(MajordomeReadingItem);
@@ -129,6 +136,7 @@ function applyReadingItemUpdate(
     kind: input.kind ?? item.kind,
     tags: input.tags === undefined ? item.tags : normalizeTags(input.tags),
     ...(minutes === undefined ? {} : { minutes }),
+    ...(item.summary === undefined ? {} : { summary: item.summary }),
     ...(item.image === undefined ? {} : { image: item.image }),
     addedAt: item.addedAt,
     ...(doneAt === undefined ? {} : { doneAt }),
@@ -160,6 +168,8 @@ const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const random = yield* SecureRandom.SecureRandom;
   const http = yield* HttpClient.HttpClient;
+  const settings = yield* ServerSettings.ServerSettingsService;
+  const textGeneration = yield* TextGeneration.TextGeneration;
   // One change at a time, so two quick edits never write over each other.
   const lock = yield* Semaphore.make(1);
 
@@ -221,6 +231,32 @@ const make = Effect.gen(function* () {
         }),
       ),
     );
+
+  /** Tags and a summary from the owner's AI; null when it is not ready or its answer is unusable. */
+  const describe = Effect.fn("MajordomeReadingList.describe")(
+    function* (
+      projectId: MajordomeReadingListInput["projectId"],
+      request: Parameters<typeof buildReadingEnrichmentPrompt>[0],
+    ) {
+      // Providers run in a working directory; this one must not read or change the notes.
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-reading-" });
+      const generated = yield* textGeneration.generateTranscriptionPostProcessing({
+        cwd,
+        prompt: buildReadingEnrichmentPrompt(request),
+        modelSelection: resolveProjectSettings(yield* settings.getSettings, projectId).settings
+          .textGenerationModelSelection,
+      });
+      return parseReadingEnrichment(generated.transcription);
+    },
+    Effect.scoped,
+    Effect.timeoutOption(ENRICHMENT_TIMEOUT),
+    Effect.map(Option.getOrNull),
+    Effect.catchCause((cause) =>
+      Cause.hasInterruptsOnly(cause)
+        ? Effect.interrupt
+        : Effect.logDebug("Reading list enrichment failed", { cause }).pipe(Effect.as(null)),
+    ),
+  );
 
   const toError = (message: string) => (cause: unknown) =>
     isReadingListError(cause) ? cause : new MajordomeReadingListError({ message, cause });
@@ -284,17 +320,25 @@ const make = Effect.gen(function* () {
     function* (input) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
       const now = yield* nowIso;
-      // Read outside the change, so a slow page never holds the list's lock.
-      const link =
-        input.lookUp === true
-          ? parseLink(
-              (yield* read(vaultRoot)).items.find((item) => item.id === input.itemId)?.url ?? "",
-            )
-          : null;
+      // Read and described outside the change, so a slow page or model never holds the list's lock.
+      const before =
+        input.lookUp === true || input.enrich === true ? (yield* read(vaultRoot)).items : [];
+      const target = before.find((item) => item.id === input.itemId);
+      const link = target === undefined ? null : parseLink(target.url ?? "");
       const found =
         link === null
           ? undefined
           : yield* lookUpLink(link).pipe(Effect.provideService(HttpClient.HttpClient, http));
+      const described =
+        input.enrich === true && target !== undefined
+          ? yield* describe(input.projectId, {
+              title: target.title,
+              site: target.site ?? found?.site,
+              kind: target.kind,
+              excerpt: found?.excerpt,
+              knownTags: [...new Set(before.flatMap((item) => item.tags))],
+            })
+          : null;
       return yield* change(vaultRoot, (file) => {
         const item = file.items.find((candidate) => candidate.id === input.itemId);
         if (item === undefined) return fail("That item is no longer on your list.");
@@ -311,9 +355,22 @@ const make = Effect.gen(function* () {
                   : {}),
                 ...(found.image === undefined ? {} : { image: found.image }),
               };
+        // What the owner tagged or the list already says stays; the AI only fills what is empty.
+        const enriched: MajordomeReadingItem =
+          described === null
+            ? next
+            : {
+                ...next,
+                ...(next.tags.length === 0 && described.tags.length > 0
+                  ? { tags: normalizeTags(described.tags) }
+                  : {}),
+                ...(next.summary === undefined && described.summary !== undefined
+                  ? { summary: described.summary }
+                  : {}),
+              };
         return Effect.succeed({
-          items: file.items.map((candidate) => (candidate === item ? next : candidate)),
-          result: next,
+          items: file.items.map((candidate) => (candidate === item ? enriched : candidate)),
+          result: enriched,
         });
       });
     },

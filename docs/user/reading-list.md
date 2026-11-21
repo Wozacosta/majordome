@@ -7,7 +7,12 @@ podcasts. Open **Reading list** in the sidebar.
 
 Paste a link in the field at the top and press Enter. Majordome looks up its title, its picture,
 where it is from and, when it can tell, how long it takes. The picture is loaded from the page's
-own site each time the list is shown. Something without a link, such as a book a friend
+own site each time the list is shown.
+
+A few seconds after you save a link, your AI account adds up to three tags and one sentence on what
+it is about. It prefers tags you already use, and never changes tags you put there yourself. This
+uses a little of your AI plan each time; without an AI account ready, the link is simply saved
+without them. Something without a link, such as a book a friend
 recommended, can be saved by typing its title instead. A link you already saved is not added twice.
 
 ## Keep it in order

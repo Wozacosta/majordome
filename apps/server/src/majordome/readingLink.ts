@@ -18,8 +18,11 @@ interface LinkDetails {
   readonly kind: MajordomeReadingKind;
   readonly minutes?: number;
   readonly image?: string;
+  /** The page's opening text, for describing it; never saved. */
+  readonly excerpt?: string;
 }
 
+const EXCERPT_CHARS = 1_500;
 const MAX_IMAGE_CHARS = 2_000;
 
 /** A picture's address as the page gives it, made whole; only https, which any window can show. */
@@ -191,7 +194,7 @@ function metaContent(html: string, property: string): string | undefined {
   return undefined;
 }
 
-function countWords(html: string): number {
+function visibleText(html: string): string {
   const body =
     /<article\b[\s\S]*<\/article>/i.exec(html)?.[0] ??
     /<main\b[\s\S]*<\/main>/i.exec(html)?.[0] ??
@@ -203,7 +206,7 @@ function countWords(html: string): number {
       .replaceAll(/<(script|style|noscript|svg|template|head)\b[\s\S]*?<\/\1>/gi, " ")
       .replaceAll(/<[^>]+>/g, " "),
   );
-  return text === "" ? 0 : text.split(" ").length;
+  return text;
 }
 
 /**
@@ -218,18 +221,25 @@ export function extractPage(
   readonly site?: string;
   readonly minutes?: number;
   readonly image?: string;
+  readonly excerpt?: string;
 } {
   const title =
     metaContent(html, "og:title") ??
     tidy(/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "");
   const site = metaContent(html, "og:site_name");
-  const words = countWords(html);
+  const text = visibleText(html);
+  const words = text === "" ? 0 : text.split(" ").length;
+  const excerpt = [metaContent(html, "og:description") ?? metaContent(html, "description"), text]
+    .filter((part) => part !== undefined && part !== "")
+    .join(" ")
+    .slice(0, EXCERPT_CHARS);
   const image =
     page === undefined
       ? undefined
       : pictureAddress(metaContent(html, "og:image") ?? metaContent(html, "twitter:image"), page);
   return {
     ...(image === undefined ? {} : { image }),
+    ...(excerpt === "" ? {} : { excerpt }),
     ...(title === "" ? {} : { title: title.slice(0, MAX_TITLE_CHARS).trim() }),
     ...(site === undefined ? {} : { site }),
     ...(words < MIN_WORDS_FOR_MINUTES
@@ -297,6 +307,7 @@ export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function
     kind: fallback.kind,
     ...(found.minutes === undefined ? {} : { minutes: found.minutes }),
     ...(found.image === undefined ? {} : { image: found.image }),
+    ...(found.excerpt === undefined ? {} : { excerpt: found.excerpt }),
   });
   const found = isYouTube(url)
     ? readYouTube(url).pipe(Effect.map(withFallback))

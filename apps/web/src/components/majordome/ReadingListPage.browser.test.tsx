@@ -83,13 +83,18 @@ it("saves what is typed on Enter and marks a row finished from its checkbox", as
         "add",
         { environmentId: "env", input: { projectId: "project", text: "https://example.com/new" } },
       ],
+      // The saved link is then handed to the owner's AI for its tags and summary.
+      [
+        "update",
+        { environmentId: "env", input: { projectId: "project", itemId: "a", enrich: true } },
+      ],
     ]),
   );
   await expect.element(field).toHaveValue("");
 
   await screen.getByRole("checkbox", { name: "Finished: Link b" }).click();
   await vi.waitFor(() =>
-    expect(state.commands[1]).toEqual([
+    expect(state.commands[2]).toEqual([
       "update",
       { environmentId: "env", input: { projectId: "project", itemId: "b", done: true } },
     ]),

@@ -18,6 +18,9 @@ Not released yet.
   notifications below it.
 - **Plainer Settings.** About 145 labels are reworded, and the Connections page links to where a
   sign-in is fixed.
+- **Tags and a summary, written for you.** When you save a link, your own AI account suggests up
+  to three tags and one sentence on what it is about. Tags you already use are preferred, and
+  nothing you tagged yourself is changed. With no AI account ready, the link is saved as before.
 - **Reading list thumbnails.** A saved link shows its page's own picture (a video's thumbnail, an
   article's cover). For links saved before, use **… > Look it up again**.
 
@@ -30,6 +33,8 @@ Not released yet.
 
 **Try this**
 
+- Reading list: save a new link and wait a few seconds; "Adding tags and a summary…" should give
+  way to tags and a sentence under the title.
 - Reading list: on the two links you already saved, **… > Look it up again** should bring their
   pictures. Save a new video and a new article and check both show one.
 - Settings > Phone & notifications: do the steps already done show "Done"? Does the old
