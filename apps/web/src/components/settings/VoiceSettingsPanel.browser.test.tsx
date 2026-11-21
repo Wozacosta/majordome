@@ -27,6 +27,8 @@ import { SettingsScopeProvider } from "./SettingsScopeContext";
 import { SpeechLanguageSelect } from "./SpeechLanguageSelect";
 import { VoiceSettingsPanel } from "./VoiceSettingsPanel";
 
+// isMajordome: false keeps covering T3 Code's settings rows, which Majordome hides.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
 vi.mock(import("../../speech/useEnvironmentSpeechInput"), { spy: true });
 vi.mock(import("../../state/session"), { spy: true });
 

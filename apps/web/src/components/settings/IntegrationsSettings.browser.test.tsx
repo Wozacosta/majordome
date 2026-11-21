@@ -78,7 +78,12 @@ const projects: Project[] = [
 ];
 
 // Profiles, link target and the advanced rows only work in the desktop app.
-vi.mock(import("../../env"), async (original) => ({ ...(await original()), isElectron: true }));
+// isMajordome: false keeps covering T3 Code's settings rows, which Majordome hides.
+vi.mock(import("../../env"), async (original) => ({
+  ...(await original()),
+  isElectron: true,
+  isMajordome: false,
+}));
 vi.mock(import("../../state/environments"), async (original) => ({
   ...(await original()),
   useEnvironments: () => ({

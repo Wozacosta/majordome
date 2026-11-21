@@ -53,6 +53,6 @@ it("keeps the open Advanced page in view while the group is folded", async () =>
   await expect
     .element(page.getByRole("button", { name: "Advanced" }))
     .toHaveAttribute("aria-expanded", "false");
-  const advanced = sections(screen.container).slice(-2);
-  expect(advanced).toEqual(["/settings/keybindings", "/settings/about"]);
+  const last = sections(screen.container).slice(-3);
+  expect(last).toEqual(["/settings/keybindings", "/settings/about", "/settings/archived"]);
 });
