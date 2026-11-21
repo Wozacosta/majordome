@@ -14,7 +14,7 @@ vi.mock("~/env", async (importOriginal) => ({
   isSecretsFeatureEnabled: false,
 }));
 
-it("puts the brain first and folds T3's plumbing under Advanced", () => {
+it("opens on Status, groups pages by what is being set up, and folds T3's plumbing away", () => {
   expect(
     SETTINGS_NAV_GROUPS.map((group) => ({
       heading: group.headingHidden ? null : group.heading,
@@ -22,42 +22,37 @@ it("puts the brain first and folds T3's plumbing under Advanced", () => {
       labels: group.paths.map((path) => SETTINGS_SECTION_LABELS[path]),
     })),
   ).toEqual([
+    { heading: null, collapsible: false, labels: ["Status"] },
     {
-      heading: null,
+      heading: "Your notes",
       collapsible: false,
-      labels: ["General", "Appearance", "Chat", "Voice"],
+      labels: ["Notes folders", "Back up my brain", "Private documents"],
+    },
+    { heading: "The assistant", collapsible: false, labels: ["AI accounts", "Connections"] },
+    {
+      heading: "Your devices",
+      collapsible: false,
+      labels: ["Your phone", "Notifications", "Always-on server"],
     },
     {
-      heading: "Your brain",
+      heading: "This app",
       collapsible: false,
-      labels: [
-        "Overview",
-        "Back up my brain",
-        "Connections",
-        "Private documents",
-        "Notifications",
-        "Your phone",
-        "Always-on server",
-        "Notes folders",
-      ],
+      labels: ["General", "Appearance", "Writing messages", "Voice"],
     },
-    // Routines have their own screen, in the sidebar.
-    { heading: "AI", collapsible: false, labels: ["AI accounts"] },
     {
       heading: "Advanced",
       collapsible: true,
       labels: [
-        "Chats",
-        "Browser",
-        "Keybindings",
+        "New chat defaults",
         "Computers",
         "Sharing & access",
+        "Browser",
+        "Keyboard shortcuts",
         "Maintenance",
         "Labs",
-        "Archived chats",
       ],
     },
-    { heading: null, collapsible: false, labels: ["About"] },
+    { heading: null, collapsible: false, labels: ["About", "Archived chats"] },
   ]);
 });
 

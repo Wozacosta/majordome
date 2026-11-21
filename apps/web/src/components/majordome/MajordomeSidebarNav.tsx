@@ -124,7 +124,7 @@ export function MajordomeSidebarNav({
           id="majordome-nav-on-its-own"
           className="flex h-7 items-center px-2 text-xs font-medium text-sidebar-muted-foreground"
         >
-          On its own
+          Automatic
         </h2>
         <SidebarMenu aria-labelledby="majordome-nav-on-its-own">
           {rows(ON_ITS_OWN_ITEMS)}

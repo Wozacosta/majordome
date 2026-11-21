@@ -211,7 +211,11 @@ export const Route = createFileRoute("/_chat/settings")({
   search: { middlewares: [retainSettingsScope] },
   beforeLoad: async ({ location }) => {
     if (location.pathname === "/settings") {
-      throw redirect({ to: "/settings/general", replace: true });
+      // Majordome opens Settings on whether all is well; T3 on its first page.
+      throw redirect({
+        to: isMajordome ? "/settings/overview" : "/settings/general",
+        replace: true,
+      });
     }
     const moved = movedSettingsPath(location.pathname, location.hash);
     if (moved) throw redirect({ to: moved, search: true, hash: true, replace: true });

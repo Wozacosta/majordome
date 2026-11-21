@@ -108,12 +108,13 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/projects": isMajordome ? msg("Notes folders") : msg("Projects"),
   "/settings/general": msg("General"),
   "/settings/appearance": msg("Appearance"),
-  "/settings/chat": msg("Chat"),
+  // Majordome's two chat pages are named for what each sets, so "Chat" and "Chats" do not collide.
+  "/settings/chat": isMajordome ? msg("Writing messages") : msg("Chat"),
   "/settings/diffs": msg("Diffs & pull requests"),
-  "/settings/keybindings": msg("Keybindings"),
+  "/settings/keybindings": isMajordome ? msg("Keyboard shortcuts") : msg("Keybindings"),
   "/settings/snap-shot": msg("SnapShots"),
   "/settings/providers": isMajordome ? msg("AI accounts") : msg("Providers"),
-  "/settings/threads": isMajordome ? msg("Chats") : msg("Threads"),
+  "/settings/threads": isMajordome ? msg("New chat defaults") : msg("Threads"),
   "/settings/browser": msg("Browser"),
   "/settings/devices": msg("Devices"),
   "/settings/scheduled-tasks": msg("Scheduled tasks"),
@@ -127,7 +128,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/about": msg("About"),
   "/settings/voice": msg("Voice"),
   "/settings/archived": isMajordome ? msg("Archived chats") : msg("Archive"),
-  "/settings/overview": msg("Overview"),
+  "/settings/overview": msg("Status"),
   "/settings/backup": msg("Back up my brain"),
   "/settings/connectors": msg("Connections"),
   "/settings/private-documents": msg("Private documents"),
@@ -160,6 +161,32 @@ const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
   // Appearance
   "composer-context",
   "terminal-font",
+  "effort-display",
+  "environment-identification",
+  "setting-glass-opacity",
+  "code-font",
+  "separate-fonts",
+  "word-wrap",
+  // Writing messages
+  "skills-in-slash-menu",
+  // Voice
+  "speech-hardware",
+  "speech-streaming",
+  "speech-post-processing-model",
+  "speech-project-dictionary",
+  // AI accounts
+  "provider-health-check-interval",
+  "compact-idle-threads",
+  // Browser
+  "browser-profiles",
+  "browser-default-profile",
+  "browser-default-viewport",
+  "browser-default-zoom",
+  "browser-default-appearance",
+  "browser-auto-show-floating-preview",
+  "browser-recording-frame-rate",
+  "browser-recording-key-presses",
+  "browser-recording-mouse-presses",
   // Chats
   "new-projects",
   "add-project-starts-in",
@@ -167,6 +194,10 @@ const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
   "new-threads",
   "auto-settle-merged-threads",
   "keep-threads-with-pull-requests",
+  "snooze-options",
+  "text-generation-model",
+  "thread-title-instructions",
+  "response-streaming",
   // Notes folders
   "project-pin",
   "project-actions",
@@ -177,6 +208,9 @@ const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
   "preview-tunnel",
   // Maintenance
   "git-fetch-interval",
+  "storage-worktrees",
+  "storage-worktree-keep-when",
+  "storage-worktrees-location",
   // Labs
   "boring-sidebar",
   "boring-sidebar-multiline",
@@ -249,46 +283,46 @@ const T3_SETTINGS_NAV_GROUPS = (secrets: ReadonlyArray<SettingsPath>): SettingsN
   },
 ];
 
-// Majordome puts the brain first and folds T3's plumbing away under Advanced.
+// Majordome opens on whether all is well, groups pages by what the owner is setting up, and folds
+// T3's plumbing away under Advanced.
 const MAJORDOME_SETTINGS_NAV_GROUPS = (
   secrets: ReadonlyArray<SettingsPath>,
 ): SettingsNavGroup[] => [
+  { heading: msg("Status"), headingHidden: true, paths: ["/settings/overview"] },
   {
-    heading: msg("Preferences"),
-    headingHidden: true,
-    paths: ["/settings/general", "/settings/appearance", "/settings/chat", "/settings/voice"],
-  },
-  {
-    heading: msg("Your brain"),
-    paths: [
-      "/settings/overview",
-      "/settings/backup",
-      "/settings/connectors",
-      "/settings/private-documents",
-      "/settings/notifications",
-      "/settings/phone",
-      "/settings/always-on",
-      "/settings/projects",
-    ],
+    heading: msg("Your notes"),
+    paths: ["/settings/projects", "/settings/backup", "/settings/private-documents"],
   },
   // Routines have their own screen, in the sidebar.
-  { heading: msg("AI"), paths: ["/settings/providers"] },
+  { heading: msg("The assistant"), paths: ["/settings/providers", "/settings/connectors"] },
+  {
+    heading: msg("Your devices"),
+    paths: ["/settings/phone", "/settings/notifications", "/settings/always-on"],
+  },
+  {
+    heading: msg("This app"),
+    paths: ["/settings/general", "/settings/appearance", "/settings/chat", "/settings/voice"],
+  },
   {
     heading: msg("Advanced"),
     collapsible: true,
     paths: [
       "/settings/threads",
-      "/settings/browser",
-      "/settings/keybindings",
       "/settings/connections",
       "/settings/access",
+      "/settings/browser",
+      "/settings/keybindings",
       ...secrets,
       "/settings/maintenance",
       "/settings/labs",
-      "/settings/archived",
     ],
   },
-  { heading: msg("About"), headingHidden: true, paths: ["/settings/about"] },
+  // Archived chats are the owner's chats, not a setting to dig for.
+  {
+    heading: msg("About"),
+    headingHidden: true,
+    paths: ["/settings/about", "/settings/archived"],
+  },
 ];
 
 const SECRETS_NAV_PATHS: ReadonlyArray<SettingsPath> = isSecretsFeatureEnabled
@@ -1109,9 +1143,10 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "keybindings",
-    title: msg("Keybindings"),
+    title: isMajordome ? msg("Keyboard shortcuts") : msg("Keybindings"),
     to: "/settings/keybindings",
-    searchTerms: [msg("keyboard shortcuts hotkeys commands bindings json")],
+    // The old name still finds the page under its Majordome one.
+    searchTerms: [msg("keyboard shortcuts hotkeys commands bindings json"), "keybindings"],
   },
   ...KEYBINDING_SEARCH_ITEMS,
   {
@@ -1202,10 +1237,10 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "majordome-overview",
-    title: msg("Overview"),
+    title: msg("Status"),
     to: "/settings/overview",
     majordomeOnly: true,
-    searchTerms: ["map setup servers runner devices status health"],
+    searchTerms: ["overview map setup servers runner devices status health problem wrong working"],
   },
   {
     id: "majordome-backup",

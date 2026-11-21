@@ -44,7 +44,7 @@ it says into your notes unless you ask, but allow only what the task needs.
 The same page lists every request, every answer and every time a document was opened, newest first:
 when, which document, which conversation or routine, and the reason it gave. Your own downloads,
 additions and removals are listed too. The list never holds what a document says. **Settings >
-Overview** shows how many documents you keep, what last happened, and any request that waits for
+Status** shows how many documents you keep, what last happened, and any request that waits for
 your answer.
 
 ## What it protects, and what it doesn't

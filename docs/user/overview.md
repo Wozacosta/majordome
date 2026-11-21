@@ -1,6 +1,6 @@
-# Overview
+# Status
 
-**Settings > Overview** answers one question: is your assistant OK?
+**Settings > Status** answers one question: is your assistant OK?
 
 The first line is the answer: **Everything is working**, or how many things need you. What needs
 you is listed right under it. Click a line to open the page where you fix it.

@@ -9,18 +9,18 @@ notification the first time.
 
 ## Turn it on or off
 
-In **Settings → Overview**, under **Where it runs**, use **Keep Majordome running when the
+In **Settings → Status**, under **Where it runs**, use **Keep Majordome running when the
 window is closed**.
 Majordome restarts to switch. When it is off, routines run only while the window is
 open.
 
-The Overview shows "Running in the background since …" while it runs.
+The Status page shows "Running in the background since …" while it runs.
 
 ## Quit completely
 
 Quitting the window (**Quit Majordome**, ⌘Q) leaves Majordome running in the
 background. To stop it too, choose **Majordome → Quit Majordome Completely**, or
-**Quit Majordome completely** in Settings → Overview. It starts again when you open
+**Quit Majordome completely** in Settings → Status. It starts again when you open
 Majordome or log in.
 
 ## From a terminal
