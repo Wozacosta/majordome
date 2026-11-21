@@ -17,6 +17,17 @@ list at once.
 
 Times are in your own time, by the clock of the machine that runs your routines.
 
+### Ready-made routines and topics
+
+You don't have to start from a blank page. Under your routines, **Ready-made routines** lists ones
+you can add in one step, such as an evening journal prompt. Some need a connection first (your
+email or calendar), and say so.
+
+**New topic** offers ready-made topics the same way: Reading, Meals, Money and others. One comes
+with a starter note or two and usually a routine that posts in the topic's chat. If you already
+have a folder for the subject, such as `Recipes`, the topic uses it and leaves your notes as they
+are. Removing the topic or the routine later works like any other.
+
 ## Change, pause, try or delete one
 
 Each routine shows what it does, when it runs next and how its last run went.

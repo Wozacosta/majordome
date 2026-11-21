@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-import { PositiveInt, ProjectId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { PositiveInt, ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 
 export const MajordomeVaultHistoryInput = Schema.Struct({
   projectId: ProjectId,
@@ -127,6 +127,39 @@ export const MajordomeRunRoutinesHereInput = Schema.Struct({
   projectId: ProjectId,
 });
 export type MajordomeRunRoutinesHereInput = typeof MajordomeRunRoutinesHereInput.Type;
+
+/** A routine the owner can add in one step. */
+export const MajordomeReadyRoutine = Schema.Struct({
+  key: TrimmedNonEmptyString,
+  title: Schema.String,
+  description: Schema.String,
+  /** Its schedule in words. */
+  when: Schema.String,
+  /** A connection it cannot do its job without, by the name the owner knows. */
+  needs: Schema.optional(Schema.String),
+  /** The owner's topic it belongs to, whose conversation it would post in. */
+  topicId: Schema.optional(TrimmedNonEmptyString),
+});
+export type MajordomeReadyRoutine = typeof MajordomeReadyRoutine.Type;
+
+export const MajordomeReadyRoutinesInput = Schema.Struct({
+  projectId: ProjectId,
+});
+export type MajordomeReadyRoutinesInput = typeof MajordomeReadyRoutinesInput.Type;
+
+/** The ready-made routines this server has not been asked to add, or that were removed since. */
+export const MajordomeReadyRoutinesResult = Schema.Struct({
+  routines: Schema.Array(MajordomeReadyRoutine),
+});
+export type MajordomeReadyRoutinesResult = typeof MajordomeReadyRoutinesResult.Type;
+
+export const MajordomeAddReadyRoutineInput = Schema.Struct({
+  projectId: ProjectId,
+  key: TrimmedNonEmptyString,
+  /** The conversation it posts in, such as its topic's; without one it keeps a conversation of its own. */
+  threadId: Schema.optional(ThreadId),
+});
+export type MajordomeAddReadyRoutineInput = typeof MajordomeAddReadyRoutineInput.Type;
 
 export const MajordomeSetRoutineLimitsInput = Schema.Struct({
   projectId: ProjectId,

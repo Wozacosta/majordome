@@ -35,6 +35,7 @@ import {
   Section,
   StatusLine,
 } from "./paper";
+import { ReadyRoutines } from "./ReadyRoutines";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
 import { RoutineLimits } from "./RoutineLimits";
 import { RoutinePlace } from "./RoutinePlace";
@@ -161,6 +162,14 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
               </Muted>
             )}
           </Section>
+        )}
+
+        {runnerUnreachable ? null : (
+          <ReadyRoutines
+            environmentId={(runner ?? vault).environmentId}
+            projectId={(runner ?? vault).projectId}
+            topicTitles={new Map(vault.topics.map((topic) => [topic.id, topic.title]))}
+          />
         )}
 
         <Disclosure summary="Limits" className="mt-8">

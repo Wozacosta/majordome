@@ -71,6 +71,22 @@ export const MajordomeTopicSuggestion = Schema.Struct({
 });
 export type MajordomeTopicSuggestion = typeof MajordomeTopicSuggestion.Type;
 
+/** A ready-made topic "New topic" offers: a folder with starter notes, and often a routine. */
+export const MajordomeReadyTopic = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  title: TrimmedNonEmptyString,
+  description: Schema.String,
+  icon: MajordomeTopicIcon,
+  /** Where its notes would go, vault-relative; `existing` when the owner already has that folder. */
+  folder: TrimmedNonEmptyString,
+  existing: Schema.Boolean,
+  /** The routine that comes with it: its key for `majordome.addReadyRoutine`, and its schedule in words. */
+  routine: Schema.optional(
+    Schema.Struct({ key: TrimmedNonEmptyString, title: Schema.String, when: Schema.String }),
+  ),
+});
+export type MajordomeReadyTopic = typeof MajordomeReadyTopic.Type;
+
 export const MajordomeTopicsInput = Schema.Struct({
   projectId: ProjectId,
 });
@@ -92,6 +108,8 @@ export const MajordomeTopicsResult = Schema.Struct({
   suggestions: Schema.Array(MajordomeTopicSuggestion),
   /** How many suggestions the owner skipped and can ask for again. Absent from older servers. */
   skippedSuggestions: Schema.optional(Schema.Number),
+  /** The ready-made topics the owner has not added yet. Absent from older servers. */
+  readyTopics: Schema.optional(Schema.Array(MajordomeReadyTopic)),
   /** The vault's folders a topic can use, shallowest first, plumbing left out. */
   folders: Schema.Array(Schema.String),
   /** Where new topic folders go, from the vault's config (`projects` by default). */
@@ -110,6 +128,8 @@ export const MajordomeCreateTopicInput = Schema.Struct({
   createFolder: Schema.Boolean,
   /** "Make this a topic": the chat that becomes the topic's conversation. */
   threadId: Schema.optional(ThreadId),
+  /** A ready-made topic's id: the folder also gets its starter notes, and the topic its icon. */
+  readyMade: Schema.optional(TrimmedNonEmptyString),
 });
 export type MajordomeCreateTopicInput = typeof MajordomeCreateTopicInput.Type;
 

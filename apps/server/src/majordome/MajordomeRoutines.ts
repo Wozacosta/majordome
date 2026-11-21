@@ -6,9 +6,12 @@
  */
 
 import {
+  type MajordomeAddReadyRoutineInput,
+  type MajordomeReadyRoutinesResult,
   type ModelSelection,
   type ProjectId,
   type ScheduledTask,
+  ScheduledTaskId,
   type ScheduledTaskUpsertInput,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -56,10 +59,12 @@ import {
   routinesBlockedPush,
   type RoutinesBlockedWatch,
 } from "./pushDecision.ts";
+import { readyRoutines } from "./readyMade.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readVaultLayout, readVaultLimits, type VaultLayout } from "./vaultConfig.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
+import { readVaultTopics } from "./vaultTopics.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { isVaultRunner, moveVaultRunner, readVaultRunner } from "./vaultRunner.ts";
 
@@ -90,8 +95,20 @@ export class MajordomeRoutines extends Context.Service<
       readonly routine: ScheduledTask;
       readonly threadId: ThreadId | null;
     }) => Effect.Effect<void, MajordomeRoutinesError>;
+    /** The ready-made routines the vault does not have, for "New routine". */
+    readonly ready: (
+      projectId: ProjectId,
+    ) => Effect.Effect<MajordomeReadyRoutinesResult, MajordomeRoutinesError>;
+    /** Adds a ready-made routine, switched on, running like the default ones. */
+    readonly addReady: (
+      input: MajordomeAddReadyRoutineInput,
+    ) => Effect.Effect<void, MajordomeRoutinesError>;
   }
 >()("t3/majordome/MajordomeRoutines") {}
+
+/** Stable per project, so a ready-made routine is offered again only once it is removed. */
+const readyRoutineTaskId = (projectId: ProjectId, key: string) =>
+  ScheduledTaskId.make(`majordome:${projectId}:ready:${key}`);
 
 const backoff = Schedule.exponential("5 seconds").pipe(
   Schedule.modifyDelay(({ duration }) =>
@@ -452,7 +469,87 @@ const make = Effect.gen(function* () {
     Effect.mapError(routinesFailed),
   );
 
-  return MajordomeRoutines.of({ start, runHere, list, place });
+  const readyFor = Effect.fn("MajordomeRoutines.readyFor")(function* (projectId: ProjectId) {
+    const project = yield* projects.get(projectId);
+    if (Option.isNone(project)) {
+      return yield* new MajordomeRoutinesError({ message: "Those notes were not found." });
+    }
+    const vaultRoot = project.value.workspaceRoot;
+    if (Option.isNone(yield* readVaultLayout(vaultRoot).pipe(Effect.provide(services)))) {
+      return yield* new MajordomeRoutinesError({ message: "That folder is not a notes folder." });
+    }
+    const topics = yield* readVaultTopics(vaultRoot).pipe(Effect.provide(services));
+    const taken = new Set((yield* scheduledTasks.list()).tasks.map((task) => task.id));
+    return {
+      project: project.value,
+      routines: readyRoutines(topics).filter(
+        ({ routine }) => !taken.has(readyRoutineTaskId(projectId, routine.key)),
+      ),
+    };
+  });
+
+  const ready: MajordomeRoutines["Service"]["ready"] = Effect.fn("MajordomeRoutines.ready")(
+    function* (projectId) {
+      const { routines } = yield* readyFor(projectId);
+      return {
+        routines: routines.map(({ routine, topic }) => ({
+          key: routine.key,
+          title: routine.title,
+          description: routine.description,
+          when: routine.when,
+          ...(routine.needs === undefined ? {} : { needs: routine.needs }),
+          ...(topic === null ? {} : { topicId: topic.id }),
+        })),
+      };
+    },
+    Effect.mapError((cause) => (isMajordomeRoutinesError(cause) ? cause : routinesFailed(cause))),
+  );
+
+  const addReady: MajordomeRoutines["Service"]["addReady"] = Effect.fn(
+    "MajordomeRoutines.addReady",
+  )(
+    function* (input) {
+      const { project, routines } = yield* readyFor(input.projectId);
+      const found = routines.find(({ routine }) => routine.key === input.key);
+      if (found === undefined) {
+        return yield* new MajordomeRoutinesError({
+          message: "That routine is already in your list, or its topic is not.",
+        });
+      }
+      const runner = yield* readVaultRunner(project.workspaceRoot).pipe(Effect.provide(services));
+      if (Option.isSome(runner) && runner.value !== (yield* environment.getEnvironmentId)) {
+        return yield* new MajordomeRoutinesError({
+          message: "Routines for these notes run on another of your computers. Add it from there.",
+        });
+      }
+      const modelSelection = yield* chooseModel(project);
+      if (modelSelection === null) {
+        return yield* new MajordomeRoutinesError({
+          message: "The assistant isn't set up yet, so it could not run this routine.",
+        });
+      }
+      yield* scheduledTasks.upsert({
+        id: readyRoutineTaskId(input.projectId, found.routine.key),
+        title: found.routine.title,
+        prompt: found.routine.prompt(found.topic?.folder ?? null),
+        enabled: true,
+        schedule: found.routine.schedule,
+        projectId: input.projectId,
+        ...(input.threadId === undefined
+          ? { threadMode: "fresh_session" as const }
+          : { threadId: input.threadId, threadMode: "continue" as const }),
+        workspaceStrategy: { type: "root" },
+        modelSelection,
+        runtimeMode: (yield* autoMode(modelSelection)) ?? "auto-accept-edits",
+        interactionMode: "default",
+        createdBy: "user",
+        creationSource: "server",
+      });
+    },
+    Effect.mapError((cause) => (isMajordomeRoutinesError(cause) ? cause : routinesFailed(cause))),
+  );
+
+  return MajordomeRoutines.of({ start, runHere, list, place, ready, addReady });
 });
 
 export const layer = Layer.effect(MajordomeRoutines, make);

@@ -78,6 +78,8 @@ const makeServer = Effect.fn("test.makeServer")(function* (options?: {
       runHere: (projectId) => Effect.sync(() => void ranHere.push(projectId)),
       list: () => Effect.succeed([]),
       place: () => Effect.void,
+      ready: () => Effect.succeed({ routines: [] }),
+      addReady: () => Effect.void,
     }),
     Effect.provideService(ServerEnvironment.ServerEnvironment, {
       getEnvironmentId: Effect.succeed(SERVER_ID),

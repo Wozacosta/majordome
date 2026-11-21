@@ -4,6 +4,7 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type {
+  MajordomeReadyTopic,
   MajordomeSuggestTopicFolderResult,
   MajordomeTopic,
   ThreadId,
@@ -28,7 +29,9 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Spinner } from "../ui/spinner";
+import { toastManager } from "../ui/toast";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
+import { TopicIconBadge } from "./TopicIcon";
 import {
   filterTopicFolders,
   topicFolderFields,
@@ -36,6 +39,7 @@ import {
   type MajordomeVault,
   type TopicFolderMode,
 } from "./topics.logic";
+import { useVaultRoutines } from "./useVaultRoutines";
 
 /** What the dialog does: start a topic (maybe from a chat), rename one, or move its folder. */
 export type TopicDialogRequest =
@@ -47,9 +51,6 @@ export type TopicDialogRequest =
     }
   | { readonly kind: "rename"; readonly topic: MajordomeTopic }
   | { readonly kind: "folder"; readonly topic: MajordomeTopic };
-
-/** Subjects most people keep, offered while the name is empty. */
-const STARTER_TOPICS = ["Health", "Money", "Home", "Travel", "Work", "Family"];
 
 /** Long enough that a name still being typed is not asked about. */
 const SUGGESTION_DELAY_MS = 600;
@@ -74,6 +75,18 @@ export function TopicDialog({
     label: "change a topic",
     reportFailure: false,
   });
+  const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
+    label: "open a topic",
+    reportFailure: false,
+  });
+  const addReadyRoutine = useAtomCommand(majordomeEnvironment.addReadyRoutine, {
+    label: "add a routine",
+    reportFailure: false,
+  });
+  // Routines run on one of the owner's computers, which is where a topic's routine is added.
+  const { runner } = useVaultRoutines(vault);
+  /** The ready-made topic the owner picked; null for one of their own. */
+  const [ready, setReady] = useState<MajordomeReadyTopic | null>(null);
   const current = request.kind === "create" ? null : request.topic;
   const showTitle = request.kind !== "folder";
   const showFolder = request.kind !== "rename";
@@ -151,6 +164,39 @@ export function TopicDialog({
   }, [looking, wantedTitle, delay, environmentId, projectId, threadId]);
   const canSave = (!showTitle || title.trim() !== "") && (!showFolder || folder.trim() !== "");
 
+  const pickReady = (picked: MajordomeReadyTopic) => {
+    setReady(picked);
+    setTitle(picked.title);
+    setError(null);
+    setMode(picked.existing ? "existing" : "new");
+    setNewFolder(picked.existing ? null : picked.folder);
+    setExistingFolder(picked.existing ? picked.folder : null);
+  };
+
+  /** The routine joins the topic's conversation; when that cannot start, it keeps its own. */
+  const addRoutine = async (topic: MajordomeTopic, routine: { readonly key: string }) => {
+    const copy = runner ?? vault;
+    const opened = await openTopic({
+      environmentId: copy.environmentId,
+      input: { projectId: copy.projectId, topicId: topic.id },
+    });
+    const added = await addReadyRoutine({
+      environmentId: copy.environmentId,
+      input: {
+        projectId: copy.projectId,
+        key: routine.key,
+        ...(opened._tag === "Success" ? { threadId: opened.value.threadId } : {}),
+      },
+    });
+    if (added._tag !== "Failure" || isAtomCommandInterrupted(added)) return;
+    const failure = squashAtomCommandFailure(added);
+    toastManager.add({
+      type: "warning",
+      title: "The topic was added, but not its routine",
+      description: `${failure instanceof Error ? failure.message : String(failure)} You can add it later from Routines.`,
+    });
+  };
+
   const save = async () => {
     if (!canSave || busy) return;
     setBusy(true);
@@ -165,6 +211,7 @@ export function TopicDialog({
               folder: folder.trim(),
               createFolder: fields.mode === "new",
               ...(request.threadId === undefined ? {} : { threadId: request.threadId }),
+              ...(ready === null ? {} : { readyMade: ready.id }),
             },
           })
         : await updateTopic({
@@ -176,13 +223,15 @@ export function TopicDialog({
               ...(showFolder ? { folder: folder.trim(), createFolder: fields.mode === "new" } : {}),
             },
           });
-    setBusy(false);
     if (result._tag === "Failure") {
+      setBusy(false);
       if (isAtomCommandInterrupted(result)) return;
       const failure = squashAtomCommandFailure(result);
       setError(failure instanceof Error ? failure.message : String(failure));
       return;
     }
+    if (ready?.routine !== undefined) await addRoutine(result.value, ready.routine);
+    setBusy(false);
     onCreated?.(result.value);
     onClose();
   };
@@ -201,11 +250,9 @@ export function TopicDialog({
       : request.kind === "folder"
         ? "The topic reads and keeps its log in this folder. No notes are moved."
         : "One ongoing conversation about a subject, with its own notes, so nothing is lost when the chat gets long.";
-  const starters =
+  const readyTopics =
     request.kind === "create" && request.threadId === undefined && title.trim() === ""
-      ? STARTER_TOPICS.filter(
-          (name) => !vault.topics.some((topic) => topic.title.toLowerCase() === name.toLowerCase()),
-        )
+      ? (vault.readyTopics ?? [])
       : [];
   const shownFolders = filterTopicFolders(vault.folders, query);
   // A search lists matches without their parents, so those keep their whole path.
@@ -243,23 +290,59 @@ export function TopicDialog({
                   onChange={(event) => {
                     setTitle(event.target.value);
                     setError(null);
+                    // An emptied name starts over, with the ready-made topics on offer again.
+                    if (ready !== null && event.target.value.trim() === "") {
+                      setReady(null);
+                      setMode(null);
+                      setNewFolder(null);
+                      setExistingFolder(null);
+                    }
                   }}
                 />
               </Label>
             ) : null}
-            {starters.length > 0 ? (
-              <div role="group" aria-label="Ideas" className="flex flex-wrap gap-1.5">
-                {starters.map((name) => (
-                  <Button
-                    key={name}
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    onClick={() => setTitle(name)}
-                  >
-                    {name}
-                  </Button>
-                ))}
+            {ready !== null && title.trim() !== "" ? (
+              <p className="text-xs text-muted-foreground">
+                {ready.routine === undefined
+                  ? "Comes with starter notes."
+                  : `Comes with starter notes and the routine “${ready.routine.title}” (${ready.routine.when}), which you can change or switch off in Routines.`}
+              </p>
+            ) : null}
+            {readyTopics.length > 0 ? (
+              <div className="flex min-h-0 flex-col gap-1.5">
+                <span id={`${id}-ready`} className="text-xs font-medium text-muted-foreground">
+                  Or start from a ready-made topic
+                </span>
+                <ul
+                  aria-labelledby={`${id}-ready`}
+                  className="flex max-h-72 flex-col gap-px overflow-y-auto rounded-lg border p-1"
+                >
+                  {readyTopics.map((candidate) => (
+                    <li key={candidate.id}>
+                      <button
+                        type="button"
+                        onClick={() => pickReady(candidate)}
+                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1.5 text-left hover:bg-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                      >
+                        <TopicIconBadge
+                          topic={{
+                            ...candidate,
+                            threadId: null,
+                            folderExists: true,
+                            keyNote: null,
+                          }}
+                          statusDotClass={null}
+                        />
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-sm font-medium">{candidate.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {candidate.description}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : null}
             {showFolder && !choosingFolder ? (

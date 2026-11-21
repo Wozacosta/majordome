@@ -3,6 +3,7 @@ import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/model
 import type {
   EnvironmentId,
   MajordomeSuggestTopicFolderResult,
+  MajordomeReadyTopic,
   MajordomeTopic,
   MajordomeTopicSuggestion,
   MajordomeTopicsResult,
@@ -41,6 +42,8 @@ export interface MajordomeVault {
   readonly suggestions: ReadonlyArray<MajordomeTopicSuggestion>;
   /** How many suggestions the owner skipped and can ask for again. */
   readonly skippedSuggestions?: number;
+  /** Ready-made topics the owner has not added, for "New topic". */
+  readonly readyTopics?: ReadonlyArray<MajordomeReadyTopic>;
   readonly folders: ReadonlyArray<string>;
   readonly projectsFolder: string;
   /** Every server's copy of this brain, the shown one first. */
@@ -97,6 +100,7 @@ export function collectVaults(
       })),
       suggestions: result.suggestions,
       skippedSuggestions: result.skippedSuggestions ?? 0,
+      readyTopics: result.readyTopics ?? [],
       folders: result.folders,
       projectsFolder: result.projectsFolder,
       copies: [copy],

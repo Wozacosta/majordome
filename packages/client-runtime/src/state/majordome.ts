@@ -124,6 +124,18 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
     }),
+    /** Read again on every mount: adding or removing a routine changes what is left to offer. */
+    readyRoutines: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:ready-routines",
+      tag: WS_METHODS.majordomeListReadyRoutines,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
+    }),
+    addReadyRoutine: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:add-ready-routine",
+      tag: WS_METHODS.majordomeAddReadyRoutine,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
     runRoutinesHere: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:run-routines-here",
       tag: WS_METHODS.majordomeRunRoutinesHere,

@@ -276,6 +276,53 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
     }),
   );
 
+  it.effect("offers ready-made topics and adds one with its notes, keeping the owner's", () =>
+    Effect.gen(function* () {
+      const { service, vault, fs } = yield* setUp();
+      yield* fs.makeDirectory(`${vault}/household/Recipes`, { recursive: true });
+      yield* fs.writeFileString(`${vault}/household/Recipes/dishes-we-like.md`, "Dal\n");
+      const offered = (yield* service.list({ projectId: vaultProject })).readyTopics ?? [];
+      const pick = (id: string) => offered.find((ready) => ready.id === id);
+      // A folder the owner already has under one of its names is the one it uses.
+      assert.deepInclude(pick("meals"), { folder: "household/Recipes", existing: true });
+      assert.deepInclude(pick("reading"), {
+        folder: "projects/reading",
+        existing: false,
+        routine: { key: "reading", title: "Pick my next read", when: "Sundays at 9:00" },
+      });
+      assert.isUndefined(pick("trips")?.routine);
+
+      const meals = yield* service.create({
+        projectId: vaultProject,
+        title: "Meals",
+        folder: "household/Recipes",
+        createFolder: false,
+        readyMade: "meals",
+      });
+      assert.equal(meals.icon, "utensils");
+      assert.equal(
+        yield* fs.readFileString(`${vault}/household/Recipes/dishes-we-like.md`),
+        "Dal\n",
+      );
+      yield* service.create({
+        projectId: vaultProject,
+        title: "Books",
+        folder: "projects/reading",
+        createFolder: true,
+        readyMade: "reading",
+      });
+      assert.include(
+        yield* fs.readFileString(`${vault}/projects/reading/reading-list.md`),
+        "## To read",
+      );
+      const left = (yield* service.list({ projectId: vaultProject })).readyTopics ?? [];
+      assert.notIncludeMembers(
+        left.map((ready) => ready.id),
+        ["meals", "reading"],
+      );
+    }),
+  );
+
   it.effect("refuses folders outside the vault, missing ones and ones another topic uses", () =>
     Effect.gen(function* () {
       const { service } = yield* setUp();

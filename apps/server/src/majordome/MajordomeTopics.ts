@@ -60,6 +60,7 @@ import {
   withSideThread,
   writeTopicThreadsState,
 } from "./topicThreads.ts";
+import { folderOfReady, READY_TOPICS, topicOfReady } from "./readyMade.ts";
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
 import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -231,6 +232,30 @@ const make = Effect.gen(function* () {
     return folder;
   });
 
+  /** Starter notes for a ready-made topic; a note the owner already has is left alone. */
+  const writeStarterNotes = (
+    vaultRoot: string,
+    folder: string,
+    notes: ReadonlyArray<{ readonly name: string; readonly content: string }>,
+  ) =>
+    vaultLock.withLock(
+      vaultRoot,
+      Effect.forEach(
+        notes,
+        (note) => {
+          const target = path.join(vaultRoot, folder, note.name);
+          return fileSystem
+            .exists(target)
+            .pipe(
+              Effect.flatMap((exists) =>
+                exists ? Effect.void : fileSystem.writeFileString(target, note.content),
+              ),
+            );
+        },
+        { discard: true },
+      ),
+    );
+
   /** The thread, when it still exists here and is not archived. */
   const liveThread = (threadId: ThreadId | undefined) =>
     threadId === undefined
@@ -380,15 +405,35 @@ const make = Effect.gen(function* () {
       const state = yield* projectState(input.projectId);
       const folders = yield* provideFs(listVaultFolders(vaultRoot));
       const suggestions = suggestionsFor(vault.layout, folders, topics);
+      const projectsFolder = normalizeTopicFolder(vault.layout.projectsFolder) ?? "projects";
+      const usable = folders.flatMap((folder) =>
+        canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
+      );
       return {
         isVault: true,
         topics: yield* Effect.forEach(topics, (topic) => viewOf(vaultRoot, topic, state)),
         suggestions: state.suggestionsDismissed ? [] : suggestions,
         skippedSuggestions: state.suggestionsDismissed ? suggestions.length : 0,
-        folders: folders.flatMap((folder) =>
-          canHoldTopic(folder.path, vault.layout) ? [folder.path] : [],
+        readyTopics: READY_TOPICS.filter((ready) => topicOfReady(ready, topics) === undefined).map(
+          (ready) => ({
+            id: ready.id,
+            title: ready.title,
+            description: ready.description,
+            icon: ready.icon,
+            ...folderOfReady(ready, usable, projectsFolder),
+            ...(ready.routine === undefined
+              ? {}
+              : {
+                  routine: {
+                    key: ready.routine.key,
+                    title: ready.routine.title,
+                    when: ready.routine.when,
+                  },
+                }),
+          }),
         ),
-        projectsFolder: normalizeTopicFolder(vault.layout.projectsFolder) ?? "projects",
+        folders: usable,
+        projectsFolder,
         routinesThreadId: (yield* liveThread(state.routinesThread))?.id ?? null,
       };
     },
@@ -410,14 +455,20 @@ const make = Effect.gen(function* () {
           return yield* fail("That chat is already a topic.");
         }
       }
+      const ready =
+        input.readyMade === undefined
+          ? undefined
+          : READY_TOPICS.find((candidate) => candidate.id === input.readyMade);
       const folder = yield* resolveFolder({ vaultRoot, layout, ...input });
       if (topics.some((topic) => topic.folder === folder)) {
         return yield* fail(`Another topic already uses ${folder}.`);
       }
+      if (ready !== undefined) yield* writeStarterNotes(vaultRoot, folder, ready.notes);
       const topic: MajordomeVaultTopic = {
         id: newTopicId(input.title, new Set(topics.map((candidate) => candidate.id))),
         title: input.title,
         folder,
+        ...(ready === undefined ? {} : { icon: ready.icon }),
       };
       yield* writeTopics(vaultRoot, [...topics, topic]);
       const adopted = input.threadId;

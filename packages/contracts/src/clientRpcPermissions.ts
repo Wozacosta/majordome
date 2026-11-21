@@ -99,6 +99,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeServerMoveRemove]: AuthAccessWriteScope,
   [WS_METHODS.majordomeUndoVaultRun]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRunRoutinesHere]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeAddReadyRoutine]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetRoutineLimits]: AuthSettingsWriteScope,
   // Writes files and a git history into a folder on the server and opens it as a project.
   [WS_METHODS.majordomeStartNotes]: AuthOrchestrationOperateScope,

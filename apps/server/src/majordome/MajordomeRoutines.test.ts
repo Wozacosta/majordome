@@ -419,6 +419,8 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
                 }),
                 Layer.mock(ThreadManagementService.ThreadManagementService)({
                   listProjectThreads: () => Effect.succeed([]),
+                  getThreadShell: () =>
+                    Effect.succeed({ projectId, deletedAt: null, archivedAt: null } as never),
                   // The digest run never ends in this test.
                   waitForThread: () => Effect.never,
                 }),
@@ -445,6 +447,21 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         // Only the runner watches the inbox.
         assert.isFalse(yield* Deferred.isDone(watching));
 
+        yield* fs.writeFileString(
+          `${vaultRoot}/.majordome/topics.json`,
+          JSON.stringify({ topics: [{ id: "books", title: "Books", folder: "projects/reading" }] }),
+        );
+        const offered = (yield* service.ready(projectId)).routines;
+        assert.deepInclude(
+          offered.find((routine) => routine.key === "reading"),
+          { title: "Pick my next read", topicId: "books" },
+        );
+        // A topic the owner does not have brings no routine; ones without a topic are always there.
+        assert.isUndefined(offered.find((routine) => routine.key === "meals"));
+        assert.equal(offered.find((routine) => routine.key === "inbox-summary")?.needs, "Gmail");
+        const elsewhere = yield* Effect.flip(service.addReady({ projectId, key: "reading" }));
+        assert.include(elsewhere.message, "another of your computers");
+
         const missing = yield* Effect.flip(service.runHere(ProjectId.make("missing")));
         assert.equal(missing.message, "That vault was not found.");
         yield* service.runHere(projectId).pipe(withWatchBackend);
@@ -457,6 +474,33 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
           "Tidy my memory",
         ]);
         assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-here\n");
+
+        yield* service.addReady({
+          projectId,
+          key: "reading",
+          threadId: ThreadId.make("thread-books"),
+        });
+        yield* service.addReady({ projectId, key: "evening-journal" });
+        const added = (yield* scheduledTasks.list()).tasks;
+        const reading = added.find((task) => task.title === "Pick my next read");
+        assert.deepInclude(reading, {
+          enabled: true,
+          threadId: ThreadId.make("thread-books"),
+          threadMode: "continue",
+          schedule: { type: "fixed_time", timeOfDay: "09:00", weekdays: [0] },
+        });
+        assert.include(reading?.prompt, "`projects/reading/`");
+        assert.equal(
+          added.find((task) => task.title === "Evening journal prompt")?.threadMode,
+          "fresh_session",
+        );
+        // Once added it is no longer offered, and asking again adds no second one.
+        assert.notIncludeMembers(
+          (yield* service.ready(projectId)).routines.map((routine) => routine.key),
+          ["reading", "evening-journal"],
+        );
+        const twice = yield* Effect.flip(service.addReady({ projectId, key: "reading" }));
+        assert.include(twice.message, "already in your list");
         // Committed and sent at once, so the other computer stops running them.
         assert.equal(
           yield* gitIn(vaultRoot, ["log", "-1", "--format=%an|%s"]),
