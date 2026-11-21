@@ -600,7 +600,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       problems.push({
         area: "this-computer",
         message:
-          "Tailscale is not installed on this computer. Set it up in Settings > Your phone first.",
+          "Tailscale is not installed on this computer. Set it up in Settings > Phone & notifications first.",
       });
     } else if (local === "unreadable" || local.running === false || local.magicDnsName === null) {
       problems.push({
@@ -831,7 +831,6 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       });
     }
     const userData = cloudInitFor({
-      version,
       authKey,
       setupSecret: yield* setupSecretFor,
       timeZone,

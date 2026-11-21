@@ -153,7 +153,11 @@ export const SETTING_CHANGE_RULES: {
     does: "add a private document",
     where: "Settings, then Private documents",
   },
-  pair_phone: { risk: "owner_only", does: "set up a phone", where: "Settings, then Your phone" },
+  pair_phone: {
+    risk: "owner_only",
+    does: "set up a phone",
+    where: "Settings, then Phone & notifications",
+  },
   set_up_always_on_server: {
     risk: "owner_only",
     does: "set up or remove an always-on server",
@@ -162,7 +166,7 @@ export const SETTING_CHANGE_RULES: {
   turn_on_notifications: {
     risk: "owner_only",
     does: "let a device get notifications",
-    where: "Settings, then Notifications, on that device",
+    where: "Settings, then Phone & notifications, on that device",
   },
 };
 

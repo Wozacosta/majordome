@@ -32,7 +32,7 @@ it("opens on Status, groups pages by what is being set up, and folds T3's plumbi
     {
       heading: "Your devices",
       collapsible: false,
-      labels: ["Your phone", "Notifications", "Always-on server"],
+      labels: ["Phone & notifications", "Always-on server"],
     },
     {
       heading: "This app",
@@ -62,9 +62,7 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
   expect(searchSettings("gmail")[0]?.to).toBe("/settings/connectors");
   expect(searchSettings("tailscale").map((item) => item.to)).toContain("/settings/phone");
   expect(searchSettings("always-on server")[0]?.to).toBe("/settings/always-on");
-  expect(searchSettings("notifications").map((item) => item.to)).toContain(
-    "/settings/notifications",
-  );
+  expect(searchSettings("notifications")[0]?.to).toBe("/settings/phone");
   expect(searchSettings("overview").map((item) => item.to)).toContain("/settings/overview");
   expect(searchSettings("notes folders").map((item) => item.to)).toContain("/settings/projects");
   expect(searchSettings("keybindings").map((item) => item.to)).toContain("/settings/keybindings");
@@ -90,6 +88,24 @@ it("finds the brain's pages, and Advanced pages while they are folded away", () 
     expect(ids, id).not.toContain(id);
   }
   expect(ids).toEqual(expect.arrayContaining(["default-model", "auto-settle-inactive-threads"]));
+});
+
+it("finds a page by the everyday word for it", () => {
+  const first = (query: string) => searchSettings(query)[0];
+  // "Microphone" and "Thread notifications" match as well; the page named by the word leads.
+  expect(first("phone")?.to).toBe("/settings/phone");
+  expect(searchSettings("phone").filter((item) => item.to === "/settings/phone")).toHaveLength(1);
+  expect(first("push alerts")?.to).toBe("/settings/phone");
+  expect(first("text size")?.id).toBe("interface-font");
+  for (const query of ["sleep", "laptop", "closed", "awake"]) {
+    expect(
+      searchSettings(query).map((item) => item.to),
+      query,
+    ).toContain("/settings/always-on");
+  }
+  for (const query of ["email", "calendar"]) {
+    expect(first(query)?.to, query).toBe("/settings/connectors");
+  }
 });
 
 it("says Earlier for the shelf, and still finds it for people who search T3's word", () => {

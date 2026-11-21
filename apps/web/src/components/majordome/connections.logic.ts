@@ -13,10 +13,16 @@ export interface ConnectionState {
   readonly tone: "ok" | "warning" | "neutral";
   /** The provider's own words for a problem, shown under the row. */
   readonly detail?: string;
+  /** Signing in is what fixes it, so the page can point at where to do that. */
+  readonly needsSignIn?: true;
 }
 
 const CONNECTED: ConnectionState = { label: "Connected", tone: "ok" };
-const NEEDS_SIGN_IN: ConnectionState = { label: "Needs sign-in", tone: "warning" };
+const NEEDS_SIGN_IN: ConnectionState = {
+  label: "Needs sign-in",
+  tone: "warning",
+  needsSignIn: true,
+};
 const NOT_SET_UP: ConnectionState = { label: "Not set up", tone: "neutral" };
 
 /** A connector as a person names it: "claude.ai Gmail" is Gmail, "plugin:vercel:vercel" is vercel. */
@@ -49,7 +55,9 @@ function signedOut(provider: ServerProvider): boolean {
 /** Whether the provider can be used on its machine, in the words of its own problem if not. */
 function providerState(provider: ServerProvider): ConnectionState {
   if (!provider.installed) return { label: "Not installed", tone: "neutral" };
-  if (signedOut(provider)) return { label: "Not signed in", tone: "warning" };
+  if (signedOut(provider)) {
+    return { label: "Not signed in", tone: "warning", needsSignIn: true };
+  }
   const detail = provider.message === undefined ? {} : { detail: provider.message };
   if (provider.status === "error") return { label: "Not working", tone: "warning", ...detail };
   return {
@@ -60,9 +68,11 @@ function providerState(provider: ServerProvider): ConnectionState {
   };
 }
 
-export function aiRows(
-  providers: ReadonlyArray<ServerProvider>,
-): ReadonlyArray<{ readonly key: string; readonly name: string; readonly state: ConnectionState }> {
+export function aiRows(providers: ReadonlyArray<ServerProvider>): ReadonlyArray<{
+  readonly key: ServerProvider["instanceId"];
+  readonly name: string;
+  readonly state: ConnectionState;
+}> {
   return providers
     .filter((provider) => provider.enabled)
     .map((provider) => ({
@@ -117,7 +127,7 @@ export function connectorsView(input: {
     }));
   const reporting = providers.filter((provider) => provider.reported);
   const several = reporting.length > 1;
-  const where = input.machine === null ? "this machine" : machineInSentence(input.machine);
+  const where = input.machine === null ? "this computer" : machineInSentence(input.machine);
 
   const rows = reporting.flatMap((provider) =>
     provider.connectors.map((connector) => ({
@@ -130,7 +140,7 @@ export function connectorsView(input: {
 
   const warnings = reporting.flatMap((provider) => {
     if (provider.error !== undefined) {
-      return [`Majordome couldn't check ${provider.name}'s connectors. ${provider.error}`];
+      return [`Majordome couldn't check what ${provider.name} is connected to. ${provider.error}`];
     }
     const snapshot = snapshotOf(provider.instanceId);
     // Signed out, the missing connectors are not the news.
@@ -139,8 +149,8 @@ export function connectorsView(input: {
     }
     return [
       several
-        ? `${provider.name} has no connectors on ${where}. Conversations and routines that use it here can't reach your email, calendar or files.`
-        : `No connectors on ${where}. Conversations and routines that run here can't reach your email, calendar or files.`,
+        ? `${provider.name} has nothing connected on ${where}. Chats and routines that use it here can't reach your email, calendar or files.`
+        : `Nothing is connected on ${where}. Chats and routines that run here can't reach your email, calendar or files.`,
     ];
   });
 
@@ -148,7 +158,12 @@ export function connectorsView(input: {
   return {
     rows,
     warnings,
-    notes: unseen.length === 0 ? [] : [`Majordome can't see the connectors of ${listed(unseen)}.`],
+    notes:
+      unseen.length === 0
+        ? []
+        : [
+            `Majordome can't see what ${listed(unseen)} ${unseen.length > 1 ? "are" : "is"} connected to.`,
+          ],
   };
 }
 

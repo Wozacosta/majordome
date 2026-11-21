@@ -10,6 +10,8 @@ import { Step, Steps } from "./paper";
 
 const COMPOSE_URL =
   "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/docker-compose.yml";
+const UPDATES_URL =
+  "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install-updates.sh";
 const TAILSCALE_KEYS_URL = "https://login.tailscale.com/admin/settings/keys";
 const GITHUB_ACCESS_KEY_URL =
   "https://github.com/settings/tokens/new?scopes=repo&description=Majordome%20server";
@@ -37,6 +39,8 @@ export function AlwaysOnManualGuide() {
         <CommandBlock command={`curl -fsSLO ${COMPOSE_URL}`} />
         <CommandBlock command='echo "TS_AUTHKEY=tskey-auth-…" > .env' />
         <CommandBlock command="docker compose up -d" />
+        Then this once, so the server updates itself every night:
+        <CommandBlock command={`curl -fsSL ${UPDATES_URL} | sh`} />
       </Step>
       <Step title="Bring your notes">
         {repoUrl === null ? (

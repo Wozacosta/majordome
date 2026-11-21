@@ -376,7 +376,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        # The fork's smaller runners have lost the browser mid-run with two shards, so it uses three.
+        shard: ${{ fromJSON(github.repository == 'pingdotgg/t3code' && '[1, 2]' || '[1, 2, 3]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -418,6 +419,8 @@ jobs:
           fi
 
       - name: Test
+        # A shard takes about four minutes; a hung browser fails here instead of at the job's limit.
+        timeout-minutes: ${{ github.repository == 'pingdotgg/t3code' && 10 || 12 }}
         run: vp run --filter @t3tools/web test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
 
   # apps/server sets `fileParallelism: false`, so its test files run strictly

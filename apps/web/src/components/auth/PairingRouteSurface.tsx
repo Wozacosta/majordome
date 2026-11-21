@@ -95,7 +95,7 @@ export function PairingRouteSurface({
         description={
           isMajordome
             ? gt(
-                "On your computer, open Majordome and go to Settings, then Your phone. Press “Show the code” and type the letters shown under it here.",
+                "On your computer, open Majordome and go to Settings, then Phone & notifications. Press “Show the code” and type the letters shown under it here.",
               )
             : describeAuthGate(auth.bootstrapMethods, messages)
         }

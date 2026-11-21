@@ -46,7 +46,6 @@ export type SettingsPath =
   | "/settings/backup"
   | "/settings/connectors"
   | "/settings/private-documents"
-  | "/settings/notifications"
   | "/settings/phone"
   | "/settings/always-on";
 
@@ -132,8 +131,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/backup": msg("Back up my brain"),
   "/settings/connectors": msg("Connections"),
   "/settings/private-documents": msg("Private documents"),
-  "/settings/notifications": msg("Notifications"),
-  "/settings/phone": msg("Your phone"),
+  "/settings/phone": msg("Phone & notifications"),
   "/settings/always-on": msg("Always-on server"),
 };
 
@@ -297,7 +295,7 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
   { heading: msg("The assistant"), paths: ["/settings/providers", "/settings/connectors"] },
   {
     heading: msg("Your devices"),
-    paths: ["/settings/phone", "/settings/notifications", "/settings/always-on"],
+    paths: ["/settings/phone", "/settings/always-on"],
   },
   {
     heading: msg("This app"),
@@ -563,7 +561,8 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "interface-font",
     title: msg("Interface font"),
     to: "/settings/appearance",
-    searchTerms: [msg("typography family size system sans")],
+    // The second entry is in plain words, for people who never say "font".
+    searchTerms: [msg("typography family size system sans"), "text size bigger smaller larger"],
   },
   {
     id: "prompt-font",
@@ -1268,25 +1267,24 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
-    id: "majordome-notifications",
-    title: msg("Notifications"),
-    to: "/settings/notifications",
-    majordomeOnly: true,
-    searchTerms: ["push alerts notify devices"],
-  },
-  {
     id: "majordome-phone",
-    title: msg("Your phone"),
+    title: msg("Phone & notifications"),
     to: "/settings/phone",
     majordomeOnly: true,
-    searchTerms: ["mobile iphone android tailscale pair qr code home screen"],
+    searchTerms: [
+      "your phone mobile iphone android tailscale pair qr code home screen",
+      "push alerts notify devices",
+    ],
   },
   {
     id: "majordome-always-on",
     title: msg("Always-on server"),
     to: "/settings/always-on",
     majordomeOnly: true,
-    searchTerms: ["vps server cloud docker 24/7 move routines runner deploy host"],
+    searchTerms: [
+      "vps server cloud docker 24/7 move routines runner deploy host",
+      "sleep asleep awake laptop lid closed shut off overnight keep running",
+    ],
   },
   {
     id: "agent-browser-access",
@@ -1717,7 +1715,6 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/backup": null,
   "/settings/connectors": null,
   "/settings/private-documents": null,
-  "/settings/notifications": null,
   "/settings/phone": null,
   "/settings/always-on": null,
 };
@@ -1913,12 +1910,16 @@ export function searchSettings(
                 : exactPhraseField >= 0
                   ? 1
                   : 0;
-      return [{ item, index, rank }];
+      // A whole page named by the query comes before single rows that match as well: "phone"
+      // means the phone page, not the microphone row.
+      const isPage = rank >= 3 && title === normalizeSearchText(SETTINGS_SECTION_LABELS[item.to]);
+      return [{ item, index, rank, isPage }];
     })
     .toSorted(
       (left, right) =>
         Number(left.item.secondary ?? false) - Number(right.item.secondary ?? false) ||
         right.rank - left.rank ||
+        Number(right.isPage) - Number(left.isPage) ||
         left.index - right.index,
     )
     .map(({ item }) => item);

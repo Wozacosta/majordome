@@ -76,8 +76,39 @@ export const SETTINGS_WORDING: Wording = [
   ],
   ["Reset thread details to default", "Reset chat details to default"],
   ["Thread details: {enabled} of {total} on", "Chat details: {enabled} of {total} on"],
+  ["Prompt font", "Message box font"],
+  ["Reset prompt font to default", "Reset message box font to default"],
+  ["Prompt font size", "Message box font size"],
+  [
+    "Only the box you write prompts in. Mono works well here.",
+    "Only the box you write your messages in.",
+  ],
+  [
+    "Set how wide messages and the composer can grow on large screens.",
+    "Set how wide messages and the message box can grow on large screens.",
+  ],
 
   // Chat.
+  ["Composer", "Message box"],
+  ["Rich text composer", "Formatting as you type"],
+  ["Reset rich text composer to default", "Reset formatting as you type to default"],
+  [
+    "Show formatted Markdown as you type.",
+    "Show bold text, lists and other formatting while you write.",
+  ],
+  [
+    "Choose when Enter sends a prompt or inserts a new line",
+    "Choose when Enter sends your message or starts a new line",
+  ],
+  [
+    "{modifierLabel} + Enter for multiline prompts",
+    "{modifierLabel} + Enter for messages of several lines",
+  ],
+  ["Follow-ups", "While the assistant works"],
+  ["Follow-up behavior", "Messages you send meanwhile"],
+  ["Reset follow-up behavior to default", "Reset messages you send meanwhile to default"],
+  ["Tool calls in chat", "Steps the assistant takes"],
+  ["Reset tool calls in chat to default", "Reset steps the assistant takes to default"],
   [
     "Hide the commands, edits, and searches agents run. Hide successful keeps failures. Zen shows only final answers. Approvals, questions, and errors always show.",
     "Hide the steps the assistant takes, such as searches and edits. Hide successful keeps failures. Zen shows only final answers. Approvals, questions, and errors always show.",
@@ -140,7 +171,7 @@ export const SETTINGS_WORDING: Wording = [
   ],
   [
     "Snooze threads until their usage limits reset. Enable auto-resume to continue the agent after the reset.",
-    "Snooze chats until their usage limits reset. Turn on “Resume after usage limits” to have the assistant continue after the reset.",
+    "Snooze chats until their usage limits reset. Turn on “Continue when usage limits reset” to have the assistant continue after the reset.",
   ],
   [
     "For thread titles and other generated text. Source control has its own setting. Text generators from Providers also appear here.",
@@ -152,6 +183,20 @@ export const SETTINGS_WORDING: Wording = [
   ],
   ["No text generation providers available.", "No AI account can write these texts yet."],
   ["Thread title instructions", "Chat title instructions"],
+  ["Project defaults and overrides", "Notes folder defaults"],
+  ["Fallback model", "Backup model"],
+  ["Reset fallback model to default", "Reset backup model to default"],
+  ["Fallback model not saved", "Backup model not saved"],
+  [
+    "Automatic defaults differ. Select one environment or choose a shared model to edit effort.",
+    "The automatic choices differ. Select one computer or choose a model they share to edit effort.",
+  ],
+  [
+    "Defaults differ. Select one environment or choose a shared model to edit effort.",
+    "The choices differ. Select one computer or choose a model they share to edit effort.",
+  ],
+  ["Resume after usage limits", "Continue when usage limits reset"],
+  ["Snooze until limits reset", "Snooze until usage limits reset"],
 
   // Browser.
   ["Agent browser access", "Let the assistant use the browser"],
@@ -162,6 +207,15 @@ export const SETTINGS_WORDING: Wording = [
   [
     "Allow agents in this project to use the shared browser. Applies when the agent session next starts.",
     "Allow the assistant to use the built-in browser in this notes folder. Applies the next time the assistant starts.",
+  ],
+  ["Agent access", "Assistant access"],
+  [
+    "Where links in the chat and terminal open. Hold ⌘ or Ctrl while clicking a link to open it in your default browser either way.",
+    "Where links in a chat open. Hold ⌘ or Ctrl while clicking a link to open it in your usual browser either way.",
+  ],
+  [
+    "What the address bar searches when you type something that isn't a URL.",
+    "What the address bar searches when you type something that isn't a web address.",
   ],
 
   // AI accounts.
@@ -175,6 +229,58 @@ export const SETTINGS_WORDING: Wording = [
     "Connect a computer before setting up AI accounts.",
   ],
   ["Reading connected execution environments.", "Looking for connected computers."],
+  ["Reconnect {label} to set up its providers.", "Reconnect {label} to set up its AI accounts."],
+  [
+    "Connect an environment to set up its providers.",
+    "Connect a computer to set up its AI accounts.",
+  ],
+  ["Loading provider settings", "Loading AI accounts"],
+  ["Provider settings are unavailable", "AI accounts are unavailable"],
+  ["Checking what this session is allowed to change.", "Checking what this device may change."],
+  ["Waiting for {environment}''s configuration.", "Waiting for {environment}."],
+  ["Limited permissions", "You can look but not change"],
+  [
+    "This session can view {environment}''s providers but can't change their settings.",
+    "This device can see the AI accounts on {environment} but cannot change them.",
+  ],
+  ["No providers configured.", "No AI account is set up yet."],
+  [
+    "This provider instance is no longer available on this device.",
+    "This AI account is no longer on this device.",
+  ],
+  ["Refresh provider status", "Check the AI accounts again"],
+  ["Refreshing providers", "Checking the AI accounts"],
+  ["Device that runs this provider.", "The computer this AI account runs on."],
+  ["Authentication request expired", "Signing in took too long"],
+  ["The authentication request expired.", "Signing in took too long."],
+  [
+    "Refresh the provider and start the authentication flow again.",
+    "Check the AI accounts again, then sign in once more.",
+  ],
+  ["Could not continue authentication", "Could not finish signing in"],
+  ["Remove the {provider} provider instance?", "Remove this {provider} account?"],
+  ["Reset the {provider} provider to its defaults?", "Reset {provider} to its defaults?"],
+  ["Could not update provider instance", "Could not save the change"],
+  ["Could not delete provider instance", "Could not remove the account"],
+  ["Could not reset provider instance", "Could not reset the account"],
+  ["Reset {provider} provider settings to default", "Reset {provider} settings to default"],
+
+  // AI accounts: the two optional sections below the accounts.
+  ["Usage providers", "Usage from a shared hub"],
+  ["No hubs configured.", "Nothing here. Most people do not need this."],
+  ["Text generators", "Another AI for short texts"],
+  ["No text generators yet", "None yet. Most people do not need one."],
+  [
+    "Add a model API to write thread titles, commit messages, and other short text without starting a coding agent.",
+    "Add another AI service to write chat titles and other short texts, instead of your main AI account.",
+  ],
+  ["Add generator", "Add a service"],
+  ["Add a text generator", "Add an AI service for short texts"],
+  [
+    "Writes thread titles, commit messages, and other short text without starting a coding agent. Your API key is stored on this environment.",
+    "Writes chat titles and other short texts. Your key is stored on this computer.",
+  ],
+  ["Thread titles and other generated text", "Chat titles and other short texts"],
 
   // Computers.
   ["This machine", "This computer"],
@@ -204,6 +310,131 @@ export const SETTINGS_WORDING: Wording = [
     "Turned off. The assistant only works on your other computers.",
   ],
   ["Linked environments", "Linked computers"],
+  ["Turn off local environment?", "Stop using this computer?"],
+  ["Turn on local environment?", "Use this computer?"],
+  [
+    "T3 Code will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected.",
+    "T3 Code will restart and stop working on this computer. Anything the assistant is doing here will stop, and your other devices will no longer be able to connect to this computer. Your notes folders, chats, and other computers are not affected.",
+  ],
+  [
+    "T3 Code will restart and start running a server on this computer again.",
+    "T3 Code will restart and work on this computer again.",
+  ],
+  ["Add Environment", "Add a computer"],
+  [
+    "Pair another environment to this client.",
+    "Connect another computer running T3 Code to this device.",
+  ],
+  ["Enter a backend host and pairing code.", "Type the computer's address and its code."],
+  [
+    "Paste a full pairing URL here to fill both fields automatically.",
+    "Paste a full link here to fill both fields.",
+  ],
+  ["Environment connected", "Computer connected"],
+  [
+    "The environment is saved and will reconnect on app startup.",
+    "The computer is saved and reconnects when the app starts.",
+  ],
+  ["No linked environments", "No linked computers"],
+  ["Could not load linked environments", "Could not load linked computers"],
+  ["Loading linked environments…", "Loading linked computers…"],
+  [
+    "Link another machine running T3 Code, such as a VPS, so agents here can launch and drive threads there.",
+    "Link another computer running T3 Code, such as your always-on server, so the assistant here can start and follow chats there.",
+  ],
+  ["Link an environment", "Link a computer"],
+  [
+    "Agents here can then launch, message and wait on threads there. It appears under Authorized clients in that environment's Sharing & access, where it can be revoked.",
+    "The assistant here can then start and follow chats there. This computer appears under Devices that can connect in the other computer's Sharing & access, where you can remove it.",
+  ],
+  ["Could not link the environment", "Could not link the computer"],
+  ["Expired. Link it again with a new pairing code.", "Expired. Link it again with a new code."],
+  ["What agents here may do there", "What the assistant here may do there"],
+  ["Same on all machines", "Same on all computers"],
+
+  // Sharing & access.
+  ["Environment icon", "Computer icon"],
+  ["More actions for this machine", "More actions for this computer"],
+  ["Authorized clients", "Devices that can connect"],
+  [
+    "This connection can create access links but cannot view authorized clients.",
+    "This device can create links for other devices but cannot see the list.",
+  ],
+  ["Create pairing link", "Connect another device"],
+  [
+    "Generate a one-time link that another device can use to pair with this backend as an authorized client.",
+    "Make a link that works once. Open it on another device to connect that device to this computer.",
+  ],
+  ["Client label (optional)", "Name for the device (optional)"],
+  ["Limit what the paired client can do.", "Limit what that device can do."],
+  ["No pairing links or client sessions.", "No device is connected yet."],
+  ["Create a new link to share from this client.", "Create a new link to share from this device."],
+  ["Use in another app (MCP)", "Use in another app"],
+  ["Reach this machine via", "Reach this computer through"],
+  [
+    "These permissions apply to this client’s current connection.",
+    "This is what this device may do on this connection.",
+  ],
+  ["Limited to this machine.", "Only this computer can connect."],
+  ["Exposed on all interfaces.", "Other devices on your network can connect."],
+  [
+    "Exposed on all interfaces. Pairing links use {host}.",
+    "Other devices on your network can connect. Links use {host}.",
+  ],
+  [
+    "Only this machine can connect. Restart with a non-loopback host for remote pairing.",
+    "Only this computer can connect. To let other devices in, change how T3 Code is started on it.",
+  ],
+  [
+    "Remote access is already configured. Change network exposure where the server starts.",
+    "Other devices can already connect. To change that, change how T3 Code is started on that computer.",
+  ],
+  [
+    "This connection cannot view or change network exposure.",
+    "This device cannot see or change this setting.",
+  ],
+  ["Network exposure information is unavailable.", "This information is unavailable."],
+  [
+    "Network exposure changes restart the backend and must be controlled where the server process is launched.",
+    "Changing this restarts T3 Code, and it can only be changed where T3 Code is started.",
+  ],
+  [
+    "Let your other devices connect to T3 Code over the network. Pair devices to give them access. T3 Code will restart.",
+    "Let your other devices connect to T3 Code over your network. Connect each device with a link to give it access. T3 Code will restart.",
+  ],
+  ["Publish agent activity", "Send the assistant's activity to your phone"],
+
+  // Passwords and keys.
+  ["Secrets", "Passwords and keys"],
+  ["Secret sources", "Where passwords and keys are kept"],
+  ["Add secret source", "Add a place for passwords and keys"],
+  ["No secret sources yet.", "Nothing set up yet."],
+  [
+    "Add the Mac Keychain, an encrypted file, 1Password or another place, then pick it next to a key or token field instead of pasting the value.",
+    "Add the Mac Keychain, an encrypted file, 1Password or another place. Then, wherever T3 Code asks for a key or password, you can pick it from there instead of pasting it.",
+  ],
+  [
+    "Connect to a server to manage where its key and token fields read secrets from.",
+    "Connect to a computer to choose where it keeps passwords and keys.",
+  ],
+
+  // Voice.
+  [
+    "This environment can’t transcribe audio: {reason}.",
+    "This computer can’t transcribe audio: {reason}.",
+  ],
+  ["Waiting for the environment to connect", "Waiting for the computer to connect"],
+  ["On an environment", "On a computer"],
+  ["Chosen environment (unavailable)", "Chosen computer (unavailable)"],
+  ["unavailable environment", "unavailable computer"],
+  [
+    "The provider detects your language automatically.",
+    "The service detects your language automatically.",
+  ],
+  [
+    "Path to a model file or folder already on this environment",
+    "Path to a model file or folder already on this computer",
+  ],
 
   // Maintenance.
   ["Provider update checks", "Check for AI updates"],
@@ -238,8 +469,57 @@ export const SETTINGS_WORDING: Wording = [
     "Inspect processes, resource use, and logs on one environment at a time.",
     "Inspect processes, resource use, and logs on one computer at a time.",
   ],
+  ["Reset provider update checks to default", "Reset checking for AI updates to default"],
+  [
+    "Reset continue threads after restarts to default",
+    "Reset continuing chats after restarts to default",
+  ],
+  ["Background activity", "Background checks"],
+  ["Background Activity", "Background checks"],
+  ["Reset background activity to default", "Reset background checks to default"],
+  ["Background activity profile", "How often to check in the background"],
+  ["Configure background activity", "Fine-tune background checks"],
+  ["Configure advanced background activity", "Fine-tune background checks"],
+  ["Advanced (one environment)", "Advanced (one computer)"],
+  [
+    "This shared policy gates background work such as Git refreshes and provider health probes after their individual intervals elapse.",
+    "Decides when T3 Code may check on your AI accounts and other things in the background.",
+  ],
+  [
+    "Pauses probes for idle clients, locked hosts, or low power mode.",
+    "Pauses background checks while you are away, the computer is locked, or it is saving power.",
+  ],
+  [
+    "Allows scoped background probes while any subscribed client remains connected.",
+    "Keeps checking in the background while any of your devices is connected.",
+  ],
+  [
+    "Also pauses background probes when the host or client is on battery.",
+    "Also pauses background checks when the computer or your device runs on battery.",
+  ],
+  ["Artifacts and logs", "Old captures and logs"],
+  ["Delete old browser artifacts", "Delete old browser captures"],
+  ["Delete old rotated logs", "Delete old log files"],
+  [
+    "Delete inactive rotated log files after this many days. Current logs are kept.",
+    "Delete old log files after this many days. Current logs are kept.",
+  ],
+  ["Mixed across selected machines", "Differs between the selected computers"],
+  [
+    "Update the selected environments to use storage cleanup, or choose a machine that supports it.",
+    "Update T3 Code on the selected computers to use cleanup, or choose a computer that supports it.",
+  ],
+  ["Diagnostics", "Troubleshooting"],
+  ["View diagnostics", "Open troubleshooting"],
+  [
+    "Connect an environment to see diagnostics.",
+    "Connect a computer to see troubleshooting details.",
+  ],
 
   // Labs.
+  ["Beta", "Early features"],
+  ["Guest links", "Share a chat with a guest"],
+  ["Suggest next prompt", "Suggest my next message"],
   [
     "Share a thread with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links.",
     "Share a chat with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links.",
@@ -247,6 +527,22 @@ export const SETTINGS_WORDING: Wording = [
   [
     "Show a predicted next message in the empty composer after a Claude or Codex turn. Tab uses it. Each is an extra cached request on your plan. Needs Codex 0.165+. Claude threads update on restart.",
     "Show a predicted next message in the empty message box after the assistant answers. Tab uses it. Each is an extra cached request on your plan. Needs Codex 0.165+. Claude chats update on restart.",
+  ],
+
+  // About.
+  ["Update track", "Which updates to get"],
+  [
+    "Switches this app and every connected machine whose database the target release supports.",
+    "Applies to this app and to your connected computers that can take those updates.",
+  ],
+  [
+    "{count, plural, one {{count} machine still runs {track}.} other {{count} machines still run {track}.}}",
+    "{count, plural, one {{count} computer still runs {track}.} other {{count} computers still run {track}.}}",
+  ],
+  ["Switches the hosted app release channel.", "Chooses which version of the web app you get."],
+  [
+    "This environment is managed by {organization}. Some settings and features follow its policy.",
+    "This computer is managed by {organization}. Some settings follow its rules.",
   ],
 
   // Archived chats.

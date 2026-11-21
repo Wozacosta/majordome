@@ -1,6 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { AsyncResult } from "effect/reactivity";
 import {
   BellIcon,
   BookOpenIcon,
@@ -18,12 +16,11 @@ import type { ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
-import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { backupAttention } from "./backup.logic";
 import { buildFeedRunItems } from "./feed.logic";
 import { NewChatRow } from "./NewChatRow";
+import { useAttention } from "./useAttention";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
 type SidebarItem = { readonly to: string; readonly label: string; readonly icon: LucideIcon };
@@ -137,25 +134,37 @@ export function MajordomeSidebarNav({
 }
 
 /**
- * What is wrong with saving or backup, at the foot of the sidebar. Only there while something is
- * wrong, so it is never a mark people learn to ignore.
+ * What needs the owner, at the foot of the sidebar: the one problem and where it is fixed, or how
+ * many there are and the Status page. Only there while something is wrong, so it is never a mark
+ * people learn to ignore.
  */
 export function MajordomeSidebarAlert() {
-  const backupAlert = useBackupAlert();
+  const attention = useAttention();
   const { isMobile, setOpenMobile } = useSidebar();
-  if (backupAlert === null) return null;
+  if (attention === null) return null;
+  const failed = attention.tone === "error";
   return (
     <Link
-      to="/settings/backup"
-      data-backup-alert
+      {...attention.link}
+      data-attention={attention.tone}
       onClick={() => {
         if (isMobile) setOpenMobile(false);
       }}
-      className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-2 text-xs text-sidebar-foreground outline-hidden hover:bg-warning/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      className={cn(
+        "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs text-sidebar-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        failed
+          ? "border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
+          : "border-warning/30 bg-warning/10 hover:bg-warning/15",
+      )}
     >
-      <CircleAlertIcon className="size-4 shrink-0 text-warning-foreground" />
+      <CircleAlertIcon
+        className={cn(
+          "size-4 shrink-0",
+          failed ? "text-destructive-foreground" : "text-warning-foreground",
+        )}
+      />
       <span role="status" className="min-w-0 flex-1 truncate font-medium">
-        {backupAlert}
+        {attention.text}
       </span>
       <span className="shrink-0 text-sidebar-muted-foreground">Fix</span>
       <ChevronRightIcon className="size-3.5 shrink-0 text-sidebar-muted-foreground" />
@@ -180,21 +189,5 @@ function useFeedHint(): NavHint | null {
     return { tone: "warning", label: "A run is waiting for you" };
   }
   if (runs.length > 0) return { tone: "error", label: "A run couldn't finish" };
-  return null;
-}
-
-/** What is wrong with saving or a chosen backup of any vault, or null when all is well. */
-function useBackupAlert(): string | null {
-  const projects = useVaultProjects();
-  const results = useAtomValue(
-    vaultBackupStatusesAtom(
-      JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
-    ),
-  );
-  for (const result of results) {
-    const status = AsyncResult.getOrElse(result, () => null);
-    const alert = status?.isVault === true ? backupAttention(status) : null;
-    if (alert !== null) return alert;
-  }
   return null;
 }

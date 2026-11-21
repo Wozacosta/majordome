@@ -612,7 +612,7 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
       assert.strictEqual(server?.labels["managed-by"], "majordome");
       assert.strictEqual(server?.labels["majordome-move"], done.move?.id);
       assert.isTrue(world.hetzner.firewalls.has(server!.firewallId));
-      assert.include(server!.userData, "image: ghcr.io/wozacosta/majordome:1.4.2\n");
+      assert.include(server!.userData, "image: ghcr.io/wozacosta/majordome:latest\n");
       assert.strictEqual(world.envOf(server!, "TS_AUTHKEY"), AUTH_KEY);
       assert.strictEqual(world.envOf(server!, "TZ"), "Europe/Paris");
       assert.strictEqual(

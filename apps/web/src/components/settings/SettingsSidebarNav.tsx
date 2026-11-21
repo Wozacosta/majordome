@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   ArchiveIcon,
-  BellIcon,
   FlaskConicalIcon,
   BotIcon,
   ChevronRightIcon,
@@ -127,7 +126,6 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/backup": CloudUploadIcon,
   "/settings/connectors": PlugIcon,
   "/settings/private-documents": FileLockIcon,
-  "/settings/notifications": BellIcon,
   "/settings/phone": SmartphoneIcon,
   "/settings/always-on": ServerIcon,
 };

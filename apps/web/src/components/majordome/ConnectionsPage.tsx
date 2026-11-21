@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, MajordomeBackupStatus } from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeBackupStatus, ProviderInstanceId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
@@ -26,7 +26,7 @@ import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { Entry, EntryList, Muted, Section, SectionTitle, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
-/** What the assistant can reach on each machine: its AI sign-ins, connectors and backups. */
+/** What the assistant can reach on each computer: its AI accounts, connectors and backups. */
 export function ConnectionsPage() {
   const { environments } = useEnvironments();
   const { primaryEnvironmentId, machineOf, isElsewhere } = useMachineNames();
@@ -75,7 +75,7 @@ export function ConnectionsPage() {
   return (
     <MajordomeSettingsPage
       searchId="majordome-connections"
-      intro="What your assistant can reach. Each machine has its own sign-ins, so a routine can only use what is connected on the machine it runs on."
+      intro="What your assistant can reach. Each computer has its own sign-ins, so a routine can only use what is connected on the computer it runs on."
       action={
         <Button
           size="xs"
@@ -110,7 +110,7 @@ export function ConnectionsPage() {
                 elsewhere={isElsewhere(machine.environmentId)}
               />
             ) : (
-              <Muted className="mt-2">Majordome isn't connected to this machine right now.</Muted>
+              <Muted className="mt-2">Majordome isn't connected to this computer right now.</Muted>
             )}
           </div>
         );
@@ -144,19 +144,25 @@ function Machine({
         className={sectionClassName}
         action={
           <Link to="/settings/providers" className="underline underline-offset-2">
-            Providers
+            AI accounts
           </Link>
         }
       >
         {ai === null ? (
           <Skeleton className="h-10 w-full" />
         ) : ai.length === 0 ? (
-          <Muted>No AI provider is turned on here.</Muted>
+          <Muted>No AI account is turned on here.</Muted>
         ) : (
-          <Rows rows={ai} />
+          <Rows
+            rows={ai}
+            signIn={(row) => ({
+              to: "/settings/providers",
+              search: { environmentId, instanceId: row.key },
+            })}
+          />
         )}
       </Section>
-      <Section label="Connectors" labelAs={labelAs}>
+      <Section label="Email, calendar and files" labelAs={labelAs}>
         <Connectors environmentId={environmentId} name={name} />
       </Section>
       <Section
@@ -171,9 +177,12 @@ function Machine({
         {backups === null ? (
           <Skeleton className="h-10 w-full" />
         ) : backups.length === 0 ? (
-          <Muted>No notes folder on this machine.</Muted>
+          <Muted>No notes folder on this computer.</Muted>
         ) : (
-          <Rows rows={backupRows(backups, { elsewhere })} />
+          <Rows
+            rows={backupRows(backups, { elsewhere })}
+            signIn={() => ({ to: "/settings/backup" })}
+          />
         )}
       </Section>
     </>
@@ -193,7 +202,7 @@ function Connectors({
   if (connectors === null) {
     if (result._tag !== "Failure") return <Skeleton className="h-16 w-full" />;
     return isUnknownRequest(Cause.squash(result.cause)) ? (
-      <Muted>Update this server to see its connectors.</Muted>
+      <Muted>Update Majordome on this computer to see what it can reach.</Muted>
     ) : (
       <p className="text-sm text-destructive-foreground">
         {formatEnvironmentQueryError(result.cause)}
@@ -227,7 +236,7 @@ function Connectors({
                 >
                   {signIns.length > 1 ? `Sign in to ${target.name}` : "Sign in to Claude"}
                 </Link>{" "}
-                with your account to bring its connectors, such as Gmail, Calendar and Drive.
+                with your own account so the assistant can reach Gmail, Calendar and Drive.
               </Muted>
             </Entry>
           ))}
@@ -237,15 +246,30 @@ function Connectors({
   );
 }
 
-function Rows({
+interface Row {
+  readonly key: string;
+  readonly name: string;
+  readonly provider?: string | null;
+  readonly state: ConnectionState;
+}
+
+type SignInTarget =
+  | { readonly to: "/settings/backup" }
+  | {
+      readonly to: "/settings/providers";
+      readonly search: {
+        readonly environmentId: EnvironmentId;
+        readonly instanceId: ProviderInstanceId;
+      };
+    };
+
+function Rows<R extends Row>({
   rows,
+  signIn,
 }: {
-  readonly rows: ReadonlyArray<{
-    readonly key: string;
-    readonly name: string;
-    readonly provider?: string | null;
-    readonly state: ConnectionState;
-  }>;
+  readonly rows: ReadonlyArray<R>;
+  /** Where a row that needs a sign-in gets one. */
+  readonly signIn?: (row: R) => SignInTarget;
 }) {
   return (
     <EntryList>
@@ -255,17 +279,24 @@ function Rows({
           title={row.name}
           meta={[row.provider, row.state.detail].filter(Boolean).join(" · ") || undefined}
           actions={
-            <Badge
-              variant={
-                row.state.tone === "ok"
-                  ? "success"
-                  : row.state.tone === "warning"
-                    ? "warning"
-                    : "outline"
-              }
-            >
-              {row.state.label}
-            </Badge>
+            <>
+              {signIn !== undefined && row.state.needsSignIn ? (
+                <Link {...signIn(row)} className="text-sm underline underline-offset-2">
+                  Sign in
+                </Link>
+              ) : null}
+              <Badge
+                variant={
+                  row.state.tone === "ok"
+                    ? "success"
+                    : row.state.tone === "warning"
+                      ? "warning"
+                      : "outline"
+                }
+              >
+                {row.state.label}
+              </Badge>
+            </>
           }
         />
       ))}

@@ -95,6 +95,19 @@ import {
 
 const SAVE_INTERVAL = "5 minutes";
 export const GITHUB_TOKEN_SECRET = "majordome-github-token";
+/**
+ * What to do with the saved GitHub sign-in after a backup was turned away. One refusal can be
+ * GitHub having a bad moment, so the sign-in is kept and the refusal remembered; it is forgotten,
+ * and the page asks for a new one, only when the next round is refused too.
+ */
+export function afterSignInRefusal(
+  refusedByGitHub: boolean,
+  refusedBefore: boolean,
+): "keep" | "remember" | "forget" {
+  if (!refusedByGitHub) return "keep";
+  return refusedBefore ? "forget" : "remember";
+}
+
 const GITHUB_SIGN_IN_NEEDED =
   "GitHub no longer accepts the sign-in saved here. Sign in to GitHub again, under GitHub below.";
 // Nightly: the first save cycle of a new day from this hour on.
@@ -111,6 +124,8 @@ const VaultBackupState = Schema.Struct({
   savePause: Schema.optional(MajordomeBackupPause),
   lastSyncedAt: Schema.optional(Schema.String),
   syncError: Schema.optional(Schema.String),
+  /** When GitHub first refused the saved sign-in; a second refusal on a later round forgets it. */
+  signInRefusedAt: Schema.optional(Schema.String),
   syncPause: Schema.optional(MajordomeBackupPause),
   /** What stopped the exchange with the owner's other machine. */
   peerPause: Schema.optional(MajordomeBackupPause),
@@ -449,6 +464,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
         return yield* updateState(vaultRoot, {
           lastSyncedAt: yield* nowIso,
           syncError: undefined,
+          signInRefusedAt: undefined,
           syncPause: undefined,
         });
       case "skipped":
@@ -467,14 +483,23 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           remote.url.startsWith("https://github.com/") &&
           isGitHubSignInFailure(outcome.message)
         ) {
-          // A sign-in GitHub has withdrawn is forgotten, so the page asks for a new one.
-          if (
+          const refused =
             Option.isSome(token) &&
-            (yield* githubTokenRejected(token.value).pipe(Effect.provide(services)))
-          ) {
-            yield* secrets.remove(GITHUB_TOKEN_SECRET).pipe(Effect.ignore);
-          }
-          return yield* updateState(vaultRoot, { syncError: GITHUB_SIGN_IN_NEEDED });
+            (yield* githubTokenRejected(token.value).pipe(Effect.provide(services)));
+          // Kept in the log: the reason a backup stopped is otherwise gone by the time it is asked.
+          yield* Effect.logWarning("GitHub turned a vault's backup away over its sign-in.", {
+            vaultRoot,
+            hasSignIn: Option.isSome(token),
+            refusedByGitHub: refused,
+            refusedBefore: state.signInRefusedAt ?? null,
+            git: outcome.message,
+          });
+          const next = afterSignInRefusal(refused, state.signInRefusedAt !== undefined);
+          if (next === "forget") yield* secrets.remove(GITHUB_TOKEN_SECRET).pipe(Effect.ignore);
+          return yield* updateState(vaultRoot, {
+            syncError: GITHUB_SIGN_IN_NEEDED,
+            signInRefusedAt: next === "remember" ? yield* nowIso : undefined,
+          });
         }
         return yield* updateState(vaultRoot, { syncError: outcome.message });
       }
@@ -942,6 +967,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       syncing: true,
       syncPause: undefined,
       syncError: undefined,
+      signInRefusedAt: undefined,
     });
     // The first backup to a new repository scans and sends the whole history, which can take
     // minutes; the sign-in dialog does not wait for it.

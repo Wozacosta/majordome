@@ -3,12 +3,13 @@ import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
 import { describe, expect, it } from "@effect/vitest";
+import * as YAML from "yaml";
 
 import type { HetznerLocation, HetznerPricing, HetznerServerType } from "./hetznerApi.ts";
 import { DEPLOY_COMPOSE_FILE } from "./serverMoveCompose.ts";
+import { DEPLOY_UPDATES_SCRIPT } from "./serverMoveUpdates.ts";
 import {
   cloudInitFor,
-  composeFileFor,
   defaultLocation,
   freeName,
   locationChoices,
@@ -164,7 +165,6 @@ describe("which server to order", () => {
 
 describe("the new server's first-boot script", () => {
   const input = {
-    version: "1.4.2",
     authKey: "tskey-auth-kTESTKEY1CNTRL-abcdefghijklmnop",
     setupSecret: "mjsetup-1794744000-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     timeZone: "Europe/Paris",
@@ -172,28 +172,22 @@ describe("the new server's first-boot script", () => {
     publicUrl: "https://majordome.tail1234.ts.net",
   };
 
-  it("embeds the repository's compose file word for word", () => {
-    const deployed = NodeFS.readFileSync(
-      NodePath.join(import.meta.dirname, "../../../../deploy/docker-compose.yml"),
-      "utf8",
-    );
-    expect(DEPLOY_COMPOSE_FILE).toBe(deployed);
-  });
-
-  it("pins the image to this server's version instead of latest", () => {
-    const compose = composeFileFor("1.4.2");
-    expect(compose).toContain("image: ghcr.io/wozacosta/majordome:1.4.2\n");
-    expect(compose).not.toContain("majordome:latest");
-    expect(compose.replace("majordome:1.4.2", "majordome:latest")).toBe(DEPLOY_COMPOSE_FILE);
-  });
-
-  it("installs Docker, writes the compose file and its .env, and starts it", () => {
-    const script = cloudInitFor(input)!;
-    const compose = composeFileFor("1.4.2")
+  const deployed = (name: string) =>
+    NodeFS.readFileSync(NodePath.join(import.meta.dirname, "../../../../deploy", name), "utf8");
+  const indented = (text: string) =>
+    text
       .trimEnd()
       .split("\n")
       .map((line) => (line === "" ? "" : `      ${line}`))
       .join("\n");
+
+  it("embeds the repository's compose file and update script word for word", () => {
+    expect(DEPLOY_COMPOSE_FILE).toBe(deployed("docker-compose.yml"));
+    expect(DEPLOY_UPDATES_SCRIPT).toBe(deployed("install-updates.sh"));
+  });
+
+  it("installs Docker, writes the compose file and its .env, starts it, and keeps it updated", () => {
+    const script = cloudInitFor(input)!;
     expect(script).toBe(
       [
         "#cloud-config",
@@ -206,7 +200,7 @@ describe("the new server's first-boot script", () => {
         "  - path: /opt/majordome/docker-compose.yml",
         '    permissions: "0644"',
         "    content: |",
-        compose,
+        indented(DEPLOY_COMPOSE_FILE),
         "  - path: /opt/majordome/.env",
         '    permissions: "0600"',
         "    content: |",
@@ -215,11 +209,35 @@ describe("the new server's first-boot script", () => {
         "      MAJORDOME_HOSTNAME=majordome",
         "      MAJORDOME_PUBLIC_URL=https://majordome.tail1234.ts.net",
         "      MAJORDOME_SETUP_SECRET=mjsetup-1794744000-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "  - path: /opt/majordome/install-updates.sh",
+        '    permissions: "0755"',
+        "    content: |",
+        indented(DEPLOY_UPDATES_SCRIPT),
         "runcmd:",
         "  - [sh, -c, 'for attempt in 1 2 3 4 5 6 7 8 9 10; do curl -fsSL https://get.docker.com | sh && break; sleep 15; done']",
         "  - [sh, -c, 'for attempt in 1 2 3 4 5 6 7 8 9 10; do docker compose --project-directory /opt/majordome up -d && break; sleep 15; done']",
+        "  - [sh, /opt/majordome/install-updates.sh, /opt/majordome]",
         "",
       ].join("\n"),
+    );
+    // Read as cloud-init reads it: the files arrive whole, and the server follows releases.
+    const parsed = YAML.parse(script);
+    expect(parsed.write_files.map((file: { content: string }) => file.content)).toEqual([
+      DEPLOY_COMPOSE_FILE,
+      expect.stringContaining("MAJORDOME_SETUP_SECRET="),
+      DEPLOY_UPDATES_SCRIPT,
+    ]);
+    expect(parsed.runcmd.at(-1)).toEqual([
+      "sh",
+      "/opt/majordome/install-updates.sh",
+      "/opt/majordome",
+    ]);
+    expect(DEPLOY_COMPOSE_FILE).toContain("image: ghcr.io/wozacosta/majordome:latest\n");
+    // Nightly, away from the 03:30 memory routine; only untagged images are removed.
+    expect(DEPLOY_UPDATES_SCRIPT).toContain('when="*-*-* 05:00:00"');
+    expect(DEPLOY_UPDATES_SCRIPT).toContain("RandomizedDelaySec=10min");
+    expect(DEPLOY_UPDATES_SCRIPT).toMatch(
+      /ExecStart=\$docker compose pull --quiet\nExecStart=\$docker compose up -d\nExecStart=\$docker image prune -f\n/,
     );
     // Hetzner refuses user data over 32 KiB.
     expect(new TextEncoder().encode(script).length).toBeLessThan(32 * 1024);

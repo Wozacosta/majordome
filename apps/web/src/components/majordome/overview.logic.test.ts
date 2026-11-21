@@ -641,9 +641,9 @@ describe("phoneSection", () => {
       ["Notifications reach 2 devices", "This device is one of them.", "ok"],
       ["Secure address is on", "https://mac.ts.net", "ok"],
     ]);
-    expect(section.lines.map((line) => line.link?.to)).toEqual([
-      "/settings/notifications",
-      "/settings/phone",
+    expect(section.lines.map((line) => line.link)).toEqual([
+      { to: "/settings/phone", hash: "notifications" },
+      { to: "/settings/phone" },
     ]);
   });
 

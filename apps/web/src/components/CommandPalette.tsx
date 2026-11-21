@@ -1842,7 +1842,7 @@ function OpenCommandPaletteDialog(props: {
       title: gt("Notifications"),
       icon: <BellIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
-        await navigate({ to: "/settings/notifications" });
+        await navigate({ to: "/settings/phone", hash: "notifications" });
       },
     });
     actionItems.push({

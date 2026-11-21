@@ -1,3 +1,5 @@
+import type { MajordomePhoneSetup, MajordomePushDevice } from "@t3tools/contracts";
+
 /**
  * Whether this browser can get Majordome's notifications, and if not, what the owner can do.
  * iPhone and iPad only allow Web Push for a web app added to the Home Screen, opened over HTTPS.
@@ -52,8 +54,41 @@ export function deviceLabel(userAgent: string, maxTouchPoints: number): string |
   return parts.length === 0 ? undefined : parts.join(" · ");
 }
 
+/** Where the notifications part of "Phone & notifications" starts; old links land on it. */
+export const NOTIFICATIONS_ANCHOR = "notifications";
+
+type TailscaleState = MajordomePhoneSetup["tailscale"];
+
+// Each state means every step before it is done.
+const TAILSCALE_PROGRESS: Record<TailscaleState, number> = {
+  "not-installed": 0,
+  "signed-out": 0,
+  "https-off": 1,
+  "not-served": 2,
+  ready: 3,
+};
+
+/** The computer's side of phone setup, from what Tailscale reports. */
+export function computerSetupProgress(tailscale: TailscaleState): {
+  readonly tailscaleOn: boolean;
+  readonly secureAddressesOn: boolean;
+  readonly majordomeReachable: boolean;
+} {
+  const done = TAILSCALE_PROGRESS[tailscale];
+  return { tailscaleOn: done >= 1, secureAddressesOn: done >= 2, majordomeReachable: done >= 3 };
+}
+
+/** The first phone or tablet that gets notifications, by the name it registered with. */
+export function phoneWithNotifications(
+  devices: ReadonlyArray<Pick<MajordomePushDevice, "label">>,
+): string | null {
+  return (
+    devices.find((device) => /^(iPhone|iPad|Android)\b/.test(device.label ?? ""))?.label ?? null
+  );
+}
+
 /**
- * Whether "Your phone" is open on the phone itself: a phone or tablet running the installed app,
+ * Whether "Phone & notifications" is open on the phone itself: a phone or tablet running the installed app,
  * or on an HTTPS address, which a phone only reaches once set up (Wi-Fi pairing is plain HTTP).
  */
 export function isOnPhone(input: {

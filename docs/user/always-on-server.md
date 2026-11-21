@@ -4,8 +4,8 @@ Majordome runs on your computer by default, so routines like "Start my day" only
 awake. An always-on server is a small computer you rent that never sleeps. Majordome runs there
 the same way, and your phone and computer connect to it.
 
-**Settings > Always-on server** sets one up for you. You need a Tailscale account (the one **Your
-phone** set up) with HTTPS turned on, and an account at [Hetzner](https://www.hetzner.com/cloud),
+**Settings > Always-on server** sets one up for you. You need a Tailscale account (the one **Phone &
+notifications** set up) with HTTPS turned on, and an account at [Hetzner](https://www.hetzner.com/cloud),
 the company the server is rented from.
 
 ## Set up a server for me
@@ -135,6 +135,12 @@ For any other provider, or if you prefer a terminal.
    address, `MAJORDOME_PUBLIC_URL=https://majordome.<your-tailnet>.ts.net` (shown in Tailscale's
    admin page). Then run `docker compose up -d` again.
 
+   Then have the server [update itself](#update) every night:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install-updates.sh | sh
+   ```
+
 5. **Bring your notes.** On your computer, in a terminal, pack your notes folder (here `~/brain`)
    into one file and send it to the server:
 
@@ -218,15 +224,23 @@ connectors; it can't see those of other providers. **Check again** asks each mac
 
 ## Update
 
-On a server set up by hand:
+The server updates itself every night at 05:00, by the clock your routines follow, and clears out
+the versions it no longer uses. There is nothing to do. The update restarts Majordome, so a routine
+or conversation running at that moment is cut short; the nightly memory routine runs at 03:30, well
+before it.
+
+A server set up by hand does this once you run, one time, in its `majordome` folder:
 
 ```bash
-cd majordome
-docker compose pull && docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install-updates.sh | sh
 ```
 
-A server Majordome set up runs the version your computer had that day and has no terminal to log in
-to. To update it, remove it and set it up again: your notes come back to your computer first.
+To update right now instead of waiting for the night, run `systemctl start majordome-update` on the
+server. `journalctl -u majordome-update` shows what past updates did.
+
+A server Majordome set up before nightly updates existed stays on the version your computer had that
+day, and has no terminal to log in to. Remove it and set it up again: your notes come back to your
+computer first.
 
 Your notes, sign-ins and settings live in Docker volumes and survive updates. `docker compose down`
 stops Majordome and keeps them; `docker compose down -v` deletes them.

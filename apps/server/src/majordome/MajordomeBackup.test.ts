@@ -495,6 +495,14 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
   );
 });
 
+it("forgets a GitHub sign-in only once GitHub has refused it two rounds running", () => {
+  assert.strictEqual(MajordomeBackup.afterSignInRefusal(false, false), "keep");
+  // Git failed over the sign-in but GitHub still accepts it: nothing to forget, even after a refusal.
+  assert.strictEqual(MajordomeBackup.afterSignInRefusal(false, true), "keep");
+  assert.strictEqual(MajordomeBackup.afterSignInRefusal(true, false), "remember");
+  assert.strictEqual(MajordomeBackup.afterSignInRefusal(true, true), "forget");
+});
+
 it("backs up to a folder once a day, from the small hours on", () => {
   const at = (iso: string) => Date.parse(iso);
   assert.isTrue(MajordomeBackup.folderBackupDue(undefined, at("2026-11-15T10:00:00")));

@@ -8,6 +8,7 @@ import type { MajordomeServerMoveLocation } from "@t3tools/contracts";
 
 import type { HetznerLocation, HetznerPricing, HetznerServerType } from "./hetznerApi.ts";
 import { DEPLOY_COMPOSE_FILE } from "./serverMoveCompose.ts";
+import { DEPLOY_UPDATES_SCRIPT } from "./serverMoveUpdates.ts";
 
 /** The always-on guide's floor; smaller servers run out of memory during a run. */
 const MIN_MEMORY_GB = 2;
@@ -132,18 +133,9 @@ export function freeName(base: string, taken: ReadonlySet<string>): string {
 /** A released version's image; development builds have a version no image was published for. */
 export const serverImageFor = (version: string) => `${IMAGE_REPOSITORY}:${version}`;
 
-/** The compose file pinned to one image, so the server runs the version this computer runs. */
-export function composeFileFor(version: string): string {
-  return DEPLOY_COMPOSE_FILE.replace(
-    `image: ${IMAGE_REPOSITORY}:latest`,
-    `image: ${serverImageFor(version)}`,
-  );
-}
-
 const SAFE_ENV_VALUE = /^[A-Za-z0-9_.:/+@=-]+$/;
 
 export interface CloudInitInput {
-  readonly version: string;
   /** The one-time Tailscale key; spent when the server joins. */
   readonly authKey: string;
   /** The one-time pairing secret; spent when this computer connects. */
@@ -162,8 +154,10 @@ const indent = (text: string, spaces: number) =>
     .join("\n");
 
 /**
- * The user data Hetzner hands the new machine: Docker, the compose file, its `.env`, and start.
- * Only the two one-time secrets are in it. Null when a value could break out of the `.env` file.
+ * The user data Hetzner hands the new machine: Docker, the compose file, its `.env`, start, and
+ * the nightly update. The image is `latest`, not this computer's version: a pinned server could
+ * never update. Only the two one-time secrets are in it. Null when a value could break out of
+ * the `.env` file.
  */
 export function cloudInitFor(input: CloudInitInput): string | null {
   const env: ReadonlyArray<readonly [string, string]> = [
@@ -188,14 +182,19 @@ export function cloudInitFor(input: CloudInitInput): string | null {
     `  - path: ${SERVER_DIRECTORY}/docker-compose.yml`,
     '    permissions: "0644"',
     "    content: |",
-    indent(composeFileFor(input.version).trimEnd(), 6),
+    indent(DEPLOY_COMPOSE_FILE.trimEnd(), 6),
     `  - path: ${SERVER_DIRECTORY}/.env`,
     '    permissions: "0600"',
     "    content: |",
     indent(env.map(([name, value]) => `${name}=${value}`).join("\n"), 6),
+    `  - path: ${SERVER_DIRECTORY}/install-updates.sh`,
+    '    permissions: "0755"',
+    "    content: |",
+    indent(DEPLOY_UPDATES_SCRIPT.trimEnd(), 6),
     "runcmd:",
     `  - [sh, -c, '${retried("curl -fsSL https://get.docker.com | sh")}']`,
     `  - [sh, -c, '${retried(`docker compose --project-directory ${SERVER_DIRECTORY} up -d`)}']`,
+    `  - [sh, ${SERVER_DIRECTORY}/install-updates.sh, ${SERVER_DIRECTORY}]`,
     "",
   ].join("\n");
 }

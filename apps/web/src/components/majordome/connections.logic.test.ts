@@ -104,13 +104,13 @@ it("lists a machine's connectors under their friendly names", () => {
 it("says what a machine without connectors cannot do, naming it where several are shown", () => {
   const input = { result: result(entry("claudeAgent")), snapshots: [snapshot("claudeAgent")] };
   expect(connectorsView({ ...input, machine: null }).warnings).toEqual([
-    "No connectors on this machine. Conversations and routines that run here can't reach your email, calendar or files.",
+    "Nothing is connected on this computer. Chats and routines that run here can't reach your email, calendar or files.",
   ]);
   expect(connectorsView({ ...input, machine: "This Mac" }).warnings[0]).toMatch(
-    /^No connectors on this Mac\./,
+    /^Nothing is connected on this Mac\./,
   );
   expect(connectorsView({ ...input, machine: "Home server" }).warnings[0]).toMatch(
-    /^No connectors on Home server\./,
+    /^Nothing is connected on Home server\./,
   );
 });
 
@@ -172,7 +172,7 @@ it("names the provider on each row and warning when several list connectors", ()
   });
   expect(view.rows.map((row) => row.provider)).toEqual(["Claude"]);
   expect(view.warnings).toEqual([
-    "Work has no connectors on this machine. Conversations and routines that use it here can't reach your email, calendar or files.",
+    "Work has nothing connected on this computer. Chats and routines that use it here can't reach your email, calendar or files.",
   ]);
 });
 
@@ -193,9 +193,9 @@ it("reports a failed check, and in one line the providers whose connectors can't
     machine: null,
   });
   expect(view.warnings).toEqual([
-    "Majordome couldn't check Claude's connectors. Claude took too long to list its connectors.",
+    "Majordome couldn't check what Claude is connected to. Claude took too long to list its connectors.",
   ]);
-  expect(view.notes).toEqual(["Majordome can't see the connectors of Codex and Cursor."]);
+  expect(view.notes).toEqual(["Majordome can't see what Codex and Cursor are connected to."]);
 });
 
 it("tells an older server's answer from a real failure", () => {

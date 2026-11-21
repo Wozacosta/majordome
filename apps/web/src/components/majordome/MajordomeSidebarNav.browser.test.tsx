@@ -1,17 +1,12 @@
-import type { MajordomeBackupStatus } from "@t3tools/contracts";
-import { AsyncResult } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 
 import { render } from "../../../test/render";
 import { SidebarProvider } from "../ui/sidebar";
+import type { AttentionCard } from "./attention.logic";
 import { MajordomeSidebarAlert, MajordomeSidebarNav } from "./MajordomeSidebarNav";
 
-const state = vi.hoisted(() => ({ backup: [] as unknown[] }));
-vi.mock("@effect/atom-react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@effect/atom-react")>()),
-  useAtomValue: () => state.backup,
-}));
-vi.mock("../../state/majordome", () => ({ vaultBackupStatusesAtom: () => ({}) }));
+const state = vi.hoisted(() => ({ attention: null as AttentionCard | null }));
+vi.mock("./useAttention", () => ({ useAttention: () => state.attention }));
 vi.mock("./NewChatRow", () => ({ NewChatRow: () => null }));
 vi.mock("./useMajordomeVaults", () => ({
   useMajordomeVaults: () => ({ activeVault: {}, loading: false }),
@@ -21,22 +16,8 @@ vi.mock("../../state/entities", () => ({
   useQuietThreadShells: () => [],
 }));
 
-const healthy: MajordomeBackupStatus = {
-  isVault: true,
-  lastSavedAt: null,
-  saveError: null,
-  paused: null,
-  remote: null,
-  folder: null,
-  drive: null,
-  hasPassphrase: false,
-  googleDrive: { available: true, signedIn: false },
-  github: { available: true, signedIn: false },
-  secretScan: true,
-};
-
-function setup(statuses: ReadonlyArray<MajordomeBackupStatus>) {
-  state.backup = statuses.map((status) => AsyncResult.success(status));
+function setup(attention: AttentionCard | null) {
+  state.attention = attention;
 }
 
 const navLinks = (container: HTMLElement) =>
@@ -44,8 +25,8 @@ const navLinks = (container: HTMLElement) =>
     (link) => [link.textContent, link.getAttribute("href")],
   );
 
-it("lists only Majordome's own screens while backup is fine", async () => {
-  setup([healthy]);
+it("lists only Majordome's own screens", async () => {
+  setup(null);
   await using screen = await render(
     <SidebarProvider>
       <MajordomeSidebarNav />
@@ -62,17 +43,26 @@ it("lists only Majordome's own screens while backup is fine", async () => {
   ]);
 });
 
-it("says at the foot of the sidebar that backup is paused, leading to its page", async () => {
-  setup([
-    healthy,
-    { ...healthy, paused: { reason: "conflict", files: [], since: "2026-11-15T00:00:00Z" } },
-  ]);
+it("shows no card at the foot of the sidebar while nothing needs the owner", async () => {
+  setup(null);
   await using screen = await render(
     <SidebarProvider>
       <MajordomeSidebarAlert />
     </SidebarProvider>,
   );
-  const alert = screen.container.querySelector<HTMLAnchorElement>("[data-backup-alert]");
+  expect(screen.container.querySelector("[data-attention]")).toBeNull();
+});
+
+it("says at the foot of the sidebar what needs the owner, leading to where it is fixed", async () => {
+  setup({ text: "Backup paused", tone: "warning", link: { to: "/settings/backup" }, count: 1 });
+  await using screen = await render(
+    <SidebarProvider>
+      <MajordomeSidebarAlert />
+    </SidebarProvider>,
+  );
+  const alert = screen.container.querySelector<HTMLAnchorElement>("[data-attention]");
   expect(alert?.getAttribute("href")).toBe("/settings/backup");
-  expect(alert?.textContent).toContain("Backup paused");
+  expect(alert?.getAttribute("data-attention")).toBe("warning");
+  expect(alert?.querySelector('[role="status"]')?.textContent).toBe("Backup paused");
+  expect(alert?.textContent).toContain("Fix");
 });

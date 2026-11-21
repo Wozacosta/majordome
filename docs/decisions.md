@@ -212,8 +212,9 @@ Found while importing T3 Code. Reuse these instead of building them:
 | Session store         | Event-sourced threads in SQLite (`apps/server/src/orchestration-v2/EventStore.ts`)                                                  |
 | Web app manifest      | `apps/web/public/manifest.webmanifest`                                                                                              |
 
-Mobile push and the iOS and Android apps go through T3 Connect and T3's store listings, which a fork
-cannot use. Majordome stays with a PWA plus web push for v1.
+Upstream's mobile push and its iOS and Android apps go through T3 Connect and T3's store listings,
+which a fork cannot use. Majordome's phone is a PWA plus web push for v1; a native iPhone app built
+on `apps/mobile` under Majordome's own identity is M8.
 
 The author's `brain-sync` launch agent (auto-commit, pull with rebase, pause on conflict, gitleaks
 gate) is the model for Majordome's sync. It is switched off on each machine when Majordome's sync
@@ -252,12 +253,36 @@ takes over.
 8. **One-button move.** _Done, for Hetzner; untested against real accounts._ "Set up a server for
    me" in Settings > Always-on server: the owner pastes a Hetzner API token and a Tailscale OAuth
    secret once; this computer's server creates a firewalled Hetzner server whose first-boot script
-   installs Docker and starts the pinned image, mints its one-time Tailscale key, pairs with it,
+   installs Docker, starts the `latest` image and installs the nightly update, mints its one-time
+   Tailscale key, pairs with it,
    copies the vault as a git bundle over the tailnet, carries the time zone and the GitHub backup
    sign-in, and moves routines once a provider is signed in there. Provider sign-ins are not
    copied: a Claude sign-in's refresh token must not live on two machines. Today's guide (SSH,
-   Docker, auth key, pairing code) stays for other providers. Left: DigitalOcean, updating a
-   server in place, and carrying routines the assistant set up.
-9. **Later.** Hosted Majordome on AWS, when people ask for it: the same image, one container and
-   encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
-   and wake for routines and when the owner opens the app, to keep the price low.
+   Docker, auth key, pairing code) stays for other providers. A server updates
+   itself: a systemd timer on the host (`deploy/install-updates.sh`, the same file for created and
+   hand-made servers) pulls `latest` at 05:00 in the owner's time zone, restarts Majordome only
+   when the image changed, and prunes untagged images. The host does it because a container
+   cannot replace itself without the Docker socket, which is not mounted. Left: DigitalOcean,
+   carrying routines the assistant set up, updating servers created before the timer existed
+   (pinned image, no way in: remove and set up again), and holding an update while a run is in
+   progress.
+9. **M8.** Native iPhone app, after M3. It pairs with the owner's server like the PWA and adds what
+   a web app can't: it opens with no connection, and what is typed offline is kept and sent when
+   the server is reachable. The assistant still runs on the server: an iPhone can't run Claude Code
+   or sign in with a Claude plan, and a pay-per-use API key is not the deal Majordome offers.
+   Editing existing notes offline stays with Obsidian, which keeps sync conflicts off the phone.
+   Built as a Majordome mode on top of upstream's React Native app (`apps/mobile`), add, don't
+   edit, so its pairing, connection layer, chat and on-device database are reused and upstream
+   merges stay cheap. A Swift rewrite would redo all of that.
+   - **First cut, the owner's phone through TestFlight:** Majordome's name, icon and bundle ID
+     under the owner's Apple account, with T3 Connect sign-in off; pair; chat with the assistant;
+     Today; offline capture of a note or a request, shown as waiting to send.
+   - **Then:** push sent by the owner's server with the owner's own Apple push key (the same four
+     kinds as web push), share-sheet "Send to Majordome", and the remaining screens (topics, feed,
+     routines, notes).
+   - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
+     relay, since a public app can't ship an Apple push key, and the relay waits until people ask
+     for it. The PWA stays the phone for everyone else.
+10. **Later.** Hosted Majordome on AWS, when people ask for it: the same image, one container and
+    encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
+    and wake for routines and when the owner opens the app, to keep the price low.

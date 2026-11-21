@@ -2,10 +2,12 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   base64UrlToBytes,
+  computerSetupProgress,
   deviceLabel,
   devicePushSupport,
   isAppleMobileDevice,
   isOnPhone,
+  phoneWithNotifications,
   subscriptionUsesKey,
 } from "./phone.logic";
 
@@ -92,6 +94,31 @@ describe("isOnPhone", () => {
     ["an app installed on the computer", { ...computer, isStandalone: true }, false],
   ] as const)("%s", (_name, input, expected) => {
     expect(isOnPhone(input)).toBe(expected);
+  });
+});
+
+describe("phone setup checklist", () => {
+  it.each([
+    ["not-installed", [false, false, false]],
+    ["signed-out", [false, false, false]],
+    ["https-off", [true, false, false]],
+    ["not-served", [true, true, false]],
+    ["ready", [true, true, true]],
+  ] as const)("ticks the computer's steps Tailscale reports as done: %s", (tailscale, expected) => {
+    const progress = computerSetupProgress(tailscale);
+    expect([progress.tailscaleOn, progress.secureAddressesOn, progress.majordomeReachable]).toEqual(
+      expected,
+    );
+  });
+
+  it("counts the last step done only once a phone or tablet gets notifications", () => {
+    expect(phoneWithNotifications([{ label: "Mac · Chrome" }, { label: null }])).toBeNull();
+    expect(phoneWithNotifications([{ label: "Mac · Chrome" }, { label: "Android · Chrome" }])).toBe(
+      "Android · Chrome",
+    );
+    expect(phoneWithNotifications([{ label: deviceLabel(MAC_SAFARI, 5) ?? null }])).toBe(
+      "iPad · Safari",
+    );
   });
 });
 

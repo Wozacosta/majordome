@@ -19,7 +19,7 @@ import { backupAttention, backupHeadline } from "./backup.logic";
 import { machineInSentence } from "./brains.logic";
 import { aiRows } from "./connections.logic";
 import { type FeedRunStatus, memoryOverLimitLine, routinesBlockedLine } from "./feed.logic";
-import type { DevicePushSupport } from "./phone.logic";
+import { type DevicePushSupport, NOTIFICATIONS_ANCHOR } from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
 import { ROUTINE_LAST_RUN, routineKind } from "./routines.logic";
 
@@ -54,7 +54,6 @@ export type OverviewLink =
     }
   | {
       readonly to:
-        | "/settings/notifications"
         | "/settings/phone"
         | "/settings/always-on"
         | "/settings/connections"
@@ -63,6 +62,7 @@ export type OverviewLink =
         | "/settings/secrets"
         | "/settings/private-documents"
         | "/feed";
+      readonly hash?: string;
     };
 
 export interface OverviewLine {
@@ -845,7 +845,7 @@ export function phoneSection(input: {
       ...(thisDevice === null ? {} : { detail: thisDevice }),
       // Never orange for notifications nobody turned on.
       tone: devices.length === 0 ? "neutral" : "ok",
-      link: { to: "/settings/notifications" },
+      link: { to: "/settings/phone", hash: NOTIFICATIONS_ANCHOR },
     });
   } else {
     const line = unansweredLine(input.devices, {

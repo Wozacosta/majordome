@@ -15,7 +15,6 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { toastManager } from "../ui/toast";
-import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   type DevicePush,
   NotificationsToggle,
@@ -26,17 +25,18 @@ import { Entry, EntryList, Muted, Section } from "./paper";
 import { readDevicePushSupport } from "./pushNotifications";
 
 const WHAT_IT_TELLS_YOU = [
-  "A run is waiting for you: it has a question or needs your OK.",
+  "The assistant is waiting for you: it has a question or needs your OK.",
   "“Start my day” is ready, with its first line.",
-  "A run couldn't finish, or ran past its time limit and was stopped.",
-  "Routines paused for the rest of the day: they used today's runs.",
-  "Something you asked an agent to tell you, like “let me know when it's done”.",
+  "The assistant couldn't finish, or a routine ran past its time limit and was stopped.",
+  "Routines paused for the rest of the day: they reached today's limit.",
+  "Something you asked the assistant to tell you, like “let me know when it's done”.",
 ];
 
-export function NotificationsPage() {
+/** The notifications part of "Phone & notifications": this device, every device, what is sent. */
+export function NotificationsSections() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   return (
-    <MajordomeSettingsPage searchId="majordome-notifications">
+    <>
       {environmentId === null ? null : <DeviceSections environmentId={environmentId} />}
       <Section label="What Majordome tells you about">
         <EntryList>
@@ -48,7 +48,7 @@ export function NotificationsPage() {
           </Entry>
         </EntryList>
       </Section>
-    </MajordomeSettingsPage>
+    </>
   );
 }
 
@@ -57,7 +57,7 @@ function DeviceSections({ environmentId }: { readonly environmentId: Environment
   const push = useDevicePush(environmentId, support === "supported");
   return (
     <>
-      <Section label="This device">
+      <Section label="Notifications on this device">
         {support === "supported" ? (
           <NotificationsToggle push={push} />
         ) : (

@@ -27,6 +27,7 @@
 - [Outside agents (MCP)](./user/outside-agents.md)
 - [Status](./user/overview.md)
 - [Running in the background](./user/background-service.md)
+- [Phone and notifications](./user/phone-and-notifications.md)
 - [Always-on server](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)
 - [Searching your notes](./user/notes-search.md)
