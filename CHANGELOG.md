@@ -26,6 +26,7 @@ Not released yet.
 - A GitHub sign-in is no longer forgotten the first time GitHub refuses it, only after two rounds
   in a row.
 - Settings search finds pages by everyday words: "phone", "text size", "sleep", "laptop".
+- Reading list: "Hide finished" is a switch, so you can see whether it is on.
 
 **Try this**
 

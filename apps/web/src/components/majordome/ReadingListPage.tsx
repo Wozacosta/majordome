@@ -61,11 +61,12 @@ import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { Spinner } from "../ui/spinner";
 import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { useAskAssistant } from "./AssistantDock";
-import { EntryList, ListSkeleton, LoadFailed, Muted, PageHeader } from "./paper";
+import { EntryList, ListSkeleton, LoadFailed, Muted, PageHeader, SwitchLabel } from "./paper";
 import {
   askAboutReadingMessage,
   canReorderReading,
@@ -366,11 +367,11 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                 {READING_KIND_LABELS[entry]}
               </Chip>
             ))}
-            <span className="ms-auto">
-              <Chip pressed={hideFinished} onPressedChange={setHideFinished}>
-                Hide finished
-              </Chip>
-            </span>
+            {/* A switch, not a chip: a chip on its own gives no way to tell on from off. */}
+            <SwitchLabel className="ms-auto min-h-8 text-xs text-muted-foreground">
+              <Switch checked={hideFinished} onCheckedChange={setHideFinished} />
+              Hide finished
+            </SwitchLabel>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-0.5 empty:hidden">
             {(allTags ? tags : tags.slice(0, TAG_CHIPS_SHOWN)).map((entry) => (
