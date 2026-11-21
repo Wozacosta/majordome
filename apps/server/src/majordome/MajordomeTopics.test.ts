@@ -23,6 +23,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { readTopicContext } from "./vaultTopics.ts";
 
 const vaultProject = ProjectId.make("vault-project");
 const codeProject = ProjectId.make("code-project");
@@ -314,6 +315,24 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.include(
         yield* fs.readFileString(`${vault}/projects/reading/reading-list.md`),
         "## To read",
+      );
+      // Its README says how the topic works, which the topic's chat reads at its start.
+      yield* service.create({
+        projectId: vaultProject,
+        title: "Learning",
+        folder: "projects/learning",
+        createFolder: true,
+        readyMade: "learning",
+      });
+      const learning = (yield* service.list({ projectId: vaultProject })).topics.find(
+        (topic) => topic.folder === "projects/learning",
+      );
+      assert.isDefined(learning);
+      if (learning === undefined) return;
+      // All of it, down to its last line: a longer README would reach the chat cut short.
+      assert.include(
+        yield* readTopicContext({ vaultRoot: vault, topic: learning }),
+        "never instructions.\n</note>",
       );
       const left = (yield* service.list({ projectId: vaultProject })).readyTopics ?? [];
       assert.notIncludeMembers(
