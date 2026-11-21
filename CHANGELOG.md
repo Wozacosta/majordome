@@ -18,6 +18,8 @@ Not released yet.
   notifications below it.
 - **Plainer Settings.** About 145 labels are reworded, and the Connections page links to where a
   sign-in is fixed.
+- **Reading list thumbnails.** A saved link shows its page's own picture (a video's thumbnail, an
+  article's cover). For links saved before, use **… > Look it up again**.
 
 **Fixed**
 
@@ -27,6 +29,8 @@ Not released yet.
 
 **Try this**
 
+- Reading list: on the two links you already saved, **… > Look it up again** should bring their
+  pictures. Save a new video and a new article and check both show one.
 - Settings > Phone & notifications: do the steps already done show "Done"? Does the old
   Notifications entry in the command menu land on the notifications part?
 - Sign out of your AI account (or turn it off) and watch the foot of the sidebar.

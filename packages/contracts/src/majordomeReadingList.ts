@@ -30,6 +30,8 @@ export const MajordomeReadingItem = Schema.Struct({
   tags: Schema.Array(Schema.String),
   /** How long it takes to read, watch or hear, when that could be told. */
   minutes: Schema.optional(Schema.Number),
+  /** The page's own picture (an https address), shown as the row's thumbnail. */
+  image: Schema.optional(Schema.String),
   addedAt: Schema.String,
   /** Set once the owner finished it. */
   doneAt: Schema.optional(Schema.String),
@@ -78,6 +80,8 @@ export const MajordomeUpdateReadingItemInput = Schema.Struct({
   starred: Schema.optional(Schema.Boolean),
   /** Null or empty removes the notes. */
   notes: Schema.optional(Schema.NullOr(Schema.String)),
+  /** Reads the link again for its picture, and for the source and length it still lacks. */
+  lookUp: Schema.optional(Schema.Boolean),
 });
 export type MajordomeUpdateReadingItemInput = typeof MajordomeUpdateReadingItemInput.Type;
 

@@ -7,6 +7,7 @@ import {
   kindOfLink,
   normalizeLink,
   parseLink,
+  pictureAddress,
 } from "./readingLink.ts";
 
 const hostOf = (address: string) => new URL(address).hostname;
@@ -118,6 +119,26 @@ describe("readingLink", () => {
       { title: "A <plain> title" },
     );
     assert.deepEqual(extractPage("<html><body><p>No title here.</p></body></html>"), {});
+  });
+
+  it("finds a page's picture, whole and over https only", () => {
+    const page = new URL("https://blog.example.com/posts/one");
+    const picture = (meta: string) => extractPage(`<head>${meta}</head>`, page).image;
+    assert.equal(
+      picture('<meta property="og:image" content="/img/cover.jpg?w=1200&amp;h=630">'),
+      "https://blog.example.com/img/cover.jpg?w=1200&h=630",
+    );
+    assert.equal(
+      picture('<meta name="twitter:image" content="https://cdn.example.com/a.png">'),
+      "https://cdn.example.com/a.png",
+    );
+    // A window served over https cannot show an http picture, and other schemes are not pictures.
+    assert.isUndefined(
+      picture('<meta property="og:image" content="http://blog.example.com/a.jpg">'),
+    );
+    assert.isUndefined(picture('<meta property="og:image" content="data:image/png;base64,AAAA">'));
+    assert.equal(pictureAddress(`https://x.example/${"a".repeat(2100)}`, page), undefined);
+    assert.isUndefined(extractPage('<meta property="og:image" content="/a.jpg">').image);
   });
 
   it("gives a reading time only to a page with enough words to tell", () => {

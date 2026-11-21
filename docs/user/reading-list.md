@@ -5,8 +5,9 @@ podcasts. Open **Reading list** in the sidebar.
 
 ## Save something
 
-Paste a link in the field at the top and press Enter. Majordome looks up its title, where it is
-from and, when it can tell, how long it takes. Something without a link, such as a book a friend
+Paste a link in the field at the top and press Enter. Majordome looks up its title, its picture,
+where it is from and, when it can tell, how long it takes. The picture is loaded from the page's
+own site each time the list is shown. Something without a link, such as a book a friend
 recommended, can be saved by typing its title instead. A link you already saved is not added twice.
 
 ## Keep it in order

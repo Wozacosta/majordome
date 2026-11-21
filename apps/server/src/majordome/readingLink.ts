@@ -17,6 +17,20 @@ interface LinkDetails {
   readonly site: string;
   readonly kind: MajordomeReadingKind;
   readonly minutes?: number;
+  readonly image?: string;
+}
+
+const MAX_IMAGE_CHARS = 2_000;
+
+/** A picture's address as the page gives it, made whole; only https, which any window can show. */
+export function pictureAddress(raw: string | undefined, page: URL): string | undefined {
+  if (raw === undefined || raw.trim() === "") return undefined;
+  try {
+    const url = new URL(raw.trim(), page);
+    return url.protocol === "https:" && url.href.length <= MAX_IMAGE_CHARS ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 const LOOKUP_TIMEOUT = "8 seconds";
@@ -192,18 +206,30 @@ function countWords(html: string): number {
   return text === "" ? 0 : text.split(" ").length;
 }
 
-/** The title, site and reading time an HTML page gives; each left out when the page has none. */
-export function extractPage(html: string): {
+/**
+ * The title, site, reading time and picture an HTML page gives; each left out when the page has
+ * none. The picture needs `page` to make a relative address whole.
+ */
+export function extractPage(
+  html: string,
+  page?: URL,
+): {
   readonly title?: string;
   readonly site?: string;
   readonly minutes?: number;
+  readonly image?: string;
 } {
   const title =
     metaContent(html, "og:title") ??
     tidy(/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "");
   const site = metaContent(html, "og:site_name");
   const words = countWords(html);
+  const image =
+    page === undefined
+      ? undefined
+      : pictureAddress(metaContent(html, "og:image") ?? metaContent(html, "twitter:image"), page);
   return {
+    ...(image === undefined ? {} : { image }),
     ...(title === "" ? {} : { title: title.slice(0, MAX_TITLE_CHARS).trim() }),
     ...(site === undefined ? {} : { site }),
     ...(words < MIN_WORDS_FOR_MINUTES
@@ -215,6 +241,7 @@ export function extractPage(html: string): {
 const YouTubeEmbed = Schema.Struct({
   title: Schema.String,
   author_name: Schema.optional(Schema.String),
+  thumbnail_url: Schema.optional(Schema.String),
 });
 
 const HEADERS = {
@@ -234,9 +261,11 @@ const readYouTube = Effect.fn("majordome.readingLink.readYouTube")(function* (ur
       Effect.flatMap(HttpClientResponse.filterStatusOk),
       Effect.flatMap(HttpClientResponse.schemaBodyJson(YouTubeEmbed)),
     );
+  const image = pictureAddress(embed.thumbnail_url, url);
   return {
     title: tidy(embed.title).slice(0, MAX_TITLE_CHARS).trim(),
     ...(embed.author_name === undefined ? {} : { site: embed.author_name }),
+    ...(image === undefined ? {} : { image }),
   };
 });
 
@@ -255,7 +284,7 @@ const readPage = Effect.fn("majordome.readingLink.readPage")(function* (url: URL
     }),
     Stream.mkUint8Array,
   );
-  return extractPage(new TextDecoder().decode(bytes.subarray(0, MAX_BODY_BYTES)));
+  return extractPage(new TextDecoder().decode(bytes.subarray(0, MAX_BODY_BYTES)), url);
 });
 
 /** Never fails: a page that is refused, slow, missing or not HTML gives the fallback. */
@@ -267,6 +296,7 @@ export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function
     site: found.site === undefined || found.site === "" ? fallback.site : found.site,
     kind: fallback.kind,
     ...(found.minutes === undefined ? {} : { minutes: found.minutes }),
+    ...(found.image === undefined ? {} : { image: found.image }),
   });
   const found = isYouTube(url)
     ? readYouTube(url).pipe(Effect.map(withFallback))

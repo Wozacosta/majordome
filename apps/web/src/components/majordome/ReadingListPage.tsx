@@ -37,6 +37,7 @@ import {
   MessageCircleQuestionIcon,
   NotebookPenIcon,
   PencilIcon,
+  RefreshCwIcon,
   PlayIcon,
   PlusIcon,
   StarIcon,
@@ -101,6 +102,50 @@ const TOUCH_DRAG = { activationConstraint: { delay: 250, tolerance: 8 } };
 const DRAG_MODIFIERS = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
 
 type Patch = Omit<MajordomeUpdateReadingItemInput, "projectId" | "itemId">;
+
+/**
+ * The page's own picture when it has one, else an icon for what kind of thing it is. The picture
+ * comes straight from its site, without saying which page asked for it.
+ */
+function ItemTile({
+  item,
+  dimmed,
+}: {
+  readonly item: MajordomeReadingItem;
+  readonly dimmed: boolean;
+}) {
+  // Keyed by address, so a picture that failed is tried again once the link is looked up anew.
+  const [failed, setFailed] = useState<string | null>(null);
+  const KindIcon = KIND_ICONS[item.kind];
+  if (item.image !== undefined && failed !== item.image) {
+    return (
+      <img
+        src={item.image}
+        alt={READING_KIND_LABELS[item.kind]}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(item.image ?? null)}
+        className={cn(
+          "h-10 w-16 shrink-0 rounded-md bg-muted object-cover",
+          dimmed && "opacity-60",
+        )}
+      />
+    );
+  }
+  return (
+    <span
+      role="img"
+      aria-label={READING_KIND_LABELS[item.kind]}
+      className={cn(
+        "flex h-10 w-16 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground",
+        dimmed && "opacity-60",
+      )}
+    >
+      <KindIcon className="size-4" />
+    </span>
+  );
+}
 
 /** What was saved to read, watch or listen to later, kept in the notes folder. */
 export function ReadingListPage() {
@@ -479,7 +524,6 @@ function ReadingRow({
   });
   const [editing, setEditing] = useState<Editing>(null);
   const done = item.doneAt !== undefined;
-  const KindIcon = KIND_ICONS[item.kind];
   const length = readingLengthWords(item);
   const added = readingAddedWords(item.addedAt, now);
   const save = async (patch: Patch) => {
@@ -514,16 +558,7 @@ function ReadingRow({
       ) : handleGap ? (
         <span aria-hidden className="-mx-1.5 w-7 shrink-0 sm:w-6" />
       ) : null}
-      <span
-        role="img"
-        aria-label={READING_KIND_LABELS[item.kind]}
-        className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
-          done && "opacity-60",
-        )}
-      >
-        <KindIcon className="size-4" />
-      </span>
+      <ItemTile item={item} dimmed={done} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         {editing === "title" ? (
           <InlineEdit
@@ -680,6 +715,12 @@ function ReadingRow({
               <PencilIcon />
               Rename
             </MenuItem>
+            {item.url === null ? null : (
+              <MenuItem onClick={() => void onUpdate({ lookUp: true })}>
+                <RefreshCwIcon />
+                Look it up again
+              </MenuItem>
+            )}
             {onAsk !== null ? (
               <>
                 <MenuSeparator />

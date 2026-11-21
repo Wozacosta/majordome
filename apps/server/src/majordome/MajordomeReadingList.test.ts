@@ -25,7 +25,8 @@ const html = (text: string): FakeReply => ({
 
 const ARTICLE = `<html><head><title>Fallback title</title>
 <meta property="og:title" content="How compilers work">
-<meta property="og:site_name" content="The Blog"></head>
+<meta property="og:site_name" content="The Blog">
+<meta property="og:image" content="/covers/compilers.jpg"></head>
 <body><article>${Array.from({ length: 660 }, () => "word").join(" ")}</article></body></html>`;
 
 const setUp = Effect.fn("test.setUp")(function* (
@@ -116,6 +117,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
         site: "The Blog",
         kind: "article",
         minutes: 3,
+        image: "https://blog.example.com/covers/compilers.jpg",
         tags: [],
         addedAt: savedAt,
       });
@@ -141,6 +143,28 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       assert.deepEqual(again, { item: added.item, duplicate: true });
       assert.lengthOf(requests, 1);
       assert.lengthOf(yield* items, 2);
+
+      // Looked up again: the owner's title and length stay, and a change beside it keeps the picture.
+      yield* service.update({
+        projectId: vaultProject,
+        itemId: added.item.id,
+        title: "Compilers, by me",
+        minutes: 7,
+      });
+      const looked = yield* service.update({
+        projectId: vaultProject,
+        itemId: added.item.id,
+        lookUp: true,
+      });
+      assert.lengthOf(requests, 2);
+      assert.deepInclude(looked, {
+        title: "Compilers, by me",
+        minutes: 7,
+        image: "https://blog.example.com/covers/compilers.jpg",
+      });
+      // Something saved by its title has nothing to look up.
+      yield* service.update({ projectId: vaultProject, itemId: older.id, lookUp: true });
+      assert.lengthOf(requests, 2);
     }),
   );
 

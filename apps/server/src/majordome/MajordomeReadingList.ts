@@ -129,6 +129,7 @@ function applyReadingItemUpdate(
     kind: input.kind ?? item.kind,
     tags: input.tags === undefined ? item.tags : normalizeTags(input.tags),
     ...(minutes === undefined ? {} : { minutes }),
+    ...(item.image === undefined ? {} : { image: item.image }),
     addedAt: item.addedAt,
     ...(doneAt === undefined ? {} : { doneAt }),
     ...(starred === true ? { starred } : {}),
@@ -262,6 +263,7 @@ const make = Effect.gen(function* () {
         kind: details?.kind ?? "other",
         tags: [],
         ...(details?.minutes === undefined ? {} : { minutes: details.minutes }),
+        ...(details?.image === undefined ? {} : { image: details.image }),
         addedAt: yield* nowIso,
       };
       return yield* change(vaultRoot, (file) => {
@@ -282,10 +284,33 @@ const make = Effect.gen(function* () {
     function* (input) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
       const now = yield* nowIso;
+      // Read outside the change, so a slow page never holds the list's lock.
+      const link =
+        input.lookUp === true
+          ? parseLink(
+              (yield* read(vaultRoot)).items.find((item) => item.id === input.itemId)?.url ?? "",
+            )
+          : null;
+      const found =
+        link === null
+          ? undefined
+          : yield* lookUpLink(link).pipe(Effect.provideService(HttpClient.HttpClient, http));
       return yield* change(vaultRoot, (file) => {
         const item = file.items.find((candidate) => candidate.id === input.itemId);
         if (item === undefined) return fail("That item is no longer on your list.");
-        const next = applyReadingItemUpdate(item, input, now);
+        const updated = applyReadingItemUpdate(item, input, now);
+        // The owner's title and length stay theirs; a new look only fills what is missing.
+        const next: MajordomeReadingItem =
+          found === undefined
+            ? updated
+            : {
+                ...updated,
+                ...(updated.site === undefined ? { site: found.site } : {}),
+                ...(updated.minutes === undefined && found.minutes !== undefined
+                  ? { minutes: found.minutes }
+                  : {}),
+                ...(found.image === undefined ? {} : { image: found.image }),
+              };
         return Effect.succeed({
           items: file.items.map((candidate) => (candidate === item ? next : candidate)),
           result: next,
