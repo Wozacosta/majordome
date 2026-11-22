@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.17
+
 **New**
 
 - **The side browser works on an always-on server.** A conversation kept on the server can now
@@ -14,11 +16,6 @@ Not released yet.
   needs, and Chrome keeps its own sandbox. A new server gets this on its own. On a server set up
   by hand before this version, fetch the two files again as the guide's "If something goes
   wrong" section shows.
-
-## 0.10.17
-
-**New**
-
 - **"Go to a topic" in the Cmd+K list.** The topic search no longer needs its shortcut to be
   found: open the list with Cmd+K and pick it, or type "topic".
 
@@ -48,6 +45,8 @@ Not released yet.
 - Make a new topic: its conversation should open at once, with the window busy until it does.
 - Press Cmd+K and pick "Go to a topic".
 - Click "Fix" on the backup warning in the sidebar: the machine with the problem is at the top.
+- In a conversation kept on your always-on server, ask the assistant to open a web page in the
+  side browser.
 
 ## 0.10.16
 
