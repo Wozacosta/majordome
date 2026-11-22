@@ -12,11 +12,14 @@ export function topicWelcomeStarters(name: string) {
   ] as const;
 }
 
-/** Offered above the message box of a topic's chat that is already under way. */
+/**
+ * Offered above the message box of a topic's chat that is already under way. A whole question is
+ * sent as it is; the start of a sentence waits in the box for the owner to finish it.
+ */
 export const TOPIC_CHIPS = [
-  { label: "Where are we?", text: "Where are we?" },
-  { label: "What's next?", text: "What's next?" },
-  { label: "Remind me…", text: "Remind me to " },
+  { label: "Where are we?", text: "Where are we?", send: true },
+  { label: "What's next?", text: "What's next?", send: true },
+  { label: "Remind me…", text: "Remind me to ", send: false },
 ] as const;
 
 /**

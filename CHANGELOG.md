@@ -9,6 +9,8 @@ Not released yet.
 
 **Fixed**
 
+- In a topic, the "Where are we?" and "What's next?" chips now send at once. "Remind me…" still
+  waits in the box for you to finish the sentence.
 - Adding a Markdown file to a topic looked like nothing happened: it is a note, so it goes under
   Notes, not Files. The app now says so, and the Notes list and its count update right away.
 

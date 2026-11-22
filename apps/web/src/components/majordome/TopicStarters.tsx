@@ -19,7 +19,8 @@ export function useTopicChat(
 /** Quiet ways to pick a topic's chat back up. Hidden, the row keeps its height. */
 export function TopicStarterChips(props: {
   readonly shown: boolean;
-  readonly onPick: (text: string) => void;
+  /** `send` is true for a whole question, which goes off at once. */
+  readonly onPick: (text: string, send: boolean) => void;
 }) {
   return (
     <div
@@ -36,7 +37,7 @@ export function TopicStarterChips(props: {
           type="button"
           size="xs"
           variant="outline"
-          onClick={() => props.onPick(chip.text)}
+          onClick={() => props.onPick(chip.text, chip.send)}
         >
           {chip.label}
         </Button>

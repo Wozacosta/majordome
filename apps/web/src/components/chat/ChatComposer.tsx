@@ -3497,7 +3497,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       {topicChips === "none" ? null : (
         <TopicStarterChips
           shown={topicChips === "shown"}
-          onPick={(text) => insertComposerText(text, "end")}
+          onPick={(text, send) => {
+            if (!insertComposerText(text, "end") || !send) return;
+            // Sent once the box holds the text, as if the owner had pressed Enter.
+            window.setTimeout(() => submitComposerRef.current(), 0);
+          }}
         />
       )}
       <ComposerBanner.Dock>
