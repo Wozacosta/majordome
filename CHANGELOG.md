@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.6
+
 **New**
 
 - **A topic's page says where things stand.** Above a topic's chat, a short strip shows where
