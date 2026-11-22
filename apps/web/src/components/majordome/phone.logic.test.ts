@@ -1,3 +1,4 @@
+import { EnvironmentId, type MajordomeRoutinesRunner } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -10,6 +11,8 @@ import {
   isAppleMobileDevice,
   isOnPhone,
   phoneAddress,
+  phoneComputerWords,
+  phoneEnvironmentId,
   phoneWays,
   phoneWithNotifications,
   subscriptionUsesKey,
@@ -176,6 +179,61 @@ describe("the address from anywhere", () => {
       );
     },
   );
+});
+
+describe("the computer a phone is set up on", () => {
+  const mac = EnvironmentId.make("mac");
+  const server = EnvironmentId.make("server");
+  const other = EnvironmentId.make("other");
+  const copy = (environmentId: EnvironmentId, routinesRunner: MajordomeRoutinesRunner) => ({
+    environmentId,
+    routinesRunner,
+  });
+  const runs = (environmentId: EnvironmentId) => copy(environmentId, "this-server");
+  const follows = (environmentId: EnvironmentId) => copy(environmentId, "another-server");
+
+  it.each([
+    ["this computer runs the routines", [mac, server], [runs(mac), follows(server)], mac],
+    ["another connected computer runs them", [mac, server], [follows(mac), runs(server)], server],
+    ["the one that runs them is not connected", [mac], [follows(mac), runs(server)], mac],
+    ["nothing runs routines", [mac, server], [copy(mac, "none"), copy(server, "none")], mac],
+    [
+      "two notes folders run on this computer and on another: the other one is always on",
+      [mac, server],
+      [runs(mac), runs(server)],
+      server,
+    ],
+    [
+      "two notes folders run on two other computers: the first folder's",
+      [mac, server, other],
+      [runs(other), runs(server)],
+      other,
+    ],
+  ])("%s", (_name, connected, copies, expected) => {
+    expect(phoneEnvironmentId({ primaryEnvironmentId: mac, connected, copies })).toBe(expected);
+  });
+
+  it("waits for this window's own computer", () => {
+    expect(
+      phoneEnvironmentId({
+        primaryEnvironmentId: null,
+        connected: [server],
+        copies: [runs(server)],
+      }),
+    ).toBeNull();
+  });
+
+  it("names another computer and keeps “this computer” for this one", () => {
+    expect(phoneComputerWords(null)).toEqual({
+      inSentence: "this computer",
+      atStart: "This computer",
+    });
+    expect(phoneComputerWords("Home server").inSentence).toBe("Home server");
+    expect(phoneComputerWords("Another computer")).toEqual({
+      inSentence: "another computer",
+      atStart: "Another computer",
+    });
+  });
 });
 
 describe("subscriptionUsesKey", () => {

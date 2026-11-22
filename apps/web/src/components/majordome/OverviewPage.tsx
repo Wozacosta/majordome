@@ -64,6 +64,7 @@ import {
 import { EntryList, ROW_ACTION_CLASS, Section, SectionTitle, ToneDot } from "./paper";
 import { readDevicePushSupport } from "./pushNotifications";
 import { useMachineNames } from "./useMachineNames";
+import { usePhoneEnvironment } from "./usePhoneEnvironment";
 
 /** Whether the whole setup is healthy: one verdict, then each part's state and where to fix it. */
 export function OverviewPage() {
@@ -213,8 +214,14 @@ function Health({
 
   const [support] = useState(readDevicePushSupport);
   const push = useDevicePush(environmentId, support === "supported");
-  const devices = useAtomValue(majordomeEnvironment.pushDevices({ environmentId, input: {} }));
-  const phone = useAtomValue(majordomeEnvironment.phoneSetup({ environmentId, input: {} }));
+  const phoneTarget = usePhoneEnvironment();
+  const phoneEnvironmentId = phoneTarget?.environmentId ?? environmentId;
+  const devices = useAtomValue(
+    majordomeEnvironment.pushDevices({ environmentId: phoneEnvironmentId, input: {} }),
+  );
+  const phone = useAtomValue(
+    majordomeEnvironment.phoneSetup({ environmentId: phoneEnvironmentId, input: {} }),
+  );
 
   const offline = ordered
     .filter((environment) => !isConnected(environment.environmentId))
@@ -334,6 +341,7 @@ function Health({
     thisEndpoint: push.endpoint,
     devices: mapLoaded(loaded(devices), (result) => result.devices),
     phone: loaded(phone),
+    elsewhere: phoneTarget === null || phoneTarget.isThisComputer ? null : phoneTarget.name,
   });
   const verdict = overviewVerdict(needsYou, [where, routines, notes, access, phoneLines]);
 

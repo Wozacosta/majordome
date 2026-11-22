@@ -19,7 +19,12 @@ import { backupAttention, backupHeadline } from "./backup.logic";
 import { machineInSentence } from "./brains.logic";
 import { aiRows } from "./connections.logic";
 import { type FeedRunStatus, memoryOverLimitLine, routinesBlockedLine } from "./feed.logic";
-import { type DevicePushSupport, NOTIFICATIONS_ANCHOR, phoneAddress } from "./phone.logic";
+import {
+  type DevicePushSupport,
+  NOTIFICATIONS_ANCHOR,
+  phoneAddress,
+  phoneComputerWords,
+} from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
 import { ROUTINE_LAST_RUN, routineKind } from "./routines.logic";
 
@@ -831,24 +836,31 @@ export function phoneSection(input: {
   readonly thisEndpoint: string | null | undefined;
   readonly devices: Loaded<ReadonlyArray<MajordomePushDevice>>;
   readonly phone: Loaded<MajordomePhoneSetup>;
+  /** The computer both were read from, by name, when it is another one than this. */
+  readonly elsewhere?: string | null;
 }): OverviewSection {
   const lines: Array<OverviewLine> = [];
+  const elsewhere = input.elsewhere ?? null;
+  const computer = phoneComputerWords(elsewhere).inSentence;
   if (input.devices.state === "ready") {
     const devices = input.devices.value;
+    // This device subscribes on this computer, so another computer's list says nothing about it.
     const thisDevice =
-      input.support !== "supported"
-        ? PUSH_SUPPORT_COPY[input.support]
-        : input.thisEndpoint === undefined
-          ? null
-          : devices.some((device) => device.endpoint === input.thisEndpoint)
-            ? "This device is one of them."
-            : "This device isn't one of them.";
+      elsewhere !== null
+        ? null
+        : input.support !== "supported"
+          ? PUSH_SUPPORT_COPY[input.support]
+          : input.thisEndpoint === undefined
+            ? null
+            : devices.some((device) => device.endpoint === input.thisEndpoint)
+              ? "This device is one of them."
+              : "This device isn't one of them.";
     lines.push({
       key: "phone:notifications",
       text:
         devices.length === 0
           ? "No device gets notifications yet"
-          : `Notifications reach ${plural(devices.length, "device", "devices")}`,
+          : `Notifications${elsewhere === null ? "" : ` from ${computer}`} reach ${plural(devices.length, "device", "devices")}`,
       ...(thisDevice === null ? {} : { detail: thisDevice }),
       // Never orange for notifications nobody turned on.
       tone: devices.length === 0 ? "neutral" : "ok",
@@ -857,7 +869,7 @@ export function phoneSection(input: {
   } else {
     const line = unansweredLine(input.devices, {
       key: "phone:notifications",
-      label: null,
+      label: elsewhere,
       what: "its notifications",
     });
     if (line !== null) lines.push(line);
@@ -877,7 +889,7 @@ export function phoneSection(input: {
             key: "phone:address",
             text:
               address.way === "anywhere"
-                ? "Your phone can reach this computer from anywhere"
+                ? `Your phone can reach ${computer} from anywhere`
                 : "Secure address is on",
             ...(address.url === null ? {} : { detail: address.url }),
             tone: "ok",
@@ -887,7 +899,7 @@ export function phoneSection(input: {
   } else {
     const line = unansweredLine(input.phone, {
       key: "phone:address",
-      label: null,
+      label: elsewhere,
       what: "its secure address",
     });
     if (line !== null) lines.push(line);

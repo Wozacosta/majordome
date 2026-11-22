@@ -9,6 +9,14 @@ Not released yet.
 
 **New**
 
+- **With an always-on server, your phone connects to the server.** "Set up my phone" on your
+  computer now gives the address to the computer that runs your routines, when that is another
+  one, and the code opens your phone on it. So the phone shows the routines and chats that live
+  there and keeps working while your own computer sleeps. If your own computer already has an
+  address, the page says so and offers to turn it off. To move a phone you already set up: turn
+  that address off, press "Set up my phone", scan the new code and add Majordome to the Home
+  Screen again.
+
 - **The sidebar menu folds into a row of icons.** On a phone, Today, To-dos, Reading list,
   Routines and Reminders start as five icons on one line, which leaves the screen to your topics.
   The small arrow at the end of the row shows the names again, and the arrow next to

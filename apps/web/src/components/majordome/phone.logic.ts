@@ -1,4 +1,9 @@
-import type { MajordomePhoneSetup, MajordomePushDevice } from "@t3tools/contracts";
+import type {
+  EnvironmentId,
+  MajordomePhoneSetup,
+  MajordomePushDevice,
+  MajordomeRoutinesRunner,
+} from "@t3tools/contracts";
 
 /**
  * Whether this browser can get Majordome's notifications, and if not, what the owner can do.
@@ -133,6 +138,39 @@ export function phoneAddress(
 ): { readonly way: "anywhere" | "tailscale"; readonly url: string | null } | null {
   if (setup.anywhere.state === "ready") return { way: "anywhere", url: setup.anywhere.url };
   return setup.tailscale === "ready" ? { way: "tailscale", url: setup.secureUrl } : null;
+}
+
+/**
+ * The computer a phone is set up on. One that runs routines and is not this window's own is
+ * always on, so it wins when it is connected; with several, the first notes folder's.
+ */
+export function phoneEnvironmentId(input: {
+  readonly primaryEnvironmentId: EnvironmentId | null;
+  readonly connected: ReadonlyArray<EnvironmentId>;
+  /** Each computer's copy of each notes folder, in the order the folders are listed. */
+  readonly copies: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly routinesRunner: MajordomeRoutinesRunner | null;
+  }>;
+}): EnvironmentId | null {
+  if (input.primaryEnvironmentId === null) return null;
+  const runner = input.copies.find(
+    (copy) =>
+      copy.routinesRunner === "this-server" &&
+      copy.environmentId !== input.primaryEnvironmentId &&
+      input.connected.includes(copy.environmentId),
+  );
+  return runner?.environmentId ?? input.primaryEnvironmentId;
+}
+
+/** How phone setup names the phone's computer: `name` is null when it is this one. */
+export function phoneComputerWords(name: string | null): {
+  readonly inSentence: string;
+  readonly atStart: string;
+} {
+  if (name === null) return { inSentence: "this computer", atStart: "This computer" };
+  // "Another computer" is the name of a computer saved without one.
+  return { inSentence: name.replace(/^Another /, "another "), atStart: name };
 }
 
 /** The first phone or tablet that gets notifications, by the name it registered with. */

@@ -22,7 +22,9 @@ import {
   useDevicePush,
 } from "./NotificationsToggle";
 import { Entry, EntryList, Muted, Section } from "./paper";
-import { readDevicePushSupport } from "./pushNotifications";
+import { phoneComputerWords } from "./phone.logic";
+import { readDevicePushSupport, readIsOnPhone } from "./pushNotifications";
+import { type PhoneEnvironment, usePhoneEnvironment } from "./usePhoneEnvironment";
 
 const WHAT_IT_TELLS_YOU = [
   "The assistant is waiting for you: it has a question or needs your OK.",
@@ -35,9 +37,15 @@ const WHAT_IT_TELLS_YOU = [
 /** The notifications part of "Phone & notifications": this device, every device, what is sent. */
 export function NotificationsSections() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const target = usePhoneEnvironment();
+  // A phone lists the computer it is open on: that is where its own switch subscribes.
+  const [onPhone] = useState(readIsOnPhone);
+  const elsewhere = onPhone || target === null || target.isThisComputer ? null : target;
   return (
     <>
-      {environmentId === null ? null : <DeviceSections environmentId={environmentId} />}
+      {environmentId === null ? null : (
+        <DeviceSections environmentId={environmentId} elsewhere={elsewhere} />
+      )}
       <Section label="What Majordome tells you about">
         <EntryList>
           {WHAT_IT_TELLS_YOU.map((line) => (
@@ -52,7 +60,14 @@ export function NotificationsSections() {
   );
 }
 
-function DeviceSections({ environmentId }: { readonly environmentId: EnvironmentId }) {
+function DeviceSections({
+  environmentId,
+  elsewhere,
+}: {
+  readonly environmentId: EnvironmentId;
+  /** The computer a phone is set up on, when it is another one: phones subscribe there. */
+  readonly elsewhere: PhoneEnvironment | null;
+}) {
   const [support] = useState(readDevicePushSupport);
   const push = useDevicePush(environmentId, support === "supported");
   return (
@@ -64,8 +79,14 @@ function DeviceSections({ environmentId }: { readonly environmentId: Environment
           <Muted>{SUPPORT_COPY[support]}</Muted>
         )}
       </Section>
-      <Section label="Devices that get notifications">
-        <DeviceList environmentId={environmentId} push={push} />
+      <Section
+        label={
+          elsewhere === null
+            ? "Devices that get notifications"
+            : `Devices that get notifications from ${phoneComputerWords(elsewhere.name).inSentence}`
+        }
+      >
+        <DeviceList environmentId={elsewhere?.environmentId ?? environmentId} push={push} />
       </Section>
     </>
   );

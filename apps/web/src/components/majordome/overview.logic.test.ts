@@ -710,6 +710,24 @@ describe("phoneSection", () => {
     },
   );
 
+  it("names the computer the phone is set up on when it is another one", () => {
+    const section = phoneSection({
+      support: "supported",
+      thisEndpoint: "https://push/this",
+      devices: ready(devices),
+      phone: ready({
+        ...phone,
+        tailscale: "not-installed",
+        anywhere: { state: "ready", url: "https://k7m2xq9d.majord.link", reason: null },
+      }),
+      elsewhere: "Home server",
+    });
+    expect(facts(section.lines)).toEqual([
+      ["Notifications from Home server reach 2 devices", null, "ok"],
+      ["Your phone can reach Home server from anywhere", "https://k7m2xq9d.majord.link", "ok"],
+    ]);
+  });
+
   it("is never orange for notifications or an address nobody turned on", () => {
     const section = phoneSection({
       support: "needs-home-screen",

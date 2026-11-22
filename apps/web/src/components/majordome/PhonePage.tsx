@@ -57,24 +57,37 @@ import {
   computerSetupProgress,
   currentAnywhere,
   NOTIFICATIONS_ANCHOR,
+  phoneComputerWords,
   phoneWays,
   phoneWithNotifications,
 } from "./phone.logic";
 import { readIsOnPhone } from "./pushNotifications";
+import { usePhoneEnvironment } from "./usePhoneEnvironment";
 
 const TAILSCALE_DOWNLOAD_URL = "https://tailscale.com/download";
 const TAILSCALE_DNS_SETTINGS_URL = "https://login.tailscale.com/admin/dns";
 const ANYWHERE_RECHECK_MS = 3000;
 
 export function PhonePage() {
-  const environmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const primaryEnvironmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const target = usePhoneEnvironment();
   const [onPhone] = useState(readIsOnPhone);
   return (
     <MajordomeSettingsPage searchId="majordome-phone">
       {onPhone ? (
         <OnPhone />
-      ) : environmentId === null ? null : (
-        <PhoneSetupSection environmentId={environmentId} />
+      ) : target === null ? (
+        primaryEnvironmentId === null ? null : (
+          <Section label="Set up your phone">
+            <Skeleton className="h-24 w-full" />
+          </Section>
+        )
+      ) : (
+        <PhoneSetupSection
+          environmentId={target.environmentId}
+          elsewhere={target.isThisComputer ? null : target.name}
+          ownEnvironmentId={target.isThisComputer ? null : primaryEnvironmentId}
+        />
       )}
       <SettingsSearchTarget id={NOTIFICATIONS_ANCHOR} className="outline-none">
         {/* Without it, a jump here would center the whole part instead of its top. */}
@@ -104,7 +117,18 @@ function ExternalLink({ href, children }: { readonly href: string; readonly chil
   );
 }
 
-function PhoneSetupSection({ environmentId }: { readonly environmentId: EnvironmentId }) {
+function PhoneSetupSection({
+  environmentId,
+  elsewhere,
+  ownEnvironmentId,
+}: {
+  /** The computer the phone is set up on. */
+  readonly environmentId: EnvironmentId;
+  /** Its name when it is another computer than this one. */
+  readonly elsewhere: string | null;
+  /** This computer, when the phone is set up on another one. */
+  readonly ownEnvironmentId: EnvironmentId | null;
+}) {
   const result = useAtomValue(majordomeEnvironment.phoneSetup({ environmentId, input: {} }));
   const bumpRevision = useAtomSet(phoneSetupRevision(environmentId));
   const checkAgain = () => bumpRevision((value) => value + 1);
@@ -122,6 +146,12 @@ function PhoneSetupSection({ environmentId }: { readonly environmentId: Environm
 
   return (
     <Section label="Set up your phone">
+      {elsewhere === null ? null : (
+        <Muted className={cn(READING_MEASURE_CLASS, "mb-3")}>
+          Your phone connects to {phoneComputerWords(elsewhere).inSentence}, which is always on and
+          runs your routines.
+        </Muted>
+      )}
       {phone === null ? null : (
         <StatusLine tone="ok" className={cn(READING_MEASURE_CLASS, "mb-3")}>
           Your phone is set up: {phone} gets notifications. Follow the steps again to add another
@@ -139,39 +169,49 @@ function PhoneSetupSection({ environmentId }: { readonly environmentId: Environm
       ) : (
         <PhoneWays
           environmentId={environmentId}
+          elsewhere={elsewhere}
           setup={setup}
           phoneDone={phone !== null}
           onCheckAgain={checkAgain}
           checking={result.waiting}
         />
       )}
+      {ownEnvironmentId === null ? null : <OwnAddress environmentId={ownEnvironmentId} />}
     </Section>
   );
 }
 
 function PhoneWays({
   environmentId,
+  elsewhere,
   setup,
   phoneDone,
   onCheckAgain,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
+  readonly elsewhere: string | null;
   readonly setup: MajordomePhoneSetup;
   readonly phoneDone: boolean;
   readonly onCheckAgain: () => void;
   readonly checking: boolean;
 }) {
   const ways = phoneWays(setup);
+  const anywhere = (
+    <AnywhereAddress
+      environmentId={environmentId}
+      elsewhere={elsewhere}
+      anywhere={setup.anywhere}
+      tailscaleOnly={ways.tailscaleOnly}
+      phoneDone={phoneDone}
+      checking={checking}
+    />
+  );
+  // Tailscale and Wi-Fi are read from, and set up on, the computer in front of the owner.
+  if (elsewhere !== null) return anywhere;
   return (
     <>
-      <AnywhereAddress
-        environmentId={environmentId}
-        anywhere={setup.anywhere}
-        tailscaleOnly={ways.tailscaleOnly}
-        phoneDone={phoneDone}
-        checking={checking}
-      />
+      {anywhere}
       <Disclosure
         className="mt-4"
         summary="More private: only your own devices"
@@ -204,7 +244,11 @@ function PhoneWays({
               nothing else set up. Phones can't get notifications this way, and it stops working
               away from home.
             </Muted>
-            <PairingCode environmentId={environmentId} baseUrl={setup.wifiUrls[0]!} />
+            <PairingCode
+              environmentId={environmentId}
+              elsewhere={null}
+              baseUrl={setup.wifiUrls[0]!}
+            />
           </>
         ) : (
           <Muted className={READING_MEASURE_CLASS}>
@@ -222,12 +266,14 @@ type Anywhere = MajordomePhoneSetup["anywhere"];
 /** The main way: an address on the internet that a phone opens with nothing installed. */
 function AnywhereAddress({
   environmentId,
+  elsewhere,
   anywhere: read,
   tailscaleOnly,
   phoneDone,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
+  readonly elsewhere: string | null;
   readonly anywhere: Anywhere;
   /** A phone may already work through Tailscale, so the offer says it keeps working. */
   readonly tailscaleOnly: boolean;
@@ -271,16 +317,18 @@ function AnywhereAddress({
 
   const anywhere = currentAnywhere(read, answered, checking);
   const view = anywhereView(anywhere, busy === "on");
+  const computer = phoneComputerWords(elsewhere);
   const problem =
     error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>;
+  const notAllowed = canChange || elsewhere === null ? null : <NotAllowed name={elsewhere} />;
 
   return (
     <div className="flex flex-col gap-3">
       {view.kind === "offer" ? (
         <>
           <Muted className={READING_MEASURE_CLASS}>
-            Majordome gives this computer its own address, and your phone opens it by scanning a
-            code. Nothing to install on your phone, and no account to make.
+            Majordome gives {computer.inSentence} its own address, and your phone opens it by
+            scanning a code. Nothing to install on your phone, and no account to make.
             {tailscaleOnly
               ? " A phone you already set up through Tailscale keeps working as it is."
               : null}
@@ -290,6 +338,7 @@ function AnywhereAddress({
               Set up my phone
             </Button>
           </div>
+          {notAllowed}
           {problem}
         </>
       ) : view.kind === "starting" ? (
@@ -299,11 +348,13 @@ function AnywhereAddress({
       ) : view.kind === "unavailable" ? (
         <>
           <StatusLine tone="warning" className={READING_MEASURE_CLASS}>
-            {view.reason ?? "This computer can't get an address right now."}
+            {view.reason ?? `${computer.atStart} can't get an address right now.`}
           </StatusLine>
-          <Muted className={READING_MEASURE_CLASS}>
-            You can still set up your phone with Tailscale, in the steps below.
-          </Muted>
+          {elsewhere === null ? (
+            <Muted className={READING_MEASURE_CLASS}>
+              You can still set up your phone with Tailscale, in the steps below.
+            </Muted>
+          ) : null}
           <div>
             <Button
               size="xs"
@@ -314,22 +365,25 @@ function AnywhereAddress({
               Try again
             </Button>
           </div>
+          {notAllowed}
           {problem}
         </>
       ) : (
         <>
           <Muted className={READING_MEASURE_CLASS}>
-            Your phone can reach this computer from anywhere. Nothing to install on your phone.
+            Your phone can reach {computer.inSentence} from anywhere. Nothing to install on your
+            phone.
           </Muted>
           <Steps>
             <OnPhoneSteps
               environmentId={environmentId}
+              elsewhere={elsewhere}
               baseUrl={view.address}
               phoneDone={phoneDone}
             />
           </Steps>
           <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
-            This computer's address is{" "}
+            {computer.atStart}'s address is{" "}
             <span className="break-all text-foreground">{view.address}</span>. It is on the
             internet, but only devices you add with a code from this screen can get in. The
             connection passes through Cloudflare, a company that could technically read it.
@@ -348,31 +402,120 @@ function AnywhereAddress({
           {problem}
         </>
       )}
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogPopup>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {asking === "off"
-                ? "Turn off this address?"
-                : "Give this computer an address on the internet?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {asking === "off"
-                ? "Phones set up with this address stop working until you turn it on again. The address stays the same if you turn it on again within two weeks."
-                : "Your phone uses this address to reach Majordome from anywhere. The address is on the internet, but only devices you add with a code from this screen can get in. The connection passes through Cloudflare, a company that could technically read it. You can turn it off at any time."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
-            <Button
-              variant={asking === "off" ? "destructive" : "default"}
-              onClick={() => void run(asking)}
-            >
-              {asking === "off" ? "Turn it off" : "Set it up"}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogPopup>
-      </AlertDialog>
+      <AnywhereDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        change={asking}
+        title={
+          asking === "off"
+            ? "Turn off this address?"
+            : `Give ${computer.inSentence} an address on the internet?`
+        }
+        onConfirm={() => void run(asking)}
+      />
+    </div>
+  );
+}
+
+/** Why nothing can be changed on another computer, and what gives this app the right to. */
+function NotAllowed({ name }: { readonly name: string }) {
+  const { inSentence } = phoneComputerWords(name);
+  return (
+    <Muted className={READING_MEASURE_CLASS}>
+      This app is not allowed to change this on {inSentence}. Add {inSentence} again in Connections
+      with a new code, then try again.
+    </Muted>
+  );
+}
+
+/** Asks before a computer's address on the internet is turned on or off. */
+function AnywhereDialog({
+  open,
+  onOpenChange,
+  change,
+  title,
+  onConfirm,
+}: {
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly change: "on" | "off";
+  readonly title: string;
+  readonly onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {change === "off"
+              ? "Phones set up with this address stop working until you turn it on again. The address stays the same if you turn it on again within two weeks."
+              : "Your phone uses this address to reach Majordome from anywhere. The address is on the internet, but only devices you add with a code from this screen can get in. The connection passes through Cloudflare, a company that could technically read it. You can turn it off at any time."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <Button variant={change === "off" ? "destructive" : "default"} onClick={onConfirm}>
+            {change === "off" ? "Turn it off" : "Set it up"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
+  );
+}
+
+/** This computer's own address, when it is on while the phone is set up on another computer. */
+function OwnAddress({ environmentId }: { readonly environmentId: EnvironmentId }) {
+  const result = useAtomValue(majordomeEnvironment.phoneSetup({ environmentId, input: {} }));
+  const canChange = useAtomValue(
+    majordomeEnvironment.disableAnywhereAddress.permissionAtom(environmentId),
+  );
+  const disable = useAtomCommand(majordomeEnvironment.disableAnywhereAddress, {
+    reportFailure: false,
+  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const state = AsyncResult.getOrElse(result, () => null)?.anywhere.state ?? "off";
+  if (state === "off" && error === null) return null;
+
+  const turnOff = async () => {
+    setDialogOpen(false);
+    setBusy(true);
+    setError(null);
+    const answer = await disable({ environmentId, input: {} });
+    setBusy(false);
+    if (answer._tag === "Success" || isAtomCommandInterrupted(answer)) return;
+    const failure = squashAtomCommandFailure(answer);
+    setError(failure instanceof Error ? failure.message : String(failure));
+  };
+
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
+        This computer has its own address too. A phone set up with it only works while this computer
+        is awake, and doesn't see your routines.
+      </Muted>
+      <div>
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          disabled={!canChange || busy || state === "off"}
+          onClick={() => setDialogOpen(true)}
+        >
+          {busy ? <Spinner size="sm" /> : null}
+          Turn off this computer's address
+        </Button>
+      </div>
+      {error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>}
+      <AnywhereDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        change="off"
+        title="Turn off this computer's address?"
+        onConfirm={() => void turnOff()}
+      />
     </div>
   );
 }
@@ -486,6 +629,7 @@ function SetupChecklist({
       </SetupStep>
       <OnPhoneSteps
         environmentId={environmentId}
+        elsewhere={null}
         baseUrl={majordomeReachable ? setup.secureUrl : null}
         phoneDone={phoneDone}
       />
@@ -496,10 +640,12 @@ function SetupChecklist({
 /** What happens on the phone itself, the same whichever address it opens. */
 function OnPhoneSteps({
   environmentId,
+  elsewhere,
   baseUrl,
   phoneDone,
 }: {
   readonly environmentId: EnvironmentId;
+  readonly elsewhere: string | null;
   /** Null until the computer's side is done. */
   readonly baseUrl: string | null;
   readonly phoneDone: boolean;
@@ -512,7 +658,7 @@ function OnPhoneSteps({
         ) : (
           <>
             <p>Scan this code with your phone's camera and open the link.</p>
-            <PairingCode environmentId={environmentId} baseUrl={baseUrl} />
+            <PairingCode environmentId={environmentId} elsewhere={elsewhere} baseUrl={baseUrl} />
           </>
         )}
       </SetupStep>
@@ -596,9 +742,11 @@ function EnableSecureAddressButton({ environmentId }: { readonly environmentId: 
 /** A one-time pairing link for `baseUrl` as a QR code. The code lives only in this component. */
 function PairingCode({
   environmentId,
+  elsewhere,
   baseUrl,
 }: {
   readonly environmentId: EnvironmentId;
+  readonly elsewhere: string | null;
   readonly baseUrl: string;
 }) {
   const createPairingCredential = useAtomCommand(authEnvironment.createPairingCredential, {
@@ -612,7 +760,11 @@ function PairingCode({
   const [busy, setBusy] = useState(false);
 
   if (!readEnvironmentScope(environmentId, AuthAccessWriteScope)) {
-    return <Muted>Open this screen on the computer where Majordome runs to get a code.</Muted>;
+    return elsewhere === null ? (
+      <Muted>Open this screen on the computer where Majordome runs to get a code.</Muted>
+    ) : (
+      <NotAllowed name={elsewhere} />
+    );
   }
 
   const show = async () => {

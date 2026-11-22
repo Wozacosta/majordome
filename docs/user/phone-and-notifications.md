@@ -14,6 +14,9 @@ Open **Settings > Phone & notifications** on your computer.
 4. On the phone, open **Settings > Phone & notifications** and turn on **Notifications on this
    device**.
 
+If you have an always-on server, the page sets the phone up on the server, not on this computer:
+the server runs your routines and never sleeps. The page names the computer your phone connects to.
+
 To add another phone, show a new code and follow steps 2 to 4 again. On an iPhone or iPad,
 notifications only work from the Home Screen app.
 
