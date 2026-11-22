@@ -24,6 +24,7 @@ import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import {
   assistantConversationActivity,
+  assistantIntro,
   assistantScreenName,
   isAssistantConversationStale,
   screenContextRecord,
@@ -48,13 +49,11 @@ const replacedStaleThreads = new Set<string>();
 export function RoutinesAssistant({
   copy,
   composerRef,
-  hint,
   back,
 }: {
   /** The notes folder's copy on the server that runs its routines. */
   readonly copy: VaultCopy;
   readonly composerRef?: ComposerHandleRef;
-  readonly hint: string;
   /** On a narrow screen the assistant covers the page; this control goes back to it. */
   readonly back?: ReactNode;
 }) {
@@ -137,7 +136,7 @@ export function RoutinesAssistant({
     void request(true, true);
   }, [canOpen, environmentId, request, routinesThreadId, shell]);
 
-  const screenName = useLocation({ select: assistantScreenName });
+  const intro = useLocation({ select: assistantIntro });
   const readScreen = useStableCallback(() => {
     const screen = assistantScreenName(router.state.location);
     return screen === null ? null : screenContextRecord(screen);
@@ -153,9 +152,7 @@ export function RoutinesAssistant({
         {back}
         <div className="min-w-0 flex-1 basis-40">
           <h2 className={`${HEADING_CLASS} text-base`}>Assistant</h2>
-          <Muted className="text-xs">
-            {screenName === null ? hint : `Sees you're on ${screenName}. ${hint}`}
-          </Muted>
+          <Muted className="text-xs">{intro}</Muted>
         </div>
         {routinesThreadId !== null ? (
           <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">

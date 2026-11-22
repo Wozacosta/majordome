@@ -9,6 +9,8 @@ Not released yet.
 
 **Fixed**
 
+- The assistant panel's intro is one short line ("Ask about Private documents, or say what to
+  change.") instead of two sentences describing where you are.
 - Status no longer says routines "couldn't finish" on a computer that isn't the one running them.
   When your always-on server runs the routines, this Mac's dormant copies are not listed or
   counted as problems.

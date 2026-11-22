@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   assistantConversationActivity,
+  assistantIntro,
   assistantScreenName,
   isAssistantConversationStale,
   screenContextRecord,
@@ -90,4 +91,18 @@ describe("assistantConversationActivity", () => {
     expect(assistantConversationActivity({ ...idle, hasPendingApprovals: true }).busy).toBe(true);
     expect(assistantConversationActivity({ ...idle, hasPendingUserInput: true }).busy).toBe(true);
   });
+});
+
+it("says in one short line what the assistant can be asked about on this page", () => {
+  const intro = (pathname: string, search?: Record<string, unknown>) =>
+    assistantIntro({ pathname, ...(search === undefined ? {} : { search }) });
+  expect(intro("/settings/private-documents")).toBe(
+    "Ask about Private documents, or say what to change.",
+  );
+  expect(intro("/routines/")).toBe("Ask about Routines, or say what to change.");
+  expect(intro("/notes", { path: "projects/a.md" })).toBe(
+    "Ask about this note, or say what to change.",
+  );
+  expect(intro("/notes")).toBe("Ask about your notes, or say what to change.");
+  expect(intro("/somewhere-else")).toBe("Ask anything, or say what to change.");
 });

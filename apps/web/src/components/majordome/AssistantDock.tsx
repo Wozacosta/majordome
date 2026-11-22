@@ -25,8 +25,6 @@ import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useVaultRoutines } from "./useVaultRoutines";
 
-const HINT = "Ask for help, or say what you'd like set up or changed.";
-
 type Ask = (text: string) => void;
 const AssistantAskContext = createContext<Ask | null>(null);
 
@@ -157,7 +155,6 @@ function VaultAssistant({
           key={`${runner.environmentId}:${runner.projectId}`}
           copy={runner}
           composerRef={composerRef}
-          hint={HINT}
           back={
             <span className="@5xl/assistant:hidden">
               <Button

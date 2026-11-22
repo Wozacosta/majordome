@@ -44,6 +44,27 @@ export function assistantScreenName(location: {
   return label === undefined ? "Settings" : `Settings, ${label}`;
 }
 
+/**
+ * The one quiet line under the assistant panel's name: what it can be asked about here. It names
+ * the page the owner is on in a word or two, never its whole path.
+ */
+export function assistantIntro(location: {
+  readonly pathname: string;
+  readonly search?: Readonly<Record<string, unknown>>;
+}): string {
+  const pathname = location.pathname.replace(/\/+$/, "") || "/";
+  const path = location.search?.path;
+  const about =
+    pathname === "/notes"
+      ? typeof path === "string" && path.trim() !== ""
+        ? "this note"
+        : "your notes"
+      : (SETTINGS_LABELS[pathname] ?? SCREENS[pathname] ?? null);
+  return about === null
+    ? "Ask anything, or say what to change."
+    : `Ask about ${about}, or say what to change.`;
+}
+
 /** One per message, never referenced in its text. */
 export function screenContextRecord(screen: string): ScreenContextRecord {
   return {
