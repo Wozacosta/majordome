@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Reading list pictures fill themselves in.** A link saved before pictures existed, or while
+  its site was down, stayed without one until you chose "Look it up again" on it. Majordome now
+  looks those pages up again by itself when it starts.
 
 ## 0.10.11
 
