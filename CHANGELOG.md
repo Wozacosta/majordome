@@ -7,6 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Chats have their own page.** The Recent and Earlier lists are gone from the sidebar. One
+  "Chats" row under your topics, with how many are still going, opens a page listing the chats
+  that aren't part of a topic, newest first, with the finished ones folded under "Earlier".
+  Search in the sidebar still finds any chat.
+
+**Try this**
+
+- Press "Chats" under your topics: your recent chats should all be there, and "Earlier" should
+  hold the ones you marked as done.
+
 ## 0.10.7
 
 **New**

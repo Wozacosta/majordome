@@ -11,6 +11,7 @@ const SCREENS: Readonly<Record<string, string>> = {
   "/": "Today",
   "/feed": "Feed",
   "/reading": "Reading list",
+  "/chats": "Chats",
   "/reminders": "Reminders",
   "/routines": "Routines",
   "/todos": "To-dos",

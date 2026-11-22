@@ -3364,7 +3364,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             )
           ) : null}
           {/* A scope can hide every active thread; say so even when its project still has settled ones. */}
+          {/* Majordome lists its chats on their own page, behind one row of the sidebar. */}
           {!isSearchingThreads &&
+          !isMajordome &&
           !hasProjectFolders &&
           visibleDraftSessionCount === 0 &&
           pinnedThreads.length +
@@ -3418,7 +3420,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               )}
             </div>
           ) : null}
-          {!isSearchingThreads ? (
+          {!isSearchingThreads && !isMajordome ? (
             <TooltipProvider
               key="sidebar-thread-tooltips-150"
               delay={150}

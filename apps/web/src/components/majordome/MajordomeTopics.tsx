@@ -24,6 +24,7 @@ import {
   EllipsisIcon,
   FolderSearchIcon,
   MessageCircleIcon,
+  MessagesSquareIcon,
   MessageCirclePlusIcon,
   PlusIcon,
   RepeatIcon,
@@ -70,6 +71,7 @@ import {
 } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
+import { useRecentChats } from "./useRecentChats";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 const COLLAPSED_TOPICS = Schema.Array(Schema.String);
@@ -84,6 +86,37 @@ const QUIET_ROW_CLASS =
 
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
+
+/** The one way into the chats that belong to no topic, with how many are still going. */
+function ChatsRow() {
+  const active = useLocation({ select: (location) => location.pathname === "/chats" });
+  const { isMobile, setOpenMobile } = useSidebar();
+  const open = useRecentChats().filter((thread) => thread.settledOverride !== "settled").length;
+  return (
+    <Link
+      to="/chats"
+      aria-current={active ? "page" : undefined}
+      onClick={() => {
+        if (isMobile) setOpenMobile(false);
+      }}
+      className={cn(
+        "mt-2 flex items-center gap-2.5 rounded-lg py-1.5 pr-2 pl-1.5 text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        active && "bg-sidebar-row-selected",
+      )}
+    >
+      <span
+        aria-hidden
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-row-hover text-sidebar-muted-foreground"
+      >
+        <MessagesSquareIcon className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate font-medium">Chats</span>
+      {open > 0 ? (
+        <span className="shrink-0 text-xs text-sidebar-muted-foreground tabular-nums">{open}</span>
+      ) : null}
+    </Link>
+  );
+}
 
 /**
  * The owner's topics, above the recent chats: one continuing conversation each, in the owner's
@@ -129,7 +162,7 @@ export function MajordomeTopicsSection() {
         </div>
       ) : null}
       <VaultTopics key={activeVault.key} vault={activeVault} serverCopies={copies} />
-      <h2 className={cn(HEADING_CLASS, "mt-2")}>Recent</h2>
+      <ChatsRow />
     </section>
   );
 }
