@@ -1775,6 +1775,7 @@
   "f1db0a234c777a1d": "Använd T3 Code i en annan app (MCP)",
   "a0cc19e60dd99851": "Öppna användning",
   "c534f1a27df8939c": "Open feed",
+  "4d36eca9564ca893": "Open notes",
   "87d4a297f69ea2fa": "Open routines",
   "55504969c91fbf06": "Open to-dos",
   "bf2465bddcfff4e4": "Open reading list",
@@ -3279,10 +3280,10 @@
   ],
   "3dbc42464b2bfb20": "Snabb och Ultrasnabb är inte tillgängliga med den här ChatGPT-anslutningen. Använd en befintlig Codex CLI-inloggning för de hastighetsalternativ ditt konto stöder.",
   "5c0eb4217bb673bd": "Använder ChatGPT-abonnemang",
+  "ab42a6d2ab6073d9": "Trådåtgärder för {title}",
   "3e545d70d0c3535c": "Trådens sökväg",
   "890c34762a621a66": "Öppna överordnad tråd: {title}",
   "7514746d2bd43a1c": "Trådtitel",
-  "ab42a6d2ab6073d9": "Trådåtgärder för {title}",
   "cd8fd5a47060164b": [
     "Ny tråd i ",
     {

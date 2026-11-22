@@ -61,6 +61,7 @@ const well: AttentionInput = {
     },
   ],
   notes: [{ environmentId: mac, projectId: brain, backup: healthy }],
+  runs: [],
   accounts: [{ environmentId: mac, providers: [provider({})] }],
 };
 const card = (overrides: Partial<AttentionInput>) => attentionCard({ ...well, ...overrides });
@@ -139,7 +140,7 @@ it("says the one problem in a few words and leads to where it is fixed", () => {
     ],
   ];
   for (const [overrides, text, link] of cases) {
-    expect(card(overrides)).toEqual({ text, tone: "warning", link, count: 1 });
+    expect(card(overrides)).toEqual({ text, tone: "warning", link, count: 1, action: "Fix" });
   }
 });
 
@@ -149,6 +150,22 @@ it("turns red when this window's own computer cannot be reached", () => {
     tone: "error",
     link: { to: "/settings/connections" },
     count: 1,
+    action: "Fix",
+  });
+});
+
+it("speaks for what the Feed's dot used to: the assistant waiting, or unable to finish", () => {
+  expect(card({ runs: [{ status: "waiting" }] })).toEqual({
+    text: "The assistant is waiting for you",
+    tone: "warning",
+    link: { to: "/feed" },
+    count: 1,
+    action: "Open",
+  });
+  expect(card({ runs: [{ status: "failed" }] })).toMatchObject({
+    text: "The assistant couldn't finish something",
+    tone: "error",
+    link: { to: "/feed" },
   });
 });
 
@@ -162,6 +179,7 @@ it("counts several problems, takes the worst tone and leads to the Status page",
     tone: "warning",
     link: { to: "/settings/overview" },
     count: 2,
+    action: "Open",
   });
   expect(
     card({ ...several, machines: [{ ...well.machines[0]!, connection: "disconnected" }] }),
@@ -170,5 +188,6 @@ it("counts several problems, takes the worst tone and leads to the Status page",
     tone: "error",
     link: { to: "/settings/overview" },
     count: 3,
+    action: "Open",
   });
 });

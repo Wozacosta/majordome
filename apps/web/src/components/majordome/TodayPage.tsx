@@ -707,10 +707,26 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   );
 }
 
-function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+function Section({
+  title,
+  action,
+  children,
+}: {
+  readonly title: string;
+  /** Quiet links beside the heading, to the screens this section is a glimpse of. */
+  readonly action?: ReactNode;
+  readonly children: ReactNode;
+}) {
   return (
     <section className="mt-8" aria-label={title}>
-      <h2 className={SECTION_LABEL_CLASS}>{title}</h2>
+      <div className="flex items-baseline gap-3">
+        <h2 className={cn(SECTION_LABEL_CLASS, "min-w-0 flex-1")}>{title}</h2>
+        {action ? (
+          <span className="flex shrink-0 items-baseline gap-3 text-xs text-muted-foreground">
+            {action}
+          </span>
+        ) : null}
+      </div>
       {children}
     </section>
   );
@@ -800,7 +816,19 @@ function TodayRoutines({
   const failed = results.some((result) => result._tag === "Failure");
 
   return (
-    <Section title="Lately in your notes">
+    <Section
+      title="Lately in your notes"
+      action={
+        <>
+          <Link to="/notes" className={INLINE_LINK_CLASS}>
+            All notes
+          </Link>
+          <Link to="/feed" className={INLINE_LINK_CLASS}>
+            Everything it did
+          </Link>
+        </>
+      }
+    >
       {copies.map((copy) => (
         <RoutinesBlockedLine
           key={copy.vault.environmentId}

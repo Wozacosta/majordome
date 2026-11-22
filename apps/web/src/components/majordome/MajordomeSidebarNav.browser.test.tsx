@@ -34,8 +34,6 @@ it("lists only Majordome's own screens", async () => {
   );
   expect(navLinks(screen.container)).toEqual([
     ["Today", "/"],
-    ["Feed", "/feed"],
-    ["Notes", "/notes"],
     ["To-dos", "/todos"],
     ["Reading list", "/reading"],
     ["Routines", "/routines"],
@@ -54,7 +52,13 @@ it("shows no card at the foot of the sidebar while nothing needs the owner", asy
 });
 
 it("says at the foot of the sidebar what needs the owner, leading to where it is fixed", async () => {
-  setup({ text: "Backup paused", tone: "warning", link: { to: "/settings/backup" }, count: 1 });
+  setup({
+    text: "Backup paused",
+    tone: "warning",
+    link: { to: "/settings/backup" },
+    count: 1,
+    action: "Fix",
+  });
   await using screen = await render(
     <SidebarProvider>
       <MajordomeSidebarAlert />

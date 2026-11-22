@@ -1775,6 +1775,7 @@
   "f1db0a234c777a1d": "Utiliser T3 Code dans une autre app (MCP)",
   "a0cc19e60dd99851": "Ouvrir l’utilisation",
   "c534f1a27df8939c": "Open feed",
+  "4d36eca9564ca893": "Open notes",
   "87d4a297f69ea2fa": "Open routines",
   "55504969c91fbf06": "Open to-dos",
   "bf2465bddcfff4e4": "Open reading list",
@@ -3279,10 +3280,10 @@
   ],
   "3dbc42464b2bfb20": "Fast et Ultrafast ne sont pas disponibles avec cette connexion ChatGPT. Utilisez une connexion Codex CLI existante pour les options de vitesse prises en charge par votre compte.",
   "5c0eb4217bb673bd": "Forfait ChatGPT utilisé",
+  "ab42a6d2ab6073d9": "Actions du fil {title}",
   "3e545d70d0c3535c": "Fil d’Ariane du fil",
   "890c34762a621a66": "Ouvrir le fil parent : {title}",
   "7514746d2bd43a1c": "Titre du fil",
-  "ab42a6d2ab6073d9": "Actions du fil {title}",
   "cd8fd5a47060164b": [
     "Nouveau fil dans ",
     {

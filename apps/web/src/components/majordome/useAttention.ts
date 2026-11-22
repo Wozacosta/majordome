@@ -7,10 +7,11 @@ import type {
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 
-import { useProjects } from "../../state/entities";
+import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { vaultBackupStatusesAtom, vaultHistoriesAtom } from "../../state/majordome";
 import { type AttentionCard, attentionCard } from "./attention.logic";
+import { buildFeedRunItems } from "./feed.logic";
 import { groupBrains, routinesMachine, runnerCopy } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
 
@@ -39,6 +40,7 @@ export function useAttention(): AttentionCard | null {
   );
 
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
+  const threads = useQuietThreadShells();
   const backups = useAtomValue(
     vaultBackupStatusesAtom(
       JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
@@ -103,6 +105,14 @@ export function useAttention(): AttentionCard | null {
       };
     }),
     notes: copies,
+    runs: buildFeedRunItems(
+      threads,
+      projects.map((project) => ({
+        environmentId: project.environmentId,
+        projectId: project.id,
+        title: project.title,
+      })),
+    ),
     accounts: [...connected].map((environmentId) => ({
       environmentId,
       providers: providers.get(environmentId) ?? null,

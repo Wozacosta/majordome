@@ -68,6 +68,7 @@ import {
   CalendarClockIcon,
   ListTodoIcon,
   NewspaperIcon,
+  NotebookTextIcon,
   SmartphoneIcon,
   CloudUploadIcon,
   CheckIcon,
@@ -1783,6 +1784,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/feed" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:notes",
+      searchTerms: ["notes", "files", "folders", "browse", "all notes"],
+      title: gt("Open notes"),
+      icon: <NotebookTextIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/notes" });
       },
     });
     actionItems.push({

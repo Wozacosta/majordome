@@ -7,18 +7,14 @@ import {
   CircleAlertIcon,
   HouseIcon,
   ListTodoIcon,
-  NewspaperIcon,
-  NotebookTextIcon,
   SearchIcon,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
-import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { buildFeedRunItems } from "./feed.logic";
 import { NewChatRow } from "./NewChatRow";
 import { useAttention } from "./useAttention";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -28,8 +24,6 @@ type SidebarItem = { readonly to: string; readonly label: string; readonly icon:
 /** The screens Majordome is used through day to day; its setup lives in Settings. */
 const DAILY_ITEMS = [
   { to: "/", label: "Today", icon: HouseIcon },
-  { to: "/feed", label: "Feed", icon: NewspaperIcon },
-  { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/todos", label: "To-dos", icon: ListTodoIcon },
   { to: "/reading", label: "Reading list", icon: BookOpenIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
@@ -39,8 +33,6 @@ const ON_ITS_OWN_ITEMS = [
   { to: "/routines", label: "Routines", icon: CalendarClockIcon },
   { to: "/reminders", label: "Reminders", icon: BellIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
-
-type NavHint = { readonly tone: "warning" | "error"; readonly label: string };
 
 /**
  * Majordome's own screens, named, above the thread list. `search` is the chat search field, shown
@@ -55,7 +47,6 @@ export function MajordomeSidebarNav({
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
-  const feedHint = useFeedHint();
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
   };
@@ -65,7 +56,6 @@ export function MajordomeSidebarNav({
 
   const rows = (items: ReadonlyArray<SidebarItem>) =>
     items.map(({ to, label, icon: Icon }) => {
-      const hint = to === "/feed" ? feedHint : null;
       return (
         <SidebarMenuItem key={to}>
           <SidebarMenuButton
@@ -76,16 +66,6 @@ export function MajordomeSidebarNav({
           >
             <Icon />
             <span className="min-w-0 flex-1 truncate">{label}</span>
-            {hint ? (
-              <span
-                role="status"
-                aria-label={hint.label}
-                className={cn(
-                  "size-2 shrink-0 rounded-full",
-                  hint.tone === "error" ? "bg-destructive" : "bg-warning",
-                )}
-              />
-            ) : null}
           </SidebarMenuButton>
         </SidebarMenuItem>
       );
@@ -166,28 +146,8 @@ export function MajordomeSidebarAlert() {
       <span role="status" className="min-w-0 flex-1 truncate font-medium">
         {attention.text}
       </span>
-      <span className="shrink-0 text-sidebar-muted-foreground">Fix</span>
+      <span className="shrink-0 text-sidebar-muted-foreground">{attention.action}</span>
       <ChevronRightIcon className="size-3.5 shrink-0 text-sidebar-muted-foreground" />
     </Link>
   );
-}
-
-function useVaultProjects() {
-  return useProjects().filter((project) => !project.isScratch && !project.archivedAt);
-}
-
-/** A dot on Feed when a run waits for the person or couldn't finish. */
-function useFeedHint(): NavHint | null {
-  const threads = useQuietThreadShells();
-  const vaults = useVaultProjects().map((project) => ({
-    environmentId: project.environmentId,
-    projectId: project.id,
-    title: project.title,
-  }));
-  const runs = buildFeedRunItems(threads, vaults);
-  if (runs.some((run) => run.status === "waiting")) {
-    return { tone: "warning", label: "A run is waiting for you" };
-  }
-  if (runs.length > 0) return { tone: "error", label: "A run couldn't finish" };
-  return null;
 }

@@ -6,9 +6,11 @@ import type {
 } from "@t3tools/contracts";
 
 import { backupAttention } from "./backup.logic";
+import type { FeedRunStatus } from "./feed.logic";
 import {
   accessSection,
   notesSection,
+  needsYouLines,
   type OverviewLink,
   type OverviewMachine,
   type OverviewRoutineBrain,
@@ -38,6 +40,8 @@ export interface AttentionInput {
     readonly projectId: ProjectId;
     readonly backup: MajordomeBackupStatus;
   }>;
+  /** What the assistant did that waits for the owner or could not finish, as the Feed counts it. */
+  readonly runs: ReadonlyArray<{ readonly status: FeedRunStatus }>;
   /** Each connected computer's AI accounts; null until they are known. */
   readonly accounts: ReadonlyArray<{
     readonly environmentId: EnvironmentId;
@@ -51,6 +55,8 @@ export interface AttentionCard {
   /** Where the one problem is fixed, or the Status page when there are several. */
   readonly link: OverviewLink | { readonly to: "/settings/overview" };
   readonly count: number;
+  /** What pressing the card does, in a word: a waiting question is opened, a problem is fixed. */
+  readonly action: "Fix" | "Open";
 }
 
 /** The card's few words for a Status line, by the first part of the line's key. */
@@ -113,15 +119,25 @@ export function attentionCard(input: AttentionInput): AttentionCard | null {
     })),
     formatAgo: String,
   });
-  const { items } = overviewVerdict([], [where, routines, notes, access]);
+  const { items } = overviewVerdict(needsYouLines(input.runs), [where, routines, notes, access]);
   const [first] = items;
   if (first === undefined || (first.tone !== "error" && first.tone !== "warning")) return null;
   const count = items.reduce((sum, line) => sum + (line.count ?? 1), 0);
   if (count > 1) {
-    return { text: `${count} things need you`, tone: first.tone, link: STATUS, count };
+    return {
+      text: `${count} things need you`,
+      tone: first.tone,
+      link: STATUS,
+      count,
+      action: "Open",
+    };
   }
 
-  const said = new Map<string, string>();
+  const said = new Map<string, string>([
+    ["runs:waiting", "The assistant is waiting for you"],
+    ["runs:failed", "The assistant couldn't finish something"],
+    ["runs:stopped", "The assistant was stopped"],
+  ]);
   for (const machine of input.machines) {
     said.set(
       `machine:${machine.environmentId}`,
@@ -138,5 +154,6 @@ export function attentionCard(input: AttentionInput): AttentionCard | null {
     tone: first.tone,
     link: first.link ?? STATUS,
     count,
+    action: first.key.startsWith("runs:") ? "Open" : "Fix",
   };
 }

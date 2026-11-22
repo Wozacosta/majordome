@@ -1775,6 +1775,7 @@
   "f1db0a234c777a1d": "在其他应用中使用 T3 Code（MCP）",
   "a0cc19e60dd99851": "打开用量",
   "c534f1a27df8939c": "Open feed",
+  "4d36eca9564ca893": "Open notes",
   "87d4a297f69ea2fa": "Open routines",
   "55504969c91fbf06": "Open to-dos",
   "bf2465bddcfff4e4": "Open reading list",
@@ -3283,10 +3284,10 @@
   ],
   "3dbc42464b2bfb20": "这个 ChatGPT 连接不支持快速和极速模式。如需使用账户支持的速度选项，请改用现有的 Codex CLI 登录。",
   "5c0eb4217bb673bd": "正在使用 ChatGPT 套餐",
+  "ab42a6d2ab6073d9": "{title} 的会话操作",
   "3e545d70d0c3535c": "会话路径导航",
   "890c34762a621a66": "打开父会话：{title}",
   "7514746d2bd43a1c": "会话标题",
-  "ab42a6d2ab6073d9": "{title} 的会话操作",
   "cd8fd5a47060164b": [
     "在 ",
     {

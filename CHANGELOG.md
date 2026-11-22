@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Feed and Notes left the sidebar.** Both are still there: from Today ("All notes" and
+  "Everything it did" beside "Lately in your notes"), from a topic's header and side panel, and
+  from the command menu ("Open notes", "Open feed"). The Feed's dot became part of the card at the
+  foot of the sidebar: "The assistant is waiting for you" or "…couldn't finish something".
+
 **Fixed**
 
 - In a topic, the "Where are we?" and "What's next?" chips now send at once. "Remind me…" still

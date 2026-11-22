@@ -1774,6 +1774,7 @@
   "f1db0a234c777a1d": "他のアプリで T3 Code を使用 (MCP)",
   "a0cc19e60dd99851": "使用量を開く",
   "c534f1a27df8939c": "Open feed",
+  "4d36eca9564ca893": "Open notes",
   "87d4a297f69ea2fa": "Open routines",
   "55504969c91fbf06": "Open to-dos",
   "bf2465bddcfff4e4": "Open reading list",
@@ -3277,10 +3278,10 @@
   ],
   "3dbc42464b2bfb20": "この ChatGPT 接続では高速と超高速を利用できません。アカウントで利用できる速度オプションを使うには、既存の Codex CLI ログインを使用してください。",
   "5c0eb4217bb673bd": "ChatGPT プランを使用中",
+  "ab42a6d2ab6073d9": "{title} のスレッド操作",
   "3e545d70d0c3535c": "スレッドのパンくずリスト",
   "890c34762a621a66": "親スレッドを開く: {title}",
   "7514746d2bd43a1c": "スレッドのタイトル",
-  "ab42a6d2ab6073d9": "{title} のスレッド操作",
   "cd8fd5a47060164b": [
     {
       "i": 1,
