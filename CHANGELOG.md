@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.9
+
 **New**
 
 - **Your phone, with nothing to install on it.** Settings > Phone & notifications now starts with
