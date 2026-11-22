@@ -2416,6 +2416,10 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeGetPhoneSetup]: (_input) => majordomePhoneSetup.read(),
         [WS_METHODS.majordomeEnableSecureAddress]: (_input) =>
           majordomePhoneSetup.enableSecureAddress(),
+        [WS_METHODS.majordomeEnableAnywhereAddress]: (_input) =>
+          majordomePhoneSetup.enableAnywhereAddress(),
+        [WS_METHODS.majordomeDisableAnywhereAddress]: (_input) =>
+          majordomePhoneSetup.disableAnywhereAddress(),
         [WS_METHODS.majordomeServerMoveSubscribe]: (_input) => majordomeServerMove.changes,
         [WS_METHODS.majordomeServerMoveSaveKeys]: (input) => majordomeServerMove.saveKeys(input),
         [WS_METHODS.majordomeServerMoveForgetKeys]: (_input) => majordomeServerMove.forgetKeys(),

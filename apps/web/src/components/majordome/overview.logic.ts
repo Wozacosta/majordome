@@ -19,7 +19,7 @@ import { backupAttention, backupHeadline } from "./backup.logic";
 import { machineInSentence } from "./brains.logic";
 import { aiRows } from "./connections.logic";
 import { type FeedRunStatus, memoryOverLimitLine, routinesBlockedLine } from "./feed.logic";
-import { type DevicePushSupport, NOTIFICATIONS_ANCHOR } from "./phone.logic";
+import { type DevicePushSupport, NOTIFICATIONS_ANCHOR, phoneAddress } from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
 import { ROUTINE_LAST_RUN, routineKind } from "./routines.logic";
 
@@ -824,7 +824,7 @@ const PUSH_SUPPORT_COPY: Record<Exclude<DevicePushSupport, "supported">, string>
   unsupported: "This browser can't get them.",
 };
 
-/** "Phone": which devices get notifications, and whether the secure address is on. */
+/** "Phone": which devices get notifications, and whether a phone can reach this computer. */
 export function phoneSection(input: {
   readonly support: DevicePushSupport;
   /** This browser's subscription: undefined while it is read, null when off. */
@@ -863,21 +863,24 @@ export function phoneSection(input: {
     if (line !== null) lines.push(line);
   }
   if (input.phone.state === "ready") {
-    const { tailscale, secureUrl } = input.phone.value;
+    const address = phoneAddress(input.phone.value);
     lines.push(
-      tailscale === "ready"
+      address === null
         ? {
             key: "phone:address",
-            text: "Secure address is on",
-            ...(secureUrl === null ? {} : { detail: secureUrl }),
-            tone: "ok",
+            text: "No address for your phone yet",
+            detail: "Set it up to use Majordome from your phone, away from home.",
+            tone: "neutral",
             link: { to: "/settings/phone" },
           }
         : {
             key: "phone:address",
-            text: "Secure address is off",
-            detail: "Set it up to use Majordome from your phone, away from home.",
-            tone: "neutral",
+            text:
+              address.way === "anywhere"
+                ? "Your phone can reach this computer from anywhere"
+                : "Secure address is on",
+            ...(address.url === null ? {} : { detail: address.url }),
+            tone: "ok",
             link: { to: "/settings/phone" },
           },
     );

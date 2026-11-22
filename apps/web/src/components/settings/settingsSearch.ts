@@ -1272,7 +1272,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/phone",
     majordomeOnly: true,
     searchTerms: [
-      "your phone mobile iphone android tailscale pair qr code home screen",
+      "your phone mobile iphone android tailscale pair qr code home screen anywhere internet address",
       "push alerts notify devices",
     ],
   },

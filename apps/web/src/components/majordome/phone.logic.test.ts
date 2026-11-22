@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  anywhereView,
   base64UrlToBytes,
   computerSetupProgress,
+  currentAnywhere,
   deviceLabel,
   devicePushSupport,
   isAppleMobileDevice,
   isOnPhone,
+  phoneAddress,
+  phoneWays,
   phoneWithNotifications,
   subscriptionUsesKey,
 } from "./phone.logic";
@@ -120,6 +124,58 @@ describe("phone setup checklist", () => {
       "iPad · Safari",
     );
   });
+});
+
+describe("the address from anywhere", () => {
+  const URL = "https://k7m2xq9d.majord.link";
+  const off = { state: "off", url: null, reason: null } as const;
+  const starting = { state: "starting", url: null, reason: null } as const;
+  const ready = { state: "ready", url: URL, reason: null } as const;
+  const unavailable = { state: "unavailable", url: null, reason: "No helper." } as const;
+
+  it.each([
+    ["off", off, false, { kind: "offer" }],
+    ["off, while the command runs", off, true, { kind: "starting" }],
+    ["still connecting", starting, false, { kind: "starting" }],
+    ["ready", ready, false, { kind: "ready", address: URL }],
+    ["ready before its address is known", { ...ready, url: null }, false, { kind: "starting" }],
+    ["unavailable", unavailable, false, { kind: "unavailable", reason: "No helper." }],
+    ["unavailable, trying again", unavailable, true, { kind: "starting" }],
+  ] as const)("shows %s", (_name, anywhere, enabling, expected) => {
+    expect(anywhereView(anywhere, enabling)).toEqual(expected);
+  });
+
+  it("trusts a command's answer only while the setup is read again", () => {
+    expect(currentAnywhere(off, ready, true)).toBe(ready);
+    expect(currentAnywhere(off, ready, false)).toBe(off);
+    expect(currentAnywhere(off, null, true)).toBe(off);
+  });
+
+  it.each([
+    ["nothing set up", off, "not-installed", ["anywhere", false, false]],
+    ["connecting", starting, "signed-out", ["anywhere", false, false]],
+    ["anywhere in use", ready, "https-off", ["anywhere", false, false]],
+    ["Tailscale already in use", off, "ready", ["tailscale", true, false]],
+    ["both in use", ready, "ready", ["anywhere", true, true]],
+    ["anywhere can't be had", unavailable, "not-installed", ["tailscale", true, false]],
+  ] as const)("orders the two ways: %s", (_name, anywhere, tailscale, expected) => {
+    const ways = phoneWays({ anywhere, tailscale });
+    expect([ways.suggested, ways.tailscaleOpen, ways.bothInUse]).toEqual(expected);
+  });
+
+  it.each([
+    ["anywhere first", ready, "ready", { way: "anywhere", url: URL }],
+    ["Tailscale alone", off, "ready", { way: "tailscale", url: "https://mac.ts.net" }],
+    ["still connecting", starting, "not-served", null],
+    ["neither", unavailable, "not-installed", null],
+  ] as const)(
+    "names the address a phone uses away from home: %s",
+    (_name, anywhere, tailscale, expected) => {
+      expect(phoneAddress({ anywhere, tailscale, secureUrl: "https://mac.ts.net" })).toEqual(
+        expected,
+      );
+    },
+  );
 });
 
 describe("subscriptionUsesKey", () => {

@@ -59,7 +59,24 @@ export const MajordomeTailscaleState = Schema.Literals([
 ]);
 export type MajordomeTailscaleState = typeof MajordomeTailscaleState.Type;
 
+/**
+ * The public `*.majord.link` address, which a phone reaches with nothing installed: off, asked for
+ * and still connecting, answering, or not possible on this computer (`reason` says why).
+ */
+export const MajordomeAnywhereState = Schema.Literals(["off", "starting", "ready", "unavailable"]);
+export type MajordomeAnywhereState = typeof MajordomeAnywhereState.Type;
+
+export const MajordomeAnywhere = Schema.Struct({
+  state: MajordomeAnywhereState,
+  /** The public HTTPS address, once the address service has given one. */
+  url: Schema.NullOr(Schema.String),
+  /** A sentence for the owner when `unavailable`, or when the connection keeps failing. */
+  reason: Schema.NullOr(Schema.String),
+});
+export type MajordomeAnywhere = typeof MajordomeAnywhere.Type;
+
 export const MajordomePhoneSetup = Schema.Struct({
+  anywhere: MajordomeAnywhere,
   tailscale: MajordomeTailscaleState,
   /** The tailnet HTTPS address, once Tailscale knows this computer's name. */
   secureUrl: Schema.NullOr(Schema.String),

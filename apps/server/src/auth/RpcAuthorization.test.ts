@@ -144,9 +144,13 @@ describe("RPC authorization scopes", () => {
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthAccessWriteScope);
     }
-    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeEnableSecureAddress)).toBe(
-      AuthAccessWriteScope,
-    );
+    for (const method of [
+      WS_METHODS.majordomeEnableSecureAddress,
+      WS_METHODS.majordomeEnableAnywhereAddress,
+      WS_METHODS.majordomeDisableAnywhereAddress,
+    ]) {
+      expect(requiredScopeForRpcMethod(method)).toBe(AuthAccessWriteScope);
+    }
   });
 
   it("keeps Claude's sign-in, which replaces a provider's login, behind provider management", () => {

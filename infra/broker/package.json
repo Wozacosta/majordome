@@ -1,0 +1,13 @@
+{
+  "name": "majordome-broker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vp test run --config ../../vite.config.ts --dir .",
+    "typecheck": "effect-tsgo tsrs --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260601.1",
+    "vite-plus": "catalog:"
+  }
+}

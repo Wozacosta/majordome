@@ -662,7 +662,12 @@ describe("phoneSection", () => {
     { endpoint: "https://push/this", label: "Mac · Chrome", addedAt: null },
     { endpoint: "https://push/phone", label: "iPhone · Safari", addedAt: null },
   ];
-  const phone = { tailscale: "ready" as const, secureUrl: "https://mac.ts.net", wifiUrls: [] };
+  const phone = {
+    anywhere: { state: "off" as const, url: null, reason: null },
+    tailscale: "ready" as const,
+    secureUrl: "https://mac.ts.net",
+    wifiUrls: [],
+  };
 
   it("says how many devices get notifications and whether the secure address is on", () => {
     const section = phoneSection({
@@ -681,6 +686,30 @@ describe("phoneSection", () => {
     ]);
   });
 
+  it.each([
+    ["without Tailscale", "not-installed"],
+    ["beside Tailscale", "ready"],
+  ] as const)(
+    "counts an address from anywhere as reaching this computer, %s",
+    (_name, tailscale) => {
+      const section = phoneSection({
+        support: "supported",
+        thisEndpoint: "https://push/this",
+        devices: ready(devices),
+        phone: ready({
+          ...phone,
+          tailscale,
+          anywhere: { state: "ready", url: "https://k7m2xq9d.majord.link", reason: null },
+        }),
+      });
+      expect(facts(section.lines)[1]).toEqual([
+        "Your phone can reach this computer from anywhere",
+        "https://k7m2xq9d.majord.link",
+        "ok",
+      ]);
+    },
+  );
+
   it("is never orange for notifications or an address nobody turned on", () => {
     const section = phoneSection({
       support: "needs-home-screen",
@@ -695,7 +724,7 @@ describe("phoneSection", () => {
         "neutral",
       ],
       [
-        "Secure address is off",
+        "No address for your phone yet",
         "Set it up to use Majordome from your phone, away from home.",
         "neutral",
       ],

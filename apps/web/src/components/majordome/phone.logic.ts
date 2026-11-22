@@ -78,6 +78,65 @@ export function computerSetupProgress(tailscale: TailscaleState): {
   return { tailscaleOn: done >= 1, secureAddressesOn: done >= 2, majordomeReachable: done >= 3 };
 }
 
+type Anywhere = MajordomePhoneSetup["anywhere"];
+
+/**
+ * The "from anywhere" address to show. A command's answer is newer than the setup read before it,
+ * so it stands in while that setup is read again.
+ */
+export function currentAnywhere(
+  read: Anywhere,
+  answered: Anywhere | null,
+  rereading: boolean,
+): Anywhere {
+  return rereading && answered !== null ? answered : read;
+}
+
+/** What the "from anywhere" part shows; `address` is what a phone's code is made for. */
+type AnywhereView =
+  | { readonly kind: "offer" }
+  | { readonly kind: "starting" }
+  | { readonly kind: "ready"; readonly address: string }
+  | { readonly kind: "unavailable"; readonly reason: string | null };
+
+export function anywhereView(anywhere: Anywhere, enabling: boolean): AnywhereView {
+  if (enabling || anywhere.state === "starting") return { kind: "starting" };
+  if (anywhere.state === "unavailable") return { kind: "unavailable", reason: anywhere.reason };
+  if (anywhere.state === "off") return { kind: "offer" };
+  // Ready without an address cannot be scanned yet.
+  return anywhere.url === null ? { kind: "starting" } : { kind: "ready", address: anywhere.url };
+}
+
+/**
+ * How the two ways to reach this computer share the page. Tailscale is the one to follow when it
+ * already works and the address from anywhere is not in use, or when that address can't be had.
+ */
+export function phoneWays(setup: Pick<MajordomePhoneSetup, "anywhere" | "tailscale">): {
+  readonly suggested: "anywhere" | "tailscale";
+  readonly tailscaleOpen: boolean;
+  /** Both work, so a phone stays on the one it was set up with. */
+  readonly bothInUse: boolean;
+} {
+  const tailscaleReady = setup.tailscale === "ready";
+  const anywhere = setup.anywhere.state;
+  return {
+    suggested:
+      anywhere === "unavailable" || (tailscaleReady && anywhere === "off")
+        ? "tailscale"
+        : "anywhere",
+    tailscaleOpen: tailscaleReady || anywhere === "unavailable",
+    bothInUse: tailscaleReady && anywhere !== "off" && anywhere !== "unavailable",
+  };
+}
+
+/** The address a phone uses away from home: the one from anywhere first, then Tailscale's. */
+export function phoneAddress(
+  setup: Pick<MajordomePhoneSetup, "anywhere" | "tailscale" | "secureUrl">,
+): { readonly way: "anywhere" | "tailscale"; readonly url: string | null } | null {
+  if (setup.anywhere.state === "ready") return { way: "anywhere", url: setup.anywhere.url };
+  return setup.tailscale === "ready" ? { way: "tailscale", url: setup.secureUrl } : null;
+}
+
 /** The first phone or tablet that gets notifications, by the name it registered with. */
 export function phoneWithNotifications(
   devices: ReadonlyArray<Pick<MajordomePushDevice, "label">>,

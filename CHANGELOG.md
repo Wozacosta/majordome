@@ -7,6 +7,17 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Your phone, with nothing to install on it.** Settings > Phone & notifications now starts with
+  "Set up my phone": Majordome gets this computer its own address, you scan a code, add Majordome
+  to your Home Screen and turn on notifications. No Tailscale and no account. The address is on
+  the internet (only devices you add with a code get in) and the connection passes through
+  Cloudflare; "Turn off this address" closes it at once. Tailscale is still there under "More
+  private: only your own devices", and a phone already set up that way keeps working.
+  Worth trying: set up your phone on mobile data, with Wi-Fi off, and send yourself a test
+  notification.
+
 **Fixed**
 
 - The assistant panel's intro is one short line ("Ask about Private documents, or say what to

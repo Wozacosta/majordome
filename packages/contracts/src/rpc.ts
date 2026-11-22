@@ -808,6 +808,8 @@ export const WS_METHODS = {
   majordomeListPushDevices: "majordome.listPushDevices",
   majordomeGetPhoneSetup: "majordome.getPhoneSetup",
   majordomeEnableSecureAddress: "majordome.enableSecureAddress",
+  majordomeEnableAnywhereAddress: "majordome.enableAnywhereAddress",
+  majordomeDisableAnywhereAddress: "majordome.disableAnywhereAddress",
   majordomeListVaultHistory: "majordome.listVaultHistory",
   majordomeSubscribeVaultChanges: "majordome.subscribeVaultChanges",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
@@ -2512,6 +2514,18 @@ const WsMajordomeEnableSecureAddressRpc = Rpc.make(WS_METHODS.majordomeEnableSec
   error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeEnableAnywhereAddressRpc = Rpc.make(WS_METHODS.majordomeEnableAnywhereAddress, {
+  payload: Schema.Struct({}),
+  success: MajordomePhoneSetup,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeDisableAnywhereAddressRpc = Rpc.make(WS_METHODS.majordomeDisableAnywhereAddress, {
+  payload: Schema.Struct({}),
+  success: MajordomePhoneSetup,
+  error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListVaultHistoryRpc = Rpc.make(WS_METHODS.majordomeListVaultHistory, {
   payload: MajordomeVaultHistoryInput,
   success: MajordomeVaultHistoryResult,
@@ -3187,6 +3201,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListPushDevicesRpc,
   WsMajordomeGetPhoneSetupRpc,
   WsMajordomeEnableSecureAddressRpc,
+  WsMajordomeEnableAnywhereAddressRpc,
+  WsMajordomeDisableAnywhereAddressRpc,
   WsMajordomeListVaultHistoryRpc,
   WsMajordomeSubscribeVaultChangesRpc,
   WsMajordomeUndoVaultRunRpc,

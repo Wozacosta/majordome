@@ -13,8 +13,9 @@ import {
 import * as DateTime from "effect/DateTime";
 import { AsyncResult } from "effect/reactivity";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { cn } from "../../lib/utils";
 import { authEnvironment } from "../../state/auth";
 import { majordomeEnvironment } from "../../state/majordome";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
@@ -51,11 +52,19 @@ import {
   Steps,
   Surface,
 } from "./paper";
-import { computerSetupProgress, NOTIFICATIONS_ANCHOR, phoneWithNotifications } from "./phone.logic";
+import {
+  anywhereView,
+  computerSetupProgress,
+  currentAnywhere,
+  NOTIFICATIONS_ANCHOR,
+  phoneWays,
+  phoneWithNotifications,
+} from "./phone.logic";
 import { readIsOnPhone } from "./pushNotifications";
 
 const TAILSCALE_DOWNLOAD_URL = "https://tailscale.com/download";
 const TAILSCALE_DNS_SETTINGS_URL = "https://login.tailscale.com/admin/dns";
+const ANYWHERE_RECHECK_MS = 3000;
 
 export function PhonePage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
@@ -103,57 +112,270 @@ function PhoneSetupSection({ environmentId }: { readonly environmentId: Environm
   const devices = useAtomValue(majordomeEnvironment.pushDevices({ environmentId, input: {} }));
   const phone = phoneWithNotifications(AsyncResult.getOrElse(devices, () => null)?.devices ?? []);
 
+  const connecting = setup?.anywhere.state === "starting";
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- A real timer: while the computer is still connecting its address, only asking it again shows when the address is ready.
+  useEffect(() => {
+    if (!connecting) return;
+    const timer = setInterval(() => bumpRevision((value) => value + 1), ANYWHERE_RECHECK_MS);
+    return () => clearInterval(timer);
+  }, [connecting, bumpRevision]);
+
   return (
     <Section label="Set up your phone">
-      {phone === null ? (
-        <Muted className={READING_MEASURE_CLASS}>
-          About 10 minutes, and you need a free Tailscale account. Tailscale is an app that links
-          your own devices privately. It gives this computer a secure address, which iPhone needs
-          for notifications.
-        </Muted>
-      ) : (
-        <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
+      {phone === null ? null : (
+        <StatusLine tone="ok" className={cn(READING_MEASURE_CLASS, "mb-3")}>
           Your phone is set up: {phone} gets notifications. Follow the steps again to add another
           phone.
         </StatusLine>
       )}
       {setup === null ? (
         result._tag === "Failure" ? (
-          <p className="mt-3 text-sm text-destructive-foreground">
+          <p className="text-sm text-destructive-foreground">
             {formatEnvironmentQueryError(result.cause)}
           </p>
         ) : (
-          <Skeleton className="mt-3 h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
         )
       ) : (
-        <>
-          <SetupChecklist
-            environmentId={environmentId}
-            setup={setup}
-            phoneDone={phone !== null}
-            onCheckAgain={checkAgain}
-            checking={result.waiting}
-          />
-          <Disclosure summary="On the same Wi-Fi only, without notifications">
-            {setup.wifiUrls.length > 0 ? (
-              <>
-                <Muted className={READING_MEASURE_CLASS}>
-                  When your phone is on the same Wi-Fi as this computer, it can open Majordome
-                  without Tailscale. Phones can't get notifications this way, and it stops working
-                  away from home.
-                </Muted>
-                <PairingCode environmentId={environmentId} baseUrl={setup.wifiUrls[0]!} />
-              </>
-            ) : (
-              <Muted className={READING_MEASURE_CLASS}>
-                This computer only accepts connections from itself right now, so Wi-Fi pairing is
-                off. Use the steps above instead.
-              </Muted>
-            )}
-          </Disclosure>
-        </>
+        <PhoneWays
+          environmentId={environmentId}
+          setup={setup}
+          phoneDone={phone !== null}
+          onCheckAgain={checkAgain}
+          checking={result.waiting}
+        />
       )}
     </Section>
+  );
+}
+
+function PhoneWays({
+  environmentId,
+  setup,
+  phoneDone,
+  onCheckAgain,
+  checking,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly setup: MajordomePhoneSetup;
+  readonly phoneDone: boolean;
+  readonly onCheckAgain: () => void;
+  readonly checking: boolean;
+}) {
+  const ways = phoneWays(setup);
+  return (
+    <>
+      <AnywhereAddress
+        environmentId={environmentId}
+        anywhere={setup.anywhere}
+        suggested={ways.suggested === "anywhere"}
+        phoneDone={phoneDone}
+        checking={checking}
+      />
+      <Disclosure
+        className="mt-4"
+        summary="More private: only your own devices"
+        open={ways.tailscaleOpen}
+      >
+        <Muted className={READING_MEASURE_CLASS}>
+          Tailscale is an app that links your own devices privately, so this computer needs no
+          address on the internet. It takes about 10 minutes: you install Tailscale on this computer
+          and on your phone, with a free account.
+        </Muted>
+        {ways.bothInUse ? (
+          <Muted className={READING_MEASURE_CLASS}>
+            A phone set up one way keeps working that way. To change a phone to the other way, add
+            Majordome to its Home Screen again from the new code.
+          </Muted>
+        ) : null}
+        <SetupChecklist
+          environmentId={environmentId}
+          setup={setup}
+          phoneDone={phoneDone}
+          onCheckAgain={onCheckAgain}
+          checking={checking}
+        />
+      </Disclosure>
+      <Disclosure summary="On the same Wi-Fi only, without notifications">
+        {setup.wifiUrls.length > 0 ? (
+          <>
+            <Muted className={READING_MEASURE_CLASS}>
+              When your phone is on the same Wi-Fi as this computer, it can open Majordome with
+              nothing else set up. Phones can't get notifications this way, and it stops working
+              away from home.
+            </Muted>
+            <PairingCode environmentId={environmentId} baseUrl={setup.wifiUrls[0]!} />
+          </>
+        ) : (
+          <Muted className={READING_MEASURE_CLASS}>
+            This computer only accepts connections from itself right now, so Wi-Fi pairing is off.
+            Use the steps above instead.
+          </Muted>
+        )}
+      </Disclosure>
+    </>
+  );
+}
+
+type Anywhere = MajordomePhoneSetup["anywhere"];
+
+/** The main way: an address on the internet that a phone opens with nothing installed. */
+function AnywhereAddress({
+  environmentId,
+  anywhere: read,
+  suggested,
+  phoneDone,
+  checking,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly anywhere: Anywhere;
+  /** False when Tailscale is the way to follow, so this one does not push. */
+  readonly suggested: boolean;
+  readonly phoneDone: boolean;
+  readonly checking: boolean;
+}) {
+  const canChange = useAtomValue(
+    majordomeEnvironment.enableAnywhereAddress.permissionAtom(environmentId),
+  );
+  const enable = useAtomCommand(majordomeEnvironment.enableAnywhereAddress, {
+    reportFailure: false,
+  });
+  const disable = useAtomCommand(majordomeEnvironment.disableAnywhereAddress, {
+    reportFailure: false,
+  });
+  // The dialog keeps its words while it closes, so what it asks stays apart from whether it shows.
+  const [asking, setAsking] = useState<"on" | "off">("on");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const ask = (change: "on" | "off") => {
+    setAsking(change);
+    setDialogOpen(true);
+  };
+  const [busy, setBusy] = useState<"on" | "off" | null>(null);
+  const [answered, setAnswered] = useState<Anywhere | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (change: "on" | "off") => {
+    setDialogOpen(false);
+    setBusy(change);
+    setError(null);
+    const result = await (change === "on" ? enable : disable)({ environmentId, input: {} });
+    setBusy(null);
+    if (result._tag === "Success") {
+      setAnswered(result.value.anywhere);
+      return;
+    }
+    if (isAtomCommandInterrupted(result)) return;
+    const failure = squashAtomCommandFailure(result);
+    setError(failure instanceof Error ? failure.message : String(failure));
+  };
+
+  const anywhere = currentAnywhere(read, answered, checking);
+  const view = anywhereView(anywhere, busy === "on");
+  const problem =
+    error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {view.kind === "offer" ? (
+        <>
+          <Muted className={READING_MEASURE_CLASS}>
+            {suggested
+              ? "Majordome gives this computer its own address, and your phone opens it by scanning a code. Nothing to install on your phone, and no account to make."
+              : "Your phone already reaches this computer through Tailscale, and you don't need to change anything. Majordome can also give this computer its own address, for a phone without Tailscale."}
+          </Muted>
+          <div>
+            <Button
+              variant={suggested ? "default" : "outline"}
+              disabled={!canChange}
+              onClick={() => ask("on")}
+            >
+              {suggested ? "Set up my phone" : "Get an address"}
+            </Button>
+          </div>
+          {problem}
+        </>
+      ) : view.kind === "starting" ? (
+        <StatusLine tone="neutral" className={READING_MEASURE_CLASS} aria-live="polite">
+          Getting your address… This can take up to half a minute.
+        </StatusLine>
+      ) : view.kind === "unavailable" ? (
+        <>
+          <StatusLine tone="warning" className={READING_MEASURE_CLASS}>
+            {view.reason ?? "This computer can't get an address right now."}
+          </StatusLine>
+          <Muted className={READING_MEASURE_CLASS}>
+            You can still set up your phone with Tailscale, in the steps below.
+          </Muted>
+          <div>
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={!canChange}
+              onClick={() => void run("on")}
+            >
+              Try again
+            </Button>
+          </div>
+          {problem}
+        </>
+      ) : (
+        <>
+          <Muted className={READING_MEASURE_CLASS}>
+            Your phone can reach this computer from anywhere. Nothing to install on your phone.
+          </Muted>
+          <Steps>
+            <OnPhoneSteps
+              environmentId={environmentId}
+              baseUrl={view.address}
+              phoneDone={phoneDone}
+            />
+          </Steps>
+          <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
+            This computer's address is{" "}
+            <span className="break-all text-foreground">{view.address}</span>. It is on the
+            internet, but only devices you add with a code from this screen can get in. The
+            connection passes through Cloudflare, a company that could technically read it.
+          </Muted>
+          <div>
+            <Button
+              size="xs"
+              variant="ghost-muted"
+              disabled={!canChange || busy !== null}
+              onClick={() => ask("off")}
+            >
+              {busy === "off" ? <Spinner size="sm" /> : null}
+              Turn off this address
+            </Button>
+          </div>
+          {problem}
+        </>
+      )}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {asking === "off"
+                ? "Turn off this address?"
+                : "Give this computer an address on the internet?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {asking === "off"
+                ? "Phones set up with this address stop working until you turn it on again. The address stays the same if you turn it on again within two weeks."
+                : "Your phone uses this address to reach Majordome from anywhere. The address is on the internet, but only devices you add with a code from this screen can get in. The connection passes through Cloudflare, a company that could technically read it. You can turn it off at any time."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <Button
+              variant={asking === "off" ? "destructive" : "default"}
+              onClick={() => void run(asking)}
+            >
+              {asking === "off" ? "Turn it off" : "Set it up"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
+    </div>
   );
 }
 
@@ -206,7 +428,7 @@ function SetupChecklist({
   );
 
   return (
-    <Steps className="mt-3">
+    <Steps>
       <SetupStep title="Tailscale on this computer" done={tailscaleOn}>
         {tailscaleOn ? null : (
           <>
@@ -264,14 +486,36 @@ function SetupChecklist({
           account and make sure it is connected.
         </p>
       </SetupStep>
+      <OnPhoneSteps
+        environmentId={environmentId}
+        baseUrl={majordomeReachable ? setup.secureUrl : null}
+        phoneDone={phoneDone}
+      />
+    </Steps>
+  );
+}
+
+/** What happens on the phone itself, the same whichever address it opens. */
+function OnPhoneSteps({
+  environmentId,
+  baseUrl,
+  phoneDone,
+}: {
+  readonly environmentId: EnvironmentId;
+  /** Null until the computer's side is done. */
+  readonly baseUrl: string | null;
+  readonly phoneDone: boolean;
+}) {
+  return (
+    <>
       <SetupStep title="Open Majordome on your phone" done={phoneDone}>
-        {majordomeReachable ? (
+        {baseUrl === null ? (
+          <p>The code to scan with your phone's camera shows here once the steps above are done.</p>
+        ) : (
           <>
             <p>Scan this code with your phone's camera and open the link.</p>
-            <PairingCode environmentId={environmentId} baseUrl={setup.secureUrl!} />
+            <PairingCode environmentId={environmentId} baseUrl={baseUrl} />
           </>
-        ) : (
-          <p>The code to scan with your phone's camera shows here once the steps above are done.</p>
         )}
       </SetupStep>
       <SetupStep title="Add Majordome to your Home Screen" done={phoneDone}>
@@ -290,7 +534,7 @@ function SetupChecklist({
           “Notifications on this device”.
         </p>
       </SetupStep>
-    </Steps>
+    </>
   );
 }
 

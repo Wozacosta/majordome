@@ -101,10 +101,13 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   `name (version from <machine>, <date>).md`, and syncing carries on. An edit wins over a delete.
   Majordome never force-pushes. No conflict branches: choosing between branches is a git idea, and
   two files are something anyone can read, and the assistant can combine.
-- **Phone access:** a home-screen web app over Tailscale with HTTPS (a `*.ts.net` address), which
-  iPhone web push needs. Majordome guides the Tailscale setup once and shows a QR code. Same-Wi-Fi
-  QR pairing stays as a fallback without notifications. A hosted Majordome relay waits until
-  people ask for it (T3 Connect belongs to T3).
+- **Phone access:** a home-screen web app over HTTPS, which iPhone web push needs. The main way
+  (2026-11-22) is a public `*.majord.link` address: installing Tailscale on the phone was the step
+  people would not do. Majordome runs one small hosted piece for it, the address broker in
+  `infra/broker`, which hands each computer a Cloudflare Tunnel; it has no accounts and is not in
+  the path of the traffic, but Cloudflare is, and the server is then reachable from the internet
+  behind its own pairing and sessions. Tailscale (`*.ts.net`) stays as the private way, and
+  same-Wi-Fi pairing as a fallback without notifications. T3 Connect belongs to T3 and stays off.
 - **Push notifications, only four kinds:** a run is waiting for you, "Start my day" finished (its
   first line), a run couldn't finish, and an agent's `notify_me` when you asked it to tell you
   (one per thread every 30 seconds). "Notifications" lists the devices that get them; "Your

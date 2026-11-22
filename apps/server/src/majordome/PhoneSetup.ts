@@ -31,6 +31,7 @@ import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ManagedLimits from "../policy/managedLimits.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
 import { isLoopbackHost } from "../startupAccess.ts";
+import * as AnywhereAddress from "./AnywhereAddress.ts";
 
 /** The local address Tailscale Serve forwards to: in development, the web dev server. */
 export function secureAddressTarget(config: {
@@ -69,6 +70,9 @@ export class PhoneSetup extends Context.Service<
     readonly read: () => Effect.Effect<MajordomePhoneSetup, MajordomePhoneError>;
     /** Runs `tailscale serve` for this server. Only from the owner's explicit confirmation. */
     readonly enableSecureAddress: () => Effect.Effect<MajordomePhoneSetup, MajordomePhoneError>;
+    /** Opens the public address. Only from the owner's explicit confirmation. */
+    readonly enableAnywhereAddress: () => Effect.Effect<MajordomePhoneSetup, MajordomePhoneError>;
+    readonly disableAnywhereAddress: () => Effect.Effect<MajordomePhoneSetup, MajordomePhoneError>;
   }
 >()("t3/majordome/PhoneSetup") {}
 
@@ -76,6 +80,7 @@ const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;
   const directEndpoints = yield* DirectEndpoints.DirectEndpoints;
   const policy = yield* ManagedPolicy.ManagedPolicy;
+  const anywhereAddress = yield* AnywhereAddress.AnywhereAddress;
   const environmentId = yield* (yield* ServerEnvironment.ServerEnvironment).getEnvironmentId;
   const services = yield* Effect.context<
     ChildProcessSpawner.ChildProcessSpawner | HttpClient.HttpClient | NetService.NetService
@@ -92,6 +97,7 @@ const make = Effect.gen(function* () {
 
   const read = Effect.fn("PhoneSetup.read")(
     function* () {
+      const anywhere = yield* anywhereAddress.read();
       const status = yield* readStatus;
       const wifiUrls = (yield* directEndpoints.resolveAvailable())
         .filter((endpoint) => endpoint.kind === "lan")
@@ -105,7 +111,12 @@ const make = Effect.gen(function* () {
           : null;
       const state = tailscaleStateFromStatus(status);
       if (state !== "maybe-served" || secureUrl === null) {
-        return { tailscale: state === "maybe-served" ? "signed-out" : state, secureUrl, wifiUrls };
+        return {
+          anywhere,
+          tailscale: state === "maybe-served" ? "signed-out" : state,
+          secureUrl,
+          wifiUrls,
+        };
       }
       // A computer cannot always reach its own MagicDNS name, so a route that Serve says is ours
       // counts too.
@@ -116,6 +127,7 @@ const make = Effect.gen(function* () {
             Effect.orElseSucceed(() => "unreadable" as const),
           );
       return {
+        anywhere,
         tailscale: holder === "ours" ? ("ready" as const) : ("not-served" as const),
         secureUrl,
         wifiUrls,
@@ -180,7 +192,22 @@ const make = Effect.gen(function* () {
     (effect) => effect.pipe(Effect.provide(services)),
   );
 
-  return PhoneSetup.of({ read, enableSecureAddress });
+  const enableAnywhereAddress = Effect.fn("PhoneSetup.enableAnywhereAddress")(function* () {
+    yield* anywhereAddress.enable();
+    return yield* read();
+  });
+
+  const disableAnywhereAddress = Effect.fn("PhoneSetup.disableAnywhereAddress")(function* () {
+    yield* anywhereAddress.disable();
+    return yield* read();
+  });
+
+  return PhoneSetup.of({
+    read,
+    enableSecureAddress,
+    enableAnywhereAddress,
+    disableAnywhereAddress,
+  });
 });
 
 export const layer = Layer.effect(PhoneSetup, make);

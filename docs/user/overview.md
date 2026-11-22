@@ -13,7 +13,8 @@ Below that, the page goes through each part:
 - **Notes**: whether your notes are backed up, and whether the notes search is ready.
 - **AI and access**: which AIs are signed in, where keys and tokens are read from, and your private
   documents.
-- **Phone**: how many devices get notifications, and whether the secure address is on.
+- **Phone**: how many devices get notifications, and whether your phone has an address to reach
+  this computer.
 
 ## The colours
 

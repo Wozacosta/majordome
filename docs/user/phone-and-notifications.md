@@ -1,29 +1,40 @@
 # Phone and notifications
 
-Majordome on your phone is the same app, added to your Home Screen. It reaches your computer
-through [Tailscale](https://tailscale.com), a free app that links your own devices privately, so it
-works away from home and nobody else can open it.
+Majordome on your phone is the same app, added to your Home Screen. Nothing is installed on the
+phone, and it works away from home.
 
 ## Set up your phone
 
-Open **Settings > Phone & notifications** on your computer. It takes about 10 minutes and a free
-Tailscale account. The page is a checklist and marks each step **Done** as it goes:
+Open **Settings > Phone & notifications** on your computer.
 
-1. Install Tailscale on the computer and sign in.
-2. Turn on secure addresses in Tailscale (MagicDNS and HTTPS Certificates).
-3. Turn on Majordome's secure address, with the button on the page.
-4. Install Tailscale on your phone and sign in with the same account.
-5. Scan the code on the page with your phone's camera. Each code works once and expires.
-6. Add Majordome to your Home Screen, then open it from there.
-7. On the phone, open **Settings > Phone & notifications** and turn on **Notifications on this
+1. Choose **Set up my phone** and confirm. Majordome gets this computer its own address, which can
+   take half a minute the first time.
+2. Scan the code on the page with your phone's camera. Each code works once and expires.
+3. Add Majordome to your Home Screen, then open it from there.
+4. On the phone, open **Settings > Phone & notifications** and turn on **Notifications on this
    device**.
 
-Choose **Check again** after a step you did outside Majordome. To add another phone, follow the
-steps again from step 4.
+To add another phone, show a new code and follow steps 2 to 4 again. On an iPhone or iPad,
+notifications only work from the Home Screen app.
 
-On an iPhone or iPad, notifications only work from the Home Screen app. A phone on the same Wi-Fi
-can also open Majordome without Tailscale, from the option under the checklist, but it gets no
-notifications and stops working away from home.
+The address is on the internet, but only devices you add with a code can get in, and the
+connection passes through Cloudflare, a company that could technically read it. **Turn off this
+address** closes it at once; phones set up with it stop working until you turn it on again. Turn it
+on again within two weeks and the address is the same.
+
+### More private: only your own devices
+
+[Tailscale](https://tailscale.com) is a free app that links your own devices privately, so the
+computer needs no address on the internet. It takes about 10 minutes and a free Tailscale account,
+and Tailscale has to be installed on the computer and on each phone. The page has a checklist under
+**More private** and marks each step **Done** as it goes; choose **Check again** after a step you
+did outside Majordome.
+
+A phone set up one way keeps working that way. To change it to the other, add Majordome to its Home
+Screen again from the new code.
+
+A phone on the same Wi-Fi can also open Majordome with nothing else set up, from the last option on
+the page, but it gets no notifications and stops working away from home.
 
 ## Notifications
 

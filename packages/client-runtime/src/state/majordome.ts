@@ -63,6 +63,18 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
     }),
+    enableAnywhereAddress: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:enable-anywhere-address",
+      tag: WS_METHODS.majordomeEnableAnywhereAddress,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
+    }),
+    disableAnywhereAddress: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:disable-anywhere-address",
+      tag: WS_METHODS.majordomeDisableAnywhereAddress,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
+    }),
     /** "Set up a server for me": the server's own account of each step, as it happens. */
     serverMove: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:majordome:server-move",

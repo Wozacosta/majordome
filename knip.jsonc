@@ -161,6 +161,12 @@
       // Alchemy loads src/worker.ts as the Worker entry and reads its default export.
       "entry": ["alchemy.run.ts!", "src/persistence/schema.ts!", "src/worker.ts!"],
     },
+    "infra/broker": {
+      // Wrangler loads src/worker.ts as the Worker entry and reads its default export.
+      "entry": ["src/worker.ts!"],
+      // Ambient Worker types, loaded through tsconfig `types`.
+      "ignoreDependencies": ["@cloudflare/workers-types"],
+    },
     "packages/*": {
       // These workspace packages are private to this monorepo.
       "includeEntryExports": true,

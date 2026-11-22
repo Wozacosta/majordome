@@ -140,6 +140,7 @@ import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
+import * as MajordomeAnywhereAddress from "./majordome/AnywhereAddress.ts";
 import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
@@ -1003,6 +1004,14 @@ const layerRuntimeDependencies = layerRuntimeCoreDependencies.pipe(
       Layer.provide(ManagedPolicy.layer),
     ),
   ),
+  Layer.provideMerge(
+    MajordomeAnywhereAddress.layer.pipe(
+      Layer.provide(EnvironmentKeys.layer),
+      Layer.provide(layerCloudManagedEndpointRuntime),
+      Layer.provide(ServerSecretStore.layer),
+      Layer.provide(ManagedPolicy.layer),
+    ),
+  ),
   Layer.provideMerge(DirectEndpoints.layer.pipe(Layer.provide(layerServerEnvironment))),
   Layer.provideMerge(ServerLifecycleEvents.layer),
   // GitVcsDriver.layer is memoized and some of its build sites live outside this file, so the
@@ -1352,6 +1361,12 @@ const layerMakeServer = Layer.unwrap(
             if (typeof address === "string" || !("port" in address)) return;
             const localOrigin = `http://${loopbackUrlHostForAddress(address)}:${address.port}`;
             const endpointRuntime = yield* CloudManagedEndpointRuntime.CloudManagedEndpointRuntime;
+            const anywhereAddress = yield* MajordomeAnywhereAddress.AnywhereAddress;
+            // The connector then carries Majordome's public address, never a T3 Connect tunnel.
+            const anywhereOwnsConnector = yield* anywhereAddress.read().pipe(
+              Effect.map((anywhere) => anywhere.state !== "off"),
+              Effect.orElseSucceed(() => false),
+            );
             const runManagedTunnelRecovery = yield* makeManagedTunnelRecovery({
               recover: (config: RelayManagedEndpointRuntimeConfig) =>
                 cloudLink.recoverManagedTunnel(localOrigin, config, {
@@ -1374,14 +1389,32 @@ const layerMakeServer = Layer.unwrap(
                       }),
                 ),
               );
+            // The runtime's requests have one reader, so this hands each to whoever owns the connector.
             yield* endpointRuntime.recoveryRequests.pipe(
-              Stream.runForEach(recoverManagedTunnel),
+              Stream.runForEach((config) =>
+                anywhereAddress
+                  .recover(config)
+                  .pipe(
+                    Effect.flatMap((recovered) =>
+                      recovered ? Effect.void : recoverManagedTunnel(config),
+                    ),
+                  ),
+              ),
               Effect.forkScoped,
             );
             yield* watchManagedTunnelOrigin({
               localOrigin,
-              readIngressOrigin: endpointRuntime.inspectConnector.pipe(
-                Effect.map((connector) => connector?.origin ?? null),
+              // The public address routes to `localhost`, which is this server too.
+              readIngressOrigin: anywhereAddress.read().pipe(
+                Effect.map((anywhere) => anywhere.state !== "off"),
+                Effect.orElseSucceed(() => false),
+                Effect.flatMap((ownedByAnywhere) =>
+                  ownedByAnywhere
+                    ? Effect.succeed(null)
+                    : endpointRuntime.inspectConnector.pipe(
+                        Effect.map((connector) => connector?.origin ?? null),
+                      ),
+                ),
               ),
               // Like startup, a publish-only link never routes the tunnel to this host.
               register: CloudCliState.readCliDesiredLinkMode.pipe(
@@ -1421,7 +1454,7 @@ const layerMakeServer = Layer.unwrap(
               : null;
             // Publish-only links must not expose the host through old managed configs.
             const startedConfirmed =
-              desiredCliLinkMode === "publish_only"
+              desiredCliLinkMode === "publish_only" || anywhereOwnsConnector
                 ? false
                 : yield* cloudLink.startManagedTunnelIfOriginConfirmed(localOrigin).pipe(
                     Effect.catch((cause) =>
@@ -1430,23 +1463,25 @@ const layerMakeServer = Layer.unwrap(
                       }).pipe(Effect.as(false)),
                     ),
                   );
-            const startStoredManagedTunnel = cloudLink
-              .startManagedTunnelIfOriginConfirmed(localOrigin, {
-                requireConfirmedOrigin: false,
-              })
-              .pipe(
-                Effect.tap((started) =>
-                  started
-                    ? Effect.logWarning(
-                        "T3 Connect started the stored tunnel without relay confirmation",
-                      )
-                    : Effect.void,
-                ),
-                Effect.catch((cause) =>
-                  Effect.logWarning("Failed to start the stored T3 Connect tunnel", { cause }),
-                ),
-                Effect.asVoid,
-              );
+            const startStoredManagedTunnel = (
+              anywhereOwnsConnector
+                ? Effect.succeed(false)
+                : cloudLink.startManagedTunnelIfOriginConfirmed(localOrigin, {
+                    requireConfirmedOrigin: false,
+                  })
+            ).pipe(
+              Effect.tap((started) =>
+                started
+                  ? Effect.logWarning(
+                      "T3 Connect started the stored tunnel without relay confirmation",
+                    )
+                  : Effect.void,
+              ),
+              Effect.catch((cause) =>
+                Effect.logWarning("Failed to start the stored T3 Connect tunnel", { cause }),
+              ),
+              Effect.asVoid,
+            );
             const registerManagedTunnel = retryManagedTunnelRegistration(
               cloudLink.registerManagedTunnelRecovery(localOrigin, {
                 retryRuntimeFailures: true,

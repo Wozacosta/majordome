@@ -24,7 +24,7 @@ import {
 
 export const SUPPORT_COPY: Record<Exclude<DevicePushSupport, "supported">, string> = {
   insecure:
-    "Notifications need the secure address. Open Majordome from the link on the “Phone & notifications” screen.",
+    "Notifications don't work on the Wi-Fi address. On your computer, open “Phone & notifications” and set up this phone with the code there.",
   "needs-home-screen":
     "On iPhone and iPad, add Majordome to your Home Screen first, then open it from there.",
   unsupported: "This browser can't show Majordome's notifications.",
