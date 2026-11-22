@@ -81,6 +81,33 @@ describe("ElectronShell", () => {
     }).pipe(Effect.provide(ElectronShell.layer)),
   );
 
+  it.effect("opens only Obsidian's open-by-path link", () =>
+    Effect.gen(function* () {
+      openExternalMock.mockResolvedValue(undefined);
+
+      const note = "obsidian://open?path=%2FUsers%2Fme%2FNotes%2Flog.md";
+      const electronShell = yield* ElectronShell.ElectronShell;
+      const results = yield* Effect.forEach(
+        [
+          note,
+          "obsidian://open",
+          "obsidian://open?path=",
+          "obsidian://open?vault=Notes&file=log",
+          "obsidian://open?path=%2Fa.md&vault=Notes",
+          "obsidian://new?path=%2Fa.md",
+          "obsidian://adv-uri?path=%2Fa.md",
+          "obsidian://user@open?path=%2Fa.md",
+          "obsidian://open/extra?path=%2Fa.md",
+          "obsidian://open?path=%2Fa.md#x",
+        ],
+        (url) => electronShell.openExternal(url),
+      );
+
+      assert.deepEqual(results, [true, ...Array<boolean>(9).fill(false)]);
+      assert.deepEqual(openExternalMock.mock.calls, [[note]]);
+    }).pipe(Effect.provide(ElectronShell.layer)),
+  );
+
   it.effect("opens local editor file deep links", () =>
     Effect.gen(function* () {
       openExternalMock.mockResolvedValue(undefined);

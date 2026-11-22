@@ -26,7 +26,9 @@ import {
   vaultLinkTarget,
 } from "./notes.logic";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
+import { NoteOpenIn } from "./NoteOpenIn";
 import { NoteSourceEditor, type NoteSourceLink } from "./NoteSourceEditor";
 import { READING_MEASURE_CLASS } from "./paper";
 import {
@@ -93,10 +95,16 @@ export function NotePreview({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-note-path={path}>
       {showTitle ? (
         <div className={FILE_SURFACE_SUBHEADER_CLASS}>
-          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            {parts.length > 1 ? `${parts.slice(0, -1).join(" / ")} / ` : null}
-            <span className="text-foreground">{parts.at(-1)}</span>
-          </p>
+          <Tooltip>
+            <TooltipTrigger
+              render={<p className="min-w-0 flex-1 truncate text-xs text-muted-foreground" />}
+            >
+              {parts.length > 1 ? `${parts.slice(0, -1).join(" / ")} / ` : null}
+              <span className="text-foreground">{parts.at(-1)}</span>
+            </TooltipTrigger>
+            <TooltipPopup side="bottom">{absoluteVaultPath(vault, path)}</TooltipPopup>
+          </Tooltip>
+          <NoteOpenIn vault={vault} absolutePath={absoluteVaultPath(vault, path)} />
         </div>
       ) : null}
       {kind === "markdown" ? (

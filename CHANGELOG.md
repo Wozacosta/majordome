@@ -12,11 +12,17 @@ The section for a version is also the text of its release on GitHub.
   see only its rows. Put the few you are working on **in focus** and **Next** shows the top row
   of each, instead of the first three of the whole list. Subjects are separate from the topics
   in the sidebar. The assistant can file a row under a subject; it never makes one.
+- **Open a note in another app.** A file open in **Notes** has a button beside its name that
+  opens it in Obsidian, in an editor installed on this computer such as VS Code, or in the
+  default app for its kind; it can also show the file in its folder or copy where it is. The
+  button remembers the app you used last. It shows when the notes are on the computer you are
+  using, so not on the phone.
 
 **Try this**
 
 - In Reading list, **Everything**: press **+ Subject**, name it, then file two rows under it.
 - Choose the subject, open the **…** beside it and **Put in focus**; then look at **Next**.
+- In **Notes**, open a note, press the arrow beside its name and choose **Obsidian**.
 
 **Fixed**
 

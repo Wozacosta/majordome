@@ -27,6 +27,15 @@ Only Markdown notes (`.md`, `.markdown`) are edited this way, and only from a de
 change things. While you write, the note shows as its text: pictures and tables appear as written,
 and a click on a picture's link opens it.
 
+## Open a note in another app
+
+On the computer that holds your notes, a file open in **Notes** has a button beside its name. It
+opens the file in Obsidian, in an editor installed on that computer, or in the default app for its
+kind, and can show the file in its folder or copy where it is. The button repeats the app you used
+last; the arrow beside it lists the others. Obsidian opens the note only if the notes folder, or a
+folder above it, is one of its vaults. On a phone, or when the notes shown are another computer's
+copy, the button is not there.
+
 ## Your assistant searches too
 
 When you ask about something you wrote down, your assistant searches your notes the same way, then

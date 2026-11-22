@@ -32,6 +32,17 @@ const isAppLaunchUrl = (url: URL) =>
   url.hash.length === 0 &&
   [...url.searchParams.keys()].join() === "text";
 
+// Majordome's Notes page opens a note in Obsidian: only the open-by-path link, never another action.
+const isObsidianOpenUrl = (url: URL) =>
+  url.protocol === "obsidian:" &&
+  url.host === "open" &&
+  url.pathname.length <= 1 &&
+  url.username.length === 0 &&
+  url.password.length === 0 &&
+  url.hash.length === 0 &&
+  [...url.searchParams.keys()].join() === "path" &&
+  (url.searchParams.get("path") ?? "").length > 0;
+
 // Zed embeds [user@]host in the path; reject passwords and ports there.
 const ZED_SSH_PATHNAME = /^\/(?:[^/@:]+@)?[^/@:]+\/.*$/;
 
@@ -58,6 +69,7 @@ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
     const url = new URL(rawUrl);
     return SAFE_WEB_PROTOCOLS.has(url.protocol) ||
       isAppLaunchUrl(url) ||
+      isObsidianOpenUrl(url) ||
       isRemoteEditorUrl(url) ||
       isLocalEditorFileUrl(url)
       ? Option.some(url.href)
