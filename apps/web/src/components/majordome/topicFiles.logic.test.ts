@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  isNoteFileName,
   moreFilesLine,
   privateDocumentNameFor,
   topicFileDate,
@@ -146,4 +147,11 @@ describe("topicFiles.logic", () => {
     expect(moreFilesLine(101, 100)).toBe("1 more file in this topic's folder");
     expect(moreFilesLine(140, 100)).toBe("40 more files in this topic's folder");
   });
+});
+
+it("knows a Markdown file is a note, whatever its case", () => {
+  expect(isNoteFileName("s02e05-agent-reliability.md")).toBe(true);
+  expect(isNoteFileName("Notes.MARKDOWN ")).toBe(true);
+  expect(isNoteFileName("bill.pdf")).toBe(false);
+  expect(isNoteFileName("readme.md.pdf")).toBe(false);
 });

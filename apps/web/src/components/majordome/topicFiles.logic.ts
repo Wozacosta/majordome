@@ -113,6 +113,11 @@ export function topicFileDate(
 }
 
 /** Why this file cannot be added, in the owner's words, or null when it can. */
+/** Whether a file is a note: Markdown lives among the topic's notes, not its files. */
+export function isNoteFileName(name: string): boolean {
+  return /\.(md|markdown)$/i.test(name.trim());
+}
+
 export function topicFileProblem(file: { readonly size: number }): string | null {
   if (file.size === 0) return "That file is empty.";
   return file.size > MAJORDOME_TOPIC_FILE_MAX_BYTES ? MAJORDOME_TOPIC_FILE_TOO_LARGE : null;

@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- Adding a Markdown file to a topic looked like nothing happened: it is a note, so it goes under
+  Notes, not Files. The app now says so, and the Notes list and its count update right away.
+
 ## 0.10.6
 
 **New**

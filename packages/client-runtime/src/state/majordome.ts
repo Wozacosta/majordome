@@ -321,7 +321,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
     addTopicFile: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:add-topic-file",
       tag: WS_METHODS.majordomeAddTopicFile,
-      onSettled: ({ environmentId }, registry) => bumpTopicFiles(environmentId, registry),
+      // A Markdown file is a note, which changes the topic's note count.
+      onSettled: ({ environmentId }, registry) =>
+        Effect.andThen(
+          bumpTopicFiles(environmentId, registry),
+          bumpTopics(environmentId, registry),
+        ),
     }),
     removeTopicFile: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:remove-topic-file",

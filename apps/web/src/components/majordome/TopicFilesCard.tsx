@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
 import {
@@ -9,7 +9,7 @@ import {
 import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
-import { AsyncResult } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { DownloadIcon, FileIcon, LockIcon, XIcon } from "lucide-react";
 import { type DragEvent, useRef, useState } from "react";
 
@@ -34,6 +34,7 @@ import {
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
+import { projectEnvironment } from "../../state/projects";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { isUnknownRequest } from "./connections.logic";
@@ -44,6 +45,7 @@ import {
   privateDocumentNameFor,
   topicFileDate,
   topicFilePreviewable,
+  isNoteFileName,
   topicFileProblem,
   type TopicFileRow,
   topicFileRows,
@@ -73,6 +75,8 @@ const droppedFiles = (event: DragEvent) => event.dataTransfer.types.includes("Fi
  * The documents kept with a topic, in its chat's panel. `workspaceRoot` is the notes folder on
  * the chat's computer, null until it is known; a file is shown in a tab from there.
  */
+const NO_NOTES = Atom.make(null).pipe(Atom.withLabel("majordome:topic-files:no-notes"));
+
 export function TopicFiles({
   environmentId,
   projectId,
@@ -118,6 +122,15 @@ export function TopicFiles({
     reportDefect: false,
     refresh: true,
   });
+  // The same list the Notes section reads, read again after an add: a Markdown file lands there.
+  const refreshNotes = useAtomRefresh(
+    workspaceRoot === null
+      ? NO_NOTES
+      : projectEnvironment.listEntries({
+          environmentId,
+          input: { cwd: workspaceRoot, directoryPath: topic.folder },
+        }),
+  );
   const now = Date.parse(`${useNowMinute()}:00Z`);
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -178,6 +191,14 @@ export function TopicFiles({
             input: { ...where, attachmentId: sent.attachmentId, fileName: file.name },
           }),
         );
+        // A Markdown file is a note: it shows under Notes, so this list would say nothing of it.
+        if (problem === null && isNoteFileName(file.name)) {
+          toastManager.add({
+            type: "success",
+            title: `${file.name} was added to this topic's notes`,
+            description: "It is a note, so it is listed under Notes, not Files.",
+          });
+        }
       }
       if (problem !== null) {
         toastManager.add({
@@ -188,6 +209,7 @@ export function TopicFiles({
       }
     }
     setBusy(false);
+    refreshNotes();
   };
 
   const offer = (picked: ReadonlyArray<File>) => {
