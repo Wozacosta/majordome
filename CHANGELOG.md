@@ -5,11 +5,9 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-**Fixed**
+Not released yet.
 
-- **Open in Obsidian finds the folder.** Obsidian answered "Vault not found" when it knew the
-  notes folder under another path than Majordome does, such as a shortcut to it. The link now
-  names the folder instead of its path.
+## 0.10.16
 
 **New**
 
@@ -18,6 +16,19 @@ The section for a version is also the text of its release on GitHub.
   Cmd+Option+Down and Up open the next and the previous topic. Cmd+G opens a search over your
   topics: type a few letters and press Enter. All five can be changed in Settings, under
   Keybindings.
+
+**Fixed**
+
+- **Open in Obsidian finds the folder.** Obsidian answered "Vault not found" when it knew the
+  notes folder under another path than Majordome does, such as a shortcut to it. The link now
+  names the folder instead of its path.
+
+**Try this**
+
+- Open a topic with more than one chat and press Ctrl+Tab, then Ctrl+Shift+Tab.
+- Press Cmd+Option+Down a few times to walk through your topics.
+- Press Cmd+G, type the start of a topic's name and press Enter.
+- Open a note from a topic and choose Open in Obsidian.
 
 ## 0.10.15
 
