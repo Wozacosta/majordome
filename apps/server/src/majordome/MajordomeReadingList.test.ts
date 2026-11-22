@@ -195,6 +195,16 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       // Something saved by its title has nothing to look up.
       yield* service.update({ projectId: vaultProject, itemId: older.id, lookUp: true });
       assert.lengthOf(requests, 2);
+
+      // A link saved without a picture gets its page's; nothing else about it changes.
+      const bare = item("bare", { url: "https://blog.example.com/old", title: "Mine" });
+      yield* service.restore({ projectId: vaultProject, item: bare, index: 0 });
+      yield* service.fillPictures({ projectId: vaultProject });
+      assert.lengthOf(requests, 3);
+      assert.deepEqual((yield* items)[0], {
+        ...bare,
+        image: "https://blog.example.com/covers/compilers.jpg",
+      });
     }),
   );
 
@@ -476,7 +486,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
 
   it.effect("lists the good items of a hand-edited file, and never deletes the rest", () =>
     Effect.gen(function* () {
-      const { service, fs, filePath, items, addTitle } = yield* setUp();
+      // No page answers, so the pictures `list` looks for by itself change nothing here.
+      const { service, fs, filePath, items, addTitle } = yield* setUp(() => ({ status: 500 }));
       const good = item("good", { url: "https://example.com/a", site: "example.com" });
       const broken = { id: "broken", title: "No kind, no tags" };
       yield* fs.writeFileString(

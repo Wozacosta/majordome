@@ -61,6 +61,10 @@ export class MajordomeReadingList extends Context.Service<
     readonly restore: (
       input: MajordomeRestoreReadingItemInput,
     ) => Effect.Effect<void, MajordomeReadingListError>;
+    /** Looks up the picture of every saved link that has none. `list` starts it by itself. */
+    readonly fillPictures: (
+      input: MajordomeReadingListInput,
+    ) => Effect.Effect<void, MajordomeReadingListError>;
   }
 >()("t3/majordome/MajordomeReadingList") {}
 
@@ -190,6 +194,9 @@ const make = Effect.gen(function* () {
   const textGeneration = yield* TextGeneration.TextGeneration;
   // One change at a time, so two quick edits never write over each other.
   const lock = yield* Semaphore.make(1);
+  const serviceScope = yield* Effect.scope;
+  // Vaults whose missing pictures were already looked for since the server started.
+  const filled = new Set<string>();
 
   const filePath = (vaultRoot: string) =>
     path.join(vaultRoot, VAULT_CONFIG_DIRNAME, READING_LIST_FILENAME);
@@ -281,11 +288,49 @@ const make = Effect.gen(function* () {
 
   const nowIso = DateTime.now.pipe(Effect.map(DateTime.formatIso));
 
+  const fillPictures: MajordomeReadingList["Service"]["fillPictures"] = Effect.fn(
+    "MajordomeReadingList.fillPictures",
+  )(
+    function* (input) {
+      const vaultRoot = yield* requireVaultRoot(input.projectId);
+      // One page at a time, and outside the change, so a slow page never holds the list's lock.
+      for (const item of (yield* read(vaultRoot)).items) {
+        const link = item.image === undefined ? parseLink(item.url ?? "") : null;
+        if (link === null) continue;
+        const { image } = yield* lookUpLink(link, item.kind).pipe(
+          Effect.provideService(HttpClient.HttpClient, http),
+        );
+        if (image === undefined) continue;
+        const lacksPicture = (candidate: MajordomeReadingItem) =>
+          candidate.id === item.id && candidate.image === undefined;
+        yield* change(vaultRoot, (file) =>
+          Effect.succeed(
+            file.items.some(lacksPicture)
+              ? {
+                  items: file.items.map((candidate) =>
+                    lacksPicture(candidate) ? { ...candidate, image } : candidate,
+                  ),
+                  result: undefined,
+                }
+              : { result: undefined },
+          ),
+        );
+      }
+    },
+    Effect.mapError(toError("Could not look up your reading list's pictures.")),
+  );
+
   const list: MajordomeReadingList["Service"]["list"] = Effect.fn("MajordomeReadingList.list")(
     function* (input) {
       const vaultRoot = yield* vaultRootOf(input.projectId);
       if (vaultRoot === undefined) return { isVault: false, items: [] };
-      return { isVault: true, items: (yield* read(vaultRoot)).items };
+      const { items } = yield* read(vaultRoot);
+      // Once per start: links saved before pictures were kept, or while their page was down.
+      if (!filled.has(vaultRoot)) {
+        filled.add(vaultRoot);
+        yield* fillPictures(input).pipe(Effect.ignore, Effect.forkIn(serviceScope));
+      }
+      return { isVault: true, items };
     },
     Effect.mapError(toError("Could not read your reading list.")),
   );
@@ -455,7 +500,7 @@ const make = Effect.gen(function* () {
     Effect.mapError(toError("Could not put this item back.")),
   );
 
-  return MajordomeReadingList.of({ list, add, update, reorder, remove, restore });
+  return MajordomeReadingList.of({ list, add, update, reorder, remove, restore, fillPictures });
 });
 
 export const layer = Layer.effect(MajordomeReadingList, make);

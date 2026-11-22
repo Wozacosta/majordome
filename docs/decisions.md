@@ -282,7 +282,9 @@ takes over.
      Today; offline capture of a note or a request, shown as waiting to send.
    - **Then:** push sent by the owner's server with the owner's own Apple push key (the same four
      kinds as web push), share-sheet "Send to Majordome", and the remaining screens (topics, feed,
-     routines, notes).
+     routines, notes). The share sheet is also how a link reaches the reading list from the
+     phone: a home-screen web app cannot appear in the iPhone share sheet, so until then links are
+     pasted in the app, and no Apple Shortcut or token endpoint is built as a stopgap.
    - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.

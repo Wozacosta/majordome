@@ -38,6 +38,8 @@ The switch at the top chooses what you see, and is remembered on this device.
   undone right after.
 - **Look it up again** in the **…** menu reads the link once more. Use it on a video saved before
   Majordome could tell its length.
+- A link saved without a picture, because its page was down or refused to be read, is looked up
+  again by itself each time Majordome starts. The picture shows the next time you open the list.
 
 The line above the list adds up the time left across everything unfinished that has a length.
 
