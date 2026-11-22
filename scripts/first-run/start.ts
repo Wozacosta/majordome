@@ -12,7 +12,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Schema from "effect/Schema";
-import { Argument, Command } from "effect/cli";
+import { Argument, Command, Flag } from "effect/cli";
 
 import { start } from "../scenarios/start-app.ts";
 
@@ -30,6 +30,8 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
   readonly home: string;
   readonly host: string;
   readonly webPort: string;
+  /** Keeps the free replay assistant, for looking at screens rather than testing a first run. */
+  readonly replay: boolean;
 }) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -50,11 +52,15 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
   }
   yield* fs.writeFileString(
     path.join(input.home, "userdata/settings.json"),
-    yield* encodeSettings({
-      // The one real answer a run asks for goes to the cheapest model.
-      defaultModelSelection: { instanceId: "claudeAgent", model: "claude-haiku-5-5" },
-      providerInstances: { devReplay: { driver: "acpRegistry", enabled: false } },
-    }),
+    yield* encodeSettings(
+      input.replay
+        ? { defaultModelSelection: { instanceId: "devReplay", model: "showcase" } }
+        : {
+            // The one real answer a run asks for goes to the cheapest model.
+            defaultModelSelection: { instanceId: "claudeAgent", model: "claude-haiku-5-5" },
+            providerInstances: { devReplay: { driver: "acpRegistry", enabled: false } },
+          },
+    ),
   );
 
   // A Claude this machine already has would hide the install the run is about.
@@ -121,6 +127,11 @@ const command = Command.make(
     home: Argument.String("t3-home").pipe(Argument.withDescription("T3 home to recreate.")),
     host: Argument.String("host"),
     webPort: Argument.String("web-port"),
+    replay: Flag.Boolean("replay").pipe(
+      Flag.withDescription(
+        "Keep the free replay assistant, to look at screens with a chat in them.",
+      ),
+    ),
   },
   (input) =>
     startFirstRun(input).pipe(
