@@ -11,6 +11,14 @@ The section for a version is also the text of its release on GitHub.
   notes folder under another path than Majordome does, such as a shortcut to it. The link now
   names the folder instead of its path.
 
+**New**
+
+- **Keys for topics and their chats.** Ctrl+Tab and Ctrl+Shift+Tab move through the chats of the
+  topic you are reading, like tabs in a browser; Cmd+Option+Right and Left do the same.
+  Cmd+Option+Down and Up open the next and the previous topic. Cmd+G opens a search over your
+  topics: type a few letters and press Enter. All five can be changed in Settings, under
+  Keybindings.
+
 ## 0.10.15
 
 **Changed**

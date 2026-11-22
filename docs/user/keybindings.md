@@ -54,6 +54,17 @@ on macOS and Ctrl on Windows and Linux, including GNOME, KDE Plasma, Niri, and
 Hyprland. If a custom desktop shortcut takes the same keys, choose another binding
 in Settings.
 
+## Topics and their chats
+
+- `Mod+G` opens a search over your topics: type a few letters, then press Enter to open one.
+- `Mod+Alt+Down` and `Mod+Alt+Up` open the next and the previous topic, in the sidebar's order.
+- `Ctrl+Tab` and `Ctrl+Shift+Tab` move to the next and the previous chat of the topic you are
+  reading, as do `Mod+Alt+Right` and `Mod+Alt+Left`.
+
+Each list wraps around at its ends. In a browser tab, `Ctrl+Tab` belongs to the browser, so use
+the arrow shortcuts there. The commands are `topic.search`, `topic.previous`, `topic.next`,
+`topic.previousChat` and `topic.nextChat`.
+
 ## Copy pull request references
 
 With a PR open in the right panel or on the Pull requests page, use `mod+shift+c`

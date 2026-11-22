@@ -18,6 +18,7 @@ import {
   topicPanelNotes,
   topicPanelRoutines,
   topicPanelTodos,
+  stepAround,
   topicTabs,
 } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
@@ -340,5 +341,17 @@ describe("topic panel chats", () => {
     expect(
       topicTabs({ own: unstarted, merged: undefined, current: side("quotes"), shellOf }).main,
     ).toBeNull();
+  });
+
+  it("steps through a list that wraps around", () => {
+    const tabs = ["main", "quotes", "fresh"];
+    expect(stepAround(tabs, "fresh", 1)).toBe("main");
+    expect(stepAround(tabs, "main", -1)).toBe("fresh");
+    expect(stepAround(tabs, "main", 1)).toBe("quotes");
+    // From outside the list, forward lands on its start and back on its end.
+    expect(stepAround(tabs, null, 1)).toBe("main");
+    expect(stepAround(tabs, "gone", -1)).toBe("fresh");
+    expect(stepAround(["main"], "main", 1)).toBeNull();
+    expect(stepAround([], null, 1)).toBeNull();
   });
 });

@@ -343,3 +343,18 @@ export function topicTabs(input: {
   });
   return { main, chats, elsewhere };
 }
+
+/**
+ * The entry one step from `current` in a list that wraps around, or its first or last entry when
+ * `current` is not in it. Null when that leads nowhere new.
+ */
+export function stepAround<T>(
+  items: ReadonlyArray<T>,
+  current: T | null,
+  direction: 1 | -1,
+): T | null {
+  const index = current === null ? -1 : items.indexOf(current);
+  if (index === -1) return (direction === 1 ? items[0] : items.at(-1)) ?? null;
+  if (items.length < 2) return null;
+  return items[(index + direction + items.length) % items.length] ?? null;
+}

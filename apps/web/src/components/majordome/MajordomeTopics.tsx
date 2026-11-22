@@ -33,12 +33,14 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { isCommandPaletteOpen } from "../../commandPaletteBus";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
 import { cn } from "../../lib/utils";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShells } from "../../state/entities";
+import { registerCommands } from "../../shortcuts/dispatcher";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -69,6 +71,8 @@ import {
   type MajordomeVault,
   type VaultTopic,
 } from "./topics.logic";
+import { stepAround } from "./TopicPanel.logic";
+import { TopicSearchDialog } from "./TopicSearchDialog";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
@@ -269,6 +273,44 @@ function VaultTopics({
     if (!(await openTopic(topic, options))) setOpening(null);
   };
 
+  const [searching, setSearching] = useState(false);
+  // The topic being read, whichever of its chats is open.
+  const readTopicId =
+    opening?.topicId ??
+    (routeThreadKey === null
+      ? null
+      : (topics.find(
+          (topic) =>
+            threadKeyOf(topic) === routeThreadKey ||
+            topic.sideChats?.some((chat) => scopedThreadKey(chat) === routeThreadKey) === true,
+        )?.id ?? null));
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the topic keys are window shortcuts, live while the topics are listed
+  useEffect(() => {
+    const step = (direction: 1 | -1) => (event: KeyboardEvent) => {
+      const target = stepAround(
+        topics,
+        topics.find((topic) => topic.id === readTopicId) ?? null,
+        direction,
+      );
+      if (target === null) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      void open(target);
+    };
+    return registerCommands(
+      {
+        "topic.previous": step(-1),
+        "topic.next": step(1),
+        "topic.search": (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setSearching((shown) => !shown);
+        },
+      },
+      { capture: true, when: () => !isCommandPaletteOpen() },
+    );
+  });
+
   const reorder = async (next: ReadonlyArray<string>) => {
     if (next === order) return;
     setPendingOrder({ order: next, from: idsKey });
@@ -340,6 +382,12 @@ function VaultTopics({
           onCustomize={(suggestion) => actions.openDialog({ kind: "create", ...suggestion })}
         />
       ) : null}
+      <TopicSearchDialog
+        open={searching}
+        onOpenChange={setSearching}
+        topics={[...topics, ...finished]}
+        onChoose={(topic) => void open(topic)}
+      />
       {topics.length > 0 ? (
         <DndContext
           sensors={sensors}

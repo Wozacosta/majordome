@@ -1,5 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
-import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
+import {
+  parseScopedThreadKey,
+  scopeThreadRef,
+  scopedThreadKey,
+} from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -7,12 +11,14 @@ import {
 import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { isCommandPaletteOpen } from "../../commandPaletteBus";
 import { isElectron } from "../../env";
 import { useThreadActions } from "../../hooks/useThreadActions";
 import { cn } from "../../lib/utils";
 import { SETTLE_WORDS } from "../../settleWording";
+import { registerCommands } from "../../shortcuts/dispatcher";
 import { useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -21,7 +27,7 @@ import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
-import { topicTabs } from "./TopicPanel.logic";
+import { stepAround, topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -103,6 +109,29 @@ function TopicTabStrip(props: {
     shellOf: (chat) => shellByKey.get(scopedThreadKey(chat)),
   });
   const { main } = tabs;
+  // The tabs as shown, by key, for the keys that step through them.
+  const tabOrder = [...(main === null ? [] : [main]), ...tabs.chats, ...tabs.elsewhere]
+    .map((chat) => scopedThreadKey(chat))
+    .join("\n");
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the tab keys are window shortcuts, live while these tabs show
+  useEffect(() => {
+    const step = (direction: 1 | -1) => (event: KeyboardEvent) => {
+      const key = stepAround(tabOrder.split("\n"), currentKey, direction);
+      const target = key === null ? null : parseScopedThreadKey(key);
+      if (target === null) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      void navigate({
+        to: "/$environmentId/$threadId",
+        params: buildThreadRouteParams(target),
+      });
+    };
+    // Capture phase: the message box would otherwise keep Tab for itself.
+    return registerCommands(
+      { "topic.previousChat": step(-1), "topic.nextChat": step(1) },
+      { capture: true, when: () => !isCommandPaletteOpen() },
+    );
+  }, [tabOrder, currentKey, navigate]);
   const dot = (chat: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId }) => {
     const shell = shellByKey.get(scopedThreadKey(chat));
     const status = shell === undefined ? null : resolveThreadStatusPill({ thread: shell });
