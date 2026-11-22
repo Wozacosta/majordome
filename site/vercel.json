@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/download", "destination": "/api/download" },
+    { "source": "/download/intel", "destination": "/api/download?arch=x64" }
+  ]
+}
