@@ -32,7 +32,7 @@ const isAppLaunchUrl = (url: URL) =>
   url.hash.length === 0 &&
   [...url.searchParams.keys()].join() === "text";
 
-// Majordome's Notes page opens a note in Obsidian: only the open-by-path link, never another action.
+// Majordome's Notes page opens a note in Obsidian: only opening a file in a named folder, never another action.
 const isObsidianOpenUrl = (url: URL) =>
   url.protocol === "obsidian:" &&
   url.host === "open" &&
@@ -40,8 +40,9 @@ const isObsidianOpenUrl = (url: URL) =>
   url.username.length === 0 &&
   url.password.length === 0 &&
   url.hash.length === 0 &&
-  [...url.searchParams.keys()].join() === "path" &&
-  (url.searchParams.get("path") ?? "").length > 0;
+  [...url.searchParams.keys()].join() === "vault,file" &&
+  (url.searchParams.get("vault") ?? "").length > 0 &&
+  (url.searchParams.get("file") ?? "").length > 0;
 
 // Zed embeds [user@]host in the path; reject passwords and ports there.
 const ZED_SSH_PATHNAME = /^\/(?:[^/@:]+@)?[^/@:]+\/.*$/;

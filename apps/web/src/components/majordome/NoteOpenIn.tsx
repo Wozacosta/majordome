@@ -48,21 +48,25 @@ const LastNoteOpen = Schema.NullOr(Schema.String);
  */
 export function NoteOpenIn({
   vault,
+  path,
   absolutePath,
 }: {
   readonly vault: NotesVault;
+  readonly path: string;
   readonly absolutePath: string;
 }) {
   const where = useRemoteOpenResolution(vault.environmentId);
   if (!where.isResolved || where.state.mode !== "local-exec") return null;
-  return <NoteOpenInControl vault={vault} absolutePath={absolutePath} />;
+  return <NoteOpenInControl vault={vault} path={path} absolutePath={absolutePath} />;
 }
 
 function NoteOpenInControl({
   vault,
+  path,
   absolutePath,
 }: {
   readonly vault: NotesVault;
+  readonly path: string;
   readonly absolutePath: string;
 }) {
   const messages = useMessages();
@@ -152,7 +156,8 @@ function NoteOpenInControl({
         () => false,
       );
     }
-    if (target === "obsidian") return openRemoteEditorUrl(obsidianOpenUrl(absolutePath));
+    if (target === "obsidian")
+      return openRemoteEditorUrl(obsidianOpenUrl(vault.workspaceRoot, path));
     const editor = noteOpenEditorId(target);
     const result = await openInEditor({
       environmentId: vault.environmentId,

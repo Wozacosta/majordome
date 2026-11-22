@@ -55,7 +55,11 @@ export function noteOpenEditorId(target: NoteOpenTarget): NoteEditorId | null {
   return target.startsWith("editor:") ? (target.slice("editor:".length) as NoteEditorId) : null;
 }
 
-/** Obsidian opens a file by its full path when the file is inside a folder it knows. */
-export function obsidianOpenUrl(absolutePath: string): string {
-  return `obsidian://open?path=${encodeURIComponent(absolutePath)}`;
+/**
+ * Obsidian finds the folder by name, not by path: it may know the same folder under another path,
+ * such as a shortcut to it, and then refuses a link that carries the path.
+ */
+export function obsidianOpenUrl(workspaceRoot: string, path: string): string {
+  const folder = workspaceRoot.split(/[\\/]+/).findLast((part) => part !== "") ?? "";
+  return `obsidian://open?vault=${encodeURIComponent(folder)}&file=${encodeURIComponent(path)}`;
 }

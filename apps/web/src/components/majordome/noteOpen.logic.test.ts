@@ -117,9 +117,12 @@ describe("mainNoteOpenTarget", () => {
 });
 
 describe("obsidianOpenUrl", () => {
-  it("carries the full path, encoded", () => {
-    expect(obsidianOpenUrl("/Users/me/My Notes/research/crypto/log.md")).toBe(
-      "obsidian://open?path=%2FUsers%2Fme%2FMy%20Notes%2Fresearch%2Fcrypto%2Flog.md",
-    );
-  });
+  it.each(["/Users/me/My Notes", "/Users/me/My Notes/", "C:\\Users\\me\\My Notes"])(
+    "names the folder %s and the file inside it",
+    (workspaceRoot) => {
+      expect(obsidianOpenUrl(workspaceRoot, "research/crypto/log.md")).toBe(
+        "obsidian://open?vault=My%20Notes&file=research%2Fcrypto%2Flog.md",
+      );
+    },
+  );
 });

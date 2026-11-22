@@ -81,24 +81,24 @@ describe("ElectronShell", () => {
     }).pipe(Effect.provide(ElectronShell.layer)),
   );
 
-  it.effect("opens only Obsidian's open-by-path link", () =>
+  it.effect("opens only Obsidian's link to a file in a named folder", () =>
     Effect.gen(function* () {
       openExternalMock.mockResolvedValue(undefined);
 
-      const note = "obsidian://open?path=%2FUsers%2Fme%2FNotes%2Flog.md";
+      const note = "obsidian://open?vault=Notes&file=research%2Flog.md";
       const electronShell = yield* ElectronShell.ElectronShell;
       const results = yield* Effect.forEach(
         [
           note,
           "obsidian://open",
-          "obsidian://open?path=",
-          "obsidian://open?vault=Notes&file=log",
-          "obsidian://open?path=%2Fa.md&vault=Notes",
-          "obsidian://new?path=%2Fa.md",
-          "obsidian://adv-uri?path=%2Fa.md",
-          "obsidian://user@open?path=%2Fa.md",
-          "obsidian://open/extra?path=%2Fa.md",
-          "obsidian://open?path=%2Fa.md#x",
+          "obsidian://open?vault=Notes&file=",
+          "obsidian://open?path=%2Fa.md",
+          "obsidian://open?vault=Notes&file=a.md&path=%2Fa.md",
+          "obsidian://new?vault=Notes&file=a.md",
+          "obsidian://adv-uri?vault=Notes&file=a.md",
+          "obsidian://user@open?vault=Notes&file=a.md",
+          "obsidian://open/extra?vault=Notes&file=a.md",
+          "obsidian://open?vault=Notes&file=a.md#x",
         ],
         (url) => electronShell.openExternal(url),
       );

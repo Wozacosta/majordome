@@ -107,7 +107,11 @@ export function NotePreview({
             </TooltipTrigger>
             <TooltipPopup side="bottom">{absoluteVaultPath(openInVault, path)}</TooltipPopup>
           </Tooltip>
-          <NoteOpenIn vault={openInVault} absolutePath={absoluteVaultPath(openInVault, path)} />
+          <NoteOpenIn
+            vault={openInVault}
+            path={path}
+            absolutePath={absoluteVaultPath(openInVault, path)}
+          />
         </div>
       ) : null}
       {kind === "markdown" ? (

@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Open in Obsidian finds the folder.** Obsidian answered "Vault not found" when it knew the
+  notes folder under another path than Majordome does, such as a shortcut to it. The link now
+  names the folder instead of its path.
 
 ## 0.10.15
 
