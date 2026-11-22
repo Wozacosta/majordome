@@ -204,7 +204,13 @@ its own native code.
 
 ## In CI
 
-No job runs scenarios, and none should run all of them on every pull request. e2e can select the
+On Majordome, [`scenarios.yml`](../../.github/workflows/scenarios.yml) runs the web scenarios
+every night through [`majordome.e2e.config.ts`](../../scripts/majordome.e2e.config.ts), which
+leaves out the ones that stop at a control Majordome hides or renames. Run the same set with
+`vp run scenarios --config majordome.e2e.config.ts --target web`. After a merge from upstream,
+run it and add any new scenario that cannot pass on Majordome to that list.
+
+No job runs scenarios on a push, and none should run all of them on every pull request. e2e can select the
 ones a branch touches with `e2e run --changed-since origin/main` once
 [test filters](https://e2e.com/docs/filters) are configured, and `@e2e-dev/github` posts the
 result as a pull request comment.

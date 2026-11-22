@@ -30,6 +30,7 @@
         "fixtures/*/*.js",
         // e2e reads this config through `--config`; it names the tests and their app command.
         "first-run.e2e.config.ts",
+        "majordome.e2e.config.ts",
         "first-run/*.e2e.ts",
         "first-run/start.ts",
         "knip-schemas.ts",
