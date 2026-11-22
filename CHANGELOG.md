@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.14
+
 **New**
 
 - **Key facts beside every conversation.** The links, places, dates and names you mention are
@@ -15,6 +19,15 @@ The section for a version is also the text of its release on GitHub.
   what you asked, what was settled and what is still open, rewritten after each reply. "Draw it"
   shows the conversation as a small diagram; a drawing is made only when you ask, and each one is
   one small request to your AI plan.
+
+**Try this**
+
+- In any conversation, mention a link, an address, a name and a day ("next Thursday at 10"),
+  and wait for the reply: they should appear under **Key facts** on the right, the day written
+  out as a date. Click the link, then click the name.
+- Under them, read **In short** after a few replies: does it say where the conversation stands?
+- Press **Draw it** in a conversation about a plan or a choice. Close it and press it again: the
+  same drawing should open at once. **Draw again** makes a new one.
 
 ## 0.10.13
 
