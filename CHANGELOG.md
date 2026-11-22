@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.10
+
 **New**
 
 - A phone icon at the bottom of the sidebar, next to Settings, opens phone setup directly. It
