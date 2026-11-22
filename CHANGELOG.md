@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.11
+
 **New**
 
 - **A topic's chats are tabs.** Under a topic's name there is now a row of tabs: **Main**, the
