@@ -464,6 +464,24 @@
         color: var(--muted);
         font-size: 0.97rem;
       }
+      .tile .pkg {
+        margin-top: 10px;
+        font-size: 0.9rem;
+      }
+      .tile .pkg a {
+        display: inline;
+        margin: 0;
+        font-size: inherit;
+      }
+      .tile code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.85em;
+        padding: 1px 6px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        color: var(--ink);
+        white-space: nowrap;
+      }
       .tile a {
         display: inline-block;
         margin-top: 12px;
@@ -803,6 +821,11 @@
                 A plain folder of markdown files. Use the one you already have, such as an Obsidian
                 vault. Majordome adds a few files of its own and changes nothing that is there.
               </p>
+              <p class="pkg">
+                The layout and skills come from
+                <a href="https://www.npmjs.com/package/obrain">obrain</a>, an npm package that also
+                works without Majordome: <code>npx obrain</code>
+              </p>
             </div>
             <div class="tile">
               <h3>Routines and reminders</h3>
@@ -931,7 +954,7 @@
           Majordome is a fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a> by T3
           Tools Inc., used under the
           <a href="https://github.com/Wozacosta/majordome/blob/main/LICENSE">MIT License</a>. Notes
-          layout and skills from <a href="https://github.com/Wozacosta/obrain">obrain</a>.
+          layout and skills from <a href="https://www.npmjs.com/package/obrain">obrain</a>.
         </p>
         <div>
           <a href="https://github.com/Wozacosta/majordome">GitHub</a>
