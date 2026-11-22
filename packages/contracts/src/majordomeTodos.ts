@@ -4,7 +4,11 @@ import { IsoDateTime, NonNegativeInt, PositiveInt, ProjectId } from "./baseSchem
 
 const MAJORDOME_TODO_TEXT_MAX = 500;
 
-export const MajordomeTodosInput = Schema.Struct({ projectId: ProjectId });
+export const MajordomeTodosInput = Schema.Struct({
+  projectId: ProjectId,
+  /** Only the to-dos in notes under this folder (vault-relative), such as a topic's. */
+  folder: Schema.optional(Schema.String),
+});
 export type MajordomeTodosInput = typeof MajordomeTodosInput.Type;
 
 /** One unticked checkbox of a note. */

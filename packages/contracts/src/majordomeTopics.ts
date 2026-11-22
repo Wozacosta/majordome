@@ -38,6 +38,8 @@ export const MajordomeVaultTopic = Schema.Struct({
   folder: TrimmedNonEmptyString,
   /** Chosen by the owner; without one, the sidebar picks one from the title and folder. */
   icon: Schema.optional(MajordomeTopicIcon),
+  /** Set once the owner marked the topic as finished; it then leaves the sidebar's list. */
+  finishedAt: Schema.optional(Schema.String),
 });
 export type MajordomeVaultTopic = typeof MajordomeVaultTopic.Type;
 
@@ -47,6 +49,15 @@ export const MajordomeTopicMessagePreview = Schema.Struct({
   text: Schema.String,
 });
 export type MajordomeTopicMessagePreview = typeof MajordomeTopicMessagePreview.Type;
+
+/** Where a topic stands, as the assistant last wrote it at the top of the topic's log. */
+export const MajordomeTopicStanding = Schema.Struct({
+  /** A few plain lines: where things are now and what comes next. */
+  text: Schema.String,
+  /** When the log was last changed. */
+  updatedAt: Schema.optional(Schema.String),
+});
+export type MajordomeTopicStanding = typeof MajordomeTopicStanding.Type;
 
 /** A topic as this server sees it: with its conversation here, once it has been opened. */
 export const MajordomeTopic = Schema.Struct({
@@ -61,6 +72,10 @@ export const MajordomeTopic = Schema.Struct({
   lastMessagePreview: Schema.optional(Schema.NullOr(MajordomeTopicMessagePreview)),
   /** This server's other chats about the topic, oldest first. Absent from older servers. */
   sideThreadIds: Schema.optional(Schema.Array(ThreadId)),
+  /** Null when the log says nothing of it yet. Absent from older servers. */
+  standing: Schema.optional(Schema.NullOr(MajordomeTopicStanding)),
+  /** How many notes the topic's folder holds. Absent from older servers. */
+  notesCount: Schema.optional(Schema.Number),
 });
 export type MajordomeTopic = typeof MajordomeTopic.Type;
 
@@ -156,6 +171,8 @@ export const MajordomeUpdateTopicInput = Schema.Struct({
   createFolder: Schema.optional(Schema.Boolean),
   /** Null goes back to the icon picked from the title and folder. */
   icon: Schema.optional(Schema.NullOr(MajordomeTopicIcon)),
+  /** True marks the topic as finished; false brings it back. Its notes and chat stay either way. */
+  finished: Schema.optional(Schema.Boolean),
 });
 export type MajordomeUpdateTopicInput = typeof MajordomeUpdateTopicInput.Type;
 
