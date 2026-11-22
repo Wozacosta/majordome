@@ -108,23 +108,21 @@ export function anywhereView(anywhere: Anywhere, enabling: boolean): AnywhereVie
 }
 
 /**
- * How the two ways to reach this computer share the page. Tailscale is the one to follow when it
- * already works and the address from anywhere is not in use, or when that address can't be had.
+ * How the two ways to reach this computer share the page. The address from anywhere always leads;
+ * Tailscale's steps open by themselves only when that address can't be had.
  */
 export function phoneWays(setup: Pick<MajordomePhoneSetup, "anywhere" | "tailscale">): {
-  readonly suggested: "anywhere" | "tailscale";
   readonly tailscaleOpen: boolean;
+  /** A phone may already be set up through Tailscale, and the address from anywhere is off. */
+  readonly tailscaleOnly: boolean;
   /** Both work, so a phone stays on the one it was set up with. */
   readonly bothInUse: boolean;
 } {
   const tailscaleReady = setup.tailscale === "ready";
   const anywhere = setup.anywhere.state;
   return {
-    suggested:
-      anywhere === "unavailable" || (tailscaleReady && anywhere === "off")
-        ? "tailscale"
-        : "anywhere",
-    tailscaleOpen: tailscaleReady || anywhere === "unavailable",
+    tailscaleOpen: anywhere === "unavailable",
+    tailscaleOnly: tailscaleReady && anywhere === "off",
     bothInUse: tailscaleReady && anywhere !== "off" && anywhere !== "unavailable",
   };
 }

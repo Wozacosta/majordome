@@ -152,15 +152,15 @@ describe("the address from anywhere", () => {
   });
 
   it.each([
-    ["nothing set up", off, "not-installed", ["anywhere", false, false]],
-    ["connecting", starting, "signed-out", ["anywhere", false, false]],
-    ["anywhere in use", ready, "https-off", ["anywhere", false, false]],
-    ["Tailscale already in use", off, "ready", ["tailscale", true, false]],
-    ["both in use", ready, "ready", ["anywhere", true, true]],
-    ["anywhere can't be had", unavailable, "not-installed", ["tailscale", true, false]],
+    ["nothing set up", off, "not-installed", [false, false, false]],
+    ["connecting", starting, "signed-out", [false, false, false]],
+    ["anywhere in use", ready, "https-off", [false, false, false]],
+    ["Tailscale already in use", off, "ready", [false, true, false]],
+    ["both in use", ready, "ready", [false, false, true]],
+    ["anywhere can't be had", unavailable, "not-installed", [true, false, false]],
   ] as const)("orders the two ways: %s", (_name, anywhere, tailscale, expected) => {
     const ways = phoneWays({ anywhere, tailscale });
-    expect([ways.suggested, ways.tailscaleOpen, ways.bothInUse]).toEqual(expected);
+    expect([ways.tailscaleOpen, ways.tailscaleOnly, ways.bothInUse]).toEqual(expected);
   });
 
   it.each([

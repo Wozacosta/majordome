@@ -168,7 +168,7 @@ function PhoneWays({
       <AnywhereAddress
         environmentId={environmentId}
         anywhere={setup.anywhere}
-        suggested={ways.suggested === "anywhere"}
+        tailscaleOnly={ways.tailscaleOnly}
         phoneDone={phoneDone}
         checking={checking}
       />
@@ -223,14 +223,14 @@ type Anywhere = MajordomePhoneSetup["anywhere"];
 function AnywhereAddress({
   environmentId,
   anywhere: read,
-  suggested,
+  tailscaleOnly,
   phoneDone,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
   readonly anywhere: Anywhere;
-  /** False when Tailscale is the way to follow, so this one does not push. */
-  readonly suggested: boolean;
+  /** A phone may already work through Tailscale, so the offer says it keeps working. */
+  readonly tailscaleOnly: boolean;
   readonly phoneDone: boolean;
   readonly checking: boolean;
 }) {
@@ -279,17 +279,15 @@ function AnywhereAddress({
       {view.kind === "offer" ? (
         <>
           <Muted className={READING_MEASURE_CLASS}>
-            {suggested
-              ? "Majordome gives this computer its own address, and your phone opens it by scanning a code. Nothing to install on your phone, and no account to make."
-              : "Your phone already reaches this computer through Tailscale, and you don't need to change anything. Majordome can also give this computer its own address, for a phone without Tailscale."}
+            Majordome gives this computer its own address, and your phone opens it by scanning a
+            code. Nothing to install on your phone, and no account to make.
+            {tailscaleOnly
+              ? " A phone you already set up through Tailscale keeps working as it is."
+              : null}
           </Muted>
           <div>
-            <Button
-              variant={suggested ? "default" : "outline"}
-              disabled={!canChange}
-              onClick={() => ask("on")}
-            >
-              {suggested ? "Set up my phone" : "Get an address"}
+            <Button disabled={!canChange} onClick={() => ask("on")}>
+              Set up my phone
             </Button>
           </div>
           {problem}

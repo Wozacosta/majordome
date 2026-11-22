@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- On a computer that already had Tailscale, the Phone page opened the old Tailscale steps and
+  made it look as if the phone still needed Tailscale. "Set up my phone" now always leads, and
+  the Tailscale steps stay folded under "More private" unless you open them.
+
 ## 0.10.10
 
 **New**
