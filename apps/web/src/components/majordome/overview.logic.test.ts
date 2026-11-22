@@ -175,12 +175,26 @@ describe("whereItRunsSection", () => {
         machine({ label: "This Mac" }),
         machine({ environmentId: server, label: "Always-on server", primary: false }),
       ],
-      runners: [{ key: "brain", label: null, runner: "another-server", runsOn: "This Mac" }],
+      runners: [
+        { key: "brain", label: null, runner: "another-server", runsOn: "This Mac" },
+        {
+          key: "work",
+          label: "Work",
+          runner: "another-server",
+          runsOn: "Always-on server",
+          keepsConversations: true,
+        },
+      ],
     });
     expect(facts(section.lines)).toEqual([
       ["This Mac: Running", "Version 1.4.0", "ok"],
       ["Always-on server: Connected", "Version 1.4.0", "ok"],
       ["Routines run on this Mac", null, "ok"],
+      [
+        "Work: Routines run on Always-on server",
+        "Conversations are kept there too, so your phone shows the same ones.",
+        "ok",
+      ],
     ]);
   });
 

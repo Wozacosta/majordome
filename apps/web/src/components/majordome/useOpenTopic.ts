@@ -1,4 +1,4 @@
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -11,17 +11,23 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
+import { conversationHomeRef } from "./conversationHome";
 import type { MajordomeVault, VaultTopic } from "./topics.logic";
 
 /**
  * Opens a topic's conversation, starting it the first time, or with `sideChat` starts another chat
- * about the topic. Resolves false, after saying why, when the conversation could not be started.
+ * about the topic. A conversation is started on the notes folder's home, whichever copy `vault`
+ * is. Resolves false, after saying why, when the conversation could not be started.
  */
 export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "projectId">) {
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
     label: "open a topic",
+    reportFailure: false,
+  });
+  const syncNotes = useAtomCommand(majordomeEnvironment.backUpNow, {
+    label: "send a new topic to the always-on server",
     reportFailure: false,
   });
 
@@ -33,15 +39,31 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
     });
   };
 
-  return async (topic: VaultTopic, options?: { readonly sideChat?: boolean }): Promise<boolean> => {
+  return async (
+    topic: VaultTopic,
+    options?: {
+      readonly sideChat?: boolean;
+      /** The topic was made on `vault` a moment ago, so another computer has not heard of it. */
+      readonly justCreated?: boolean;
+    },
+  ): Promise<boolean> => {
     const sideChat = options?.sideChat === true;
     if (topic.threadId !== null && !sideChat) {
       goToThread(topic.threadEnvironmentId, topic.threadId);
       return true;
     }
+    const home = conversationHomeRef(scopeProjectRef(vault.environmentId, vault.projectId));
+    if (home === null) return false;
+    if (options?.justCreated === true && home.environmentId !== vault.environmentId) {
+      // The topic list travels with the notes; opening says what went wrong if this did not work.
+      await syncNotes({
+        environmentId: vault.environmentId,
+        input: { projectId: vault.projectId },
+      });
+    }
     const result = await openTopic({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicId: topic.id, ...(sideChat ? { sideChat } : {}) },
+      environmentId: home.environmentId,
+      input: { projectId: home.projectId, topicId: topic.id, ...(sideChat ? { sideChat } : {}) },
     });
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {
@@ -54,7 +76,7 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
       }
       return false;
     }
-    goToThread(vault.environmentId, result.value.threadId);
+    goToThread(home.environmentId, result.value.threadId);
     return true;
   };
 }

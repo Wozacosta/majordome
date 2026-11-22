@@ -193,6 +193,9 @@ vi.mock("react", () => ({
 vi.mock("../components/Sidebar.logic", () => ({
   orderItemsByPreferredIds: ({ items }: { items: unknown[] }) => items,
 }));
+vi.mock("../components/majordome/conversationHome", () => ({
+  conversationHomeRef: (ref: unknown) => ref,
+}));
 vi.mock("../composerDraftStore", () => {
   const useComposerDraftStore = Object.assign(() => null, {
     getState: () => testState.draftStore,

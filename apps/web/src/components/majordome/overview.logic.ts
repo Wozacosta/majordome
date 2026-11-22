@@ -340,6 +340,8 @@ export interface OverviewRunner {
   readonly runner: MajordomeRoutinesRunner | null;
   /** The name of the server that runs the routines, when the brain is on several. */
   readonly runsOn: string | null;
+  /** That server is another computer than this window's, and the conversations are kept on it. */
+  readonly keepsConversations?: boolean;
 }
 
 /** "Where it runs": each machine, then which one runs each brain's routines. */
@@ -357,6 +359,9 @@ export function whereItRunsSection(input: {
         {
           key,
           text: say(brain.label, `Routines run on ${machineInSentence(brain.runsOn)}`),
+          ...(brain.keepsConversations === true
+            ? { detail: "Conversations are kept there too, so your phone shows the same ones." }
+            : {}),
           tone: "ok",
           link: { to: "/feed" },
         },

@@ -46,7 +46,9 @@ import { toastManager } from "../ui/toast";
 import { BackgroundServiceToggle, useBackgroundService } from "./BackgroundServiceToggle";
 import { copyLabel, groupBrains, routinesMachine, runnerCopy } from "./brains.logic";
 import { isUnknownRequest } from "./connections.logic";
+import { conversationHomesAtom } from "./conversationHome";
 import { buildFeedRunItems, stoppedRunKeys } from "./feed.logic";
+import { keepsConversations } from "./home.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { useDevicePush } from "./NotificationsToggle";
 import {
@@ -172,6 +174,7 @@ function Health({
     });
   });
   const brains = groupBrains(copies, environmentId);
+  const homes = useAtomValue(conversationHomesAtom);
   const severalBrains = brains.length > 1;
   const labelOf = (copy: VaultCopy, severalCopies: boolean) =>
     copyLabel({
@@ -260,6 +263,7 @@ function Health({
       label: severalBrains ? brain.copies[0].title : null,
       runner: runnerCopy(brain).routinesRunner,
       runsOn: routinesMachine(brain, machineOf),
+      keepsConversations: keepsConversations(runnerCopy(brain), environmentId, homes),
     })),
   });
   const routines = routinesSection({

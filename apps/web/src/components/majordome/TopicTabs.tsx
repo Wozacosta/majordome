@@ -20,8 +20,10 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { onMachine } from "./brains.logic";
 import { topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
+import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 
@@ -37,7 +39,7 @@ export function TopicTabs(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
-  // The chat's own server's copy: a new chat starts where this one is.
+  // The chat's own server's copy says which topic it belongs to; new chats start at the home.
   const { copies, vaults } = useMajordomeVaults();
   for (const copy of copies) {
     if (copy.environmentId !== props.environmentId) continue;
@@ -47,22 +49,21 @@ export function TopicTabs(props: {
         candidate.sideThreadIds?.includes(props.threadId) === true,
     );
     if (topic === undefined) continue;
-    const merged = vaults
-      .find((vault) =>
-        vault.copies.some(
-          (candidate) =>
-            candidate.environmentId === copy.environmentId &&
-            candidate.projectId === copy.projectId,
-        ),
-      )
-      ?.topics.find((candidate) => candidate.id === topic.id);
+    const vault = vaults.find((candidate) =>
+      candidate.copies.some(
+        (other) => other.environmentId === copy.environmentId && other.projectId === copy.projectId,
+      ),
+    );
     return (
       <TopicTabStrip
         environmentId={props.environmentId}
         projectId={copy.projectId}
         threadId={props.threadId}
         topic={topic}
-        merged={merged}
+        merged={vault?.topics.find((candidate) => candidate.id === topic.id)}
+        homeEnvironmentId={
+          vault?.home?.kind === "ready" ? vault.home.environmentId : props.environmentId
+        }
       />
     );
   }
@@ -76,11 +77,18 @@ function TopicTabStrip(props: {
   readonly topic: VaultTopic;
   /** The topic across every computer that has it, when known. */
   readonly merged: VaultTopic | undefined;
+  /** The computer a new chat about the topic starts on. */
+  readonly homeEnvironmentId: EnvironmentId;
 }) {
   const { environmentId, projectId, threadId, topic } = props;
+  // Its `threadId` is the home's, so opening it starts the main chat there when there is none.
+  const homeTopic = props.merged ?? topic;
   const shells = useQuietThreadShells();
   const navigate = useNavigate();
-  const canStart = useAtomValue(majordomeEnvironment.openTopic.permissionAtom(environmentId));
+  const { machineOf } = useMachineNames();
+  const canStart = useAtomValue(
+    majordomeEnvironment.openTopic.permissionAtom(props.homeEnvironmentId),
+  );
   const openTopic = useOpenTopic({ environmentId, projectId });
   const { settleThread } = useThreadActions();
   const [starting, setStarting] = useState(false);
@@ -120,7 +128,7 @@ function TopicTabStrip(props: {
     }
     if (scopedThreadKey(chat) !== currentKey) return;
     if (main === null) {
-      void openTopic(topic);
+      void openTopic(homeTopic);
       return;
     }
     void navigate({
@@ -145,7 +153,7 @@ function TopicTabStrip(props: {
           )}
         >
           {main === null ? (
-            <button type="button" className={TAB_CLASS} onClick={() => void openTopic(topic)}>
+            <button type="button" className={TAB_CLASS} onClick={() => void openTopic(homeTopic)}>
               Main
             </button>
           ) : (
@@ -189,6 +197,24 @@ function TopicTabStrip(props: {
             </li>
           );
         })}
+        {tabs.elsewhere.map((chat) => {
+          const current = scopedThreadKey(chat) === currentKey;
+          const title = `Chat ${onMachine(machineOf(chat.environmentId))}`;
+          return (
+            <li key={scopedThreadKey(chat)} className={cn(TAB_BOX_CLASS, current && "bg-accent")}>
+              <Link
+                to="/$environmentId/$threadId"
+                params={buildThreadRouteParams(scopeThreadRef(chat.environmentId, chat.threadId))}
+                aria-current={current ? "page" : undefined}
+                title={title}
+                className={TAB_CLASS}
+              >
+                {dot(chat)}
+                <span className="truncate">{title}</span>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       {canStart ? (
         <Tooltip>
@@ -202,7 +228,7 @@ function TopicTabStrip(props: {
                 className="shrink-0"
                 onClick={() => {
                   setStarting(true);
-                  void openTopic(topic, { sideChat: true }).finally(() => setStarting(false));
+                  void openTopic(homeTopic, { sideChat: true }).finally(() => setStarting(false));
                 }}
               />
             }

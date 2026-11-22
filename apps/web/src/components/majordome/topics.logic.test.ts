@@ -2,8 +2,10 @@ import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
+import type { ConversationHome } from "./home.logic";
 import {
   collectVaults,
+  type MajordomeVault,
   mergeVaultCopies,
   moveTopic,
   orderWithFinished,
@@ -211,6 +213,65 @@ describe("mergeVaultCopies", () => {
         scopedThreadKey({ environmentId: vps, threadId: "vps-shoes" as never }),
       ),
     ).toBe(true);
+  });
+
+  it("opens only the home's chat once the conversations are kept on another computer", () => {
+    const spoken = copies.map((copy) => ({
+      ...copy,
+      topics: copy.topics.map((topic) =>
+        topic.threadId === null
+          ? topic
+          : { ...topic, lastMessagePreview: { text: "10 km done" } as never },
+      ),
+    }));
+    const homes = (home: ConversationHome) => new Map(spoken.map((copy) => [copy.key, home]));
+    const rows = (merged: ReadonlyArray<MajordomeVault>) =>
+      merged[0]!.topics.map((topic) => [
+        topic.id,
+        topic.threadEnvironmentId,
+        topic.threadId,
+        topic.otherChats,
+      ]);
+    const onServer = { kind: "ready", environmentId: vps, projectId: onVps.id } as const;
+    const macChat = [{ environmentId: mac, threadId: "mac-fitness" }];
+
+    // Both computers have one, only the server has one, neither has one.
+    expect(rows(mergeVaultCopies(spoken, mac, homes(onServer)))).toEqual([
+      ["fitness", vps, "vps-fitness", macChat],
+      ["reading", vps, "vps-reading", undefined],
+      ["new", vps, null, undefined],
+    ]);
+    // Only this computer has one: the topic's chat is still to start on the server.
+    const onlyHere = spoken.map((copy) =>
+      copy.environmentId === vps
+        ? { ...copy, topics: copy.topics.filter((topic) => topic.id !== "fitness") }
+        : copy,
+    );
+    expect(rows(mergeVaultCopies(onlyHere, mac, homes(onServer)))[0]).toEqual([
+      "fitness",
+      vps,
+      null,
+      macChat,
+    ]);
+    // The server cannot be reached, so its copy is not listed: nothing starts on this computer.
+    const alone = spoken.filter((copy) => copy.environmentId === mac);
+    const unreachable = mergeVaultCopies(alone, mac, homes({ kind: "unreachable" }));
+    expect(unreachable[0]!.home).toEqual({ kind: "unreachable" });
+    expect(rows(unreachable)).toEqual([
+      ["fitness", mac, null, macChat],
+      ["reading", mac, null, undefined],
+      ["new", mac, null, undefined],
+    ]);
+    // Kept on this computer, or not known yet: as without a home.
+    for (const home of [
+      { kind: "ready", environmentId: mac, projectId: onMac.id },
+      { kind: "loading" },
+    ] as const) {
+      expect(rows(mergeVaultCopies(spoken, mac, homes(home))).slice(0, 2)).toEqual([
+        ["fitness", mac, "mac-fitness", [{ environmentId: vps, threadId: "vps-fitness" }]],
+        ["reading", vps, "vps-reading", undefined],
+      ]);
+    }
   });
 
   it("waits for each copy's brain id before showing it", () => {

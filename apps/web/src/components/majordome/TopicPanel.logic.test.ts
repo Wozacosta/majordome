@@ -302,14 +302,40 @@ describe("topic panel chats", () => {
       ["Boiler", true],
     ]);
 
-    // Another computer's continuing chat is the main tab while it is read; unstarted, there is none.
+    // The main tab is the chat where the topic's conversations are kept. The continuing chat of
+    // another computer has its own tab: listed once it has a message, and always while it is read.
     const onServer = topic({
       threadId: ThreadId.make("house-on-server"),
       threadEnvironmentId: server,
     });
+    const fromServer = topicTabs({
+      own: onServer,
+      merged,
+      current: side("house-on-server", server),
+      shellOf,
+    });
+    expect(fromServer.main).toEqual({ environmentId: mac, threadId: chat });
+    expect(fromServer.elsewhere).toEqual([side("house-on-server", server)]);
+    const listed = topic({ otherChats: [side("house-on-server", server)] });
     expect(
-      topicTabs({ own: onServer, merged, current: side("house-on-server", server), shellOf }).main,
-    ).toEqual(side("house-on-server", server));
+      topicTabs({
+        own: onServer,
+        merged: listed,
+        current: side("house-on-server", server),
+        shellOf,
+      }).elsewhere,
+    ).toEqual([side("house-on-server", server)]);
+    expect(fromMain.elsewhere).toEqual([]);
+    // Kept on the server and not started there yet: no main tab, and this Mac's chat beside it.
+    const keptOnServer = topic({ threadId: null, threadEnvironmentId: server });
+    expect(
+      topicTabs({
+        own: topic(),
+        merged: keptOnServer,
+        current: { environmentId: mac, threadId: chat },
+        shellOf,
+      }),
+    ).toMatchObject({ main: null, elsewhere: [{ environmentId: mac, threadId: chat }] });
     const unstarted = topic({ threadId: null, sideChats: [side("quotes")] });
     expect(
       topicTabs({ own: unstarted, merged: undefined, current: side("quotes"), shellOf }).main,

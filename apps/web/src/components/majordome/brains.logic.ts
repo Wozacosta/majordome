@@ -70,6 +70,11 @@ export function machineInSentence(name: string): string {
   return name.replace(/^This /, "this ");
 }
 
+/** "on this Mac", "on another computer": where a conversation kept off its topic's home is. */
+export function onMachine(name: string): string {
+  return `on ${machineInSentence(name).replace(/^Another /, "another ")}`;
+}
+
 /**
  * The name over one copy where several are listed: the brain's title when there are several
  * brains, the machine when the brain is on several, both when both. Null when there is one copy.

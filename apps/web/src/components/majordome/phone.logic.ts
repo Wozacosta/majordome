@@ -5,6 +5,8 @@ import type {
   MajordomeRoutinesRunner,
 } from "@t3tools/contracts";
 
+import { alwaysOnCopy } from "./home.logic";
+
 /**
  * Whether this browser can get Majordome's notifications, and if not, what the owner can do.
  * iPhone and iPad only allow Web Push for a web app added to the Home Screen, opened over HTTPS.
@@ -141,8 +143,8 @@ export function phoneAddress(
 }
 
 /**
- * The computer a phone is set up on. One that runs routines and is not this window's own is
- * always on, so it wins when it is connected; with several, the first notes folder's.
+ * The computer a phone is set up on: the always-on one (`alwaysOnCopy`) when there is one, with
+ * several the first notes folder's; else this window's own.
  */
 export function phoneEnvironmentId(input: {
   readonly primaryEnvironmentId: EnvironmentId | null;
@@ -154,13 +156,7 @@ export function phoneEnvironmentId(input: {
   }>;
 }): EnvironmentId | null {
   if (input.primaryEnvironmentId === null) return null;
-  const runner = input.copies.find(
-    (copy) =>
-      copy.routinesRunner === "this-server" &&
-      copy.environmentId !== input.primaryEnvironmentId &&
-      input.connected.includes(copy.environmentId),
-  );
-  return runner?.environmentId ?? input.primaryEnvironmentId;
+  return alwaysOnCopy(input)?.environmentId ?? input.primaryEnvironmentId;
 }
 
 /** How phone setup names the phone's computer: `name` is null when it is this one. */

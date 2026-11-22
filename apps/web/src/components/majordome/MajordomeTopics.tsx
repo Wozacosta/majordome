@@ -39,7 +39,6 @@ import { useThreadRouteTarget } from "../../hooks/useThreadRouteTarget";
 import { cn } from "../../lib/utils";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShells } from "../../state/entities";
-import { useEnvironments } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -51,6 +50,7 @@ import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/men
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { onMachine } from "./brains.logic";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import {
   reportTopicFailure as reportFailure,
@@ -69,6 +69,7 @@ import {
   type MajordomeVault,
   type VaultTopic,
 } from "./topics.logic";
+import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 import { useRecentChats } from "./useRecentChats";
@@ -177,7 +178,8 @@ function VaultTopics({
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const actions = useTopicActions(vault, {
-    onCreated: (topic) => void open({ ...topic, threadEnvironmentId: vault.environmentId }),
+    onCreated: (topic) =>
+      void open({ ...topic, threadEnvironmentId: vault.environmentId }, { justCreated: true }),
     onLeave: () => {
       if (isMobile) setOpenMobile(false);
     },
@@ -262,9 +264,9 @@ function VaultTopics({
     for (const copy of copies) refreshMajordomeSettings(copy.environmentId, appAtomRegistry);
   }, [previewStamp, copies, seenPreviewStamp]);
 
-  const open = async (topic: VaultTopic) => {
+  const open = async (topic: VaultTopic, options?: { readonly justCreated: boolean }) => {
     setOpening({ topicId: topic.id, fromRouteKey: routeThreadKey });
-    if (!(await openTopic(topic))) setOpening(null);
+    if (!(await openTopic(topic, options))) setOpening(null);
   };
 
   const reorder = async (next: ReadonlyArray<string>) => {
@@ -461,7 +463,7 @@ function TopicRow(props: {
   const { isMobile, setOpenMobile } = useSidebar();
   const status = thread === undefined ? null : resolveThreadStatusPill({ thread });
   const activity = thread === undefined ? null : resolveThreadActivityTimestamp(thread);
-  const { environments } = useEnvironments();
+  const { machineOf } = useMachineNames();
   // A routine filed here already leads to its server's chat for the topic.
   const otherChats = (topic.otherChats ?? []).filter(
     (chat) =>
@@ -648,10 +650,7 @@ function TopicRow(props: {
               >
                 <MessageCircleIcon className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate text-sidebar-foreground">
-                  Chat on{" "}
-                  {environments
-                    .find((environment) => environment.environmentId === chat.environmentId)
-                    ?.label?.trim() || "another computer"}
+                  Chat {onMachine(machineOf(chat.environmentId))}
                 </span>
               </Link>
             </li>

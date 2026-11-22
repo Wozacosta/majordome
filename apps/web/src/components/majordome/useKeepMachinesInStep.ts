@@ -3,18 +3,20 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import { AuthAccessWriteScope, type EnvironmentId, type ProjectId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import * as Schema from "effect/Schema";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { isMajordome } from "../../env";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { authEnvironment } from "../../state/auth";
-import { useProjects } from "../../state/entities";
+import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import { readEnvironmentScope, readPreparedConnection } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { groupBrains } from "./brains.logic";
+import { finishedReplies, replyFinishedSince } from "./home.logic";
 import { type PeerLinkCopy, type PeerLinkPlan, peerLinkPlans } from "./peerLink.logic";
 import { useMachineNames } from "./useMachineNames";
+import { useMajordomeVaults } from "./useMajordomeVaults";
 
 const DECLINED_STORAGE_KEY = "majordome.machinesNotKeptInStep";
 const DeclinedPairs = Schema.Array(Schema.String);
@@ -133,8 +135,72 @@ function useKeepMachinesInStep() {
   }, [plan, mayLink, link]);
 }
 
-/** Mounted once, in the app's frame: see `useKeepMachinesInStep`. */
+// The server saves a reply's notes as the reply ends, so they are asked for a moment later.
+const NOTES_AFTER_REPLY_DELAY_MS = 2_000;
+let notesAfterReply: number | undefined;
+
+/**
+ * In the desktop app, exchanges this computer's notes with the other one as soon as a conversation
+ * kept there finishes a reply. The only command for that also makes the encrypted copies again,
+ * so a notes folder with a backup folder or Google Drive waits for the regular exchange.
+ */
+function useNotesAfterReplies() {
+  const { localEnvironmentId } = useMachineNames();
+  const { vaults } = useMajordomeVaults();
+  const threads = useQuietThreadShells();
+  const exchangeNotes = useAtomCommand(majordomeEnvironment.backUpNow, {
+    label: "bring notes in step after a reply",
+    reportFailure: false,
+  });
+  const kept = vaults.flatMap((vault) => {
+    const here = vault.copies.find((copy) => copy.environmentId === localEnvironmentId);
+    return here !== undefined &&
+      vault.home?.kind === "ready" &&
+      vault.home.environmentId !== here.environmentId
+      ? [{ here, home: vault.home }]
+      : [];
+  });
+  const statuses = useAtomValue(
+    vaultBackupStatusesAtom(
+      JSON.stringify(kept.map(({ here }) => [here.environmentId, here.projectId])),
+    ),
+  );
+  const targets = kept.filter((_, index) => {
+    const result = statuses[index];
+    const status = result === undefined ? null : AsyncResult.getOrElse(result, () => null);
+    return status?.peer?.linkedHere === true && status.folder === null && status.drive === null;
+  });
+  const finished = finishedReplies(
+    threads.filter((thread) =>
+      targets.some(
+        ({ home }) =>
+          home.environmentId === thread.environmentId && home.projectId === thread.projectId,
+      ),
+    ),
+  );
+  const seen = useRef(finished);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- A reply finishing on the other computer is the moment its notes can be fetched, and fetching them is a request to this computer's server.
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = finished;
+    if (!replyFinishedSince(before, finished)) return;
+    // Not cleared when this runs again: several replies ending together ask once.
+    window.clearTimeout(notesAfterReply);
+    notesAfterReply = window.setTimeout(() => {
+      for (const { here } of targets) {
+        void exchangeNotes({
+          environmentId: here.environmentId,
+          input: { projectId: here.projectId },
+        });
+      }
+    }, NOTES_AFTER_REPLY_DELAY_MS);
+  }, [finished, targets, exchangeNotes]);
+}
+
+/** Mounted once, in the app's frame: see `useKeepMachinesInStep` and `useNotesAfterReplies`. */
 export function KeepMachinesInStep() {
   useKeepMachinesInStep();
+  useNotesAfterReplies();
   return null;
 }

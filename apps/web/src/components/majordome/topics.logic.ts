@@ -14,12 +14,16 @@ import type {
 import { defaultTopicFolder } from "@t3tools/shared/topicFolder";
 
 import { groupBrains } from "./brains.logic";
+import type { ConversationHome } from "./home.logic";
 
 /** A topic with the server its conversation is on. */
 export interface VaultTopic extends MajordomeTopic {
-  /** The shown copy's server, or another copy's when only that one has the conversation. */
+  /** The server the topic's conversation is on: see `mergeVaultCopies`. */
   readonly threadEnvironmentId: EnvironmentId;
-  /** The conversations other servers have for this topic, listed under it; empty ones left out. */
+  /**
+   * The topic's conversations on the computers that are not its home, listed under it; empty
+   * ones left out.
+   */
   readonly otherChats?: ReadonlyArray<{
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId;
@@ -48,6 +52,8 @@ export interface MajordomeVault {
   readonly projectsFolder: string;
   /** Every server's copy of this brain, the shown one first. */
   readonly copies: ReadonlyArray<VaultCopy>;
+  /** Where this brain's conversations are kept, once its copies are merged and it is known. */
+  readonly home?: ConversationHome;
 }
 
 export interface VaultCopy {
@@ -110,40 +116,55 @@ export function collectVaults(
 }
 
 /**
- * One vault per brain: the copy on the window's own server when there is one, else the first.
- * Each server keeps its own thread per topic. The topic opens the shown copy's, its long-running
- * one, or another copy's when the shown copy has none; the rest are listed under the topic.
+ * One vault per brain: the window's own server's copy, else the first. Each server keeps its own
+ * thread per topic. A topic opens the shown copy's, or another's when that one has none; once the
+ * brain's home (`homes`, by copy key) is another computer, only that one's. The rest go under it.
  */
 export function mergeVaultCopies(
   copies: ReadonlyArray<MajordomeVault>,
   primaryEnvironmentId: EnvironmentId | null,
+  homes?: ReadonlyMap<string, ConversationHome>,
 ): ReadonlyArray<MajordomeVault> {
   return groupBrains(copies, primaryEnvironmentId).map((brain) => {
     const [shown, ...others] = brain.copies;
+    const home = homes?.get(shown.key);
+    // Null while the home is another computer that cannot be reached.
+    const homeEnvironmentId = home?.kind === "ready" ? home.environmentId : null;
+    const homeIsElsewhere =
+      home?.kind === "unreachable" ||
+      (homeEnvironmentId !== null && homeEnvironmentId !== shown.environmentId);
     return {
       ...shown,
       key: brain.key,
       copies: brain.copies.flatMap((copy) => copy.copies),
+      ...(home === undefined ? {} : { home }),
       topics: shown.topics.map((topic) => {
         const elsewhere = others
           .flatMap((other) => other.topics)
           .filter((candidate) => candidate.id === topic.id && candidate.threadId !== null);
-        const first = elsewhere[0];
+        const first = homeIsElsewhere
+          ? elsewhere.find(
+              (candidate) =>
+                homeEnvironmentId === null || candidate.threadEnvironmentId === homeEnvironmentId,
+            )
+          : elsewhere[0];
         const main =
-          topic.threadId !== null || first === undefined
+          !homeIsElsewhere && (topic.threadId !== null || first === undefined)
             ? topic
             : {
                 ...topic,
-                threadId: first.threadId,
-                threadEnvironmentId: first.threadEnvironmentId,
-                lastMessagePreview: first.lastMessagePreview,
+                threadId: first?.threadId ?? null,
+                threadEnvironmentId:
+                  first?.threadEnvironmentId ?? homeEnvironmentId ?? shown.environmentId,
+                lastMessagePreview: first?.lastMessagePreview,
               };
-        const otherChats = elsewhere.flatMap((candidate) =>
-          candidate.threadId === null ||
-          candidate.threadId === main.threadId ||
-          candidate.lastMessagePreview == null
-            ? []
-            : [{ environmentId: candidate.threadEnvironmentId, threadId: candidate.threadId }],
+        const otherChats = [...(homeIsElsewhere ? [topic] : []), ...elsewhere].flatMap(
+          (candidate) =>
+            candidate.threadId === null ||
+            candidate.threadId === main.threadId ||
+            candidate.lastMessagePreview == null
+              ? []
+              : [{ environmentId: candidate.threadEnvironmentId, threadId: candidate.threadId }],
         );
         const sideChats = [
           ...(topic.sideChats ?? []),

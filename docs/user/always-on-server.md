@@ -4,6 +4,11 @@ Majordome runs on your computer by default, so routines like "Start my day" only
 awake. An always-on server is a small computer you rent that never sleeps. Majordome runs there
 the same way, and your phone and computer connect to it.
 
+Once the server is set up and signed in to your AI, your conversations are kept there, so your
+phone and your computer show the same ones. Conversations you had before stay on your computer:
+they are listed under their topic as "Chat on this Mac". While the server can't be reached, new
+conversations wait until it is back.
+
 **Settings > Always-on server** sets one up for you. You need a Tailscale account (the one **Phone &
 notifications** set up) with HTTPS turned on, and an account at [Hetzner](https://www.hetzner.com/cloud),
 the company the server is rented from.

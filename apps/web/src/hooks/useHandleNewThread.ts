@@ -15,6 +15,8 @@ import {
 } from "../composerDraftStore";
 import { newDraftId, newThreadId } from "../lib/utils";
 import { orderItemsByPreferredIds } from "../components/Sidebar.logic";
+import { conversationHomeRef } from "../components/majordome/conversationHome";
+import { isMajordome } from "../env";
 import {
   deriveLogicalProjectKeyFromSettings,
   getProjectOrderKey,
@@ -93,7 +95,7 @@ export function createNewThreadHandler(router: AnyRouter) {
   };
 
   return (
-    projectRef: ScopedProjectRef,
+    requestedProjectRef: ScopedProjectRef,
     options?: {
       branch?: string | null;
       worktreePath?: string | null;
@@ -104,6 +106,9 @@ export function createNewThreadHandler(router: AnyRouter) {
       prompt?: string;
     },
   ): Promise<{ draftId: DraftId; threadId: ThreadId } | null> => {
+    // Majordome keeps a notes folder's conversations on one computer, whichever copy asks.
+    const projectRef = isMajordome ? conversationHomeRef(requestedProjectRef) : requestedProjectRef;
+    if (projectRef === null) return Promise.resolve(null);
     const projects = readProjects();
     const projectGroupingSettings = selectProjectGroupingSettings(getClientSettings());
     // Read at call time; status pushes replace the config map and would recreate every sidebar handler.

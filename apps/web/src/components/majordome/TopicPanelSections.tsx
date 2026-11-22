@@ -30,7 +30,6 @@ import { useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { useProject, useQuietThreadShells } from "../../state/entities";
-import { useEnvironments } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
 import { projectEnvironment } from "../../state/projects";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -41,6 +40,7 @@ import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { toastManager } from "../ui/toast";
+import { onMachine } from "./brains.logic";
 import { notesLink } from "./notes.logic";
 import { todoDisplayText, todoKey } from "./todos.logic";
 import { TopicFiles } from "./TopicFilesCard";
@@ -53,6 +53,7 @@ import {
   topicPanelTodos,
 } from "./TopicPanel.logic";
 import type { MajordomeVault, VaultTopic } from "./topics.logic";
+import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 import { useVaultRoutines } from "./useVaultRoutines";
@@ -332,7 +333,7 @@ function TopicChats({
   vault,
 }: TopicPlace & { readonly threadId: ThreadId; readonly vault: MajordomeVault | undefined }) {
   const shells = useQuietThreadShells();
-  const { environments } = useEnvironments();
+  const { machineOf } = useMachineNames();
   const canStart = useAtomValue(majordomeEnvironment.openTopic.permissionAtom(environmentId));
   const openTopic = useOpenTopic({ environmentId, projectId });
   const [showDone, setShowDone] = useState(false);
@@ -386,14 +387,7 @@ function TopicChats({
           {chats.open.map((chat) => chatRow(chat, chat.title))}
           {showDone ? chats.done.map((chat) => chatRow(chat, chat.title)) : null}
           {chats.elsewhere.map((chat) =>
-            chatRow(
-              chat,
-              `Chat on ${
-                environments
-                  .find((environment) => environment.environmentId === chat.environmentId)
-                  ?.label?.trim() || "another computer"
-              }`,
-            ),
+            chatRow(chat, `Chat ${onMachine(machineOf(chat.environmentId))}`),
           )}
         </ul>
         {chats.done.length > 0 ? (
