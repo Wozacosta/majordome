@@ -11,6 +11,7 @@ import * as NodeCrypto from "node:crypto";
 import {
   type MajordomeBackupChange,
   type MajordomeBackupInput,
+  type MajordomeBackUpNowInput,
   MajordomeBackupPause,
   MajordomeGoogleDriveProblem,
   type MajordomeGoogleDriveConnectPrompt,
@@ -172,7 +173,7 @@ export class MajordomeBackup extends Context.Service<
       input: MajordomeBackupInput,
     ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     readonly backUpNow: (
-      input: MajordomeBackupInput,
+      input: MajordomeBackUpNowInput,
     ) => Effect.Effect<MajordomeBackupStatus, MajordomeVaultError>;
     readonly configure: (
       input: MajordomeConfigureBackupInput,
@@ -201,7 +202,11 @@ export class MajordomeBackup extends Context.Service<
     /** One save, sync and (when due or forced) encrypted folder and Drive copy of one vault. */
     readonly runCycle: (
       vaultRoot: string,
-      options?: { readonly forceCopies?: boolean },
+      options?: {
+        readonly forceCopies?: boolean;
+        /** Stop after the exchange with the owner's other machine. */
+        readonly peerOnly?: boolean;
+      },
     ) => Effect.Effect<void>;
   }
 >()("t3/majordome/MajordomeBackup") {}
@@ -674,6 +679,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           );
           yield* save(vaultRoot, gitleaks);
           yield* syncPeer(vaultRoot, gitleaks);
+          if (cycleOptions?.peerOnly === true) return;
           yield* sync(vaultRoot, gitleaks);
           yield* encryptedCopies(vaultRoot, cycleOptions?.forceCopies === true);
         }),
@@ -821,7 +827,10 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
   const backUpNow: MajordomeBackup["Service"]["backUpNow"] = Effect.fn("MajordomeBackup.backUpNow")(
     function* (input) {
       const vaultRoot = yield* requireVault(input.projectId);
-      yield* runCycle(vaultRoot, { forceCopies: true });
+      yield* runCycle(
+        vaultRoot,
+        input.peerOnly === true ? { peerOnly: true } : { forceCopies: true },
+      );
       return yield* statusOf(vaultRoot);
     },
   );

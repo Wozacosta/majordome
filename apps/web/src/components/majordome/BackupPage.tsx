@@ -50,6 +50,7 @@ import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import {
+  backupAttention,
   backupHeadline,
   folderFormProblem,
   restoreCommands,
@@ -134,7 +135,12 @@ export function BackupPage() {
   });
   // Each server saves and backs up its own copy, so a brain on several shows each, by machine.
   const brains = groupBrains(copies, primaryEnvironmentId);
-  const vaults = labelCopies(brains, machineOf);
+  // What needs the owner comes first: the sidebar's "Fix" lands on the problem, not above it.
+  const vaults = labelCopies(brains, machineOf).toSorted(
+    (left, right) =>
+      Number(backupAttention(right.copy.status) !== null) -
+      Number(backupAttention(left.copy.status) !== null),
+  );
   // Offered by hand too: for a pair the owner turned off, or one the app could not link itself.
   const offers = peerLinkPlans({ brains, localEnvironmentId, declined: new Set() });
 

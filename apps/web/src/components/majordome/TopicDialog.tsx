@@ -64,7 +64,8 @@ export function TopicDialog({
   readonly vault: MajordomeVault;
   readonly request: TopicDialogRequest;
   readonly onClose: () => void;
-  readonly onCreated?: ((topic: MajordomeTopic) => void) | undefined;
+  /** Awaited before the dialog closes, so it stays up until the new topic is on screen. */
+  readonly onCreated?: ((topic: MajordomeTopic) => void | Promise<void>) | undefined;
 }) {
   const id = useId();
   const createTopic = useAtomCommand(majordomeEnvironment.createTopic, {
@@ -77,6 +78,10 @@ export function TopicDialog({
   });
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic, {
     label: "open a topic",
+    reportFailure: false,
+  });
+  const syncNotes = useAtomCommand(majordomeEnvironment.backUpNow, {
+    label: "send a new topic to the computer that runs routines",
     reportFailure: false,
   });
   const addReadyRoutine = useAtomCommand(majordomeEnvironment.addReadyRoutine, {
@@ -176,6 +181,10 @@ export function TopicDialog({
   /** The routine joins the topic's conversation; when that cannot start, it keeps its own. */
   const addRoutine = async (topic: MajordomeTopic, routine: { readonly key: string }) => {
     const copy = runner ?? vault;
+    if (copy.environmentId !== environmentId) {
+      // The topic list travels with the notes, and the other computer has not heard of this one.
+      await syncNotes({ environmentId, input: { projectId, peerOnly: true } });
+    }
     const opened = await openTopic({
       environmentId: copy.environmentId,
       input: { projectId: copy.projectId, topicId: topic.id },
@@ -231,8 +240,8 @@ export function TopicDialog({
       return;
     }
     if (ready?.routine !== undefined) await addRoutine(result.value, ready.routine);
+    await onCreated?.(result.value);
     setBusy(false);
-    onCreated?.(result.value);
     onClose();
   };
 

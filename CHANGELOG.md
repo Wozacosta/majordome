@@ -5,15 +5,32 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **"Go to a topic" in the Cmd+K list.** The topic search no longer needs its shortcut to be
+  found: open the list with Cmd+K and pick it, or type "topic".
+
 **Changed**
 
 - **A smaller app.** The download no longer carries a leftover build file or the 3D phone and
   tablet models of a panel Majordome does not show. The installed app is about 28 MB smaller.
 
-**Changed**
-
+- **A new topic's first screen no longer names its folder.** The line "Notes go in …" is gone;
+  the folder still shows under the topic's name at the top.
 - **A topic's log is called "Log".** The panel beside a topic listed its `log.md` as "Running
   log", a name used nowhere else. It now reads "Log", like the file it opens.
+
+**Fixed**
+
+- **A backup problem shows at the top of "Back up my brain".** With two machines, the page listed
+  this computer first, so a problem on the other one sat below a green tick, out of sight. The
+  machine that needs you now comes first.
+- **A new topic opens as soon as it is made.** With an always-on server, making a topic ran a
+  whole backup before its conversation opened, so the window closed and nothing happened for
+  several seconds. Now only the notes are exchanged with the server, and the window stays up,
+  busy, until the topic is on screen.
+- **A ready-made topic's routine joins its conversation.** With an always-on server the routine
+  was added before the server had heard of the topic, so it kept a conversation of its own.
 
 ## 0.10.16
 

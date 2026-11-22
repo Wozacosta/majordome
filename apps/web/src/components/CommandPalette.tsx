@@ -68,6 +68,7 @@ import {
   CalendarClockIcon,
   ListTodoIcon,
   NewspaperIcon,
+  HashIcon,
   NotebookTextIcon,
   SmartphoneIcon,
   CloudUploadIcon,
@@ -111,6 +112,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
 import { isMajordome } from "../env";
+import { setTopicSearchOpen } from "./majordome/topicSearchStore";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useOpenPanelPullRequestUrl } from "../hooks/useOpenPanelPullRequestUrl";
 import { copyThreadReference } from "../lib/copyThreadReference";
@@ -1784,6 +1786,17 @@ function OpenCommandPaletteDialog(props: {
       icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/feed" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:go-to-topic",
+      searchTerms: ["topic", "topics", "go to", "switch", "jump"],
+      title: gt("Go to a topic"),
+      icon: <HashIcon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: "topic.search",
+      run: async () => {
+        setTopicSearchOpen(true);
       },
     });
     actionItems.push({

@@ -22,8 +22,7 @@ export function TopicWelcome(props: {
         <TopicIconBadge topic={topic} statusDotClass={null} className="size-12 [&_svg]:size-6" />
         <h1 className="font-normal text-2xl text-foreground tracking-tight">{topic.title}</h1>
         <p className="text-sm text-muted-foreground">
-          This is where you and the assistant keep everything about {topic.title}. Notes go in{" "}
-          <span className="text-foreground">{topic.folder}</span>.
+          This is where you and the assistant keep everything about {topic.title}.
         </p>
         <div className="mt-1 flex flex-wrap justify-center gap-2">
           {topicWelcomeStarters(topic.title).map((starter) => (

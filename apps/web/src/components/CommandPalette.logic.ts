@@ -835,6 +835,7 @@ const MAJORDOME_ACTIONS: ReadonlyArray<readonly [value: string, title: string | 
   ["find-current-thread", "Find in this chat"],
   ["action:open-file-picker", "Find a note"],
   ["action:search-project-contents", "Search my notes"],
+  ["action:go-to-topic", null],
   ["action:notes", null],
   ["action:feed", null],
   ["action:routines", null],

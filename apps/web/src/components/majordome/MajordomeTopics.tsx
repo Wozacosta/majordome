@@ -73,6 +73,7 @@ import {
 } from "./topics.logic";
 import { stepAround } from "./TopicPanel.logic";
 import { TopicSearchDialog } from "./TopicSearchDialog";
+import { setTopicSearchOpen, useTopicSearchStore } from "./topicSearchStore";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
@@ -183,7 +184,7 @@ function VaultTopics({
   const { isMobile, setOpenMobile } = useSidebar();
   const actions = useTopicActions(vault, {
     onCreated: (topic) =>
-      void open({ ...topic, threadEnvironmentId: vault.environmentId }, { justCreated: true }),
+      open({ ...topic, threadEnvironmentId: vault.environmentId }, { justCreated: true }),
     onLeave: () => {
       if (isMobile) setOpenMobile(false);
     },
@@ -273,7 +274,7 @@ function VaultTopics({
     if (!(await openTopic(topic, options))) setOpening(null);
   };
 
-  const [searching, setSearching] = useState(false);
+  const searching = useTopicSearchStore((state) => state.open);
   // The topic being read, whichever of its chats is open.
   const readTopicId =
     opening?.topicId ??
@@ -304,7 +305,7 @@ function VaultTopics({
         "topic.search": (event) => {
           event.preventDefault();
           event.stopPropagation();
-          setSearching((shown) => !shown);
+          setTopicSearchOpen((shown) => !shown);
         },
       },
       { capture: true, when: () => !isCommandPaletteOpen() },
@@ -384,7 +385,7 @@ function VaultTopics({
       ) : null}
       <TopicSearchDialog
         open={searching}
-        onOpenChange={setSearching}
+        onOpenChange={setTopicSearchOpen}
         topics={[...topics, ...finished]}
         onChoose={(topic) => void open(topic)}
       />

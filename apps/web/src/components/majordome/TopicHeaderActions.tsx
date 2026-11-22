@@ -60,7 +60,7 @@ export interface TopicActions {
 export function useTopicActions(
   vault: MajordomeVault,
   options?: {
-    readonly onCreated?: (topic: MajordomeTopic) => void;
+    readonly onCreated?: (topic: MajordomeTopic) => void | Promise<void>;
     /** Runs before leaving for Notes, for a sidebar that covers the page to close. */
     readonly onLeave?: () => void;
   },

@@ -249,9 +249,14 @@ it.layer(testLayer)("MajordomeBackup", (it) => {
         const backup = yield* backupFor(root);
         yield* fs.writeFileString(`${root}/memory.md`, "- Likes tea\n- Walks at noon\n");
 
+        // The quick exchange saves the edits and leaves the remote for the full backup.
+        const remoteHead = yield* remoteMain(bare!);
+        yield* backup.backUpNow({ projectId, peerOnly: true });
+        assert.equal(yield* lastCommit(root), "Owner|Your edits");
+        assert.equal(yield* remoteMain(bare!), remoteHead);
+
         yield* backup.runCycle(root);
 
-        assert.equal(yield* lastCommit(root), "Owner|Your edits");
         assert.equal(yield* remoteMain(bare!), yield* gitIn(root, ["rev-parse", "HEAD"]));
         const status = yield* backup.getStatus({ projectId });
         assert.equal(status.brainId, yield* readVaultBrainId(root));

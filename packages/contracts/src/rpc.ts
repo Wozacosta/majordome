@@ -152,6 +152,7 @@ import {
 } from "./majordomePrivateDocuments.ts";
 import {
   MajordomeBackupInput,
+  MajordomeBackUpNowInput,
   MajordomeBackupStatus,
   MajordomeConfigureBackupInput,
   MajordomeGitHubConnectPrompt,
@@ -2917,7 +2918,7 @@ const WsMajordomeGetBackupStatusRpc = Rpc.make(WS_METHODS.majordomeGetBackupStat
 });
 
 const WsMajordomeBackUpNowRpc = Rpc.make(WS_METHODS.majordomeBackUpNow, {
-  payload: MajordomeBackupInput,
+  payload: MajordomeBackUpNowInput,
   success: MajordomeBackupStatus,
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });

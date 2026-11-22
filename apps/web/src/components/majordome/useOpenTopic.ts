@@ -58,7 +58,7 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
       // The topic list travels with the notes; opening says what went wrong if this did not work.
       await syncNotes({
         environmentId: vault.environmentId,
-        input: { projectId: vault.projectId },
+        input: { projectId: vault.projectId, peerOnly: true },
       });
     }
     const result = await openTopic({

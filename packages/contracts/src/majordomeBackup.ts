@@ -7,6 +7,13 @@ export const MajordomeBackupInput = Schema.Struct({
 });
 export type MajordomeBackupInput = typeof MajordomeBackupInput.Type;
 
+export const MajordomeBackUpNowInput = Schema.Struct({
+  projectId: ProjectId,
+  /** Only save and exchange notes with the owner's other machine: the quick part of a backup. */
+  peerOnly: Schema.optional(Schema.Boolean),
+});
+export type MajordomeBackUpNowInput = typeof MajordomeBackUpNowInput.Type;
+
 /**
  * Why saving or syncing stopped. `secret` and `unfinished-merge` stop saving the owner's edits;
  * `secret-not-sent` and `conflict` stop syncing only, so edits are still saved on this computer.
