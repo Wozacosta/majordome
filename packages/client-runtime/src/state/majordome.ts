@@ -336,6 +336,10 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 0,
       refreshTrigger: ({ environmentId }) => keyFactsRevision(environmentId),
     }),
+    drawConversation: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:draw-conversation",
+      tag: WS_METHODS.majordomeDrawConversation,
+    }),
     /** Read again on every mount and after each change; the assistant adds files too. */
     topicFiles: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:topic-files",

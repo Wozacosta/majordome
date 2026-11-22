@@ -2630,6 +2630,10 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
             Effect.andThen(majordomeKeyFacts.read(input)),
           ),
+        [WS_METHODS.majordomeDrawConversation]: (input) =>
+          Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
+            Effect.andThen(majordomeKeyFacts.draw(input)),
+          ),
         [WS_METHODS.majordomeListTopicFiles]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopicFiles.list(input)),

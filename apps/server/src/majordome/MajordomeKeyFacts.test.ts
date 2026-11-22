@@ -88,32 +88,63 @@ it.layer(NodeServices.layer)("MajordomeKeyFacts", (it) => {
   it.effect("reads each stretch of a conversation once and keeps what it found", () =>
     Effect.gen(function* () {
       const { service, state } = yield* setUp;
-      assert.deepEqual(yield* service.read({ threadId }), { facts: [] });
+      const nothing = { facts: [], summary: [], diagram: null };
+      assert.deepEqual(yield* service.read({ threadId }), nothing);
       assert.lengthOf(state.prompts, 0);
 
       state.messages.push({ author: "owner", text: "My accountant is Claire Dupont." });
       state.running = true;
       // A reply is still being written: nothing is read yet.
-      assert.deepEqual(yield* service.read({ threadId }), { facts: [] });
+      assert.deepEqual(yield* service.read({ threadId }), nothing);
       assert.lengthOf(state.prompts, 0);
 
       state.messages.push({ author: "assistant", text: "Noted." });
       state.running = false;
-      state.answer = "person | Claire Dupont | accountant";
+      state.answer = "person | Claire Dupont | accountant\nshort | Named the accountant.";
       const claire = { kind: "person", value: "Claire Dupont", note: "accountant" } as const;
-      assert.deepEqual(yield* service.read({ threadId }), { facts: [claire] });
-      // Nothing new: the facts are served as kept, without asking again.
-      assert.deepEqual(yield* service.read({ threadId }), { facts: [claire] });
+      const first = { facts: [claire], summary: ["Named the accountant."], diagram: null };
+      assert.deepEqual(yield* service.read({ threadId }), first);
+      // Nothing new: what was found is served as kept, without asking again.
+      assert.deepEqual(yield* service.read({ threadId }), first);
       assert.lengthOf(state.prompts, 1);
 
       state.messages.push({ author: "owner", text: "We meet at 14 rue Oberkampf." });
       state.answer = "place | 14 rue Oberkampf";
       const result = yield* service.read({ threadId });
       assert.deepEqual(result.facts, [claire, { kind: "place", value: "14 rue Oberkampf" }]);
+      // A pass that rewrites nothing leaves the short version as it was.
+      assert.deepEqual(result.summary, ["Named the accountant."]);
       assert.lengthOf(state.prompts, 2);
-      // The second pass is given the new message only, and what is already listed.
+      // The second pass is given the new message only, and what is already known.
       assert.notInclude(state.prompts[1], "My accountant is");
       assert.include(state.prompts[1], "person | Claire Dupont | accountant");
+      assert.include(state.prompts[1], "<in_short_so_far>\nNamed the accountant.");
+    }),
+  );
+
+  it.effect("draws the whole conversation when asked, and keeps the drawing", () =>
+    Effect.gen(function* () {
+      const { service, state } = yield* setUp;
+      state.messages.push(
+        { author: "owner", text: "Should I renew the lease or move?" },
+        { author: "assistant", text: "Renew if the rent stays, otherwise move." },
+      );
+      state.answer = "short | Deciding on the lease.";
+      yield* service.read({ threadId });
+
+      state.answer = "no drawing here";
+      const failed = yield* Effect.flip(service.draw({ threadId }));
+      assert.include(failed.message, "could not draw");
+
+      state.answer = "box | A | Lease ends\nbox | B | Renew\narrow | A | B | rent stays";
+      const { diagram } = yield* service.draw({ threadId });
+      assert.include(diagram, 'n0 -->|"rent stays"| n1');
+      assert.include(state.prompts.at(-1), "owner: Should I renew the lease or move?");
+      assert.deepEqual(yield* service.read({ threadId }), {
+        facts: [],
+        summary: ["Deciding on the lease."],
+        diagram,
+      });
     }),
   );
 
@@ -122,11 +153,11 @@ it.layer(NodeServices.layer)("MajordomeKeyFacts", (it) => {
       const { service, state } = yield* setUp;
       state.messages.push({ author: "owner", text: "Call Karim." });
       state.answer = null;
-      assert.deepEqual(yield* service.read({ threadId }), { facts: [] });
+      assert.deepEqual((yield* service.read({ threadId })).facts, []);
       state.answer = "person | Karim";
-      assert.deepEqual(yield* service.read({ threadId }), {
-        facts: [{ kind: "person", value: "Karim" }],
-      });
+      assert.deepEqual((yield* service.read({ threadId })).facts, [
+        { kind: "person", value: "Karim" },
+      ]);
     }),
   );
 });

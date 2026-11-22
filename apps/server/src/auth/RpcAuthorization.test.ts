@@ -94,6 +94,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeSaveNote,
       WS_METHODS.majordomeAddTopicFile,
       WS_METHODS.majordomeRemoveTopicFile,
+      WS_METHODS.majordomeDrawConversation,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }

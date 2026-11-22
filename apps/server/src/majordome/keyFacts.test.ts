@@ -5,6 +5,8 @@ import {
   buildKeyFactsPrompt,
   keyFactsTranscript,
   mergeKeyFacts,
+  parseDiagram,
+  parseInShort,
   parseKeyFacts,
 } from "./keyFacts.ts";
 
@@ -42,6 +44,7 @@ describe("key facts", () => {
     const prompt = buildKeyFactsPrompt({
       today: DateTime.makeUnsafe("2026-11-22T12:00:00Z"),
       known: [{ kind: "person", value: "Dr Arnaud", note: "dentist" }],
+      summary: [],
       transcript,
     });
     expect(prompt).toContain("Today is Sunday 2026-11-22.");
@@ -66,6 +69,47 @@ describe("key facts", () => {
       { kind: "link", value: "https://doctolib.fr/arnaud", note: "booking page" },
     ]);
     expect(parseKeyFacts("none", transcript)).toEqual([]);
+  });
+
+  it("reads the short version from the same answer, and nothing else as one", () => {
+    const answer = [
+      "person | Dr Arnaud | dentist",
+      "short | Booking the dentist | for next Tuesday.",
+      "- Short | Still to do: confirm the time.",
+      `short | ${"x".repeat(201)}`,
+      "short |",
+    ].join("\n");
+    expect(parseInShort(answer)).toEqual([
+      "Booking the dentist | for next Tuesday.",
+      "Still to do: confirm the time.",
+    ]);
+    expect(parseKeyFacts(answer, transcript)).toHaveLength(1);
+  });
+
+  it("builds the drawing itself from the boxes and arrows it is given", () => {
+    const answer = [
+      "box | A | Lease ends in March",
+      'box | B | Renew ["two" years]',
+      "box | C | Move out",
+      "box | A | said twice",
+      "arrow | A | B | if rent stays",
+      "arrow | A | C",
+      "arrow | A | C",
+      "arrow | A | Z | to nowhere",
+      "arrow | B | B | to itself",
+    ].join("\n");
+    expect(parseDiagram(answer)).toBe(
+      [
+        "flowchart TD",
+        '  n0["Lease ends in March"]',
+        '  n1["Renew two years"]',
+        '  n2["Move out"]',
+        '  n0 -->|"if rent stays"| n1',
+        "  n0 --> n2",
+      ].join("\n"),
+    );
+    expect(parseDiagram("box | A | alone")).toBeNull();
+    expect(parseDiagram("flowchart TD\n A --> B")).toBeNull();
   });
 
   it("adds new facts after the known ones, once each", () => {

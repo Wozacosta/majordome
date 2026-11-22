@@ -11,6 +11,10 @@ The section for a version is also the text of its release on GitHub.
   now listed on the right of the conversation, in the main chat of a topic and in every other
   chat. The list updates after each reply. A link opens; anything else is copied when you click
   it. Each update is one small extra request to your AI plan.
+- **The conversation in short, and drawn.** Under the key facts, "In short" says in a few lines
+  what you asked, what was settled and what is still open, rewritten after each reply. "Draw it"
+  shows the conversation as a small diagram; a drawing is made only when you ask, and each one is
+  one small request to your AI plan.
 
 ## 0.10.11
 

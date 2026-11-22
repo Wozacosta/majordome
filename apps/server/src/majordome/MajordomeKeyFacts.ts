@@ -1,10 +1,14 @@
 /**
- * The key facts of each conversation, kept in this server's state directory: a pass over the
- * messages that arrived since the last one, run when the facts are read and the conversation has
- * moved on. Nothing is written to the vault or the conversation.
+ * The key facts of each conversation and the conversation in short, kept in this server's state
+ * directory: a pass over the messages that arrived since the last one, run when they are read and
+ * the conversation has moved on. A drawing of it is made only when asked for. Nothing is written
+ * to the vault or the conversation.
  */
 
 import {
+  MajordomeDrawConversationError,
+  type MajordomeDrawConversationInput,
+  type MajordomeDrawConversationResult,
   MajordomeKeyFact,
   type MajordomeKeyFactsInput,
   type MajordomeKeyFactsResult,
@@ -28,10 +32,13 @@ import * as ThreadManagementService from "../orchestration-v2/ThreadManagementSe
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import {
+  buildDiagramPrompt,
   buildKeyFactsPrompt,
   type KeyFactsMessage,
   keyFactsTranscript,
   mergeKeyFacts,
+  parseDiagram,
+  parseInShort,
   parseKeyFacts,
 } from "./keyFacts.ts";
 
@@ -43,6 +50,10 @@ export class MajordomeKeyFacts extends Context.Service<
      * is being written. Never fails: without a usable pass it is what was found before.
      */
     readonly read: (input: MajordomeKeyFactsInput) => Effect.Effect<MajordomeKeyFactsResult>;
+    /** Draws the conversation anew from its latest messages and keeps the drawing. */
+    readonly draw: (
+      input: MajordomeDrawConversationInput,
+    ) => Effect.Effect<MajordomeDrawConversationResult, MajordomeDrawConversationError>;
   }
 >()("t3/majordome/MajordomeKeyFacts") {}
 
@@ -50,13 +61,15 @@ const KeyFactsState = Schema.Struct({
   /** The timeline position of the last message a pass has read. */
   position: Schema.Number,
   facts: Schema.Array(MajordomeKeyFact),
+  summary: Schema.Array(Schema.String),
+  diagram: Schema.NullOr(Schema.String),
 });
 type KeyFactsState = typeof KeyFactsState.Type;
 const KeyFactsStateJson = Schema.fromJsonString(KeyFactsState);
 const decodeState = Schema.decodeUnknownOption(KeyFactsStateJson);
 const encodeState = Schema.encodeSync(KeyFactsStateJson);
 
-const NOTHING_READ: KeyFactsState = { position: -1, facts: [] };
+const NOTHING_READ: KeyFactsState = { position: -1, facts: [], summary: [], diagram: null };
 const PAGE_SIZE = 200;
 /** A long conversation read for the first time is caught up over a few passes, not one. */
 const MAX_PASSES = 4;
@@ -93,13 +106,13 @@ const make = Effect.gen(function* () {
     yield* fileSystem.rename(temporary, file);
   });
 
-  /** The owner's and the assistant's messages after `position`, and where that page ends. */
-  const messagesAfter = Effect.fn("MajordomeKeyFacts.messagesAfter")(function* (
+  /** The owner's and the assistant's messages on one page of the timeline, and where it ends. */
+  const messagesOf = Effect.fn("MajordomeKeyFacts.messagesOf")(function* (
     threadId: ThreadId,
-    position: number,
+    bound: { readonly afterPosition: number } | { readonly beforePosition: number },
   ) {
     const page = yield* threads.getTimelinePage(threadId, {
-      afterPosition: position,
+      ...bound,
       limit: PAGE_SIZE,
       view: "messages",
     });
@@ -137,10 +150,12 @@ const make = Effect.gen(function* () {
       const shell = yield* threads.getThreadShell(threadId);
       // A reply still being written is read once it is whole.
       if (shell === null || shell.activeRunId !== null) break;
-      const { messages, end, hasMore } = yield* messagesAfter(threadId, state.position);
+      const { messages, end, hasMore } = yield* messagesOf(threadId, {
+        afterPosition: state.position,
+      });
       if (end === undefined) break;
       const transcript = keyFactsTranscript(messages);
-      let facts = state.facts;
+      let { facts, summary } = state;
       if (transcript !== "") {
         // Providers run in a working directory; this one must not read or change the notes.
         const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-key-facts-" });
@@ -150,25 +165,33 @@ const make = Effect.gen(function* () {
           prompt: buildKeyFactsPrompt({
             today: yield* DateTime.now,
             known: state.facts,
+            summary: state.summary,
             transcript,
           }),
           modelSelection: resolveProjectSettings(yield* settings.getSettings, shell.projectId)
             .settings.textGenerationModelSelection,
         });
         facts = mergeKeyFacts(state.facts, parseKeyFacts(generated.transcription, transcript));
+        const rewritten = parseInShort(generated.transcription);
+        if (rewritten.length > 0) summary = rewritten;
       }
-      state = { position: end, facts };
+      state = { position: end, facts, summary, diagram: state.diagram };
       yield* writeState(threadId, state);
       if (!hasMore) break;
     }
-    return state.facts;
+    return state;
+  });
+
+  const lockOf = Effect.fn("MajordomeKeyFacts.lockOf")(function* (threadId: ThreadId) {
+    const lock = locks.get(threadId) ?? (yield* Semaphore.make(1));
+    locks.set(threadId, lock);
+    return lock;
   });
 
   const read: MajordomeKeyFacts["Service"]["read"] = Effect.fn("MajordomeKeyFacts.read")(
     function* (input) {
-      const lock = locks.get(input.threadId) ?? (yield* Semaphore.make(1));
-      locks.set(input.threadId, lock);
-      const facts = yield* catchUp(input.threadId).pipe(
+      const lock = yield* lockOf(input.threadId);
+      const caughtUp = yield* catchUp(input.threadId).pipe(
         Effect.scoped,
         Effect.timeoutOption(PASS_TIMEOUT),
         Effect.map(Option.getOrUndefined),
@@ -180,11 +203,56 @@ const make = Effect.gen(function* () {
         lock.withPermits(1),
       );
       // Each page a pass finished is saved, so a pass cut short still shows what it reached.
-      return { facts: facts ?? (yield* readState(input.threadId)).facts };
+      const state = caughtUp ?? (yield* readState(input.threadId));
+      return { facts: state.facts, summary: state.summary, diagram: state.diagram };
     },
   );
 
-  return MajordomeKeyFacts.of({ read });
+  const drawNow = Effect.fn("MajordomeKeyFacts.drawNow")(function* (threadId: ThreadId) {
+    const shell = yield* threads.getThreadShell(threadId);
+    if (shell === null) return null;
+    const { messages } = yield* messagesOf(threadId, {
+      beforePosition: Number.POSITIVE_INFINITY,
+    });
+    const transcript = keyFactsTranscript(messages);
+    if (transcript === "") return null;
+    const state = yield* readState(threadId);
+    const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-key-facts-" });
+    const generated = yield* textGeneration.generateTranscriptionPostProcessing({
+      cwd,
+      prompt: buildDiagramPrompt({ summary: state.summary, transcript }),
+      modelSelection: resolveProjectSettings(yield* settings.getSettings, shell.projectId).settings
+        .textGenerationModelSelection,
+    });
+    const diagram = parseDiagram(generated.transcription);
+    if (diagram !== null) yield* writeState(threadId, { ...state, diagram });
+    return diagram;
+  });
+
+  const draw: MajordomeKeyFacts["Service"]["draw"] = Effect.fn("MajordomeKeyFacts.draw")(
+    function* (input) {
+      const lock = yield* lockOf(input.threadId);
+      const diagram = yield* drawNow(input.threadId).pipe(
+        Effect.scoped,
+        Effect.timeoutOption(PASS_TIMEOUT),
+        Effect.map(Option.getOrNull),
+        Effect.catchCause((cause) =>
+          Cause.hasInterruptsOnly(cause)
+            ? Effect.interrupt
+            : Effect.logDebug("Conversation drawing failed", { cause }).pipe(Effect.as(null)),
+        ),
+        lock.withPermits(1),
+      );
+      if (diagram === null) {
+        return yield* new MajordomeDrawConversationError({
+          message: "The assistant could not draw this conversation. Try again in a moment.",
+        });
+      }
+      return { diagram };
+    },
+  );
+
+  return MajordomeKeyFacts.of({ read, draw });
 });
 
 export const layer = Layer.effect(MajordomeKeyFacts, make);
