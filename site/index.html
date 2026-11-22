@@ -740,6 +740,49 @@
         font-size: 0.93rem;
       }
 
+      .compare-scroll {
+        margin-top: 36px;
+        overflow-x: auto;
+      }
+      table.compare {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+        text-align: left;
+      }
+      table.compare th,
+      table.compare td {
+        padding: 14px 16px 14px 0;
+        vertical-align: top;
+        border-top: 1px solid var(--line);
+      }
+      table.compare thead td {
+        border-top: 2px solid var(--ink);
+      }
+      table.compare thead th {
+        border-top: 2px solid var(--ink);
+        font: 500 1.25rem/1.2 var(--serif);
+      }
+      table.compare tbody th {
+        width: 17%;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      table.compare td {
+        width: 20.75%;
+        color: var(--muted);
+      }
+      table.compare td:first-of-type {
+        color: var(--ink);
+      }
+      .compare-note {
+        margin-top: 20px;
+        max-width: 640px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
       @media (max-width: 860px) {
         .day,
         .yours {
@@ -1049,6 +1092,74 @@
               >
             </li>
           </ul>
+        </section>
+
+        <section id="compare">
+          <div class="intro">
+            <h2>Next to the others.</h2>
+            <p>
+              Assistants that work for you come in a few shapes. Majordome is the one built around a
+              folder of notes you own, in an app you open.
+            </p>
+          </div>
+          <div class="compare-scroll">
+            <table class="compare">
+              <thead>
+                <tr>
+                  <td></td>
+                  <th scope="col">Majordome</th>
+                  <th scope="col">OpenClaw</th>
+                  <th scope="col">Hermes Agent</th>
+                  <th scope="col">Grok Bot</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Where you use it</th>
+                  <td>Its own app, on your computer and phone</td>
+                  <td>Chat apps such as WhatsApp, Telegram and Slack</td>
+                  <td>A terminal, and chat apps through a gateway</td>
+                  <td>xAI's app</td>
+                </tr>
+                <tr>
+                  <th scope="row">Where it runs</th>
+                  <td>Your computer, or a server you own</td>
+                  <td>A machine you set up and run</td>
+                  <td>A machine or server you set up and run</td>
+                  <td>A cloud computer at xAI</td>
+                </tr>
+                <tr>
+                  <th scope="row">What it remembers in</th>
+                  <td>Your notes: plain Markdown, one folder per topic</td>
+                  <td>Its own memory of your conversations</td>
+                  <td>Memory files and a search of past sessions</td>
+                  <td>Each bot's own memory</td>
+                </tr>
+                <tr>
+                  <th scope="row">What you pay for</th>
+                  <td>The Claude or ChatGPT plan you already have</td>
+                  <td>An AI provider you connect</td>
+                  <td>An AI provider you connect</td>
+                  <td>A paid xAI plan</td>
+                </tr>
+                <tr>
+                  <th scope="row">The code</th>
+                  <td>Open source</td>
+                  <td>Open source</td>
+                  <td>Open source</td>
+                  <td>Closed</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="compare-note">
+            Where the others are ahead: OpenClaw and Hermes Agent answer in the chat apps you
+            already use and work with many AI providers, and Hermes Agent writes new skills for
+            itself. From each project's public pages, November 2026:
+            <a href="https://github.com/openclaw/openclaw">OpenClaw</a>,
+            <a href="https://hermes-agent.nousresearch.com/docs">Hermes Agent</a>,
+            <a href="https://x.ai">Grok Bot</a>.
+          </p>
         </section>
 
         <section id="install">
