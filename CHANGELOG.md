@@ -7,12 +7,20 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.18
+
 **New**
 
 - **Each chat shows which machine keeps it.** With an always-on server, the tabs of a topic and
   the chats listed under it in the sidebar carry a small icon: a server for chats kept on the
   server, a laptop for chats kept on this computer. Hover one to read it. Nothing changes when
   your notes are on one machine only.
+
+**Try this**
+
+- Open a topic that has a "Chat on this Mac" tab: the Main tab should carry a server icon and
+  that one a laptop. Hover each to read where it is kept.
+- Look at the chats listed under a topic in the sidebar for the same icons.
 
 ## 0.10.17
 
