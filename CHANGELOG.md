@@ -7,6 +7,14 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **The side browser works on an always-on server.** A conversation kept on the server can now
+  open pages and render previews there: the server image carries what the built-in browser
+  needs, and Chrome keeps its own sandbox. A new server gets this on its own. On a server set up
+  by hand before this version, fetch the two files again as the guide's "If something goes
+  wrong" section shows.
+
 ## 0.10.17
 
 **New**

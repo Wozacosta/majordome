@@ -131,6 +131,7 @@ For any other provider, or if you prefer a terminal.
    ```bash
    mkdir majordome && cd majordome
    curl -fsSLO https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/docker-compose.yml
+   curl -fsSLO https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/browser-seccomp.json
    echo "TS_AUTHKEY=tskey-auth-…" > .env
    docker compose up -d
    ```
@@ -255,6 +256,15 @@ stops Majordome and keeps them; `docker compose down -v` deletes them.
 These are for a server set up by hand; one Majordome set up says what went wrong on its screen.
 
 - **No code, or it expired:** run `docker compose exec majordome majord pair` again.
+- **The assistant says the browser's sandbox is blocked:** the server was set up before the built-in
+  browser worked there. In its `majordome` folder, fetch the two files again and restart:
+
+  ```bash
+  curl -fsSLO https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/docker-compose.yml
+  curl -fsSLO https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/browser-seccomp.json
+  docker compose pull && docker compose up -d
+  ```
+
 - **See what the server is doing:** `docker compose logs -f majordome`.
 - **The address doesn't open:** turn on HTTPS in Tailscale's
   [DNS settings](https://login.tailscale.com/admin/dns), then `docker compose restart tailscale`.

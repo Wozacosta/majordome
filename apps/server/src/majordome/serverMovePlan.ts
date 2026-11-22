@@ -8,6 +8,7 @@ import type { MajordomeServerMoveLocation } from "@t3tools/contracts";
 
 import type { HetznerLocation, HetznerPricing, HetznerServerType } from "./hetznerApi.ts";
 import { DEPLOY_COMPOSE_FILE } from "./serverMoveCompose.ts";
+import { DEPLOY_BROWSER_SECCOMP } from "./serverMoveSeccomp.ts";
 import { DEPLOY_UPDATES_SCRIPT } from "./serverMoveUpdates.ts";
 
 /** The always-on guide's floor; smaller servers run out of memory during a run. */
@@ -183,6 +184,10 @@ export function cloudInitFor(input: CloudInitInput): string | null {
     '    permissions: "0644"',
     "    content: |",
     indent(DEPLOY_COMPOSE_FILE.trimEnd(), 6),
+    `  - path: ${SERVER_DIRECTORY}/browser-seccomp.json`,
+    '    permissions: "0644"',
+    "    content: |",
+    indent(DEPLOY_BROWSER_SECCOMP.trimEnd(), 6),
     `  - path: ${SERVER_DIRECTORY}/.env`,
     '    permissions: "0600"',
     "    content: |",

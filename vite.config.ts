@@ -184,6 +184,8 @@ export default defineConfig({
       "infra/task-cache/vendor/**",
       // Macroscope requires one glob per line; Markdown formatting corrupts it.
       ".macroscope/ignore.md",
+      // Kept on one line: it travels inside a size-limited server setup script.
+      "deploy/browser-seccomp.json",
       ".alchemy",
       "dist",
       "dist-electron",

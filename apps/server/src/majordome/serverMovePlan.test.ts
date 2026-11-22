@@ -7,6 +7,7 @@ import * as YAML from "yaml";
 
 import type { HetznerLocation, HetznerPricing, HetznerServerType } from "./hetznerApi.ts";
 import { DEPLOY_COMPOSE_FILE } from "./serverMoveCompose.ts";
+import { DEPLOY_BROWSER_SECCOMP } from "./serverMoveSeccomp.ts";
 import { DEPLOY_UPDATES_SCRIPT } from "./serverMoveUpdates.ts";
 import {
   cloudInitFor,
@@ -184,6 +185,7 @@ describe("the new server's first-boot script", () => {
   it("embeds the repository's compose file and update script word for word", () => {
     expect(DEPLOY_COMPOSE_FILE).toBe(deployed("docker-compose.yml"));
     expect(DEPLOY_UPDATES_SCRIPT).toBe(deployed("install-updates.sh"));
+    expect(DEPLOY_BROWSER_SECCOMP).toBe(deployed("browser-seccomp.json"));
   });
 
   it("installs Docker, writes the compose file and its .env, starts it, and keeps it updated", () => {
@@ -201,6 +203,10 @@ describe("the new server's first-boot script", () => {
         '    permissions: "0644"',
         "    content: |",
         indented(DEPLOY_COMPOSE_FILE),
+        "  - path: /opt/majordome/browser-seccomp.json",
+        '    permissions: "0644"',
+        "    content: |",
+        indented(DEPLOY_BROWSER_SECCOMP),
         "  - path: /opt/majordome/.env",
         '    permissions: "0600"',
         "    content: |",
@@ -224,6 +230,7 @@ describe("the new server's first-boot script", () => {
     const parsed = YAML.parse(script);
     expect(parsed.write_files.map((file: { content: string }) => file.content)).toEqual([
       DEPLOY_COMPOSE_FILE,
+      DEPLOY_BROWSER_SECCOMP,
       expect.stringContaining("MAJORDOME_SETUP_SECRET="),
       DEPLOY_UPDATES_SCRIPT,
     ]);

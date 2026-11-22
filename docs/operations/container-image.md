@@ -63,3 +63,9 @@ settings: owners' servers pull it without signing in.
 - Provider CLIs: `CLAUDE_CODE_VERSION` and `CODEX_VERSION` build args. Claude Code's auto-updater
   is off so the pinned version is the one that runs.
 - gitleaks and Tailscale: the image tags in `Dockerfile` and `deploy/docker-compose.yml`.
+- Browser sandbox: `deploy/browser-seccomp.json` is Docker's default seccomp profile
+  (`moby/profiles`, `seccomp/default.json`) minified, plus one rule allowing `clone`, `setns` and
+  `unshare`, so Chrome can sandbox itself with user namespaces. To refresh it, take the newer
+  default, append that rule, and copy the result into `serverMoveSeccomp.ts`.
+- Browser libraries: the `apt-get` list in `Dockerfile` follows `DEBIAN_PACKAGES` in
+  `apps/server/src/preview/PreviewBrowserHost.ts`.

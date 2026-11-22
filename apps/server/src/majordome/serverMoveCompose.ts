@@ -42,6 +42,9 @@ services:
       # Set only by "Set up a server for me": a one-time secret that lets the computer that made
       # this server pair with it. It is spent on first use and carries its own expiry.
       MAJORDOME_SETUP_SECRET: \${MAJORDOME_SETUP_SECRET:-}
+    # Docker's usual limits plus user namespaces, which the built-in browser's own sandbox needs.
+    security_opt:
+      - seccomp=./browser-seccomp.json
     volumes:
       - majordome-data:/data
     restart: unless-stopped
