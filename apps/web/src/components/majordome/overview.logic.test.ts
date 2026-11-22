@@ -258,6 +258,40 @@ describe("routinesSection", () => {
   const build = (brains: ReadonlyArray<OverviewRoutineBrain>, loading = false) =>
     routinesSection({ brains, loading, formatNextRun: () => "tomorrow at 8:00" });
 
+  it("leaves out the routines kept on a computer that does not run them, but not its reminders", () => {
+    const section = build([
+      routineBrain({
+        runner: { environmentId: mac, machine: "Always-on server" },
+        copies: [
+          { key: "server:brain", label: "Always-on server", tasks: ready({ tasks: [task({})] }) },
+          {
+            key: "mac:brain",
+            label: "This Mac",
+            runsRoutines: false,
+            tasks: ready({
+              tasks: [
+                // Never ran here, so its copy reads as failed: not a problem, and not listed.
+                task({ id: "tidy", title: "Tidy my memory", lastRunStatus: "failed" }),
+                task({
+                  id: "bank",
+                  title: "Call the bank",
+                  schedule: { type: "once", runAt: "2026-12-01T10:00:00.000Z" },
+                  nextRunAt: "2026-12-01T10:00:00.000Z",
+                  lastRunStatus: "never",
+                }),
+              ],
+            }),
+          },
+        ],
+      }),
+    ]);
+    const titles = section.lines.map((line) => line.text);
+    expect(titles).toContain("Always-on server: Start my day");
+    expect(titles).toContain("This Mac: Call the bank");
+    expect(titles.join("|")).not.toContain("Tidy my memory");
+    expect(section.lines.some((line) => line.tone === "error")).toBe(false);
+  });
+
   it("gives each routine one line: when it runs, when next, how the last run went", () => {
     const section = build([
       routineBrain({

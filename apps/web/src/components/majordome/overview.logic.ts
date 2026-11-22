@@ -376,6 +376,12 @@ export interface OverviewRoutineCopy {
   readonly key: string;
   /** The brain, the machine or both, where several are listed. */
   readonly label: string | null;
+  /**
+   * False for a computer that keeps a copy of the routines but does not run them: they only run
+   * where the notes folder's routines are set to run, so its copies are neither listed nor counted
+   * as having missed anything. Its reminders still go off there.
+   */
+  readonly runsRoutines?: boolean;
   readonly tasks: Loaded<{
     readonly tasks: ReadonlyArray<ScheduledTask>;
     /** The server's zone for fixed-time schedules. */
@@ -466,6 +472,7 @@ export function routinesSection(input: {
           ...tasks
             // A reminder that already went off is not something that runs any more.
             .filter((task) => routineKind(task) !== "done")
+            .filter((task) => copy.runsRoutines !== false || task.schedule.type === "once")
             .map((task) => routineLine(task, copy, timeZone, input.formatNextRun)),
         );
       } else {

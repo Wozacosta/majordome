@@ -271,6 +271,7 @@ function Health({
         copies: brain.copies.map((copy) => ({
           key: `${copy.environmentId}:${copy.projectId}`,
           label: labelOf(copy, brain.copies.length > 1),
+          runsRoutines: copy.environmentId === runner.environmentId,
           tasks: mapLoaded(loaded(serverOf(copy.environmentId)?.tasks), (list) => ({
             tasks: list.tasks.filter((task) => task.projectId === copy.projectId),
             timeZone: list.timeZone,

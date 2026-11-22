@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- Status no longer says routines "couldn't finish" on a computer that isn't the one running them.
+  When your always-on server runs the routines, this Mac's dormant copies are not listed or
+  counted as problems.
+
 ## 0.10.8
 
 **Changed**
