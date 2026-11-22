@@ -5,6 +5,12 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**Changed**
+
+- **New chat no longer looks like the page you are on.** In the sidebar, New chat and the search
+  button are now outlined rather than filled, they sit a little apart from the list of pages,
+  and the page rows are slimmer. Only the page you are on is filled.
+
 **Fixed**
 
 - **Open in… shows with an always-on server.** Notes opened from a topic showed the server's copy,

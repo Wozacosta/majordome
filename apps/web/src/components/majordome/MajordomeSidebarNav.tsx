@@ -116,6 +116,7 @@ export function MajordomeSidebarNav({
       return (
         <SidebarMenuItem key={to}>
           <SidebarMenuButton
+            size="row"
             isActive={pathname === to}
             aria-current={pathname === to ? "page" : undefined}
             render={<Link to={to} />}
@@ -155,13 +156,13 @@ export function MajordomeSidebarNav({
       </div>
       {search}
       {compact ? (
-        <SidebarMenu className="flex-row items-center">
+        <SidebarMenu className="mt-1.5 flex-row items-center">
           {icons([...DAILY_ITEMS, ...ON_ITS_OWN_ITEMS])}
           <SidebarMenuItem>{toggle}</SidebarMenuItem>
         </SidebarMenu>
       ) : (
         <>
-          <SidebarMenu>{rows(DAILY_ITEMS)}</SidebarMenu>
+          <SidebarMenu className="mt-1.5">{rows(DAILY_ITEMS)}</SidebarMenu>
           <div>
             <div className="flex h-7 items-center justify-between ps-2">
               <h2
