@@ -16,6 +16,8 @@ import { McpAppFrame } from "./McpAppFrame";
 import { checkpointFileTotals } from "@t3tools/client-runtime/state/thread-checkpoints";
 import { ChangedFilesCard } from "./ChangedFilesTree";
 import { SavedNotesCard } from "../majordome/SavedNotesCard";
+import { QuickReplies } from "../majordome/QuickReplies";
+import { splitQuickReplies } from "../majordome/QuickReplies.logic";
 import { isMajordome } from "~/env";
 import { useFileContextMenuHandler } from "../../fileContextMenu";
 import {
@@ -49,7 +51,10 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
     row.message.streaming ? ctx.threadRef : null,
     row.projectedItem?.item.id,
   );
-  const text = liveText ?? row.message.text;
+  const quick = isMajordome
+    ? splitQuickReplies(liveText ?? row.message.text, Boolean(row.message.streaming))
+    : null;
+  const text = quick?.body ?? liveText ?? row.message.text;
   const messageText =
     text || (row.message.streaming || row.suppressEmptyResponse ? "" : gt("(empty response)"));
 
@@ -85,6 +90,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
             />
           </AssistantCitationSource>
         </div>
+        {quick ? <QuickReplies rowId={row.id} replies={quick.replies} /> : null}
         {ctx.onOpenTurnDiff ? (
           <AssistantChangedFilesSection
             turnSummary={row.assistantTurnDiffSummary}
@@ -294,7 +300,7 @@ function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemI
         element.dataset.assistantCitationThread === threadRef.threadId &&
         element.dataset.assistantCitationEnvironment === threadRef.environmentId,
     );
-    const opening = captureAssistantMessageOpening(source ?? null, message.text);
+    const opening = captureAssistantMessageOpening(source ?? null, assistantBodyText(message.text));
     if (!opening) return;
     onReplyToResponse(
       responseContextRecord({
@@ -327,6 +333,11 @@ function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemI
   );
 }
 
+/** The message without Majordome's quick replies line, for copying and quoting. */
+function assistantBodyText(text: string): string {
+  return isMajordome ? splitQuickReplies(text).body : text;
+}
+
 function AssistantStatusBadge({ status }: { status: string }) {
   return (
     <span className="rounded-full border border-border/70 px-1.5 py-0.5 font-mono text-3xs text-muted-foreground">
@@ -345,7 +356,7 @@ function AssistantCopyButton({
   streaming: boolean;
 }) {
   const assistantCopyState = resolveAssistantMessageCopyState({
-    text: message.text ?? null,
+    text: message.text ? assistantBodyText(message.text) : null,
     showCopyButton,
     streaming,
   });

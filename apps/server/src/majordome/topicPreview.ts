@@ -1,6 +1,6 @@
 /**
- * The line under a topic in the sidebar: the gist of its conversation's latest message, the
- * owner's or the agent's, as plain text.
+ * What the app says of a topic in a line or a few: the gist of its conversation's latest message,
+ * the owner's or the agent's, and where things stand as its log puts it, both as plain text.
  */
 
 import type { MajordomeTopicMessagePreview } from "@t3tools/contracts";
@@ -68,4 +68,32 @@ export function pickTopicPreview(
     if (text !== null) return { author: message.author, text };
   }
   return null;
+}
+
+const STANDING_LINE_LIMIT = 4;
+const STANDING_CHAR_LIMIT = 400;
+
+/**
+ * Where a topic stands, as the "Where things stand" section of its log says: its first few lines
+ * as plain text, up to the next heading. Null when the log has no such section or it is empty.
+ */
+export function topicStanding(log: string): string | null {
+  const lines: Array<string> = [];
+  let inSection = false;
+  for (const raw of log.split(/\r?\n/)) {
+    if (/^\s{0,3}#{1,6}\s/.test(raw)) {
+      if (inSection) break;
+      inSection = /^\s*#+\s+where things stand\s*:?\s*#*\s*$/i.test(raw);
+      continue;
+    }
+    if (!inSection) continue;
+    const line = plainLine(raw);
+    if (/[\p{L}\p{N}]/u.test(line)) lines.push(line);
+    if (lines.length === STANDING_LINE_LIMIT) break;
+  }
+  const text = lines.join("\n");
+  if (text === "") return null;
+  return text.length <= STANDING_CHAR_LIMIT
+    ? text
+    : `${text.slice(0, STANDING_CHAR_LIMIT - 1).trimEnd()}…`;
 }

@@ -690,6 +690,14 @@ type MessagesTimelineRowContent =
       itemId: TurnItemId;
       revision: string;
       mcpApp: McpAppReference;
+    }
+  | {
+      /** Majordome only: a new calendar day, or where the person's last visit ended. */
+      kind: "day-divider";
+      id: string;
+      createdAt: string;
+      label: string;
+      unread: boolean;
     };
 
 export interface StableMessagesTimelineRowsState {
@@ -2782,6 +2790,8 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
     }
     case "worktree-setup":
       return a.snapshot === (b as typeof a).snapshot;
+    case "day-divider":
+      return a.label === (b as typeof a).label;
 
     case "assistant-meta": {
       const bm = b as typeof a;
@@ -2938,4 +2948,103 @@ export function sameRowsInput(
     return false;
   }
   return Object.keys(left).length === Object.keys(right).length;
+}
+
+const DAY_WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "long" });
+const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { month: "long" });
+
+function timelineDayLabel(day: Date, now: Date): string {
+  const daysAgo = Math.round(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - day.getTime()) /
+      86_400_000,
+  );
+  // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own copy is plain English
+  if (daysAgo === 0) return "Today";
+  // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own copy is plain English
+  if (daysAgo === 1) return "Yesterday";
+  const date = `${day.getDate()} ${DAY_MONTH.format(day)}`;
+  return day.getFullYear() === now.getFullYear()
+    ? `${DAY_WEEKDAY.format(day)} ${date}`
+    : `${date} ${day.getFullYear()}`;
+}
+
+function rowStartsWorkLog(row: MessagesTimelineRow): boolean {
+  return (
+    row.kind === "turn-fold" ||
+    row.kind === "attempt-fold" ||
+    row.kind === "work" ||
+    row.kind === "work-live" ||
+    row.kind === "work-toggle" ||
+    row.kind === "thinking" ||
+    row.kind === "viewed-images"
+  );
+}
+
+/**
+ * Majordome's rows: a divider above the first message of each calendar day in the viewer's local
+ * time, and one above the first of the assistant's messages that arrived between the person's last
+ * visit and this one. A divider sits above the work that led to the assistant's message.
+ */
+export function withTimelineDayRows(
+  rows: ReadonlyArray<MessagesTimelineRow>,
+  input: {
+    readonly now: Date;
+    /** Both ends of the absence; null when the person has not been here before. */
+    readonly away: { readonly since: number; readonly until: number } | null;
+  },
+): MessagesTimelineRow[] {
+  const result: MessagesTimelineRow[] = [];
+  let dayStart = Number.NaN;
+  let dayEnd = Number.NaN;
+  let workStart = 0;
+  let away = input.away;
+  for (const row of rows) {
+    const fromAssistant =
+      row.kind === "sent-message" || (row.kind === "message" && row.message.role === "assistant");
+    if (fromAssistant || (row.kind === "message" && row.message.role === "user")) {
+      const at = Date.parse(row.createdAt);
+      const dividers: MessagesTimelineRow[] = [];
+      if (!(at >= dayStart && at < dayEnd) && !Number.isNaN(at)) {
+        const date = new Date(at);
+        const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        dayStart = day.getTime();
+        dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime();
+        dividers.push({
+          kind: "day-divider",
+          id: `day:${row.id}`,
+          createdAt: row.createdAt,
+          label: timelineDayLabel(day, input.now),
+          unread: false,
+        });
+      }
+      if (away !== null && fromAssistant && at > away.since && at <= away.until) {
+        away = null;
+        dividers.push({
+          kind: "day-divider",
+          id: `new-since:${row.id}`,
+          createdAt: row.createdAt,
+          // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own copy is plain English
+          label: "New since you were last here",
+          unread: true,
+        });
+      }
+      if (dividers.length > 0)
+        result.splice(fromAssistant ? workStart : result.length, 0, ...dividers);
+    }
+    result.push(row);
+    if (!rowStartsWorkLog(row)) workStart = result.length;
+  }
+  return result;
+}
+
+/** The assistant's message that quick replies sit under: the last message, when it is the assistant's. */
+export function quickRepliesRowId(rows: ReadonlyArray<MessagesTimelineRow>): string | null {
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index]!;
+    if (row.kind === "sent-message") return null;
+    if (row.kind === "message" && row.message.role !== "system") {
+      return row.message.role === "assistant" && !row.message.streaming ? row.id : null;
+    }
+  }
+  return null;
 }

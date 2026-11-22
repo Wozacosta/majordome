@@ -10,16 +10,23 @@ const persistenceMocks = vi.hoisted(() => ({
 vi.mock("~/localApi", () => ({
   ensureLocalApi: () => ({ persistence: persistenceMocks }),
 }));
+// These cover T3 Code's defaults; Majordome's own are tested on their functions below.
+vi.mock("~/env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/env")>()),
+  isMajordome: false,
+}));
 
 import {
   __resetClientSettingsPersistenceForTests,
   __setClientSettingsForTests,
+  clientSettingsDefaults,
   ensureClientSettingsHydrated,
   getClientSettings,
   mergeEnvironmentSettings,
   persistClientSettingsPatch,
   persistClientSettingsUpdate,
   prepareModelPreferencesPatch,
+  quietChatMove,
 } from "./useSettings";
 import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
 
@@ -31,6 +38,22 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("Majordome's quiet chat default", () => {
+  it("hides tool calls for a new owner and leaves T3 Code's default alone", () => {
+    expect(clientSettingsDefaults(true).toolCallVisibility).toBe("zen");
+    expect(clientSettingsDefaults(false)).toBe(DEFAULT_CLIENT_SETTINGS);
+  });
+
+  it("moves settings saved under the old default once, and keeps a chosen mode", () => {
+    expect(quietChatMove({ toolCallVisibility: "showAll" }, false)).toEqual({
+      toolCallVisibility: "zen",
+    });
+    expect(quietChatMove({ toolCallVisibility: "showAll" }, true)).toBeNull();
+    expect(quietChatMove({ toolCallVisibility: "hideSuccessful" }, false)).toBeNull();
+    expect(quietChatMove(null, false)).toBeNull();
+  });
 });
 
 describe("client settings hydration", () => {

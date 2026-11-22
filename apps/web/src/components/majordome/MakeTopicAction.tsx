@@ -95,16 +95,18 @@ export function MakeTopicAction(props: {
             </TooltipPopup>
           </Tooltip>
           <MenuPopup align="start">
-            {vault.topics.map((topic) => (
-              <MenuItem
-                key={topic.id}
-                disabled={topic.id === placedIn?.id}
-                onClick={() => void place(topic.id, topic.title)}
-              >
-                {topic.id === placedIn?.id ? <CheckIcon /> : <FolderInputIcon />}
-                {topic.title}
-              </MenuItem>
-            ))}
+            {vault.topics
+              .filter((topic) => topic.finishedAt === undefined || topic.id === placedIn?.id)
+              .map((topic) => (
+                <MenuItem
+                  key={topic.id}
+                  disabled={topic.id === placedIn?.id}
+                  onClick={() => void place(topic.id, topic.title)}
+                >
+                  {topic.id === placedIn?.id ? <CheckIcon /> : <FolderInputIcon />}
+                  {topic.title}
+                </MenuItem>
+              ))}
             {placedIn === undefined ? null : (
               <>
                 <MenuSeparator />

@@ -35,6 +35,8 @@ import {
   isTimelineMinimapTurnVisible,
   resolveAssistantMessageCopyState,
   type MessagesTimelineRow,
+  quickRepliesRowId,
+  withTimelineDayRows,
   workEntryDisplayLabel,
   workEntryReadOutput,
 } from "./MessagesTimeline.logic";
@@ -5182,5 +5184,112 @@ describe("workEntryReadOutput", () => {
         "/workspace/t3code",
       ),
     ).toBe("/workspace/t3code/src/app.ts\n~/.claude/CLAUDE.md\n~/.gitconfig");
+  });
+});
+
+describe("Majordome day dividers and quick replies", () => {
+  // Local wall-clock times, so the days fall the same in any time zone the tests run in.
+  const local = (year: number, month: number, day: number, hour = 12, minute = 0) =>
+    new Date(year, month - 1, day, hour, minute);
+  const messageRow = (id: string, role: "user" | "assistant", at: Date, streaming = false) =>
+    ({
+      kind: "message",
+      id,
+      createdAt: at.toISOString(),
+      message: { id, role, text: id, streaming },
+    }) as unknown as MessagesTimelineRow;
+  const otherRow = (kind: "turn-fold" | "work" | "assistant-meta" | "sent-message", id: string) =>
+    ({ kind, id, createdAt: local(2026, 11, 22).toISOString() }) as unknown as MessagesTimelineRow;
+  const now = local(2026, 11, 22, 9);
+  const shape = (rows: ReadonlyArray<MessagesTimelineRow>) =>
+    rows.map((row) => (row.kind === "day-divider" ? `[${row.label}]` : row.id));
+
+  it("names each day once, above the first message of that day in local time", () => {
+    const rows = [
+      messageRow("old", "user", local(2025, 12, 31, 23, 59)),
+      messageRow("new-year", "assistant", local(2026, 1, 1, 0, 1)),
+      messageRow("tue-1", "user", local(2026, 11, 17, 8)),
+      messageRow("tue-2", "assistant", local(2026, 11, 17, 23, 59)),
+      messageRow("yesterday", "user", local(2026, 11, 21, 0, 0)),
+      messageRow("today-1", "user", local(2026, 11, 22, 0, 0)),
+      messageRow("today-2", "assistant", local(2026, 11, 22, 8)),
+    ];
+    const result = withTimelineDayRows(rows, { now, away: null });
+    expect(shape(result)).toEqual([
+      "[31 December 2025]",
+      "old",
+      "[Thursday 1 January]",
+      "new-year",
+      "[Tuesday 17 November]",
+      "tue-1",
+      "tue-2",
+      "[Yesterday]",
+      "yesterday",
+      "[Today]",
+      "today-1",
+      "today-2",
+    ]);
+    expect(new Set(result.map((row) => row.id)).size).toBe(result.length);
+    expect(result.filter((row) => row.kind !== "day-divider")).toEqual(rows);
+  });
+
+  it("puts a divider above the work that led to the assistant's message", () => {
+    const rows = [
+      messageRow("answer-1", "assistant", local(2026, 11, 20)),
+      otherRow("assistant-meta", "meta-1"),
+      otherRow("turn-fold", "fold"),
+      otherRow("work", "tools"),
+      messageRow("answer-2", "assistant", local(2026, 11, 22, 7)),
+    ];
+    expect(shape(withTimelineDayRows(rows, { now, away: null }))).toEqual([
+      "[Friday 20 November]",
+      "answer-1",
+      "meta-1",
+      "[Today]",
+      "fold",
+      "tools",
+      "answer-2",
+    ]);
+  });
+
+  it("marks the assistant's first message from the absence, and none that came after it", () => {
+    const rows = [
+      messageRow("seen", "assistant", local(2026, 11, 22, 7)),
+      messageRow("asked", "user", local(2026, 11, 22, 7, 30)),
+      otherRow("turn-fold", "fold"),
+      messageRow("missed-1", "assistant", local(2026, 11, 22, 7, 40)),
+      messageRow("missed-2", "assistant", local(2026, 11, 22, 7, 50)),
+      messageRow("asked-again", "user", local(2026, 11, 22, 8, 10)),
+      messageRow("watched", "assistant", local(2026, 11, 22, 8, 11)),
+    ];
+    const away = (since: Date, until: Date) => ({ since: since.getTime(), until: until.getTime() });
+    const marked = (input: ReturnType<typeof away> | null) =>
+      shape(withTimelineDayRows(rows, { now, away: input })).filter((id) => id !== "[Today]");
+
+    expect(marked(away(local(2026, 11, 22, 7, 20), local(2026, 11, 22, 8)))).toEqual([
+      "seen",
+      "asked",
+      "[New since you were last here]",
+      "fold",
+      "missed-1",
+      "missed-2",
+      "asked-again",
+      "watched",
+    ]);
+    // Only the person's own message is newer than the visit, and the answer came while they watched.
+    expect(marked(away(local(2026, 11, 22, 8), local(2026, 11, 22, 8, 5)))).toEqual(
+      rows.map((row) => row.id),
+    );
+    expect(marked(null)).toEqual(rows.map((row) => row.id));
+  });
+
+  it("offers quick replies under the assistant's message only while it is the chat's last", () => {
+    const answer = messageRow("answer", "assistant", now);
+    const meta = otherRow("assistant-meta", "meta");
+    expect(quickRepliesRowId([messageRow("ask", "user", now), answer, meta])).toBe("answer");
+    expect(quickRepliesRowId([answer, meta, messageRow("reply", "user", now)])).toBeNull();
+    expect(quickRepliesRowId([answer, otherRow("sent-message", "sent")])).toBeNull();
+    expect(quickRepliesRowId([messageRow("live", "assistant", now, true)])).toBeNull();
+    expect(quickRepliesRowId([])).toBeNull();
   });
 });

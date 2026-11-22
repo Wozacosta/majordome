@@ -46,6 +46,7 @@ import { useClientSettings } from "../../hooks/useSettings";
 import { GuestShareIndicator } from "./GuestShareControls";
 import { isMajordome } from "../../env";
 import { MakeTopicAction } from "../majordome/MakeTopicAction";
+import { TopicHeader } from "../majordome/TopicHeader";
 
 interface ChatHeaderProps {
   activeThreadEnvironmentId: EnvironmentId;
@@ -250,6 +251,32 @@ export const ChatHeader = memo(function ChatHeader({
       setRenaming(null);
     }
   };
+  const threadTitle = (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label={gt("Thread actions for {title}", { title: activeThreadTitle })}
+            aria-haspopup="menu"
+            onClick={openMenuFromTitle}
+            onDoubleClick={canOperateThread ? handleTitleDoubleClick : undefined}
+            className="group/thread-title inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1 rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          />
+        }
+      >
+        <h2 className="min-w-0" dir={textDirection(activeThreadTitle)}>
+          <WorkspaceBreadcrumbText>{activeThreadTitle}</WorkspaceBreadcrumbText>
+        </h2>
+        <ChevronDownIcon
+          aria-hidden
+          data-thread-title-chevron
+          className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/thread-title:opacity-100 group-focus-visible/thread-title:opacity-100"
+        />
+      </TooltipTrigger>
+      <TooltipPopup side="top">{activeThreadTitle}</TooltipPopup>
+    </Tooltip>
+  );
   return (
     <div
       ref={breadcrumbContainerRef}
@@ -357,30 +384,15 @@ export const ChatHeader = memo(function ChatHeader({
               onKeyDown={handleRenameKeyDown}
             />
           ) : isServerThread ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label={gt("Thread actions for {title}", { title: activeThreadTitle })}
-                    aria-haspopup="menu"
-                    onClick={openMenuFromTitle}
-                    onDoubleClick={canOperateThread ? handleTitleDoubleClick : undefined}
-                    className="group/thread-title inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1 rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                  />
-                }
-              >
-                <h2 className="min-w-0" dir={textDirection(activeThreadTitle)}>
-                  <WorkspaceBreadcrumbText>{activeThreadTitle}</WorkspaceBreadcrumbText>
-                </h2>
-                <ChevronDownIcon
-                  aria-hidden
-                  data-thread-title-chevron
-                  className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/thread-title:opacity-100 group-focus-visible/thread-title:opacity-100"
-                />
-              </TooltipTrigger>
-              <TooltipPopup side="top">{activeThreadTitle}</TooltipPopup>
-            </Tooltip>
+            isMajordome ? (
+              <TopicHeader
+                environmentId={activeThreadEnvironmentId}
+                threadId={activeThreadId}
+                fallback={threadTitle}
+              />
+            ) : (
+              threadTitle
+            )
           ) : (
             <Tooltip>
               <TooltipTrigger

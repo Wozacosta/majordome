@@ -387,3 +387,38 @@ export function placeTopic(
   if (target === -1 || topicId === targetId) return ids;
   return moveTopic(ids, topicId, target - ids.indexOf(topicId));
 }
+
+/**
+ * Every topic id with the listed ones put in `shown`'s order, in the places listed topics held.
+ * Finished topics are not listed, so they keep their place in what is saved.
+ */
+export function orderWithFinished(
+  ids: ReadonlyArray<string>,
+  shown: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  const known = new Set(ids);
+  const order = shown.filter((id) => known.has(id));
+  const listed = new Set(order);
+  let next = 0;
+  return ids.map((id) => (listed.has(id) ? order[next++]! : id));
+}
+
+/**
+ * What follows "Notes in <folder>" under a topic's name in its chat: how many notes the folder
+ * holds, when a server says, and when the chat last moved, each led by a middle dot.
+ */
+export function topicHeaderFacts(
+  topic: Pick<MajordomeTopic, "notesCount">,
+  lastActivity: string | null,
+): string {
+  const count = topic.notesCount;
+  const notes =
+    count === undefined
+      ? null
+      : count === 0
+        ? "no notes yet"
+        : `${count} ${count === 1 ? "note" : "notes"}`;
+  return [notes, lastActivity]
+    .flatMap((part) => (part === null || part === "" ? [] : [` · ${part}`]))
+    .join("");
+}

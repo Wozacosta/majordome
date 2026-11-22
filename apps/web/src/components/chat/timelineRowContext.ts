@@ -116,6 +116,8 @@ export interface TimelineRowActivityState {
   latestRunId: RunId | null;
   backgroundWorktreeSetup: WorktreeSetupSnapshot | null;
   liveAnswerPreview: string | null;
+  /** Majordome: the assistant message row that shows its quick replies, if any. */
+  quickRepliesRowId: string | null;
 }
 
 export const TimelineRowCtx = createContext<TimelineRowSharedState>(null!);

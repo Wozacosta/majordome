@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 
-import { firstMeaningfulLine, pickTopicPreview } from "./topicPreview.ts";
+import { firstMeaningfulLine, pickTopicPreview, topicStanding } from "./topicPreview.ts";
 
 describe("topic previews", () => {
   it("reads the first line that says something, without its markdown", () => {
@@ -40,5 +40,30 @@ describe("topic previews", () => {
       { author: "agent", text: "Added Thursday." },
     );
     assert.isNull(pickTopicPreview([]));
+  });
+
+  it("reads where things stand from the top of a log", () => {
+    const cases: ReadonlyArray<readonly [string, string | null]> = [
+      [
+        "## Where things stand\n- Visa file sent on 12 Nov.\n- Next: **flat viewing**, 28 Nov.\n\n## Log\n- 2026-11-12: sent the file",
+        "Visa file sent on 12 Nov.\nNext: flat viewing, 28 Nov.",
+      ],
+      [
+        "# Log\n\n### where things STAND:\n\nWaiting on the bank.\n# 2026-11-01",
+        "Waiting on the bank.",
+      ],
+      ["## Where things stand\n\n## Log\n- 2026-11-12: sent the file", null],
+      ["## Where things stand\n---\n\n", null],
+      ["- 2026-11-12: sent the file\nWhere things stand: fine", null],
+      ["## Where things stand now\nNot this heading", null],
+      ["", null],
+      ["## Where things stand\n1\n2\n3\n4\n5", "1\n2\n3\n4"],
+    ];
+    for (const [log, expected] of cases) {
+      assert.equal(topicStanding(log), expected, log);
+    }
+    const long = topicStanding(`## Where things stand\n${"word ".repeat(200)}`)!;
+    assert.isAtMost(long.length, 400);
+    assert.isTrue(long.endsWith("…"));
   });
 });

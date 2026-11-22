@@ -29,6 +29,11 @@ import {
 import { render } from "../../test/render";
 
 // The socket is the only fake layer; see test/appScenarios.renders.tsx.
+// T3 Code's message box has the model picker these drive; Majordome's keeps the model in Settings.
+vi.mock("../env", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../env")>()),
+  isMajordome: false,
+}));
 vi.mock("../../../../packages/client-runtime/src/connection/driver.ts", async (importOriginal) => {
   const [actual, { fakeDriver }, Layer] = await Promise.all([
     importOriginal<{ readonly ConnectionDriver: Context.Key<unknown, FakeDriver> }>(),

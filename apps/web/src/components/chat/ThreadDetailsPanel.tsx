@@ -25,12 +25,13 @@ import { useState, type ComponentProps } from "react";
 import { ThreadDetailsCard } from "./ThreadDetailsCard";
 import { OpenInPicker } from "./OpenInPicker";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
-import { TopicFilesCard } from "../majordome/TopicFilesCard";
+import { TopicPanelSections } from "../majordome/TopicPanelSections";
 import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 import { ThreadServersPanel } from "./ThreadServersPanel";
 import {
   ThreadDetailsContext,
+  ThreadDetailsLowUsage,
   ThreadDetailsUsage,
   type ThreadDetailsUsageInput,
 } from "./ThreadDetailsUsage";
@@ -182,6 +183,8 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
         return (
           <>
             <div className="group/details-items">
+              {isMajordome && !visible.usage ? <ThreadDetailsLowUsage {...props.usage} /> : null}
+
               {show.environment || show.openIn || show.scripts ? (
                 <ThreadDetailsSection
                   headingId="thread-details-workspace-heading"
@@ -293,7 +296,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               ) : null}
 
               {isMajordome && !props.draftId ? (
-                <TopicFilesCard environmentId={props.environmentId} threadId={props.threadId} />
+                <TopicPanelSections environmentId={props.environmentId} threadId={props.threadId} />
               ) : null}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}

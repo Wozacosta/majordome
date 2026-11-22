@@ -83,6 +83,8 @@ export function ComposerControlsBar(props: {
   keybindings: ChatComposerProps["keybindings"];
   modelOptionsByInstance: ReadonlyMap<ProviderInstanceId, ReadonlyArray<AppModelOption>>;
   terminalOpen: boolean;
+  /** Majordome keeps the model in Settings and shows no picker in the message box. */
+  modelPickerHidden?: boolean;
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (open: boolean) => void;
   modelPickerIconClassName: string | undefined;
@@ -265,7 +267,7 @@ export function ComposerControlsBar(props: {
     </ComposerControl>
   ) : (
     <>
-      {composerModelPicker}
+      {props.modelPickerHidden ? null : composerModelPicker}
 
       <>
         {restingBlockDefs.map((def, index) => {

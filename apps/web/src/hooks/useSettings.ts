@@ -31,6 +31,7 @@ import {
   splitSharedServerPatch,
   supportsSharedSettingsSync,
 } from "@t3tools/client-runtime/state/shared-settings";
+import { isMajordome } from "~/env";
 import { ensureLocalApi } from "~/localApi";
 import { subscribeBrowserClientSettingsWrites } from "~/clientPersistenceStorage";
 import {
@@ -73,7 +74,36 @@ type UnifiedSettingsPatch = ServerSettingsPatch & ClientSettingsPatch;
 const clientSettingsListeners = new Set<() => void>();
 const clientSettingsHydrationListeners = new Set<() => void>();
 type ClientSettingsHydrationStatus = "pending" | "ready" | "failed" | "retrying";
-let clientSettingsSnapshot = DEFAULT_CLIENT_SETTINGS;
+
+/** Majordome's chat shows no tool calls until the owner picks another mode in Settings. */
+export function clientSettingsDefaults(majordome: boolean): ClientSettings {
+  return majordome
+    ? { ...DEFAULT_CLIENT_SETTINGS, toolCallVisibility: "zen" }
+    : DEFAULT_CLIENT_SETTINGS;
+}
+const INITIAL_CLIENT_SETTINGS = clientSettingsDefaults(isMajordome);
+
+const QUIET_CHAT_OFFERED_KEY = "majordome:quiet-chat-default";
+/**
+ * Saved settings always carry a mode, so one saved before the quiet default reads as the old
+ * default. It moves to the quiet mode once per browser; any other mode was a choice and stays.
+ */
+export function quietChatMove(
+  saved: Pick<ClientSettings, "toolCallVisibility"> | null,
+  alreadyOffered: boolean,
+): ClientSettingsPatch | null {
+  return !alreadyOffered && saved?.toolCallVisibility === "showAll"
+    ? { toolCallVisibility: "zen" }
+    : null;
+}
+function moveToQuietChatOnce(saved: ClientSettings | null): void {
+  if (!isMajordome || typeof localStorage === "undefined") return;
+  const patch = quietChatMove(saved, localStorage.getItem(QUIET_CHAT_OFFERED_KEY) !== null);
+  localStorage.setItem(QUIET_CHAT_OFFERED_KEY, "1");
+  if (patch !== null) void persistClientSettingsPatch(patch);
+}
+
+let clientSettingsSnapshot = INITIAL_CLIENT_SETTINGS;
 let clientSettingsHydrationStatus: ClientSettingsHydrationStatus = "pending";
 let clientSettingsHydrationPromise: Promise<void> | null = null;
 let clientSettingsHydrationGeneration = 0;
@@ -155,12 +185,13 @@ async function hydrateClientSettings(): Promise<void> {
         return;
       }
       if (persistedSettings) {
-        replaceClientSettingsSnapshot({ ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings });
+        replaceClientSettingsSnapshot({ ...INITIAL_CLIENT_SETTINGS, ...persistedSettings });
       }
       unsubscribeOtherTabClientSettings ??= subscribeBrowserClientSettingsWrites(
         refreshClientSettingsFromOtherTab,
       );
       setClientSettingsHydrationStatus("ready");
+      moveToQuietChatOnce(persistedSettings);
     } catch (error) {
       if (hydrationGeneration === clientSettingsHydrationGeneration) {
         setClientSettingsHydrationStatus("failed");
@@ -187,7 +218,7 @@ function refreshClientSettingsFromOtherTab(): void {
   void enqueueClientSettingsPersistence(async () => {
     const persistedSettings = await ensureLocalApi().persistence.getClientSettings();
     if (persistedSettings) {
-      replaceClientSettingsSnapshot({ ...DEFAULT_CLIENT_SETTINGS, ...persistedSettings });
+      replaceClientSettingsSnapshot({ ...INITIAL_CLIENT_SETTINGS, ...persistedSettings });
     }
   }).catch((error) => {
     console.error(`${CLIENT_SETTINGS_PERSISTENCE_ERROR_SCOPE} refresh failed`, {
@@ -318,7 +349,7 @@ export function useClientSettingsHydrationStatus(): ClientSettingsHydrationStatu
   );
 }
 
-const getDefaultClientSettings = () => DEFAULT_CLIENT_SETTINGS;
+const getDefaultClientSettings = () => INITIAL_CLIENT_SETTINGS;
 const selectWholeClientSettings = (settings: ClientSettings) => settings;
 
 /** Structurally equal selections retain their reference and skip rendering. */
@@ -814,7 +845,7 @@ export function updateClientSettings(patch: ClientSettingsPatch): Promise<void> 
 
 export function __resetClientSettingsPersistenceForTests(): void {
   clientSettingsHydrationGeneration += 1;
-  clientSettingsSnapshot = DEFAULT_CLIENT_SETTINGS;
+  clientSettingsSnapshot = INITIAL_CLIENT_SETTINGS;
   clientSettingsHydrationStatus = "pending";
   clientSettingsHydrationPromise = null;
   clientSettingsPersistenceQueue = Promise.resolve();

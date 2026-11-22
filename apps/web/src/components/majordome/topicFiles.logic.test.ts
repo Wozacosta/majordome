@@ -10,6 +10,8 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   moreFilesLine,
   privateDocumentNameFor,
+  topicFileDate,
+  topicFilePreviewable,
   topicFileProblem,
   topicFileRows,
   topicOfThread,
@@ -99,11 +101,23 @@ describe("topicFiles.logic", () => {
       ],
       where,
     );
-    expect(rows.map((row) => [row.kind, row.name])).toEqual([
-      ["file", "lease.png"],
-      ["private", "passport.pdf"],
-      ["file", "bill.pdf"],
+    expect(rows.map((row) => [row.kind, row.name, row.at])).toEqual([
+      ["file", "lease.png", "2026-11-18T10:00:00.000Z"],
+      ["private", "passport.pdf", "2026-11-12T10:00:00.000Z"],
+      ["file", "bill.pdf", "2026-11-10T10:00:00.000Z"],
     ]);
+  });
+
+  it("shows in a tab only what a browser can show, and dates a file briefly", () => {
+    expect(["bill.PDF", "scan.jpeg", "photo.webp", "notes.txt"].every(topicFilePreviewable)).toBe(
+      true,
+    );
+    expect(["lease.docx", "page.html", "logo.svg", "pdf"].some(topicFilePreviewable)).toBe(false);
+
+    const now = Date.parse("2026-11-20T10:00:00.000Z");
+    expect(topicFileDate("2026-11-03T10:00:00.000Z", now, "en-GB", "UTC")).toBe("3 Nov");
+    expect(topicFileDate("2025-12-31T23:30:00.000Z", now, "en-GB", "UTC")).toBe("31 Dec 2025");
+    expect(topicFileDate("not a date", now, "en-GB", "UTC")).toBe("");
   });
 
   it("refuses an empty file and one over 25 MB before anything is uploaded", () => {

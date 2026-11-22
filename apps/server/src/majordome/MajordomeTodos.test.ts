@@ -157,6 +157,39 @@ it.layer(NodeServices.layer)("MajordomeTodos", (it) => {
     }),
   );
 
+  it.effect("lists one folder's to-dos, however many newer notes the rest of the vault has", () =>
+    Effect.gen(function* () {
+      const files: Record<string, string> = {
+        "projects/house/log.md": "- [ ] Call the plumber\n",
+        "projects/house/quotes/roof.md": "- [ ] Compare the two quotes\n",
+        "projects/housework.md": "- [ ] A neighbour of the folder\n",
+        ".majordome/notes.md": "- [ ] Plumbing\n",
+      };
+      for (let index = 0; index < 52; index++) files[`daily/n${index}.md`] = "- [ ] One\n";
+      const { service, vault, fs, path } = yield* setUp(files);
+      yield* fs.utimes(path.join(vault, "projects/house/log.md"), 1_000, 1_000);
+      yield* fs.utimes(path.join(vault, "projects/house/quotes/roof.md"), 2_000, 2_000);
+
+      const whole = yield* service.list({ projectId: vaultProject });
+      assert.isFalse(whole.notes.some((note) => note.path.startsWith("projects/house/")));
+
+      for (const folder of ["projects/house", "/projects\\house/"]) {
+        const result = yield* service.list({ projectId: vaultProject, folder });
+        assert.deepEqual(
+          result.notes.map((note) => note.path),
+          ["projects/house/quotes/roof.md", "projects/house/log.md"],
+        );
+        assert.equal(result.totalOpen, 2);
+        assert.equal(result.totalNotes, 2);
+      }
+      for (const folder of ["projects/house/../..", ".majordome", "projects/nowhere"]) {
+        const result = yield* service.list({ projectId: vaultProject, folder });
+        assert.deepEqual(result.notes, []);
+        assert.equal(result.totalOpen, 0);
+      }
+    }),
+  );
+
   it.effect("ticks and unticks one box and leaves every other byte alone", () =>
     Effect.gen(function* () {
       const text = "﻿# Trip\r\n\r\n- [ ] Réserver l'hôtel\r\n  * [ ] Book the train\r\n- [x] Pack";

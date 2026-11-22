@@ -24,6 +24,9 @@ import { render } from "../../../test/render";
 import { makeThreadProjectionFixture } from "../../test-fixtures";
 import { GuestPage } from "./GuestPage";
 
+// isMajordome: false keeps covering T3 Code's work rows, which Majordome's quiet chat leaves out.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 const SHARE_ID = "share-1";
 const encodeEvent = Schema.encodeSync(Schema.fromJsonString(Schema.toCodecJson(GuestStreamEvent)));
 

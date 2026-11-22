@@ -60,6 +60,20 @@ function openTodos(text: string): ReadonlyArray<MajordomeTodo> {
   return todos;
 }
 
+/**
+ * The folder to list as a vault-relative path with `/` separators; "" for the whole vault, null
+ * for one that climbs out of the vault or names its plumbing.
+ */
+function listedFolder(folder: string | undefined): string | null {
+  const segments = (folder ?? "")
+    .replaceAll("\\", "/")
+    .split("/")
+    .filter((segment) => segment !== "" && segment !== ".");
+  return segments.some((segment) => segment === ".." || isSkippedEntry(segment))
+    ? null
+    : segments.join("/");
+}
+
 export class MajordomeTodos extends Context.Service<
   MajordomeTodos,
   {
@@ -104,7 +118,11 @@ const make = Effect.gen(function* () {
       ),
     );
 
-  const scanNotes = Effect.fn("MajordomeTodos.scanNotes")(function* (vaultRoot: string) {
+  const scanNotes = Effect.fn("MajordomeTodos.scanNotes")(function* (
+    vaultRoot: string,
+    /** Vault-relative; "" for the whole vault. */
+    start: string,
+  ) {
     const found: Array<{ readonly path: string; readonly mtimeMs: number }> = [];
     // Per folder, inside the scan's span.
     const visit: (folder: string, depth: number) => Effect.Effect<void> = Effect.fnUntraced(
@@ -140,7 +158,7 @@ const make = Effect.gen(function* () {
         yield* Effect.forEach(folders, (next) => visit(next, depth + 1), { discard: true });
       },
     );
-    yield* visit("", 0);
+    yield* visit(start, 0);
     return found;
   });
 
@@ -148,8 +166,11 @@ const make = Effect.gen(function* () {
     function* (input) {
       const vault = yield* vaultOf(input.projectId);
       if (vault === undefined) return { isVault: false, notes: [], totalOpen: 0, totalNotes: 0 };
+      // A folder's list is read from that folder alone, so the vault's newer notes never crowd
+      // its older ones out of the cap below.
+      const folder = listedFolder(input.folder);
       const withTodos = (yield* Effect.forEach(
-        yield* scanNotes(vault.root),
+        folder === null ? [] : yield* scanNotes(vault.root, folder),
         // Per note, inside the list's span.
         Effect.fnUntraced(function* (file) {
           const text = yield* fileSystem

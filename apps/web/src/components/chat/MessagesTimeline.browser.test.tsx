@@ -66,6 +66,18 @@ const environmentQuery = vi.hoisted(() => ({
   error: "Pull request not found" as string | null,
   data: null as unknown,
 }));
+// These tests cover the work rows, which Majordome's quiet default leaves out of the chat.
+vi.mock(import("../../hooks/useSettings"), async (original) => {
+  const actual = await original();
+  return {
+    ...actual,
+    useClientSettings: ((selector: (settings: never) => unknown) =>
+      actual.useClientSettings((settings) =>
+        selector({ ...settings, toolCallVisibility: "showAll" } as never),
+      )) as typeof actual.useClientSettings,
+  };
+});
+
 vi.mock(import("~/state/query"), async (original) => ({
   ...(await original()),
   useEnvironmentQuery: (() => ({
@@ -481,8 +493,9 @@ describe("MessagesTimeline messages", () => {
       </Profiler>
     );
     await using screen = await renderElement(timeline([tall]));
+    // Row 0 is Majordome's day divider; the message is the row under it.
     await vi.waitFor(() =>
-      expect(props.listRef.current?.getState().sizeAtIndex(0)).toBeGreaterThan(100_000),
+      expect(props.listRef.current?.getState().sizeAtIndex(1)).toBeGreaterThan(100_000),
     );
     const viewport = props.listRef.current!.getScrollableNode()!;
     await act(() => {
@@ -805,13 +818,23 @@ describe("MessagesTimeline messages", () => {
   it("steps the minimap's next turn past two adjacent user messages", async () => {
     const props = baseProps();
     const reply = (id: string) => message("Reply.\n\n".repeat(120), { role: "assistant" }, id);
-    const userIds = ["turn-0", "turn-1", "turn-2", "pair-a", "pair-b", "turn-3", "turn-4"];
+    // Eight turns: Majordome shows the minimap only once a chat is that long.
+    const userIds = [
+      "turn-0",
+      "turn-1",
+      "turn-2",
+      "pair-a",
+      "pair-b",
+      "turn-3",
+      "turn-4",
+      "turn-5",
+    ];
     const entries = [
       ...["turn-0", "turn-1", "turn-2"].flatMap((id) => [message(id, {}, id), reply(`${id}-r`)]),
       message("pair-a", {}, "pair-a"),
       message("pair-b", {}, "pair-b"),
       reply("pair-b-r"),
-      ...["turn-3", "turn-4"].flatMap((id) => [message(id, {}, id), reply(`${id}-r`)]),
+      ...["turn-3", "turn-4", "turn-5"].flatMap((id) => [message(id, {}, id), reply(`${id}-r`)]),
     ];
     const session = cdp();
     await session.send("Emulation.setEmulatedMedia", {
@@ -932,6 +955,34 @@ describe("MessagesTimeline messages", () => {
     expect(screen.container.innerHTML).not.toContain("javascript:");
     await click(screen.button("Safe details"));
     expect((globalThis as { __t3Xss?: number }).__t3Xss).toBeUndefined();
+  });
+
+  it("offers the assistant's closing replies as buttons that send, under its last message only", async () => {
+    const onSendAppMessage = vi.fn(async () => {});
+    await using screen = await renderTimeline(
+      [
+        message("Shall I file it?\n\nReplies: File it", { role: "assistant" }, "earlier-offer"),
+        message("Remind me about the rent", {}, "ask"),
+        message(
+          "Want me to set a reminder for 30 Nov?\n\nReplies: Yes, set it | No thanks",
+          { role: "assistant" },
+          "offer",
+        ),
+      ],
+      { canOperateThread: true, onSendAppMessage },
+    );
+    expect(screen.text()).toContain("Want me to set a reminder for 30 Nov?");
+    expect(screen.text()).not.toContain("Replies:");
+    expect(screen.buttons("File it")).toHaveLength(0);
+    // The three messages share a day, which is named once above them.
+    expect(screen.container.querySelectorAll("[data-timeline-row-kind=day-divider]")).toHaveLength(
+      1,
+    );
+    expect(screen.buttons("No thanks")).toHaveLength(1);
+
+    await click(screen.button("Yes, set it"));
+    expect(onSendAppMessage).toHaveBeenCalledExactlyOnceWith("Yes, set it");
+    expect(screen.buttons("No thanks")).toHaveLength(0);
   });
 
   const revealModes = ["inline", "at-end", "delayed", "grouped-delayed", "grouped-end"];

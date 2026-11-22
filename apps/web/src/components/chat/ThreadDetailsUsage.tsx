@@ -23,6 +23,7 @@ import { formatContextWindowTokens } from "../../lib/contextWindow";
 import { cn } from "../../lib/utils";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { lowUsageLine, usageTone } from "../majordome/TopicPanel.logic";
 import { formatContextWindowCompactionMessage } from "./compaction.logic";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 
@@ -41,25 +42,57 @@ export interface ThreadDetailsUsageInput {
 
 type UsageTone = "error" | "warning" | null;
 
-/** The selected provider's limit windows. Each row reads as room left and opens the usage page. */
-export function ThreadDetailsUsage({
-  providerInstanceId,
-  providers,
-  sources,
-}: Omit<ThreadDetailsUsageInput, "contextWindow">) {
-  const gt = useGT();
-  const m = useMessages();
-  const nowMinute = useNowMinute();
-  const now = Date.parse(`${nowMinute}:00Z`);
+function selectedLimits(
+  { providerInstanceId, providers, sources }: Omit<ThreadDetailsUsageInput, "contextWindow">,
+  now: number,
+) {
   const report =
     providerInstanceId !== null
       ? collectProviderUsageLimits(providerInstanceId, providers, sources, now)
       : null;
   // Only this instance's data: the report keeps one instance per login, and any other entry may be
   // a different login or workspace, so fall back to the instance's own snapshot.
-  const limits =
+  return (
     report?.accounts.find((entry) => entry.instanceId === providerInstanceId)?.limits ??
-    providers.find((provider) => provider.instanceId === providerInstanceId)?.usageLimits;
+    providers.find((provider) => provider.instanceId === providerInstanceId)?.usageLimits
+  );
+}
+
+/** Majordome's one plain line about the AI plan, shown only once a limit window runs low. */
+export function ThreadDetailsLowUsage(input: Omit<ThreadDetailsUsageInput, "contextWindow">) {
+  const now = Date.parse(`${useNowMinute()}:00Z`);
+  const limits = selectedLimits(input, now);
+  const line = limits ? lowUsageLine(limits.windows, now) : null;
+  const gt = useGT();
+  if (line === null) return null;
+  return (
+    <ThreadDetailsSection
+      headingId="thread-details-low-usage-heading"
+      title={gt("Usage limits")}
+      showHeading={false}
+    >
+      <div>
+        <Link
+          to="/usage"
+          className={cn(
+            "block rounded-lg px-2.5 py-1.5 text-xs outline-none hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset dark:hover:bg-white/[0.08]",
+            line.tone === "error" ? "text-error-foreground" : "text-warning-foreground",
+          )}
+        >
+          {line.text}
+        </Link>
+      </div>
+    </ThreadDetailsSection>
+  );
+}
+
+/** The selected provider's limit windows. Each row reads as room left and opens the usage page. */
+export function ThreadDetailsUsage(input: Omit<ThreadDetailsUsageInput, "contextWindow">) {
+  const gt = useGT();
+  const m = useMessages();
+  const nowMinute = useNowMinute();
+  const now = Date.parse(`${nowMinute}:00Z`);
+  const limits = selectedLimits(input, now);
   if (!limits) return null;
   const notice = limitsNotice(limits, m);
 
@@ -172,7 +205,7 @@ function LimitRow({
     <UsageRow
       label={window.label}
       fill={left}
-      tone={left <= 10 ? "error" : left <= 20 ? "warning" : null}
+      tone={usageTone(left)}
       tick={timeLeft}
       value={`${left}%`}
       ariaValue={gt("{left}% left", { left })}

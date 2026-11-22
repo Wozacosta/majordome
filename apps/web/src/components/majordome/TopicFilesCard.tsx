@@ -6,15 +6,20 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import { FileIcon, LockIcon, XIcon } from "lucide-react";
+import { DownloadIcon, FileIcon, LockIcon, XIcon } from "lucide-react";
 import { type DragEvent, useRef, useState } from "react";
 
+import { useNowMinute } from "../../hooks/useNowMinute";
+import { cn } from "../../lib/utils";
+import { assetEnvironment } from "../../state/assets";
 import { majordomeEnvironment } from "../../state/majordome";
 import { readPreparedConnection } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
 import { THREAD_DETAILS_PANEL_ICON_CLASS } from "../chat/threadDetailsPanelStyles";
 import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
@@ -30,42 +35,23 @@ import {
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { isUnknownRequest } from "./connections.logic";
+import { notesLink } from "./notes.logic";
 import { privateDocumentFailureMessage } from "./privateDocuments.logic";
 import {
   moreFilesLine,
   privateDocumentNameFor,
+  topicFileDate,
+  topicFilePreviewable,
   topicFileProblem,
   type TopicFileRow,
   topicFileRows,
-  topicOfThread,
 } from "./topicFiles.logic";
 import type { VaultTopic } from "./topics.logic";
-import { useMajordomeVaults } from "./useMajordomeVaults";
 import { usePendingUpload } from "./usePendingUpload";
 
 const NOT_CONNECTED = "Majordome isn't connected to this machine right now.";
-
-/** The documents kept with the topic this conversation belongs to. Nothing for any other chat. */
-export function TopicFilesCard({
-  environmentId,
-  threadId,
-}: {
-  readonly environmentId: EnvironmentId;
-  readonly threadId: ThreadId;
-}) {
-  const { copies } = useMajordomeVaults();
-  const found = topicOfThread(copies, environmentId, threadId);
-  if (found === null) return null;
-  return (
-    <TopicFiles
-      key={`${found.projectId}:${found.topic.id}`}
-      environmentId={environmentId}
-      projectId={found.projectId}
-      topic={found.topic}
-    />
-  );
-}
 
 const failureMessage = (result: AtomCommandResult<unknown, unknown>) => {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return null;
@@ -83,14 +69,20 @@ function saveFromUrl(url: string, name: string) {
 
 const droppedFiles = (event: DragEvent) => event.dataTransfer.types.includes("Files");
 
-function TopicFiles({
+/**
+ * The documents kept with a topic, in its chat's panel. `workspaceRoot` is the notes folder on
+ * the chat's computer, null until it is known; a file is shown in a tab from there.
+ */
+export function TopicFiles({
   environmentId,
   projectId,
   topic,
+  workspaceRoot,
 }: {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly topic: VaultTopic;
+  readonly workspaceRoot: string | null;
 }) {
   const where = { projectId, topicId: topic.id };
   const result = useAtomValue(majordomeEnvironment.topicFiles({ environmentId, input: where }));
@@ -120,6 +112,13 @@ function TopicFiles({
     reportFailure: false,
     reportDefect: false,
   });
+  const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
+    label: "show topic file",
+    reportFailure: false,
+    reportDefect: false,
+    refresh: true,
+  });
+  const now = Date.parse(`${useNowMinute()}:00Z`);
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -132,7 +131,11 @@ function TopicFiles({
     // A server from before topics had files shows no card; a failed read says so once.
     if (result._tag !== "Failure" || isUnknownRequest(Cause.squash(result.cause))) return null;
     return (
-      <ThreadDetailsSection headingId="thread-details-files-heading" title="Files">
+      <ThreadDetailsSection
+        headingId="thread-details-files-heading"
+        title="Files"
+        data-topic-panel-section
+      >
         <p className="px-2.5 text-xs text-muted-foreground">This topic's files couldn't be read.</p>
       </ThreadDetailsSection>
     );
@@ -199,7 +202,7 @@ function TopicFiles({
     else void addAll(good, false);
   };
 
-  const open = async (row: TopicFileRow) => {
+  const download = async (row: TopicFileRow) => {
     const link =
       row.kind === "private"
         ? await viewPrivateDocument({ environmentId, input: { id: row.document.id } })
@@ -221,6 +224,36 @@ function TopicFiles({
             ? privateDocumentFailureMessage(squashAtomCommandFailure(link))
             : (failureMessage(link) ?? NOT_CONNECTED),
     });
+  };
+
+  /** Whether opening this row shows it in a tab; a private document is only ever downloaded. */
+  const previews = (row: TopicFileRow) =>
+    row.kind === "file" && workspaceRoot !== null && topicFilePreviewable(row.name);
+
+  const open = async (row: TopicFileRow) => {
+    if (row.kind !== "file" || workspaceRoot === null || !previews(row)) return download(row);
+    // Opened while the click still counts as the owner's, or the browser blocks the tab.
+    const tab = window.desktopBridge ? null : window.open("", "_blank");
+    if (tab !== null) tab.opener = null;
+    const made = await createAssetUrl({
+      environmentId,
+      input: {
+        resource: {
+          _tag: "draft-workspace-file",
+          cwd: workspaceRoot,
+          path: `${workspaceRoot.replace(/[\\/]+$/, "")}/${row.path}`,
+        },
+      },
+    });
+    const connection = readPreparedConnection(environmentId);
+    const url =
+      made._tag === "Success" && connection !== null
+        ? resolveAssetUrl(connection.httpBaseUrl, made.value.relativeUrl)
+        : null;
+    if (url !== null && tab !== null) return tab.location.replace(url);
+    tab?.close();
+    if (url !== null && (await window.desktopBridge?.openExternal(url))) return;
+    return download(row);
   };
 
   const dropTarget = canChange
@@ -248,6 +281,7 @@ function TopicFiles({
       headingId="thread-details-files-heading"
       title="Files"
       data-topic-files={topic.id}
+      data-topic-panel-section
       actions={
         canChange ? (
           <Button
@@ -285,17 +319,20 @@ function TopicFiles({
             className="m-0 flex max-h-56 list-none flex-col overflow-y-auto p-0"
             aria-label={`Files of ${topic.title}`}
           >
-            {rows.map((row) => (
-              <li key={row.key} className="flex min-w-0 items-center gap-0.5">
+            {rows.map((row) => {
+              const locked = row.kind === "private" && !mayUsePrivate;
+              const canRemove = row.kind === "private" ? mayUsePrivate : canChange;
+              const hasActions = previews(row) || canRemove;
+              const rowControl = (
                 <ThreadDetailsControl
                   size="xs"
                   variant="ghost"
                   part="row"
                   panel
-                  className="w-auto flex-1 shrink"
-                  title={row.name}
+                  className="w-auto min-w-0 flex-1 shrink"
+                  title={locked ? undefined : `${previews(row) ? "Open" : "Download"} ${row.name}`}
                   // A private one is served only to a connection that may open them.
-                  disabled={row.kind === "private" && !mayUsePrivate}
+                  disabled={locked}
                   onClick={() => void open(row)}
                 >
                   {row.kind === "private" ? (
@@ -304,25 +341,76 @@ function TopicFiles({
                     <FileIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
                   )}
                   <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                  <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">
-                    {formatAttachmentSize(row.sizeBytes)}
+                  <span
+                    // Makes room for the row's actions while they show.
+                    className={cn(
+                      "shrink-0 text-xs font-normal text-muted-foreground tabular-nums",
+                      hasActions &&
+                        "pointer-fine:group-focus-within/file:hidden pointer-fine:group-hover/file:hidden",
+                    )}
+                  >
+                    {[formatAttachmentSize(row.sizeBytes), topicFileDate(row.at, now)]
+                      .filter((part) => part !== "")
+                      .join(" · ")}
                   </span>
                 </ThreadDetailsControl>
-                {(row.kind === "private" ? mayUsePrivate : canChange) ? (
-                  <Button
-                    size="icon-xs"
-                    variant="ghost-muted"
-                    aria-label={`Remove ${row.name}`}
-                    onClick={() => setRemoving(row)}
-                  >
-                    <XIcon />
-                  </Button>
-                ) : null}
-              </li>
-            ))}
+              );
+              return (
+                <li key={row.key} className="group/file flex min-w-0 items-center gap-0.5">
+                  {locked ? (
+                    <Tooltip>
+                      <TooltipTrigger render={<span className="flex min-w-0 flex-1" />}>
+                        {rowControl}
+                      </TooltipTrigger>
+                      <TooltipPopup side="left" sideOffset={16}>
+                        This device isn't allowed to open private documents.
+                      </TooltipPopup>
+                    </Tooltip>
+                  ) : (
+                    rowControl
+                  )}
+                  {/* Shown on hover or keyboard focus; always where there is no pointer to hover. */}
+                  <span className="flex shrink-0 items-center pointer-fine:hidden pointer-fine:group-focus-within/file:flex pointer-fine:group-hover/file:flex">
+                    {previews(row) ? (
+                      <Button
+                        size="icon-xs"
+                        variant="ghost-muted"
+                        aria-label={`Download ${row.name}`}
+                        title="Download"
+                        onClick={() => void download(row)}
+                      >
+                        <DownloadIcon />
+                      </Button>
+                    ) : null}
+                    {canRemove ? (
+                      <Button
+                        size="icon-xs"
+                        variant="ghost-muted"
+                        aria-label={`Remove ${row.name}`}
+                        title="Remove"
+                        onClick={() => setRemoving(row)}
+                      >
+                        <XIcon />
+                      </Button>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
+        ) : (
+          <p className="px-2.5 text-xs text-muted-foreground">
+            Bills, scans and contracts you want kept with this topic.
+          </p>
+        )}
+        {more !== null ? (
+          <Link
+            {...notesLink({ projectId, environmentId, path: topic.keyNote ?? undefined })}
+            className="mx-2.5 mt-1 self-start rounded-sm text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            {more}
+          </Link>
         ) : null}
-        {more !== null ? <p className="px-2.5 pt-1 text-xs text-muted-foreground">{more}</p> : null}
         {dragging ? (
           <p className="px-2.5 pt-1 text-xs text-muted-foreground">
             Drop to keep it with {topic.title}.

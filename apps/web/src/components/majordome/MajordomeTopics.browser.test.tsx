@@ -23,7 +23,13 @@ const vault = {
   projectId: "project",
   title: "Notes",
   brainId: null,
-  topics: ["a", "b", "c"].map(topic),
+  // A finished topic is not listed, and keeps its place in the order that is saved.
+  topics: [
+    topic("a"),
+    { ...topic("z"), finishedAt: "2026-11-20T10:00:00.000Z" },
+    topic("b"),
+    topic("c"),
+  ],
   suggestions: [],
   folders: [],
   projectsFolder: "projects",
@@ -103,7 +109,7 @@ it("moves a topic to where it is dragged and keeps it there once saved", async (
 
   await vi.waitFor(() =>
     expect(state.reordered).toEqual([
-      { environmentId: "env", input: { projectId: "project", topicIds: ["b", "c", "a"] } },
+      { environmentId: "env", input: { projectId: "project", topicIds: ["b", "z", "c", "a"] } },
     ]),
   );
   expect(state.opened).toEqual([]);
@@ -118,6 +124,7 @@ it("moves a topic to where it is dragged and keeps it there once saved", async (
       item.getAttribute("data-topic-id"),
     ),
   ).toEqual(["b", "c", "a"]);
+  await expect.element(screen.getByRole("button", { name: "Show 1 finished" })).toBeVisible();
 });
 
 it("still opens a topic on a plain click", async () => {

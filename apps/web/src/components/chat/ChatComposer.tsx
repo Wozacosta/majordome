@@ -88,6 +88,9 @@ import {
   replaceTextRange,
 } from "../../composer-logic";
 import { DEFAULT_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
+import { isMajordome } from "../../env";
+import { TopicStarterChips, useTopicChat } from "../majordome/TopicStarters";
+import { topicChipsState, topicComposerPlaceholder } from "../majordome/TopicStarters.logic";
 import { deriveComposerSendState, getAntigravitySendBlockReason } from "../ChatView.logic";
 import { threadHasStarted } from "../../lib/chatThreadActions";
 import {
@@ -1027,7 +1030,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const [isDragOverComposer, setIsDragOverComposer] = useState(false);
   const [isComposerFooterCompact, setIsComposerFooterCompact] = useState(false);
   const [isComposerPrimaryActionsCompact, setIsComposerPrimaryActionsCompact] = useState(false);
-  const [isComposerModelPickerOpen, setIsComposerModelPickerOpen] = useState(false);
+  const [modelPickerOpen, setIsComposerModelPickerOpen] = useState(false);
+  // Majordome's message box has no model picker: the model is chosen in Settings.
+  const isComposerModelPickerOpen = !isMajordome && modelPickerOpen;
   const isMobileViewport = useMediaQuery("max-sm");
   const isSoftwareKeyboardOpen = useSoftwareKeyboardOpen();
   const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -2545,6 +2550,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       keybindings={keybindings}
       modelOptionsByInstance={modelOptionsByInstance}
       terminalOpen={terminalOpen}
+      modelPickerHidden={isMajordome}
       modelPickerOpen={isComposerModelPickerOpen}
       onModelPickerOpenChange={setIsComposerModelPickerOpen}
       modelPickerIconClassName={composerProviderState.modelPickerIconClassName}
@@ -2681,6 +2687,18 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     );
   };
   const insertComposerTextStable = useStableCallback(insertComposerText);
+  const topicTitle = useTopicChat(environmentId, activeThreadId)?.topic.title ?? null;
+  const topicChips = topicChipsState({
+    isTopicChat: topicTitle !== null,
+    hasMessages: promptHistoryEntries.length > 0,
+    boxEmpty: prompt.trim() === "",
+    working: phase === "running" || phase === "connecting" || isSendBusy,
+    boxTaken:
+      isComposerApprovalState ||
+      activePendingProgress !== null ||
+      isEditingQueuedMessage ||
+      speechInput.freezesEditor,
+  });
 
   const insertAttachmentReferences = (
     references: ReadonlyArray<ComposerContextReference>,
@@ -3476,6 +3494,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       data-chat-composer-form="true"
       {...threadContextDropTargetProps()}
     >
+      {topicChips === "none" ? null : (
+        <TopicStarterChips
+          shown={topicChips === "shown"}
+          onPick={(text) => insertComposerText(text, "end")}
+        />
+      )}
       <ComposerBanner.Dock>
         <ComposerBanner.Column>
           <ComposerBannerStack items={shelfItems} />
@@ -3742,7 +3766,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                             ? gt("Choose a project above to start a thread")
                             : showProviderUnavailable
                               ? gt("Enable a provider in Settings to send a message")
-                              : (offeredPromptSuggestion ?? m(DEFAULT_COMPOSER_PLACEHOLDER))
+                              : (offeredPromptSuggestion ??
+                                (topicTitle === null
+                                  ? m(DEFAULT_COMPOSER_PLACEHOLDER)
+                                  : topicComposerPlaceholder(topicTitle)))
                     }
                     placeholderSuffix={
                       offeredPromptSuggestion !== null ? (

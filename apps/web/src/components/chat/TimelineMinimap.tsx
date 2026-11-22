@@ -12,6 +12,10 @@ import {
 } from "./MessagesTimeline.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "~/lib/utils";
+import { isMajordome } from "~/env";
+
+// A short chat needs no jump bar; Majordome waits until there is something to jump across.
+const MIN_ITEMS = isMajordome ? 8 : TIMELINE_MINIMAP_MIN_ITEMS;
 
 // A release outside the window can skip `mouseup`, so the next button-free
 // `mousemove` also counts.
@@ -100,7 +104,7 @@ export function TimelineMinimap({
     });
   };
 
-  if (items.length < TIMELINE_MINIMAP_MIN_ITEMS) {
+  if (items.length < MIN_ITEMS) {
     return null;
   }
 

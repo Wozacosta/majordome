@@ -69,6 +69,18 @@ describe("topics.json", () => {
       { id: "garden", title: "Garden", folder: "home/garden" },
     ]);
     assert.deepEqual(parseVaultTopics(serializeVaultTopics(withIcons)), withIcons);
+    // A finished topic stays in the file, with when it was finished.
+    const finished = [
+      { ...withIcons[0]!, finishedAt: "2026-11-20T10:00:00.000Z" },
+      { id: "garden", title: "Garden", folder: "home/garden" },
+    ];
+    assert.deepEqual(parseVaultTopics(serializeVaultTopics(finished)), finished);
+    assert.notProperty(
+      parseVaultTopics(
+        JSON.stringify({ topics: [{ id: "a", title: "A", folder: "a", finishedAt: true }] }),
+      )[0],
+      "finishedAt",
+    );
     assert.notInclude(serializeVaultTopics(topics), "icon");
     assert.deepEqual(parseVaultTopics("{ not json"), []);
     assert.deepEqual(parseVaultTopics("[]"), []);
@@ -76,11 +88,18 @@ describe("topics.json", () => {
   });
 
   it("reorders by the ids given and keeps the ones left out at the end", () => {
-    const topics = ["a", "b", "c", "d"].map((id) => ({ id, title: id, folder: id }));
+    const topics = ["a", "b", "c", "d"].map((id) => ({
+      id,
+      title: id,
+      folder: id,
+      ...(id === "b" ? { finishedAt: "2026-11-20T10:00:00.000Z" } : {}),
+    }));
+    const reordered = reorderVaultTopics(topics, ["c", "missing", "a"]);
     assert.deepEqual(
-      reorderVaultTopics(topics, ["c", "missing", "a"]).map((topic) => topic.id),
+      reordered.map((topic) => topic.id),
       ["c", "a", "b", "d"],
     );
+    assert.equal(reordered[2]!.finishedAt, "2026-11-20T10:00:00.000Z");
   });
 
   it("gives topics readable, unique ids", () => {
@@ -232,7 +251,10 @@ describe("readTopicContext", () => {
       const context = yield* readTopicContext({ vaultRoot: root, topic });
       assert.isTrue(context.startsWith('<topic title="Fitness" folder="personal/fitness">'));
       assert.include(context, 'This conversation is the topic "Fitness"');
-      assert.include(context, "personal/fitness/log.md");
+      assert.include(
+        context,
+        'At the very top of personal/fitness/log.md keep a section headed exactly "## Where things stand"',
+      );
       assert.include(context, "Ran 5k in 28 minutes");
       assert.include(context, "Goal: a half marathon in May.");
       assert.include(context, "- plans/week-1.md (changed ");
@@ -244,7 +266,7 @@ describe("readTopicContext", () => {
   it.effect("stays within its cap and keeps the newest end of a long log", () =>
     Effect.gen(function* () {
       const files: Record<string, string> = {
-        "personal/fitness/log.md": `${"- old entry\n".repeat(2_000)}- NEWEST ENTRY`,
+        "personal/fitness/log.md": `## Where things stand\n- Week 3 of 12\n\n## Log\n${"- old entry\n".repeat(2_000)}- NEWEST ENTRY`,
         "personal/fitness/README.md": "R".repeat(5_000),
       };
       for (let index = 0; index < 60; index += 1) {
@@ -254,7 +276,7 @@ describe("readTopicContext", () => {
       const context = yield* readTopicContext({ vaultRoot: root, topic });
       assert.isAtMost(context.length, TOPIC_CONTEXT_CHAR_LIMIT);
       assert.include(context, "NEWEST ENTRY");
-      assert.include(context, "[…earlier entries left out.]");
+      assert.include(context, "## Where things stand\nWeek 3 of 12\n[…earlier entries left out.]");
       assert.include(context, "- …and 32 more");
     }).pipe(Effect.provide(NodeServices.layer)),
   );

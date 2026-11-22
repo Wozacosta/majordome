@@ -32,6 +32,7 @@ import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import { defaultTopicFolder } from "@t3tools/shared/topicFolder";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
+import * as DateTime from "effect/DateTime";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -70,6 +71,7 @@ import {
   listVaultFolders,
   newTopicId,
   normalizeTopicFolder,
+  readTopicFolderFacts,
   readVaultTopics,
   reorderVaultTopics,
   suggestTopics,
@@ -359,8 +361,10 @@ const make = Effect.gen(function* () {
     const keyNote = yield* Effect.findFirst(KEY_NOTES, (name) =>
       fileSystem.exists(path.join(folderPath, name)).pipe(Effect.orElseSucceed(() => false)),
     );
+    const facts = yield* provideFs(readTopicFolderFacts(folderPath));
     return {
       ...topic,
+      ...facts,
       threadId: thread?.id ?? null,
       folderExists: yield* isFolder(folderPath),
       keyNote: Option.match(keyNote, {
@@ -572,13 +576,20 @@ const make = Effect.gen(function* () {
       if (topics.some((other) => other.id !== topic.id && other.folder === folder)) {
         return yield* fail(`Another topic already uses ${folder}.`);
       }
-      const { icon: _previousIcon, ...rest } = topic;
+      const { icon: _previousIcon, finishedAt: previousFinishedAt, ...rest } = topic;
       const icon = input.icon === undefined ? topic.icon : (input.icon ?? undefined);
+      const finishedAt =
+        input.finished === true
+          ? (previousFinishedAt ?? DateTime.formatIso(yield* DateTime.now))
+          : input.finished === false
+            ? undefined
+            : previousFinishedAt;
       const next: MajordomeVaultTopic = {
         ...rest,
         title,
         folder,
         ...(icon === undefined ? {} : { icon }),
+        ...(finishedAt === undefined ? {} : { finishedAt }),
       };
       yield* writeTopics(
         vaultRoot,

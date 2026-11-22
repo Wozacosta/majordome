@@ -26,6 +26,7 @@ import {
 } from "@t3tools/shared/composerPullRequestMatches";
 import { formatProviderSkillDisplayName } from "@t3tools/shared/inlineSkills";
 
+import { isMajordome } from "~/env";
 import type { ComposerTrigger } from "../../composer-logic";
 import type { DraftId } from "../../composerDraftStore";
 import { basenameOfPath } from "../../pierre-icons";
@@ -252,13 +253,18 @@ export function useComposerMenuItems({
     }
     if (composerTrigger.kind === "slash-command") {
       const builtInSlashCommandItems = [
-        {
-          id: "slash:model",
-          type: "slash-command",
-          command: "model",
-          label: "/model",
-          description: gt("Switch response model for this thread"),
-        },
+        // Majordome's message box has no model picker for /model to open.
+        ...(isMajordome
+          ? []
+          : ([
+              {
+                id: "slash:model",
+                type: "slash-command",
+                command: "model",
+                label: "/model",
+                description: gt("Switch response model for this thread"),
+              },
+            ] as const)),
         ...(sideChatAvailable
           ? ([
               {

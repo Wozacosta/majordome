@@ -89,6 +89,7 @@ import {
   TIMELINE_MINIMAP_TARGET_OFFSET,
   timelineTurnFoldRunIdsByEntryId,
   liveAnswerPreview,
+  quickRepliesRowId,
   type MessagesTimelineRow,
   type TimelineLatestRun,
 } from "./MessagesTimeline.logic";
@@ -143,6 +144,9 @@ import { useThreadFindPositionReader } from "./useThreadFindPositionReader";
 import { ThreadActivityAnnouncer } from "./ThreadActivityAnnouncer";
 import { useStableHandoffRuns, useIncrementalTimelineRows, useStableRows } from "./useTimelineRows";
 import { useClientSettings } from "../../hooks/useSettings";
+import { isMajordome } from "~/env";
+import { TimelineDayDivider } from "../majordome/TimelineDayDivider";
+import { useTimelineDayRows } from "../majordome/TimelineDayRows";
 
 function timelineListStateFor(identity: string): {
   readonly identity: string;
@@ -760,7 +764,11 @@ const ConversationTimeline = memo(function ConversationTimeline({
     toolCallVisibility,
     revealedMessageId,
   });
-  const rows = useStableRows(rawRows, listIdentityKey);
+  const rows = useTimelineDayRows(
+    useStableRows(rawRows, listIdentityKey),
+    listIdentityKey,
+    canOperateThread,
+  );
   const matchedApprovalRequestIds = new Set<string>();
   for (const row of pendingApprovalRequestIds.size > 0 ? rows : []) {
     const entries =
@@ -873,6 +881,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
   const firstMessageRow = rows.find(isMessageRow);
   const lastMessageRow = rows.findLast(isMessageRow);
   const alwaysRenderKeys = [
+    // The day divider above the first message is measured with it, or mounting it later moves it.
+    ...(rows[0]?.kind === "day-divider" ? [rows[0].id] : []),
     ...(firstMessageRow ? [firstMessageRow.id] : []),
     ...(lastMessageRow && lastMessageRow !== firstMessageRow ? [lastMessageRow.id] : []),
     ...(citationAlwaysRender?.keys ?? []),
@@ -1187,6 +1197,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
     latestRunId: latestRun?.runId ?? null,
     liveAnswerPreview:
       isWorking && toolCallVisibility === "zen" ? liveAnswerPreview(timelineEntries) : null,
+    quickRepliesRowId:
+      isMajordome && !isWorking && awaitingUser === null ? quickRepliesRowId(rows) : null,
   };
   // Mounted in both the empty and filled timeline so a thread's first turn
   // starts from a baseline instead of a fresh, silent region.
@@ -1652,6 +1664,7 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
                   row.kind === "html-render" ||
                   row.kind === "sent-message" ||
                   row.kind === "mcp-app" ||
+                  row.kind === "day-divider" ||
                   row.kind === "viewed-images"
                 ? "pb-2"
                 : "pb-4",
@@ -1707,6 +1720,9 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
       {row.kind === "working" ? <WorkingTimelineRow row={row} /> : null}
       {row.kind === "worktree-setup" ? <WorktreeSetupTimelineRow row={row} /> : null}
       {row.kind === "event" ? <V2EventTimelineRow row={row} /> : null}
+      {row.kind === "day-divider" ? (
+        <TimelineDayDivider label={row.label} unread={row.unread} />
+      ) : null}
     </div>
   );
 });

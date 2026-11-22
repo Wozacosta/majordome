@@ -9,6 +9,26 @@ Not released yet.
 
 **New**
 
+- **A topic's page says where things stand.** Above a topic's chat, a short strip shows where
+  things are and what comes next, kept by the assistant at the top of the topic's log. It folds
+  to one line, and appears once the assistant has written it.
+- **The topic's header names it**: its icon, its name, where its notes are, how many, and when it
+  was last touched, with the topic's menu beside it.
+- **The side panel is about the topic**: its notes, its to-dos (tickable), its routines and
+  reminders, its files and its other chats. The usage meters are gone from there; one line appears
+  only when your AI plan is running low.
+- **Files open instead of downloading** when the browser can show them (PDFs, pictures, text),
+  with a separate download button and the date beside each.
+- **Mark a topic as finished.** It leaves the list and can be brought back from "Show finished";
+  its notes and chat stay.
+- **A first screen for a new topic**, with three ways to start.
+- **One-tap replies.** When the assistant ends with an offer ("Want me to set a reminder?"), its
+  answers appear as buttons under the message.
+- **Days in a chat.** A quiet line names each day, and "New since you were last here" marks what
+  arrived while you were away.
+- **A quieter chat.** "Worked for 6s" rows and the model picker in the message box are gone (both
+  remain in Settings), and the jump bar on the left appears only in long chats.
+
 - **The server updates itself.** An always-on server now updates every night at 05:00 and clears
   out old versions. One set up by hand needs a one-time command; see the Always-on server guide.
 - **One "needs attention" card.** The card at the foot of the sidebar now also appears for a
@@ -33,6 +53,15 @@ Not released yet.
 
 **Try this**
 
+- Open a topic: the header should name it and link to its notes; the side panel should list its
+  notes, routines and files.
+- In a topic, say something that changes where things stand, then reopen the topic: a "Where
+  things stand" strip should appear above the chat. (It needs the assistant to write it first.)
+- Ask the assistant something it will answer with an offer, such as "remind me about this": do
+  buttons appear under its reply, and does one tap answer?
+- Topic menu > Mark as finished, then "Show finished" at the end of the list and Bring back.
+- Create a new topic and look at its first screen.
+- Click a PDF in a topic's Files: it should open in a tab, not download.
 - Reading list: save a new link and wait a few seconds; "Adding tags and a summary…" should give
   way to tags and a sentence under the title.
 - Reading list: on the two links you already saved, **… > Look it up again** should bring their

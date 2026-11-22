@@ -259,6 +259,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         keyNote: "projects/quitting-nicotine/README.md",
         lastMessagePreview: null,
         sideThreadIds: [],
+        notesCount: 1,
+        standing: null,
       });
       assert.include(
         yield* fs.readFileString(`${vault}/projects/quitting-nicotine/README.md`),
@@ -617,6 +619,65 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         (yield* service.list({ projectId: vaultProject })).topics.map((topic) => topic.title),
         ["Lisbon", "Running"],
       );
+    }),
+  );
+
+  it.effect("finishes a topic and brings it back, keeping its notes, chat and place", () =>
+    Effect.gen(function* () {
+      const { service, vault, fs } = yield* setUp();
+      const create = (title: string, folder: string) =>
+        service.create({ projectId: vaultProject, title, folder, createFolder: false });
+      const fitness = yield* create("Fitness", "personal/fitness");
+      const lisbon = yield* create("Lisbon", "projects/lisbon-move");
+      const { threadId } = yield* service.open({ projectId: vaultProject, topicId: fitness.id });
+      const update = (change: { finished?: boolean; title?: string }) =>
+        service.update({ projectId: vaultProject, topicId: fitness.id, ...change });
+      const listed = service
+        .list({ projectId: vaultProject })
+        .pipe(Effect.map((result) => result.topics));
+
+      const finished = yield* update({ finished: true });
+      assert.deepInclude(finished, { threadId, folderExists: true });
+      assert.isString(finished.finishedAt);
+      assert.include(yield* fs.readFileString(`${vault}/.majordome/topics.json`), '"finishedAt"');
+      assert.isTrue(yield* fs.exists(`${vault}/personal/fitness/log.md`));
+
+      // Another change, and a new order that leaves it out, keep it finished.
+      assert.equal((yield* update({ title: "Running" })).finishedAt, finished.finishedAt);
+      assert.equal((yield* update({ finished: true })).finishedAt, finished.finishedAt);
+      yield* service.reorder({ projectId: vaultProject, topicIds: [lisbon.id] });
+      assert.deepEqual(
+        (yield* listed).map((topic) => [topic.title, topic.finishedAt]),
+        [
+          ["Lisbon", undefined],
+          ["Running", finished.finishedAt],
+        ],
+      );
+      assert.deepEqual(yield* service.open({ projectId: vaultProject, topicId: fitness.id }), {
+        threadId,
+      });
+
+      assert.notProperty(yield* update({ finished: false }), "finishedAt");
+      assert.notInclude(yield* fs.readFileString(`${vault}/.majordome/topics.json`), "finishedAt");
+    }),
+  );
+
+  it.effect("says where a topic stands and how many notes it has, from its folder", () =>
+    Effect.gen(function* () {
+      const { service, vault, fs } = yield* setUp();
+      const create = (title: string, folder: string) =>
+        service.create({ projectId: vaultProject, title, folder, createFolder: false });
+      yield* create("Fitness", "personal/fitness");
+      yield* fs.writeFileString(
+        `${vault}/personal/fitness/log.md`,
+        "## Where things stand\n- Week 3 of 12.\n- Next: long run on 28 Nov.\n\n## Log\n- Ran 5k\n",
+      );
+      yield* fs.makeDirectory(`${vault}/personal/fitness/plans`);
+      yield* fs.writeFileString(`${vault}/personal/fitness/plans/week-3.md`, "Mon: rest\n");
+      const [listed] = (yield* service.list({ projectId: vaultProject })).topics;
+      assert.equal(listed!.notesCount, 2);
+      assert.equal(listed!.standing?.text, "Week 3 of 12.\nNext: long run on 28 Nov.");
+      assert.match(listed!.standing?.updatedAt ?? "", /^\d{4}-\d\d-\d\dT/);
     }),
   );
 

@@ -37,6 +37,9 @@ import { useRightPanelActions } from "./chat/useRightPanelActions";
 import { type TerminalLaunchContext, useChatTerminalActions } from "./chat/useChatTerminalActions";
 import { useComposerSend } from "./chat/useComposerSend";
 import { consumeDraftSend, usePendingDraftSendStore } from "./majordome/pendingDraftSend";
+import { TopicStanding } from "./majordome/TopicStanding";
+import { useTopicChat } from "./majordome/TopicStarters";
+import { TopicWelcome } from "./majordome/TopicWelcome";
 import { useComposerResume } from "./chat/useComposerResume";
 import { ThreadFind, ThreadFindCanvas } from "./chat/ThreadFindProvider";
 import { closeThreadFind, openThreadFind, useThreadFindOpen } from "./chat/threadFindStore";
@@ -535,6 +538,7 @@ export default function ChatView(props: ChatViewProps) {
   const promptRef = useRef("");
   const localComposerRef = useRef<ChatComposerHandle | null>(null);
   const composerRef = useComposerHandleContext() ?? localComposerRef;
+  const topicChat = useTopicChat(environmentId, threadId);
   const queuedRunEdit = useQueuedRunEdit({
     environmentId,
     routeThreadRef,
@@ -1654,6 +1658,7 @@ export default function ChatView(props: ChatViewProps) {
     followUpSent: timelineMessages.filter((message) => message.role === "user").length > 1,
   });
   const onCancelWorktreeSetupStable = useStableCallback(() => void cancelWorktreeSetup());
+  const welcomeTopic = timelineEmpty && !isWorking && !threadDetailLoading ? topicChat : null;
   const [dockedDraftHeroThreadKey, setDockedDraftHeroThreadKey] = useState<string | null>(null);
   const draftHeroDockRequested =
     activeThreadKey !== null && dockedDraftHeroThreadKey === activeThreadKey;
@@ -3516,6 +3521,12 @@ export default function ChatView(props: ChatViewProps) {
               setThreadError={setThreadError}
               setThreadErrorBannerDismissTick={setThreadErrorBannerDismissTick}
             />
+            {isMajordome ? (
+              <TopicStanding
+                environmentId={activeThread.environmentId}
+                threadId={activeThread.id}
+              />
+            ) : null}
             <div
               {...conversationArea}
               className="relative flex min-h-0 flex-1 flex-col bg-background"
@@ -3618,7 +3629,9 @@ export default function ChatView(props: ChatViewProps) {
                   onIsAtEndChange={onIsAtEndChangeStable}
                   onViewportAttach={attachTimelineViewport}
                   onFooterGrow={onTimelineFooterGrowStable}
-                  hideEmptyPlaceholder={isDraftHeroState || threadDetailLoading}
+                  hideEmptyPlaceholder={
+                    isDraftHeroState || threadDetailLoading || welcomeTopic !== null
+                  }
                   emptyPlaceholderInset={composerReservedHeight}
                   topFadeEnabled={!hasTimelineTopBanner}
                   {...(threadHistoryControls === undefined
@@ -3626,6 +3639,13 @@ export default function ChatView(props: ChatViewProps) {
                     : { historyControls: threadHistoryControls })}
                 />
               </WorkspaceMutationIdContext>
+              {welcomeTopic !== null ? (
+                <TopicWelcome
+                  found={welcomeTopic}
+                  bottomInset={composerReservedHeight}
+                  onStart={(text) => composerRef.current?.insertTextAtEnd(text)}
+                />
+              ) : null}
 
               {showScrollToBottom && !isThreadFindActive && (
                 <ScrollToEndButton

@@ -1,6 +1,6 @@
 /**
- * What a conversation in a vault is told about routines, reminders and the app's own setup, so the
- * owner sets things up by talking. It rides along with the vault's notes at the start of every
+ * What a conversation in a vault is told about routines, reminders, the app's own setup and the
+ * replies it can offer as buttons, so the owner sets things up by talking. It rides along with the vault's notes at the start of every
  * session, so it is short.
  */
 
@@ -31,5 +31,9 @@ export function routinesGuide(now: DateTime.Zoned): string {
     "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Settings, then Connections (email, calendar, other accounts), Back up my brain, Phone & notifications, Always-on server, Private documents or Status.",
     "Never ask for a password, key or code in the conversation; the app's own screens take those.",
     "</app>",
+    "<replies>",
+    "When your message ends with an offer or a question that has a few obvious answers, end it with ONE final line in exactly this form: `Replies: Yes, set it | No thanks`. The app shows each as a button the owner taps to answer.",
+    "- Up to three short replies (each under 30 characters), written as the owner would say them, in their language; the word `Replies:` stays as it is. No such line when you offer or ask nothing.",
+    "</replies>",
   ].join("\n");
 }

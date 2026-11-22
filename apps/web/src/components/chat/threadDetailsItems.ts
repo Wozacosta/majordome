@@ -20,15 +20,16 @@ export const THREAD_DETAILS_ITEMS = [
     label: msg("Servers", { $context: "thread details item: running dev servers" }),
     defaultVisible: !isMajordome,
   },
-  { id: "automations", label: msg("Automations"), defaultVisible: true },
+  // Majordome lists what posts in a topic's chat as its routines and reminders.
+  { id: "automations", label: msg("Automations"), defaultVisible: !isMajordome },
   {
     id: "lineage",
     label: msg("Lineage", { $context: "thread details item: parent and child agents" }),
     defaultVisible: true,
   },
   { id: "sideChats", label: msg("Side chats"), defaultVisible: true },
-  { id: "usage", label: msg("Usage limits"), defaultVisible: isMajordome },
-  { id: "context", label: msg("Context window"), defaultVisible: isMajordome },
+  { id: "usage", label: msg("Usage limits"), defaultVisible: false },
+  { id: "context", label: msg("Context window"), defaultVisible: false },
 ] as const;
 
 const MAJORDOME_OFFERED_ITEMS: ReadonlySet<string> = new Set([
@@ -55,7 +56,7 @@ type ThreadDetailsItemSettings = Pick<
 // People who turned on the retired Labs toggle keep Usage and Context until they change them here.
 function defaultVisible(item: ThreadDetailsItem, settings: ThreadDetailsItemSettings) {
   return item.id === "usage" || item.id === "context"
-    ? item.defaultVisible || settings.threadDetailsUsageEnabled
+    ? settings.threadDetailsUsageEnabled
     : item.defaultVisible;
 }
 

@@ -186,6 +186,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       });
       assert.match(owned, /<\/vault_context>\n\n<routines>\n/);
       assert.include(owned, "wait for a yes");
+      assert.include(owned, "exactly this form: `Replies: Yes, set it | No thanks`");
       assert.match(owned, /Now: 2026-11-15T12:00[+-]\d{2}:\d{2} \(/);
       const scheduled = yield* readVaultContext({
         vaultRoot: root,
@@ -193,6 +194,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
         startedBy: { ...startedBy, scheduledTaskId: "majordome:vault:start-my-day" },
       });
       assert.notInclude(scheduled, "<routines>");
+      assert.notInclude(scheduled, "Replies:");
 
       // A vault with no notes to load still gets the guide.
       const empty = yield* makeVault({ ".majordome/config.json": "{}" });

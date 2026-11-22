@@ -6,10 +6,12 @@ import {
   collectVaults,
   mergeVaultCopies,
   moveTopic,
+  orderWithFinished,
   pickActiveVault,
   placeTopic,
   selectRecentThreads,
   selectTopicThreads,
+  topicHeaderFacts,
   topicSubtitle,
   topicThreadKeys,
   filterTopicFolders,
@@ -225,6 +227,15 @@ describe("topic order and folders", () => {
     expect(moveTopic(ids, "d", 5)).toBe(ids);
     expect(placeTopic(ids, "d", "a")).toEqual(["d", "a", "b", "c"]);
     expect(placeTopic(ids, "a", "c")).toEqual(["b", "c", "a", "d"]);
+    // Finished topics are not in the list being reordered and keep their place.
+    expect(orderWithFinished(["a", "done", "b", "c", "old"], ["c", "a", "b"])).toEqual([
+      "c",
+      "done",
+      "a",
+      "b",
+      "old",
+    ]);
+    expect(orderWithFinished(["a", "b"], ["b", "gone", "a"])).toEqual(["b", "a"]);
   });
 });
 
@@ -306,6 +317,14 @@ describe("topicSubtitle", () => {
     expect(topicSubtitle({ ...topic, lastMessagePreview: you })).toBe("You: 5k today");
     expect(topicSubtitle({ ...topic, lastMessagePreview: null })).toBe("Notes in projects/fitness");
     expect(topicSubtitle(topic)).toBe("Notes in projects/fitness");
+  });
+
+  it("says how many notes a topic has and when its chat last moved, as far as is known", () => {
+    expect(topicHeaderFacts({ notesCount: 12 }, "2h ago")).toBe(" · 12 notes · 2h ago");
+    expect(topicHeaderFacts({ notesCount: 1 }, null)).toBe(" · 1 note");
+    expect(topicHeaderFacts({ notesCount: 0 }, "just now")).toBe(" · no notes yet · just now");
+    expect(topicHeaderFacts({}, "3d ago")).toBe(" · 3d ago");
+    expect(topicHeaderFacts({}, null)).toBe("");
   });
 });
 

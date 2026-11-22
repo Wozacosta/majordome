@@ -12,19 +12,9 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { refreshMajordomeSettings } from "@t3tools/client-runtime/state/majordome";
-import {
-  type AtomCommandResult,
-  isAtomCommandInterrupted,
-  squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
-import type {
-  EnvironmentId,
-  MajordomeTopic,
-  MajordomeTopicSuggestion,
-  ThreadId,
-} from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeTopicSuggestion, ThreadId } from "@t3tools/contracts";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import {
   ArrowDownIcon,
@@ -32,15 +22,11 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   EllipsisIcon,
-  FolderInputIcon,
   FolderSearchIcon,
   MessageCircleIcon,
   MessageCirclePlusIcon,
-  NotebookTextIcon,
-  PencilIcon,
   PlusIcon,
   RepeatIcon,
-  ShapesIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -59,27 +45,23 @@ import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import type { SidebarThreadSummary } from "../../types";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogPopup,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { useSidebar } from "../ui/sidebar";
-import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { notesLink } from "./notes.logic";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
-import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
-import { TopicIconBadge, TopicIconDialog, topicRowTint } from "./TopicIcon";
+import {
+  reportTopicFailure as reportFailure,
+  type TopicActions,
+  TopicEditMenuItems,
+  TopicFinishMenuItem,
+  useTopicActions,
+} from "./TopicHeaderActions";
+import { TopicIconBadge, topicRowTint } from "./TopicIcon";
 import {
   moveTopic,
+  orderWithFinished,
   placeTopic,
   topicPreviewStamp,
   topicSubtitle,
@@ -97,19 +79,11 @@ const MOUSE_DRAG = { activationConstraint: { distance: 6 } };
 const TOUCH_DRAG = { activationConstraint: { delay: 250, tolerance: 8 } };
 const TOPIC_DRAG_MODIFIERS = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
 const NO_TOPICS: ReadonlyArray<string> = [];
+const QUIET_ROW_CLASS =
+  "w-full cursor-pointer rounded-md px-2 py-1 text-left text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
-
-function reportFailure(title: string, result: AtomCommandResult<unknown, unknown>) {
-  if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
-  const error = squashAtomCommandFailure(result);
-  toastManager.add({
-    type: "error",
-    title,
-    description: error instanceof Error ? error.message : String(error),
-  });
-}
 
 /**
  * The owner's topics, above the recent chats: one continuing conversation each, in the owner's
@@ -168,9 +142,18 @@ function VaultTopics({
   /** Every server's copy of every vault, kept apart: a routine posts in its own server's chat. */
   readonly serverCopies: ReadonlyArray<MajordomeVault>;
 }) {
-  const [dialog, setDialog] = useState<TopicDialogRequest | null>(null);
-  const [removing, setRemoving] = useState<MajordomeTopic | null>(null);
-  const [choosingIcon, setChoosingIcon] = useState<MajordomeTopic | null>(null);
+  const { isMobile, setOpenMobile } = useSidebar();
+  const actions = useTopicActions(vault, {
+    onCreated: (topic) => void open({ ...topic, threadEnvironmentId: vault.environmentId }),
+    onLeave: () => {
+      if (isMobile) setOpenMobile(false);
+    },
+  });
+  const [showFinished, setShowFinished] = useLocalStorage(
+    "majordome:show-finished-topics",
+    false,
+    Schema.Boolean,
+  );
   // The order just chosen, shown until the list read from the server changes from `from`:
   // dropping it as soon as the save answers would show the old order for a moment.
   const [pendingOrder, setPendingOrder] = useState<{
@@ -212,10 +195,17 @@ function VaultTopics({
   const { routines } = useVaultRoutines(vault);
   const routineTopics = routineTopicIds(routines, serverCopies);
 
-  const ids = vault.topics.map((topic) => topic.id);
+  // A finished topic leaves the list, and the order being dragged, until it is asked for.
+  const finished = vault.topics.filter((topic) => topic.finishedAt !== undefined);
+  const unfinished = vault.topics.filter((topic) => topic.finishedAt === undefined);
+  const ids = unfinished.map((topic) => topic.id);
   const idsKey = ids.join("\n");
   const order = pendingOrder !== null && pendingOrder.from === idsKey ? pendingOrder.order : ids;
-  const topics = order.flatMap((id) => vault.topics.find((topic) => topic.id === id) ?? []);
+  const topics = order.flatMap((id) => unfinished.find((topic) => topic.id === id) ?? []);
+  const threadKeyOf = (topic: VaultTopic) =>
+    topic.threadId === null
+      ? null
+      : scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId));
   const topicThread = (topic: VaultTopic) =>
     topic.threadId === null
       ? undefined
@@ -249,7 +239,15 @@ function VaultTopics({
     setPendingOrder({ order: next, from: idsKey });
     const result = await reorderTopics({
       environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicIds: [...next] },
+      input: {
+        projectId: vault.projectId,
+        topicIds: [
+          ...orderWithFinished(
+            vault.topics.map((topic) => topic.id),
+            next,
+          ),
+        ],
+      },
     });
     if (result._tag === "Failure") {
       reportFailure("Could not reorder your topics", result);
@@ -269,7 +267,7 @@ function VaultTopics({
               <PlusIcon />
             </MenuTrigger>
             <MenuPopup align="end">
-              <MenuItem onClick={() => setDialog({ kind: "create" })}>
+              <MenuItem onClick={() => actions.openDialog({ kind: "create" })}>
                 <PlusIcon />
                 New topic
               </MenuItem>
@@ -295,7 +293,7 @@ function VaultTopics({
             size="icon-xs"
             variant="ghost-muted"
             aria-label="New topic"
-            onClick={() => setDialog({ kind: "create" })}
+            onClick={() => actions.openDialog({ kind: "create" })}
           >
             <PlusIcon />
           </Button>
@@ -304,7 +302,7 @@ function VaultTopics({
       {vault.suggestions.length > 0 ? (
         <TopicSuggestions
           vault={vault}
-          onCustomize={(suggestion) => setDialog({ kind: "create", ...suggestion })}
+          onCustomize={(suggestion) => actions.openDialog({ kind: "create", ...suggestion })}
         />
       ) : null}
       {topics.length > 0 ? (
@@ -319,10 +317,7 @@ function VaultTopics({
           <SortableContext items={[...order]} strategy={verticalListSortingStrategy}>
             <ul aria-label="Topics" className="flex flex-col gap-px">
               {topics.map((topic, index) => {
-                const threadKey =
-                  topic.threadId === null
-                    ? null
-                    : scopedThreadKey(scopeThreadRef(topic.threadEnvironmentId, topic.threadId));
+                const threadKey = threadKeyOf(topic);
                 const thread = topicThread(topic);
                 return (
                   <TopicRow
@@ -359,10 +354,7 @@ function VaultTopics({
                     }
                     onOpen={() => void open(topic)}
                     onNewChat={() => void openTopic(topic, { sideChat: true })}
-                    onRename={() => setDialog({ kind: "rename", topic })}
-                    onChangeFolder={() => setDialog({ kind: "folder", topic })}
-                    onChangeIcon={() => setChoosingIcon(topic)}
-                    onRemove={() => setRemoving(topic)}
+                    actions={actions}
                   />
                 );
               })}
@@ -374,24 +366,32 @@ function VaultTopics({
           Keep each ongoing subject here: one conversation, with its own folder of notes.
         </p>
       ) : null}
-      {dialog !== null ? (
-        <TopicDialog
-          vault={vault}
-          request={dialog}
-          onClose={() => setDialog(null)}
-          onCreated={(topic) => {
-            if (dialog.kind === "create") {
-              void open({ ...topic, threadEnvironmentId: vault.environmentId });
-            }
-          }}
-        />
+      {finished.length > 0 ? (
+        <>
+          <button
+            type="button"
+            aria-expanded={showFinished}
+            onClick={() => setShowFinished((shown) => !shown)}
+            className={QUIET_ROW_CLASS}
+          >
+            {showFinished ? "Hide finished" : `Show ${finished.length} finished`}
+          </button>
+          {showFinished ? (
+            <ul aria-label="Finished topics" className="flex flex-col gap-px">
+              {finished.map((topic) => (
+                <FinishedTopicRow
+                  key={topic.id}
+                  topic={topic}
+                  isActive={threadKeyOf(topic) !== null && threadKeyOf(topic) === routeThreadKey}
+                  onOpen={() => void open(topic)}
+                  actions={actions}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </>
       ) : null}
-      {removing !== null ? (
-        <RemoveTopicDialog vault={vault} topic={removing} onClose={() => setRemoving(null)} />
-      ) : null}
-      {choosingIcon !== null ? (
-        <TopicIconDialog vault={vault} topic={choosingIcon} onClose={() => setChoosingIcon(null)} />
-      ) : null}
+      {actions.dialogs}
     </>
   );
 }
@@ -419,16 +419,12 @@ function TopicRow(props: {
   readonly isActive: boolean;
   readonly onOpen: () => void;
   readonly onNewChat: () => void;
-  readonly onRename: () => void;
-  readonly onChangeFolder: () => void;
-  readonly onChangeIcon: () => void;
-  readonly onRemove: () => void;
+  readonly actions: TopicActions;
 }) {
-  const { topic, thread, vault } = props;
+  const { topic, thread, actions } = props;
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: topic.id,
   });
-  const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const status = thread === undefined ? null : resolveThreadStatusPill({ thread });
   const activity = thread === undefined ? null : resolveThreadActivityTimestamp(thread);
@@ -502,33 +498,7 @@ function TopicRow(props: {
               New chat about this
             </MenuItem>
             <MenuSeparator />
-            <MenuItem onClick={props.onRename}>
-              <PencilIcon />
-              Rename
-            </MenuItem>
-            <MenuItem onClick={props.onChangeFolder}>
-              <FolderInputIcon />
-              Change folder
-            </MenuItem>
-            <MenuItem onClick={props.onChangeIcon}>
-              <ShapesIcon />
-              Change icon
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                if (isMobile) setOpenMobile(false);
-                void navigate(
-                  notesLink({
-                    projectId: vault.projectId,
-                    environmentId: vault.environmentId,
-                    path: topic.keyNote ?? undefined,
-                  }),
-                );
-              }}
-            >
-              <NotebookTextIcon />
-              Open folder in Notes
-            </MenuItem>
+            <TopicEditMenuItems topic={topic} actions={actions} />
             {props.onMove === null ? null : (
               <>
                 <MenuSeparator />
@@ -543,7 +513,8 @@ function TopicRow(props: {
               </>
             )}
             <MenuSeparator />
-            <MenuItem variant="destructive" onClick={props.onRemove}>
+            <TopicFinishMenuItem topic={topic} actions={actions} />
+            <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
               <TrashIcon />
               Remove topic
             </MenuItem>
@@ -624,7 +595,7 @@ function TopicRow(props: {
                 type="button"
                 aria-expanded={showDone}
                 onClick={() => setShowDone((shown) => !shown)}
-                className="w-full cursor-pointer rounded-md px-2 py-1 text-left text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                className={QUIET_ROW_CLASS}
               >
                 {showDone
                   ? "Hide chats marked as done"
@@ -654,6 +625,58 @@ function TopicRow(props: {
           ))}
         </ul>
       ) : null}
+    </li>
+  );
+}
+
+/** A finished topic, dimmed: its chat still opens, and its menu brings it back. */
+function FinishedTopicRow(props: {
+  readonly topic: VaultTopic;
+  readonly isActive: boolean;
+  readonly onOpen: () => void;
+  readonly actions: TopicActions;
+}) {
+  const { topic, actions } = props;
+  return (
+    <li data-topic-id={topic.id} className="relative">
+      <button
+        type="button"
+        onClick={props.onOpen}
+        aria-current={props.isActive ? "page" : undefined}
+        className={cn(
+          "flex w-full cursor-pointer touch-manipulation items-center gap-2.5 rounded-lg py-1.5 pr-9 pl-1.5 text-left text-sm text-sidebar-foreground opacity-60 hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          props.isActive && topicRowTint(topic),
+        )}
+      >
+        <TopicIconBadge topic={topic} statusDotClass={null} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate font-medium">{topic.title}</span>
+          <span className="truncate text-xs text-sidebar-muted-foreground">
+            {topicSubtitle(topic)}
+          </span>
+        </span>
+      </button>
+      <span className="absolute top-2 right-1 flex items-center">
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button size="icon-xs" variant="ghost-muted" aria-label={`More for ${topic.title}`} />
+            }
+          >
+            <EllipsisIcon />
+          </MenuTrigger>
+          <MenuPopup align="end">
+            <TopicFinishMenuItem topic={topic} actions={actions} />
+            <MenuSeparator />
+            <TopicEditMenuItems topic={topic} actions={actions} />
+            <MenuSeparator />
+            <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
+              <TrashIcon />
+              Remove topic
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </span>
     </li>
   );
 }
@@ -779,57 +802,5 @@ function TopicSuggestions({
         </Button>
       ) : null}
     </div>
-  );
-}
-
-function RemoveTopicDialog({
-  vault,
-  topic,
-  onClose,
-}: {
-  readonly vault: MajordomeVault;
-  readonly topic: MajordomeTopic;
-  readonly onClose: () => void;
-}) {
-  const removeTopic = useAtomCommand(majordomeEnvironment.removeTopic, {
-    label: "remove a topic",
-    reportFailure: false,
-  });
-  const [busy, setBusy] = useState(false);
-  const confirm = async () => {
-    setBusy(true);
-    const result = await removeTopic({
-      environmentId: vault.environmentId,
-      input: { projectId: vault.projectId, topicId: topic.id },
-    });
-    setBusy(false);
-    if (result._tag === "Failure") reportFailure(`Could not remove ${topic.title}`, result);
-    onClose();
-  };
-  return (
-    <AlertDialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <AlertDialogPopup>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Remove {topic.title} from your topics?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Its notes stay in {topic.folder}. Its chats move to Recent, and a routine that posts in
-            this topic keeps posting in the same chat.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
-            Cancel
-          </AlertDialogClose>
-          <Button variant="destructive" disabled={busy} onClick={() => void confirm()}>
-            Remove topic
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogPopup>
-    </AlertDialog>
   );
 }

@@ -16,6 +16,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
+import { topicStanding } from "./topicPreview.ts";
 import { VAULT_CONFIG_DIRNAME, type VaultLayout } from "./vaultConfig.ts";
 
 const TOPICS_FILENAME = "topics.json";
@@ -66,21 +67,29 @@ export function parseVaultTopics(text: string): ReadonlyArray<MajordomeVaultTopi
     const folder = normalizeTopicFolder(topic.folder);
     if (folder === null) continue;
     seen.add(topic.id);
-    const icon = (entry as { readonly icon?: unknown }).icon;
+    const { icon, finishedAt } = entry as {
+      readonly icon?: unknown;
+      readonly finishedAt?: unknown;
+    };
     topics.push({
       id: topic.id,
       title: topic.title,
       folder,
       ...(isTopicIcon(icon) ? { icon } : {}),
+      ...(typeof finishedAt === "string" && finishedAt.trim() !== "" ? { finishedAt } : {}),
     });
   }
   return topics;
 }
 
 export function serializeVaultTopics(topics: ReadonlyArray<MajordomeVaultTopic>): string {
-  const entries = topics.map(({ id, title, folder, icon }) =>
-    icon === undefined ? { id, title, folder } : { id, title, folder, icon },
-  );
+  const entries = topics.map(({ id, title, folder, icon, finishedAt }) => ({
+    id,
+    title,
+    folder,
+    ...(icon === undefined ? {} : { icon }),
+    ...(finishedAt === undefined ? {} : { finishedAt }),
+  }));
   return `${JSON.stringify({ topics: entries }, null, 2)}\n`;
 }
 
@@ -325,6 +334,8 @@ const MIN_NOTE_BUDGET = 200;
 const TOPIC_NOTE_DEPTH = 3;
 const TOPIC_NOTE_SCAN_LIMIT = 200;
 
+const STANDING_HEADING = "## Where things stand";
+
 const escapeAttribute = (value: string) => value.replaceAll('"', "&quot;");
 
 function head(text: string, limit: number): string {
@@ -340,6 +351,14 @@ function tail(text: string, limit: number): string {
     : `[…earlier entries left out.]\n${trimmed.slice(trimmed.length - limit)}`;
 }
 
+/** A long log keeps where things stand, from its top, ahead of its newest entries. */
+function logTail(text: string, limit: number): string {
+  const standing = text.trim().length <= limit ? null : topicStanding(text);
+  if (standing === null) return tail(text, limit);
+  const top = `${STANDING_HEADING}\n${standing}\n`;
+  return `${top}${tail(text, limit - top.length)}`;
+}
+
 interface TopicNote {
   readonly path: string;
   readonly changedAt: number;
@@ -349,6 +368,7 @@ const listTopicNotes = Effect.fn("majordome.listTopicNotes")(function* (folderPa
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const notes: Array<TopicNote> = [];
+  let total = 0;
   let level: Array<string> = [""];
   for (let depth = 1; depth <= TOPIC_NOTE_DEPTH && level.length > 0; depth += 1) {
     const next: Array<string> = [];
@@ -357,10 +377,13 @@ const listTopicNotes = Effect.fn("majordome.listTopicNotes")(function* (folderPa
         .readDirectoryEntries(parent === "" ? folderPath : path.join(folderPath, parent))
         .pipe(Effect.orElseSucceed((): ReadonlyArray<FileSystem.DirectoryEntry> => []));
       for (const entry of entries) {
-        if (!isListedName(entry.name) || notes.length >= TOPIC_NOTE_SCAN_LIMIT) continue;
+        if (!isListedName(entry.name)) continue;
         const relative = parent === "" ? entry.name : `${parent}/${entry.name}`;
         if (entry.type === "Directory") next.push(relative);
         else if (entry.type === "File" && entry.name.toLowerCase().endsWith(".md")) {
+          total += 1;
+          // Past the limit a note is only counted.
+          if (notes.length >= TOPIC_NOTE_SCAN_LIMIT) continue;
           const info = yield* fileSystem.stat(path.join(folderPath, relative)).pipe(Effect.option);
           const changedAt = Option.match(
             Option.flatMap(info, (value) => value.mtime),
@@ -375,7 +398,46 @@ const listTopicNotes = Effect.fn("majordome.listTopicNotes")(function* (folderPa
     }
     level = next;
   }
-  return notes.toSorted((a, b) => b.changedAt - a.changedAt || a.path.localeCompare(b.path));
+  return {
+    notes: notes.toSorted((a, b) => b.changedAt - a.changedAt || a.path.localeCompare(b.path)),
+    total,
+  };
+});
+
+const logOf = (notes: ReadonlyArray<TopicNote>) =>
+  notes.find((note) => note.path.toLowerCase() === "log.md");
+
+/**
+ * What a topic's folder says of it, from one walk: how many notes it holds, and where things
+ * stand as the top of its `log.md` puts it (null when the log has no such section).
+ */
+export const readTopicFolderFacts = Effect.fn("majordome.readTopicFolderFacts")(function* (
+  folderPath: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const { notes, total } = yield* listTopicNotes(folderPath);
+  const log = logOf(notes);
+  const text =
+    log === undefined
+      ? null
+      : topicStanding(
+          yield* fileSystem
+            .readFileString(path.join(folderPath, log.path))
+            .pipe(Effect.orElseSucceed(() => "")),
+        );
+  return {
+    notesCount: total,
+    standing:
+      log === undefined || text === null
+        ? null
+        : {
+            text,
+            ...(log.changedAt === 0
+              ? {}
+              : { updatedAt: DateTime.formatIso(DateTime.makeUnsafe(log.changedAt)) }),
+          },
+  };
 });
 
 const isoDay = (epochMillis: number) =>
@@ -394,12 +456,12 @@ export const readTopicContext = Effect.fn("majordome.readTopicContext")(function
   const path = yield* Path.Path;
   const { topic } = input;
   const folderPath = path.join(input.vaultRoot, topic.folder);
-  const notes = yield* listTopicNotes(folderPath);
+  const { notes, total } = yield* listTopicNotes(folderPath);
   const logPath = `${topic.folder}/log.md`;
 
   const opening = [
     `<topic title="${escapeAttribute(topic.title)}" folder="${escapeAttribute(topic.folder)}">`,
-    `This conversation is the topic "${topic.title}". Its memory is the folder ${topic.folder}: keep its running log in ${logPath} (what was decided, done or learned, newest last), because this chat may be compacted or restarted.`,
+    `This conversation is the topic "${topic.title}". Its memory is the folder ${topic.folder}: keep its running log in ${logPath} (what was decided, done or learned, newest last), because this chat may be compacted or restarted. At the very top of ${logPath} keep a section headed exactly "${STANDING_HEADING}": at most three short plain lines saying where things are now and what comes next, with its date when there is one. Rewrite that section whenever something changes; the dated entries stay below it, newest last.`,
   ].join("\n");
   const closing = "</topic>";
 
@@ -407,8 +469,8 @@ export const readTopicContext = Effect.fn("majordome.readTopicContext")(function
     const day = isoDay(note.changedAt);
     return day === null ? `- ${note.path}` : `- ${note.path} (changed ${day})`;
   });
-  if (notes.length > NOTES_LISTING_LIMIT) {
-    listingLines.push(`- …and ${notes.length - NOTES_LISTING_LIMIT} more`);
+  if (total > NOTES_LISTING_LIMIT) {
+    listingLines.push(`- …and ${total - NOTES_LISTING_LIMIT} more`);
   }
   const listing =
     notes.length === 0
@@ -422,8 +484,8 @@ export const readTopicContext = Effect.fn("majordome.readTopicContext")(function
   const byName = (name: string) =>
     notes.find((note) => note.path.toLowerCase() === name) ?? undefined;
   const picks: Array<{ note: TopicNote; limit: number; cut: typeof head }> = [];
-  const log = byName("log.md");
-  if (log) picks.push({ note: log, limit: LOG_NOTE_LIMIT, cut: tail });
+  const log = logOf(notes);
+  if (log) picks.push({ note: log, limit: LOG_NOTE_LIMIT, cut: logTail });
   const readme = byName("readme.md") ?? byName("index.md");
   if (readme) picks.push({ note: readme, limit: README_NOTE_LIMIT, cut: head });
   for (const note of notes) {

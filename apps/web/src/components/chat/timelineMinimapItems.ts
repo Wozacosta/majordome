@@ -9,6 +9,8 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
+import { isMajordome } from "~/env";
+import { splitQuickReplies } from "../majordome/QuickReplies.logic";
 import type { MessagesTimelineRow } from "./MessagesTimeline.logic";
 
 export interface TimelineMinimapItem {
@@ -52,7 +54,9 @@ function resolveFinalAssistantTextForTurn(
       break;
     }
     if (row.message.role === "assistant") {
-      finalAssistantText = row.message.text ?? null;
+      const text = row.message.text ?? null;
+      // Majordome's closing "Replies:" line is shown as buttons, never as text.
+      finalAssistantText = isMajordome && text !== null ? splitQuickReplies(text).body : text;
     }
   }
   return finalAssistantText;
