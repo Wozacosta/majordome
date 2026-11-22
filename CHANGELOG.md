@@ -5,8 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.12
+
 **New**
 
+- **With an always-on server, your conversations live on the server.** Chats you start on your
+  computer are now kept on your always-on server, so your phone shows the same ones. Conversations
+  you had before stay on your computer, listed under their topic as "Chat on this Mac". If the
+  server can't be reached, Majordome says so instead of starting a second conversation on your
+  computer. If the server's AI is signed out, conversations stay on your computer until it is
+  signed in.
 - **The assistant works on your reading list.** Ask it in any conversation to save a link for
   later, say what is next, note what you took from something, or find a few things on a subject
   and add them. Links it saves now get their title, picture and length like the ones you paste,
@@ -29,6 +39,9 @@ The section for a version is also the text of its release on GitHub.
 - **Reading list pictures fill themselves in.** A link saved before pictures existed, or while
   its site was down, stayed without one until you chose "Look it up again" on it. Majordome now
   looks those pages up again by itself when it starts.
+- The Phone page says "your always-on server" in its sentences, not "Always-on server" as if
+  that were a name.
+- The sidebar's row of icons fills the width, with larger icons.
 
 ## 0.10.11
 
