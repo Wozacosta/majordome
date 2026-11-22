@@ -118,7 +118,7 @@ describe("topic panel notes", () => {
       file("projects/house/quotes/attic.md"),
     ]);
     expect(notes.map((note) => [note.label, note.isKeyNote])).toEqual([
-      ["Running log", true],
+      ["Log", true],
       ["budget 2026", false],
       ["Overview", false],
       ["plumber", false],
@@ -135,7 +135,7 @@ describe("topic panel notes", () => {
   });
 
   it("names notes as the owner reads them", () => {
-    expect(topicNoteLabel("projects/house/LOG.md")).toBe("Running log");
+    expect(topicNoteLabel("projects/house/LOG.md")).toBe("Log");
     expect(topicNoteLabel("index.md")).toBe("Overview");
     expect(topicNoteLabel("a/roof-quotes.v2.md")).toBe("roof quotes.v2");
     expect(allNotesLabel(undefined)).toBe("All notes");

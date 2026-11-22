@@ -106,10 +106,10 @@ interface TopicPanelNote {
 
 const baseName = (path: string) => path.slice(path.lastIndexOf("/") + 1).replace(/\.[^.]+$/, "");
 
-/** A note's name as the owner reads it: "Running log" for `log.md`, else the file's own name. */
+/** A note's name as the owner reads it: "Log" for `log.md`, else the file's own name. */
 export function topicNoteLabel(path: string): string {
   const name = baseName(path);
-  if (/^log$/i.test(name)) return "Running log";
+  if (/^log$/i.test(name)) return "Log";
   if (/^(?:readme|index)$/i.test(name)) return "Overview";
   return name.replace(/[-_]+/g, " ").trim() || name;
 }

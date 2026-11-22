@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **A topic's log is called "Log".** The panel beside a topic listed its `log.md` as "Running
+  log", a name used nowhere else. It now reads "Log", like the file it opens.
+
 ## 0.10.16
 
 **New**
