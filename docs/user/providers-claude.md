@@ -64,6 +64,10 @@ paste the token into **Claude sign-in token**. It is stored as a secret on that 
 does not bring your connectors, and it wins over a full sign-in while it is set: **Sign in to
 Claude** removes a saved token for that reason.
 
+Without a Claude plan, paste a key from the Claude Console into **Claude API key**. Every message
+is then billed by use, including the ones routines send on their own, and connectors are left out.
+A key wins over a sign-in while it is set; remove it to go back to your plan.
+
 ## Compact long conversations
 
 Set **Auto-compact after** in the Claude provider settings to an integer between

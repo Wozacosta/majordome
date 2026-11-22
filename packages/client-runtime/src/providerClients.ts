@@ -54,6 +54,18 @@ export const providerClients = makeProviderClientRegistry([
         placeholder: "Paste token",
         sensitive: true,
       },
+      // For someone with no Claude plan. Claude Code uses the key ahead of any sign-in.
+      {
+        name: "ANTHROPIC_API_KEY",
+        // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
+        label: "Claude API key",
+        description:
+          // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
+          "Use a key from the Claude Console instead of a Claude plan. Every message, routines included, is then billed by use, and your connectors (Gmail, Calendar, Drive) are left out. While a key is set here, Claude uses it rather than your plan.",
+        // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own field, English only for now
+        placeholder: "Paste API key",
+        sensitive: true,
+      },
     ],
   },
   cursorClient,

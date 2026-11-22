@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Claude with an API key.** No Claude plan? In Settings, under AI accounts, the Claude account
+  now has a "Claude API key" field. Paste a key from the Claude Console and Majordome uses it:
+  every message is then billed by use, and your connectors are left out. Remove the key to go
+  back to your plan.
+
 ## 0.10.18
 
 **New**
