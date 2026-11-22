@@ -229,6 +229,10 @@ describe("the computer a phone is set up on", () => {
       atStart: "This computer",
     });
     expect(phoneComputerWords("Home server").inSentence).toBe("Home server");
+    expect(phoneComputerWords("Always-on server")).toEqual({
+      inSentence: "your always-on server",
+      atStart: "Your always-on server",
+    });
     expect(phoneComputerWords("Another computer")).toEqual({
       inSentence: "another computer",
       atStart: "Another computer",

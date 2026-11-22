@@ -169,7 +169,10 @@ export function phoneComputerWords(name: string | null): {
   readonly atStart: string;
 } {
   if (name === null) return { inSentence: "this computer", atStart: "This computer" };
-  // "Another computer" is the name of a computer saved without one.
+  // The names Majordome gives a computer by itself read as descriptions, not as names.
+  if (/^always-on server$/i.test(name)) {
+    return { inSentence: "your always-on server", atStart: "Your always-on server" };
+  }
   return { inSentence: name.replace(/^Another /, "another "), atStart: name };
 }
 
