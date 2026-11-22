@@ -64,8 +64,11 @@ try {
   step = "waiting for the first window";
   const page = await app.firstWindow({ timeout: STEP_TIMEOUT_MS });
   try {
-    step = `finding "${THREAD_TITLE}" in the sidebar`;
-    const thread = page.locator("li[data-thread-item]", { hasText: THREAD_TITLE });
+    // Majordome lists the chats that belong to no topic on their own page, one row away.
+    step = "opening Chats from the sidebar";
+    await page.getByRole("link", { name: /^Chats/ }).click({ timeout: STEP_TIMEOUT_MS });
+    step = `finding "${THREAD_TITLE}" among the chats`;
+    const thread = page.getByRole("link", { name: new RegExp(THREAD_TITLE) });
     await thread.waitFor({ timeout: STEP_TIMEOUT_MS });
     step = "opening the thread";
     await thread.click();
