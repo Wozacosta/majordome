@@ -9,6 +9,9 @@ Not released yet.
 
 **New**
 
+- **A topic's chats are tabs.** Under a topic's name there is now a row of tabs: **Main**, the
+  topic's one continuing conversation, then its other chats, and a **+** that starts one more from
+  the topic's notes. The cross on a tab marks that chat as done; the main one stays.
 - **With an always-on server, your phone connects to the server.** "Set up my phone" on your
   computer now gives the address to the computer that runs your routines, when that is another
   one, and the code opens your phone on it. So the phone shows the routines and chats that live

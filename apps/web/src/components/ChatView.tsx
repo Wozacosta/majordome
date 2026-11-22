@@ -39,6 +39,7 @@ import { useComposerSend } from "./chat/useComposerSend";
 import { consumeDraftSend, usePendingDraftSendStore } from "./majordome/pendingDraftSend";
 import { TopicStanding } from "./majordome/TopicStanding";
 import { useTopicChat } from "./majordome/TopicStarters";
+import { TopicTabs } from "./majordome/TopicTabs";
 import { TopicWelcome } from "./majordome/TopicWelcome";
 import { useComposerResume } from "./chat/useComposerResume";
 import { ThreadFind, ThreadFindCanvas } from "./chat/ThreadFindProvider";
@@ -3482,6 +3483,9 @@ export default function ChatView(props: ChatViewProps) {
             />
           </header>
         )}
+        {isMajordome && isServerThread && !embedded ? (
+          <TopicTabs environmentId={activeThread.environmentId} threadId={activeThread.id} />
+        ) : null}
 
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <ThreadFindCanvas

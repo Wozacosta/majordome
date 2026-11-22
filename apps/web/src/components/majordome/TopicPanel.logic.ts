@@ -290,3 +290,48 @@ export function topicPanelChats(input: {
   ];
   return { open, done, elsewhere: mains.filter(fresh) };
 }
+
+/**
+ * A topic's chats as tabs, seen from one of them: its continuing chat first (null until it is
+ * started), then its other chats in their order. Chats marked as done are left out, except the
+ * one being read.
+ */
+export function topicTabs(input: {
+  readonly own: VaultTopic;
+  readonly merged: VaultTopic | undefined;
+  readonly current: ChatRef;
+  readonly shellOf: (
+    chat: ChatRef,
+  ) => { readonly title: string; readonly settledOverride: string | null } | undefined;
+}): {
+  readonly main: ChatRef | null;
+  readonly chats: ReadonlyArray<TopicPanelChat & { readonly done: boolean }>;
+} {
+  const topic = input.merged ?? input.own;
+  const currentKey = scopedThreadKey(input.current);
+  // This computer's own continuing chat stays the main tab while it is the one being read.
+  const main =
+    input.own.threadId === input.current.threadId
+      ? input.current
+      : topic.threadId === null
+        ? null
+        : { environmentId: topic.threadEnvironmentId, threadId: topic.threadId };
+  const seen = new Set<string>();
+  const chats = (topic.sideChats ?? []).flatMap((chat) => {
+    const key = scopedThreadKey(chat);
+    const shell = input.shellOf(chat);
+    if (shell === undefined || seen.has(key)) return [];
+    seen.add(key);
+    const done = shell.settledOverride === "settled";
+    if (done && key !== currentKey) return [];
+    return [
+      {
+        environmentId: chat.environmentId,
+        threadId: chat.threadId,
+        title: shell.title === "New thread" ? "New chat" : shell.title,
+        done,
+      },
+    ];
+  });
+  return { main, chats };
+}

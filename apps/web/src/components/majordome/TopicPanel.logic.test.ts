@@ -18,6 +18,7 @@ import {
   topicPanelNotes,
   topicPanelRoutines,
   topicPanelTodos,
+  topicTabs,
 } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
 
@@ -276,5 +277,42 @@ describe("topic panel chats", () => {
     });
     expect(only.open.map((row) => row.title)).toEqual(["Roof quotes"]);
     expect(only.elsewhere).toEqual([]);
+  });
+
+  it("lists the topic's chats as tabs, the continuing chat first", () => {
+    const own = topic({ sideChats: [side("quotes")] });
+    const merged = topic({
+      sideChats: [side("quotes"), side("fresh"), side("old"), side("unknown"), side("quotes")],
+    });
+    const fromMain = topicTabs({
+      own,
+      merged,
+      current: { environmentId: mac, threadId: chat },
+      shellOf,
+    });
+    expect(fromMain.main).toEqual({ environmentId: mac, threadId: chat });
+    expect(fromMain.chats.map((tab) => tab.title)).toEqual(["Roof quotes", "New chat"]);
+
+    // A chat marked as done keeps its tab while it is the one being read.
+    const fromDone = topicTabs({ own, merged, current: side("old"), shellOf });
+    expect(fromDone.main).toEqual({ environmentId: mac, threadId: chat });
+    expect(fromDone.chats.map((tab) => [tab.title, tab.done])).toEqual([
+      ["Roof quotes", false],
+      ["New chat", false],
+      ["Boiler", true],
+    ]);
+
+    // Another computer's continuing chat is the main tab while it is read; unstarted, there is none.
+    const onServer = topic({
+      threadId: ThreadId.make("house-on-server"),
+      threadEnvironmentId: server,
+    });
+    expect(
+      topicTabs({ own: onServer, merged, current: side("house-on-server", server), shellOf }).main,
+    ).toEqual(side("house-on-server", server));
+    const unstarted = topic({ threadId: null, sideChats: [side("quotes")] });
+    expect(
+      topicTabs({ own: unstarted, merged: undefined, current: side("quotes"), shellOf }).main,
+    ).toBeNull();
   });
 });
