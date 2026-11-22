@@ -53,6 +53,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
+import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import {
   reportTopicFailure as reportFailure,
@@ -529,6 +530,11 @@ function TopicRow(props: {
   const status = thread === undefined ? null : resolveThreadStatusPill({ thread });
   const activity = thread === undefined ? null : resolveThreadActivityTimestamp(thread);
   const { machineOf } = useMachineNames();
+  const placeWords = useChatPlaceWords();
+  // On several machines, each chat listed here says which one keeps it.
+  const severalMachines = props.vault.copies.length > 1;
+  const homeEnvironmentId =
+    props.vault.home?.kind === "ready" ? props.vault.home.environmentId : null;
   // A routine filed here already leads to its server's chat for the topic.
   const otherChats = (topic.otherChats ?? []).filter(
     (chat) =>
@@ -677,12 +683,23 @@ function TopicRow(props: {
                 onClick={() => {
                   if (isMobile) setOpenMobile(false);
                 }}
+                title={
+                  severalMachines ? `This chat is ${placeWords(chat.environmentId)}` : undefined
+                }
                 {...nestedRowClass(chat.environmentId, chat.threadId, false)}
               >
-                <MessageCircleIcon
-                  className="size-3.5 shrink-0 text-sidebar-muted-foreground"
-                  aria-hidden
-                />
+                {severalMachines ? (
+                  <ChatPlaceIcon
+                    environmentId={chat.environmentId}
+                    homeEnvironmentId={homeEnvironmentId}
+                    className="text-sidebar-muted-foreground"
+                  />
+                ) : (
+                  <MessageCircleIcon
+                    className="size-3.5 shrink-0 text-sidebar-muted-foreground"
+                    aria-hidden
+                  />
+                )}
                 <span className="truncate">
                   {chat.title === "New thread" ? "New chat" : chat.title}
                 </span>
@@ -713,7 +730,10 @@ function TopicRow(props: {
                 }}
                 {...nestedRowClass(chat.environmentId, chat.threadId, true)}
               >
-                <MessageCircleIcon className="size-3.5 shrink-0" aria-hidden />
+                <ChatPlaceIcon
+                  environmentId={chat.environmentId}
+                  homeEnvironmentId={homeEnvironmentId}
+                />
                 <span className="truncate text-sidebar-foreground">
                   Chat {onMachine(machineOf(chat.environmentId))}
                 </span>

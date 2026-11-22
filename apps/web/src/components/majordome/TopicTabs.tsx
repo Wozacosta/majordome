@@ -27,6 +27,7 @@ import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
+import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { stepAround, topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
@@ -70,6 +71,7 @@ export function TopicTabs(props: {
         homeEnvironmentId={
           vault?.home?.kind === "ready" ? vault.home.environmentId : props.environmentId
         }
+        severalMachines={(vault?.copies.length ?? 1) > 1}
       />
     );
   }
@@ -85,6 +87,8 @@ function TopicTabStrip(props: {
   readonly merged: VaultTopic | undefined;
   /** The computer a new chat about the topic starts on. */
   readonly homeEnvironmentId: EnvironmentId;
+  /** The notes are on more than one machine, so each tab says which one keeps its chat. */
+  readonly severalMachines: boolean;
 }) {
   const { environmentId, projectId, threadId, topic } = props;
   // Its `threadId` is the home's, so opening it starts the main chat there when there is none.
@@ -92,6 +96,15 @@ function TopicTabStrip(props: {
   const shells = useQuietThreadShells();
   const navigate = useNavigate();
   const { machineOf } = useMachineNames();
+  const placeWords = useChatPlaceWords();
+  const place = (chat: { readonly environmentId: EnvironmentId }) =>
+    props.severalMachines ? (
+      <ChatPlaceIcon
+        environmentId={chat.environmentId}
+        homeEnvironmentId={props.homeEnvironmentId}
+        className="size-3"
+      />
+    ) : null;
   const canStart = useAtomValue(
     majordomeEnvironment.openTopic.permissionAtom(props.homeEnvironmentId),
   );
@@ -190,9 +203,13 @@ function TopicTabStrip(props: {
               to="/$environmentId/$threadId"
               params={buildThreadRouteParams(scopeThreadRef(main.environmentId, main.threadId))}
               aria-current={scopedThreadKey(main) === currentKey ? "page" : undefined}
+              title={
+                props.severalMachines ? `Main chat, ${placeWords(main.environmentId)}` : undefined
+              }
               className={TAB_CLASS}
             >
               {dot(main)}
+              {place(main)}
               Main
             </Link>
           )}
@@ -205,10 +222,15 @@ function TopicTabStrip(props: {
                 to="/$environmentId/$threadId"
                 params={buildThreadRouteParams(scopeThreadRef(chat.environmentId, chat.threadId))}
                 aria-current={current ? "page" : undefined}
-                title={chat.title}
+                title={
+                  props.severalMachines
+                    ? `${chat.title}, ${placeWords(chat.environmentId)}`
+                    : chat.title
+                }
                 className={TAB_CLASS}
               >
                 {dot(chat)}
+                {place(chat)}
                 <span className="truncate">{chat.title}</span>
               </Link>
               {chat.done ? null : (
@@ -239,6 +261,7 @@ function TopicTabStrip(props: {
                 className={TAB_CLASS}
               >
                 {dot(chat)}
+                {place(chat)}
                 <span className="truncate">{title}</span>
               </Link>
             </li>

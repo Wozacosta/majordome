@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Each chat shows which machine keeps it.** With an always-on server, the tabs of a topic and
+  the chats listed under it in the sidebar carry a small icon: a server for chats kept on the
+  server, a laptop for chats kept on this computer. Hover one to read it. Nothing changes when
+  your notes are on one machine only.
+
 ## 0.10.17
 
 **New**
