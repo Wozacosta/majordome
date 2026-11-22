@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Majordome: a second brain that keeps working while you are away</title>
+    <title>Majordome: your markdown second brain, merged with Claude or ChatGPT</title>
     <meta
       name="description"
-      content="Majordome is a free, open-source Mac app. Your memory is a folder of markdown notes. An assistant reads it before you type, runs routines on a schedule, and asks before it touches anything sensitive."
+      content="Majordome is a free, open-source Mac app that joins a second brain of markdown notes with the Claude or ChatGPT plan you already have. The assistant knows your notes, runs routines on a schedule, and keeps working while you are away."
     />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
@@ -17,7 +17,7 @@
     <meta property="og:title" content="Majordome" />
     <meta
       property="og:description"
-      content="A second brain with an agent that keeps working while you are away."
+      content="Your markdown second brain, merged with Claude or ChatGPT. It keeps working while you are away."
     />
     <meta property="og:url" content="https://majord.me/" />
     <meta property="og:image" content="https://majord.me/og.png" />
@@ -194,9 +194,50 @@
         color: var(--muted);
       }
 
+      .sum {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1.15fr;
+        align-items: stretch;
+        gap: 14px;
+        margin: 56px auto 0;
+        max-width: 940px;
+        text-align: left;
+      }
+      .sum .part {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        font-size: 0.93rem;
+        color: var(--muted);
+      }
+      .sum .part strong {
+        font: 500 1.3rem/1.2 var(--serif);
+        color: var(--ink);
+      }
+      .sum .k {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .sum .total {
+        border-color: var(--ink);
+      }
+      .sum .op {
+        align-self: center;
+        font: 500 1.8rem/1 var(--serif);
+        color: var(--muted);
+      }
+
       /* The app picture is always the dark window, in both themes. */
       .window {
-        margin: 64px auto 0;
+        margin: 28px auto 0;
         max-width: 940px;
         text-align: left;
         background: #14161c;
@@ -446,6 +487,13 @@
           grid-template-columns: 1fr;
           gap: 32px;
         }
+        .sum {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+        .sum .op {
+          justify-self: center;
+        }
       }
       @media (max-width: 620px) {
         nav a.link {
@@ -500,19 +548,39 @@
       <main>
         <div class="hero">
           <div class="eyebrow"><span class="dot"></span>Free and open source, for Mac</div>
-          <h1>A second brain that keeps working while you are away.</h1>
+          <h1>Your markdown second brain, merged with Claude or ChatGPT.</h1>
           <p class="lede">
-            Your memory is a folder of notes. Majordome reads it before you type, files what you
-            drop in, runs routines on a schedule, and asks before it touches anything sensitive.
+            Notes in plain files you own. The AI plan you already pay for. Majordome joins them into
+            one assistant that knows your notes, runs routines on a schedule, and keeps working
+            while you are away.
           </p>
           <div class="cta">
             <a class="button" href="/download">Download for Mac</a>
             <a class="button quiet" href="https://github.com/Wozacosta/majordome">View on GitHub</a>
           </div>
           <p class="fineprint">
-            For Apple silicon. <a href="/download/intel">Intel Mac?</a> Uses your own Claude
-            subscription. No Majordome account.
+            For Apple silicon. <a href="/download/intel">Intel Mac?</a> No Majordome account.
           </p>
+
+          <div class="sum">
+            <div class="part">
+              <span class="k">Your second brain</span>
+              <strong>A folder of markdown notes</strong>
+              <span>Plain files on your Mac. An Obsidian vault works as it is.</span>
+            </div>
+            <div class="op" aria-hidden="true">+</div>
+            <div class="part">
+              <span class="k">Your AI</span>
+              <strong>Claude or ChatGPT</strong>
+              <span>The plan you already have. Nothing extra to pay.</span>
+            </div>
+            <div class="op" aria-hidden="true">=</div>
+            <div class="part total">
+              <span class="k"><span class="dot"></span>Majordome</span>
+              <strong>An assistant that knows your notes</strong>
+              <span>It reads them before you type, and works while you are away.</span>
+            </div>
+          </div>
 
           <div
             class="window"
@@ -699,7 +767,7 @@
               <li>
                 <strong>Your AI plan.</strong>
                 <span
-                  >It uses your own Claude subscription, through Claude Code. Majordome charges
+                  >It uses the Claude or ChatGPT plan you already have. Majordome charges
                   nothing.</span
                 >
               </li>
@@ -726,8 +794,8 @@
             <li><strong>Download</strong> the file for your Mac from the latest release.</li>
             <li><strong>Drag</strong> Majordome to Applications and open it.</li>
             <li>
-              <strong>Sign in to Claude</strong> on the welcome screen. It installs Claude Code if
-              you don't have it.
+              <strong>Sign in to Claude or ChatGPT</strong> on the welcome screen. It installs what
+              it needs.
             </li>
             <li>
               <strong>Choose your notes:</strong> start new ones, or point it at a folder you
