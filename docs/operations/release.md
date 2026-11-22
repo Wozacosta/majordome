@@ -7,8 +7,8 @@
 `.github/workflows/majordome-release.yml` builds the macOS app for Apple silicon and Intel, signs
 and notarizes it, and publishes `Majordome-<version>-<arch>.dmg`, the zips and the update feed
 (`latest-mac.yml`) as a GitHub Release of `Wozacosta/majordome`. Installed apps check that
-repository's latest release for updates. Nothing else is published: no npm package, web app,
-Windows or Linux build.
+repository's latest release for updates. The workflow publishes nothing else: no web app, Windows
+or Linux build. The `obrain` npm package is published by hand, see [obrain](#obrain).
 
 To cut a release, push a tag, or run **Majordome release** from the Actions tab with a version:
 
@@ -40,6 +40,13 @@ signs with Developer ID alone when neither is set.
 
 The rest of this page describes T3 Code's own pipeline (`release.yml` and the workflows it
 calls), kept for upstream merges. It skips itself outside `pingdotgg/t3code`.
+
+### obrain
+
+`packages/obrain` is the only source of the `obrain` npm package (`npx obrain`). No workflow
+publishes it. After changing it, set `version` in its `package.json` and `package-lock.json` to
+today's date (`2026.11.22`), then from `packages/obrain` run `npm test`, `npm pack --dry-run` to
+read the file list, and `npm publish`.
 
 ## What the workflow does
 

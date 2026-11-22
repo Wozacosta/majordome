@@ -168,7 +168,7 @@ personalized `AGENTS.md` and `.majordome/` stay, and so do Obsidian and your age
 ## Development
 
 ```bash
-git clone https://github.com/wozacosta/obrain.git && cd obrain
+git clone https://github.com/Wozacosta/majordome.git && cd majordome/packages/obrain
 npm install
 npm test             # node:test, no extra tooling
 node bin/obrain.js   # run the CLI from the checkout

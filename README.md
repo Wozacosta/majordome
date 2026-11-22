@@ -36,4 +36,4 @@ Then, when you want them:
 ## Credits
 
 Built on T3 Code by T3 Tools Inc., under the [MIT License](LICENSE). The vault layout and skills
-come from [obrain](https://github.com/Wozacosta/obrain).
+come from [obrain](packages/obrain).

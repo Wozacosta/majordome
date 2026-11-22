@@ -1,6 +1,6 @@
 {
   "name": "obrain",
-  "version": "2026.11.5",
+  "version": "2026.11.22",
   "description": "Wire an Obsidian vault to your AI agent (Claude Code, Codex, Cursor, OpenCode, Gemini CLI) with one command, then run your day from a small menu. Local, private, compounds over time.",
   "bin": {
     "obrain": "./bin/obrain.js"
@@ -25,7 +25,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wozacosta/obrain.git"
+    "url": "git+https://github.com/Wozacosta/majordome.git",
+    "directory": "packages/obrain"
   },
   "files": [
     "bin/",
