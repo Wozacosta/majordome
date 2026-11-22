@@ -18,6 +18,10 @@ The section for a version is also the text of its release on GitHub.
 - In Reading list, **Everything**: press **+ Subject**, name it, then file two rows under it.
 - Choose the subject, open the **…** beside it and **Put in focus**; then look at **Next**.
 
+**Fixed**
+
+- A chat under a topic is highlighted in the sidebar while it is open, like the topic itself.
+
 ## 0.10.12
 
 **New**
