@@ -20,6 +20,8 @@ import {
   MAJORDOME_READING_KINDS,
   type MajordomeReadingItem,
   type MajordomeReadingKind,
+  type MajordomeReadingSubject,
+  type MajordomeSaveReadingSubjectsInput,
   type MajordomeUpdateReadingItemInput,
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
@@ -33,9 +35,12 @@ import {
   EllipsisIcon,
   FileTextIcon,
   FolderGit2Icon,
+  FolderIcon,
+  FootprintsIcon,
   GraduationCapIcon,
   GripVerticalIcon,
   HeadphonesIcon,
+  LightbulbIcon,
   LinkIcon,
   type LucideIcon,
   MessageCircleQuestionIcon,
@@ -47,6 +52,7 @@ import {
   ShapesIcon,
   StarIcon,
   SunriseIcon,
+  TargetIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -58,6 +64,15 @@ import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
@@ -95,6 +110,7 @@ import {
   SwitchLabel,
 } from "./paper";
 import {
+  NO_SUBJECT,
   askAboutReadingMessage,
   canReorderReading,
   filterReadingItems,
@@ -111,9 +127,12 @@ import {
   readingLengthWords,
   readingMoreWords,
   readingSnoozeDate,
+  readingSubjectOf,
   readingTagCounts,
   readingTimeLeftWords,
+  searchReadingItems,
   splitSnoozedReading,
+  splitTrashedReading,
   withReadingTag,
 } from "./readingList.logic";
 import type { MajordomeVault } from "./topics.logic";
@@ -257,6 +276,10 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     label: "put back on reading list",
     ...quiet,
   });
+  const saveSubjects = useAtomCommand(majordomeEnvironment.saveReadingSubjects, {
+    label: "change reading list subjects",
+    ...quiet,
+  });
   const askAssistant = useAskAssistant();
   const now = new Date(`${useNowMinute()}:00.000Z`);
   const sensors = useSensors(
@@ -266,6 +289,8 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
 
   const [kind, setKind] = useState<MajordomeReadingKind | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const [subject, setSubject] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [allTags, setAllTags] = useState(false);
   const [hideFinished, setHideFinished] = useLocalStorage(
     "majordome:reading-list-hide-finished",
@@ -285,6 +310,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
 
   const data = AsyncResult.getOrElse(result, () => null);
   const saved = data?.items ?? [];
+  const subjects = data?.subjects ?? [];
   const idsKey = saved.map((item) => item.id).join("\n");
   const order =
     pendingOrder !== null && pendingOrder.from === idsKey
@@ -293,8 +319,9 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const items = order.flatMap((id) => saved.find((item) => item.id === id) ?? []);
 
   // Snoozed against the minute that ticks, so an item is back by itself once its day starts.
-  const { awake, snoozed } = splitSnoozedReading(items, now);
-  const { next, later } = nextReadingItems(items, now);
+  const { kept, trashed } = splitTrashedReading(items);
+  const { awake, snoozed } = splitSnoozedReading(kept, now);
+  const { next, later } = nextReadingItems(kept, now, subjects);
   const inView = hideFinished ? awake.filter((item) => item.doneAt === undefined) : awake;
   const kinds = presentReadingKinds(inView);
   const tags = readingTagCounts(inView);
@@ -302,13 +329,20 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const filters = {
     kind: kind !== null && kinds.includes(kind) ? kind : null,
     tag: tag !== null && tags.some((entry) => entry.tag === tag) ? tag : null,
+    subject:
+      subject === NO_SUBJECT || subjects.some((entry) => entry.id === subject) ? subject : null,
     hideFinished,
   };
-  const shown = orderReadingItems(filterReadingItems(awake, filters));
-  const snoozedShown = filterReadingItems(snoozed, filters);
+  const narrowed =
+    filters.kind !== null ||
+    filters.tag !== null ||
+    filters.subject !== null ||
+    query.trim() !== "";
+  const shown = orderReadingItems(filterReadingItems(searchReadingItems(awake, query), filters));
+  const snoozedShown = filterReadingItems(searchReadingItems(snoozed, query), filters);
   const unfinished = shown.filter((item) => item.doneAt === undefined);
   const finished = shown.filter((item) => item.doneAt !== undefined);
-  const reorderable = canChange && canReorderReading(filters) && unfinished.length > 1;
+  const reorderable = canChange && canReorderReading(filters, query) && unfinished.length > 1;
   const timeLeft = readingTimeLeftWords(shown);
 
   const update = async (item: MajordomeReadingItem, patch: Patch) => {
@@ -336,6 +370,31 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     });
   };
 
+  /** "Done a bit": where they got to is kept, and the item is out of the way until tomorrow. */
+  const doneABit = async (item: MajordomeReadingItem, progress: string) => {
+    const until = readingSnoozeDate("tomorrow", now);
+    const saved = await update(item, {
+      progress: progress === "" ? null : progress,
+      snoozedUntil: until,
+    });
+    if (saved) {
+      toastManager.add({
+        type: "success",
+        title: `Kept your place, ${readingBackOnWords(until, now)}`,
+        description: item.title,
+      });
+    }
+    return saved;
+  };
+
+  const putSubjects = async (wanted: MajordomeSaveReadingSubjectsInput["subjects"]) => {
+    const outcome = await saveSubjects({
+      environmentId,
+      input: { projectId, subjects: [...wanted] },
+    });
+    return !reportFailure(outcome, "Could not change your subjects");
+  };
+
   const describe = async (itemId: string) => {
     setDescribing((ids) => [...ids, itemId]);
     await updateItem({ environmentId, input: { projectId, itemId, enrich: true } });
@@ -349,25 +408,33 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     if (reportFailure(outcome, "Could not reorder your reading list")) setPendingOrder(null);
   };
 
+  const putBack = (item: MajordomeReadingItem) =>
+    restoreItem({ environmentId, input: { projectId, itemId: item.id } }).then((undone) =>
+      reportFailure(undone, `Could not put “${item.title}” back`),
+    );
+
   const remove = async (item: MajordomeReadingItem) => {
-    const index = items.findIndex((entry) => entry.id === item.id);
     const outcome = await removeItem({ environmentId, input: { projectId, itemId: item.id } });
     if (reportFailure(outcome, `Could not remove “${item.title}”`)) return;
     if (outcome._tag !== "Success") return;
     const toastId = toastManager.add({
       type: "success",
-      title: "Removed from your reading list",
+      title: "Moved to the Trash",
       description: item.title,
       actionProps: {
         children: "Undo",
         onClick: () => {
           toastManager.close(toastId);
-          void restoreItem({ environmentId, input: { projectId, item, index } }).then((undone) =>
-            reportFailure(undone, `Could not put “${item.title}” back`),
-          );
+          void putBack(item);
         },
       },
     });
+  };
+
+  // The server deletes for good what is removed while already in the Trash.
+  const deleteForGood = async (item: MajordomeReadingItem) => {
+    const outcome = await removeItem({ environmentId, input: { projectId, itemId: item.id } });
+    reportFailure(outcome, `Could not delete “${item.title}”`);
   };
 
   const showExisting = (item: MajordomeReadingItem) => {
@@ -384,9 +451,11 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const actions = (item: MajordomeReadingItem) => ({
     item,
     canChange,
+    subjects,
     describing: describing.includes(item.id),
     onUpdate: (patch: Patch) => update(item, patch),
     onSnooze: (choice: ReadingSnoozeChoice) => void snooze(item, choice),
+    onDoneABit: (progress: string) => doneABit(item, progress),
     onRemove: () => void remove(item),
     onAsk: askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item)),
   });
@@ -492,7 +561,27 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
             </>
           ) : (
             <>
-              <div className="mt-4 flex flex-wrap items-center gap-0.5">
+              <div className="mt-4">
+                <Input
+                  nativeInput
+                  type="search"
+                  size="sm"
+                  aria-label="Search your reading list"
+                  placeholder="Search titles, sites, tags and notes"
+                  maxLength={200}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </div>
+              <SubjectsBar
+                subjects={subjects}
+                selected={filters.subject}
+                canChange={canChange}
+                counts={(id) => kept.filter((item) => item.subjectId === id).length}
+                onSelect={setSubject}
+                onSave={putSubjects}
+              />
+              <div className="mt-1 flex flex-wrap items-center gap-0.5">
                 <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
                   All
                 </Chip>
@@ -541,19 +630,21 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                 {shown.length === 0 ? (
                   <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
                     <Muted className="flex-1 basis-48">
-                      {filters.kind !== null || filters.tag !== null
-                        ? "Nothing matches. Clear the filters to see everything."
+                      {narrowed
+                        ? "Nothing matches. Clear the search and filters to see everything."
                         : awake.length === 0
                           ? "Everything here is snoozed for now."
                           : "Everything here is finished. Turn off “Hide finished” to see it again."}
                     </Muted>
-                    {filters.kind !== null || filters.tag !== null ? (
+                    {narrowed ? (
                       <Button
                         size="xs"
                         variant="outline"
                         onClick={() => {
                           setKind(null);
                           setTag(null);
+                          setSubject(null);
+                          setQuery("");
                         }}
                       >
                         Clear filters
@@ -589,6 +680,30 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                   </Collapsible>
                 )}
               </DndContext>
+              {trashed.length === 0 ? null : (
+                <Collapsible>
+                  <CollapsibleTrigger className="group -mx-2 mt-3 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    <ChevronRightIcon
+                      className="size-3.5 transition-transform group-data-[panel-open]:rotate-90"
+                      aria-hidden
+                    />
+                    Trash ({trashed.length})
+                  </CollapsibleTrigger>
+                  <CollapsiblePanel>
+                    <EntryList aria-label="Trash" className="mt-1">
+                      {trashed.map((item) => (
+                        <TrashRow
+                          key={item.id}
+                          item={item}
+                          canChange={canChange}
+                          onPutBack={() => void putBack(item)}
+                          onDelete={() => void deleteForGood(item)}
+                        />
+                      ))}
+                    </EntryList>
+                  </CollapsiblePanel>
+                </Collapsible>
+              )}
             </>
           )}
         </>
@@ -603,6 +718,155 @@ function Chip(props: {
   readonly children: ReactNode;
 }) {
   return <Toggle size="xs" variant="pill" {...props} />;
+}
+
+/**
+ * The subjects to narrow the list by, with the way to add one and, for the one chosen, to put it
+ * in focus, rename it or delete it.
+ */
+function SubjectsBar({
+  subjects,
+  selected,
+  canChange,
+  counts,
+  onSelect,
+  onSave,
+}: {
+  readonly subjects: ReadonlyArray<MajordomeReadingSubject>;
+  readonly selected: string | null;
+  readonly canChange: boolean;
+  /** How many saved things are filed under a subject. */
+  readonly counts: (subjectId: string) => number;
+  readonly onSelect: (subject: string | null) => void;
+  readonly onSave: (subjects: MajordomeSaveReadingSubjectsInput["subjects"]) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState<"add" | "rename" | null>(null);
+  const [deleting, setDeleting] = useState<MajordomeReadingSubject | null>(null);
+  const chosen = subjects.find((subject) => subject.id === selected);
+  if (subjects.length === 0 && !canChange) return null;
+
+  const change = async (
+    subject: MajordomeReadingSubject,
+    patch: Partial<MajordomeReadingSubject>,
+  ) => onSave(subjects.map((entry) => (entry.id === subject.id ? { ...entry, ...patch } : entry)));
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-0.5">
+      {subjects.map((subject) => (
+        <Chip
+          key={subject.id}
+          pressed={selected === subject.id}
+          onPressedChange={(pressed) => onSelect(pressed ? subject.id : null)}
+        >
+          {subject.focus === true ? <TargetIcon aria-label="In focus" /> : null}
+          {subject.name}
+        </Chip>
+      ))}
+      {subjects.length === 0 ? null : (
+        <Chip
+          pressed={selected === NO_SUBJECT}
+          onPressedChange={(pressed) => onSelect(pressed ? NO_SUBJECT : null)}
+        >
+          No subject
+        </Chip>
+      )}
+      {!canChange ? null : editing === "add" ? (
+        <div className="w-56">
+          <InlineEdit
+            label="New subject"
+            placeholder="Subject, such as Rust"
+            initial=""
+            onCancel={() => setEditing(null)}
+            onSave={(name) => {
+              if (name === "") setEditing(null);
+              else void onSave([...subjects, { name }]).then((saved) => saved && setEditing(null));
+            }}
+          />
+        </div>
+      ) : editing === "rename" && chosen !== undefined ? (
+        <div className="w-56">
+          <InlineEdit
+            label="Subject name"
+            initial={chosen.name}
+            onCancel={() => setEditing(null)}
+            onSave={(name) => {
+              if (name === "" || name === chosen.name) setEditing(null);
+              else void change(chosen, { name }).then((saved) => saved && setEditing(null));
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          {chosen === undefined ? null : (
+            <Menu>
+              <MenuTrigger
+                render={
+                  <Button
+                    size="icon-xs"
+                    variant="ghost-muted"
+                    aria-label={`More for the subject ${chosen.name}`}
+                  />
+                }
+              >
+                <EllipsisIcon />
+              </MenuTrigger>
+              <MenuPopup align="start">
+                <MenuItem onClick={() => void change(chosen, { focus: chosen.focus !== true })}>
+                  <TargetIcon />
+                  {chosen.focus === true ? "Take out of focus" : "Put in focus"}
+                </MenuItem>
+                <MenuItem onClick={() => setEditing("rename")}>
+                  <PencilIcon />
+                  Rename
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem variant="destructive" onClick={() => setDeleting(chosen)}>
+                  <TrashIcon />
+                  Delete subject
+                </MenuItem>
+              </MenuPopup>
+            </Menu>
+          )}
+          <Button size="xs" variant="ghost-muted" onClick={() => setEditing("add")}>
+            <PlusIcon />
+            Subject
+          </Button>
+        </>
+      )}
+      <AlertDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+      >
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete the subject “{deleting?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting === null || counts(deleting.id) === 0
+                ? "Nothing is filed under it."
+                : `What is filed under it (${counts(deleting.id)}) stays on your list, under no subject.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>Keep it</AlertDialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const gone = deleting;
+                if (gone === null) return;
+                void onSave(subjects.filter((entry) => entry.id !== gone.id)).then((saved) => {
+                  if (saved) setDeleting(null);
+                });
+              }}
+            >
+              Delete subject
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
+    </div>
+  );
 }
 
 function AddReadingItem({
@@ -653,15 +917,18 @@ function AddReadingItem({
   );
 }
 
-type Editing = "title" | "length" | "note" | "tag" | null;
+type Editing = "title" | "length" | "note" | "tag" | "why" | "progress" | null;
 
 /** What a row and a Next card are both handed for one item. */
 interface ItemActions {
   readonly item: MajordomeReadingItem;
   readonly canChange: boolean;
+  readonly subjects: ReadonlyArray<MajordomeReadingSubject>;
   readonly describing: boolean;
   readonly onUpdate: (patch: Patch) => Promise<boolean>;
   readonly onSnooze: (choice: ReadingSnoozeChoice) => void;
+  /** Keeps where they got to (empty for nowhere worth saying) and snoozes it until tomorrow. */
+  readonly onDoneABit: (progress: string) => Promise<boolean>;
   readonly onRemove: () => void;
   readonly onAsk: (() => void) | null;
 }
@@ -670,13 +937,18 @@ interface ItemActions {
 function ItemText({
   item,
   canChange,
+  subjects,
   describing,
   onUpdate,
+  onDoneABit,
   editing,
   onEditing,
   length = null,
   large = false,
-}: Pick<ItemActions, "item" | "canChange" | "describing" | "onUpdate"> & {
+}: Pick<
+  ItemActions,
+  "item" | "canChange" | "subjects" | "describing" | "onUpdate" | "onDoneABit"
+> & {
   readonly editing: Editing;
   readonly onEditing: (editing: Editing) => void;
   /** Said beside the source, where the item has no column of its own for it. */
@@ -684,6 +956,7 @@ function ItemText({
   readonly large?: boolean;
 }) {
   const done = item.doneAt !== undefined;
+  const source = [readingSubjectOf(item, subjects)?.name, item.site, length].filter(Boolean);
   const save = async (patch: Patch) => {
     if (await onUpdate(patch)) onEditing(null);
   };
@@ -719,6 +992,20 @@ function ItemText({
           )}
         </p>
       )}
+      {editing === "why" ? (
+        <InlineEdit
+          label="Why read it"
+          placeholder="One line on what it gives you"
+          initial={item.why ?? ""}
+          onCancel={() => onEditing(null)}
+          onSave={(text) => void save({ why: text === "" ? null : text })}
+        />
+      ) : item.why ? (
+        <p className={cn("wrap-break-word text-foreground", large ? "text-sm" : "text-xs")}>
+          <span className="text-muted-foreground">Why: </span>
+          {item.why}
+        </p>
+      ) : null}
       {item.summary !== undefined ? (
         <p className={cn("wrap-break-word text-muted-foreground", large ? "text-sm" : "text-xs")}>
           {item.summary}
@@ -742,6 +1029,19 @@ function ItemText({
           {item.notes}
         </p>
       ) : null}
+      {editing === "progress" ? (
+        <InlineEdit
+          label="Where you got to"
+          placeholder="Where you got to, so you can pick up from there"
+          initial={item.progress ?? ""}
+          onCancel={() => onEditing(null)}
+          onSave={(text) =>
+            void onDoneABit(text).then((saved) => (saved ? onEditing(null) : undefined))
+          }
+        />
+      ) : item.progress ? (
+        <p className="text-xs wrap-break-word text-muted-foreground">Got to: {item.progress}</p>
+      ) : null}
       {editing === "length" ? (
         <InlineEdit
           label="Length in minutes"
@@ -756,11 +1056,9 @@ function ItemText({
         />
       ) : null}
       <div className="flex flex-wrap items-center gap-1.5">
-        {item.site || length !== null ? (
-          <span className="me-1 text-xs text-muted-foreground">
-            {[item.site, length].filter(Boolean).join(" · ")}
-          </span>
-        ) : null}
+        {source.length === 0 ? null : (
+          <span className="me-1 text-xs text-muted-foreground">{source.join(" · ")}</span>
+        )}
         {item.tags.map((tag) => (
           <Badge key={tag} variant="secondary">
             {tag}
@@ -820,13 +1118,14 @@ function ItemText({
 function ItemMenu({
   item,
   canChange,
+  subjects,
   snoozed,
   onEditing,
   onUpdate,
   onSnooze,
   onRemove,
   onAsk,
-}: Omit<ItemActions, "describing"> & {
+}: Omit<ItemActions, "describing" | "onDoneABit"> & {
   readonly snoozed: boolean;
   readonly onEditing: (editing: Editing) => void;
 }) {
@@ -848,6 +1147,10 @@ function ItemMenu({
         <MenuItem onClick={() => onEditing("note")}>
           <NotebookPenIcon />
           {item.notes ? "Edit note" : "Add a note"}
+        </MenuItem>
+        <MenuItem onClick={() => onEditing("why")}>
+          <LightbulbIcon />
+          {item.why ? "Edit why" : "Say why"}
         </MenuItem>
         <MenuItem onClick={() => onEditing("length")}>
           <ClockIcon />
@@ -878,10 +1181,41 @@ function ItemMenu({
             </MenuRadioGroup>
           </MenuSubPopup>
         </MenuSub>
+        {subjects.length === 0 ? null : (
+          <MenuSub>
+            <MenuSubTrigger>
+              <FolderIcon />
+              Subject
+            </MenuSubTrigger>
+            <MenuSubPopup>
+              <MenuRadioGroup
+                value={readingSubjectOf(item, subjects)?.id ?? NO_SUBJECT}
+                onValueChange={(chosen) =>
+                  void onUpdate({ subjectId: chosen === NO_SUBJECT ? null : String(chosen) })
+                }
+              >
+                <MenuRadioItem value={NO_SUBJECT} closeOnClick>
+                  No subject
+                </MenuRadioItem>
+                {subjects.map((subject) => (
+                  <MenuRadioItem key={subject.id} value={subject.id} closeOnClick>
+                    {subject.name}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuSubPopup>
+          </MenuSub>
+        )}
         {item.url === null ? null : (
           <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
             <RefreshCwIcon />
             Look it up again
+          </MenuItem>
+        )}
+        {item.doneAt !== undefined || snoozed ? null : (
+          <MenuItem onClick={() => onEditing("progress")}>
+            <FootprintsIcon />
+            Done a bit…
           </MenuItem>
         )}
         {item.doneAt !== undefined ? null : snoozed ? (
@@ -1011,7 +1345,40 @@ function ReadingRow({
   );
 }
 
-/** One of the first things to do, with room to breathe and the two answers that matter. */
+/** Something removed: it can be put back, or deleted for good. */
+function TrashRow({
+  item,
+  canChange,
+  onPutBack,
+  onDelete,
+}: {
+  readonly item: MajordomeReadingItem;
+  readonly canChange: boolean;
+  readonly onPutBack: () => void;
+  readonly onDelete: () => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
+      <ItemTile item={item} dimmed />
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-0.5">
+        <p className="min-w-0 text-sm wrap-break-word text-muted-foreground">{item.title}</p>
+        {item.site ? <span className="text-xs text-muted-foreground">{item.site}</span> : null}
+      </div>
+      {canChange ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button size="xs" variant="outline" onClick={onPutBack}>
+            Put back
+          </Button>
+          <Button size="xs" variant="destructive-outline" onClick={onDelete}>
+            Delete for good
+          </Button>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/** One of the first things to do, with room to breathe and the answers that matter. */
 function NextCard(actions: ItemActions) {
   const { item, canChange, onUpdate, onSnooze } = actions;
   const [editing, setEditing] = useState<Editing>(null);
@@ -1035,6 +1402,9 @@ function NextCard(actions: ItemActions) {
             <Button size="sm" variant="outline" onClick={() => void onUpdate({ done: true })}>
               <CheckIcon />
               Finished
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing("progress")}>
+              Done a bit
             </Button>
             <Button size="sm" variant="ghost" onClick={() => onSnooze("tomorrow")}>
               Not now

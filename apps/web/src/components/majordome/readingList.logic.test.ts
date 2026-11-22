@@ -2,6 +2,7 @@ import type { MajordomeReadingItem } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
 import {
+  NO_SUBJECT,
   askAboutReadingMessage,
   canReorderReading,
   filterReadingItems,
@@ -15,10 +16,13 @@ import {
   readingBackOnWords,
   readingLengthWords,
   readingMoreWords,
+  readingSubjectOf,
   readingSnoozeDate,
   readingTagCounts,
   readingTimeLeftWords,
+  searchReadingItems,
   splitSnoozedReading,
+  splitTrashedReading,
   withReadingTag,
 } from "./readingList.logic";
 
@@ -217,4 +221,57 @@ it("asks the assistant for a preview before reading and a quiz after", () => {
   expect(askAboutReadingMessage(item("a", { url: null, doneAt: "2026-11-10T08:00:00.000Z" }))).toBe(
     "About “Title a” on my reading list: quiz me on it with three short questions, then save what I want to remember as its note.",
   );
+});
+
+it("searches every word across what a row says, whatever the case or accents", () => {
+  const saved = [
+    item("a", { title: "Les réseaux de neurones", site: "Le Blog" }),
+    item("b", { tags: ["rust"], notes: "Good on lifetimes" }),
+    item("c", { url: "https://rust-lang.org/learn", why: "Before the async book" }),
+  ];
+  expect(ids(searchReadingItems(saved, "  "))).toEqual(["a", "b", "c"]);
+  expect(ids(searchReadingItems(saved, "RESEAUX blog"))).toEqual(["a"]);
+  expect(ids(searchReadingItems(saved, "rust"))).toEqual(["b", "c"]);
+  expect(ids(searchReadingItems(saved, "rust async"))).toEqual(["c"]);
+  expect(canReorderReading(NO_FILTERS, " ")).toBe(true);
+  expect(canReorderReading(NO_FILTERS, "rust")).toBe(false);
+});
+
+it("keeps the Trash apart, last removed first", () => {
+  const saved = [
+    item("a", { deletedAt: "2026-11-10T08:00:00.000Z" }),
+    item("b"),
+    item("c", { deletedAt: "2026-11-12T08:00:00.000Z" }),
+  ];
+  const { kept, trashed } = splitTrashedReading(saved);
+  expect(ids(kept)).toEqual(["b"]);
+  expect(ids(trashed)).toEqual(["c", "a"]);
+});
+
+it("with subjects in focus, next is the top of each, then what was started elsewhere", () => {
+  const subjects = [
+    { id: "sleep", name: "Sleep", focus: true },
+    { id: "rust", name: "Rust", focus: true },
+    { id: "later", name: "Later" },
+  ];
+  const saved = [
+    item("a", { subjectId: "later" }),
+    item("b", { subjectId: "rust", snoozedUntil: "2026-12-01" }),
+    item("c", { subjectId: "rust" }),
+    item("d", { subjectId: "rust" }),
+    item("e", { subjectId: "sleep", doneAt: "2026-11-10T08:00:00.000Z" }),
+    item("f", { subjectId: "sleep" }),
+    item("g", { subjectId: "later", progress: "Half way" }),
+    item("h"),
+  ];
+  const { next, later } = nextReadingItems(saved, NOW, subjects);
+  expect(ids(next)).toEqual(["f", "c", "g"]);
+  expect(ids(later)).toEqual(["a", "d", "h"]);
+  // No subject in focus has anything left: the top of the list, as without subjects.
+  expect(ids(nextReadingItems(saved, NOW, [subjects[2]!]).next)).toEqual(["a", "c", "d"]);
+
+  expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: "sleep" }))).toEqual(["e", "f"]);
+  expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: NO_SUBJECT }))).toEqual(["h"]);
+  expect(canReorderReading({ ...NO_FILTERS, subject: "sleep" })).toBe(false);
+  expect(readingSubjectOf(item("x", { subjectId: "gone" }), subjects)).toBeUndefined();
 });

@@ -216,6 +216,8 @@ import {
   MajordomeReadingListResult,
   MajordomeReorderReadingItemsInput,
   MajordomeRestoreReadingItemInput,
+  MajordomeSaveReadingSubjectsInput,
+  MajordomeSaveReadingSubjectsResult,
   MajordomeUpdateReadingItemInput,
 } from "./majordomeReadingList.ts";
 import {
@@ -864,6 +866,7 @@ export const WS_METHODS = {
   majordomeReorderReadingItems: "majordome.reorderReadingItems",
   majordomeRemoveReadingItem: "majordome.removeReadingItem",
   majordomeRestoreReadingItem: "majordome.restoreReadingItem",
+  majordomeSaveReadingSubjects: "majordome.saveReadingSubjects",
   majordomeListTodos: "majordome.listTodos",
   majordomeSetTodoDone: "majordome.setTodoDone",
   majordomeAddTodo: "majordome.addTodo",
@@ -2760,6 +2763,12 @@ const WsMajordomeRestoreReadingItemRpc = Rpc.make(WS_METHODS.majordomeRestoreRea
   error: readingListError,
 });
 
+const WsMajordomeSaveReadingSubjectsRpc = Rpc.make(WS_METHODS.majordomeSaveReadingSubjects, {
+  payload: MajordomeSaveReadingSubjectsInput,
+  success: MajordomeSaveReadingSubjectsResult,
+  error: readingListError,
+});
+
 const WsMajordomeListTodosRpc = Rpc.make(WS_METHODS.majordomeListTodos, {
   payload: MajordomeTodosInput,
   success: MajordomeTodosResult,
@@ -3281,6 +3290,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeReorderReadingItemsRpc,
   WsMajordomeRemoveReadingItemRpc,
   WsMajordomeRestoreReadingItemRpc,
+  WsMajordomeSaveReadingSubjectsRpc,
   WsMajordomeListTodosRpc,
   WsMajordomeSetTodoDoneRpc,
   WsMajordomeAddTodoRpc,

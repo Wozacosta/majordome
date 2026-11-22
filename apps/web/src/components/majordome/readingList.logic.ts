@@ -2,6 +2,7 @@ import {
   MAJORDOME_READING_KINDS,
   type MajordomeReadingItem,
   type MajordomeReadingKind,
+  type MajordomeReadingSubject,
 } from "@t3tools/contracts";
 
 export const READING_KIND_LABELS: Readonly<Record<MajordomeReadingKind, string>> = {
@@ -25,10 +26,23 @@ export const READING_KIND_NAMES: Readonly<Record<MajordomeReadingKind, string>> 
   other: "Other",
 };
 
+/** The filter for what is filed under no subject. */
+export const NO_SUBJECT = "none";
+
 export interface ReadingFilters {
   readonly kind: MajordomeReadingKind | null;
   readonly tag: string | null;
   readonly hideFinished: boolean;
+  /** A subject's id, `NO_SUBJECT`, or nothing for every subject. */
+  readonly subject?: string | null;
+}
+
+/** The subject an item is filed under; one that no longer exists counts as none. */
+export function readingSubjectOf(
+  item: Pick<MajordomeReadingItem, "subjectId">,
+  subjects: ReadonlyArray<MajordomeReadingSubject>,
+): MajordomeReadingSubject | undefined {
+  return subjects.find((subject) => subject.id === item.subjectId);
 }
 
 const isFinished = (item: MajordomeReadingItem) => item.doneAt !== undefined;
@@ -51,13 +65,58 @@ export function filterReadingItems(
     (item) =>
       (filters.kind === null || item.kind === filters.kind) &&
       (filters.tag === null || item.tags.includes(filters.tag)) &&
+      (filters.subject == null ||
+        (filters.subject === NO_SUBJECT
+          ? item.subjectId === undefined
+          : item.subjectId === filters.subject)) &&
       !(filters.hideFinished && isFinished(item)),
   );
 }
 
-/** Whether rows can be dragged: with a kind or tag chosen, a drop would move rows that are hidden. */
-export function canReorderReading(filters: ReadingFilters): boolean {
-  return filters.kind === null && filters.tag === null;
+/**
+ * Whether rows can be dragged: with a kind, a tag, a subject or a search narrowing the list, a
+ * drop would move rows that are hidden.
+ */
+export function canReorderReading(filters: ReadingFilters, query = ""): boolean {
+  return (
+    filters.kind === null && filters.tag === null && filters.subject == null && query.trim() === ""
+  );
+}
+
+/** The list without what is in the Trash, and the Trash with the last removed first. */
+export function splitTrashedReading(items: ReadonlyArray<MajordomeReadingItem>): {
+  readonly kept: ReadonlyArray<MajordomeReadingItem>;
+  readonly trashed: ReadonlyArray<MajordomeReadingItem>;
+} {
+  return {
+    kept: items.filter((item) => item.deletedAt === undefined),
+    trashed: items
+      .filter((item) => item.deletedAt !== undefined)
+      .toSorted((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? "")),
+  };
+}
+
+const plain = (text: string) =>
+  text
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+/** The items that hold every word typed, anywhere in what a row says; case and accents ignored. */
+export function searchReadingItems(
+  items: ReadonlyArray<MajordomeReadingItem>,
+  query: string,
+): ReadonlyArray<MajordomeReadingItem> {
+  const words = plain(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return items;
+  return items.filter((item) => {
+    const text = plain(
+      [item.title, item.site, item.url, item.summary, item.notes, item.why, item.progress]
+        .concat(item.tags)
+        .join(" "),
+    );
+    return words.every((word) => text.includes(word));
+  });
 }
 
 export function presentReadingKinds(
@@ -137,16 +196,30 @@ export function splitSnoozedReading(
   };
 }
 
-/** The first few things to do, in the owner's order, and the unfinished ones after them. */
+/**
+ * What to do next, and the unfinished ones after. With subjects in focus it is the top item of
+ * each, in the subjects' order, then anything already started elsewhere. Without, or when none
+ * of them has anything left, it is the first few of the list.
+ */
 export function nextReadingItems(
   items: ReadonlyArray<MajordomeReadingItem>,
   now: Date,
+  subjects: ReadonlyArray<MajordomeReadingSubject> = [],
 ): {
   readonly next: ReadonlyArray<MajordomeReadingItem>;
   readonly later: ReadonlyArray<MajordomeReadingItem>;
 } {
-  const open = items.filter((item) => !isFinished(item) && !isReadingSnoozed(item, now));
-  return { next: open.slice(0, READING_NEXT_COUNT), later: open.slice(READING_NEXT_COUNT) };
+  const open = items.filter(
+    (item) => !isFinished(item) && !isReadingSnoozed(item, now) && item.deletedAt === undefined,
+  );
+  const tops = subjects
+    .filter((subject) => subject.focus === true)
+    .flatMap((subject) => open.find((item) => item.subjectId === subject.id) ?? []);
+  const next =
+    tops.length === 0
+      ? open.slice(0, READING_NEXT_COUNT)
+      : [...tops, ...open.filter((item) => item.progress !== undefined && !tops.includes(item))];
+  return { next, later: open.filter((item) => !next.includes(item)) };
 }
 
 /** "12 more on your list · 5 h 24 min" for what comes after the Next ones; null for none. */

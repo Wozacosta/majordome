@@ -443,6 +443,11 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeRestoreReadingItem,
       onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
     }),
+    saveReadingSubjects: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:save-reading-subjects",
+      tag: WS_METHODS.majordomeSaveReadingSubjects,
+      onSettled: ({ environmentId }, registry) => bumpReadingList(environmentId, registry),
+    }),
     dismissTopicSuggestions: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:dismiss-topic-suggestions",
       tag: WS_METHODS.majordomeDismissTopicSuggestions,

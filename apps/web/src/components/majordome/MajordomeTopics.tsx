@@ -366,6 +366,7 @@ function VaultTopics({
                         ? opening.topicId === topic.id
                         : threadKey !== null && threadKey === routeThreadKey
                     }
+                    routeThreadKey={routeThreadKey}
                     sideChats={(topic.sideChats ?? []).flatMap((chat) => {
                       const shell = threadByKey.get(scopedThreadKey(chat));
                       return shell === undefined
@@ -452,11 +453,26 @@ function TopicRow(props: {
     readonly by: (offset: number) => void;
   } | null;
   readonly isActive: boolean;
+  /** The conversation on screen, so the row of a chat under the topic can show it is open. */
+  readonly routeThreadKey: string | null;
   readonly onOpen: () => void;
   readonly onNewChat: () => void;
   readonly actions: TopicActions;
 }) {
   const { topic, thread, actions } = props;
+  const nestedRowClass = (environmentId: EnvironmentId, threadId: ThreadId, quiet: boolean) => {
+    const open = scopedThreadKey(scopeThreadRef(environmentId, threadId)) === props.routeThreadKey;
+    return {
+      "aria-current": open ? ("page" as const) : undefined,
+      className: cn(
+        "flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        quiet
+          ? "text-sidebar-muted-foreground hover:text-sidebar-foreground"
+          : "text-sidebar-foreground",
+        open && "bg-sidebar-row-selected font-medium text-sidebar-foreground",
+      ),
+    };
+  };
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: topic.id,
   });
@@ -587,7 +603,7 @@ function TopicRow(props: {
                   onClick={() => {
                     if (isMobile) setOpenMobile(false);
                   }}
-                  className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  {...nestedRowClass(item.environmentId, item.task.threadId, true)}
                 >
                   <RepeatIcon className="size-3.5 shrink-0" aria-hidden />
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -612,7 +628,7 @@ function TopicRow(props: {
                 onClick={() => {
                   if (isMobile) setOpenMobile(false);
                 }}
-                className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                {...nestedRowClass(chat.environmentId, chat.threadId, false)}
               >
                 <MessageCircleIcon
                   className="size-3.5 shrink-0 text-sidebar-muted-foreground"
@@ -646,7 +662,7 @@ function TopicRow(props: {
                 onClick={() => {
                   if (isMobile) setOpenMobile(false);
                 }}
-                className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                {...nestedRowClass(chat.environmentId, chat.threadId, true)}
               >
                 <MessageCircleIcon className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate text-sidebar-foreground">

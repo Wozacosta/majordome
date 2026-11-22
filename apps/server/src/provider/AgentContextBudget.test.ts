@@ -18,6 +18,7 @@ import { MajordomeNotesSearch } from "../majordome/MajordomeNotesSearch.ts";
 import { MajordomePrivateDocuments } from "../majordome/MajordomePrivateDocuments.ts";
 import { MajordomeSettings } from "../majordome/MajordomeSettings.ts";
 import { MajordomePush } from "../majordome/MajordomePush.ts";
+import { MajordomeReadingList } from "../majordome/MajordomeReadingList.ts";
 import * as McpHttpServer from "../mcp/McpHttpServer.ts";
 import { PreviewAutomationBroker } from "../mcp/PreviewAutomationBroker.ts";
 import {
@@ -67,6 +68,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(MajordomeNotesSearch)({}),
   Layer.mock(MajordomePrivateDocuments)({}),
   Layer.mock(MajordomePush)({}),
+  Layer.mock(MajordomeReadingList)({}),
   Layer.mock(MajordomeSettings)({}),
   Layer.mock(ManagedProjectFolders)({ namedProjectsRoot: "" }),
   Layer.mock(McpProviderSessions)({}),

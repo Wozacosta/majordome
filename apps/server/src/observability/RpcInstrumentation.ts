@@ -171,6 +171,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeReorderReadingItems]: "majordome",
   [WS_METHODS.majordomeRemoveReadingItem]: "majordome",
   [WS_METHODS.majordomeRestoreReadingItem]: "majordome",
+  [WS_METHODS.majordomeSaveReadingSubjects]: "majordome",
   [WS_METHODS.majordomeListTodos]: "majordome",
   [WS_METHODS.majordomeSetTodoDone]: "majordome",
   [WS_METHODS.majordomeAddTodo]: "majordome",

@@ -16,6 +16,18 @@ export const MajordomeReadingKind = Schema.Literals(MAJORDOME_READING_KINDS);
 export type MajordomeReadingKind = typeof MajordomeReadingKind.Type;
 
 /**
+ * A subject the owner files saved things under, such as "Rust" or "Sleep". Unrelated to the
+ * topics of the sidebar: these only group the reading list.
+ */
+export const MajordomeReadingSubject = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  name: TrimmedNonEmptyString,
+  /** One of the few subjects the Next view draws from; the others wait. */
+  focus: Schema.optional(Schema.Boolean),
+});
+export type MajordomeReadingSubject = typeof MajordomeReadingSubject.Type;
+
+/**
  * One thing the owner saved to read, watch or listen to later, as `.majordome/reading-list.json`
  * in the vault stores it. The list's order is the owner's.
  */
@@ -45,6 +57,14 @@ export const MajordomeReadingItem = Schema.Struct({
   starred: Schema.optional(Schema.Boolean),
   /** What the owner took from it, in their words. */
   notes: Schema.optional(Schema.String),
+  /** One line on what it gives the owner, written when it was recommended to them. */
+  why: Schema.optional(Schema.String),
+  /** Where the owner got to in something long, in their words; gone once it is finished. */
+  progress: Schema.optional(Schema.String),
+  /** Set while the item is in the Trash, where it keeps its place in the list. */
+  deletedAt: Schema.optional(Schema.String),
+  /** The subject it is filed under, if any. */
+  subjectId: Schema.optional(Schema.String),
 });
 export type MajordomeReadingItem = typeof MajordomeReadingItem.Type;
 
@@ -57,6 +77,8 @@ export const MajordomeReadingListResult = Schema.Struct({
   isVault: Schema.Boolean,
   /** In the owner's order. */
   items: Schema.Array(MajordomeReadingItem),
+  /** In the owner's order; absent from a server older than subjects. */
+  subjects: Schema.optional(Schema.Array(MajordomeReadingSubject)),
 });
 export type MajordomeReadingListResult = typeof MajordomeReadingListResult.Type;
 
@@ -90,6 +112,12 @@ export const MajordomeUpdateReadingItemInput = Schema.Struct({
   starred: Schema.optional(Schema.Boolean),
   /** Null or empty removes the notes. */
   notes: Schema.optional(Schema.NullOr(Schema.String)),
+  /** Null or empty removes each of these. */
+  summary: Schema.optional(Schema.NullOr(Schema.String)),
+  why: Schema.optional(Schema.NullOr(Schema.String)),
+  progress: Schema.optional(Schema.NullOr(Schema.String)),
+  /** Null files it under no subject. */
+  subjectId: Schema.optional(Schema.NullOr(Schema.String)),
   /**
    * Reads the link again for its picture, and for the source and length it still lacks. A video
    * or podcast gets its playing time, going by the kind sent here or else the item's own.
@@ -110,19 +138,35 @@ export const MajordomeReorderReadingItemsInput = Schema.Struct({
 });
 export type MajordomeReorderReadingItemsInput = typeof MajordomeReorderReadingItemsInput.Type;
 
+/**
+ * The subjects as they should be from now on, in order. One without an id is new; one left out is
+ * removed, and what was filed under it is filed under nothing.
+ */
+export const MajordomeSaveReadingSubjectsInput = Schema.Struct({
+  projectId: ProjectId,
+  subjects: Schema.Array(
+    Schema.Struct({
+      id: Schema.optional(TrimmedNonEmptyString),
+      name: TrimmedNonEmptyString,
+      focus: Schema.optional(Schema.Boolean),
+    }),
+  ),
+});
+export type MajordomeSaveReadingSubjectsInput = typeof MajordomeSaveReadingSubjectsInput.Type;
+
+export const MajordomeSaveReadingSubjectsResult = Schema.Struct({
+  subjects: Schema.Array(MajordomeReadingSubject),
+});
+export type MajordomeSaveReadingSubjectsResult = typeof MajordomeSaveReadingSubjectsResult.Type;
+
 export const MajordomeReadingItemRefInput = Schema.Struct({
   projectId: ProjectId,
   itemId: TrimmedNonEmptyString,
 });
 export type MajordomeReadingItemRefInput = typeof MajordomeReadingItemRefInput.Type;
 
-/** Puts back an item just removed, where it was: the way out of a removal. */
-export const MajordomeRestoreReadingItemInput = Schema.Struct({
-  projectId: ProjectId,
-  item: MajordomeReadingItem,
-  /** Its place in the list; past the end puts it last. */
-  index: Schema.Number,
-});
+/** Takes an item out of the Trash: the way out of a removal. */
+export const MajordomeRestoreReadingItemInput = MajordomeReadingItemRefInput;
 export type MajordomeRestoreReadingItemInput = typeof MajordomeRestoreReadingItemInput.Type;
 
 export class MajordomeReadingListError extends Schema.TaggedError<MajordomeReadingListError>()(

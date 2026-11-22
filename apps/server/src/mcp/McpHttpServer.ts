@@ -101,9 +101,11 @@ import * as AgentNotify from "../majordome/AgentNotify.ts";
 import { PrivateDocumentsToolkit } from "./toolkits/privateDocuments/tools.ts";
 import * as PrivateDocumentsHandlers from "./toolkits/privateDocuments/handlers.ts";
 import { NotesSearchToolkit } from "./toolkits/notesSearch/tools.ts";
+import { ReadingListToolkit } from "./toolkits/readingList/tools.ts";
 import { MajordomeSettingsToolkit } from "./toolkits/majordomeSettings/tools.ts";
 import * as MajordomeSettingsHandlers from "./toolkits/majordomeSettings/handlers.ts";
 import * as NotesSearchHandlers from "./toolkits/notesSearch/handlers.ts";
+import * as ReadingListHandlers from "./toolkits/readingList/handlers.ts";
 import { HtmlPreviewTool, HtmlPreviewToolkit, HtmlRenderToolkit } from "./toolkits/html/tools.ts";
 import { MCP_HTTP_PATH } from "../httpCors.ts";
 import { requestUrl } from "../requestUrl.ts";
@@ -1354,6 +1356,8 @@ const layerPrivateDocumentsToolkit = toolkitRegistration(
 
 const layerNotesSearchToolkit = toolkitRegistration(NotesSearchToolkit, NotesSearchHandlers.layer);
 
+const layerReadingListToolkit = toolkitRegistration(ReadingListToolkit, ReadingListHandlers.layer);
+
 const layerMajordomeSettingsToolkit = toolkitRegistration(
   MajordomeSettingsToolkit,
   MajordomeSettingsHandlers.layer,
@@ -1455,6 +1459,7 @@ export const layerTools = Layer.mergeAll(
   layerNotifyToolkit,
   layerPrivateDocumentsToolkit,
   layerNotesSearchToolkit,
+  layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
 );
 
