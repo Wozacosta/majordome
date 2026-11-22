@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.8
+
 **Changed**
 
 - **Chats have their own page.** The Recent and Earlier lists are gone from the sidebar. One
