@@ -37,8 +37,9 @@ it.effect("reads, saves to and changes the calling thread's reading list", () =>
       item("next", { tags: ["rust"], image: "https://example.com/next.jpg" }),
       item("read", { doneAt: "2026-11-02T08:00:00.000Z", notes: "Good on lifetimes." }),
       item("binned", { deletedAt: "2026-11-03T08:00:00.000Z" }),
-      item("other", { site: "Rust Blog" }),
+      item("other", { site: "Rust Blog", subjectId: "sub-rust" }),
     ];
+    const subjects = [{ id: "sub-rust", name: "Rust", focus: true }];
     const calls: Array<readonly [string, unknown]> = [];
     const layerDependencies = Layer.mergeAll(
       Layer.succeed(McpInvocationContext.McpInvocationContext, {
@@ -57,7 +58,7 @@ it.effect("reads, saves to and changes the calling thread's reading list", () =>
         getThreadShell: () => Effect.succeed(liveThreadShell(threadId)),
       }),
       Layer.mock(MajordomeReadingList.MajordomeReadingList)({
-        list: () => Effect.succeed({ isVault, items }),
+        list: () => Effect.succeed({ isVault, items, subjects: isVault ? subjects : [] }),
         add: (input, options) => {
           calls.push(["add", { input, options }]);
           return Effect.succeed({
@@ -102,8 +103,13 @@ it.effect("reads, saves to and changes the calling thread's reading list", () =>
             url: "https://example.com/other",
             kind: "article",
             site: "Rust Blog",
+            subjectId: "sub-rust",
           },
         ],
+        subjects,
+      });
+      expect(yield* call("list_reading", { subjectId: "sub-rust" })).toMatchObject({
+        items: [{ id: "other" }],
       });
       expect(yield* call("list_reading", { query: "RUST blog", limit: 1 })).toMatchObject({
         items: [{ id: "other" }],

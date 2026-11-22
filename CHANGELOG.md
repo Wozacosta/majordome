@@ -5,7 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Subjects for the reading list.** Group what you saved around what you are learning: make a
+  subject with **+ Subject**, file rows under it from their **…** menu, and press a subject to
+  see only its rows. Put the few you are working on **in focus** and **Next** shows the top row
+  of each, instead of the first three of the whole list. Subjects are separate from the topics
+  in the sidebar. The assistant can file a row under a subject; it never makes one.
+
+**Try this**
+
+- In Reading list, **Everything**: press **+ Subject**, name it, then file two rows under it.
+- Choose the subject, open the **…** beside it and **Put in focus**; then look at **Next**.
 
 ## 0.10.12
 

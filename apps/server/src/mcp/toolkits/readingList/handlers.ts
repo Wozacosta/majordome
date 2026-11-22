@@ -53,6 +53,7 @@ const present = (item: MajordomeReadingItem) => ({
   ...(item.starred === true ? { starred: true } : {}),
   ...(item.doneAt === undefined ? {} : { doneAt: item.doneAt }),
   ...(item.snoozedUntil === undefined ? {} : { snoozedUntil: item.snoozedUntil }),
+  ...(item.subjectId === undefined ? {} : { subjectId: item.subjectId }),
 });
 
 const holdsEveryWord = (item: MajordomeReadingItem, query: string) => {
@@ -74,7 +75,7 @@ const itemsOf = (projectId: ProjectId) =>
 const handlers = {
   list_reading: McpToolAccess.readsAsCaller((input) =>
     Effect.gen(function* () {
-      const { isVault, items } = yield* itemsOf(yield* callerProject("list_reading"));
+      const { isVault, items, subjects } = yield* itemsOf(yield* callerProject("list_reading"));
       if (!isVault) return { items: [], note: READING_LIST_NOTES.not_a_vault };
       const status = input.status ?? "unread";
       const matching = items.filter(
@@ -83,11 +84,21 @@ const handlers = {
             ? item.deletedAt !== undefined
             : item.deletedAt === undefined &&
               (item.doneAt !== undefined) === (status === "done")) &&
+          (input.subjectId === undefined || item.subjectId === input.subjectId) &&
           (input.query === undefined || holdsEveryWord(item, input.query)),
       );
       const limit = input.limit ?? LIST_READING_DEFAULT_LIMIT;
       return {
         items: matching.slice(0, limit).map(present),
+        ...(subjects === undefined || subjects.length === 0
+          ? {}
+          : {
+              subjects: subjects.map(({ id, name, focus }) => ({
+                id,
+                name,
+                ...(focus === true ? { focus } : {}),
+              })),
+            }),
         ...(matching.length > limit ? { total: matching.length } : {}),
       };
     }),

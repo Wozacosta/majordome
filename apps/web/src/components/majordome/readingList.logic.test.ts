@@ -2,6 +2,7 @@ import type { MajordomeReadingItem } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
 import {
+  NO_SUBJECT,
   askAboutReadingMessage,
   canReorderReading,
   filterReadingItems,
@@ -15,6 +16,7 @@ import {
   readingBackOnWords,
   readingLengthWords,
   readingMoreWords,
+  readingSubjectOf,
   readingSnoozeDate,
   readingTagCounts,
   readingTimeLeftWords,
@@ -244,4 +246,32 @@ it("keeps the Trash apart, last removed first", () => {
   const { kept, trashed } = splitTrashedReading(saved);
   expect(ids(kept)).toEqual(["b"]);
   expect(ids(trashed)).toEqual(["c", "a"]);
+});
+
+it("with subjects in focus, next is the top of each, then what was started elsewhere", () => {
+  const subjects = [
+    { id: "sleep", name: "Sleep", focus: true },
+    { id: "rust", name: "Rust", focus: true },
+    { id: "later", name: "Later" },
+  ];
+  const saved = [
+    item("a", { subjectId: "later" }),
+    item("b", { subjectId: "rust", snoozedUntil: "2026-12-01" }),
+    item("c", { subjectId: "rust" }),
+    item("d", { subjectId: "rust" }),
+    item("e", { subjectId: "sleep", doneAt: "2026-11-10T08:00:00.000Z" }),
+    item("f", { subjectId: "sleep" }),
+    item("g", { subjectId: "later", progress: "Half way" }),
+    item("h"),
+  ];
+  const { next, later } = nextReadingItems(saved, NOW, subjects);
+  expect(ids(next)).toEqual(["f", "c", "g"]);
+  expect(ids(later)).toEqual(["a", "d", "h"]);
+  // No subject in focus has anything left: the top of the list, as without subjects.
+  expect(ids(nextReadingItems(saved, NOW, [subjects[2]!]).next)).toEqual(["a", "c", "d"]);
+
+  expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: "sleep" }))).toEqual(["e", "f"]);
+  expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: NO_SUBJECT }))).toEqual(["h"]);
+  expect(canReorderReading({ ...NO_FILTERS, subject: "sleep" })).toBe(false);
+  expect(readingSubjectOf(item("x", { subjectId: "gone" }), subjects)).toBeUndefined();
 });

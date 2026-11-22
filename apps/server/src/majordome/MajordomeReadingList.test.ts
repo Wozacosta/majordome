@@ -119,10 +119,12 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       assert.deepEqual(yield* service.list({ projectId: codeProject }), {
         isVault: false,
         items: [],
+        subjects: [],
       });
       assert.deepEqual(yield* service.list({ projectId: vaultProject }), {
         isVault: true,
         items: [],
+        subjects: [],
       });
       const refused = yield* Effect.flip(service.add({ projectId: codeProject, text: "A book" }));
       assert.equal(refused.message, "That notes folder was not found.");
@@ -538,6 +540,54 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       assert.notProperty(again.item, "deletedAt");
       assert.deepEqual(yield* ids, ["b", "linked"]);
       assert.notProperty((yield* items)[1], "deletedAt");
+    }),
+  );
+
+  it.effect("keeps subjects in order, and unfiles what a removed one held", () =>
+    Effect.gen(function* () {
+      const { service, fs, filePath, items } = yield* setUp();
+      const saved = (yield* service.saveSubjects({
+        projectId: vaultProject,
+        subjects: [{ name: "Rust", focus: true }, { name: "Sleep" }],
+      })).subjects;
+      assert.deepEqual(
+        saved.map(({ name, focus }) => ({ name, focus })),
+        [
+          { name: "Rust", focus: true },
+          { name: "Sleep", focus: undefined },
+        ],
+      );
+      const [rust, sleep] = saved as [(typeof saved)[number], (typeof saved)[number]];
+      assert.match(rust.id, /^sub-[0-9a-f-]{36}$/);
+
+      const added = (yield* service.add({ projectId: vaultProject, text: "A book" })).item;
+      const ref = { projectId: vaultProject, itemId: added.id };
+      assert.equal((yield* service.update({ ...ref, subjectId: sleep.id })).subjectId, sleep.id);
+      const unknown = yield* Effect.flip(service.update({ ...ref, subjectId: "sub-nope" }));
+      assert.equal(unknown.message, "That subject is not on your reading list.");
+
+      // Renamed and moved first, it keeps its id and what is filed under it.
+      const reordered = yield* service.saveSubjects({
+        projectId: vaultProject,
+        subjects: [{ id: sleep.id, name: "Rest" }, rust],
+      });
+      assert.deepEqual(reordered.subjects, [{ id: sleep.id, name: "Rest" }, rust]);
+      assert.deepEqual(
+        (yield* service.list({ projectId: vaultProject })).subjects,
+        reordered.subjects,
+      );
+      assert.equal((yield* items)[0]?.subjectId, sleep.id);
+
+      const twins = yield* Effect.flip(
+        service.saveSubjects({ projectId: vaultProject, subjects: [rust, { name: "rust" }] }),
+      );
+      assert.equal(twins.message, "Two subjects cannot have the same name.");
+
+      // Left out, it is gone, and its items are filed under nothing; with none left the file
+      // is back to holding only items.
+      yield* service.saveSubjects({ projectId: vaultProject, subjects: [] });
+      assert.notProperty((yield* items)[0], "subjectId");
+      assert.notProperty(JSON.parse(yield* fs.readFileString(filePath)), "subjects");
     }),
   );
 

@@ -11,6 +11,9 @@ import {
   type MajordomeReadingItemRefInput,
   MajordomeReadingListError,
   type MajordomeReadingListInput,
+  MajordomeReadingSubject,
+  type MajordomeSaveReadingSubjectsInput,
+  type MajordomeSaveReadingSubjectsResult,
   type MajordomeReadingListResult,
   type MajordomeReorderReadingItemsInput,
   type MajordomeRestoreReadingItemInput,
@@ -66,6 +69,10 @@ export class MajordomeReadingList extends Context.Service<
     readonly restore: (
       input: MajordomeRestoreReadingItemInput,
     ) => Effect.Effect<void, MajordomeReadingListError>;
+    /** Replaces the subjects; what was filed under one that is gone is filed under nothing. */
+    readonly saveSubjects: (
+      input: MajordomeSaveReadingSubjectsInput,
+    ) => Effect.Effect<MajordomeSaveReadingSubjectsResult, MajordomeReadingListError>;
     /** Looks up the picture of every saved link that has none. `list` starts it by itself. */
     readonly fillPictures: (
       input: MajordomeReadingListInput,
@@ -79,16 +86,19 @@ const ENRICHMENT_TIMEOUT = "30 seconds";
 
 const isReadingListError = Schema.is(MajordomeReadingListError);
 const decodeItem = Schema.decodeUnknownOption(MajordomeReadingItem);
+const decodeSubject = Schema.decodeUnknownOption(MajordomeReadingSubject);
+const MAX_SUBJECTS = 50;
 
 const fail = (message: string) => Effect.fail(new MajordomeReadingListError({ message }));
 
 interface ReadingListFile {
   readonly items: ReadonlyArray<MajordomeReadingItem>;
+  readonly subjects: ReadonlyArray<MajordomeReadingSubject>;
   /** Entries that are not items (a hand edit gone wrong), kept so a save never deletes them. */
   readonly unreadable: ReadonlyArray<unknown>;
 }
 
-const EMPTY_FILE: ReadingListFile = { items: [], unreadable: [] };
+const EMPTY_FILE: ReadingListFile = { items: [], subjects: [], unreadable: [] };
 
 /** The items a `reading-list.json` holds, in its order; null when it is not a list at all. */
 function parseReadingList(text: string): ReadingListFile | null {
@@ -114,11 +124,19 @@ function parseReadingList(text: string): ReadingListFile | null {
     seen.add(item.id);
     items.push(item);
   }
-  return { items, unreadable };
+  const subjects =
+    "subjects" in raw && Array.isArray(raw.subjects)
+      ? (raw.subjects as ReadonlyArray<unknown>).flatMap((entry) => {
+          const subject = Option.getOrUndefined(decodeSubject(entry));
+          return subject === undefined ? [] : [subject];
+        })
+      : [];
+  return { items, subjects, unreadable };
 }
 
 function serializeReadingList(file: ReadingListFile): string {
-  return `${JSON.stringify({ items: [...file.items, ...file.unreadable] }, null, 2)}\n`;
+  const items = [...file.items, ...file.unreadable];
+  return `${JSON.stringify(file.subjects.length === 0 ? { items } : { subjects: file.subjects, items }, null, 2)}\n`;
 }
 
 /** True for a real calendar date written `2026-12-02`. */
@@ -146,6 +164,7 @@ function applyReadingItemUpdate(
     sent === undefined ? kept : sent?.trim() ? sent.trim() : undefined;
   const notes =
     input.notes === undefined ? item.notes : input.notes?.trim() ? input.notes : undefined;
+  const subjectId = text(input.subjectId, item.subjectId);
   const summary = text(input.summary, item.summary);
   const why = text(input.why, item.why);
   const starred = input.starred ?? item.starred;
@@ -177,6 +196,7 @@ function applyReadingItemUpdate(
     ...(why === undefined ? {} : { why }),
     ...(progress === undefined ? {} : { progress }),
     ...(item.deletedAt === undefined ? {} : { deletedAt: item.deletedAt }),
+    ...(subjectId === undefined ? {} : { subjectId }),
   };
 }
 
@@ -246,10 +266,12 @@ const make = Effect.gen(function* () {
   /** Reads the list and, when `apply` gives new items, saves them: all under both locks. */
   const change = <A>(
     vaultRoot: string,
-    apply: (
-      file: ReadingListFile,
-    ) => Effect.Effect<
-      { readonly items?: ReadonlyArray<MajordomeReadingItem>; readonly result: A },
+    apply: (file: ReadingListFile) => Effect.Effect<
+      {
+        readonly items?: ReadonlyArray<MajordomeReadingItem>;
+        readonly subjects?: ReadonlyArray<MajordomeReadingSubject>;
+        readonly result: A;
+      },
       MajordomeReadingListError
     >,
   ) =>
@@ -258,12 +280,19 @@ const make = Effect.gen(function* () {
         vaultRoot,
         Effect.gen(function* () {
           const file = yield* read(vaultRoot);
-          const { items, result } = yield* apply(file);
-          if (items === undefined) return result;
+          const { items, subjects, result } = yield* apply(file);
+          if (items === undefined && subjects === undefined) return result;
           const target = filePath(vaultRoot);
           const temp = `${target}.${yield* random.uuidV4()}.tmp`;
           yield* fileSystem.makeDirectory(path.dirname(target), { recursive: true });
-          yield* fileSystem.writeFileString(temp, serializeReadingList({ ...file, items }));
+          yield* fileSystem.writeFileString(
+            temp,
+            serializeReadingList({
+              ...file,
+              items: items ?? file.items,
+              subjects: subjects ?? file.subjects,
+            }),
+          );
           yield* fileSystem.rename(temp, target);
           return result;
         }),
@@ -339,14 +368,14 @@ const make = Effect.gen(function* () {
   const list: MajordomeReadingList["Service"]["list"] = Effect.fn("MajordomeReadingList.list")(
     function* (input) {
       const vaultRoot = yield* vaultRootOf(input.projectId);
-      if (vaultRoot === undefined) return { isVault: false, items: [] };
-      const { items } = yield* read(vaultRoot);
+      if (vaultRoot === undefined) return { isVault: false, items: [], subjects: [] };
+      const { items, subjects } = yield* read(vaultRoot);
       // Once per start: links saved before pictures were kept, or while their page was down.
       if (!filled.has(vaultRoot)) {
         filled.add(vaultRoot);
         yield* fillPictures(input).pipe(Effect.ignore, Effect.forkIn(serviceScope));
       }
-      return { isVault: true, items };
+      return { isVault: true, items, subjects };
     },
     Effect.mapError(toError("Could not read your reading list.")),
   );
@@ -444,6 +473,12 @@ const make = Effect.gen(function* () {
       return yield* change(vaultRoot, (file) => {
         const item = file.items.find((candidate) => candidate.id === input.itemId);
         if (item === undefined) return fail("That item is no longer on your list.");
+        if (
+          typeof input.subjectId === "string" &&
+          !file.subjects.some((subject) => subject.id === input.subjectId)
+        ) {
+          return fail("That subject is not on your reading list.");
+        }
         const updated = applyReadingItemUpdate(item, input, now);
         // The owner's title and length stay theirs; a new look only fills what is missing.
         const next: MajordomeReadingItem =
@@ -477,6 +512,42 @@ const make = Effect.gen(function* () {
       });
     },
     Effect.mapError(toError("Could not change this item.")),
+  );
+
+  const saveSubjects: MajordomeReadingList["Service"]["saveSubjects"] = Effect.fn(
+    "MajordomeReadingList.saveSubjects",
+  )(
+    function* (input) {
+      const vaultRoot = yield* requireVaultRoot(input.projectId);
+      if (input.subjects.length > MAX_SUBJECTS) {
+        return yield* fail(`A reading list holds at most ${MAX_SUBJECTS} subjects.`);
+      }
+      const names = input.subjects.map((subject) => subject.name.toLowerCase());
+      if (new Set(names).size !== names.length) {
+        return yield* fail("Two subjects cannot have the same name.");
+      }
+      const subjects: Array<MajordomeReadingSubject> = [];
+      for (const { id, name, focus } of input.subjects) {
+        subjects.push({
+          id: id ?? `sub-${yield* random.uuidV4()}`,
+          name,
+          ...(focus === true ? { focus } : {}),
+        });
+      }
+      return yield* change(vaultRoot, (file) => {
+        const kept = new Set(subjects.map((subject) => subject.id));
+        return Effect.succeed({
+          subjects,
+          items: file.items.map((item) => {
+            if (item.subjectId === undefined || kept.has(item.subjectId)) return item;
+            const { subjectId: _, ...unfiled } = item;
+            return unfiled;
+          }),
+          result: { subjects },
+        });
+      });
+    },
+    Effect.mapError(toError("Could not change your subjects.")),
   );
 
   const reorder: MajordomeReadingList["Service"]["reorder"] = Effect.fn(
@@ -536,7 +607,16 @@ const make = Effect.gen(function* () {
     Effect.mapError(toError("Could not put this item back.")),
   );
 
-  return MajordomeReadingList.of({ list, add, update, reorder, remove, restore, fillPictures });
+  return MajordomeReadingList.of({
+    list,
+    add,
+    update,
+    reorder,
+    remove,
+    restore,
+    saveSubjects,
+    fillPictures,
+  });
 });
 
 export const layer = Layer.effect(MajordomeReadingList, make);
