@@ -453,8 +453,12 @@
         width: 100%;
         height: auto;
       }
-      .window.shot {
-        margin-top: 56px;
+      .shot {
+        margin: 56px auto 0;
+        max-width: 940px;
+        border-radius: 11px;
+        overflow: hidden;
+        box-shadow: 0 40px 80px -40px #14161c99;
       }
 
       /* The answer arrives after the question, once, when the diagram scrolls into view. */
@@ -553,15 +557,14 @@
         font-size: 0.92rem;
       }
       .feature img {
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        box-shadow: 0 30px 60px -40px #14161c99;
+        filter: drop-shadow(0 24px 30px #14161c59);
       }
       .feature.phone img {
         width: 250px;
         justify-self: center;
         border-radius: 30px;
         border: 6px solid #2a2d36;
+        filter: none;
       }
 
       .pair {
@@ -694,8 +697,7 @@
             For Apple silicon. <a href="/download/intel">Intel Mac?</a> No Majordome account.
           </p>
 
-          <div class="window shot">
-            <div class="bar"><i></i><i></i><i></i></div>
+          <div class="shot">
             <video
               autoplay
               muted
@@ -703,8 +705,8 @@
               playsinline
               preload="metadata"
               poster="img/tour-poster.webp"
-              width="1040"
-              height="720"
+              width="1100"
+              height="780"
               aria-label="A tour of Majordome: Today, ticking a to-do, snoozing something on the reading list, the routines, and a topic."
             >
               <source src="img/tour.mp4" type="video/mp4" />
@@ -803,7 +805,7 @@
               src="img/todos.webp"
               alt="The To-dos page: unticked boxes gathered from four notes, grouped by note."
               width="1560"
-              height="1080"
+              height="1106"
               loading="lazy"
             />
           </div>
@@ -819,7 +821,7 @@
               src="img/routines.webp"
               alt="The Routines page: three routines with their schedule, a switch, Run now and Edit."
               width="1560"
-              height="1080"
+              height="1106"
               loading="lazy"
             />
           </div>
@@ -832,7 +834,7 @@
               src="img/reading.webp"
               alt="The Reading list on its Next view: three saved links, each with Finished and Not now."
               width="1560"
-              height="1080"
+              height="1106"
               loading="lazy"
             />
           </div>
@@ -845,7 +847,7 @@
               src="img/topic.webp"
               alt="The Money topic: its chat, its notes, a routine and its files."
               width="1560"
-              height="1080"
+              height="1106"
               loading="lazy"
             />
           </div>
