@@ -328,82 +328,6 @@
         border-radius: 50%;
         background: #f4efe626;
       }
-      .window .body {
-        display: grid;
-        grid-template-columns: 190px 1fr;
-      }
-      .side {
-        padding: 16px 12px;
-        border-right: 1px solid #f4efe614;
-        color: #f4efe6a6;
-      }
-      .side div {
-        padding: 6px 10px;
-        border-radius: 7px;
-      }
-      .side .on {
-        background: #f4efe612;
-        color: #f4efe6;
-      }
-      .side .label {
-        margin-top: 14px;
-        font-size: 0.72rem;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #f4efe666;
-      }
-      .main {
-        padding: 22px 26px 28px;
-        display: grid;
-        gap: 14px;
-      }
-      .main .title {
-        font: 500 1.5rem/1.1 var(--serif);
-      }
-      .card {
-        background: #1c1f27;
-        border: 1px solid #f4efe614;
-        border-radius: 11px;
-        padding: 14px 16px;
-      }
-      .card .k {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.76rem;
-        color: #f4efe680;
-        margin-bottom: 7px;
-      }
-      .card ul {
-        margin: 0;
-        padding-left: 18px;
-        color: #f4efe6cc;
-      }
-      .card.ask {
-        border-color: #e8a13a66;
-      }
-      .card .row {
-        display: flex;
-        gap: 8px;
-        margin-top: 11px;
-      }
-      .chip {
-        padding: 5px 12px;
-        border-radius: 999px;
-        border: 1px solid #f4efe62e;
-        font-size: 0.78rem;
-      }
-      .chip.yes {
-        background: #f4efe6;
-        color: #14161c;
-        border-color: #f4efe6;
-        font-weight: 600;
-      }
-      .two {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
 
       section {
         padding: 104px 0 0;
@@ -415,101 +339,6 @@
         margin-top: 16px;
         color: var(--muted);
         font-size: 1.1rem;
-      }
-
-      .day {
-        margin-top: 44px;
-        border-top: 1px solid var(--line);
-      }
-      .day > div {
-        display: grid;
-        grid-template-columns: 110px 1fr;
-        gap: 24px;
-        padding: 24px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .day time {
-        font: 500 1.35rem/1.3 var(--serif);
-        font-variant-numeric: tabular-nums;
-      }
-      .day p {
-        color: var(--muted);
-        max-width: 640px;
-      }
-      .day .away {
-        display: inline-block;
-        margin-left: 8px;
-        padding: 1px 9px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: var(--live-text);
-        vertical-align: 2px;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        margin-top: 44px;
-      }
-      .tile {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 22px;
-      }
-      .tile p {
-        color: var(--muted);
-        font-size: 0.97rem;
-      }
-      .tile .pkg {
-        margin-top: 10px;
-        font-size: 0.9rem;
-      }
-      .tile .pkg a {
-        display: inline;
-        margin: 0;
-        font-size: inherit;
-      }
-      .tile code {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 0.85em;
-        padding: 1px 6px;
-        border: 1px solid var(--line);
-        border-radius: 5px;
-        color: var(--ink);
-        white-space: nowrap;
-      }
-      .tile a {
-        display: inline-block;
-        margin-top: 12px;
-        font-size: 0.92rem;
-      }
-
-      .yours {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 56px;
-        align-items: start;
-      }
-      .yours ul {
-        list-style: none;
-        margin: 6px 0 0;
-        padding: 0;
-      }
-      .yours li {
-        padding: 16px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .yours li:first-child {
-        border-top: 1px solid var(--line);
-      }
-      .yours li span {
-        display: block;
-        color: var(--muted);
-        font-size: 0.97rem;
       }
 
       ol.steps {
@@ -567,13 +396,8 @@
       }
 
       @media (max-width: 860px) {
-        .grid,
         ol.steps {
           grid-template-columns: 1fr 1fr;
-        }
-        .yours {
-          grid-template-columns: 1fr;
-          gap: 32px;
         }
         .merge {
           grid-template-columns: 1fr;
@@ -607,23 +431,224 @@
         section {
           padding-top: 76px;
         }
-        .window .body {
-          grid-template-columns: 1fr;
-        }
-        .side {
-          display: none;
-        }
-        .main {
-          padding: 18px 16px 20px;
-        }
-        .two,
-        .grid,
         ol.steps {
           grid-template-columns: 1fr;
         }
-        .day > div {
+      }
+
+      .merge {
+        display: grid;
+        grid-template-columns: 1fr 150px 1fr;
+        margin: 40px auto 0;
+        max-width: 940px;
+        text-align: left;
+      }
+      .intro.center {
+        margin: 0 auto;
+        text-align: center;
+      }
+      .shot video,
+      .feature img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .window.shot {
+        margin-top: 56px;
+      }
+
+      /* The answer arrives after the question, once, when the diagram scrolls into view. */
+      .merge .it,
+      .merge .file mark {
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease,
+          background-color 0.6s ease;
+      }
+      .merge.wait .it {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      .merge.wait .file mark {
+        background-color: transparent;
+      }
+      .merge .file mark {
+        transition-delay: 0.5s;
+      }
+      .merge .it {
+        transition-delay: 1.3s;
+      }
+
+      .day {
+        list-style: none;
+        margin: 44px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 2px solid var(--ink);
+      }
+      .day li {
+        position: relative;
+        padding: 26px 18px 0 0;
+      }
+      .day li::before {
+        content: "";
+        position: absolute;
+        top: -7px;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 2px solid var(--ink);
+      }
+      .day li:has(.away:not(.here))::before {
+        background: var(--live);
+      }
+      .day time {
+        display: block;
+        font: 500 1.9rem/1.1 var(--serif);
+        font-variant-numeric: tabular-nums;
+      }
+      .day .away {
+        display: inline-block;
+        margin: 8px 0 12px;
+        padding: 1px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.75rem;
+        color: var(--live-text);
+      }
+      .day .away.here {
+        color: var(--muted);
+      }
+      .day p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .feature {
+        display: grid;
+        grid-template-columns: 1fr 1.7fr;
+        gap: 40px;
+        align-items: center;
+        margin-top: 56px;
+      }
+      .feature.flip > div {
+        order: 2;
+      }
+      .feature.flip {
+        grid-template-columns: 1.7fr 1fr;
+      }
+      .feature h3 {
+        font: 500 1.6rem/1.15 var(--serif);
+        margin-bottom: 10px;
+      }
+      .feature p {
+        color: var(--muted);
+      }
+      .feature a {
+        display: inline-block;
+        margin-top: 12px;
+        font-size: 0.92rem;
+      }
+      .feature img {
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        box-shadow: 0 30px 60px -40px #14161c99;
+      }
+      .feature.phone img {
+        width: 250px;
+        justify-self: center;
+        border-radius: 30px;
+        border: 6px solid #2a2d36;
+      }
+
+      .pair {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 64px;
+      }
+      .tile {
+        display: block;
+        text-decoration: none;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .tile:hover {
+        border-color: var(--ink);
+      }
+      .tile svg {
+        width: 26px;
+        height: 26px;
+        margin-bottom: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .tile p {
+        color: var(--muted);
+        font-size: 0.93rem;
+      }
+      .tile code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.85em;
+        white-space: nowrap;
+      }
+
+      .yours {
+        list-style: none;
+        margin: 36px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .yours li {
+        border-top: 2px solid var(--ink);
+        padding-top: 14px;
+      }
+      .yours strong {
+        display: block;
+        font: 500 1.25rem/1.2 var(--serif);
+      }
+      .yours span {
+        color: var(--muted);
+        font-size: 0.93rem;
+      }
+
+      @media (max-width: 860px) {
+        .day,
+        .yours {
+          grid-template-columns: 1fr 1fr;
+          row-gap: 34px;
+        }
+        .feature,
+        .feature.flip {
           grid-template-columns: 1fr;
-          gap: 4px;
+          gap: 18px;
+        }
+        .feature.flip > div {
+          order: 0;
+        }
+        .pair {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 620px) {
+        .merge {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .merge .it,
+        .merge .file mark {
+          transition: none;
         }
       }
     </style>
@@ -658,8 +683,8 @@
           </div>
           <h1>A second brain that keeps working while you are away.</h1>
           <p class="lede">
-            Your memory is a folder of notes. Majordome reads it before you type, files what you
-            drop in, runs routines on a schedule, and asks before it touches anything sensitive.
+            Your notes, plus the AI you already pay for. It reads them, runs routines, and asks
+            before touching anything sensitive.
           </p>
           <div class="cta">
             <a class="button" href="/download">Download for Mac</a>
@@ -669,6 +694,28 @@
             For Apple silicon. <a href="/download/intel">Intel Mac?</a> No Majordome account.
           </p>
 
+          <div class="window shot">
+            <div class="bar"><i></i><i></i><i></i></div>
+            <video
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              poster="img/tour-poster.webp"
+              width="1040"
+              height="720"
+              aria-label="A tour of Majordome: Today, ticking a to-do, snoozing something on the reading list, the routines, and a topic."
+            >
+              <source src="img/tour.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+
+        <section>
+          <div class="intro center">
+            <h2>Two things you have. One app.</h2>
+          </div>
           <div
             class="merge"
             role="img"
@@ -709,216 +756,166 @@
               <div class="cap">Claude or ChatGPT, on the plan you already have</div>
             </div>
           </div>
-
-          <div
-            class="window"
-            role="img"
-            aria-label="Majordome's Today page: a morning summary, upcoming reminders, and a request to open a private document."
-          >
-            <div class="bar"><i></i><i></i><i></i></div>
-            <div class="body" aria-hidden="true">
-              <div class="side">
-                <div class="on">Today</div>
-                <div>To-dos</div>
-                <div>Reading list</div>
-                <div>Routines</div>
-                <div class="label">Topics</div>
-                <div>Money</div>
-                <div>Meals</div>
-                <div>Health</div>
-                <div class="label">&nbsp;</div>
-                <div>Chats</div>
-              </div>
-              <div class="main">
-                <div class="title">Today</div>
-                <div class="card">
-                  <div class="k"><span class="dot"></span>Start my day · ran at 07:00</div>
-                  <ul>
-                    <li>Dentist at 11:30. Leave by 11:00.</li>
-                    <li>The landlord replied about the lease. A draft answer is in your notes.</li>
-                    <li>Three to-dos carried over from yesterday.</li>
-                  </ul>
-                </div>
-                <div class="two">
-                  <div class="card">
-                    <div class="k">Coming up</div>
-                    <ul>
-                      <li>Fri 09:00 · Call the bank</li>
-                      <li>Fri 18:00 · What I spent this week</li>
-                    </ul>
-                  </div>
-                  <div class="card ask">
-                    <div class="k">Waiting for you</div>
-                    Open “Tax return 2025” to fill in the form?
-                    <div class="row">
-                      <span class="chip yes">Allow once</span
-                      ><span class="chip">Don&rsquo;t allow</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         <section>
           <div class="intro">
             <h2>One day with it.</h2>
-            <p>Most of the work happens when the window is closed.</p>
           </div>
-          <div class="day">
-            <div>
+          <ol class="day">
+            <li>
               <time>07:00</time>
-              <div>
-                <h3>Your day is ready before you are <span class="away">while you sleep</span></h3>
-                <p>
-                  “Start my day” has read your notes and your calendar and left a short summary. A
-                  notification tells you it is there.
-                </p>
-              </div>
-            </div>
-            <div>
+              <span class="away">while you sleep</span>
+              <h3>Your day is ready</h3>
+              <p>A summary from your notes and calendar.</p>
+            </li>
+            <li>
               <time>09:40</time>
-              <div>
-                <h3>You drop things in. It files them.</h3>
-                <p>
-                  A receipt, a link, a half-finished thought. It lands in the right note, and the
-                  assistant already knows it the next time you ask.
-                </p>
-              </div>
-            </div>
-            <div>
+              <span class="away here">you</span>
+              <h3>Drop things in</h3>
+              <p>A receipt, a link, a thought. It files them.</p>
+            </li>
+            <li>
               <time>14:15</time>
-              <div>
-                <h3>It asks first <span class="away">on your phone</span></h3>
-                <p>
-                  A form needs your tax return. Your phone asks whether the assistant may open it.
-                  You say yes, once, and it carries on.
-                </p>
-              </div>
-            </div>
-            <div>
+              <span class="away">on your phone</span>
+              <h3>It asks first</h3>
+              <p>One tap before it opens anything private.</p>
+            </li>
+            <li>
               <time>18:00</time>
-              <div>
-                <h3>The Friday routine runs <span class="away">while you are out</span></h3>
-                <p>
-                  “Every Friday evening, list what I spent this week.” You said that once. What it
-                  did is in the Feed, and one button takes a run back.
-                </p>
-              </div>
-            </div>
-          </div>
+              <span class="away">while you are out</span>
+              <h3>Routines run</h3>
+              <p>“Every Friday, list what I spent.”</p>
+            </li>
+          </ol>
         </section>
 
         <section id="features">
           <div class="intro">
             <h2>What it does.</h2>
           </div>
-          <div class="grid">
-            <div class="tile">
-              <h3>Notes are the memory</h3>
-              <p>
-                A plain folder of markdown files. Use the one you already have, such as an Obsidian
-                vault. Majordome adds a few files of its own and changes nothing that is there.
-              </p>
-              <p class="pkg">
-                The layout and skills come from
-                <a href="https://www.npmjs.com/package/obrain">obrain</a>, an npm package that also
-                works without Majordome: <code>npx obrain</code>
-              </p>
+          <div class="feature">
+            <div>
+              <h3>Every to-do, from every note</h3>
+              <p>Tick one here and it is ticked in its note.</p>
             </div>
-            <div class="tile">
-              <h3>Routines and reminders</h3>
-              <p>
-                Say what you want and when. The assistant says it back in one sentence and waits for
-                your yes before it creates anything.
-              </p>
+            <img
+              src="img/todos.webp"
+              alt="The To-dos page: unticked boxes gathered from four notes, grouped by note."
+              width="1560"
+              height="1080"
+              loading="lazy"
+            />
+          </div>
+          <div class="feature flip">
+            <div>
+              <h3>Routines, in your words</h3>
+              <p>Say what and when. It runs on schedule and posts where you choose.</p>
               <a href="https://github.com/Wozacosta/majordome/blob/main/docs/user/routines.md"
                 >How routines work</a
               >
             </div>
-            <div class="tile">
-              <h3>Private documents</h3>
-              <p>
-                A passport scan, a contract. Kept encrypted, outside your notes. The assistant sees
-                the name, and opens one only after you say yes, each time.
-              </p>
-              <a
-                href="https://github.com/Wozacosta/majordome/blob/main/docs/user/private-documents.md"
-                >How they are kept</a
-              >
+            <img
+              src="img/routines.webp"
+              alt="The Routines page: three routines with their schedule, a switch, Run now and Edit."
+              width="1560"
+              height="1080"
+              loading="lazy"
+            />
+          </div>
+          <div class="feature">
+            <div>
+              <h3>A reading list that says what is next</h3>
+              <p>Three things at a time. Finished, or not now.</p>
             </div>
-            <div class="tile">
-              <h3>On your phone</h3>
-              <p>
-                The same app on your Home Screen, reaching your computer over a private link only
-                your devices can use. Notifications when it needs you.
-              </p>
+            <img
+              src="img/reading.webp"
+              alt="The Reading list on its Next view: three saved links, each with Finished and Not now."
+              width="1560"
+              height="1080"
+              loading="lazy"
+            />
+          </div>
+          <div class="feature flip">
+            <div>
+              <h3>A topic for each part of life</h3>
+              <p>Money, Meals, Trips: one chat, its notes, its routines.</p>
+            </div>
+            <img
+              src="img/topic.webp"
+              alt="The Money topic: its chat, its notes, a routine and its files."
+              width="1560"
+              height="1080"
+              loading="lazy"
+            />
+          </div>
+          <div class="feature phone">
+            <div>
+              <h3>On your phone too</h3>
+              <p>The same app on your Home Screen, over a private link.</p>
               <a
                 href="https://github.com/Wozacosta/majordome/blob/main/docs/user/phone-and-notifications.md"
                 >Set up your phone</a
               >
             </div>
-            <div class="tile">
+            <img
+              src="img/phone.webp"
+              alt="Majordome's Today page at phone size."
+              width="780"
+              height="1600"
+              loading="lazy"
+            />
+          </div>
+          <div class="pair">
+            <a
+              class="tile"
+              href="https://github.com/Wozacosta/majordome/blob/main/docs/user/private-documents.md"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+              <h3>Private documents</h3>
+              <p>Encrypted. Opened only after your yes, each time.</p>
+            </a>
+            <a
+              class="tile"
+              href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="6" rx="1.5" />
+                <rect x="4" y="13" width="16" height="6" rx="1.5" />
+                <path d="M8 8h.01M8 16h.01" />
+              </svg>
               <h3>Always on, if you want</h3>
-              <p>
-                Routines run while your Mac is awake. Add a small server of your own, about €5 a
-                month paid to the host, and they run while it sleeps too.
-              </p>
-              <a
-                href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md"
-                >About the server</a
-              >
-            </div>
-            <div class="tile">
-              <h3>The small things</h3>
-              <p>
-                A reading list that shows the next three things, to-dos gathered from every note,
-                and topics such as Meals, Money and Health with their own chat.
-              </p>
-            </div>
+              <p>Add a small server of your own, about €5 a month.</p>
+            </a>
+            <a class="tile" href="https://www.npmjs.com/package/obrain">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4h10l4 4v12H5z" />
+                <path d="M9 12h6M9 16h6" />
+              </svg>
+              <h3>Plain markdown</h3>
+              <p>Works with Obsidian. Layout from <code>npx obrain</code>.</p>
+            </a>
           </div>
         </section>
 
         <section>
-          <div class="yours">
-            <div class="intro">
-              <h2>Yours, all the way down.</h2>
-              <p>
-                Majordome is an app, not a service. There is nothing to sign up for and nobody in
-                the middle.
-              </p>
-            </div>
-            <ul>
-              <li>
-                <strong>Your files.</strong>
-                <span
-                  >Notes stay as markdown on your machine. Stop using Majordome and they are still
-                  there.</span
-                >
-              </li>
-              <li>
-                <strong>Your AI plan.</strong>
-                <span
-                  >It uses the Claude or ChatGPT plan you already have. Majordome charges
-                  nothing.</span
-                >
-              </li>
-              <li>
-                <strong>Your machines.</strong>
-                <span>It runs on your Mac, and on a server only if you add one.</span>
-              </li>
-              <li>
-                <strong>Open source, and a fork.</strong>
-                <span>
-                  Majordome is a fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a>,
-                  the open-source app for coding agents by T3 Tools Inc. Its chat, server and
-                  desktop shell are theirs; the notes, routines and second-brain parts are added on
-                  top. MIT licensed, like the original.
-                </span>
-              </li>
-            </ul>
+          <div class="intro">
+            <h2>Yours, all the way down.</h2>
           </div>
+          <ul class="yours">
+            <li><strong>Your files</strong><span>Markdown on your machine.</span></li>
+            <li><strong>Your AI plan</strong><span>Claude or ChatGPT. Nothing extra.</span></li>
+            <li><strong>Your machines</strong><span>No account, no service.</span></li>
+            <li>
+              <strong>Open source</strong
+              ><span
+                >MIT. A fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a>.</span
+              >
+            </li>
+          </ul>
         </section>
 
         <section id="install">
@@ -964,5 +961,25 @@
         </div>
       </footer>
     </div>
+    <script>
+      const merge = document.querySelector(".merge");
+      if (merge && "IntersectionObserver" in window) {
+        merge.classList.add("wait");
+        new IntersectionObserver(
+          (entries, seen) => {
+            if (!entries[0].isIntersecting) return;
+            merge.classList.remove("wait");
+            seen.disconnect();
+          },
+          { threshold: 0.6 },
+        ).observe(merge);
+      }
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const tour = document.querySelector("video");
+        tour.removeAttribute("autoplay");
+        tour.pause();
+        tour.controls = true;
+      }
+    </script>
   </body>
 </html>
