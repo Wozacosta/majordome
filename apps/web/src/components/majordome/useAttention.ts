@@ -10,7 +10,8 @@ import { AsyncResult } from "effect/reactivity";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { vaultBackupStatusesAtom, vaultHistoriesAtom } from "../../state/majordome";
-import { type AttentionCard, attentionCard } from "./attention.logic";
+import { useNowMinute } from "../../hooks/useNowMinute";
+import { type AttentionCard, attentionCard, settledRunner } from "./attention.logic";
 import { buildFeedRunItems } from "./feed.logic";
 import { groupBrains, routinesMachine, runnerCopy } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
@@ -41,6 +42,7 @@ export function useAttention(): AttentionCard | null {
 
   const projects = useProjects().filter((project) => !project.isScratch && !project.archivedAt);
   const threads = useQuietThreadShells();
+  const nowMinute = useNowMinute();
   const backups = useAtomValue(
     vaultBackupStatusesAtom(
       JSON.stringify(projects.map((project) => [project.environmentId, project.id])),
@@ -67,7 +69,11 @@ export function useAttention(): AttentionCard | null {
       brainId: backup.brainId,
       backup,
       history,
-      routinesRunner: history?.routinesRunner ?? null,
+      routinesRunner: settledRunner({
+        runner: history?.routinesRunner ?? null,
+        createdAt: project.createdAt,
+        nowMinute,
+      }),
     };
   });
   const brains = groupBrains(copies, primaryEnvironmentId);

@@ -54,9 +54,11 @@ import {
   dayKey,
   greetingForHour,
   openTasks,
+  pickTodayStarter,
   selectTodayRuns,
   shiftDay,
   timeOfDay,
+  TODAY_STARTERS,
   type TodayRun,
   todayTitle,
   weekOf,
@@ -451,33 +453,18 @@ function DailyNoteCard({
   );
 }
 
-/** Ways in for someone facing an empty box: each puts the start of a sentence in it. */
-const STARTERS = [
-  { label: "Remember something", text: "Remember that " },
-  { label: "Ask about my notes", text: "What do my notes say about " },
-  { label: "Remind me", text: "Remind me to " },
-  { label: "Plan my day", text: "Help me plan my day. " },
-] as const;
-
-/** A starter fills an empty box or replaces another starter; words already typed stay, after it. */
-function starterFill(typed: string, starter: string): string {
-  const untouched =
-    typed.trim() === "" || STARTERS.some((candidate) => candidate.text.trim() === typed.trim());
-  return untouched ? starter : `${starter}${typed}`;
-}
-
 /** Starts a conversation in the notes folder with what was typed, as the new-thread page does. */
 function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const handleNewThread = useNewThreadHandler();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const prompt = text.trim();
 
   const fileInput = useRef<HTMLInputElement>(null);
   const textArea = useRef<HTMLTextAreaElement>(null);
 
   /** With files, the conversation opens holding them and the words, for the owner to send. */
-  const submit = async (files: ReadonlyArray<File> = []) => {
+  const submit = async (files: ReadonlyArray<File> = [], given?: string) => {
+    const prompt = given ?? text.trim();
     if ((prompt === "" && files.length === 0) || sending) return;
     setSending(true);
     const opened = await handleNewThread(
@@ -568,13 +555,18 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
             <PaperclipIcon />
             Add a file or picture
           </Button>
-          <Button type="submit" size="icon" aria-label="Send" disabled={prompt === "" || sending}>
+          <Button
+            type="submit"
+            size="icon"
+            aria-label="Send"
+            disabled={text.trim() === "" || sending}
+          >
             <ArrowUpIcon />
           </Button>
         </div>
       </form>
       <div className="mt-2 flex flex-wrap gap-2">
-        {STARTERS.map((starter) => (
+        {TODAY_STARTERS.map((starter) => (
           <Button
             key={starter.label}
             type="button"
@@ -582,8 +574,10 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
             variant="outline"
             disabled={sending}
             onClick={() => {
-              setText((typed) => starterFill(typed, starter.text));
-              textArea.current?.focus();
+              const picked = pickTodayStarter(text, starter);
+              setText(picked.text);
+              if (picked.send) void submit([], picked.text.trim());
+              else textArea.current?.focus();
             }}
           >
             {starter.label}

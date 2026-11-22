@@ -112,6 +112,16 @@ function serializeReadingList(file: ReadingListFile): string {
   return `${JSON.stringify({ items: [...file.items, ...file.unreadable] }, null, 2)}\n`;
 }
 
+/** True for a real calendar date written `2026-12-02`. */
+function isCalendarDate(text: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  // Read back, since a day that does not exist (30 February) can be read as one that does.
+  return Option.match(DateTime.make(text), {
+    onNone: () => false,
+    onSome: (date) => DateTime.formatIsoDateUtc(date) === text,
+  });
+}
+
 function normalizeTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
   return [...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter((tag) => tag !== ""))];
 }
@@ -128,6 +138,13 @@ function applyReadingItemUpdate(
   const starred = input.starred ?? item.starred;
   const doneAt =
     input.done === undefined ? item.doneAt : input.done ? (item.doneAt ?? now) : undefined;
+  // Something finished has nothing left to come back for.
+  const snoozedUntil =
+    doneAt !== undefined
+      ? undefined
+      : input.snoozedUntil === undefined
+        ? item.snoozedUntil
+        : (input.snoozedUntil ?? undefined);
   return {
     id: item.id,
     url: item.url,
@@ -140,6 +157,7 @@ function applyReadingItemUpdate(
     ...(item.image === undefined ? {} : { image: item.image }),
     addedAt: item.addedAt,
     ...(doneAt === undefined ? {} : { doneAt }),
+    ...(snoozedUntil === undefined ? {} : { snoozedUntil }),
     ...(starred === true ? { starred } : {}),
     ...(notes === undefined ? {} : { notes }),
   };
@@ -319,6 +337,9 @@ const make = Effect.gen(function* () {
   )(
     function* (input) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
+      if (typeof input.snoozedUntil === "string" && !isCalendarDate(input.snoozedUntil)) {
+        return yield* fail("That is not a day this can be snoozed until.");
+      }
       const now = yield* nowIso;
       // Read and described outside the change, so a slow page or model never holds the list's lock.
       const before =
@@ -328,7 +349,9 @@ const make = Effect.gen(function* () {
       const found =
         link === null
           ? undefined
-          : yield* lookUpLink(link).pipe(Effect.provideService(HttpClient.HttpClient, http));
+          : yield* lookUpLink(link, input.kind ?? target?.kind).pipe(
+              Effect.provideService(HttpClient.HttpClient, http),
+            );
       const described =
         input.enrich === true && target !== undefined
           ? yield* describe(input.projectId, {

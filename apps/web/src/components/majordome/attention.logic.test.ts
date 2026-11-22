@@ -6,7 +6,7 @@ import {
 } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
-import { type AttentionInput, attentionCard } from "./attention.logic";
+import { type AttentionInput, attentionCard, settledRunner } from "./attention.logic";
 
 const mac = EnvironmentId.make("mac");
 const server = EnvironmentId.make("server");
@@ -190,4 +190,35 @@ it("counts several problems, takes the worst tone and leads to the Status page",
     count: 3,
     action: "Open",
   });
+});
+
+it("waits for a new notes folder's computer to take its routines before calling them unrun", () => {
+  const createdAt = "2026-11-22T09:00:12.000Z";
+  const cases = [
+    // The server has not looked at the folder it was just given.
+    ["none", "2026-11-22T09:00", null],
+    ["none", "2026-11-22T09:04", null],
+    // It has had its look and nothing claimed them: the owner is told.
+    ["none", "2026-11-22T09:06", "none"],
+    ["none", "2026-11-23T09:00", "none"],
+    // An answer that names a computer, or none yet, stands whatever the folder's age.
+    ["this-server", "2026-11-22T09:00", "this-server"],
+    ["another-server", "2026-11-22T09:00", "another-server"],
+    [null, "2026-11-23T09:00", null],
+  ] as const;
+  for (const [runner, nowMinute, expected] of cases) {
+    expect(settledRunner({ runner, createdAt, nowMinute })).toBe(expected);
+  }
+  // A date that cannot be read hides nothing.
+  expect(settledRunner({ runner: "none", createdAt: "", nowMinute: "2026-11-22T09:00" })).toBe(
+    "none",
+  );
+});
+
+it("says nothing while routines are being made, and speaks when no AI account can make them", () => {
+  const routines = (reason: "not-created" | "no-provider") => [
+    { ...well.routines[0]!, routinesStatus: { ready: false, reason } },
+  ];
+  expect(card({ routines: routines("not-created") })).toBeNull();
+  expect(card({ routines: routines("no-provider") })).toMatchObject({ text: "Routines can't run" });
 });

@@ -42,6 +42,7 @@ export function FoldedSettingsSection({
         <Collapsible open={open} onOpenChange={setOpen}>
           <div className="space-y-2.5">
             <div
+              data-slot="settings-fold-heading"
               data-settings-scroll-target
               className="flex min-h-7 items-start justify-between gap-4 px-3 sm:px-4"
             >

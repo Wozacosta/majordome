@@ -121,7 +121,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/worktrees": msg("Worktrees"),
   "/settings/connections": isMajordome ? msg("Computers") : msg("Environments"),
   "/settings/access": msg("Sharing & access"),
-  "/settings/secrets": msg("Secrets"),
+  "/settings/secrets": isMajordome ? msg("Passwords and keys") : msg("Secrets"),
   "/settings/maintenance": msg("Maintenance"),
   "/settings/labs": msg("Labs"),
   "/settings/about": msg("About"),

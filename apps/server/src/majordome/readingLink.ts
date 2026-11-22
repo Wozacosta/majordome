@@ -38,6 +38,11 @@ export function pictureAddress(raw: string | undefined, page: URL): string | und
 
 const LOOKUP_TIMEOUT = "8 seconds";
 const MAX_BODY_BYTES = 1_000_000;
+// A YouTube watch page is 1.5 to 2 MB and says how long the video is around 0.9 MB in, too near
+// the usual cap to count on.
+const YOUTUBE_MAX_BODY_BYTES = 2_500_000;
+/** Shorter than the whole lookup, so a slow watch page costs the length and not the title. */
+const YOUTUBE_LENGTH_TIMEOUT = "6 seconds";
 const MAX_TITLE_CHARS = 300;
 const WORDS_PER_MINUTE = 220;
 /** Below this a page is a stub, a paywall or an app shell, and its length says nothing. */
@@ -181,17 +186,55 @@ function decodeEntities(text: string): string {
 
 const tidy = (text: string) => decodeEntities(text).replaceAll(/\s+/g, " ").trim();
 
-function metaContent(html: string, property: string): string | undefined {
+function metaContent(
+  html: string,
+  property: string,
+  namedBy: ReadonlyArray<string> = ["property", "name"],
+): string | undefined {
   for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {
     const attributes = new Map<string, string>();
     for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
       attributes.set((match[1] ?? "").toLowerCase(), match[2] ?? match[3] ?? match[4] ?? "");
     }
-    const name = (attributes.get("property") ?? attributes.get("name") ?? "").toLowerCase();
+    const name = namedBy.map((attribute) => attributes.get(attribute)).find((value) => value);
     const content = tidy(attributes.get("content") ?? "");
-    if (name === property && content !== "") return content;
+    if (name?.toLowerCase() === property && content !== "") return content;
   }
   return undefined;
+}
+
+/** The seconds an ISO 8601 duration such as `PT1H56M12S` lasts; undefined when it is not one. */
+export function isoDurationSeconds(text: string): number | undefined {
+  const parts = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i
+    .exec(text.trim())
+    ?.slice(1);
+  if (parts === undefined || parts.every((part) => part === undefined)) return undefined;
+  const [days = 0, hours = 0, minutes = 0, seconds = 0] = parts.map((part) => Number(part ?? 0));
+  return days * 86_400 + hours * 3_600 + minutes * 60 + seconds;
+}
+
+/** A playing time in whole minutes, never less than one; undefined when there is none to tell. */
+export function minutesOfSeconds(seconds: number | undefined): number | undefined {
+  return seconds !== undefined && Number.isFinite(seconds) && seconds > 0
+    ? Math.max(1, Math.round(seconds / 60))
+    : undefined;
+}
+
+/**
+ * How long a video or podcast plays, in minutes, as its page says it: the sharing tags
+ * (`og:video:duration`, in seconds), schema.org's `duration`, or YouTube's own `lengthSeconds`.
+ */
+export function playingMinutes(html: string): number | undefined {
+  const shared =
+    metaContent(html, "og:video:duration") ??
+    metaContent(html, "video:duration") ??
+    metaContent(html, "music:duration");
+  const marked = metaContent(html, "duration", ["itemprop"]);
+  return (
+    minutesOfSeconds(shared === undefined ? undefined : Number(shared)) ??
+    minutesOfSeconds(marked === undefined ? undefined : isoDurationSeconds(marked)) ??
+    minutesOfSeconds(Number(/"lengthSeconds"\s*:\s*"?(\d+)/.exec(html)?.[1] ?? Number.NaN))
+  );
 }
 
 function visibleText(html: string): string {
@@ -210,8 +253,8 @@ function visibleText(html: string): string {
 }
 
 /**
- * The title, site, reading time and picture an HTML page gives; each left out when the page has
- * none. The picture needs `page` to make a relative address whole.
+ * The title, site, reading time, playing time and picture an HTML page gives; each left out when
+ * the page has none. The picture needs `page` to make a relative address whole.
  */
 export function extractPage(
   html: string,
@@ -220,6 +263,8 @@ export function extractPage(
   readonly title?: string;
   readonly site?: string;
   readonly minutes?: number;
+  /** For a video or podcast, in place of `minutes`, which counts the page's words. */
+  readonly playMinutes?: number;
   readonly image?: string;
   readonly excerpt?: string;
 } {
@@ -237,6 +282,7 @@ export function extractPage(
     page === undefined
       ? undefined
       : pictureAddress(metaContent(html, "og:image") ?? metaContent(html, "twitter:image"), page);
+  const playMinutes = playingMinutes(html);
   return {
     ...(image === undefined ? {} : { image }),
     ...(excerpt === "" ? {} : { excerpt }),
@@ -245,6 +291,7 @@ export function extractPage(
     ...(words < MIN_WORDS_FOR_MINUTES
       ? {}
       : { minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) }),
+    ...(playMinutes === undefined ? {} : { playMinutes }),
   };
 }
 
@@ -259,9 +306,32 @@ const HEADERS = {
   "user-agent": "Mozilla/5.0 (compatible; Majordome)",
 };
 
+/** A page's HTML, up to `maxBytes` of it; undefined when it is not HTML. */
+const readHtml = Effect.fn("majordome.readingLink.readHtml")(function* (
+  url: URL,
+  maxBytes: number,
+) {
+  const http = yield* HttpClient.HttpClient;
+  const response = yield* http
+    .execute(HttpClientRequest.get(url.href).pipe(HttpClientRequest.setHeaders(HEADERS)))
+    .pipe(Effect.flatMap(HttpClientResponse.filterStatusOk));
+  if (!(response.headers["content-type"] ?? "").toLowerCase().includes("html")) return undefined;
+  let read = 0;
+  const bytes = yield* response.stream.pipe(
+    Stream.takeWhile((chunk) => {
+      const wanted = read < maxBytes;
+      read += chunk.length;
+      return wanted;
+    }),
+    Stream.mkUint8Array,
+  );
+  return new TextDecoder().decode(bytes.subarray(0, maxBytes));
+});
+
+/** oEmbed names the video without a key; only the watch page says how long it is. */
 const readYouTube = Effect.fn("majordome.readingLink.readYouTube")(function* (url: URL) {
   const http = yield* HttpClient.HttpClient;
-  const embed = yield* http
+  const named = http
     .execute(
       HttpClientRequest.get("https://www.youtube.com/oembed").pipe(
         HttpClientRequest.setUrlParams({ url: url.href, format: "json" }),
@@ -271,37 +341,50 @@ const readYouTube = Effect.fn("majordome.readingLink.readYouTube")(function* (ur
       Effect.flatMap(HttpClientResponse.filterStatusOk),
       Effect.flatMap(HttpClientResponse.schemaBodyJson(YouTubeEmbed)),
     );
+  const length = readHtml(url, YOUTUBE_MAX_BODY_BYTES).pipe(
+    Effect.map((html) => (html === undefined ? undefined : playingMinutes(html))),
+    Effect.timeoutOption(YOUTUBE_LENGTH_TIMEOUT),
+    Effect.map(Option.getOrUndefined),
+    Effect.catchCause((cause) =>
+      Cause.hasInterruptsOnly(cause) ? Effect.interrupt : Effect.undefined,
+    ),
+  );
+  const [embed, minutes] = yield* Effect.all([named, length], { concurrency: 2 });
   const image = pictureAddress(embed.thumbnail_url, url);
   return {
     title: tidy(embed.title).slice(0, MAX_TITLE_CHARS).trim(),
     ...(embed.author_name === undefined ? {} : { site: embed.author_name }),
+    ...(minutes === undefined ? {} : { minutes }),
     ...(image === undefined ? {} : { image }),
   };
 });
 
-const readPage = Effect.fn("majordome.readingLink.readPage")(function* (url: URL) {
-  const http = yield* HttpClient.HttpClient;
-  const response = yield* http
-    .execute(HttpClientRequest.get(url.href).pipe(HttpClientRequest.setHeaders(HEADERS)))
-    .pipe(Effect.flatMap(HttpClientResponse.filterStatusOk));
-  if (!(response.headers["content-type"] ?? "").toLowerCase().includes("html")) return {};
-  let read = 0;
-  const bytes = yield* response.stream.pipe(
-    Stream.takeWhile((chunk) => {
-      const wanted = read < MAX_BODY_BYTES;
-      read += chunk.length;
-      return wanted;
-    }),
-    Stream.mkUint8Array,
-  );
-  return extractPage(new TextDecoder().decode(bytes.subarray(0, MAX_BODY_BYTES)), url);
+const readPage = Effect.fn("majordome.readingLink.readPage")(function* (
+  url: URL,
+  kind: MajordomeReadingKind,
+) {
+  const html = yield* readHtml(url, MAX_BODY_BYTES);
+  if (html === undefined) return {};
+  const { playMinutes, ...found } = extractPage(html, url);
+  // A video's page has few words of its own, so counting them says nothing about its length.
+  return (kind === "video" || kind === "podcast") && playMinutes !== undefined
+    ? { ...found, minutes: playMinutes }
+    : found;
 });
 
-/** Never fails: a page that is refused, slow, missing or not HTML gives the fallback. */
-export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function* (url: URL) {
+/**
+ * Never fails: a page that is refused, slow, missing or not HTML gives the fallback. `kind` is
+ * what the owner says the link is, when that is known better than its address tells.
+ */
+export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function* (
+  url: URL,
+  kind?: MajordomeReadingKind,
+) {
   const fallback = fallbackLinkDetails(url);
   if (isRefusedHost(url.hostname)) return fallback;
-  const withFallback = (found: ReturnType<typeof extractPage>): LinkDetails => ({
+  const withFallback = (
+    found: Omit<ReturnType<typeof extractPage>, "playMinutes">,
+  ): LinkDetails => ({
     title: found.title === undefined || found.title === "" ? fallback.title : found.title,
     site: found.site === undefined || found.site === "" ? fallback.site : found.site,
     kind: fallback.kind,
@@ -311,7 +394,7 @@ export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function
   });
   const found = isYouTube(url)
     ? readYouTube(url).pipe(Effect.map(withFallback))
-    : readPage(url).pipe(Effect.map(withFallback));
+    : readPage(url, kind ?? fallback.kind).pipe(Effect.map(withFallback));
   return yield* found.pipe(
     Effect.timeoutOption(LOOKUP_TIMEOUT),
     Effect.map(Option.getOrElse(() => fallback)),

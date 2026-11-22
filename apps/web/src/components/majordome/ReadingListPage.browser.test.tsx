@@ -10,15 +10,25 @@ import { ReadingListPage } from "./ReadingListPage";
 
 const state = vi.hoisted(() => ({
   commands: [] as Array<readonly [string, unknown]>,
-  items: ["a", "b", "c"].map((id): MajordomeReadingItem => ({
+  // The last one is snoozed for good: out of the list, folded under it.
+  items: ["a", "b", "c", "z"].map((id): MajordomeReadingItem => ({
     id,
     url: `https://example.com/${id}`,
     title: `Link ${id}`,
     kind: "article",
     tags: [],
     addedAt: "2026-11-06T12:00:00.000Z",
+    ...(id === "z" ? { snoozedUntil: "2999-01-01" } : {}),
   })),
 }));
+const setup = () => {
+  state.commands = [];
+  localStorage.removeItem("majordome:reading-list-view");
+};
+const sent = (itemId: string, change: Record<string, unknown>) => [
+  "update",
+  { environmentId: "env", input: { projectId: "project", itemId, ...change } },
+];
 const vault = { key: "vault", environmentId: "env", projectId: "project" };
 
 vi.mock("./useMajordomeVaults", () => ({
@@ -72,7 +82,7 @@ const mouse = (type: string, at: { clientX: number; clientY: number }) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...at });
 
 it("saves what is typed on Enter and marks a row finished from its checkbox", async () => {
-  state.commands = [];
+  setup();
   await using screen = await render(readingPage);
 
   const field = screen.getByRole("textbox", { name: "Paste a link or type a title" });
@@ -102,7 +112,7 @@ it("saves what is typed on Enter and marks a row finished from its checkbox", as
 });
 
 it("moves a row to where it is dragged and keeps it there once saved", async () => {
-  state.commands = [];
+  setup();
   await using screen = await render(readingPage);
   const first = handle(screen.container, "a");
   const start = middle(first);
@@ -124,7 +134,7 @@ it("moves a row to where it is dragged and keeps it there once saved", async () 
     expect(state.commands).toEqual([
       [
         "reorder",
-        { environmentId: "env", input: { projectId: "project", itemIds: ["b", "c", "a"] } },
+        { environmentId: "env", input: { projectId: "project", itemIds: ["b", "c", "a", "z"] } },
       ],
     ]),
   );
@@ -139,4 +149,32 @@ it("moves a row to where it is dragged and keeps it there once saved", async () 
       row.getAttribute("data-reading-id"),
     ),
   ).toEqual(["b", "c", "a"]);
+});
+
+it("offers the first things as Next, and snoozes, wakes and changes the kind of a row", async () => {
+  setup();
+  await using screen = await render(readingPage);
+
+  await screen.getByRole("button", { name: "Next", exact: true }).click();
+  const cards = screen.getByRole("list", { name: "Next on your list" }).getByRole("listitem");
+  await expect.element(cards.nth(2).getByRole("link", { name: "Link c" })).toBeVisible();
+  expect(cards.elements()).toHaveLength(3);
+  await cards.first().getByRole("button", { name: "Not now" }).click();
+  await vi.waitFor(() =>
+    expect(state.commands).toEqual([
+      sent("a", { snoozedUntil: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }),
+    ]),
+  );
+
+  await screen.getByRole("button", { name: "Everything" }).click();
+  await screen.getByRole("button", { name: "Snoozed (1)" }).click();
+  await expect.element(screen.getByText("back on Tue 1 Jan 2999")).toBeVisible();
+  await screen.getByRole("button", { name: "More for Link z" }).click();
+  await screen.getByRole("menuitem", { name: "Wake it now" }).click();
+  await vi.waitFor(() => expect(state.commands[1]).toEqual(sent("z", { snoozedUntil: null })));
+
+  await screen.getByRole("button", { name: "More for Link b" }).click();
+  await screen.getByRole("menuitem", { name: "Change kind" }).click();
+  await screen.getByRole("menuitemradio", { name: "Video" }).click();
+  await vi.waitFor(() => expect(state.commands[2]).toEqual(sent("b", { kind: "video" })));
 });

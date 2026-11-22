@@ -37,6 +37,11 @@ export const MajordomeReadingItem = Schema.Struct({
   addedAt: Schema.String,
   /** Set once the owner finished it. */
   doneAt: Schema.optional(Schema.String),
+  /**
+   * "Not now": the day it comes back, as a calendar date (`2026-12-02`) read in the owner's own
+   * time. Until that day starts the item is kept out of the list; no one has to wake it.
+   */
+  snoozedUntil: Schema.optional(Schema.String),
   starred: Schema.optional(Schema.Boolean),
   /** What the owner took from it, in their words. */
   notes: Schema.optional(Schema.String),
@@ -78,11 +83,17 @@ export const MajordomeUpdateReadingItemInput = Schema.Struct({
   tags: Schema.optional(Schema.Array(Schema.String)),
   /** Null forgets the length. */
   minutes: Schema.optional(Schema.NullOr(Schema.Number)),
+  /** Finishing an item also ends its snooze. */
   done: Schema.optional(Schema.Boolean),
+  /** A calendar date (`2026-12-02`) snoozes the item until that day; null wakes it now. */
+  snoozedUntil: Schema.optional(Schema.NullOr(Schema.String)),
   starred: Schema.optional(Schema.Boolean),
   /** Null or empty removes the notes. */
   notes: Schema.optional(Schema.NullOr(Schema.String)),
-  /** Reads the link again for its picture, and for the source and length it still lacks. */
+  /**
+   * Reads the link again for its picture, and for the source and length it still lacks. A video
+   * or podcast gets its playing time, going by the kind sent here or else the item's own.
+   */
   lookUp: Schema.optional(Schema.Boolean),
   /**
    * Also asks the owner's AI for tags and a one-line summary, kept only where the item has none.

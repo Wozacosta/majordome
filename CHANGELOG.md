@@ -14,8 +14,33 @@ Not released yet.
   that aren't part of a topic, newest first, with the finished ones folded under "Earlier".
   Search in the sidebar still finds any chat.
 
+**New**
+
+- **Reading list: a Next view.** Just the first three things to do, each with **Finished** and
+  **Not now**. Switch back to **Everything** any time.
+- **Reading list: snooze.** Put something off until tomorrow, next week or in a month. It waits in
+  a folded **Snoozed** group and comes back on its day by itself.
+- **Reading list: videos and podcasts show how long they play**, YouTube included, and you can
+  change what kind of thing a saved link is from its **…** menu.
+- **Settings on a phone is a list you tap into**, with a "‹ Settings" button to go back, instead of
+  a column of unlabelled icons.
+- **Every Settings page starts with a title and one sentence saying what it is for**, and all
+  pages share the same look. The page you are on is clearly marked in the list.
+
+**Fixed**
+
+- A brand-new notes folder no longer shows "Routines aren't running" for a few seconds.
+- The strip above a topic's chat now says what it is: "Where things stand".
+- Adding a Markdown file through a topic's Files offers "Open it", which opens the note.
+- On Today, "Plan my day" sends straight away. If you already typed something, it is kept and
+  nothing is sent for you.
+
 **Try this**
 
+- Reading list > **Next**, then **Not now** on one of the cards. On a video saved earlier,
+  **… > Look it up again** should bring its length.
+- Open Settings and click down the list: every page should look like the same app. Make the
+  window narrow (or use your phone): Settings should become a list you tap into.
 - Press "Chats" under your topics: your recent chats should all be there, and "Earlier" should
   hold the ones you marked as done.
 

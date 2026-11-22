@@ -14,6 +14,17 @@ export const READING_KIND_LABELS: Readonly<Record<MajordomeReadingKind, string>>
   other: "Other",
 };
 
+/** One of a kind, for choosing what a saved thing is. */
+export const READING_KIND_NAMES: Readonly<Record<MajordomeReadingKind, string>> = {
+  article: "Article",
+  video: "Video",
+  paper: "Paper",
+  repo: "Repo",
+  podcast: "Podcast",
+  doc: "Doc",
+  other: "Other",
+};
+
 export interface ReadingFilters {
   readonly kind: MajordomeReadingKind | null;
   readonly tag: string | null;
@@ -85,6 +96,97 @@ export function readingLengthWords(
   if (item.minutes === undefined || !(item.minutes > 0)) return null;
   const words = durationWords(item.minutes);
   return WATCHED_OR_HEARD.has(item.kind) ? words : `${words} read`;
+}
+
+/** How many of the first unfinished things the Next view shows. */
+const READING_NEXT_COUNT = 3;
+
+const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** When a snooze ends: the start of that day here, or the moment itself if a time was written. */
+function wakeTime(snoozedUntil: string): Date {
+  const day = CALENDAR_DATE.exec(snoozedUntil.trim());
+  return day === null
+    ? new Date(snoozedUntil)
+    : new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]));
+}
+
+/** True while an unfinished item waits for its day; a day that has come no longer hides it. */
+export function isReadingSnoozed(
+  item: Pick<MajordomeReadingItem, "doneAt" | "snoozedUntil">,
+  now: Date,
+): boolean {
+  if (item.doneAt !== undefined || item.snoozedUntil === undefined) return false;
+  return wakeTime(item.snoozedUntil).getTime() > now.getTime();
+}
+
+/** The list without what is snoozed, and the snoozed ones with the soonest back first. */
+export function splitSnoozedReading(
+  items: ReadonlyArray<MajordomeReadingItem>,
+  now: Date,
+): {
+  readonly awake: ReadonlyArray<MajordomeReadingItem>;
+  readonly snoozed: ReadonlyArray<MajordomeReadingItem>;
+} {
+  const snoozed = items.filter((item) => isReadingSnoozed(item, now));
+  return {
+    awake: items.filter((item) => !snoozed.includes(item)),
+    snoozed: snoozed.toSorted(
+      (a, b) => wakeTime(a.snoozedUntil ?? "").getTime() - wakeTime(b.snoozedUntil ?? "").getTime(),
+    ),
+  };
+}
+
+/** The first few things to do, in the owner's order, and the unfinished ones after them. */
+export function nextReadingItems(
+  items: ReadonlyArray<MajordomeReadingItem>,
+  now: Date,
+): {
+  readonly next: ReadonlyArray<MajordomeReadingItem>;
+  readonly later: ReadonlyArray<MajordomeReadingItem>;
+} {
+  const open = items.filter((item) => !isFinished(item) && !isReadingSnoozed(item, now));
+  return { next: open.slice(0, READING_NEXT_COUNT), later: open.slice(READING_NEXT_COUNT) };
+}
+
+/** "12 more on your list · 5 h 24 min" for what comes after the Next ones; null for none. */
+export function readingMoreWords(later: ReadonlyArray<MajordomeReadingItem>): string | null {
+  if (later.length === 0) return null;
+  const minutes = later.reduce(
+    (sum, item) => sum + (item.minutes !== undefined && item.minutes > 0 ? item.minutes : 0),
+    0,
+  );
+  const count = `${later.length} more on your list`;
+  return minutes > 0 ? `${count} · ${durationWords(minutes)}` : count;
+}
+
+export type ReadingSnoozeChoice = "tomorrow" | "week" | "month";
+
+/** The day a snooze ends, as it is saved: `2026-12-02`, counted in this device's own time. */
+export function readingSnoozeDate(choice: ReadingSnoozeChoice, now: Date): string {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+  const until =
+    choice === "tomorrow"
+      ? new Date(year, month, day + 1)
+      : choice === "week"
+        ? new Date(year, month, day + 7)
+        : // Jan 31 comes back on the last day of February, not in March.
+          new Date(year, month + 1, Math.min(day, new Date(year, month + 2, 0).getDate()));
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${until.getFullYear()}-${two(until.getMonth() + 1)}-${two(until.getDate())}`;
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "back on Tue 2 Dec", with the year once it is not this one. */
+export function readingBackOnWords(snoozedUntil: string, now: Date): string {
+  const back = wakeTime(snoozedUntil);
+  if (Number.isNaN(back.getTime())) return "";
+  const year = back.getFullYear() === now.getFullYear() ? "" : ` ${back.getFullYear()}`;
+  return `back on ${WEEKDAYS[back.getDay()]} ${back.getDate()} ${MONTHS[back.getMonth()]}${year}`;
 }
 
 /** "6 h 9 min to go · 12 items" over the unfinished ones; null when nothing is left. */

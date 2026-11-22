@@ -1301,6 +1301,64 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   }
 }
 
+/* Majordome: T3's settings pages take the paper look of Majordome's own. Section headings read
+   as paper's section labels and the grouped cards become hairline rows. A group reaches into the
+   page margin by its rows' own inset, so row text lines up with the page title. */
+[data-majordome-settings] [data-slot="settings-section-heading"] h2 {
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+[data-majordome-settings] [data-slot="settings-group"] {
+  border-color: var(--border) transparent transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-majordome-settings] [data-slot="settings-group"] > :not(:first-child) {
+  border-top-color: var(--border);
+}
+
+[data-majordome-settings]
+  :is([data-slot="settings-section-heading"], [data-slot="settings-fold-heading"]):not(
+    [data-provider-detail] *
+  ) {
+  padding-inline: 0;
+}
+
+[data-majordome-settings]
+  [data-slot="settings-group"]:not([data-slot="settings-group"] *, [data-provider-detail] *) {
+  margin-inline: -0.75rem;
+
+  @media (min-width: 40rem) {
+    margin-inline: -1rem;
+  }
+}
+
+/* Majordome: the open settings page is unmistakable in the list, in both themes. Hover is a faint
+   neutral wash; the open page gets a tinted fill, full-strength text and a coloured icon. */
+[data-majordome-settings-nav] [data-slot="sidebar-menu-button"]:hover {
+  background: color-mix(in srgb, var(--color-sidebar-foreground) 6%, transparent);
+}
+
+[data-majordome-settings-nav] [data-slot="sidebar-menu-button"][data-active="true"] {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--color-sidebar-foreground);
+  font-weight: 600;
+
+  @variant dark {
+    background: color-mix(in srgb, var(--primary) 24%, transparent);
+  }
+}
+
+[data-majordome-settings-nav] [data-slot="sidebar-menu-button"][data-active="true"] > svg {
+  color: var(--primary);
+}
+
 /* Sections in the provider detail pane sit flat in its card instead of nesting cards inside
    it. Headings and row dividers still separate them. */
 [data-provider-detail] [data-slot="settings-group"] {

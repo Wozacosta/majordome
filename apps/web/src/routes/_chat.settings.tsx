@@ -10,6 +10,10 @@ import { AppRouteModal, AppRouteModalClose } from "../components/AppRouteModal";
 import { AssistantDock } from "../components/majordome/AssistantDock";
 import { getAppModalReturnThreadTarget } from "../components/sidebar/mainAppLocation";
 import { isMajordome } from "../env";
+import {
+  MAJORDOME_SETTINGS_PHONE_QUERY,
+  MajordomeSettingsShell,
+} from "../components/settings/MajordomeSettingsShell";
 import { SettingsBreadcrumb } from "../components/settings/SettingsBreadcrumb";
 import { SettingsSidebarNav } from "../components/settings/SettingsSidebarNav";
 import {
@@ -144,6 +148,26 @@ function SettingsContentLayout() {
     </div>
   );
 
+  const restoreDefaults =
+    location.pathname === "/settings/general" ? (
+      <RestoreDeviceDefaultsButton onRestored={() => setRestoreSignal((value) => value + 1)} />
+    ) : null;
+
+  if (isMajordome) {
+    return (
+      <AppRouteModal label={gt("Settings")}>
+        <MajordomeSettingsShell actions={restoreDefaults}>
+          <AssistantDock
+            className="min-h-0"
+            shownThreadId={returnTarget?.kind === "server" ? returnTarget.threadRef.threadId : null}
+          >
+            {page}
+          </AssistantDock>
+        </MajordomeSettingsShell>
+      </AppRouteModal>
+    );
+  }
+
   return (
     <AppRouteModal label={gt("Settings")}>
       <div className="relative flex min-h-0 flex-1">
@@ -152,26 +176,11 @@ function SettingsContentLayout() {
           <header className="flex h-12 shrink-0 items-center gap-3 border-b ps-5 pe-2">
             <SettingsBreadcrumb pathname={location.pathname} />
             <div className="ms-auto flex shrink-0 items-center gap-1">
-              {location.pathname === "/settings/general" ? (
-                <RestoreDeviceDefaultsButton
-                  onRestored={() => setRestoreSignal((value) => value + 1)}
-                />
-              ) : null}
+              {restoreDefaults}
               <AppRouteModalClose />
             </div>
           </header>
-          {isMajordome ? (
-            <AssistantDock
-              className="min-h-0"
-              shownThreadId={
-                returnTarget?.kind === "server" ? returnTarget.threadRef.threadId : null
-              }
-            >
-              {page}
-            </AssistantDock>
-          ) : (
-            page
-          )}
+          {page}
         </div>
       </div>
     </AppRouteModal>
@@ -211,6 +220,8 @@ export const Route = createFileRoute("/_chat/settings")({
   search: { middlewares: [retainSettingsScope] },
   beforeLoad: async ({ location }) => {
     if (location.pathname === "/settings") {
+      // On a phone Majordome's /settings is the list of pages.
+      if (isMajordome && window.matchMedia(MAJORDOME_SETTINGS_PHONE_QUERY).matches) return;
       // Majordome opens Settings on whether all is well; T3 on its first page.
       throw redirect({
         to: isMajordome ? "/settings/overview" : "/settings/general",

@@ -150,7 +150,14 @@ function SettingsSectionIcon({ to }: { to: SettingsPath }) {
   return <Icon className="size-4 h-5 shrink-0 text-(--sidebar-icon-color)" />;
 }
 
-export function SettingsSidebarNav({ pathname }: { pathname: string }) {
+export function SettingsSidebarNav({
+  pathname,
+  variant = "sidebar",
+}: {
+  pathname: string;
+  /** "list" is Majordome's phone layout: the pages as a full-width list, with no page beside it. */
+  variant?: "sidebar" | "list";
+}) {
   const gt = useGT();
   const m = useMessages();
   const navArea = workspaceAreaProps("settings-nav", 0, gt("Settings sections"));
@@ -161,6 +168,8 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
   const [query, setQuery] = useState("");
   // Below md the nav is an icon rail; searching expands it over the page.
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
+  const list = variant === "list";
+  const rail = !list && !compactSearchOpen;
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [openGroups, setOpenGroups] = useLocalStorage(OPEN_GROUPS_KEY, NO_OPEN_GROUPS, OpenGroups);
   const toggleGroup = (heading: string) =>
@@ -283,11 +292,16 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
     <nav
       {...navArea}
       role="navigation"
-      className={cn(
-        "flex w-60 shrink-0 flex-col border-e bg-sidebar text-sidebar-foreground max-md:w-14",
-        compactSearchOpen &&
-          "max-md:absolute max-md:inset-y-0 max-md:start-0 max-md:z-10 max-md:w-full",
-      )}
+      data-majordome-settings-nav={isMajordome ? "" : undefined}
+      className={
+        list
+          ? "flex min-h-0 w-full flex-1 flex-col text-sidebar-foreground"
+          : cn(
+              "flex w-60 shrink-0 flex-col border-e bg-sidebar text-sidebar-foreground max-md:w-14",
+              compactSearchOpen &&
+                "max-md:absolute max-md:inset-y-0 max-md:start-0 max-md:z-10 max-md:w-full",
+            )
+      }
     >
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
@@ -295,7 +309,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
             <div
               className={cn(
                 "flex h-8 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground",
-                !compactSearchOpen && "max-md:hidden",
+                rail && "max-md:hidden",
               )}
             >
               <SearchIcon className="size-4 shrink-0 text-sidebar-muted-foreground/80" />
@@ -341,7 +355,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                 >
                   <XIcon className="size-3" />
                 </Button>
-              ) : (
+              ) : list ? null : (
                 <Kbd>/</Kbd>
               )}
             </div>
@@ -391,7 +405,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
               </SidebarMenu>
             ) : (
               <div className="flex flex-col gap-4">
-                {compactSearchOpen ? null : (
+                {rail ? (
                   <SidebarMenu className="md:hidden">
                     <SidebarMenuItem>
                       <SidebarMenuButton
@@ -402,7 +416,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
-                )}
+                ) : null}
                 <div onKeyDown={handleSettingsSectionKeyDown} className="flex flex-col gap-4">
                   {SETTINGS_NAV_GROUPS.map((group, index) => {
                     const isPathActive = (to: SettingsPath) =>
@@ -413,7 +427,11 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                     return (
                       <div
                         key={group.heading}
-                        className="flex flex-col gap-1 max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0"
+                        className={cn(
+                          "flex flex-col gap-1",
+                          !list &&
+                            "max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0",
+                        )}
                       >
                         {group.collapsible ? (
                           <h3 id={`settings-nav-group-${index}`}>
@@ -421,9 +439,12 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                               type="button"
                               aria-expanded={!collapsed}
                               onClick={() => toggleGroup(group.heading)}
-                              className="flex h-6 w-full items-center gap-1 rounded-md px-2 text-xs font-medium text-sidebar-muted-foreground/80 hover:text-sidebar-foreground max-md:h-8 max-md:justify-center"
+                              className={cn(
+                                "flex h-6 w-full items-center gap-1 rounded-md px-2 text-xs font-medium text-sidebar-muted-foreground/80 hover:text-sidebar-foreground",
+                                list ? "h-8" : "max-md:h-8 max-md:justify-center",
+                              )}
                             >
-                              <span className={cn(!compactSearchOpen && "max-md:sr-only")}>
+                              <span className={cn(rail && "max-md:sr-only")}>
                                 {m(group.heading)}
                               </span>
                               <ChevronRightIcon
@@ -437,9 +458,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                             id={`settings-nav-group-${index}`}
                             className={cn(
                               "px-2 text-xs font-medium text-sidebar-muted-foreground/80",
-                              group.headingHidden
-                                ? "sr-only"
-                                : !compactSearchOpen && "max-md:sr-only",
+                              group.headingHidden ? "sr-only" : rail && "max-md:sr-only",
                             )}
                           >
                             {m(group.heading)}
@@ -457,17 +476,16 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                                     data-settings-section={to}
                                     aria-current={isActive ? "page" : undefined}
                                     isActive={isActive}
+                                    size={list ? "lg" : "default"}
                                     onClick={() => handleSectionClick(to)}
                                   >
                                     <Icon />
-                                    <span
-                                      className={cn(
-                                        "truncate",
-                                        !compactSearchOpen && "max-md:sr-only",
-                                      )}
-                                    >
+                                    <span className={cn("truncate", rail && "max-md:sr-only")}>
                                       {m(SETTINGS_NAV_LABELS[to])}
                                     </span>
+                                    {list ? (
+                                      <ChevronRightIcon aria-hidden className="ms-auto" />
+                                    ) : null}
                                   </SidebarMenuButton>
                                 </SidebarMenuItem>
                               );

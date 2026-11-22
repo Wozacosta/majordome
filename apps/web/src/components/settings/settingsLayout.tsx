@@ -18,10 +18,12 @@ import {
   PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
   usePrimarySettingsAvailable,
 } from "../../hooks/useSettings";
+import { isMajordome } from "../../env";
 import { cn } from "../../lib/utils";
 import { WorkspacePageContainer, type WorkspacePageWidth } from "../WorkspacePageContainer";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { MajordomeSettingsPageIntro } from "./MajordomeSettingsPageIntro";
 import { isHiddenSetting } from "./settingsSearch";
 import { useOptionalSettingsScope } from "./SettingsScopeContext";
 import { SettingsScopeSentence } from "./SettingsScopeSentence";
@@ -245,6 +247,7 @@ export function SettingsSection({
         <h2 className="sr-only">{title}</h2>
       ) : (
         <div
+          data-slot="settings-section-heading"
           data-settings-scroll-target
           className="flex min-h-7 flex-wrap items-start justify-between gap-x-4 gap-y-1 px-3 sm:px-4"
         >
@@ -634,6 +637,7 @@ export function SettingsPageContainer({
 }) {
   const navigate = useNavigate();
   const hash = useLocation({ select: (location) => location.hash });
+  const pathname = useLocation({ select: (location) => location.pathname });
   const highlightTarget = useLocation({
     select: (location) => location.state.settingsTargetHighlight !== false,
   });
@@ -657,8 +661,10 @@ export function SettingsPageContainer({
       <div
         className="topbar-scroll-fade scrollbar-gutter-both flex-1 overflow-y-auto"
         data-settings-page-scroll
+        data-majordome-settings={isMajordome ? "" : undefined}
       >
         <WorkspacePageContainer width={width} className={cn("gap-8", className)}>
+          {isMajordome ? <MajordomeSettingsPageIntro pathname={pathname} /> : null}
           <SettingsScopeSentence />
           {children}
         </WorkspacePageContainer>

@@ -7,7 +7,7 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { DownloadIcon, FileIcon, LockIcon, XIcon } from "lucide-react";
@@ -88,6 +88,7 @@ export function TopicFiles({
   readonly topic: VaultTopic;
   readonly workspaceRoot: string | null;
 }) {
+  const navigate = useNavigate();
   const where = { projectId, topicId: topic.id };
   const result = useAtomValue(majordomeEnvironment.topicFiles({ environmentId, input: where }));
   const privateResult = useAtomValue(
@@ -185,18 +186,26 @@ export function TopicFiles({
           problem = privateDocumentFailureMessage(squashAtomCommandFailure(added));
         }
       } else if (sent.ok) {
-        problem = failureMessage(
-          await addTopicFile({
-            environmentId,
-            input: { ...where, attachmentId: sent.attachmentId, fileName: file.name },
-          }),
-        );
+        const added = await addTopicFile({
+          environmentId,
+          input: { ...where, attachmentId: sent.attachmentId, fileName: file.name },
+        });
+        problem = failureMessage(added);
         // A Markdown file is a note: it shows under Notes, so this list would say nothing of it.
-        if (problem === null && isNoteFileName(file.name)) {
-          toastManager.add({
+        if (added._tag === "Success" && isNoteFileName(added.value.name)) {
+          // The server's own path: it numbers the name when the folder already had one like it.
+          const { path } = added.value;
+          const toastId = toastManager.add({
             type: "success",
-            title: `${file.name} was added to this topic's notes`,
-            description: "It is a note, so it is listed under Notes, not Files.",
+            title: `${added.value.name} was added to this topic's notes`,
+            description: "It is a note, so you'll find it in Notes.",
+            actionProps: {
+              children: "Open it",
+              onClick: () => {
+                toastManager.close(toastId);
+                void navigate(notesLink({ projectId, environmentId, path }));
+              },
+            },
           });
         }
       }

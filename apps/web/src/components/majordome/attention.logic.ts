@@ -1,6 +1,7 @@
 import type {
   EnvironmentId,
   MajordomeBackupStatus,
+  MajordomeRoutinesRunner,
   ProjectId,
   ServerProvider,
 } from "@t3tools/contracts";
@@ -47,6 +48,26 @@ export interface AttentionInput {
     readonly environmentId: EnvironmentId;
     readonly providers: ReadonlyArray<ServerProvider> | null;
   }>;
+}
+
+/** A server looks at its notes folders, and claims one nobody runs, at least this often. */
+const RUNNER_CLAIM_GRACE_MS = 5 * 60_000;
+
+/**
+ * Which computer runs a notes folder's routines, as far as it is settled: a folder made moments ago
+ * answers "none" until its server's next look claims it, which is not yet a problem to report.
+ */
+export function settledRunner(input: {
+  /** Null while the folder's history has not answered. */
+  readonly runner: MajordomeRoutinesRunner | null;
+  /** When the notes folder was added to its computer. */
+  readonly createdAt: string;
+  /** The current UTC minute, `YYYY-MM-DDTHH:mm`. */
+  readonly nowMinute: string;
+}): MajordomeRoutinesRunner | null {
+  if (input.runner !== "none") return input.runner;
+  const age = Date.parse(`${input.nowMinute}Z`) - Date.parse(input.createdAt);
+  return age < RUNNER_CLAIM_GRACE_MS ? null : "none";
 }
 
 export interface AttentionCard {

@@ -6,6 +6,7 @@ import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useNowMinute } from "../../hooks/useNowMinute";
+import { cn } from "../../lib/utils";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
 import { notesLink } from "./notes.logic";
@@ -16,8 +17,13 @@ const COLLAPSED_STORAGE_KEY = "majordome:topic-standing-collapsed";
 const CollapsedChoices = Schema.Record(Schema.String, Schema.Boolean);
 const NO_CHOICES: Readonly<Record<string, boolean>> = {};
 
+const LABEL = "Where things stand";
+
 const LOG_LINK_CLASS =
   "shrink-0 rounded-sm text-xs text-muted-foreground underline decoration-border underline-offset-4 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+
+// The side panel's quiet section label.
+const LABEL_CLASS = "shrink-0 text-2xs font-medium text-muted-foreground leading-6 select-none";
 
 /**
  * Where a topic stands, pinned above its main chat: the few lines the assistant keeps at the top
@@ -72,13 +78,17 @@ export function TopicStanding({
         </Button>
         {collapsed ? (
           <>
-            <p className="min-w-0 flex-1 truncate text-sm text-foreground leading-6">
-              {standingFirstLine(standing.text)}
-            </p>
+            <div className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-baseline sm:gap-2">
+              <span className={cn(LABEL_CLASS, "max-sm:leading-5")}>{LABEL}</span>
+              <p className="min-w-0 truncate text-sm text-foreground leading-6 sm:flex-1">
+                {standingFirstLine(standing.text)}
+              </p>
+            </div>
             <span className="leading-6">{log}</span>
           </>
         ) : (
           <div className="min-w-0 flex-1">
+            <p className={LABEL_CLASS}>{LABEL}</p>
             <p className="line-clamp-3 whitespace-pre-line text-sm text-foreground leading-6">
               {standing.text.trim()}
             </p>

@@ -229,7 +229,68 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       });
       assert.deepInclude(video.item, { title: "A talk", site: "The Channel", kind: "video" });
       assert.notProperty(video.item, "minutes");
-      assert.equal(requests.at(-1)?.url.searchParams.get("url"), "https://youtu.be/abc123");
+      assert.equal(
+        requests
+          .find((sent) => sent.route === "GET www.youtube.com/oembed")
+          ?.url.searchParams.get("url"),
+        "https://youtu.be/abc123",
+      );
+    }),
+  );
+
+  it.effect("finds how long a video plays, at once or when looked up again", () =>
+    Effect.gen(function* () {
+      let watchPageUp = false;
+      // The real page says its length some 0.9 MB in: past the cap other pages are read to.
+      const watchPage = `<html><head>${" ".repeat(1_200_000)}
+        <meta itemprop="duration" content="PT1H56M12S"></head><body></body></html>`;
+      const { service } = yield* setUp((sent) =>
+        sent.route === "GET www.youtube.com/oembed"
+          ? { body: { title: "A long talk", author_name: "The Channel" } }
+          : sent.route === "GET www.youtube.com/watch"
+            ? watchPageUp
+              ? html(watchPage)
+              : { status: 429 }
+            : html(
+                `<head><title>A lecture</title><meta property="og:video:duration" content="754"></head>`,
+              ),
+      );
+      const add = (text: string) =>
+        service.add({ projectId: vaultProject, text }).pipe(Effect.map((added) => added.item));
+
+      // Without its watch page a video is still saved, by what oEmbed says, with no length.
+      const video = yield* add("https://www.youtube.com/watch?v=abc123");
+      assert.deepInclude(video, { title: "A long talk", site: "The Channel", kind: "video" });
+      assert.notProperty(video, "minutes");
+      watchPageUp = true;
+      const looked = yield* service.update({
+        projectId: vaultProject,
+        itemId: video.id,
+        lookUp: true,
+      });
+      assert.equal(looked.minutes, 116);
+      assert.equal((yield* add("https://www.youtube.com/watch?v=other")).minutes, 116);
+
+      // Any other video page: the length it gives for sharing, in seconds.
+      assert.deepInclude(yield* add("https://vimeo.com/123"), { kind: "video", minutes: 13 });
+
+      // A page saved as an article has no playing time until the owner says it is a video,
+      // and changing the kind alone leaves the length as it is.
+      const lecture = yield* add("https://school.example/lecture");
+      assert.notProperty(lecture, "minutes");
+      const asVideo = yield* service.update({
+        projectId: vaultProject,
+        itemId: lecture.id,
+        kind: "video",
+        lookUp: true,
+      });
+      assert.deepInclude(asVideo, { kind: "video", minutes: 13 });
+      const asPodcast = yield* service.update({
+        projectId: vaultProject,
+        itemId: lecture.id,
+        kind: "podcast",
+      });
+      assert.deepInclude(asPodcast, { kind: "podcast", minutes: 13 });
     }),
   );
 
@@ -346,6 +407,36 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       yield* service.remove({ projectId: vaultProject, itemId: added.id });
       const gone = yield* Effect.flip(change({ title: "Too late" }));
       assert.equal(gone.message, "That item is no longer on your list.");
+    }),
+  );
+
+  it.effect("snoozes an item until a day, through other changes, until woken or finished", () =>
+    Effect.gen(function* () {
+      const { service, items, addTitle } = yield* setUp();
+      const added = yield* addTitle("A book");
+      const change = (fields: Record<string, unknown>) =>
+        service.update({ projectId: vaultProject, itemId: added.id, ...fields });
+
+      const snoozed = yield* change({ snoozedUntil: "2026-12-02" });
+      assert.deepEqual(snoozed, { ...added, snoozedUntil: "2026-12-02" });
+      assert.deepEqual(yield* items, [snoozed]);
+      assert.equal((yield* change({ starred: true, tags: ["rust"] })).snoozedUntil, "2026-12-02");
+
+      assert.notProperty(yield* change({ snoozedUntil: null }), "snoozedUntil");
+
+      // Finishing it ends the snooze, also when both arrive together, and it stays ended.
+      yield* change({ snoozedUntil: "2026-12-09" });
+      const finished = yield* change({ done: true });
+      assert.property(finished, "doneAt");
+      assert.notProperty(finished, "snoozedUntil");
+      assert.notProperty(yield* change({ done: false }), "snoozedUntil");
+      assert.notProperty(yield* change({ done: true, snoozedUntil: "2026-12-09" }), "snoozedUntil");
+
+      for (const notADay of ["tomorrow", "2026-02-30", "2026-12-02T08:00:00.000Z", ""]) {
+        const refused = yield* Effect.flip(change({ done: false, snoozedUntil: notADay }));
+        assert.equal(refused.message, "That is not a day this can be snoozed until.", notADay);
+      }
+      assert.property((yield* items)[0], "doneAt");
     }),
   );
 

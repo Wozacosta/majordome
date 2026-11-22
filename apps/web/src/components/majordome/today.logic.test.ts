@@ -12,9 +12,11 @@ import {
   dayKey,
   greetingForHour,
   openTasks,
+  pickTodayStarter,
   selectTodayRuns,
   shiftDay,
   timeOfDay,
+  TODAY_STARTERS,
   weekOf,
 } from "./today.logic";
 
@@ -204,5 +206,34 @@ describe("assistantNotSetUp", () => {
     expect(
       assistantNotSetUp([{ ...account, status: "error" }, { ...account, enabled: false }, account]),
     ).toBe(false);
+  });
+});
+
+describe("pickTodayStarter", () => {
+  const [remember, , remind, plan] = TODAY_STARTERS;
+
+  it("sends a whole request at once and leaves the start of a sentence to be finished", () => {
+    expect(pickTodayStarter("", plan)).toEqual({ text: "Help me plan my day.", send: true });
+    expect(pickTodayStarter("  ", remind)).toEqual({ text: "Remind me to ", send: false });
+    // Another starter, still as it was put in, is replaced.
+    expect(pickTodayStarter("Remember that ", plan)).toEqual({
+      text: "Help me plan my day.",
+      send: true,
+    });
+    expect(pickTodayStarter("Help me plan my day.", remember)).toEqual({
+      text: "Remember that ",
+      send: false,
+    });
+  });
+
+  it("keeps what the owner typed, after the starter, and never sends it for them", () => {
+    expect(pickTodayStarter("call the dentist", remind)).toEqual({
+      text: "Remind me to call the dentist",
+      send: false,
+    });
+    expect(pickTodayStarter("I have three meetings", plan)).toEqual({
+      text: "Help me plan my day. I have three meetings",
+      send: false,
+    });
   });
 });

@@ -3,11 +3,14 @@ import { assert, describe, it } from "@effect/vitest";
 import {
   extractPage,
   fallbackLinkDetails,
+  isoDurationSeconds,
   isRefusedHost,
   kindOfLink,
+  minutesOfSeconds,
   normalizeLink,
   parseLink,
   pictureAddress,
+  playingMinutes,
 } from "./readingLink.ts";
 
 const hostOf = (address: string) => new URL(address).hostname;
@@ -159,6 +162,71 @@ describe("readingLink", () => {
       extractPage(`<body><nav>${words(3000)}</nav><article><p>${words(440)}</p></article></body>`)
         .minutes,
       2,
+    );
+  });
+
+  it("reads how long an ISO 8601 duration lasts, and nothing from anything else", () => {
+    for (const [text, seconds] of [
+      ["PT1H56M12S", 6972],
+      ["PT2H", 7200],
+      ["PT45M", 2700],
+      ["PT30S", 30],
+      ["PT0S", 0],
+      ["pt3m34.5s", 214.5],
+      ["P1DT1H", 90_000],
+      [" PT18M40S ", 1120],
+      ["P", undefined],
+      ["PT", undefined],
+      ["1:56:12", undefined],
+      ["PT5", undefined],
+      ["PT-5M", undefined],
+      ["", undefined],
+    ] as const) {
+      assert.equal(isoDurationSeconds(text), seconds, text);
+    }
+  });
+
+  it("rounds a playing time to whole minutes, never under one", () => {
+    for (const [seconds, minutes] of [
+      [6972, 116],
+      [214, 4],
+      [89, 1],
+      [20, 1],
+      [0, undefined],
+      [-60, undefined],
+      [Number.NaN, undefined],
+      [undefined, undefined],
+    ] as const) {
+      assert.equal(minutesOfSeconds(seconds), minutes, String(seconds));
+    }
+  });
+
+  it("finds how long a video or podcast plays from what its page says", () => {
+    for (const [page, minutes] of [
+      ['<meta itemprop="duration" content="PT1H56M12S">', 116],
+      ['<meta property="og:video:duration" content="754">', 13],
+      ['<meta name="video:duration" content="59.6">', 1],
+      ['<meta property="music:duration" content="3600">', 60],
+      ['<script>var p = {"videoDetails":{"lengthSeconds":"6972","title":"x"}};</script>', 116],
+      // The sharing tag wins over the player's own data; a broken one is passed over.
+      [
+        '<meta property="og:video:duration" content="120"><script>{"lengthSeconds":"600"}</script>',
+        2,
+      ],
+      ['<meta itemprop="duration" content="soon"><script>{"lengthSeconds":"600"}</script>', 10],
+      ['<meta property="og:video:duration" content="long">', undefined],
+      ['<meta name="duration" content="PT5M">', undefined],
+      ['<meta itemprop="duration" content="PT0S">', undefined],
+      ["<p>No length here, lengthSeconds or otherwise.</p>", undefined],
+    ] as const) {
+      assert.equal(playingMinutes(page), minutes, page);
+    }
+    // Beside the page's words, not in place of them: which one counts depends on what it is.
+    assert.deepInclude(
+      extractPage(
+        `<head><meta property="og:video:duration" content="600"></head><body>${words(440)}</body>`,
+      ),
+      { minutes: 2, playMinutes: 10 },
     );
   });
 });

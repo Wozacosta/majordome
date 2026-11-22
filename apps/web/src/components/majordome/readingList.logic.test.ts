@@ -5,14 +5,20 @@ import {
   askAboutReadingMessage,
   canReorderReading,
   filterReadingItems,
+  isReadingSnoozed,
+  nextReadingItems,
   orderReadingItems,
   parseReadingMinutes,
   placeReadingItem,
   presentReadingKinds,
   readingAddedWords,
+  readingBackOnWords,
   readingLengthWords,
+  readingMoreWords,
+  readingSnoozeDate,
   readingTagCounts,
   readingTimeLeftWords,
+  splitSnoozedReading,
   withReadingTag,
 } from "./readingList.logic";
 
@@ -86,6 +92,85 @@ it("adds up the time left over unfinished rows only", () => {
   expect(readingTimeLeftWords([item("a", { minutes: 9 })])).toBe("9 min to go · 1 item");
   expect(readingTimeLeftWords([item("a"), item("b")])).toBe("2 items");
   expect(readingTimeLeftWords([item("a", { doneAt: "2026-11-10T08:00:00.000Z" })])).toBeNull();
+});
+
+// Sunday 22 November 2026, 9:30 in the morning, wherever the test runs.
+const NOW = new Date(2026, 10, 22, 9, 30);
+
+it("hides a snoozed item until its day starts, and never a finished one", () => {
+  const snoozed = (snoozedUntil: string, doneAt?: string) =>
+    isReadingSnoozed({ snoozedUntil, ...(doneAt === undefined ? {} : { doneAt }) }, NOW);
+  expect(snoozed("2026-11-23")).toBe(true);
+  expect(snoozed("2027-01-01")).toBe(true);
+  expect(snoozed("2026-11-22")).toBe(false);
+  expect(snoozed("2026-11-01")).toBe(false);
+  // A time written by hand counts to the minute; nonsense snoozes nothing.
+  expect(snoozed(new Date(2026, 10, 22, 18, 0).toISOString())).toBe(true);
+  expect(snoozed(new Date(2026, 10, 22, 9, 0).toISOString())).toBe(false);
+  expect(snoozed("someday")).toBe(false);
+  expect(snoozed("2026-11-23", "2026-11-10T08:00:00.000Z")).toBe(false);
+  expect(isReadingSnoozed({}, NOW)).toBe(false);
+});
+
+it("sets snoozed items apart, soonest back first, and leaves them out of the time to go", () => {
+  const withSnoozed = [
+    item("s1", { snoozedUntil: "2026-12-22", minutes: 300 }),
+    ...list,
+    item("s2", { snoozedUntil: "2026-11-23", minutes: 30 }),
+    item("woken", { snoozedUntil: "2026-11-22", minutes: 5 }),
+  ];
+  const { awake, snoozed } = splitSnoozedReading(withSnoozed, NOW);
+  expect(ids(awake)).toEqual(["a", "b", "c", "d", "e", "woken"]);
+  expect(ids(snoozed)).toEqual(["s2", "s1"]);
+  expect(readingTimeLeftWords(awake)).toBe("2 h 46 min to go · 4 items");
+  // The day after, the first one is back in its place on its own.
+  expect(ids(splitSnoozedReading(withSnoozed, new Date(2026, 10, 23, 0, 0)).snoozed)).toEqual([
+    "s1",
+  ]);
+});
+
+it("picks the first three unfinished, unsnoozed things as next and counts the rest", () => {
+  const long = [
+    item("s", { snoozedUntil: "2026-11-23", minutes: 500 }),
+    ...list,
+    item("f", { minutes: 24 }),
+    item("g"),
+  ];
+  const { next, later } = nextReadingItems(long, NOW);
+  expect(ids(next)).toEqual(["a", "c", "e"]);
+  expect(ids(later)).toEqual(["f", "g"]);
+  expect(readingMoreWords(later)).toBe("2 more on your list · 24 min");
+  expect(readingMoreWords([item("g")])).toBe("1 more on your list");
+  expect(readingMoreWords([])).toBeNull();
+  expect(
+    nextReadingItems(
+      [
+        item("done", { doneAt: "2026-11-10T08:00:00.000Z" }),
+        item("s", { snoozedUntil: "2026-11-23" }),
+      ],
+      NOW,
+    ),
+  ).toEqual({
+    next: [],
+    later: [],
+  });
+});
+
+it.each([
+  ["tomorrow", new Date(2026, 10, 22, 23, 59), "2026-11-23"],
+  ["tomorrow", new Date(2026, 11, 31, 8, 0), "2027-01-01"],
+  ["week", new Date(2026, 10, 27, 8, 0), "2026-12-04"],
+  ["month", new Date(2026, 10, 22, 8, 0), "2026-12-22"],
+  ["month", new Date(2027, 0, 31, 8, 0), "2027-02-28"],
+  ["month", new Date(2026, 11, 15, 8, 0), "2027-01-15"],
+] as const)("snoozes until %s from %s: %s", (choice, now, expected) => {
+  expect(readingSnoozeDate(choice, now)).toBe(expected);
+});
+
+it("words the day a snoozed item is back", () => {
+  expect(readingBackOnWords("2026-12-02", NOW)).toBe("back on Wed 2 Dec");
+  expect(readingBackOnWords("2027-01-04", NOW)).toBe("back on Mon 4 Jan 2027");
+  expect(readingBackOnWords("someday", NOW)).toBe("");
 });
 
 it("moves a dropped row among the unfinished ones and leaves finished rows where they were", () => {

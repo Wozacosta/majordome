@@ -55,6 +55,7 @@ it("folds to one line, opens the log in Notes, and remembers the fold for the to
   {
     await using screen = await render(strip);
     await expect.element(screen.getByText(/Next: sign on Friday\./)).toBeVisible();
+    await expect.element(screen.getByText("Where things stand", { exact: true })).toBeVisible();
     const log = screen.getByRole("link", { name: "Open the log" });
     await expect.element(log).toHaveAttribute("href", expect.stringContaining("/notes?"));
     await expect.element(log).toHaveAttribute("href", expect.stringContaining("log.md"));
@@ -62,9 +63,17 @@ it("folds to one line, opens the log in Notes, and remembers the fold for the to
     const open = screen.container.querySelector<HTMLElement>("[data-topic-standing]");
     const openHeight = open?.getBoundingClientRect().height ?? 0;
     await userEvent.click(screen.getByRole("button", { name: "Show less" }));
-    await expect.element(screen.getByText("Waiting on the notary.", { exact: true })).toBeVisible();
+    const line = screen.getByText("Waiting on the notary.", { exact: true });
+    await expect.element(line).toBeVisible();
     expect(screen.container.textContent).not.toContain("Next: sign on Friday.");
     expect(open?.getBoundingClientRect().height).toBeLessThan(openHeight);
+    // Folded, the label shares the one row with the first line.
+    const label = screen.getByText("Where things stand", { exact: true });
+    await expect.element(label).toBeVisible();
+    expect(label.element().getBoundingClientRect().right).toBeLessThanOrEqual(
+      line.element().getBoundingClientRect().left,
+    );
+    expect(open?.getBoundingClientRect().height).toBeLessThan(48);
   }
   await using again = await render(
     <TopicStanding environmentId={environmentId} threadId={threadId} />,
@@ -81,4 +90,11 @@ it("starts folded in a narrow window", async () => {
   await expect
     .element(screen.getByRole("button", { name: "Show where things stand" }))
     .toBeVisible();
+  // Too little room beside the line: the label sits above it.
+  const label = screen.getByText("Where things stand", { exact: true });
+  await expect.element(label).toBeVisible();
+  expect(label.element().getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    screen.getByText("Waiting on the notary.", { exact: true }).element().getBoundingClientRect()
+      .top,
+  );
 });

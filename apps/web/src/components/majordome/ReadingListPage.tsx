@@ -16,15 +16,19 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type {
-  MajordomeReadingItem,
-  MajordomeReadingKind,
-  MajordomeUpdateReadingItemInput,
+import {
+  MAJORDOME_READING_KINDS,
+  type MajordomeReadingItem,
+  type MajordomeReadingKind,
+  type MajordomeUpdateReadingItemInput,
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import * as Schema from "effect/Schema";
 import {
+  AlarmClockIcon,
   BookOpenIcon,
+  CheckIcon,
+  ChevronRightIcon,
   ClockIcon,
   EllipsisIcon,
   FileTextIcon,
@@ -40,7 +44,9 @@ import {
   RefreshCwIcon,
   PlayIcon,
   PlusIcon,
+  ShapesIcon,
   StarIcon,
+  SunriseIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
@@ -55,8 +61,20 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { Input } from "../ui/input";
-import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
+import {
+  Menu,
+  MenuItem,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuSub,
+  MenuSubPopup,
+  MenuSubTrigger,
+  MenuTrigger,
+} from "../ui/menu";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { Spinner } from "../ui/spinner";
@@ -64,28 +82,50 @@ import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
+import { Toggle as ViewToggle, ToggleGroup } from "../ui/toggle-group";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { useAskAssistant } from "./AssistantDock";
-import { EntryList, ListSkeleton, LoadFailed, Muted, PageHeader, SwitchLabel } from "./paper";
+import {
+  EntryList,
+  ListSkeleton,
+  LoadFailed,
+  Muted,
+  PageHeader,
+  Surface,
+  SwitchLabel,
+} from "./paper";
 import {
   askAboutReadingMessage,
   canReorderReading,
   filterReadingItems,
+  nextReadingItems,
   orderReadingItems,
   parseReadingMinutes,
   placeReadingItem,
   presentReadingKinds,
   READING_KIND_LABELS,
+  READING_KIND_NAMES,
+  type ReadingSnoozeChoice,
   readingAddedWords,
+  readingBackOnWords,
   readingLengthWords,
+  readingMoreWords,
+  readingSnoozeDate,
   readingTagCounts,
   readingTimeLeftWords,
+  splitSnoozedReading,
   withReadingTag,
 } from "./readingList.logic";
 import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
 const HIDE_FINISHED = Schema.Boolean;
+const VIEW = Schema.Literals(["next", "everything"]);
+const SNOOZE_CHOICES: ReadonlyArray<readonly [ReadingSnoozeChoice, string]> = [
+  ["tomorrow", "Tomorrow"],
+  ["week", "Next week"],
+  ["month", "In a month"],
+];
 const TAG_CHIPS_SHOWN = 8;
 const KIND_ICONS: Readonly<Record<MajordomeReadingKind, LucideIcon>> = {
   article: FileTextIcon,
@@ -111,10 +151,13 @@ type Patch = Omit<MajordomeUpdateReadingItemInput, "projectId" | "itemId">;
 function ItemTile({
   item,
   dimmed,
+  large = false,
 }: {
   readonly item: MajordomeReadingItem;
   readonly dimmed: boolean;
+  readonly large?: boolean;
 }) {
+  const size = large ? "h-16 w-24 sm:h-20 sm:w-32" : "h-10 w-16";
   // Keyed by address, so a picture that failed is tried again once the link is looked up anew.
   const [failed, setFailed] = useState<string | null>(null);
   const KindIcon = KIND_ICONS[item.kind];
@@ -127,10 +170,7 @@ function ItemTile({
         decoding="async"
         referrerPolicy="no-referrer"
         onError={() => setFailed(item.image ?? null)}
-        className={cn(
-          "h-10 w-16 shrink-0 rounded-md bg-muted object-cover",
-          dimmed && "opacity-60",
-        )}
+        className={cn("shrink-0 rounded-md bg-muted object-cover", size, dimmed && "opacity-60")}
       />
     );
   }
@@ -139,11 +179,12 @@ function ItemTile({
       role="img"
       aria-label={READING_KIND_LABELS[item.kind]}
       className={cn(
-        "flex h-10 w-16 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground",
+        "flex shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground",
+        size,
         dimmed && "opacity-60",
       )}
     >
-      <KindIcon className="size-4" />
+      <KindIcon className={large ? "size-6" : "size-4"} />
     </span>
   );
 }
@@ -231,6 +272,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     true,
     HIDE_FINISHED,
   );
+  const [view, setView] = useLocalStorage("majordome:reading-list-view", "everything", VIEW);
   const [highlighted, setHighlighted] = useState<string | null>(null);
   /** Rows whose tags and summary the owner's AI is still writing. */
   const [describing, setDescribing] = useState<ReadonlyArray<string>>([]);
@@ -250,7 +292,10 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
       : saved.map((item) => item.id);
   const items = order.flatMap((id) => saved.find((item) => item.id === id) ?? []);
 
-  const inView = hideFinished ? items.filter((item) => item.doneAt === undefined) : items;
+  // Snoozed against the minute that ticks, so an item is back by itself once its day starts.
+  const { awake, snoozed } = splitSnoozedReading(items, now);
+  const { next, later } = nextReadingItems(items, now);
+  const inView = hideFinished ? awake.filter((item) => item.doneAt === undefined) : awake;
   const kinds = presentReadingKinds(inView);
   const tags = readingTagCounts(inView);
   // A kind or tag whose last row left the view is no longer a filter anyone can see or clear.
@@ -259,7 +304,8 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     tag: tag !== null && tags.some((entry) => entry.tag === tag) ? tag : null,
     hideFinished,
   };
-  const shown = orderReadingItems(filterReadingItems(items, filters));
+  const shown = orderReadingItems(filterReadingItems(awake, filters));
+  const snoozedShown = filterReadingItems(snoozed, filters);
   const unfinished = shown.filter((item) => item.doneAt === undefined);
   const finished = shown.filter((item) => item.doneAt !== undefined);
   const reorderable = canChange && canReorderReading(filters) && unfinished.length > 1;
@@ -271,6 +317,23 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
       input: { projectId, itemId: item.id, ...patch },
     });
     return !reportFailure(outcome, `Could not change “${item.title}”`);
+  };
+
+  const snooze = async (item: MajordomeReadingItem, choice: ReadingSnoozeChoice) => {
+    const until = readingSnoozeDate(choice, now);
+    if (!(await update(item, { snoozedUntil: until }))) return;
+    const toastId = toastManager.add({
+      type: "success",
+      title: `Snoozed, ${readingBackOnWords(until, now)}`,
+      description: item.title,
+      actionProps: {
+        children: "Undo",
+        onClick: () => {
+          toastManager.close(toastId);
+          void update(item, { snoozedUntil: null });
+        },
+      },
+    });
   };
 
   const describe = async (itemId: string) => {
@@ -318,21 +381,27 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     setTimeout(() => setHighlighted((current) => (current === item.id ? null : current)), 2500);
   };
 
+  const actions = (item: MajordomeReadingItem) => ({
+    item,
+    canChange,
+    describing: describing.includes(item.id),
+    onUpdate: (patch: Patch) => update(item, patch),
+    onSnooze: (choice: ReadingSnoozeChoice) => void snooze(item, choice),
+    onRemove: () => void remove(item),
+    onAsk: askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item)),
+  });
   const row = (item: MajordomeReadingItem, draggable: boolean) => (
     <ReadingRow
       key={item.id}
-      item={item}
+      {...actions(item)}
       now={now}
-      canChange={canChange}
+      snoozed={snoozed.includes(item)}
       draggable={draggable}
       handleGap={reorderable}
       highlighted={highlighted === item.id}
-      describing={describing.includes(item.id)}
-      onUpdate={(patch) => update(item, patch)}
-      onRemove={() => void remove(item)}
-      onAsk={askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item))}
     />
   );
+  const moreWords = readingMoreWords(later);
 
   return (
     <>
@@ -375,84 +444,152 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
         </Muted>
       ) : (
         <>
-          <div className="mt-4 flex flex-wrap items-center gap-0.5">
-            <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
-              All
-            </Chip>
-            {kinds.map((entry) => (
-              <Chip
-                key={entry}
-                pressed={filters.kind === entry}
-                onPressedChange={(pressed) => setKind(pressed ? entry : null)}
-              >
-                {READING_KIND_LABELS[entry]}
-              </Chip>
-            ))}
-            {/* A switch, not a chip: a chip on its own gives no way to tell on from off. */}
-            <SwitchLabel className="ms-auto min-h-8 text-xs text-muted-foreground">
-              <Switch checked={hideFinished} onCheckedChange={setHideFinished} />
-              Hide finished
-            </SwitchLabel>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-0.5 empty:hidden">
-            {(allTags ? tags : tags.slice(0, TAG_CHIPS_SHOWN)).map((entry) => (
-              <Chip
-                key={entry.tag}
-                pressed={filters.tag === entry.tag}
-                onPressedChange={(pressed) => setTag(pressed ? entry.tag : null)}
-              >
-                #{entry.tag}
-              </Chip>
-            ))}
-            {tags.length > TAG_CHIPS_SHOWN ? (
-              <Button size="xs" variant="ghost-muted" onClick={() => setAllTags(!allTags)}>
-                {allTags ? "Fewer tags" : `+${tags.length - TAG_CHIPS_SHOWN} more`}
-              </Button>
-            ) : null}
-          </div>
-          {timeLeft !== null ? <Muted className="mt-3 text-xs">{timeLeft}</Muted> : null}
-          {shown.length === 0 ? (
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
-              <Muted className="flex-1 basis-48">
-                {filters.kind === null && filters.tag === null
-                  ? "Everything here is finished. Turn off “Hide finished” to see it again."
-                  : "Nothing matches. Clear the filters to see everything."}
-              </Muted>
-              {filters.kind !== null || filters.tag !== null ? (
-                <Button
-                  size="xs"
-                  variant="outline"
-                  onClick={() => {
-                    setKind(null);
-                    setTag(null);
-                  }}
-                >
-                  Clear filters
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              modifiers={DRAG_MODIFIERS}
-              onDragEnd={({ active, over }: DragEndEvent) => {
-                if (over !== null) {
-                  void reorder(placeReadingItem(items, String(active.id), String(over.id)));
-                }
+          <div className="mt-4">
+            <ToggleGroup
+              aria-label="What to show"
+              value={[view]}
+              onValueChange={(chosen) => {
+                const value = chosen[0];
+                if (value === "next" || value === "everything") setView(value);
               }}
             >
-              <SortableContext
-                items={unfinished.map((item) => item.id)}
-                strategy={verticalListSortingStrategy}
-                disabled={!reorderable}
+              <ViewToggle value="next">Next</ViewToggle>
+              <ViewToggle value="everything">Everything</ViewToggle>
+            </ToggleGroup>
+          </div>
+          {view === "next" ? (
+            <>
+              {next.length === 0 ? (
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
+                  <Muted className="flex-1 basis-48">
+                    Nothing left to do for now.
+                    {snoozed.length === 0
+                      ? null
+                      : ` ${snoozed.length} snoozed ${snoozed.length === 1 ? "item comes" : "items come"} back later.`}
+                  </Muted>
+                  <Button size="xs" variant="outline" onClick={() => setView("everything")}>
+                    See everything
+                  </Button>
+                </div>
+              ) : (
+                <ul
+                  aria-label="Next on your list"
+                  className="mt-3 flex list-none flex-col gap-3 p-0"
+                >
+                  {next.map((item) => (
+                    <NextCard key={item.id} {...actions(item)} />
+                  ))}
+                </ul>
+              )}
+              {moreWords !== null ? (
+                <div className="mt-3">
+                  <Button size="xs" variant="ghost-muted" onClick={() => setView("everything")}>
+                    {moreWords}
+                    <ChevronRightIcon />
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="mt-4 flex flex-wrap items-center gap-0.5">
+                <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
+                  All
+                </Chip>
+                {kinds.map((entry) => (
+                  <Chip
+                    key={entry}
+                    pressed={filters.kind === entry}
+                    onPressedChange={(pressed) => setKind(pressed ? entry : null)}
+                  >
+                    {READING_KIND_LABELS[entry]}
+                  </Chip>
+                ))}
+                {/* A switch, not a chip: a chip on its own gives no way to tell on from off. */}
+                <SwitchLabel className="ms-auto min-h-8 text-xs text-muted-foreground">
+                  <Switch checked={hideFinished} onCheckedChange={setHideFinished} />
+                  Hide finished
+                </SwitchLabel>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-0.5 empty:hidden">
+                {(allTags ? tags : tags.slice(0, TAG_CHIPS_SHOWN)).map((entry) => (
+                  <Chip
+                    key={entry.tag}
+                    pressed={filters.tag === entry.tag}
+                    onPressedChange={(pressed) => setTag(pressed ? entry.tag : null)}
+                  >
+                    #{entry.tag}
+                  </Chip>
+                ))}
+                {tags.length > TAG_CHIPS_SHOWN ? (
+                  <Button size="xs" variant="ghost-muted" onClick={() => setAllTags(!allTags)}>
+                    {allTags ? "Fewer tags" : `+${tags.length - TAG_CHIPS_SHOWN} more`}
+                  </Button>
+                ) : null}
+              </div>
+              {timeLeft !== null ? <Muted className="mt-3 text-xs">{timeLeft}</Muted> : null}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={DRAG_MODIFIERS}
+                onDragEnd={({ active, over }: DragEndEvent) => {
+                  if (over !== null) {
+                    void reorder(placeReadingItem(items, String(active.id), String(over.id)));
+                  }
+                }}
               >
-                <EntryList aria-label="Reading list" className="mt-3">
-                  {unfinished.map((item) => row(item, reorderable))}
-                  {finished.map((item) => row(item, false))}
-                </EntryList>
-              </SortableContext>
-            </DndContext>
+                {shown.length === 0 ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
+                    <Muted className="flex-1 basis-48">
+                      {filters.kind !== null || filters.tag !== null
+                        ? "Nothing matches. Clear the filters to see everything."
+                        : awake.length === 0
+                          ? "Everything here is snoozed for now."
+                          : "Everything here is finished. Turn off “Hide finished” to see it again."}
+                    </Muted>
+                    {filters.kind !== null || filters.tag !== null ? (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setKind(null);
+                          setTag(null);
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <SortableContext
+                    items={unfinished.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                    disabled={!reorderable}
+                  >
+                    <EntryList aria-label="Reading list" className="mt-3">
+                      {unfinished.map((item) => row(item, reorderable))}
+                      {finished.map((item) => row(item, false))}
+                    </EntryList>
+                  </SortableContext>
+                )}
+                {snoozedShown.length === 0 ? null : (
+                  <Collapsible>
+                    <CollapsibleTrigger className="group -mx-2 mt-3 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                      <ChevronRightIcon
+                        className="size-3.5 transition-transform group-data-[panel-open]:rotate-90"
+                        aria-hidden
+                      />
+                      Snoozed ({snoozedShown.length})
+                    </CollapsibleTrigger>
+                    <CollapsiblePanel>
+                      <EntryList aria-label="Snoozed" className="mt-1">
+                        {snoozedShown.map((item) => row(item, false))}
+                      </EntryList>
+                    </CollapsiblePanel>
+                  </Collapsible>
+                )}
+              </DndContext>
+            </>
           )}
         </>
       )}
@@ -518,30 +655,291 @@ function AddReadingItem({
 
 type Editing = "title" | "length" | "note" | "tag" | null;
 
-function ReadingRow({
+/** What a row and a Next card are both handed for one item. */
+interface ItemActions {
+  readonly item: MajordomeReadingItem;
+  readonly canChange: boolean;
+  readonly describing: boolean;
+  readonly onUpdate: (patch: Patch) => Promise<boolean>;
+  readonly onSnooze: (choice: ReadingSnoozeChoice) => void;
+  readonly onRemove: () => void;
+  readonly onAsk: (() => void) | null;
+}
+
+/** The title, summary, note and tags of an item, each with its field while it is being changed. */
+function ItemText({
   item,
-  now,
   canChange,
+  describing,
+  onUpdate,
+  editing,
+  onEditing,
+  length = null,
+  large = false,
+}: Pick<ItemActions, "item" | "canChange" | "describing" | "onUpdate"> & {
+  readonly editing: Editing;
+  readonly onEditing: (editing: Editing) => void;
+  /** Said beside the source, where the item has no column of its own for it. */
+  readonly length?: string | null;
+  readonly large?: boolean;
+}) {
+  const done = item.doneAt !== undefined;
+  const save = async (patch: Patch) => {
+    if (await onUpdate(patch)) onEditing(null);
+  };
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      {editing === "title" ? (
+        <InlineEdit
+          label="Title"
+          initial={item.title}
+          onCancel={() => onEditing(null)}
+          onSave={(text) => (text === "" ? onEditing(null) : void save({ title: text }))}
+        />
+      ) : (
+        <p
+          className={cn(
+            "min-w-0 font-medium wrap-break-word text-foreground",
+            large ? "text-base" : "text-sm",
+            done && "text-muted-foreground line-through",
+          )}
+        >
+          {item.url === null ? (
+            item.title
+          ) : (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
+              {item.title}
+            </a>
+          )}
+        </p>
+      )}
+      {item.summary !== undefined ? (
+        <p className={cn("wrap-break-word text-muted-foreground", large ? "text-sm" : "text-xs")}>
+          {item.summary}
+        </p>
+      ) : describing ? (
+        <p role="status" className="text-xs text-muted-foreground">
+          Adding tags and a summary…
+        </p>
+      ) : null}
+      {editing === "note" ? (
+        <InlineEdit
+          multiline
+          label="Note"
+          placeholder="What you want to remember from it"
+          initial={item.notes ?? ""}
+          onCancel={() => onEditing(null)}
+          onSave={(text) => void save({ notes: text === "" ? null : text })}
+        />
+      ) : item.notes ? (
+        <p className="border-l-2 border-border pl-2 text-xs whitespace-pre-wrap wrap-break-word text-muted-foreground">
+          {item.notes}
+        </p>
+      ) : null}
+      {editing === "length" ? (
+        <InlineEdit
+          label="Length in minutes"
+          placeholder="Minutes"
+          inputMode="numeric"
+          initial={item.minutes === undefined ? "" : String(Math.round(item.minutes))}
+          onCancel={() => onEditing(null)}
+          onSave={(text) => {
+            const minutes = parseReadingMinutes(text);
+            if (minutes !== undefined) void save({ minutes });
+          }}
+        />
+      ) : null}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {item.site || length !== null ? (
+          <span className="me-1 text-xs text-muted-foreground">
+            {[item.site, length].filter(Boolean).join(" · ")}
+          </span>
+        ) : null}
+        {item.tags.map((tag) => (
+          <Badge key={tag} variant="secondary">
+            {tag}
+            {canChange ? (
+              <Button
+                size="icon-tiny"
+                variant="ghost-muted"
+                aria-label={`Remove the tag ${tag}`}
+                onClick={() => void onUpdate({ tags: item.tags.filter((entry) => entry !== tag) })}
+              >
+                <XIcon />
+              </Button>
+            ) : null}
+          </Badge>
+        ))}
+        {!canChange ? null : editing === "tag" ? (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const typed = new FormData(event.currentTarget).get("tag");
+              const next = withReadingTag(item.tags, typeof typed === "string" ? typed : "");
+              if (next === null) onEditing(null);
+              else void save({ tags: next });
+            }}
+          >
+            <div className="w-28">
+              <Input
+                nativeInput
+                autoFocus
+                size="compact"
+                name="tag"
+                aria-label={`New tag for ${item.title}`}
+                placeholder="Tag"
+                maxLength={40}
+                onBlur={() => onEditing(null)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") onEditing(null);
+                }}
+              />
+            </div>
+          </form>
+        ) : (
+          <Button
+            size="icon-micro"
+            variant="ghost-muted"
+            aria-label={`Add a tag to ${item.title}`}
+            onClick={() => onEditing("tag")}
+          >
+            <PlusIcon />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ItemMenu({
+  item,
+  canChange,
+  snoozed,
+  onEditing,
+  onUpdate,
+  onSnooze,
+  onRemove,
+  onAsk,
+}: Omit<ItemActions, "describing"> & {
+  readonly snoozed: boolean;
+  readonly onEditing: (editing: Editing) => void;
+}) {
+  return (
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label={`More for ${item.title}`}
+            disabled={!canChange}
+          />
+        }
+      >
+        <EllipsisIcon />
+      </MenuTrigger>
+      <MenuPopup align="end">
+        <MenuItem onClick={() => onEditing("note")}>
+          <NotebookPenIcon />
+          {item.notes ? "Edit note" : "Add a note"}
+        </MenuItem>
+        <MenuItem onClick={() => onEditing("length")}>
+          <ClockIcon />
+          Change length
+        </MenuItem>
+        <MenuItem onClick={() => onEditing("title")}>
+          <PencilIcon />
+          Rename
+        </MenuItem>
+        <MenuSub>
+          <MenuSubTrigger>
+            <ShapesIcon />
+            Change kind
+          </MenuSubTrigger>
+          <MenuSubPopup>
+            <MenuRadioGroup
+              value={item.kind}
+              onValueChange={(chosen) => {
+                const kind = MAJORDOME_READING_KINDS.find((entry) => entry === chosen);
+                if (kind !== undefined && kind !== item.kind) void onUpdate({ kind });
+              }}
+            >
+              {MAJORDOME_READING_KINDS.map((kind) => (
+                <MenuRadioItem key={kind} value={kind} closeOnClick>
+                  {READING_KIND_NAMES[kind]}
+                </MenuRadioItem>
+              ))}
+            </MenuRadioGroup>
+          </MenuSubPopup>
+        </MenuSub>
+        {item.url === null ? null : (
+          <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
+            <RefreshCwIcon />
+            Look it up again
+          </MenuItem>
+        )}
+        {item.doneAt !== undefined ? null : snoozed ? (
+          <MenuItem onClick={() => void onUpdate({ snoozedUntil: null })}>
+            <SunriseIcon />
+            Wake it now
+          </MenuItem>
+        ) : (
+          <MenuSub>
+            <MenuSubTrigger>
+              <AlarmClockIcon />
+              Snooze…
+            </MenuSubTrigger>
+            <MenuSubPopup>
+              {SNOOZE_CHOICES.map(([choice, label]) => (
+                <MenuItem key={choice} onClick={() => onSnooze(choice)}>
+                  {label}
+                </MenuItem>
+              ))}
+            </MenuSubPopup>
+          </MenuSub>
+        )}
+        {onAsk !== null ? (
+          <>
+            <MenuSeparator />
+            <MenuItem onClick={onAsk}>
+              <MessageCircleQuestionIcon />
+              Ask the assistant about this
+            </MenuItem>
+          </>
+        ) : null}
+        <MenuSeparator />
+        <MenuItem variant="destructive" onClick={onRemove}>
+          <TrashIcon />
+          Remove
+        </MenuItem>
+      </MenuPopup>
+    </Menu>
+  );
+}
+
+function ReadingRow({
+  now,
+  snoozed,
   draggable,
   handleGap,
   highlighted,
-  describing,
-  onUpdate,
-  onRemove,
-  onAsk,
-}: {
-  readonly item: MajordomeReadingItem;
+  ...actions
+}: ItemActions & {
   readonly now: Date;
-  readonly canChange: boolean;
+  /** Waiting for its day, in the Snoozed group. */
+  readonly snoozed: boolean;
   readonly draggable: boolean;
   /** Keeps a row without a handle in line with the rows that have one. */
   readonly handleGap: boolean;
   readonly highlighted: boolean;
-  readonly describing: boolean;
-  readonly onUpdate: (patch: Patch) => Promise<boolean>;
-  readonly onRemove: () => void;
-  readonly onAsk: (() => void) | null;
 }) {
+  const { item, canChange, onUpdate } = actions;
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
     disabled: !draggable,
@@ -549,10 +947,6 @@ function ReadingRow({
   const [editing, setEditing] = useState<Editing>(null);
   const done = item.doneAt !== undefined;
   const length = readingLengthWords(item);
-  const added = readingAddedWords(item.addedAt, now);
-  const save = async (patch: Patch) => {
-    if (await onUpdate(patch)) setEditing(null);
-  };
 
   return (
     <li
@@ -582,133 +976,16 @@ function ReadingRow({
       ) : handleGap ? (
         <span aria-hidden className="-mx-1.5 w-7 shrink-0 sm:w-6" />
       ) : null}
-      <ItemTile item={item} dimmed={done} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        {editing === "title" ? (
-          <InlineEdit
-            label="Title"
-            initial={item.title}
-            onCancel={() => setEditing(null)}
-            onSave={(text) => (text === "" ? setEditing(null) : void save({ title: text }))}
-          />
-        ) : (
-          <p
-            className={cn(
-              "min-w-0 text-sm font-medium wrap-break-word text-foreground",
-              done && "text-muted-foreground line-through",
-            )}
-          >
-            {item.url === null ? (
-              item.title
-            ) : (
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-              >
-                {item.title}
-              </a>
-            )}
-          </p>
-        )}
-        {item.summary !== undefined ? (
-          <p className="text-xs wrap-break-word text-muted-foreground">{item.summary}</p>
-        ) : describing ? (
-          <p role="status" className="text-xs text-muted-foreground">
-            Adding tags and a summary…
-          </p>
-        ) : null}
-        {editing === "note" ? (
-          <InlineEdit
-            multiline
-            label="Note"
-            placeholder="What you want to remember from it"
-            initial={item.notes ?? ""}
-            onCancel={() => setEditing(null)}
-            onSave={(text) => void save({ notes: text === "" ? null : text })}
-          />
-        ) : item.notes ? (
-          <p className="border-l-2 border-border pl-2 text-xs whitespace-pre-wrap wrap-break-word text-muted-foreground">
-            {item.notes}
-          </p>
-        ) : null}
-        {editing === "length" ? (
-          <InlineEdit
-            label="Length in minutes"
-            placeholder="Minutes"
-            inputMode="numeric"
-            initial={item.minutes === undefined ? "" : String(Math.round(item.minutes))}
-            onCancel={() => setEditing(null)}
-            onSave={(text) => {
-              const minutes = parseReadingMinutes(text);
-              if (minutes !== undefined) void save({ minutes });
-            }}
-          />
-        ) : null}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {item.site ? (
-            <span className="me-1 text-xs text-muted-foreground">{item.site}</span>
-          ) : null}
-          {item.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-              {canChange ? (
-                <Button
-                  size="icon-tiny"
-                  variant="ghost-muted"
-                  aria-label={`Remove the tag ${tag}`}
-                  onClick={() =>
-                    void onUpdate({ tags: item.tags.filter((entry) => entry !== tag) })
-                  }
-                >
-                  <XIcon />
-                </Button>
-              ) : null}
-            </Badge>
-          ))}
-          {!canChange ? null : editing === "tag" ? (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const typed = new FormData(event.currentTarget).get("tag");
-                const next = withReadingTag(item.tags, typeof typed === "string" ? typed : "");
-                if (next === null) setEditing(null);
-                else void save({ tags: next });
-              }}
-            >
-              <div className="w-28">
-                <Input
-                  nativeInput
-                  autoFocus
-                  size="compact"
-                  name="tag"
-                  aria-label={`New tag for ${item.title}`}
-                  placeholder="Tag"
-                  maxLength={40}
-                  onBlur={() => setEditing(null)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setEditing(null);
-                  }}
-                />
-              </div>
-            </form>
-          ) : (
-            <Button
-              size="icon-micro"
-              variant="ghost-muted"
-              aria-label={`Add a tag to ${item.title}`}
-              onClick={() => setEditing("tag")}
-            >
-              <PlusIcon />
-            </Button>
-          )}
-        </div>
-      </div>
+      <ItemTile item={item} dimmed={done || snoozed} />
+      <ItemText {...actions} editing={editing} onEditing={setEditing} />
       <div className="flex shrink-0 items-center gap-1">
         <div className="me-1 flex flex-col items-end text-xs text-muted-foreground tabular-nums">
           {length !== null ? <span>{length}</span> : null}
-          <span>{added}</span>
+          <span>
+            {snoozed
+              ? readingBackOnWords(item.snoozedUntil ?? "", now)
+              : readingAddedWords(item.addedAt, now)}
+          </span>
         </div>
         <Button
           size="icon-xs"
@@ -720,54 +997,7 @@ function ReadingRow({
         >
           <StarIcon className={item.starred === true ? "fill-warning text-warning" : undefined} />
         </Button>
-        <Menu>
-          <MenuTrigger
-            render={
-              <Button
-                size="icon-xs"
-                variant="ghost-muted"
-                aria-label={`More for ${item.title}`}
-                disabled={!canChange}
-              />
-            }
-          >
-            <EllipsisIcon />
-          </MenuTrigger>
-          <MenuPopup align="end">
-            <MenuItem onClick={() => setEditing("note")}>
-              <NotebookPenIcon />
-              {item.notes ? "Edit note" : "Add a note"}
-            </MenuItem>
-            <MenuItem onClick={() => setEditing("length")}>
-              <ClockIcon />
-              Change length
-            </MenuItem>
-            <MenuItem onClick={() => setEditing("title")}>
-              <PencilIcon />
-              Rename
-            </MenuItem>
-            {item.url === null ? null : (
-              <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
-                <RefreshCwIcon />
-                Look it up again
-              </MenuItem>
-            )}
-            {onAsk !== null ? (
-              <>
-                <MenuSeparator />
-                <MenuItem onClick={onAsk}>
-                  <MessageCircleQuestionIcon />
-                  Ask the assistant about this
-                </MenuItem>
-              </>
-            ) : null}
-            <MenuSeparator />
-            <MenuItem variant="destructive" onClick={onRemove}>
-              <TrashIcon />
-              Remove
-            </MenuItem>
-          </MenuPopup>
-        </Menu>
+        <ItemMenu {...actions} snoozed={snoozed} onEditing={setEditing} />
         <span className="ms-1 flex items-center">
           <Checkbox
             aria-label={`Finished: ${item.title}`}
@@ -777,6 +1007,41 @@ function ReadingRow({
           />
         </span>
       </div>
+    </li>
+  );
+}
+
+/** One of the first things to do, with room to breathe and the two answers that matter. */
+function NextCard(actions: ItemActions) {
+  const { item, canChange, onUpdate, onSnooze } = actions;
+  const [editing, setEditing] = useState<Editing>(null);
+
+  return (
+    <li id={rowElementId(item.id)} data-reading-id={item.id}>
+      <Surface className="flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <ItemTile item={item} dimmed={false} large />
+          <ItemText
+            {...actions}
+            large
+            length={readingLengthWords(item)}
+            editing={editing}
+            onEditing={setEditing}
+          />
+          <ItemMenu {...actions} snoozed={false} onEditing={setEditing} />
+        </div>
+        {canChange ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => void onUpdate({ done: true })}>
+              <CheckIcon />
+              Finished
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onSnooze("tomorrow")}>
+              Not now
+            </Button>
+          </div>
+        ) : null}
+      </Surface>
     </li>
   );
 }
