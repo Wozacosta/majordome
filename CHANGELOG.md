@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.13
+
 **New**
 
 - **Subjects for the reading list.** Group what you saved around what you are learning: make a
