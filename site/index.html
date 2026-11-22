@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Majordome: your markdown second brain, merged with Claude or ChatGPT</title>
+    <title>Majordome: a second brain that keeps working while you are away</title>
     <meta
       name="description"
       content="Majordome is a free, open-source Mac app that joins a second brain of markdown notes with the Claude or ChatGPT plan you already have. The assistant knows your notes, runs routines on a schedule, and keeps working while you are away."
@@ -17,7 +17,7 @@
     <meta property="og:title" content="Majordome" />
     <meta
       property="og:description"
-      content="Your markdown second brain, merged with Claude or ChatGPT. It keeps working while you are away."
+      content="A second brain with an agent that keeps working while you are away."
     />
     <meta property="og:url" content="https://majord.me/" />
     <meta property="og:image" content="https://majord.me/og.png" />
@@ -194,45 +194,112 @@
         color: var(--muted);
       }
 
-      .sum {
+      .merge {
         display: grid;
-        grid-template-columns: 1fr auto 1fr auto 1.15fr;
-        align-items: stretch;
-        gap: 14px;
+        grid-template-columns: 1fr 150px 1fr;
         margin: 56px auto 0;
         max-width: 940px;
         text-align: left;
       }
-      .sum .part {
+      .half {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 18px 20px;
+        gap: 12px;
+        padding: 18px 20px 16px;
         border: 1px solid var(--line);
         border-radius: 14px;
         background: var(--surface);
-        font-size: 0.93rem;
-        color: var(--muted);
       }
-      .sum .part strong {
-        font: 500 1.3rem/1.2 var(--serif);
-        color: var(--ink);
-      }
-      .sum .k {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      .half .k {
         font-size: 0.74rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-      }
-      .sum .total {
-        border-color: var(--ink);
-      }
-      .sum .op {
-        align-self: center;
-        font: 500 1.8rem/1 var(--serif);
         color: var(--muted);
+      }
+      .half .cap {
+        margin-top: auto;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .half mark {
+        background: #3ddc8433;
+        color: inherit;
+        border-radius: 4px;
+        padding: 1px 4px;
+        margin: 0 -4px;
+      }
+      .file {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.84rem;
+        line-height: 1.75;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 10px 14px 12px;
+        background: var(--bg);
+      }
+      .file .fname {
+        font-family: var(--sans);
+        font-size: 0.76rem;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+      }
+      .chat {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .chat > div {
+        max-width: 88%;
+        padding: 9px 14px;
+        border-radius: 14px;
+      }
+      .chat .you {
+        align-self: flex-end;
+        background: var(--button);
+        color: var(--button-text);
+        border-bottom-right-radius: 4px;
+      }
+      .chat .it {
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-bottom-left-radius: 4px;
+      }
+      /* The line through the knot joins the two halves. */
+      .join {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .join::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 2px solid var(--ink);
+      }
+      .knot {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        margin-top: 27px;
+        border-radius: 50%;
+        border: 2px solid var(--ink);
+        background: var(--bg);
+      }
+      .join .name {
+        position: relative;
+        font-size: 0.8rem;
+        font-weight: 600;
       }
 
       /* The app picture is always the dark window, in both themes. */
@@ -487,12 +554,26 @@
           grid-template-columns: 1fr;
           gap: 32px;
         }
-        .sum {
+        .merge {
           grid-template-columns: 1fr;
-          gap: 6px;
         }
-        .sum .op {
-          justify-self: center;
+        .join {
+          flex-direction: row;
+          height: 104px;
+        }
+        .join::before {
+          left: 50%;
+          right: auto;
+          top: 0;
+          bottom: 0;
+          border-top: 0;
+          border-left: 2px solid var(--ink);
+        }
+        .knot {
+          margin: 0 0 0 86px;
+        }
+        .join .name {
+          width: 78px;
         }
       }
       @media (max-width: 620px) {
@@ -548,11 +629,10 @@
       <main>
         <div class="hero">
           <div class="eyebrow"><span class="dot"></span>Free and open source, for Mac</div>
-          <h1>Your markdown second brain, merged with Claude or ChatGPT.</h1>
+          <h1>A second brain that keeps working while you are away.</h1>
           <p class="lede">
-            Notes in plain files you own. The AI plan you already pay for. Majordome joins them into
-            one assistant that knows your notes, runs routines on a schedule, and keeps working
-            while you are away.
+            Your memory is a folder of notes. Majordome reads it before you type, files what you
+            drop in, runs routines on a schedule, and asks before it touches anything sensitive.
           </p>
           <div class="cta">
             <a class="button" href="/download">Download for Mac</a>
@@ -562,23 +642,44 @@
             For Apple silicon. <a href="/download/intel">Intel Mac?</a> No Majordome account.
           </p>
 
-          <div class="sum">
-            <div class="part">
-              <span class="k">Your second brain</span>
-              <strong>A folder of markdown notes</strong>
-              <span>Plain files on your Mac. An Obsidian vault works as it is.</span>
+          <div
+            class="merge"
+            role="img"
+            aria-label="Majordome joins your markdown notes with Claude or ChatGPT: you ask what you spent this week, and the answer comes from your note Money.md."
+          >
+            <div class="half" aria-hidden="true">
+              <div class="k">Your second brain</div>
+              <div class="file">
+                <div class="fname">Money.md</div>
+                <div><b># Money</b></div>
+                <div>- [ ] Call the bank</div>
+                <div><mark>Groceries 84 €, Thu</mark></div>
+                <div><mark>Train 61 €, Tue</mark></div>
+              </div>
+              <div class="cap">Markdown files, in a folder you own</div>
             </div>
-            <div class="op" aria-hidden="true">+</div>
-            <div class="part">
-              <span class="k">Your AI</span>
-              <strong>Claude or ChatGPT</strong>
-              <span>The plan you already have. Nothing extra to pay.</span>
+            <div class="join" aria-hidden="true">
+              <span class="knot">
+                <svg viewBox="0 0 40 40" width="38" height="38">
+                  <path
+                    d="M5.6 28C5.6 19.6 12 13.2 20 13.2S34.4 19.6 34.4 28Z"
+                    fill="currentColor"
+                  />
+                  <rect x="3" y="29.4" width="34" height="3.4" rx="1.7" fill="currentColor" />
+                  <circle cx="20" cy="9.2" r="2.8" fill="#3ddc84" />
+                </svg>
+              </span>
+              <span class="name">Majordome</span>
             </div>
-            <div class="op" aria-hidden="true">=</div>
-            <div class="part total">
-              <span class="k"><span class="dot"></span>Majordome</span>
-              <strong>An assistant that knows your notes</strong>
-              <span>It reads them before you type, and works while you are away.</span>
+            <div class="half" aria-hidden="true">
+              <div class="k">Your AI</div>
+              <div class="chat">
+                <div class="you">What did I spend this week?</div>
+                <div class="it">
+                  145 € so far: groceries and a train ticket. It is all in <mark>Money.md</mark>.
+                </div>
+              </div>
+              <div class="cap">Claude or ChatGPT, on the plan you already have</div>
             </div>
           </div>
 
