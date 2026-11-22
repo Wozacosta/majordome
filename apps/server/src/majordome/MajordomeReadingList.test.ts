@@ -198,13 +198,17 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
 
       // A link saved without a picture gets its page's; nothing else about it changes.
       const bare = item("bare", { url: "https://blog.example.com/old", title: "Mine" });
-      yield* service.restore({ projectId: vaultProject, item: bare, index: 0 });
+      const binned = item("binned", { url: "https://blog.example.com/binned", deletedAt: savedAt });
+      yield* fs.writeFileString(
+        filePath,
+        JSON.stringify({ items: [bare, binned, ...(yield* items)] }),
+      );
       yield* service.fillPictures({ projectId: vaultProject });
       assert.lengthOf(requests, 3);
-      assert.deepEqual((yield* items)[0], {
-        ...bare,
-        image: "https://blog.example.com/covers/compilers.jpg",
-      });
+      assert.deepEqual((yield* items).slice(0, 2), [
+        { ...bare, image: "https://blog.example.com/covers/compilers.jpg" },
+        binned,
+      ]);
     }),
   );
 
@@ -213,7 +217,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       const { service, requests } = yield* setUp((sent) =>
         sent.url.host === "www.youtube.com"
           ? { body: { title: "A talk", author_name: "The Channel" } }
-          : { status: 500 },
+          : { status: sent.url.host === "gone.example" ? 404 : 500 },
       );
       const failed = yield* service.add({
         projectId: vaultProject,
@@ -226,6 +230,25 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
         kind: "article",
       });
       assert.notProperty(failed.item, "minutes");
+
+      // Asked to make sure it loads: a refusal says nothing, a 404 says the page is not there.
+      const unsure = yield* service.add(
+        { projectId: vaultProject, text: "https://www.example.com/refused" },
+        { mustLoad: true },
+      );
+      assert.isFalse(unsure.duplicate);
+      const gone = yield* Effect.flip(
+        service.add(
+          { projectId: vaultProject, text: "https://gone.example/x" },
+          { mustLoad: true },
+        ),
+      );
+      assert.equal(gone.message, "That link does not open: its site says there is no such page.");
+      assert.equal(
+        (yield* service.add({ projectId: vaultProject, text: "https://gone.example/x" })).item
+          .title,
+        "gone.example/x",
+      );
 
       // A private address is saved without the server ever asking for it.
       const asked = requests.length;
@@ -381,6 +404,10 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
         minutes: 12,
         starred: true,
         notes: "Worth a second read.",
+        summary: " What it says. ",
+        why: "Builds on the parser post.",
+        // Finished in the same change, so there is no place left to pick up from.
+        progress: "Chapter 3",
         done: true,
       });
       assert.deepEqual(edited, {
@@ -389,9 +416,11 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
         kind: "paper",
         tags: ["rust", "compilers"],
         minutes: 12,
+        summary: "What it says.",
         doneAt: finishedAt,
         starred: true,
         notes: "Worth a second read.",
+        why: "Builds on the parser post.",
       });
       assert.deepEqual(yield* items, [edited]);
 
@@ -402,18 +431,30 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
         tags: ["rust"],
       });
 
-      const cleared = yield* change({ done: false, minutes: null, notes: "  ", starred: false });
+      const cleared = yield* change({
+        done: false,
+        minutes: null,
+        notes: "  ",
+        starred: false,
+        summary: null,
+        why: "",
+        progress: "Chapter 3",
+      });
       assert.deepEqual(cleared, {
         ...added,
         title: "A better title",
         kind: "paper",
         tags: ["rust"],
+        progress: "Chapter 3",
       });
+      assert.notProperty(yield* change({ done: true }), "progress");
       assert.notProperty(
         yield* change({ notes: "x" }).pipe(Effect.andThen(change({ notes: null }))),
         "notes",
       );
 
+      // Once to the Trash, twice for good.
+      yield* service.remove({ projectId: vaultProject, itemId: added.id });
       yield* service.remove({ projectId: vaultProject, itemId: added.id });
       const gone = yield* Effect.flip(change({ title: "Too late" }));
       assert.equal(gone.message, "That item is no longer on your list.");
@@ -450,7 +491,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
     }),
   );
 
-  it.effect("reorders, removes and puts back where it was", () =>
+  it.effect("reorders, and keeps what is removed in the Trash until it is put back", () =>
     Effect.gen(function* () {
       const { service, fs, filePath, items } = yield* setUp();
       const [a, b, c, d] = ["a", "b", "c", "d"].map((id) => item(id)) as [
@@ -466,21 +507,37 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeReading
       yield* service.reorder({ projectId: vaultProject, itemIds: ["c", "missing", "a"] });
       assert.deepEqual(yield* ids, ["c", "a", "b", "d"]);
 
-      yield* service.remove({ projectId: vaultProject, itemId: "a" });
-      yield* service.remove({ projectId: vaultProject, itemId: "a" });
-      assert.deepEqual(yield* ids, ["c", "b", "d"]);
-
-      yield* service.restore({ projectId: vaultProject, item: a, index: 1 });
+      // Removed, it stays where it was, marked; put back, it is as it was.
+      const ref = { projectId: vaultProject, itemId: "a" };
+      yield* service.remove(ref);
+      const binned = (yield* items)[1];
+      assert.deepEqual(binned, { ...a, deletedAt: yield* now });
+      // A change beside it keeps it in the Trash.
+      yield* service.update({ ...ref, starred: true });
+      assert.property((yield* items)[1], "deletedAt");
+      yield* service.update({ ...ref, starred: false });
+      yield* service.restore(ref);
+      yield* service.restore(ref);
       assert.deepEqual(yield* items, [c, a, b, d]);
-      // Already back: a second undo adds no copy.
-      yield* service.restore({ projectId: vaultProject, item: a, index: 0 });
-      assert.deepEqual(yield* ids, ["c", "a", "b", "d"]);
 
-      yield* service.remove({ projectId: vaultProject, itemId: "d" });
-      yield* service.restore({ projectId: vaultProject, item: d, index: 99 });
-      yield* service.remove({ projectId: vaultProject, itemId: "c" });
-      yield* service.restore({ projectId: vaultProject, item: c, index: -3 });
-      assert.deepEqual(yield* ids, ["c", "a", "b", "d"]);
+      // Removed again from the Trash it is gone for good, and there is nothing to put back.
+      yield* service.remove(ref);
+      yield* service.remove(ref);
+      assert.deepEqual(yield* ids, ["c", "b", "d"]);
+      const refused = yield* Effect.flip(service.restore(ref));
+      assert.equal(refused.message, "That item is no longer in the Trash.");
+
+      // Saving a link that waits in the Trash brings that one back instead of adding a twin.
+      const linked = item("linked", {
+        url: "https://example.com/a?utm_source=x",
+        deletedAt: yield* now,
+      });
+      yield* fs.writeFileString(filePath, JSON.stringify({ items: [b, linked] }));
+      const again = yield* service.add({ projectId: vaultProject, text: "https://example.com/a" });
+      assert.isTrue(again.duplicate);
+      assert.notProperty(again.item, "deletedAt");
+      assert.deepEqual(yield* ids, ["b", "linked"]);
+      assert.notProperty((yield* items)[1], "deletedAt");
     }),
   );
 

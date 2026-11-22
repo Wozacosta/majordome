@@ -33,9 +33,11 @@ import {
   EllipsisIcon,
   FileTextIcon,
   FolderGit2Icon,
+  FootprintsIcon,
   GraduationCapIcon,
   GripVerticalIcon,
   HeadphonesIcon,
+  LightbulbIcon,
   LinkIcon,
   type LucideIcon,
   MessageCircleQuestionIcon,
@@ -113,7 +115,9 @@ import {
   readingSnoozeDate,
   readingTagCounts,
   readingTimeLeftWords,
+  searchReadingItems,
   splitSnoozedReading,
+  splitTrashedReading,
   withReadingTag,
 } from "./readingList.logic";
 import type { MajordomeVault } from "./topics.logic";
@@ -266,6 +270,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
 
   const [kind, setKind] = useState<MajordomeReadingKind | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [allTags, setAllTags] = useState(false);
   const [hideFinished, setHideFinished] = useLocalStorage(
     "majordome:reading-list-hide-finished",
@@ -293,8 +298,9 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const items = order.flatMap((id) => saved.find((item) => item.id === id) ?? []);
 
   // Snoozed against the minute that ticks, so an item is back by itself once its day starts.
-  const { awake, snoozed } = splitSnoozedReading(items, now);
-  const { next, later } = nextReadingItems(items, now);
+  const { kept, trashed } = splitTrashedReading(items);
+  const { awake, snoozed } = splitSnoozedReading(kept, now);
+  const { next, later } = nextReadingItems(kept, now);
   const inView = hideFinished ? awake.filter((item) => item.doneAt === undefined) : awake;
   const kinds = presentReadingKinds(inView);
   const tags = readingTagCounts(inView);
@@ -304,11 +310,12 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     tag: tag !== null && tags.some((entry) => entry.tag === tag) ? tag : null,
     hideFinished,
   };
-  const shown = orderReadingItems(filterReadingItems(awake, filters));
-  const snoozedShown = filterReadingItems(snoozed, filters);
+  const narrowed = filters.kind !== null || filters.tag !== null || query.trim() !== "";
+  const shown = orderReadingItems(filterReadingItems(searchReadingItems(awake, query), filters));
+  const snoozedShown = filterReadingItems(searchReadingItems(snoozed, query), filters);
   const unfinished = shown.filter((item) => item.doneAt === undefined);
   const finished = shown.filter((item) => item.doneAt !== undefined);
-  const reorderable = canChange && canReorderReading(filters) && unfinished.length > 1;
+  const reorderable = canChange && canReorderReading(filters, query) && unfinished.length > 1;
   const timeLeft = readingTimeLeftWords(shown);
 
   const update = async (item: MajordomeReadingItem, patch: Patch) => {
@@ -336,6 +343,23 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     });
   };
 
+  /** "Done a bit": where they got to is kept, and the item is out of the way until tomorrow. */
+  const doneABit = async (item: MajordomeReadingItem, progress: string) => {
+    const until = readingSnoozeDate("tomorrow", now);
+    const saved = await update(item, {
+      progress: progress === "" ? null : progress,
+      snoozedUntil: until,
+    });
+    if (saved) {
+      toastManager.add({
+        type: "success",
+        title: `Kept your place, ${readingBackOnWords(until, now)}`,
+        description: item.title,
+      });
+    }
+    return saved;
+  };
+
   const describe = async (itemId: string) => {
     setDescribing((ids) => [...ids, itemId]);
     await updateItem({ environmentId, input: { projectId, itemId, enrich: true } });
@@ -349,25 +373,33 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     if (reportFailure(outcome, "Could not reorder your reading list")) setPendingOrder(null);
   };
 
+  const putBack = (item: MajordomeReadingItem) =>
+    restoreItem({ environmentId, input: { projectId, itemId: item.id } }).then((undone) =>
+      reportFailure(undone, `Could not put “${item.title}” back`),
+    );
+
   const remove = async (item: MajordomeReadingItem) => {
-    const index = items.findIndex((entry) => entry.id === item.id);
     const outcome = await removeItem({ environmentId, input: { projectId, itemId: item.id } });
     if (reportFailure(outcome, `Could not remove “${item.title}”`)) return;
     if (outcome._tag !== "Success") return;
     const toastId = toastManager.add({
       type: "success",
-      title: "Removed from your reading list",
+      title: "Moved to the Trash",
       description: item.title,
       actionProps: {
         children: "Undo",
         onClick: () => {
           toastManager.close(toastId);
-          void restoreItem({ environmentId, input: { projectId, item, index } }).then((undone) =>
-            reportFailure(undone, `Could not put “${item.title}” back`),
-          );
+          void putBack(item);
         },
       },
     });
+  };
+
+  // The server deletes for good what is removed while already in the Trash.
+  const deleteForGood = async (item: MajordomeReadingItem) => {
+    const outcome = await removeItem({ environmentId, input: { projectId, itemId: item.id } });
+    reportFailure(outcome, `Could not delete “${item.title}”`);
   };
 
   const showExisting = (item: MajordomeReadingItem) => {
@@ -387,6 +419,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     describing: describing.includes(item.id),
     onUpdate: (patch: Patch) => update(item, patch),
     onSnooze: (choice: ReadingSnoozeChoice) => void snooze(item, choice),
+    onDoneABit: (progress: string) => doneABit(item, progress),
     onRemove: () => void remove(item),
     onAsk: askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item)),
   });
@@ -492,7 +525,19 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
             </>
           ) : (
             <>
-              <div className="mt-4 flex flex-wrap items-center gap-0.5">
+              <div className="mt-4">
+                <Input
+                  nativeInput
+                  type="search"
+                  size="sm"
+                  aria-label="Search your reading list"
+                  placeholder="Search titles, sites, tags and notes"
+                  maxLength={200}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-0.5">
                 <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
                   All
                 </Chip>
@@ -541,19 +586,20 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                 {shown.length === 0 ? (
                   <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
                     <Muted className="flex-1 basis-48">
-                      {filters.kind !== null || filters.tag !== null
-                        ? "Nothing matches. Clear the filters to see everything."
+                      {narrowed
+                        ? "Nothing matches. Clear the search and filters to see everything."
                         : awake.length === 0
                           ? "Everything here is snoozed for now."
                           : "Everything here is finished. Turn off “Hide finished” to see it again."}
                     </Muted>
-                    {filters.kind !== null || filters.tag !== null ? (
+                    {narrowed ? (
                       <Button
                         size="xs"
                         variant="outline"
                         onClick={() => {
                           setKind(null);
                           setTag(null);
+                          setQuery("");
                         }}
                       >
                         Clear filters
@@ -589,6 +635,30 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                   </Collapsible>
                 )}
               </DndContext>
+              {trashed.length === 0 ? null : (
+                <Collapsible>
+                  <CollapsibleTrigger className="group -mx-2 mt-3 inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    <ChevronRightIcon
+                      className="size-3.5 transition-transform group-data-[panel-open]:rotate-90"
+                      aria-hidden
+                    />
+                    Trash ({trashed.length})
+                  </CollapsibleTrigger>
+                  <CollapsiblePanel>
+                    <EntryList aria-label="Trash" className="mt-1">
+                      {trashed.map((item) => (
+                        <TrashRow
+                          key={item.id}
+                          item={item}
+                          canChange={canChange}
+                          onPutBack={() => void putBack(item)}
+                          onDelete={() => void deleteForGood(item)}
+                        />
+                      ))}
+                    </EntryList>
+                  </CollapsiblePanel>
+                </Collapsible>
+              )}
             </>
           )}
         </>
@@ -653,7 +723,7 @@ function AddReadingItem({
   );
 }
 
-type Editing = "title" | "length" | "note" | "tag" | null;
+type Editing = "title" | "length" | "note" | "tag" | "why" | "progress" | null;
 
 /** What a row and a Next card are both handed for one item. */
 interface ItemActions {
@@ -662,6 +732,8 @@ interface ItemActions {
   readonly describing: boolean;
   readonly onUpdate: (patch: Patch) => Promise<boolean>;
   readonly onSnooze: (choice: ReadingSnoozeChoice) => void;
+  /** Keeps where they got to (empty for nowhere worth saying) and snoozes it until tomorrow. */
+  readonly onDoneABit: (progress: string) => Promise<boolean>;
   readonly onRemove: () => void;
   readonly onAsk: (() => void) | null;
 }
@@ -672,11 +744,12 @@ function ItemText({
   canChange,
   describing,
   onUpdate,
+  onDoneABit,
   editing,
   onEditing,
   length = null,
   large = false,
-}: Pick<ItemActions, "item" | "canChange" | "describing" | "onUpdate"> & {
+}: Pick<ItemActions, "item" | "canChange" | "describing" | "onUpdate" | "onDoneABit"> & {
   readonly editing: Editing;
   readonly onEditing: (editing: Editing) => void;
   /** Said beside the source, where the item has no column of its own for it. */
@@ -719,6 +792,20 @@ function ItemText({
           )}
         </p>
       )}
+      {editing === "why" ? (
+        <InlineEdit
+          label="Why read it"
+          placeholder="One line on what it gives you"
+          initial={item.why ?? ""}
+          onCancel={() => onEditing(null)}
+          onSave={(text) => void save({ why: text === "" ? null : text })}
+        />
+      ) : item.why ? (
+        <p className={cn("wrap-break-word text-foreground", large ? "text-sm" : "text-xs")}>
+          <span className="text-muted-foreground">Why: </span>
+          {item.why}
+        </p>
+      ) : null}
       {item.summary !== undefined ? (
         <p className={cn("wrap-break-word text-muted-foreground", large ? "text-sm" : "text-xs")}>
           {item.summary}
@@ -741,6 +828,19 @@ function ItemText({
         <p className="border-l-2 border-border pl-2 text-xs whitespace-pre-wrap wrap-break-word text-muted-foreground">
           {item.notes}
         </p>
+      ) : null}
+      {editing === "progress" ? (
+        <InlineEdit
+          label="Where you got to"
+          placeholder="Where you got to, so you can pick up from there"
+          initial={item.progress ?? ""}
+          onCancel={() => onEditing(null)}
+          onSave={(text) =>
+            void onDoneABit(text).then((saved) => (saved ? onEditing(null) : undefined))
+          }
+        />
+      ) : item.progress ? (
+        <p className="text-xs wrap-break-word text-muted-foreground">Got to: {item.progress}</p>
       ) : null}
       {editing === "length" ? (
         <InlineEdit
@@ -826,7 +926,7 @@ function ItemMenu({
   onSnooze,
   onRemove,
   onAsk,
-}: Omit<ItemActions, "describing"> & {
+}: Omit<ItemActions, "describing" | "onDoneABit"> & {
   readonly snoozed: boolean;
   readonly onEditing: (editing: Editing) => void;
 }) {
@@ -848,6 +948,10 @@ function ItemMenu({
         <MenuItem onClick={() => onEditing("note")}>
           <NotebookPenIcon />
           {item.notes ? "Edit note" : "Add a note"}
+        </MenuItem>
+        <MenuItem onClick={() => onEditing("why")}>
+          <LightbulbIcon />
+          {item.why ? "Edit why" : "Say why"}
         </MenuItem>
         <MenuItem onClick={() => onEditing("length")}>
           <ClockIcon />
@@ -882,6 +986,12 @@ function ItemMenu({
           <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
             <RefreshCwIcon />
             Look it up again
+          </MenuItem>
+        )}
+        {item.doneAt !== undefined || snoozed ? null : (
+          <MenuItem onClick={() => onEditing("progress")}>
+            <FootprintsIcon />
+            Done a bit…
           </MenuItem>
         )}
         {item.doneAt !== undefined ? null : snoozed ? (
@@ -1011,7 +1121,40 @@ function ReadingRow({
   );
 }
 
-/** One of the first things to do, with room to breathe and the two answers that matter. */
+/** Something removed: it can be put back, or deleted for good. */
+function TrashRow({
+  item,
+  canChange,
+  onPutBack,
+  onDelete,
+}: {
+  readonly item: MajordomeReadingItem;
+  readonly canChange: boolean;
+  readonly onPutBack: () => void;
+  readonly onDelete: () => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
+      <ItemTile item={item} dimmed />
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-0.5">
+        <p className="min-w-0 text-sm wrap-break-word text-muted-foreground">{item.title}</p>
+        {item.site ? <span className="text-xs text-muted-foreground">{item.site}</span> : null}
+      </div>
+      {canChange ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button size="xs" variant="outline" onClick={onPutBack}>
+            Put back
+          </Button>
+          <Button size="xs" variant="destructive-outline" onClick={onDelete}>
+            Delete for good
+          </Button>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/** One of the first things to do, with room to breathe and the answers that matter. */
 function NextCard(actions: ItemActions) {
   const { item, canChange, onUpdate, onSnooze } = actions;
   const [editing, setEditing] = useState<Editing>(null);
@@ -1035,6 +1178,9 @@ function NextCard(actions: ItemActions) {
             <Button size="sm" variant="outline" onClick={() => void onUpdate({ done: true })}>
               <CheckIcon />
               Finished
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing("progress")}>
+              Done a bit
             </Button>
             <Button size="sm" variant="ghost" onClick={() => onSnooze("tomorrow")}>
               Not now

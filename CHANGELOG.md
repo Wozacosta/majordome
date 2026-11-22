@@ -5,6 +5,25 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **The assistant works on your reading list.** Ask it in any conversation to save a link for
+  later, say what is next, note what you took from something, or find a few things on a subject
+  and add them. Links it saves now get their title, picture and length like the ones you paste,
+  and it writes a **Why** line on what it recommends.
+- **Search the reading list.** The field above the filters finds rows by any words in their
+  title, site, tags, summary, notes or link.
+- **Done a bit.** On a Next card or in a row's **…** menu: say where you got to, and the row keeps
+  it and steps aside until tomorrow.
+- **A Trash for the reading list.** Removed rows wait in a folded Trash group, where you can put
+  them back or delete them for good.
+
+**Try this**
+
+- Ask the assistant: "save https://… for later", then "what should I read next?".
+- Open Reading list, type a word in the search field, and press **Done a bit** on a Next card.
+- Remove a row, open **Trash** under the list and put it back.
+
 **Fixed**
 
 - **Reading list pictures fill themselves in.** A link saved before pictures existed, or while

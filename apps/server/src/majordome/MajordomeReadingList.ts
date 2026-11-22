@@ -44,9 +44,13 @@ export class MajordomeReadingList extends Context.Service<
     readonly list: (
       input: MajordomeReadingListInput,
     ) => Effect.Effect<MajordomeReadingListResult, MajordomeReadingListError>;
-    /** Saves a link or a title, first in the list. A link already saved is handed back instead. */
+    /**
+     * Saves a link or a title, first in the list. A link already saved is handed back instead, out
+     * of the Trash if it was there. `mustLoad` refuses a link whose site says the page is gone.
+     */
     readonly add: (
       input: MajordomeAddReadingItemInput,
+      options?: { readonly mustLoad?: boolean },
     ) => Effect.Effect<MajordomeAddReadingItemResult, MajordomeReadingListError>;
     readonly update: (
       input: MajordomeUpdateReadingItemInput,
@@ -54,10 +58,11 @@ export class MajordomeReadingList extends Context.Service<
     readonly reorder: (
       input: MajordomeReorderReadingItemsInput,
     ) => Effect.Effect<void, MajordomeReadingListError>;
+    /** Moves an item to the Trash; one already there is deleted for good. */
     readonly remove: (
       input: MajordomeReadingItemRefInput,
     ) => Effect.Effect<void, MajordomeReadingListError>;
-    /** Puts a removed item back where it was. */
+    /** Takes an item out of the Trash, back where it was. */
     readonly restore: (
       input: MajordomeRestoreReadingItemInput,
     ) => Effect.Effect<void, MajordomeReadingListError>;
@@ -137,12 +142,17 @@ function applyReadingItemUpdate(
   now: string,
 ): MajordomeReadingItem {
   const minutes = input.minutes === undefined ? item.minutes : (input.minutes ?? undefined);
+  const text = (sent: string | null | undefined, kept: string | undefined) =>
+    sent === undefined ? kept : sent?.trim() ? sent.trim() : undefined;
   const notes =
     input.notes === undefined ? item.notes : input.notes?.trim() ? input.notes : undefined;
+  const summary = text(input.summary, item.summary);
+  const why = text(input.why, item.why);
   const starred = input.starred ?? item.starred;
   const doneAt =
     input.done === undefined ? item.doneAt : input.done ? (item.doneAt ?? now) : undefined;
-  // Something finished has nothing left to come back for.
+  // Something finished has no place left to pick up from, and nothing to come back for.
+  const progress = doneAt !== undefined ? undefined : text(input.progress, item.progress);
   const snoozedUntil =
     doneAt !== undefined
       ? undefined
@@ -157,13 +167,16 @@ function applyReadingItemUpdate(
     kind: input.kind ?? item.kind,
     tags: input.tags === undefined ? item.tags : normalizeTags(input.tags),
     ...(minutes === undefined ? {} : { minutes }),
-    ...(item.summary === undefined ? {} : { summary: item.summary }),
+    ...(summary === undefined ? {} : { summary }),
     ...(item.image === undefined ? {} : { image: item.image }),
     addedAt: item.addedAt,
     ...(doneAt === undefined ? {} : { doneAt }),
     ...(snoozedUntil === undefined ? {} : { snoozedUntil }),
     ...(starred === true ? { starred } : {}),
     ...(notes === undefined ? {} : { notes }),
+    ...(why === undefined ? {} : { why }),
+    ...(progress === undefined ? {} : { progress }),
+    ...(item.deletedAt === undefined ? {} : { deletedAt: item.deletedAt }),
   };
 }
 
@@ -295,7 +308,10 @@ const make = Effect.gen(function* () {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
       // One page at a time, and outside the change, so a slow page never holds the list's lock.
       for (const item of (yield* read(vaultRoot)).items) {
-        const link = item.image === undefined ? parseLink(item.url ?? "") : null;
+        const link =
+          item.image === undefined && item.deletedAt === undefined
+            ? parseLink(item.url ?? "")
+            : null;
         if (link === null) continue;
         const { image } = yield* lookUpLink(link, item.kind).pipe(
           Effect.provideService(HttpClient.HttpClient, http),
@@ -336,7 +352,7 @@ const make = Effect.gen(function* () {
   );
 
   const add: MajordomeReadingList["Service"]["add"] = Effect.fn("MajordomeReadingList.add")(
-    function* (input) {
+    function* (input, options) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
       const link = parseLink(input.text);
       const saved = (items: ReadonlyArray<MajordomeReadingItem>) => {
@@ -347,13 +363,31 @@ const make = Effect.gen(function* () {
           return url !== null && normalizeLink(url) === wanted;
         });
       };
+      /** The saved one as the answer, taken out of the Trash when that is where it was. */
+      const handBack = (
+        existing: MajordomeReadingItem,
+        items: ReadonlyArray<MajordomeReadingItem>,
+      ) => {
+        const { deletedAt: _, ...item } = existing;
+        return {
+          ...(existing.deletedAt === undefined
+            ? {}
+            : { items: items.map((candidate) => (candidate === existing ? item : candidate)) }),
+          result: { item, duplicate: true },
+        };
+      };
       // Looked for before the page is fetched too, so saving a link twice answers at once.
       const already = saved((yield* read(vaultRoot)).items);
-      if (already !== undefined) return { item: already, duplicate: true };
+      if (already !== undefined && already.deletedAt === undefined) {
+        return { item: already, duplicate: true };
+      }
       const details =
         link === null
           ? undefined
           : yield* lookUpLink(link).pipe(Effect.provideService(HttpClient.HttpClient, http));
+      if (options?.mustLoad === true && details?.missing === true) {
+        return yield* fail("That link does not open: its site says there is no such page.");
+      }
       const item: MajordomeReadingItem = {
         id: `itm-${yield* random.uuidV4()}`,
         url: link === null ? null : link.href,
@@ -370,7 +404,7 @@ const make = Effect.gen(function* () {
         return Effect.succeed(
           existing === undefined
             ? { items: [item, ...file.items], result: { item, duplicate: false } }
-            : { result: { item: existing, duplicate: true } },
+            : handBack(existing, file.items),
         );
       });
     },
@@ -465,16 +499,20 @@ const make = Effect.gen(function* () {
   )(
     function* (input) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
-      yield* change(vaultRoot, (file) =>
-        Effect.succeed(
-          file.items.some((item) => item.id === input.itemId)
-            ? {
-                items: file.items.filter((item) => item.id !== input.itemId),
-                result: undefined,
-              }
-            : { result: undefined },
-        ),
-      );
+      const deletedAt = yield* nowIso;
+      yield* change(vaultRoot, (file) => {
+        const item = file.items.find((candidate) => candidate.id === input.itemId);
+        if (item === undefined) return Effect.succeed({ result: undefined });
+        return Effect.succeed({
+          items:
+            item.deletedAt === undefined
+              ? file.items.map((candidate) =>
+                  candidate === item ? { ...item, deletedAt } : candidate,
+                )
+              : file.items.filter((candidate) => candidate !== item),
+          result: undefined,
+        });
+      });
     },
     Effect.mapError(toError("Could not remove this item.")),
   );
@@ -485,14 +523,12 @@ const make = Effect.gen(function* () {
     function* (input) {
       const vaultRoot = yield* requireVaultRoot(input.projectId);
       yield* change(vaultRoot, (file) => {
-        if (file.items.some((item) => item.id === input.item.id)) {
-          return Effect.succeed({ result: undefined });
-        }
-        const index = Number.isFinite(input.index)
-          ? Math.min(Math.max(Math.trunc(input.index), 0), file.items.length)
-          : file.items.length;
+        const item = file.items.find((candidate) => candidate.id === input.itemId);
+        if (item === undefined) return fail("That item is no longer in the Trash.");
+        if (item.deletedAt === undefined) return Effect.succeed({ result: undefined });
+        const { deletedAt: _, ...kept } = item;
         return Effect.succeed({
-          items: [...file.items.slice(0, index), input.item, ...file.items.slice(index)],
+          items: file.items.map((candidate) => (candidate === item ? kept : candidate)),
           result: undefined,
         });
       });

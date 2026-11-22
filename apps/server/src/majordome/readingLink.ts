@@ -10,7 +10,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
+import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http";
 
 interface LinkDetails {
   readonly title: string;
@@ -20,6 +20,8 @@ interface LinkDetails {
   readonly image?: string;
   /** The page's opening text, for describing it; never saved. */
   readonly excerpt?: string;
+  /** True when the site itself says there is no such page (404 or 410); never saved. */
+  readonly missing?: true;
 }
 
 const EXCERPT_CHARS = 1_500;
@@ -398,6 +400,13 @@ export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function
   return yield* found.pipe(
     Effect.timeoutOption(LOOKUP_TIMEOUT),
     Effect.map(Option.getOrElse(() => fallback)),
+    // A refusal (403) or a server error says nothing about the page; only these two say it is gone.
+    Effect.catchIf(
+      (error) =>
+        HttpClientError.isHttpClientError(error) &&
+        (error.response?.status === 404 || error.response?.status === 410),
+      () => Effect.succeed<LinkDetails>({ ...fallback, missing: true }),
+    ),
     Effect.catchCause((cause) =>
       Cause.hasInterruptsOnly(cause)
         ? Effect.interrupt

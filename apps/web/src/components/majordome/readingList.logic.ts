@@ -55,9 +55,48 @@ export function filterReadingItems(
   );
 }
 
-/** Whether rows can be dragged: with a kind or tag chosen, a drop would move rows that are hidden. */
-export function canReorderReading(filters: ReadingFilters): boolean {
-  return filters.kind === null && filters.tag === null;
+/**
+ * Whether rows can be dragged: with a kind, a tag or a search narrowing the list, a drop would
+ * move rows that are hidden.
+ */
+export function canReorderReading(filters: ReadingFilters, query = ""): boolean {
+  return filters.kind === null && filters.tag === null && query.trim() === "";
+}
+
+/** The list without what is in the Trash, and the Trash with the last removed first. */
+export function splitTrashedReading(items: ReadonlyArray<MajordomeReadingItem>): {
+  readonly kept: ReadonlyArray<MajordomeReadingItem>;
+  readonly trashed: ReadonlyArray<MajordomeReadingItem>;
+} {
+  return {
+    kept: items.filter((item) => item.deletedAt === undefined),
+    trashed: items
+      .filter((item) => item.deletedAt !== undefined)
+      .toSorted((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? "")),
+  };
+}
+
+const plain = (text: string) =>
+  text
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+/** The items that hold every word typed, anywhere in what a row says; case and accents ignored. */
+export function searchReadingItems(
+  items: ReadonlyArray<MajordomeReadingItem>,
+  query: string,
+): ReadonlyArray<MajordomeReadingItem> {
+  const words = plain(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return items;
+  return items.filter((item) => {
+    const text = plain(
+      [item.title, item.site, item.url, item.summary, item.notes, item.why, item.progress]
+        .concat(item.tags)
+        .join(" "),
+    );
+    return words.every((word) => text.includes(word));
+  });
 }
 
 export function presentReadingKinds(
