@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.7
+
 **New**
 
 - **Notes can be edited.** Open a Markdown note in Notes and press **Edit**: type, and it is saved
@@ -26,6 +28,14 @@ Not released yet.
   waits in the box for you to finish the sentence.
 - Adding a Markdown file to a topic looked like nothing happened: it is a note, so it goes under
   Notes, not Files. The app now says so, and the Notes list and its count update right away.
+
+**Try this**
+
+- Today > "All notes", open a note with a table or a picture, press **Edit**, type, then **Done**.
+- In a topic that already has messages, press "Where are we?": it should send by itself.
+- Add a `.md` file through a topic's Files: a message should say it went to Notes.
+- With the Feed gone from the sidebar, check you can still get to it from Today and the command
+  menu.
 
 ## 0.10.6
 
