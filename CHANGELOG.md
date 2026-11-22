@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.17
+
 **New**
 
 - **"Go to a topic" in the Cmd+K list.** The topic search no longer needs its shortcut to be
@@ -14,7 +18,6 @@ The section for a version is also the text of its release on GitHub.
 
 - **A smaller app.** The download no longer carries a leftover build file or the 3D phone and
   tablet models of a panel Majordome does not show. The installed app is about 28 MB smaller.
-
 - **A new topic's first screen no longer names its folder.** The line "Notes go in …" is gone;
   the folder still shows under the topic's name at the top.
 - **A topic's log is called "Log".** The panel beside a topic listed its `log.md` as "Running
@@ -31,6 +34,12 @@ The section for a version is also the text of its release on GitHub.
   busy, until the topic is on screen.
 - **A ready-made topic's routine joins its conversation.** With an always-on server the routine
   was added before the server had heard of the topic, so it kept a conversation of its own.
+
+**Try this**
+
+- Make a new topic: its conversation should open at once, with the window busy until it does.
+- Press Cmd+K and pick "Go to a topic".
+- Click "Fix" on the backup warning in the sidebar: the machine with the problem is at the top.
 
 ## 0.10.16
 
