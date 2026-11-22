@@ -90,12 +90,12 @@ export function MajordomeSidebarNav({
   );
   const icons = (items: ReadonlyArray<SidebarItem>) =>
     items.map(({ to, label, icon: Icon }) => (
-      <SidebarMenuItem key={to}>
+      <SidebarMenuItem key={to} className="flex-1">
         <Tooltip>
           <TooltipTrigger
             render={
               <SidebarMenuButton
-                size="icon"
+                size="iconWide"
                 isActive={pathname === to}
                 aria-current={pathname === to ? "page" : undefined}
                 aria-label={label}
@@ -157,7 +157,7 @@ export function MajordomeSidebarNav({
       {compact ? (
         <SidebarMenu className="flex-row items-center">
           {icons([...DAILY_ITEMS, ...ON_ITS_OWN_ITEMS])}
-          <SidebarMenuItem className="ms-auto">{toggle}</SidebarMenuItem>
+          <SidebarMenuItem>{toggle}</SidebarMenuItem>
         </SidebarMenu>
       ) : (
         <>
