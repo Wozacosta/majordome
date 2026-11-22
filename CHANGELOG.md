@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- A phone icon at the bottom of the sidebar, next to Settings, opens phone setup directly. It
+  shows on a computer, not on the phone itself.
+
 ## 0.10.9
 
 **New**

@@ -1,4 +1,10 @@
-import { ArrowLeftIcon, ArrowRightIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ChartNoAxesColumnIcon,
+  SettingsIcon,
+  SmartphoneIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { T, useGT } from "gt-react";
 import { memo } from "react";
@@ -41,6 +47,7 @@ import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+import { PHONE_SHORTCUT_LABEL } from "~/components/majordome/phone.logic";
 import { isMajordome } from "~/env";
 import { MajordomeSidebarAlert } from "../majordome/MajordomeSidebarNav";
 import { MajordomeCloche } from "~/components/MajordomeCloche";
@@ -303,6 +310,13 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             label={gt("Settings")}
             onClick={handleSettingsClick}
           />
+          {isMajordome && !isMobile ? (
+            <SidebarUtilityItem
+              icon={<SmartphoneIcon />}
+              label={PHONE_SHORTCUT_LABEL}
+              onClick={() => void navigate({ to: "/settings/phone" })}
+            />
+          ) : null}
           {pullRequestsSupported && !isMajordome ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}

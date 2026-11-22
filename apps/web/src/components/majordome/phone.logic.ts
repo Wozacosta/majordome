@@ -180,3 +180,6 @@ export function subscriptionUsesKey(
     actual.length === expected.length && actual.every((byte, index) => byte === expected[index])
   );
 }
+
+/** The sidebar shortcut to phone setup, shown on a computer only. */
+export const PHONE_SHORTCUT_LABEL = "Use on your phone";
