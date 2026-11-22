@@ -1,7 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "git fetch -q --depth=1 origin \"$VERCEL_GIT_PREVIOUS_SHA\" 2>/dev/null; git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- . || exit 1",
   "rewrites": [
-    { "source": "/download", "destination": "/api/download" },
-    { "source": "/download/intel", "destination": "/api/download?arch=x64" }
+    {
+      "source": "/download",
+      "destination": "/api/download"
+    },
+    {
+      "source": "/download/intel",
+      "destination": "/api/download?arch=x64"
+    }
   ]
 }
