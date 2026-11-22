@@ -3,14 +3,19 @@ import {
   BellIcon,
   BookOpenIcon,
   CalendarClockIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   HouseIcon,
   ListTodoIcon,
   SearchIcon,
   type LucideIcon,
 } from "lucide-react";
+import * as Schema from "effect/Schema";
 import type { ReactNode } from "react";
+
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 import { cn } from "../../lib/utils";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
@@ -34,6 +39,8 @@ const ON_ITS_OWN_ITEMS = [
   { to: "/reminders", label: "Reminders", icon: BellIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
 
+const CompactChoice = Schema.NullOr(Schema.Boolean);
+
 /**
  * Majordome's own screens, named, above the thread list. `search` is the chat search field, shown
  * under the top row; `onSearch` puts the cursor in it.
@@ -52,7 +59,57 @@ export function MajordomeSidebarNav({
   };
   // Before there is a notes folder every screen is empty; the welcome page is the only place to be.
   const { activeVault, loading } = useMajordomeVaults();
+  // Unset until the owner chooses: a phone starts with the icons, which leave room for topics.
+  const [chosenCompact, setCompact] = useLocalStorage(
+    "majordome:sidebar-menu-compact",
+    null,
+    CompactChoice,
+  );
+  const compact = chosenCompact ?? isMobile;
   if (activeVault === null && !loading) return null;
+
+  const toggle = (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <SidebarMenuButton
+            size="icon"
+            type="button"
+            aria-expanded={!compact}
+            aria-label={compact ? "Show the menu with names" : "Show the menu as icons"}
+            onClick={() => setCompact(!compact)}
+          />
+        }
+      >
+        {compact ? <ChevronDownIcon /> : <ChevronUpIcon />}
+      </TooltipTrigger>
+      <TooltipPopup side="bottom">
+        {compact ? "Show the menu with names" : "Show the menu as icons"}
+      </TooltipPopup>
+    </Tooltip>
+  );
+  const icons = (items: ReadonlyArray<SidebarItem>) =>
+    items.map(({ to, label, icon: Icon }) => (
+      <SidebarMenuItem key={to}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <SidebarMenuButton
+                size="icon"
+                isActive={pathname === to}
+                aria-current={pathname === to ? "page" : undefined}
+                aria-label={label}
+                render={<Link to={to} />}
+                onClick={closeMobileSidebar}
+              />
+            }
+          >
+            <Icon />
+          </TooltipTrigger>
+          <TooltipPopup side="bottom">{label}</TooltipPopup>
+        </Tooltip>
+      </SidebarMenuItem>
+    ));
 
   const rows = (items: ReadonlyArray<SidebarItem>) =>
     items.map(({ to, label, icon: Icon }) => {
@@ -97,18 +154,30 @@ export function MajordomeSidebarNav({
         ) : null}
       </div>
       {search}
-      <SidebarMenu>{rows(DAILY_ITEMS)}</SidebarMenu>
-      <div>
-        <h2
-          id="majordome-nav-on-its-own"
-          className="flex h-7 items-center px-2 text-xs font-medium text-sidebar-muted-foreground"
-        >
-          Automatic
-        </h2>
-        <SidebarMenu aria-labelledby="majordome-nav-on-its-own">
-          {rows(ON_ITS_OWN_ITEMS)}
+      {compact ? (
+        <SidebarMenu className="flex-row items-center">
+          {icons([...DAILY_ITEMS, ...ON_ITS_OWN_ITEMS])}
+          <SidebarMenuItem className="ms-auto">{toggle}</SidebarMenuItem>
         </SidebarMenu>
-      </div>
+      ) : (
+        <>
+          <SidebarMenu>{rows(DAILY_ITEMS)}</SidebarMenu>
+          <div>
+            <div className="flex h-7 items-center justify-between ps-2">
+              <h2
+                id="majordome-nav-on-its-own"
+                className="text-xs font-medium text-sidebar-muted-foreground"
+              >
+                Automatic
+              </h2>
+              {toggle}
+            </div>
+            <SidebarMenu aria-labelledby="majordome-nav-on-its-own">
+              {rows(ON_ITS_OWN_ITEMS)}
+            </SidebarMenu>
+          </div>
+        </>
+      )}
     </nav>
   );
 }

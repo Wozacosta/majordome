@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **The sidebar menu folds into a row of icons.** On a phone, Today, To-dos, Reading list,
+  Routines and Reminders start as five icons on one line, which leaves the screen to your topics.
+  The small arrow at the end of the row shows the names again, and the arrow next to
+  "Automatic" folds them back. Works on a computer too; your choice is remembered per device.
+
 **Fixed**
 
 - On a computer that already had Tailscale, the Phone page opened the old Tailscale steps and

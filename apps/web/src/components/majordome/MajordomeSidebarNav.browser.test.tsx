@@ -18,6 +18,8 @@ vi.mock("../../state/entities", () => ({
 
 function setup(attention: AttentionCard | null) {
   state.attention = attention;
+  // The test browser is phone-width, where the menu starts as icons.
+  localStorage.setItem("majordome:sidebar-menu-compact", "false");
 }
 
 const navLinks = (container: HTMLElement) =>
@@ -38,6 +40,16 @@ it("lists only Majordome's own screens", async () => {
     ["Reading list", "/reading"],
     ["Routines", "/routines"],
     ["Reminders", "/reminders"],
+  ]);
+
+  await screen.getByRole("button", { name: "Show the menu as icons" }).click();
+  await expect.element(screen.getByRole("link", { name: "Reminders" })).toBeVisible();
+  expect(navLinks(screen.container)).toEqual([
+    ["", "/"],
+    ["", "/todos"],
+    ["", "/reading"],
+    ["", "/routines"],
+    ["", "/reminders"],
   ]);
 });
 
