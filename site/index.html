@@ -539,6 +539,9 @@
         font-size: 0.9rem;
         color: var(--muted);
       }
+      footer p {
+        max-width: 520px;
+      }
       footer div {
         display: flex;
         flex-wrap: wrap;
@@ -628,7 +631,13 @@
 
       <main>
         <div class="hero">
-          <div class="eyebrow"><span class="dot"></span>Free and open source, for Mac</div>
+          <div class="eyebrow">
+            <span class="dot"></span
+            ><span
+              >Free and open source, for Mac. A fork of
+              <a href="https://github.com/pingdotgg/t3code">T3 Code</a>.</span
+            >
+          </div>
           <h1>A second brain that keeps working while you are away.</h1>
           <p class="lede">
             Your memory is a folder of notes. Majordome reads it before you type, files what you
@@ -877,11 +886,13 @@
                 <span>It runs on your Mac, and on a server only if you add one.</span>
               </li>
               <li>
-                <strong>Open source.</strong>
-                <span
-                  >MIT licensed, built on <a href="https://github.com/pingdotgg/t3code">T3 Code</a>.
-                  Read it, fork it, change it.</span
-                >
+                <strong>Open source, and a fork.</strong>
+                <span>
+                  Majordome is a fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a>,
+                  the open-source app for coding agents by T3 Tools Inc. Its chat, server and
+                  desktop shell are theirs; the notes, routines and second-brain parts are added on
+                  top. MIT licensed, like the original.
+                </span>
               </li>
             </ul>
           </div>
@@ -916,7 +927,12 @@
       </main>
 
       <footer>
-        <div>Majordome. Built on T3 Code by T3 Tools Inc., under the MIT License.</div>
+        <p>
+          Majordome is a fork of <a href="https://github.com/pingdotgg/t3code">T3 Code</a> by T3
+          Tools Inc., used under the
+          <a href="https://github.com/Wozacosta/majordome/blob/main/LICENSE">MIT License</a>. Notes
+          layout and skills from <a href="https://github.com/Wozacosta/obrain">obrain</a>.
+        </p>
         <div>
           <a href="https://github.com/Wozacosta/majordome">GitHub</a>
           <a href="https://github.com/Wozacosta/majordome/tree/main/docs/user">Guides</a>
