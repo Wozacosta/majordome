@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.15
+
 **Changed**
 
 - **New chat no longer looks like the page you are on.** In the sidebar, New chat and the search
