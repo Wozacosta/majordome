@@ -25,6 +25,7 @@ import { useState, type ComponentProps } from "react";
 import { ThreadDetailsCard } from "./ThreadDetailsCard";
 import { OpenInPicker } from "./OpenInPicker";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
+import { KeyFactsSection } from "../majordome/KeyFactsSection";
 import { TopicPanelSections } from "../majordome/TopicPanelSections";
 import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
@@ -293,6 +294,10 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
 
               {visible.context && props.usage.contextWindow ? (
                 <ThreadDetailsContext usage={props.usage.contextWindow} />
+              ) : null}
+
+              {isMajordome && !props.draftId ? (
+                <KeyFactsSection environmentId={props.environmentId} threadId={props.threadId} />
               ) : null}
 
               {isMajordome && !props.draftId ? (

@@ -146,6 +146,7 @@ import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
 import * as MajordomeNotes from "./majordome/MajordomeNotes.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
+import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
@@ -850,6 +851,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   MajordomeDailyNotes.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeNotes.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeTopicFiles.layer.pipe(Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer))),
+  MajordomeKeyFacts.layer,
   MajordomeConnectors.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(

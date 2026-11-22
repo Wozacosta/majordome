@@ -32,6 +32,7 @@
 - [Private documents](./user/private-documents.md)
 - [Searching your notes](./user/notes-search.md)
 - [Reading list](./user/reading-list.md)
+- [Key facts](./user/key-facts.md)
 - [Memory](./user/memory.md)
 - [Routines and reminders](./user/routines.md)
 - [Setting Majordome up by asking](./user/assistant-settings.md)

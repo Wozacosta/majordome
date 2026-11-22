@@ -329,6 +329,13 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeAddToDailyNote,
       onSettled: ({ environmentId }, registry) => bumpDailyNotes(environmentId, registry),
     }),
+    /** Read again on every mount and whenever the conversation gets a finished reply. */
+    keyFacts: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:key-facts",
+      tag: WS_METHODS.majordomeGetKeyFacts,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => keyFactsRevision(environmentId),
+    }),
     /** Read again on every mount and after each change; the assistant adds files too. */
     topicFiles: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:topic-files",
@@ -482,6 +489,22 @@ const bumpDailyNotes = (environmentId: EnvironmentId, registry: AtomRegistry.Ato
 
 const bumpTodos = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(todosRevision(environmentId), (value) => value + 1));
+
+/** Bumped when a conversation moves on, so the key facts being shown in that environment read again. */
+const keyFactsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:key-facts-revision:${environmentId}`),
+  ),
+);
+
+/** Asks for the key facts again: the server reads what the conversation gained since. */
+export function refreshMajordomeKeyFacts(
+  environmentId: EnvironmentId,
+  registry: AtomRegistry.AtomRegistry,
+): void {
+  registry.update(keyFactsRevision(environmentId), (value) => value + 1);
+}
 
 /** Bumped after a file is added or removed, so every topic's files in that environment read again. */
 const topicFilesRevision = Atom.family((environmentId: EnvironmentId) =>

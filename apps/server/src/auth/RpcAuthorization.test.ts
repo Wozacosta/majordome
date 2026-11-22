@@ -70,6 +70,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeListTopics,
       WS_METHODS.majordomeListTodos,
       WS_METHODS.majordomeListTopicFiles,
+      WS_METHODS.majordomeGetKeyFacts,
       WS_METHODS.majordomeViewTopicFile,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
