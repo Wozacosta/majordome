@@ -5,7 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **A smaller app.** The download no longer carries a leftover build file or the 3D phone and
+  tablet models of a panel Majordome does not show. The installed app is about 28 MB smaller.
 
 **Changed**
 

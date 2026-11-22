@@ -22,6 +22,7 @@ import { loadRepoEnv } from "../../scripts/lib/public-config";
 import { resolveTaggedSourceVersion } from "../../scripts/lib/tagged-source-version";
 import { thirdPartyLicensesPlugin } from "../../scripts/lib/third-party-licenses";
 import { majordomeBrandPlugin } from "./vite/majordomeBrand";
+import { majordomeHiddenAssetsPlugin } from "./vite/majordomeHiddenAssets";
 import { tailwindPlugins } from "./vite/tailwind";
 import { warmBundledDevPlugin } from "./vite/warmBundledDev";
 import { formatAppDisplayName, resolveWebAppStageLabel } from "./src/branding.logic";
@@ -320,6 +321,7 @@ export default defineConfig(({ command }) => {
     plugins: [
       // Tests read the source as upstream wrote it.
       process.env.VITEST ? undefined : majordomeBrandPlugin(),
+      process.env.VITEST ? undefined : majordomeHiddenAssetsPlugin(),
       bootstrapTitlePlugin(),
       devCompressionPlugin(),
       chunkCycleGuardPlugin(),
