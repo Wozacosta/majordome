@@ -76,6 +76,7 @@ const NOTE_READING_CLASS = cn(
  */
 export function NotePreview({
   vault,
+  openInVault = vault,
   path,
   revision,
   showTitle,
@@ -83,6 +84,8 @@ export function NotePreview({
   noteLink,
 }: {
   readonly vault: NotesVault;
+  /** The copy of the same notes that "Open in…" opens and the path names. */
+  readonly openInVault?: NotesVault;
   readonly path: string;
   readonly revision: string | null;
   readonly showTitle: boolean;
@@ -102,9 +105,9 @@ export function NotePreview({
               {parts.length > 1 ? `${parts.slice(0, -1).join(" / ")} / ` : null}
               <span className="text-foreground">{parts.at(-1)}</span>
             </TooltipTrigger>
-            <TooltipPopup side="bottom">{absoluteVaultPath(vault, path)}</TooltipPopup>
+            <TooltipPopup side="bottom">{absoluteVaultPath(openInVault, path)}</TooltipPopup>
           </Tooltip>
-          <NoteOpenIn vault={vault} absolutePath={absoluteVaultPath(vault, path)} />
+          <NoteOpenIn vault={openInVault} absolutePath={absoluteVaultPath(openInVault, path)} />
         </div>
       ) : null}
       {kind === "markdown" ? (

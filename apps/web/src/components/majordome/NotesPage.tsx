@@ -197,6 +197,10 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
               <NotePreview
                 key={`${vaultKey(vault)}:${path}`}
                 vault={vault}
+                // This computer's copy comes first, and only a file here opens in an app here.
+                openInVault={
+                  brains.find((brain) => brain.key === brainKey(vault))?.copies[0] ?? vault
+                }
                 path={path}
                 revision={revision}
                 showTitle={!isPhone}

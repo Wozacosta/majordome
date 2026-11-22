@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Open in… shows with an always-on server.** Notes opened from a topic showed the server's copy,
+  so the button to open the file in Obsidian or an editor was missing. It now opens this
+  computer's copy of the same note, and the path shown on hover is the one on this computer.
 
 ## 0.10.14
 
