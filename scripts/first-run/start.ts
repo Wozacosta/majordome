@@ -128,6 +128,7 @@ const command = Command.make(
     host: Argument.String("host"),
     webPort: Argument.String("web-port"),
     replay: Flag.Boolean("replay").pipe(
+      Flag.withDefault(false),
       Flag.withDescription(
         "Keep the free replay assistant, to look at screens with a chat in them.",
       ),
