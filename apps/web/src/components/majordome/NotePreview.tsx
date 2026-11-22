@@ -3,20 +3,31 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { type EnvironmentId, type ProjectEntry, ThreadId } from "@t3tools/contracts";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AsyncResult, Atom } from "effect/reactivity";
-import { lazy, type MouseEvent, type ReactNode, Suspense } from "react";
+import { lazy, type MouseEvent, type ReactNode, Suspense, useState } from "react";
 
 import { useAssetUrlState } from "../../assets/assetUrls";
 import { useOpenLink } from "../../browser/useOpenLink";
+import { majordomeEnvironment } from "../../state/majordome";
 import { projectEnvironment } from "../../state/projects";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { FileMarkdownPreview } from "../files/FileMarkdownPreview";
+import { PencilIcon } from "lucide-react";
 import { FILE_SURFACE_SUBHEADER_CLASS, FileSurfaceLoading } from "../files/fileSurfaceChrome";
 import { PreviewImage } from "../files/PreviewImage";
 import { useProjectFileQuery } from "../files/projectFilesQueryState";
 import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { Spinner } from "../ui/spinner";
 import { cn } from "../../lib/utils";
-import { type notesLink, noteKind, type NotesVault, vaultLinkTarget } from "./notes.logic";
-import type { NoteSourceLink } from "./NoteSourceEditor";
+import {
+  isEditableNotePath,
+  type notesLink,
+  noteKind,
+  type NotesVault,
+  vaultLinkTarget,
+} from "./notes.logic";
+import { Button } from "../ui/button";
+import { NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
+import { NoteSourceEditor, type NoteSourceLink } from "./NoteSourceEditor";
 import { READING_MEASURE_CLASS } from "./paper";
 import {
   resolveWikiTarget,
@@ -57,20 +68,23 @@ const NOTE_READING_CLASS = cn(
 );
 
 /**
- * One note, image or document from the vault, shown as it reads; nothing here edits it. A new
- * `revision` (the vault changed on disk) reads a note or text file again.
+ * One note, image or document from the vault, shown as it reads. With `editable`, a Markdown note
+ * is written in place by a device allowed to save it. A new `revision` (the vault changed on disk)
+ * reads a note or text file again.
  */
 export function NotePreview({
   vault,
   path,
   revision,
   showTitle,
+  editable,
   noteLink,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly revision: string | null;
   readonly showTitle: boolean;
+  readonly editable: boolean;
   readonly noteLink: NoteLink;
 }) {
   const kind = noteKind(path);
@@ -86,7 +100,15 @@ export function NotePreview({
         </div>
       ) : null}
       {kind === "markdown" ? (
-        <MarkdownNote vault={vault} path={path} revision={revision} noteLink={noteLink} />
+        <MarkdownNote
+          // Another note starts as it reads, not in the writing left open on the last one.
+          key={path}
+          vault={vault}
+          path={path}
+          revision={revision}
+          editable={editable}
+          noteLink={noteLink}
+        />
       ) : kind === "image" ? (
         <ImageNote vault={vault} path={path} />
       ) : kind === "pdf" ? (
@@ -142,14 +164,18 @@ function MarkdownNote({
   vault,
   path,
   revision,
+  editable,
   noteLink,
 }: {
   readonly vault: NotesVault;
   readonly path: string;
   readonly revision: string | null;
+  readonly editable: boolean;
   readonly noteLink: NoteLink;
 }) {
   const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
+  const canSave = useAtomValue(majordomeEnvironment.saveNote.permissionAtom(vault.environmentId));
+  const [writing, setWriting] = useState(false);
   if (file.data === null) {
     return file.error ? (
       <Centered>{file.error}</Centered>
@@ -159,8 +185,32 @@ function MarkdownNote({
       </Centered>
     );
   }
+  // A note cut short on its way here must never be saved back over the whole one.
+  const mayWrite = editable && canSave && isEditableNotePath(path) && !file.data.truncated;
+  if (mayWrite && writing) {
+    return (
+      <EditableNote
+        vault={vault}
+        path={path}
+        disk={file.data.contents}
+        onSaved={file.refresh}
+        onDone={() => setWriting(false)}
+        noteLink={noteLink}
+      />
+    );
+  }
   return (
     <div className="min-h-0 flex-1 overflow-auto">
+      {mayWrite ? (
+        // The note reads as it is rendered, tables and pictures included, until the owner asks to
+        // write: a stray key while reading must never change a note.
+        <div className="sticky top-0 z-10 flex justify-end px-3 pt-2">
+          <Button size="xs" variant="outline" onClick={() => setWriting(true)}>
+            <PencilIcon />
+            Edit
+          </Button>
+        </div>
+      ) : null}
       <NoteMarkdown
         vault={vault}
         path={path}
@@ -168,6 +218,72 @@ function MarkdownNote({
         noteLink={noteLink}
         className={NOTE_READING_CLASS}
       />
+    </div>
+  );
+}
+
+/** A Markdown note written in place: saved as it is typed, like the day's note on Today. */
+function EditableNote({
+  vault,
+  path,
+  disk,
+  onSaved,
+  onDone,
+  noteLink,
+}: {
+  readonly vault: NotesVault;
+  readonly path: string;
+  readonly disk: string;
+  readonly onSaved: () => void;
+  /** Back to the note as it reads, once what was typed is saved. */
+  readonly onDone: () => void;
+  readonly noteLink: NoteLink;
+}) {
+  const saveNote = useAtomCommand(majordomeEnvironment.saveNote, {
+    label: "save note",
+    reportFailure: false,
+  });
+  const editing = useNoteEditing({
+    disk,
+    save: async (content, base) => {
+      const outcome = await saveNote({
+        environmentId: vault.environmentId,
+        input: { projectId: vault.projectId, path, content, base: base ?? "" },
+      });
+      // Read again either way: a refused save means the file is not what is shown.
+      onSaved();
+      return outcome;
+    },
+  });
+  const openLink = useNoteSourceLinkOpener({
+    vault,
+    path,
+    text: editing.view.draft ?? disk,
+    noteLink,
+  });
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-auto scrollbar-gutter-both">
+        <div className={cn(READING_MEASURE_CLASS, "mx-auto px-5 py-8 sm:px-8")}>
+          <NoteSaveProblem editing={editing} className="mb-4" />
+          <NoteSourceEditor
+            value={disk}
+            held={editing.held}
+            editable
+            placeholder="This note is empty. Click here to write."
+            ariaLabel="This note"
+            onChange={editing.change}
+            onBlur={() => void editing.flush()}
+            onOpenLink={openLink}
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-3 border-t border-border px-5 py-1.5 sm:px-8">
+        <NoteSaveStatus view={editing.view} className="min-w-0 flex-1" />
+        <Button size="xs" variant="outline" onClick={() => void editing.flush().then(onDone)}>
+          Done
+        </Button>
+      </div>
     </div>
   );
 }

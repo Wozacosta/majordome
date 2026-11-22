@@ -174,6 +174,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeAddTodo]: "majordome",
   [WS_METHODS.majordomeGetDailyNote]: "majordome",
   [WS_METHODS.majordomeSaveDailyNote]: "majordome",
+  [WS_METHODS.majordomeSaveNote]: "majordome",
   [WS_METHODS.majordomeAddToDailyNote]: "majordome",
   [WS_METHODS.majordomeListTopicFiles]: "majordome",
   [WS_METHODS.majordomeAddTopicFile]: "majordome",

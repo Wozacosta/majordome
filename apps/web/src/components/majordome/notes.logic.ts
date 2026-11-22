@@ -111,6 +111,11 @@ export function noteKind(path: string): NoteKind {
   return "other";
 }
 
+/** The notes the server saves from the Notes page: plain Markdown, not its `.mdx` relative. */
+export function isEditableNotePath(path: string): boolean {
+  return /\.(?:md|markdown)$/i.test(path);
+}
+
 /** The vault file a clicked link points at, or null for web links and files outside the vault. */
 export function vaultLinkTarget(input: {
   readonly href: string;

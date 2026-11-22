@@ -172,6 +172,7 @@ import {
   MajordomeDailyNoteResult,
   MajordomeSaveDailyNoteInput,
 } from "./majordomeDaily.ts";
+import { MajordomeNoteError, MajordomeSaveNoteInput } from "./majordomeNotes.ts";
 import {
   MajordomeAddTopicFileInput,
   MajordomeTopicFile,
@@ -859,6 +860,7 @@ export const WS_METHODS = {
   majordomeAddTodo: "majordome.addTodo",
   majordomeGetDailyNote: "majordome.getDailyNote",
   majordomeSaveDailyNote: "majordome.saveDailyNote",
+  majordomeSaveNote: "majordome.saveNote",
   majordomeAddToDailyNote: "majordome.addToDailyNote",
   majordomeListTopicFiles: "majordome.listTopicFiles",
   majordomeAddTopicFile: "majordome.addTopicFile",
@@ -2762,6 +2764,11 @@ const WsMajordomeSaveDailyNoteRpc = Rpc.make(WS_METHODS.majordomeSaveDailyNote, 
   error: Schema.Union([MajordomeDailyNoteError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeSaveNoteRpc = Rpc.make(WS_METHODS.majordomeSaveNote, {
+  payload: MajordomeSaveNoteInput,
+  error: Schema.Union([MajordomeNoteError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeAddToDailyNoteRpc = Rpc.make(WS_METHODS.majordomeAddToDailyNote, {
   payload: MajordomeAddToDailyNoteInput,
   error: Schema.Union([MajordomeDailyNoteError, EnvironmentAuthorizationError]),
@@ -3242,6 +3249,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeAddTodoRpc,
   WsMajordomeGetDailyNoteRpc,
   WsMajordomeSaveDailyNoteRpc,
+  WsMajordomeSaveNoteRpc,
   WsMajordomeAddToDailyNoteRpc,
   WsMajordomeListTopicFilesRpc,
   WsMajordomeAddTopicFileRpc,

@@ -134,6 +134,7 @@ import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
+import * as MajordomeNotes from "./majordome/MajordomeNotes.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
@@ -1514,6 +1515,7 @@ export const layerWsRpc = (
       const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
       const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
       const majordomeDailyNotes = yield* MajordomeDailyNotes.MajordomeDailyNotes;
+      const majordomeNotes = yield* MajordomeNotes.MajordomeNotes;
       const majordomeTopicFiles = yield* MajordomeTopicFiles.MajordomeTopicFiles;
       const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const secretRequests = yield* SecretRequests.SecretRequests;
@@ -2609,6 +2611,10 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeSaveDailyNote]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeDailyNotes.save(input)),
+          ),
+        [WS_METHODS.majordomeSaveNote]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeNotes.save(input)),
           ),
         [WS_METHODS.majordomeAddToDailyNote]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

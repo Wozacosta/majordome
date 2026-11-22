@@ -15,6 +15,18 @@ back.
 
 The **Search files** box in the folder list is different: it only filters file and folder names.
 
+## Edit a note
+
+Open a note and press **Edit**, then type: it is saved to your notes folder a moment after you stop,
+the same way as the day's note on Today. **Done** goes back to the note as it reads. Links still
+open when you click them. If the assistant or
+another device changed the note while you were typing, Majordome does not overwrite it: it asks
+whether to keep your version or discard your changes.
+
+Only Markdown notes (`.md`, `.markdown`) are edited this way, and only from a device allowed to
+change things. While you write, the note shows as its text: pictures and tables appear as written,
+and a click on a picture's link opens it.
+
 ## Your assistant searches too
 
 When you ask about something you wrote down, your assistant searches your notes the same way, then

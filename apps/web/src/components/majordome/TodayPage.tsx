@@ -9,20 +9,12 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import { ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, PaperclipIcon } from "lucide-react";
-import {
-  type FormEvent,
-  type KeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type FormEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { isElectron } from "../../env";
 import { useNewThreadHandler } from "../../hooks/useHandleNewThread";
 import { useNowMinute } from "../../hooks/useNowMinute";
-import { useStableCallback } from "../../hooks/useStableCallback";
 import { cn } from "../../lib/utils";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { useProjects, useQuietThreadShells } from "../../state/entities";
@@ -50,6 +42,7 @@ import {
   stoppedRunKeys,
 } from "./feed.logic";
 import { useNoteSourceLinkOpener } from "./NotePreview";
+import { NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
 import { NoteSourceEditor } from "./NoteSourceEditor";
 import { notesLink } from "./notes.logic";
 import { requestDraftSend } from "./pendingDraftSend";
@@ -362,9 +355,6 @@ function DailyNote({
   return <DailyNoteCard key={day} vault={vault} day={day} isToday={isToday} note={note} />;
 }
 
-/** How long typing pauses before the note is saved. */
-const NOTE_SAVE_DELAY_MS = 800;
-
 function DailyNoteCard({
   vault,
   day,
@@ -391,98 +381,20 @@ function DailyNoteCard({
     reportFailure: false,
   });
   const disk = note.content;
-  // What was typed and is not on disk yet; null when the editor shows the file as it is.
-  const [draft, setDraft] = useState<string | null>(null);
-  // The stale file content a finished save is still waiting to see replaced.
-  const [settling, setSettling] = useState<string | null | undefined>(undefined);
-  const [problem, setProblem] = useState<string | null>(null);
   const [line, setLine] = useState("");
   const [adding, setAdding] = useState(false);
-  const work = useRef<{
-    draft: string | null;
-    base: string | null;
-    saving: boolean;
-    blocked: boolean;
-    timer: ReturnType<typeof setTimeout> | null;
-  }>({ draft: null, base: disk, saving: false, blocked: false, timer: null });
-
-  const flush = async (): Promise<void> => {
-    const state = work.current;
-    if (state.timer !== null) clearTimeout(state.timer);
-    state.timer = null;
-    const content = state.draft;
-    if (content === null || state.saving || state.blocked) return;
-    state.saving = true;
-    const base = state.base;
-    const outcome = await saveNote({
-      environmentId,
-      input: { projectId, date: day, content, base },
-    });
-    state.saving = false;
-    if (outcome._tag === "Failure") {
-      if (isAtomCommandInterrupted(outcome)) return;
-      const error = squashAtomCommandFailure(outcome);
-      state.blocked = true;
-      setProblem(error instanceof Error ? error.message : String(error));
-      return;
-    }
-    state.base = content;
-    if (state.draft !== content) return flush();
-    state.draft = null;
-    setDraft(null);
-    if (content !== base) setSettling(base);
-  };
-  const latestFlush = useStableCallback(flush);
-
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- leaving the day saves what the pause had not saved yet
-  useEffect(
-    () => () => {
-      void latestFlush();
-    },
-    [latestFlush],
-  );
-
-  const onChange = (text: string) => {
-    const state = work.current;
-    if (state.draft === null) {
-      if (text === (disk ?? "")) return;
-      state.base = disk;
-    }
-    state.draft = text;
-    setDraft(text);
-    setSettling(undefined);
-    if (state.timer !== null) clearTimeout(state.timer);
-    state.timer = setTimeout(() => void flush(), NOTE_SAVE_DELAY_MS);
-  };
-
-  /** After a save failed for a passing reason, such as a lost connection: the same save again. */
-  const retry = () => {
-    work.current.blocked = false;
-    setProblem(null);
-    void flush();
-  };
-
-  /** After a save was refused: write over the file as it now is, or take the file's version. */
-  const resolve = (keepMine: boolean) => {
-    const state = work.current;
-    state.blocked = false;
-    setProblem(null);
-    if (keepMine) {
-      state.base = disk;
-      void flush();
-    } else {
-      state.draft = null;
-      setDraft(null);
-    }
-  };
+  const editing = useNoteEditing({
+    disk,
+    save: (content, base) =>
+      saveNote({ environmentId, input: { projectId, date: day, content, base } }),
+  });
 
   const add = async (event: FormEvent) => {
     event.preventDefault();
     const text = line.trim();
     if (text === "" || adding) return;
     setAdding(true);
-    await flush();
-    if (work.current.draft !== null) {
+    if (!(await editing.flush())) {
       setAdding(false);
       return;
     }
@@ -494,11 +406,10 @@ function DailyNoteCard({
     if (!reportFailure(outcome, "Could not add that to the note")) setLine("");
   };
 
-  const held = draft !== null || (settling !== undefined && settling === disk);
   const openLink = useNoteSourceLinkOpener({
     vault: { environmentId, projectId, title: vault.title, workspaceRoot },
     path: note.path,
-    text: draft ?? disk ?? "",
+    text: editing.view.draft ?? disk ?? "",
     noteLink: (path) => notesLink({ projectId, environmentId, path }),
   });
 
@@ -519,46 +430,22 @@ function DailyNoteCard({
         </form>
       ) : null}
       <div className="mt-3 rounded-2xl border border-border bg-card p-5 shadow-xs">
-        {problem !== null ? (
-          <div
-            role="alert"
-            className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm"
-          >
-            <span className="min-w-0 flex-1">Not saved. {problem}</span>
-            <Button type="button" size="sm" variant="ghost" onClick={retry}>
-              Try again
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => resolve(false)}>
-              Discard my changes
-            </Button>
-            <Button type="button" size="sm" onClick={() => resolve(true)}>
-              Keep my version
-            </Button>
-          </div>
-        ) : null}
+        <NoteSaveProblem editing={editing} className="mb-3" />
         {!canWrite && (disk === null || disk.trim() === "") ? (
           <p className="text-sm text-muted-foreground">Nothing written for this day yet.</p>
         ) : (
           <NoteSourceEditor
             value={disk ?? ""}
-            held={held}
+            held={editing.held}
             editable={canWrite}
             placeholder="Nothing written for this day yet. Click here to write."
             ariaLabel="This day's note"
-            onChange={onChange}
-            onBlur={() => void flush()}
+            onChange={editing.change}
+            onBlur={() => void editing.flush()}
             onOpenLink={openLink}
           />
         )}
-        <p className="mt-3 min-h-4 text-right text-xs text-muted-foreground" aria-live="polite">
-          {problem !== null
-            ? "Not saved"
-            : draft !== null
-              ? "Saving…"
-              : settling !== undefined
-                ? "Saved to your notes"
-                : ""}
-        </p>
+        <NoteSaveStatus view={editing.view} className="mt-3" />
       </div>
     </section>
   );

@@ -90,6 +90,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeDismissTopicSuggestions,
       WS_METHODS.majordomeSetTodoDone,
       WS_METHODS.majordomeAddTodo,
+      WS_METHODS.majordomeSaveNote,
       WS_METHODS.majordomeAddTopicFile,
       WS_METHODS.majordomeRemoveTopicFile,
     ]) {

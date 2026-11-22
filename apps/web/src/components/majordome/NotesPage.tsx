@@ -88,7 +88,7 @@ function useVaultRevision(vault: NotesVault | null): string | null {
   return revision === null ? null : String(revision);
 }
 
-/** A read-only view of the notes folder: its folders and files, and the note picked from them. */
+/** The notes folder: its folders and files, and the note picked from them, written in place. */
 export function NotesPage({ search }: { readonly search: NotesSearch }) {
   const navigate = useNavigate();
   const isPhone = useMediaQuery("max-md");
@@ -200,6 +200,7 @@ export function NotesPage({ search }: { readonly search: NotesSearch }) {
                 path={path}
                 revision={revision}
                 showTitle={!isPhone}
+                editable
                 noteLink={(target) => linkTo({ vault, path: target })}
               />
             ) : null}

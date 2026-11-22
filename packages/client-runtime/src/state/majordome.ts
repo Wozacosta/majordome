@@ -306,6 +306,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeSaveDailyNote,
       onSettled: ({ environmentId }, registry) => bumpDailyNotes(environmentId, registry),
     }),
+    /** Any Markdown note by its path; a day's note is one of them, so Today reads again. */
+    saveNote: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:save-note",
+      tag: WS_METHODS.majordomeSaveNote,
+      onSettled: ({ environmentId }, registry) => bumpDailyNotes(environmentId, registry),
+    }),
     addToDailyNote: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:add-to-daily-note",
       tag: WS_METHODS.majordomeAddToDailyNote,

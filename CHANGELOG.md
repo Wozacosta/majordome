@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Notes can be edited.** Open a Markdown note in Notes and press **Edit**: type, and it is saved
+  a moment after you stop. **Done** goes back to the note as it reads. If the assistant or another
+  device changed the note meanwhile, you choose whose version to keep.
+
 **Changed**
 
 - **Feed and Notes left the sidebar.** Both are still there: from Today ("All notes" and

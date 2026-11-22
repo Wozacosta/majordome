@@ -19,6 +19,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import { NOTE_CHANGED_WHILE_WRITING, readNoteText, replaceNoteIfUnchanged } from "./noteFile.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 
@@ -70,13 +71,7 @@ const make = Effect.gen(function* () {
   });
 
   const read = (file: string) =>
-    fileSystem.readFileString(file).pipe(
-      Effect.map((content): string | null => content),
-      Effect.catchIf(
-        (error) => error.reason._tag === "NotFound",
-        () => Effect.succeed(null),
-      ),
-    );
+    readNoteText(file).pipe(Effect.provideService(FileSystem.FileSystem, fileSystem));
 
   const mapError = (message: string) =>
     Effect.mapError((cause: unknown) =>
@@ -97,13 +92,13 @@ const make = Effect.gen(function* () {
       yield* vaultLock.withLock(
         note.root,
         Effect.gen(function* () {
-          if ((yield* read(note.file)) !== input.base) {
-            return yield* new MajordomeDailyNoteError({
-              message: "This note changed while you were writing. Copy your text, then reload.",
-            });
+          const saved = yield* replaceNoteIfUnchanged({ ...input, file: note.file }).pipe(
+            Effect.provideService(FileSystem.FileSystem, fileSystem),
+            Effect.provideService(Path.Path, path),
+          );
+          if (!saved) {
+            return yield* new MajordomeDailyNoteError({ message: NOTE_CHANGED_WHILE_WRITING });
           }
-          yield* fileSystem.makeDirectory(path.dirname(note.file), { recursive: true });
-          yield* fileSystem.writeFileString(note.file, input.content);
         }),
       );
     },
