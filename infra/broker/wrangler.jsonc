@@ -28,7 +28,14 @@
     "MAX_NEW_PER_DAY": "40",
     // A free zone holds 200 DNS records; the rest is headroom.
     "MAX_LIVE_ADDRESSES": "180",
+    // Servers Majordome hosts (README, "Hosted servers"). Offered only once FLY_API_TOKEN is set.
+    "FLY_ORG_SLUG": "personal",
+    "HOSTED_IMAGE": "ghcr.io/wozacosta/majordome:latest",
+    "HOSTED_REGION": "cdg",
+    // Each server is billed to the Fly account, so this bounds the bill.
+    "MAX_HOSTED_SERVERS": "5",
   },
   // CLOUDFLARE_API_TOKEN is a secret: `wrangler secret put CLOUDFLARE_API_TOKEN`.
+  // FLY_API_TOKEN is a secret too, from `fly tokens create org`.
   "observability": { "enabled": true },
 }

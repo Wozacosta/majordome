@@ -46,6 +46,44 @@ Set as vars in `wrangler.jsonc`:
 Claims by a computer that already has an address never count. Over the first two the caller
 gets `rate_limited`; at the ceiling it gets `full`.
 
+## Hosted servers
+
+The same Worker makes a server for someone who has an invite code. It is switched on by the
+`FLY_API_TOKEN` secret; without it, the routes below answer 404.
+
+- `GET /start`: the page a person opens. It takes the code, makes the server, waits until it
+  answers, and sends them to it already paired as its owner.
+- `POST /v1/hosted` with `{ "invite": "..." }`: spends the invite and returns the server's
+  `name`, `url` and a `pairingUrl` that works once, for a day.
+- `GET /v1/hosted/ready?name=...`: whether that server answers yet.
+
+A server is one Fly.io app named `majordome-<10 characters>`, holding a 3 GB volume and one
+Machine (2 shared CPUs, 2 GB) that runs the released image with `MAJORDOME_HOSTED=1`. Its
+address is the app's `fly.dev` address. An invite makes one server; if Fly refuses, what was
+made is removed and the invite is given back.
+
+Set it up once:
+
+```sh
+fly tokens create org -o personal --name majordome-broker --expiry 8760h \
+  | pnpm dlx wrangler secret put FLY_API_TOKEN --config wrangler.deploy.jsonc
+```
+
+Make an invite, list them, and remove a server:
+
+```sh
+pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
+  --command "INSERT INTO hosted_invites (code, note, created_at) VALUES ('a-code-you-choose', 'for whom', unixepoch() * 1000)"
+pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
+  --command "SELECT code, note, app_name, claimed_at, removed_at FROM hosted_invites"
+fly apps destroy majordome-xxxxxxxxxx
+pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
+  --command "UPDATE hosted_invites SET removed_at = unixepoch() * 1000 WHERE app_name = 'majordome-xxxxxxxxxx'"
+```
+
+Removing the Fly app deletes the customer's notes with it, so it is done by hand. `removed_at`
+frees the server's place under `MAX_HOSTED_SERVERS`.
+
 ## Block an address
 
 ```sh

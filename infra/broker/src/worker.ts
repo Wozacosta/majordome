@@ -1,7 +1,10 @@
 import { type AddressRequest, type Broker, CloudflareError, makeBroker } from "./broker.ts";
 import { makeCloudflareClient } from "./cloudflare.ts";
 import { BrokerError, type BrokerErrorCode, ERROR_STATUS } from "./errors.ts";
-import { makeD1Store } from "./store.ts";
+import { makeFlyHost } from "./fly.ts";
+import { type HostClient, HostError, type Hosting, isServerName, makeHosting } from "./hosting.ts";
+import { START_PAGE } from "./startPage.ts";
+import { makeD1InviteStore, makeD1Store } from "./store.ts";
 
 interface Env {
   readonly DB: D1Database;
@@ -13,6 +16,12 @@ interface Env {
   readonly MAX_NEW_PER_IP_PER_DAY?: string;
   readonly MAX_NEW_PER_DAY?: string;
   readonly MAX_LIVE_ADDRESSES?: string;
+  /** Hosted servers are offered only when this secret is set. */
+  readonly FLY_API_TOKEN?: string;
+  readonly FLY_ORG_SLUG?: string;
+  readonly HOSTED_IMAGE?: string;
+  readonly HOSTED_REGION?: string;
+  readonly MAX_HOSTED_SERVERS?: string;
 }
 
 const MAX_BODY_CHARS = 4096;
@@ -39,6 +48,57 @@ const brokerFor = (env: Env): Broker =>
       maxLive: limit(env.MAX_LIVE_ADDRESSES, 180),
     },
   });
+
+const HOSTED_NAME_PREFIX = "majordome-";
+
+const hostFor = (env: Env): HostClient | null =>
+  env.FLY_API_TOKEN === undefined || env.FLY_ORG_SLUG === undefined
+    ? null
+    : makeFlyHost({
+        apiToken: env.FLY_API_TOKEN,
+        orgSlug: env.FLY_ORG_SLUG,
+        image: env.HOSTED_IMAGE ?? "ghcr.io/wozacosta/majordome:latest",
+        region: env.HOSTED_REGION ?? "cdg",
+        memoryMb: 2048,
+        volumeGb: 3,
+      });
+
+const hostingFor = (env: Env, host: HostClient): Hosting =>
+  makeHosting({
+    invites: makeD1InviteStore(env.DB),
+    host,
+    now: () => Date.now(),
+    randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
+    config: { namePrefix: HOSTED_NAME_PREFIX, maxServers: limit(env.MAX_HOSTED_SERVERS, 5) },
+  });
+
+/** Whether a new server answers yet. The page cannot ask it directly from another origin. */
+async function serverReady(host: HostClient, name: string): Promise<boolean> {
+  if (!isServerName(HOSTED_NAME_PREFIX, name)) return false;
+  try {
+    const response = await fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function readInvite(request: Request): Promise<string> {
+  const text = await request.text();
+  let body: unknown;
+  try {
+    body = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : undefined;
+  } catch {
+    body = undefined;
+  }
+  const { invite } = (body ?? {}) as { invite?: unknown };
+  if (typeof invite !== "string") {
+    throw new BrokerError("invalid_request", "Send a JSON body with invite.");
+  }
+  return invite;
+}
 
 const errorResponse = (code: BrokerErrorCode, message: string, headers?: HeadersInit) =>
   Response.json(
@@ -68,6 +128,27 @@ async function handle(request: Request, env: Env): Promise<Response> {
       `Majordome address broker: gives a Majordome computer a public address under ${env.ZONE_NAME}. Report abuse to ${env.ABUSE_CONTACT}.\n`,
     );
   }
+  const host = hostFor(env);
+  if (host !== null && pathname === "/start" && request.method === "GET") {
+    return new Response(START_PAGE, {
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+  if (host !== null && pathname === "/v1/hosted/ready" && request.method === "GET") {
+    const name = new URL(request.url).searchParams.get("name") ?? "";
+    return Response.json(
+      { ready: await serverReady(host, name) },
+      { headers: { "cache-control": "no-store" } },
+    );
+  }
+  if (host !== null && pathname === "/v1/hosted" && request.method === "POST") {
+    return Response.json(
+      await hostingFor(env, host).create({
+        invite: await readInvite(request),
+        clientIp: request.headers.get("cf-connecting-ip") ?? "unknown",
+      }),
+    );
+  }
   if (pathname !== "/v1/address" || (request.method !== "POST" && request.method !== "DELETE")) {
     return Response.json(
       { error: "invalid_request", message: "Nothing is served here." },
@@ -88,6 +169,12 @@ export default {
     } catch (error) {
       if (error instanceof BrokerError) return errorResponse(error.code, error.message);
       console.error("Address request failed", error);
+      if (error instanceof HostError) {
+        return errorResponse(
+          "upstream",
+          "Majordome could not make your server just now. Your invite is still good: try again in a few minutes.",
+        );
+      }
       const retryAfter = error instanceof CloudflareError ? error.retryAfter : null;
       return errorResponse(
         "upstream",

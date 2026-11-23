@@ -1,4 +1,5 @@
 import type { AddressRow, AddressStore } from "./broker.ts";
+import type { InviteStore } from "./hosting.ts";
 
 const COLUMNS =
   "label, identity, port, tunnel_id, dns_record_id, client_ip, created_at, blocked, reaped_at";
@@ -89,6 +90,36 @@ export function makeD1Store(db: D1Database): AddressStore {
         .prepare(`SELECT ${COLUMNS} FROM addresses WHERE reaped_at IS NULL`)
         .all<StoredRow>();
       return results.map(toRow);
+    },
+  };
+}
+
+export function makeD1InviteStore(db: D1Database): InviteStore {
+  return {
+    claim: async ({ code, appName, clientIp, at }) => {
+      const result = await db
+        .prepare(
+          "UPDATE hosted_invites SET claimed_at = ?, app_name = ?, client_ip = ? WHERE code = ? AND claimed_at IS NULL",
+        )
+        .bind(at, appName, clientIp, code)
+        .run();
+      return result.meta.changes === 1;
+    },
+    release: async (code) => {
+      await db
+        .prepare(
+          "UPDATE hosted_invites SET claimed_at = NULL, app_name = NULL, client_ip = NULL WHERE code = ?",
+        )
+        .bind(code)
+        .run();
+    },
+    live: async () => {
+      const row = await db
+        .prepare(
+          "SELECT COUNT(*) AS live FROM hosted_invites WHERE app_name IS NOT NULL AND removed_at IS NULL",
+        )
+        .first<{ live: number }>();
+      return row?.live ?? 0;
     },
   };
 }

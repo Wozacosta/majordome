@@ -1,6 +1,7 @@
 export type BrokerErrorCode =
   | "invalid_request"
   | "invalid_proof"
+  | "invalid_invite"
   | "blocked"
   | "rate_limited"
   | "full"
@@ -9,6 +10,7 @@ export type BrokerErrorCode =
 export const ERROR_STATUS: Record<BrokerErrorCode, number> = {
   invalid_request: 400,
   invalid_proof: 401,
+  invalid_invite: 403,
   blocked: 403,
   rate_limited: 429,
   full: 503,
