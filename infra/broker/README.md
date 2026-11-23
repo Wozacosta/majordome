@@ -88,9 +88,20 @@ pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jso
 ```
 
 Each server's volume is copied by Fly every day and the copies are kept 30 days
-(`snapshot_retention`). To bring one back: `fly volumes snapshots list <volume id>`, then
-`fly volumes create data --snapshot-id <id> --app <app>` and attach it to a new Machine. Not
-tried yet.
+(`snapshot_retention`). To bring one back (tried on 2026-11-23: the files, the server's
+identity and its sign-ins all came back):
+
+```sh
+fly volumes snapshots list <volume id> --app <app>
+fly volumes create data --snapshot-id <snapshot id> --app <app> --region cdg --size 3 --yes
+fly volumes update <new volume id> --app <app> --snapshot-retention 30   # a restored volume starts at 5
+fly machine stop <machine id> --app <app>
+fly machine clone <machine id> --app <app> --region cdg --attach-volume <new volume id>:/data
+fly machine destroy <machine id> --app <app> --force   # the old one, or a request can wake it
+```
+
+The address stays the same. The old volume is left behind; remove it once the restored server
+is checked (`fly volumes destroy`).
 
 Removing the Fly app deletes the customer's notes with it, so it is done by hand. `removed_at`
 frees the server's place under `MAX_HOSTED_SERVERS`.

@@ -331,8 +331,10 @@ What that first version does not do, in the order I would take them:
   screen that spends a code, waits, connects the phone as the owner and then opens the server's
   welcome page in the browser. See "The iPhone app" below.
 - **Backups: a first layer is on.** Fly copies each volume daily; new servers keep those copies
-  30 days, and so do the two that existed. Not done: restoring one has never been tried, and a
-  backup the customer owns (Google Drive, GitHub) is still theirs to turn on.
+  30 days. Restoring one was tried on a throwaway server on 2026-11-23 and worked: a file changed
+  after the copy came back as it was, and the server kept its identity and its owner's access.
+  It is done by hand (steps in `infra/broker/README.md`). Not done: a backup the customer owns
+  (Google Drive, GitHub) is still theirs to turn on.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
   domain of ours needs a certificate per server on Fly. The owner has `majord.me` (the landing
   page today) and `majord.link` (the tunnels' addresses); a subdomain of `majord.me` is the
