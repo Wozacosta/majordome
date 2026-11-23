@@ -2,6 +2,7 @@ import type { MajordomePushSubscription } from "@t3tools/contracts";
 
 import {
   base64UrlToBytes,
+  blockedNotificationsHelp,
   deviceLabel,
   devicePushSupport,
   isAppleMobileDevice,
@@ -43,6 +44,15 @@ export function readDeviceLabel(): string | undefined {
   return deviceLabel(navigator.userAgent, navigator.maxTouchPoints);
 }
 
+/** What this device last answered when asked to allow notifications. Never asks. */
+export function readNotificationPermission(): NotificationPermission {
+  return "Notification" in window ? Notification.permission : "default";
+}
+
+export function readBlockedNotificationsHelp(): string {
+  return blockedNotificationsHelp(navigator.userAgent, navigator.maxTouchPoints);
+}
+
 /** This device's current subscription, if it has one. Never asks for permission. */
 export async function readDeviceSubscription(): Promise<PushSubscription | null> {
   const registration = await navigator.serviceWorker.getRegistration("/");
@@ -54,9 +64,7 @@ export async function subscribeDevice(publicKey: string): Promise<MajordomePushS
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
     throw new Error(
-      permission === "denied"
-        ? "Notifications are blocked for this app. Allow them in your browser or phone settings."
-        : "Notifications were not allowed.",
+      permission === "denied" ? readBlockedNotificationsHelp() : "Notifications were not allowed.",
     );
   }
   await navigator.serviceWorker.register(SERVICE_WORKER_URL, { scope: "/" });

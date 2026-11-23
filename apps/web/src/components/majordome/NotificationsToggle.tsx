@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -13,11 +13,13 @@ import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
-import { Muted, SwitchLabel } from "./paper";
-import type { DevicePushSupport } from "./phone.logic";
+import { Muted, StatusLine, SwitchLabel } from "./paper";
+import { type DevicePushSupport, notificationsProblem } from "./phone.logic";
 import {
+  readBlockedNotificationsHelp,
   readDeviceLabel,
   readDeviceSubscription,
+  readNotificationPermission,
   subscribeDevice,
   unsubscribeDevice,
 } from "./pushNotifications";
@@ -55,7 +57,9 @@ export function useDevicePush(environmentId: EnvironmentId, supported: boolean) 
   const canSave = useAtomValue(
     majordomeEnvironment.savePushSubscription.permissionAtom(environmentId),
   );
-  const pushConfig = useAtomValue(majordomeEnvironment.pushConfig({ environmentId, input: {} }));
+  const pushConfigAtom = majordomeEnvironment.pushConfig({ environmentId, input: {} });
+  const pushConfig = useAtomValue(pushConfigAtom);
+  const retry = useAtomRefresh(pushConfigAtom);
   const publicKey = AsyncResult.getOrElse(pushConfig, () => null)?.publicKey ?? null;
   const save = useAtomCommand(majordomeEnvironment.savePushSubscription, { reportFailure: false });
   const remove = useAtomCommand(majordomeEnvironment.removePushSubscription, {
@@ -64,6 +68,7 @@ export function useDevicePush(environmentId: EnvironmentId, supported: boolean) 
   const sendTest = useAtomCommand(majordomeEnvironment.sendTestPush, { reportFailure: false });
   const [endpoint, setEndpoint] = useState<string | null | undefined>(supported ? undefined : null);
   const [busy, setBusy] = useState(false);
+  const [permission, setPermission] = useState(readNotificationPermission);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Reads the browser's push subscription, which lives outside React.
   useEffect(() => {
@@ -99,7 +104,10 @@ export function useDevicePush(environmentId: EnvironmentId, supported: boolean) 
         }
         setEndpoint(subscription.endpoint);
       } catch (error) {
-        fail("Could not turn on notifications", error);
+        const answered = readNotificationPermission();
+        setPermission(answered);
+        // A blocked device is told so under the switch, where it stays.
+        if (answered !== "denied") fail("Could not turn on notifications", error);
       }
     });
   };
@@ -128,7 +136,24 @@ export function useDevicePush(environmentId: EnvironmentId, supported: boolean) 
     toastManager.add({ type: "success", title: "Test sent. It should show up in a moment." });
   };
 
-  return { endpoint, busy, canSave, ready: publicKey !== null, turnOn, turnOff, test };
+  const problem = notificationsProblem({
+    canSave,
+    key: publicKey !== null ? "ready" : pushConfig._tag === "Failure" ? "failed" : "loading",
+    permission,
+    on: endpoint != null,
+  });
+  return {
+    endpoint,
+    busy,
+    canSave,
+    ready: publicKey !== null,
+    problem,
+    retrying: pushConfig.waiting,
+    retry,
+    turnOn,
+    turnOff,
+    test,
+  };
 }
 
 export type DevicePush = ReturnType<typeof useDevicePush>;
@@ -156,11 +181,21 @@ export function NotificationsToggle({ push }: { readonly push: DevicePush }) {
           </Button>
         ) : null}
       </div>
-      {push.canSave ? null : (
-        <Muted>
-          This device was paired without permission to run things, so it can't turn this on.
-        </Muted>
-      )}
+      {push.problem === "read-only" ? (
+        <Muted>This device can only read. Add it again from your computer with a new code.</Muted>
+      ) : push.problem === "blocked" ? (
+        <StatusLine tone="warning">{readBlockedNotificationsHelp()}</StatusLine>
+      ) : push.problem === "unreachable" ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <StatusLine tone="warning">
+            Majordome didn't answer, so notifications can't be turned on yet.
+          </StatusLine>
+          <Button size="xs" variant="outline" disabled={push.retrying} onClick={push.retry}>
+            {push.retrying ? <Spinner size="sm" /> : null}
+            Try again
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type {
+  AuthClientSession,
   EnvironmentId,
   MajordomePhoneSetup,
   MajordomePushDevice,
@@ -179,6 +180,92 @@ export function phoneWithNotifications(
   return (
     devices.find((device) => /^(iPhone|iPad|Android)\b/.test(device.label ?? ""))?.label ?? null
   );
+}
+
+/** What a phone's code is labelled with; the phone's access keeps the label. */
+export const PHONE_PAIRING_LABEL = "Phone";
+
+export interface PairedPhone {
+  readonly sessionId: AuthClientSession["sessionId"];
+  readonly name: string;
+  readonly connected: boolean;
+}
+
+/**
+ * The phones and tablets that can open Majordome on a computer: those added with a code from
+ * "Phone & notifications", and any other handheld. The device asking is never one of them.
+ */
+export function pairedPhones(
+  sessions: ReadonlyArray<
+    Pick<AuthClientSession, "sessionId" | "client" | "connected" | "current">
+  >,
+): ReadonlyArray<PairedPhone> {
+  return sessions
+    .filter(
+      ({ client, current }) =>
+        !current &&
+        (client.label === PHONE_PAIRING_LABEL ||
+          client.deviceType === "mobile" ||
+          client.deviceType === "tablet"),
+    )
+    .map(({ sessionId, client, connected }) => ({
+      sessionId,
+      name: [client.os, client.browser].filter(Boolean).join(" · ") || "A phone",
+      connected,
+    }));
+}
+
+/** `unseen` is a step done on the phone that nothing tells this computer about. */
+export type PhoneStepState = "done" | "todo" | "unseen";
+
+/**
+ * How far a phone is, each step on its own evidence. `paired` is how many phones can open
+ * Majordome, null when this device may not see that; `notified` is `phoneWithNotifications`.
+ */
+export function phoneStepStates(input: {
+  readonly paired: number | null;
+  readonly notified: string | null;
+}): {
+  readonly open: PhoneStepState;
+  readonly homeScreen: PhoneStepState;
+  readonly notifications: PhoneStepState;
+} {
+  const notified = input.notified !== null;
+  return {
+    // Notifications are turned on from inside Majordome, so the phone has opened it.
+    open: notified || (input.paired ?? 0) > 0 ? "done" : "todo",
+    // iPhone and iPad only allow notifications from the Home Screen app.
+    homeScreen: /^(iPhone|iPad)\b/.test(input.notified ?? "") ? "done" : "unseen",
+    notifications: notified ? "done" : "todo",
+  };
+}
+
+/** Why "Notifications on this device" can't be turned on, when it can't. */
+export type NotificationsProblem = "read-only" | "unreachable" | "blocked";
+
+export function notificationsProblem(input: {
+  readonly canSave: boolean;
+  /** Whether Majordome's notification key was read: without it nothing can subscribe. */
+  readonly key: "loading" | "ready" | "failed";
+  readonly permission: NotificationPermission;
+  readonly on: boolean;
+}): NotificationsProblem | null {
+  if (input.on) return null;
+  if (!input.canSave) return "read-only";
+  if (input.permission === "denied") return "blocked";
+  return input.key === "failed" ? "unreachable" : null;
+}
+
+/** Where a blocked device allows notifications again, in that device's own words. */
+export function blockedNotificationsHelp(userAgent: string, maxTouchPoints: number): string {
+  const kind = deviceKind(userAgent, maxTouchPoints);
+  if (kind === "iPhone" || kind === "iPad") {
+    return `Notifications are blocked for Majordome on this ${kind}. Open the Settings app, tap Notifications, then Majordome, and turn on Allow Notifications. Then come back and turn this on.`;
+  }
+  if (kind === "Android") {
+    return "Notifications are blocked for Majordome on this phone. Press and hold the Majordome icon, tap App info, then Notifications, and allow them. Then come back and turn this on.";
+  }
+  return "Notifications are blocked for Majordome in this browser. Click the icon to the left of the address at the top of the window, allow Notifications, then reload this page.";
 }
 
 /**

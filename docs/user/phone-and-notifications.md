@@ -17,8 +17,18 @@ Open **Settings > Phone & notifications** on your computer.
 If you have an always-on server, the page sets the phone up on the server, not on this computer:
 the server runs your routines and never sleeps. The page names the computer your phone connects to.
 
+The page marks a step **Done** when it can see it: opening Majordome on the phone, and turning
+notifications on. It can't see whether you added Majordome to the Home Screen, and says so.
+
 To add another phone, show a new code and follow steps 2 to 4 again. On an iPhone or iPad,
 notifications only work from the Home Screen app.
+
+### Remove a phone
+
+**Phones that can open Majordome** lists every phone and tablet you added. If you lose one, choose
+**Remove this phone**: it can no longer open Majordome until you scan a new code with it. If it also
+got notifications, remove it from the notifications list too. Computers and other devices are in
+**Settings > Sharing & access**.
 
 The address is on the internet, but only devices you add with a code can get in, and the
 connection passes through Cloudflare, a company that could technically read it. **Turn off this
@@ -44,6 +54,11 @@ the page, but it gets no notifications and stops working away from home.
 Each device decides for itself: turn **Notifications on this device** on or off on that device.
 **Send a test** shows one right away. The list under it has every device that gets notifications;
 **Remove** stops one you no longer use.
+
+If the switch can't be turned on, the line under it says why. When notifications are blocked, allow
+them on the device itself, then turn the switch on again: on an iPhone or iPad, open the Settings
+app, then **Notifications > Majordome**. A device that can only read has to be added again from
+your computer with a new code.
 
 Majordome notifies you when:
 
