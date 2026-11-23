@@ -598,6 +598,11 @@
         margin-top: 20px;
       }
 
+      /* Majordome has no triage tool: it files its reports in T3 Code's tracker. */
+      #boot-error details > div:has(#boot-error-command) {
+        display: none;
+      }
+
       #boot-error details > a {
         display: block;
         width: fit-content;

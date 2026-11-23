@@ -1,7 +1,5 @@
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 
-import { isMajordome } from "~/env";
-
 const FALLBACK_TRIAGE_COMMAND = "npx t3 triage";
 const DOWNLOAD_URL = "https://t3.codes/download";
 const ISSUE_URL = "https://github.com/pingdotgg/t3code/issues/new";
@@ -371,18 +369,13 @@ export function showBootError(error: unknown) {
           ),
         ]
       : []),
-    // Majordome has no triage tool: it files its reports in T3 Code's tracker.
-    ...(isMajordome
-      ? []
-      : [
-          element("div", {}, [
-            element("p", {
-              textContent:
-                "Run this on the computer that runs T3 Code. Your agent can check the local logs and help you file a bug report.",
-            }),
-            element("div", { id: "boot-error-command" }, [command, copyCommand]),
-          ]),
-        ]),
+    element("div", {}, [
+      element("p", {
+        textContent:
+          "Run this on the computer that runs T3 Code. Your agent can check the local logs and help you file a bug report.",
+      }),
+      element("div", { id: "boot-error-command" }, [command, copyCommand]),
+    ]),
     element("div", {}, [
       details,
       element("p", {
