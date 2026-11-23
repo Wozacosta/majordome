@@ -1,6 +1,6 @@
 import { expect, it } from "vite-plus/test";
 
-import { noteLines, toggleTodo, topicRows } from "./today.logic";
+import { friendlyDate, noteLines, noteSections, toggleTodo, topicRows } from "./today.logic";
 
 const NOTE = [
   "---",
@@ -16,12 +16,52 @@ const NOTE = [
 
 it("lists a day's note without its frontmatter, with to-dos tickable by line", () => {
   expect(noteLines(NOTE)).toEqual([
-    { kind: "heading", text: "Monday", index: 3 },
-    { kind: "todo", text: "Call the bank", done: false, index: 5 },
-    { kind: "todo", text: "Find the IBAN", done: true, index: 6 },
-    { kind: "text", text: "• 09:12 bought bread", index: 7 },
-    { kind: "text", text: "plain", index: 8 },
+    { kind: "heading", text: "Monday", level: 1, index: 3 },
+    { kind: "todo", text: "Call the bank", done: false, depth: 0, index: 5 },
+    { kind: "todo", text: "Find the IBAN", done: true, depth: 1, index: 6 },
+    { kind: "bullet", text: "09:12 bought bread", depth: 0, index: 7 },
+    { kind: "text", text: "plain", depth: 0, index: 8 },
   ]);
+});
+
+it("keeps how deep a line sits under the list items above it, whatever the indent width", () => {
+  const nested = ["- a", "    - b", "        - [ ] c", "      still c", "    - d", "---", "- e"];
+  expect(
+    noteLines(nested.join("\n")).map((line) => [line.text, "depth" in line && line.depth]),
+  ).toEqual([
+    ["a", 0],
+    ["b", 1],
+    ["c", 2],
+    ["still c", 2],
+    ["d", 1],
+    ["e", 0],
+  ]);
+});
+
+it("groups the note under its main headings and leaves out the one that only names the day", () => {
+  const note = [
+    "before",
+    "# 2026-11-23",
+    "## Top priorities",
+    "- [ ] Call",
+    "### Later",
+    "## Notes",
+  ];
+  const sections = noteSections(note.join("\n"), "2026-11-23");
+  expect(sections.map((section) => [section.index, section.title, section.lines.length])).toEqual([
+    [-1, null, 1],
+    [2, "Top priorities", 2],
+    [5, "Notes", 0],
+  ]);
+  expect(noteSections("# Monday, 23 November\ntext", "2026-11-23")).toEqual([
+    { index: -1, title: null, lines: [{ kind: "text", text: "text", depth: 0, index: 1 }] },
+  ]);
+});
+
+it("says a day the way a person would", () => {
+  expect(friendlyDate("2026-11-23")).toBe("Monday 23 November");
+  expect(friendlyDate("2027-01-01")).toBe("Friday 1 January");
+  expect(friendlyDate("someday")).toBe("someday");
 });
 
 it("ticks and unticks one to-do and leaves every other line alone", () => {
@@ -49,6 +89,7 @@ it("lists the topics still going with their latest message, else where they stan
         icon: "receipt",
         threadId: null,
         standing: { text: "Waiting on the form\nThen file" },
+        notesCount: 4,
       },
       { id: "c", title: "Old", folder: "old", threadId: "t3", finishedAt: "2026-01-01" },
     ]),
@@ -68,6 +109,7 @@ it("lists the topics still going with their latest message, else where they stan
       preview: "Waiting on the form",
       icon: "receipt",
       tone: "teal",
+      notes: 4,
     },
   ]);
 });

@@ -1,6 +1,7 @@
 import { CollapsibleUserMessageBody } from "./CollapsibleUserMessageBody";
 import { msg, T, useGT, useLocale, useMessages } from "gt-react-native";
 import { m } from "../../i18n/messages";
+import { isMajordome } from "../../majordome/env";
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { toServerClock } from "@t3tools/client-runtime/clock";
 import { formatDuration } from "@t3tools/shared/orchestrationTimingCopy";
@@ -2614,7 +2615,9 @@ function renderFeedEntry(
                 {entry.pendingMessage &&
                 !entry.acknowledged &&
                 entry.id !== props.pendingFoldMessageId
-                  ? m(msg("Pending", { $context: "message not yet sent" }))
+                  ? isMajordome
+                    ? m(msg("Waiting to send"))
+                    : m(msg("Pending", { $context: "message not yet sent" }))
                   : timestampLabel}
               </Text>
               {props.onEditPendingMessage !== null &&

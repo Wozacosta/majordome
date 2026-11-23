@@ -101,6 +101,9 @@ import { appAtomRegistry } from "../../state/atom-registry";
 import { mobilePreferencesAtom } from "../../state/preferences";
 
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
+import { isMajordome } from "../../majordome/env";
+import { MajordomeNewChatHero } from "../../majordome/NewChatHero";
+import { showsComputerChoice } from "../../majordome/newChat.logic";
 
 // Below this (keyboard up on iPad, phone landscape) the hero cannot fit above the composer,
 // so the project and environment pickers move into the composer controls instead.
@@ -536,6 +539,12 @@ export function NewTaskDraftScreen(props: {
     loadBranches();
   }, [loadBranches, selectedProject]);
 
+  const { setWorkspaceMode, workspaceMode } = flow;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Majordome has no worktree control, so a draft or setting that asks for one is put back on the notes folder itself
+  useEffect(() => {
+    if (isMajordome && workspaceMode === "worktree") setWorkspaceMode("local");
+  }, [setWorkspaceMode, workspaceMode]);
+
   const selectedEnvironmentLabel =
     flow.environments.find(
       (environment) => environment.environmentId === flow.selectedEnvironmentId,
@@ -771,7 +780,14 @@ export function NewTaskDraftScreen(props: {
   const headingBreak = headingBefore.trimEnd().lastIndexOf(" ");
   const headingFirstLine = headingBreak < 0 ? headingBefore : headingBefore.slice(0, headingBreak);
   const headingLead = headingBreak < 0 ? "" : headingBefore.slice(headingBreak + 1);
-  const hero = flow.isScratchDraft ? (
+  const offersComputerChoice = showsComputerChoice(flow.environments.length);
+  const hero = isMajordome ? (
+    <MajordomeNewChatHero
+      connected={environmentConnected}
+      computerChoice={offersComputerChoice ? environmentControl : null}
+      notice={shareUnavailableNotice}
+    />
+  ) : flow.isScratchDraft ? (
     <View className="items-center gap-2 px-6" testID="new-task-hero">
       <Text className="text-center text-2xl font-t3-medium tracking-tight text-foreground">
         <T>What should we work on?</T>
@@ -975,8 +991,14 @@ export function NewTaskDraftScreen(props: {
           />
         </View>
       ) : null}
-      {viewportHeight < SHORT_DRAFT_VIEWPORT_HEIGHT ? contextControls : null}
-      {flow.canChooseWorkspace ? workspaceControls : null}
+      {isMajordome
+        ? viewportHeight < SHORT_DRAFT_VIEWPORT_HEIGHT && offersComputerChoice
+          ? environmentControl
+          : null
+        : viewportHeight < SHORT_DRAFT_VIEWPORT_HEIGHT
+          ? contextControls
+          : null}
+      {flow.canChooseWorkspace && !isMajordome ? workspaceControls : null}
     </View>
   );
 

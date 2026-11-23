@@ -2,15 +2,26 @@ import { useAtomValue } from "@effect/atom-react";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { type MajordomeTopicIcon, ProjectId } from "@t3tools/contracts";
 import type { TopicTone } from "@t3tools/shared/majordomeTopicIcons";
-import { SymbolView, type SFSymbol } from "expo-symbols";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import type { SFSymbol } from "expo-symbols";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
-import { AppText as Text } from "../components/ui/AppText";
+import { Menu } from "../components/ui/Menu";
+import { RowPressable } from "../components/ui/RowPressable";
 import { useSelectWorkspaceDetail } from "../features/layout/workspace/useSelectWorkspaceDetail";
+import { THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME } from "../features/threads/thread-list-v2-row-appearance";
+import {
+  resolveThreadListV2RowStatus,
+  threadHasUnseenCompletion,
+} from "../features/threads/threadListV2";
+import { useNowMinuteMs } from "../lib/clock";
 import { relativeTime } from "../lib/time";
 import { useThreadShells } from "../state/entities";
+import { threadEnvironment } from "../state/threads";
 import { useAtomCommand } from "../state/use-atom-command";
+import { chatRowLabel, chatStatusLine, topicLine } from "./chat.logic";
+import { ChatListLabel, ChatRowContent } from "./ChatRow";
 import { majordomeEnvironment } from "./state";
 import type { TopicRow } from "./today.logic";
 import { todayStoreAtom } from "./todayStore";
@@ -61,82 +72,123 @@ export function useTopicThreadIds(): ReadonlySet<string> {
   return new Set(topics.flatMap((topic) => (topic.threadId === null ? [] : [topic.threadId])));
 }
 
-/** The topics as conversations: name, latest message, and when it last moved. */
+/** True when there are topics to list, so the Chats tab is not empty even with no other chat. */
+export function useHasTopics(): boolean {
+  return useVault(useAtomValue(todayStoreAtom)).topics.length > 0;
+}
+
+function TopicRowView(props: {
+  readonly topic: TopicRow;
+  readonly shell: EnvironmentThreadShell | undefined;
+  readonly nowMs: number;
+  readonly opening: boolean;
+  readonly disabled: boolean;
+  readonly onOpen: (sideChat: boolean) => void;
+}) {
+  const { topic, shell } = props;
+  const markUnread = useAtomCommand(threadEnvironment.markUnread, { reportFailure: false });
+  const status = shell ? resolveThreadListV2RowStatus(shell) : "ready";
+  const unread = shell !== undefined && status === "ready" && threadHasUnseenCompletion(shell);
+  const line = props.opening
+    ? ({ words: "Opening…", tone: "plain" } as const)
+    : topicLine(topic, chatStatusLine(status, unread));
+  const time = shell
+    ? relativeTime(resolveThreadActivityTimestamp(shell) ?? shell.createdAt, props.nowMs)
+    : null;
+  const label = chatRowLabel({ title: topic.title, line, time });
+  return (
+    <Menu
+      accessibilityLabel={label}
+      actions={[
+        {
+          id: "side-chat",
+          title: `New chat about ${topic.title}`,
+          image: "square.and.pencil",
+        },
+        ...(shell && !unread
+          ? [{ id: "mark-unread", title: "Mark as unread", image: "envelope.badge" }]
+          : []),
+      ]}
+      onPressAction={({ nativeEvent }) => {
+        if (nativeEvent.event === "side-chat") props.onOpen(true);
+        if (nativeEvent.event === "mark-unread" && shell) {
+          void markUnread({ environmentId: shell.environmentId, input: { threadId: shell.id } });
+        }
+      }}
+      shouldOpenOnLongPress
+    >
+      <RowPressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint="Opens the topic's conversation. Touch and hold for more."
+        accessibilityState={{ busy: props.opening, disabled: props.disabled }}
+        className="bg-screen"
+        disabled={props.disabled}
+        onPress={() => props.onOpen(false)}
+      >
+        <View className={THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME}>
+          <ChatRowContent
+            title={topic.title}
+            symbol={TOPIC_SYMBOLS[topic.icon ?? "hash"]}
+            color={TONE_COLORS[topic.tone ?? "amber"]}
+            line={line}
+            time={time}
+          />
+        </View>
+      </RowPressable>
+    </Menu>
+  );
+}
+
+/** The topics as conversations: name, what is going on in each, and when it last moved. */
 export function MajordomeTopicsSection(props: { readonly hasOtherChats: boolean }) {
   const { vault, topics } = useVault(useAtomValue(todayStoreAtom));
   const shells = useThreadShells();
+  const nowMs = useNowMinuteMs();
   const selectDetail = useSelectWorkspaceDetail();
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic);
   const [opening, setOpening] = useState<string | null>(null);
   if (vault === null || topics.length === 0) return null;
 
-  const open = async (topic: TopicRow) => {
+  const open = async (topic: TopicRow, sideChat: boolean) => {
     const show = (threadId: string) =>
       selectDetail({
         name: "Thread",
         params: { environmentId: String(vault.environmentId), threadId },
       });
-    if (topic.threadId !== null) return show(topic.threadId);
+    if (!sideChat && topic.threadId !== null) return show(topic.threadId);
     // A topic never opened on this server has no conversation yet; the server starts it.
     setOpening(topic.id);
     const result = await openTopic({
       environmentId: vault.environmentId,
-      input: { projectId: ProjectId.make(vault.projectId), topicId: topic.id },
+      input: {
+        projectId: ProjectId.make(vault.projectId),
+        topicId: topic.id,
+        ...(sideChat ? { sideChat: true } : {}),
+      },
     });
     setOpening(null);
     if (result._tag === "Success") show(String(result.value.threadId));
   };
 
   return (
-    <View className="pb-2">
-      {topics.map((topic) => {
-        const shell = shells.find(
-          (candidate) =>
-            candidate.environmentId === vault.environmentId &&
-            String(candidate.id) === topic.threadId,
-        );
-        return (
-          <Pressable
-            key={topic.id}
-            accessibilityRole="button"
-            accessibilityLabel={topic.title}
-            disabled={opening !== null}
-            className="flex-row items-center gap-3 px-5 py-2.5 active:bg-subtle"
-            onPress={() => void open(topic)}
-          >
-            <View
-              className="size-11 items-center justify-center rounded-full"
-              style={{ backgroundColor: `${TONE_COLORS[topic.tone ?? "amber"]}26` }}
-            >
-              <SymbolView
-                name={TOPIC_SYMBOLS[topic.icon ?? "hash"]}
-                size={22}
-                tintColor={TONE_COLORS[topic.tone ?? "amber"]}
-              />
-            </View>
-            <View className="min-w-0 flex-1">
-              <View className="flex-row items-baseline justify-between gap-2">
-                <Text numberOfLines={1} className="shrink font-t3-medium text-foreground">
-                  {topic.title}
-                </Text>
-                {shell ? (
-                  <Text textRole="label" className="text-foreground-muted">
-                    {relativeTime(resolveThreadActivityTimestamp(shell) ?? shell.createdAt)}
-                  </Text>
-                ) : null}
-              </View>
-              <Text numberOfLines={1} textRole="footnote" className="text-foreground-muted">
-                {opening === topic.id ? "Opening…" : (topic.preview ?? "Nothing said yet")}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
-      {props.hasOtherChats ? (
-        <Text textRole="footnote" className="px-5 pt-4 font-t3-medium text-foreground-muted">
-          Other chats
-        </Text>
-      ) : null}
+    <View>
+      {topics.map((topic) => (
+        <TopicRowView
+          key={topic.id}
+          topic={topic}
+          shell={shells.find(
+            (candidate) =>
+              candidate.environmentId === vault.environmentId &&
+              String(candidate.id) === topic.threadId,
+          )}
+          nowMs={nowMs}
+          opening={opening === topic.id}
+          disabled={opening !== null}
+          onOpen={(sideChat) => void open(topic, sideChat)}
+        />
+      ))}
+      {props.hasOtherChats ? <ChatListLabel>Other chats</ChatListLabel> : null}
     </View>
   );
 }

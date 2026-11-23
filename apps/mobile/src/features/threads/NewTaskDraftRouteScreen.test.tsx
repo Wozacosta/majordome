@@ -54,6 +54,9 @@ vi.mock("../../components/ui/AppText", () => ({
   AppText: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 vi.mock("../../components/ui/Dialog", () => ({ alert: vi.fn() }));
+// Majordome sends every new chat to the notes folder; these cases are upstream's routing.
+vi.mock("../../majordome/env", () => ({ isMajordome: false, MAJORDOME_HIDDEN_TABS: [] }));
+vi.mock("../../majordome/NewChatRoute", () => ({ MajordomeNewChatRoute: () => null }));
 vi.mock("../../components/ui/AppBar", () => ({ AppBar: () => null }));
 vi.mock("../layout/workspace/useAndroidWorkspaceNavigation", () => ({
   useWorkspaceBackNavigation: () => () => undefined,

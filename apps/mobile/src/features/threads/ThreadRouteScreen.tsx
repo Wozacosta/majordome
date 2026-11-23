@@ -137,6 +137,8 @@ import { useStartSideChat } from "./useStartSideChat";
 import { useThreadStatusAnnouncements } from "./useThreadStatusAnnouncements";
 import type { ThreadInspectorMode, ThreadInspectorTarget } from "./thread-inspector-navigation";
 import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
+import { isMajordome } from "../../majordome/env";
+import { chatSubtitle } from "../../majordome/newChat.logic";
 
 function firstRouteParam(value: string | string[] | undefined): string | null {
   const first = Array.isArray(value) ? value[0] : value;
@@ -371,7 +373,7 @@ function ThreadRouteContent(
   const gt = useGT();
   const m = useMessages();
   const { layout, showInspector, toggleAuxiliaryPane } = useAdaptiveWorkspaceLayout();
-  const { connectionState } = useRemoteConnectionStatus();
+  const { connectionState, connectedEnvironments } = useRemoteConnectionStatus();
   const { onReconnectEnvironment } = useRemoteConnections();
   const {
     selectedThread,
@@ -550,18 +552,26 @@ function ThreadRouteContent(
       : scopeThreadRef(delegatedFrom.environmentId, delegatedFrom.threadId);
   // The title it had at delegation, until this client sees the parent itself.
   const delegatedFromThread = useThreadShell(delegatedFromRef);
-  const headerSubtitle = [
-    selectedThreadProject?.title ?? null,
-    selectedEnvironmentConnection?.environmentLabel ?? null,
-    // A linked environment's delegated task names its parent; other linked work its origin.
+  // A linked environment's delegated task names its parent; other linked work its origin.
+  const headerOrigin =
     delegatedFrom !== null
       ? gt("Subagent of {title}", { title: delegatedFromThread?.title ?? delegatedFrom.title })
       : selectedThread?.linkOrigin
         ? gt("From {origin}", { origin: selectedThread.linkOrigin.label })
-        : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+        : null;
+  const headerSubtitle = isMajordome
+    ? chatSubtitle({
+        computerLabel: selectedEnvironmentConnection?.environmentLabel ?? null,
+        computerCount: connectedEnvironments.length,
+        origin: headerOrigin,
+      })
+    : [
+        selectedThreadProject?.title ?? null,
+        selectedEnvironmentConnection?.environmentLabel ?? null,
+        headerOrigin,
+      ]
+        .filter(Boolean)
+        .join(" · ");
   const gitStatus = useEnvironmentQuery(
     selectedThread !== null && selectedThreadCwd !== null
       ? vcsEnvironment.status({

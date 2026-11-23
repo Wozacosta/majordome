@@ -1,4 +1,4 @@
-// Upstream's coding words inside a sentence, said Majordome's way. Applied to the phone's English
+// Upstream's coding words inside a sentence, said Majordome's way, first match first. Applied to the phone's English
 // texts of two words or more; a single word may also be a route or screen name, so those are
 // listed one by one in wording.mts.
 const RULES = [
@@ -14,6 +14,37 @@ const RULES = [
   [/\bsettle\b/g, "mark as done"],
   [/\bSettle\b/g, "Mark as done"],
   [/\bcoding sessions?\b/g, "chats"],
+  [/\b([Aa]) scheduled task\b/g, "$1 routine"],
+  [/\bscheduled task(s?)\b/g, "routine$1"],
+  [/\bScheduled task(s?)\b/g, "Routine$1"],
+  [/\bthe new task composer\b/g, "a new chat"],
+  [/\bnew task\b/g, "new chat"],
+  [/\bNew task\b/g, "New chat"],
+  [/\b([Ss])tart a task\b/g, "$1tart a chat"],
+  [/\bcreating a task\b/g, "starting a chat"],
+  [/\bthe composer\b/g, "the message box"],
+  [/\bthe environment's machine\b/g, "your computer"],
+  [/\bmachine(s?)\b/g, "computer$1"],
+  [/\bMachine(s?)\b/g, "Computer$1"],
+  [/\bthe host\b/g, "your computer"],
+  [/\bThe host\b/g, "Your computer"],
+  [/\broute(s?)\b/g, "address$1"],
+  [/\bRoute(s?)\b/g, "Address$1"],
+  [/\baddresss\b/g, "addresses"],
+  [/\bAddresss\b/g, "Addresses"],
+  [/\bagents work\b/g, "the assistant works"],
+  [/\bAllow agents\b/g, "Allow the assistant"],
+  [/\b(?:the|an|this) agent\b/g, "the assistant"],
+  [/\b(?:The|An|This) agent\b/g, "The assistant"],
+  [/\bagent(s?)\b/g, "assistant$1"],
+  [/\bAgent(s?)\b/g, "Assistant$1"],
+  // A source control provider is a code host, on screens Majordome never shows.
+  [/(?<!source control |Source control |Git |hosting )\b([Aa]) provider\b/g, "$1n AI account"],
+  [/(?<!source control |Source control |Git |hosting )\bprovider(s?)\b/g, "AI account$1"],
+  [/(?<!source control |Source control |Git |hosting )\bProvider(s?)\b/g, "AI account$1"],
+  [/\b([Aa]) project\b/g, "$1 notes folder"],
+  [/\bproject(s?)\b/g, "notes folder$1"],
+  [/\bProject(s?)\b/g, "Notes folder$1"],
   [/\bthread\b/g, "chat"],
   [/\bthreads\b/g, "chats"],
   [/\bThread\b/g, "Chat"],
@@ -28,16 +59,34 @@ const RULES = [
   [/\bEnvironments\b/g, "Computers"],
 ];
 
-/** `text` with the rules applied outside its `{placeholders}`, whose names code refers to. */
+const reworded = (part) =>
+  RULES.reduce((next, [pattern, word]) => next.replace(pattern, word), part);
+
+/**
+ * `text` with the rules applied to what is read. Inside an ICU argument (`{environment}`,
+ * `{count, plural, one {…}}`) the name and the keywords are code; the texts nested in it are read.
+ */
 function majordomeWords(text) {
-  return text
-    .split(/(\{[A-Za-z_][\w]*(?=[},]))/)
-    .map((part, index) =>
-      index % 2 === 1
-        ? part
-        : RULES.reduce((next, [pattern, word]) => next.replace(pattern, word), part),
-    )
-    .join("");
+  let depth = 0;
+  let start = 0;
+  let next = "";
+  const flush = (end) => {
+    const part = text.slice(start, end);
+    next += depth % 2 === 0 ? reworded(part) : part;
+    start = end;
+  };
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === "{") {
+      flush(index);
+      depth += 1;
+    } else if (char === "}" && depth > 0) {
+      flush(index);
+      depth -= 1;
+    }
+  }
+  flush(text.length);
+  return next;
 }
 
 module.exports = { majordomeWords };

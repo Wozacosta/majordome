@@ -34,6 +34,8 @@ export interface TopicRow {
   /** The same icon and colour the desktop shows; absent from a list an older build stored. */
   readonly icon?: MajordomeTopicIcon;
   readonly tone?: TopicTone;
+  /** How many notes its folder holds, when the server says. */
+  readonly notes?: number;
 }
 
 export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [], topics: [] };
@@ -52,6 +54,7 @@ export function topicRows(
       | null
       | undefined;
     readonly standing?: { readonly text: string } | null | undefined;
+    readonly notesCount?: number | undefined;
   }>,
 ): ReadonlyArray<TopicRow> {
   return topics
@@ -68,6 +71,7 @@ export function topicRows(
         preview,
         icon: topicIcon(topic),
         tone: topicTone(topic),
+        ...(topic.notesCount === undefined ? {} : { notes: topic.notesCount }),
       };
     });
 }
@@ -79,13 +83,48 @@ export const localDate = (now: Date) =>
 
 export const localTime = (now: Date) => `${two(now.getHours())}:${two(now.getMinutes())}`;
 
-/** `index` is the line's place in the note, which also tells two equal lines apart. */
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** "Monday 23 November" for a `YYYY-MM-DD` day; the day as given when it is not one. */
+export function friendlyDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  if (year === undefined || month === undefined || day === undefined) return date;
+  // Noon, so a clock change never lands it on the day before or after.
+  const at = new Date(year, month - 1, day, 12);
+  const weekday = WEEKDAYS[at.getDay()];
+  const monthName = MONTHS[at.getMonth()];
+  return weekday === undefined || monthName === undefined
+    ? date
+    : `${weekday} ${at.getDate()} ${monthName}`;
+}
+
+/**
+ * `index` is the line's place in the note, which also tells two equal lines apart. `depth` is how
+ * far a line sits under the list items above it.
+ */
 export type NoteLine = { readonly text: string; readonly index: number } & (
-  | { readonly kind: "heading" | "text" }
-  | { readonly kind: "todo"; readonly done: boolean }
+  | { readonly kind: "heading"; readonly level: number }
+  | { readonly kind: "text" | "bullet"; readonly depth: number }
+  | { readonly kind: "todo"; readonly done: boolean; readonly depth: number }
 );
 
 const TODO = /^(\s*(?:[-*+]|\d+[.)]) \[)([ xX])(\] )(.*)$/;
+const RULE = /^\s*([-*_])(?:\s*\1){2,}\s*$/;
+const FENCE = /^\s*(?:```|~~~)/;
 
 /** Markdown's marks taken off a line: emphasis, code ticks, and a link down to its text. */
 export const plain = (text: string) =>
@@ -94,30 +133,85 @@ export const plain = (text: string) =>
     .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, "$1")
     .replace(/(\*\*|__|`|~~)/g, "");
 
+const indentOf = (line: string) => (/^\s*/.exec(line)?.[0] ?? "").replace(/\t/g, "    ").length;
+
 /** A day's note as Today lists it: headings, to-dos that can be ticked, and everything else. */
 export function noteLines(content: string): ReadonlyArray<NoteLine> {
   const lines: Array<NoteLine> = [];
   let frontmatter = content.startsWith("---\n");
+  // The indents of the list items a line could sit under, outermost first.
+  let parents: Array<number> = [];
   content.split("\n").forEach((line, index) => {
     if (frontmatter) {
       if (index > 0 && line.trim() === "---") frontmatter = false;
       return;
     }
-    const todo = TODO.exec(line);
-    if (todo) {
-      lines.push({ kind: "todo", text: plain(todo[4] ?? ""), done: todo[2] !== " ", index });
-      return;
-    }
-    const heading = /^#{1,6}\s+(.*)$/.exec(line);
+    if (line.trim().length === 0 || RULE.test(line) || FENCE.test(line)) return;
+    const heading = /^(#{1,6})\s+(.*)$/.exec(line);
     if (heading) {
-      lines.push({ kind: "heading", text: plain(heading[1] ?? ""), index });
+      parents = [];
+      lines.push({
+        kind: "heading",
+        text: plain(heading[2] ?? ""),
+        level: (heading[1] ?? "").length,
+        index,
+      });
       return;
     }
-    if (line.trim().length > 0) {
-      lines.push({ kind: "text", text: plain(line.replace(/^\s*[-*+] /, "• ")), index });
+    const indent = indentOf(line);
+    const todo = TODO.exec(line);
+    const bullet = todo ? null : /^\s*[-*+] (.*)$/.exec(line);
+    if (todo || bullet) {
+      parents = parents.filter((parent) => parent < indent);
+      const depth = parents.length;
+      parents.push(indent);
+      lines.push(
+        todo
+          ? { kind: "todo", text: plain(todo[4] ?? ""), done: todo[2] !== " ", depth, index }
+          : { kind: "bullet", text: plain(bullet?.[1] ?? ""), depth, index },
+      );
+      return;
     }
+    if (indent === 0) parents = [];
+    lines.push({
+      kind: "text",
+      text: plain(line.trim()),
+      depth: parents.filter((parent) => parent < indent).length,
+      index,
+    });
   });
   return lines;
+}
+
+export type NoteBodyLine = Exclude<NoteLine, { readonly kind: "heading" }> | NoteSubheading;
+type NoteSubheading = Extract<NoteLine, { readonly kind: "heading" }>;
+
+/** A stretch of the note under one main heading; `index` is that heading's line, or -1 before any. */
+export interface NoteSection {
+  readonly index: number;
+  readonly title: string | null;
+  readonly lines: ReadonlyArray<NoteBodyLine>;
+}
+
+/**
+ * The note grouped under its main headings (`#` and `##`); smaller headings stay inside their
+ * group. A heading that only names the day is left out: the screen says the day itself.
+ */
+export function noteSections(content: string, date: string): ReadonlyArray<NoteSection> {
+  const sections: Array<{ index: number; title: string | null; lines: Array<NoteBodyLine> }> = [];
+  const day = friendlyDate(date).toLowerCase();
+  for (const line of noteLines(content)) {
+    if (line.kind === "heading" && line.level <= 2) {
+      const title = line.text.trim();
+      if (title === date || title.toLowerCase().replace(/,/g, "") === day) continue;
+      sections.push({ index: line.index, title, lines: [] });
+      continue;
+    }
+    const current = sections[sections.length - 1];
+    if (current) current.lines.push(line);
+    else sections.push({ index: -1, title: null, lines: [line] });
+  }
+  return sections;
 }
 
 /** The note with the to-do on line `index` ticked or unticked; unchanged when that line is not one. */

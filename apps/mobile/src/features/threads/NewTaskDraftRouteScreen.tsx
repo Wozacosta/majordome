@@ -38,6 +38,8 @@ import { useWorkspaceBackNavigation } from "../layout/workspace/useAndroidWorksp
 
 import { ThreadScreenFallback } from "./ThreadScreenHost";
 import { NewTaskDraftScreen } from "./NewTaskDraftScreen";
+import { isMajordome } from "../../majordome/env";
+import { MajordomeNewChatRoute } from "../../majordome/NewChatRoute";
 
 import type { NewTaskDraftRouteParams } from "./thread-route-state";
 export type { NewTaskDraftRouteParams } from "./thread-route-state";
@@ -92,10 +94,21 @@ const idleBranchCheckoutAtom = Atom.make(AsyncResult.initial<BranchCheckoutResul
 );
 
 export function NewTaskDraftRouteScreen({ route }: StaticScreenProps<NewTaskDraftRouteParams>) {
+  const params = route.params ?? {};
+  return isMajordome ? (
+    <MajordomeNewChatRoute
+      params={params}
+      render={(notesParams) => <NewTaskDraftRoute params={notesParams} />}
+    />
+  ) : (
+    <NewTaskDraftRoute params={params} />
+  );
+}
+
+function NewTaskDraftRoute({ params }: { readonly params: NewTaskDraftRouteParams }) {
   const gt = useGT();
   const currentRoute = useRoute();
   const goBack = useWorkspaceBackNavigation();
-  const params = route.params ?? {};
   const draftId = Array.isArray(params.draftId) ? params.draftId[0] : params.draftId;
   const projects = useProjects();
   const { state: catalogState } = useWorkspaceState();
