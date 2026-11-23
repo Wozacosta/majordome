@@ -157,8 +157,24 @@ neither. What creating one for a customer needs:
   and the customer's AI key.
 - **The app's side:** a "Majordome hosts it" choice that sends the invite code, then pairs with
   the setup secret and copies the notes, as the move does today from the `pair` step on.
-- **One AI key per customer**, capped. Whether the provider lets a key be made by API is not
-  checked; if not, keys are made ahead and handed out.
+- **One capped AI credential per customer.** Checked against Anthropic's docs on 2026-11-23:
+  - A classic API key cannot be created by API (keys can only be listed, renamed and turned
+    off), so "one key per customer" as written means clicking in the Console.
+  - What can be created by API is better: a workspace per customer (1,000 per organization by
+    default) and a federation rule tied to that workspace. The service signs a short identity
+    token for a server, the server trades it for an Anthropic token that lasts 1 to 24 hours,
+    and Claude Code reads the federation variables itself (`ANTHROPIC_FEDERATION_RULE_ID`,
+    `ANTHROPIC_ORGANIZATION_ID`, `ANTHROPIC_IDENTITY_TOKEN_FILE`), though not in bare mode. No
+    long-lived secret sits on a customer's server, and usage is reported per workspace.
+  - The cap: a monthly spend limit per workspace exists, but setting it by API is an early
+    access preview to ask Anthropic for; otherwise it is set in the Console. Without it, the
+    service enforces the cap: it reads each workspace's cost and stops signing identity tokens
+    for one that is over, which cuts it off within the token's lifetime plus the reporting
+    delay (about 30 minutes for token counts, 4 to 24 hours for cost). Per-workspace rate
+    limits can be set by API and bound the overshoot.
+  - Needed once by hand: a Console organization (an individual account has no Admin API) and
+    one admin federation rule made in the Console.
+  - Not tried against a real organization.
 
 The Hetzner calls (`hetznerApi.ts`) have never run against a real account, and Hetzner rations
 new servers, so the first real run decides whether the second host comes before or after.
