@@ -1,4 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off
+import { hidesCodingTools } from "@t3tools/shared/majordome";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
@@ -159,6 +160,14 @@ export const triageCommand = Command.make("triage", {
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
+      // Triage files its reports in T3 Code's tracker, where a Majordome problem helps no one.
+      // Upstream's tests of the tool run it in a child process, which a mock cannot reach.
+      const upstreamTriage = yield* Config.String("T3CODE_UPSTREAM_TRIAGE").pipe(Config.option);
+      if (hidesCodingTools && Option.isNone(upstreamTriage)) {
+        return yield* Console.log(
+          "Majordome has no triage tool. Report a problem at https://github.com/Wozacosta/majordome/issues.",
+        );
+      }
       // Triage is a user-facing feature: always the userdata state, never dev.
       const explicitBaseDir = Option.getOrUndefined(flags.baseDir);
       const envHome = yield* Config.String("T3CODE_HOME").pipe(Config.option);

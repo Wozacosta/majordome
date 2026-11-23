@@ -90,6 +90,10 @@ Not released yet.
 - **Links and hints lead to Majordome.** The start-up error screen's download and "report a
   problem" links, and two terminal messages that told you to run T3 Code's installer, now point
   to Majordome's download page and its always-on server guide.
+- **No more T3 Code support tool.** The start-up error screen no longer offers a command that
+  filed reports with T3 Code, and `majord triage` points to Majordome's own issue page.
+- **Adding a computer no longer offers SSH.** That way of connecting needs a download Majordome
+  does not publish, so it could never finish.
 
 **Try this**
 

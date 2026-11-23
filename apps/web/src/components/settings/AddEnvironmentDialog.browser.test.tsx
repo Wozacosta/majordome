@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   refresh: () => {},
 }));
 
+// Majordome leaves the SSH way out; this covers upstream's dialog.
+vi.mock(import("~/env"), async (original) => ({ ...(await original()), isMajordome: false }));
+
 vi.mock(import("../../state/use-atom-command"), async (original) => ({
   ...(await original()),
   useAtomCommand: ((command: unknown) => command) as never,

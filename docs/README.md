@@ -2,7 +2,7 @@
 
 ## Using T3 Code
 
-- [Install T3 Code](./user/install.md)
+- [Install Majordome](./user/install.md)
 - [Messages and context](./user/composer.md)
 - [Working with threads](./user/thread-sidebar.md)
 - [Permission modes](./user/permission-modes.md)

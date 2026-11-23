@@ -22,6 +22,9 @@ import { expect, vi } from "vite-plus/test";
 import { cli } from "../binCli.ts";
 import { buildTriageLaunchPrompt } from "../triage/triagePrompt.ts";
 
+// Majordome's triage only names its issue page; this covers upstream's tool, in the CLI it spawns.
+vi.stubEnv("T3CODE_UPSTREAM_TRIAGE", "1");
+
 const cliPath = NodeURL.fileURLToPath(new URL("../bin.ts", import.meta.url));
 
 async function fixture(commands: ReadonlyArray<string>) {

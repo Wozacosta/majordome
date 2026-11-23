@@ -15,7 +15,7 @@ the desktop app, a browser, or the mobile app.
 5. Run `t3 policy show` on the machine to
    [check what the server loaded](#check-what-the-server-loaded).
 
-The desktop app includes the `t3` command; see [The `t3` command](./install.md#the-t3-command).
+The app includes the `majord` command; see [The `majord` command](./install.md#the-majord-command).
 
 ## Write a policy
 

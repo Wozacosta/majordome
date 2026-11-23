@@ -46,6 +46,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { AnimatedHeight } from "../AnimatedHeight";
 import { environmentCatalog } from "~/connection/catalog";
+import { isMajordome } from "~/env";
 import {
   connectPairing as connectPairingAtom,
   connectSshEnvironment as connectSshEnvironmentAtom,
@@ -702,7 +703,7 @@ export function AddEnvironmentDialog({
                 description: gt("Enter a backend host and pairing code."),
                 icon: <ChevronsLeftRightEllipsisIcon aria-hidden className="size-4" />,
               })}
-              {desktopBridge
+              {desktopBridge && !isMajordome
                 ? renderConnectionModeCard({
                     mode: "ssh",
                     title: SSH_PROTOCOL_NAME,
