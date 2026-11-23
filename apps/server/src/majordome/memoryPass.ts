@@ -110,6 +110,7 @@ export const planMemoryPass = Effect.fn("majordome.planMemoryPass")(function* (i
     if (
       !file.endsWith(".md") ||
       file.startsWith(".majordome/") ||
+      file.startsWith(".agents/") ||
       file === input.layout.memory ||
       INSTRUCTION_FILES.has(path.basename(file))
     ) {

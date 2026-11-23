@@ -34,6 +34,7 @@
 - [Reading list](./user/reading-list.md)
 - [Key facts](./user/key-facts.md)
 - [Memory](./user/memory.md)
+- [Skills](./user/skills.md)
 - [Routines and reminders](./user/routines.md)
 - [Setting Majordome up by asking](./user/assistant-settings.md)
 - [Updating T3 Code](./user/updating.md)

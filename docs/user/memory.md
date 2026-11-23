@@ -15,8 +15,10 @@ with their dates, and how you do things that come back.
 - What is worth knowing in every conversation goes into your memory note, as one short dated line
   with a link to the note it came from.
 - What belongs to one topic or project goes into that topic's own notes, such as its `log.md`.
-- It only adds to your memory note and to topic notes. It does not rewrite your daily notes, and it
-  never edits `CLAUDE.md` or `AGENTS.md`.
+- A way of doing something that keeps coming back is written down as a [skill](./skills.md),
+  which waits for your yes.
+- It only adds to your memory note, to topic notes and to the skills that wait. It does not rewrite
+  your daily notes, and it never edits `CLAUDE.md` or `AGENTS.md`.
 - It does not copy passwords, card numbers or keys. When it finds one in a note, it leaves it there
   and tells you which note.
 

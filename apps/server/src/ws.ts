@@ -135,6 +135,7 @@ import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
 import * as MajordomeNotes from "./majordome/MajordomeNotes.ts";
+import * as MajordomeSkills from "./majordome/MajordomeSkills.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
@@ -1514,6 +1515,7 @@ export const layerWsRpc = (
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
+      const majordomeSkills = yield* MajordomeSkills.MajordomeSkills;
       const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
       const majordomeDailyNotes = yield* MajordomeDailyNotes.MajordomeDailyNotes;
       const majordomeNotes = yield* MajordomeNotes.MajordomeNotes;
@@ -2601,6 +2603,18 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeSaveReadingSubjects]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeReadingList.saveSubjects(input)),
+          ),
+        [WS_METHODS.majordomeListSkills]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeSkills.list(input)),
+          ),
+        [WS_METHODS.majordomeKeepSkill]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeSkills.keep(input)),
+          ),
+        [WS_METHODS.majordomeRemoveSkill]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeSkills.remove(input)),
           ),
         [WS_METHODS.majordomeListTodos]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

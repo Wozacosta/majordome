@@ -11,12 +11,12 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import { SKILLS_DIR } from "./skillsGuide.ts";
 import starter from "./starterNotes.json" with { type: "json" };
 import { identityEnv, ownerIdentity } from "./vaultAutosave.ts";
 import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 
 const SETUP_SUBJECT = "Set up for Majordome";
-const SKILLS_DIR = ".agents/skills";
 /** Claude Code reads skills from here; the link keeps one copy for every agent. */
 const CLAUDE_SKILLS_LINK = ".claude/skills";
 /** Folders that hold far more than notes; saving all of one as notes would be a mistake. */

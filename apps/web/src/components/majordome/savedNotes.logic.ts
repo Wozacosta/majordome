@@ -1,4 +1,5 @@
 import { feedNoteTitle, feedVaultNotes } from "./feed.logic";
+import { skillOfPath } from "./skills.logic";
 
 const NO_VAULT_NOTES = feedVaultNotes({});
 
@@ -21,19 +22,31 @@ function folderWords(path: string): string | null {
     .join(" / ");
 }
 
-/** The notes a reply changed, as a person names them; Majordome's own bookkeeping is left out. */
+/**
+ * The notes a reply changed, as a person names them, and the skills it wrote for itself, which
+ * wait for the owner. Majordome's own bookkeeping is left out.
+ */
 export function savedNotes(
   files: ReadonlyArray<string>,
   nowMs: number,
   max = 5,
-): { readonly shown: ReadonlyArray<SavedNote>; readonly more: number } {
+): {
+  readonly shown: ReadonlyArray<SavedNote>;
+  readonly more: number;
+  readonly skills: ReadonlyArray<string>;
+} {
+  const skills = new Set(files.map(skillOfPath).filter((name) => name !== null));
   const notes = files
-    .filter((path) => !path.startsWith(".majordome/"))
+    .filter((path) => !path.startsWith(".majordome/") && skillOfPath(path) === null)
     .map((path) => ({
       path,
       title: feedNoteTitle(path, NO_VAULT_NOTES, nowMs),
       folder: folderWords(path),
       openable: path.endsWith(".md"),
     }));
-  return { shown: notes.slice(0, max), more: Math.max(0, notes.length - max) };
+  return {
+    shown: notes.slice(0, max),
+    more: Math.max(0, notes.length - max),
+    skills: [...skills],
+  };
 }

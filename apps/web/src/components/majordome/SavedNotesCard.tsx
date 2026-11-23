@@ -1,10 +1,11 @@
 import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
-import { CircleCheckIcon } from "lucide-react";
+import { CircleCheckIcon, GraduationCapIcon } from "lucide-react";
 
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { Button } from "../ui/button";
 import { savedNotes } from "./savedNotes.logic";
+import { skillTitle } from "./skills.logic";
 import { notesLink } from "./notes.logic";
 
 /** What a reply changed in the notes, by note title, in place of the coding app's file diff card. */
@@ -16,7 +17,8 @@ export function SavedNotesCard(props: {
 }) {
   const nowMinute = useNowMinute();
   const notes = savedNotes(props.files, Date.parse(`${nowMinute}:00.000Z`));
-  if (notes.shown.length === 0) return null;
+  if (notes.shown.length === 0 && notes.skills.length === 0) return null;
+  if (notes.shown.length === 0) return <WroteSkills names={notes.skills} />;
   return (
     <div className="mt-4 rounded-lg bg-secondary px-3 py-2.5 dark:bg-input/20" data-saved-notes="">
       <div className="flex items-center justify-between gap-2">
@@ -54,6 +56,34 @@ export function SavedNotesCard(props: {
           <li className="text-xs text-muted-foreground">and {notes.more} more</li>
         ) : null}
       </ul>
+      {notes.skills.length > 0 ? <WroteSkills names={notes.skills} nested /> : null}
+    </div>
+  );
+}
+
+/** The skills a reply wrote for itself; none is used until the owner keeps it on the Skills page. */
+function WroteSkills(props: { readonly names: ReadonlyArray<string>; readonly nested?: boolean }) {
+  return (
+    <div
+      className={
+        props.nested
+          ? "mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5"
+          : "mt-4 flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2.5 dark:bg-input/20"
+      }
+      data-wrote-skills=""
+    >
+      <p className="flex min-w-0 items-center gap-2 text-sm text-foreground">
+        <GraduationCapIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="min-w-0">
+          <span className="font-medium">
+            {props.names.length === 1 ? "Wrote a skill: " : "Wrote skills: "}
+          </span>
+          {props.names.map(skillTitle).join(", ")}
+        </span>
+      </p>
+      <Button size="xs" variant="ghost-muted" render={<Link to="/settings/skills" />}>
+        Review
+      </Button>
     </div>
   );
 }

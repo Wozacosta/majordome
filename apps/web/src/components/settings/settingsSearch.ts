@@ -46,6 +46,7 @@ export type SettingsPath =
   | "/settings/backup"
   | "/settings/connectors"
   | "/settings/private-documents"
+  | "/settings/skills"
   | "/settings/phone"
   | "/settings/always-on";
 
@@ -131,6 +132,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/backup": msg("Back up my brain"),
   "/settings/connectors": msg("Connections"),
   "/settings/private-documents": msg("Private documents"),
+  "/settings/skills": msg("Skills"),
   "/settings/phone": msg("Phone & notifications"),
   "/settings/always-on": msg("Always-on server"),
 };
@@ -292,7 +294,10 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
     paths: ["/settings/projects", "/settings/backup", "/settings/private-documents"],
   },
   // Routines have their own screen, in the sidebar.
-  { heading: msg("The assistant"), paths: ["/settings/providers", "/settings/connectors"] },
+  {
+    heading: msg("The assistant"),
+    paths: ["/settings/providers", "/settings/connectors", "/settings/skills"],
+  },
   {
     heading: msg("Your devices"),
     paths: ["/settings/phone", "/settings/always-on"],
@@ -1267,6 +1272,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "majordome-skills",
+    title: msg("Skills"),
+    to: "/settings/skills",
+    majordomeOnly: true,
+    searchTerms: ["skills learned learn know how procedure steps from now on keep approve teach"],
+  },
+  {
     id: "majordome-phone",
     title: msg("Phone & notifications"),
     to: "/settings/phone",
@@ -1715,6 +1727,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/backup": null,
   "/settings/connectors": null,
   "/settings/private-documents": null,
+  "/settings/skills": null,
   "/settings/phone": null,
   "/settings/always-on": null,
 };

@@ -30,6 +30,7 @@ const NamedChange = Schema.Struct({
     "pair_phone",
     "set_up_always_on_server",
     "turn_on_notifications",
+    "keep_or_remove_skill",
   ]),
 });
 
@@ -162,6 +163,12 @@ export const SETTING_CHANGE_RULES: {
     risk: "owner_only",
     does: "set up or remove an always-on server",
     where: "Settings, then Always-on server",
+  },
+  // A skill steers later runs, so an agent never approves its own or drops one.
+  keep_or_remove_skill: {
+    risk: "owner_only",
+    does: "keep or remove a skill",
+    where: "Settings, then Skills",
   },
   turn_on_notifications: {
     risk: "owner_only",

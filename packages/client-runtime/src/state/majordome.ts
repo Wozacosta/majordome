@@ -289,6 +289,23 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:connect-google-drive-cancel",
       tag: WS_METHODS.majordomeConnectGoogleDriveCancel,
     }),
+    /** Read again on every mount and after each decision; runs add skills that wait. */
+    skills: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:skills",
+      tag: WS_METHODS.majordomeListSkills,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => skillsRevision(environmentId),
+    }),
+    keepSkill: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:keep-skill",
+      tag: WS_METHODS.majordomeKeepSkill,
+      onSettled: ({ environmentId }, registry) => bumpSkills(environmentId, registry),
+    }),
+    removeSkill: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-skill",
+      tag: WS_METHODS.majordomeRemoveSkill,
+      onSettled: ({ environmentId }, registry) => bumpSkills(environmentId, registry),
+    }),
     /** Read again on every mount and after each change; the notes can change under it. */
     todos: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:todos",
@@ -495,6 +512,16 @@ const dailyNotesRevision = Atom.family((environmentId: EnvironmentId) =>
 
 const bumpDailyNotes = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(dailyNotesRevision(environmentId), (value) => value + 1));
+
+const skillsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:skills-revision:${environmentId}`),
+  ),
+);
+
+const bumpSkills = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(skillsRevision(environmentId), (value) => value + 1));
 
 const bumpTodos = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
   Effect.sync(() => registry.update(todosRevision(environmentId), (value) => value + 1));

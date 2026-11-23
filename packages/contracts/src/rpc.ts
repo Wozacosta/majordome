@@ -160,6 +160,13 @@ import {
   MajordomeLinkPeerInput,
 } from "./majordomeBackup.ts";
 import {
+  MajordomeKeepSkillInput,
+  MajordomeRemoveSkillInput,
+  MajordomeSkillsError,
+  MajordomeSkillsInput,
+  MajordomeSkillsResult,
+} from "./majordomeSkills.ts";
+import {
   MajordomeAddTodoInput,
   MajordomeSetTodoDoneInput,
   MajordomeTodosError,
@@ -868,6 +875,9 @@ export const WS_METHODS = {
   majordomeRemoveReadingItem: "majordome.removeReadingItem",
   majordomeRestoreReadingItem: "majordome.restoreReadingItem",
   majordomeSaveReadingSubjects: "majordome.saveReadingSubjects",
+  majordomeListSkills: "majordome.listSkills",
+  majordomeKeepSkill: "majordome.keepSkill",
+  majordomeRemoveSkill: "majordome.removeSkill",
   majordomeListTodos: "majordome.listTodos",
   majordomeSetTodoDone: "majordome.setTodoDone",
   majordomeAddTodo: "majordome.addTodo",
@@ -2770,6 +2780,24 @@ const WsMajordomeSaveReadingSubjectsRpc = Rpc.make(WS_METHODS.majordomeSaveReadi
   error: readingListError,
 });
 
+const skillsError = Schema.Union([MajordomeSkillsError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListSkillsRpc = Rpc.make(WS_METHODS.majordomeListSkills, {
+  payload: MajordomeSkillsInput,
+  success: MajordomeSkillsResult,
+  error: skillsError,
+});
+
+const WsMajordomeKeepSkillRpc = Rpc.make(WS_METHODS.majordomeKeepSkill, {
+  payload: MajordomeKeepSkillInput,
+  error: skillsError,
+});
+
+const WsMajordomeRemoveSkillRpc = Rpc.make(WS_METHODS.majordomeRemoveSkill, {
+  payload: MajordomeRemoveSkillInput,
+  error: skillsError,
+});
+
 const WsMajordomeListTodosRpc = Rpc.make(WS_METHODS.majordomeListTodos, {
   payload: MajordomeTodosInput,
   success: MajordomeTodosResult,
@@ -3292,6 +3320,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeRemoveReadingItemRpc,
   WsMajordomeRestoreReadingItemRpc,
   WsMajordomeSaveReadingSubjectsRpc,
+  WsMajordomeListSkillsRpc,
+  WsMajordomeKeepSkillRpc,
+  WsMajordomeRemoveSkillRpc,
   WsMajordomeListTodosRpc,
   WsMajordomeSetTodoDoneRpc,
   WsMajordomeAddTodoRpc,

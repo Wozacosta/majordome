@@ -143,6 +143,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeRemoveReadingItem]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRestoreReadingItem]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSaveReadingSubjects]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeKeepSkill]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeRemoveSkill]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetTodoDone]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeAddTodo]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSaveDailyNote]: AuthOrchestrationOperateScope,

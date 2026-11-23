@@ -21,6 +21,7 @@ import { forkParked } from "../serverActivation.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { holdBackSkillChanges } from "./vaultSkills.ts";
 
 export const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost" };
 /** Git trailer that links a run's commit back to its thread. */
@@ -62,6 +63,7 @@ export const commitVaultRun = Effect.fn("majordome.commitVaultRun")(function* (i
       },
     });
 
+  yield* holdBackSkillChanges(input.cwd);
   yield* run(["add", "--all"]);
   const staged = yield* run(["diff", "--cached", "--quiet"], true);
   if (staged.exitCode === 0) return false;

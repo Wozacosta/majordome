@@ -13,6 +13,22 @@ Not released yet.
   now has a "Claude API key" field. Paste a key from the Claude Console and Majordome uses it:
   every message is then billed by use, and your connectors are left out. Remove the key to go
   back to your plan.
+- **Your assistant writes skills for itself.** Tell it how you want something done "from now on"
+  and it writes the steps down as a skill, so the next conversation does it right the first time.
+  The nightly "Tidy my memory" routine does the same for ways of doing things it finds in your
+  notes. Nothing it writes is used until you say yes: Settings, then Skills lists what waits, with
+  the exact steps to read, and Keep or Delete. "Stop using" on a skill moves it back to the
+  waiting list. A reply that wrote a skill says so under it, with a Review button.
+
+**Try this**
+
+- In a chat, say: "From now on, when I send you a receipt, rename it with the date and the shop,
+  put it in admin/receipts and add a line to admin/receipts/log.md. Remember how to do this."
+  The reply should end with a "Wrote a skill" line and a Review button.
+- Open Settings, then Skills: the new skill is under "Waiting for your yes". Read it, then Keep
+  it. It moves to "In use".
+- Choose "Stop using" on it: it goes back to the waiting list, where Keep brings it back and
+  Delete removes it.
 
 ## 0.10.18
 

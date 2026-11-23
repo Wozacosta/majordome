@@ -30,6 +30,7 @@ import {
   MicIcon,
   PaletteIcon,
   FileLockIcon,
+  GraduationCapIcon,
   PlugIcon,
   SearchIcon,
   ServerIcon,
@@ -126,6 +127,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/backup": CloudUploadIcon,
   "/settings/connectors": PlugIcon,
   "/settings/private-documents": FileLockIcon,
+  "/settings/skills": GraduationCapIcon,
   "/settings/phone": SmartphoneIcon,
   "/settings/always-on": ServerIcon,
 };

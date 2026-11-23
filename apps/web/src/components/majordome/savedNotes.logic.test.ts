@@ -4,7 +4,15 @@ import { savedNotes } from "./savedNotes.logic";
 
 it("names changed notes in plain words and leaves out Majordome's own files", () => {
   const result = savedNotes(
-    ["personal/fitness/training-log.md", ".majordome/state.json", "photo.png", "a.md", "b.md"],
+    [
+      "personal/fitness/training-log.md",
+      ".majordome/state.json",
+      ".agents/proposed-skills/file-receipts/SKILL.md",
+      ".agents/proposed-skills/file-receipts/example.md",
+      "photo.png",
+      "a.md",
+      "b.md",
+    ],
     Date.UTC(2026, 10, 17),
     3,
   );
@@ -19,4 +27,5 @@ it("names changed notes in plain words and leaves out Majordome's own files", ()
     { path: "a.md", title: "a", folder: null, openable: true },
   ]);
   expect(result.more).toBe(1);
+  expect(result.skills).toEqual(["file-receipts"]);
 });

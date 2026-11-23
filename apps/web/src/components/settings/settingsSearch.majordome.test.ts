@@ -28,7 +28,11 @@ it("opens on Status, groups pages by what is being set up, and folds T3's plumbi
       collapsible: false,
       labels: ["Notes folders", "Back up my brain", "Private documents"],
     },
-    { heading: "The assistant", collapsible: false, labels: ["AI accounts", "Connections"] },
+    {
+      heading: "The assistant",
+      collapsible: false,
+      labels: ["AI accounts", "Connections", "Skills"],
+    },
     {
       heading: "Your devices",
       collapsible: false,

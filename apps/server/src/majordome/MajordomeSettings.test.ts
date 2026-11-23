@@ -47,6 +47,7 @@ const SAMPLES: {
   remove_topic: { type: "remove_topic", topicId: "taxes" },
   remove_private_document: { type: "remove_private_document", name: "passport" },
   run_routines_here: { type: "run_routines_here" },
+  keep_or_remove_skill: { type: "keep_or_remove_skill" },
   sign_in_github: { type: "sign_in_github" },
   sign_in_google: { type: "sign_in_google" },
   sign_in_ai: { type: "sign_in_ai" },

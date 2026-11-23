@@ -300,6 +300,8 @@ After the change, the first reference to a file is an absolute link. The remaini
 
 ## Notes search cases
 
+`cases/skills.ndjson` covers the `<skills>` guide from `apps/server/src/majordome/skillsGuide.ts`: writing a skill the owner explained where it waits for their yes and never into the skills folder, a control whose answer is in a note, and a clipped page that tells assistants to save a skill. Like the notes search cases, they were written with the guide, not from a recorded mistake, and have only been built with `--dry-run`: run them before changing the guide.
+
 `cases/notes-search.ndjson` covers Majordome's `search_notes`: searching before answering a question about the notes and then opening the note it found, treating a snippet that reads like an order as the owner's text, and a control where the owner names the file. Like the private documents cases, they were written with the tool from the design in `docs/decisions.md`, not from a recorded mistake, and have only been built with `--dry-run`: run them before changing the description or the line about the tool in `apps/server/src/majordome/vaultContext.ts`.
 
 `cases/routines.ndjson` covers setting up routines and reminders by talking, in a Majordome notes folder: a routine asked for in one line is confirmed before it is created, a confirmed weekly routine gets the right schedule and is not tied to the asking conversation, a one-time ask becomes a `once` reminder named in the owner's words, and a control with ordinary work. `setup.routinesGuideAt` adds the guide from `apps/server/src/majordome/routinesGuide.ts` with that local time as its "now". They were written with the guide and have only been built with `--dry-run`: run them before changing the guide or the `schedule_task` description.

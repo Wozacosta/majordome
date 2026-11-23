@@ -46,6 +46,17 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Larger files still stay in your file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
   Edits to `CLAUDE.md` wait for approval.
+- **The assistant writes skills for itself, and the owner keeps them** (2026-11-22, after Hermes
+  Agent). A skill is a `SKILL.md` in the vault's `.agents/skills/`, so it travels with the brain
+  and every provider reads it. A conversation with the owner, and nightly dreaming, may write one
+  when a way of doing something will come back; other unattended runs are not told to. A skill
+  steers every later run, including the unwatched ones, so a hostile page or email must not be
+  able to plant one: what the assistant writes goes to `.agents/proposed-skills/` and is used
+  only once the owner keeps it in Settings, then Skills. The rule does not rest on the prompt:
+  when a run ends, anything it changed under the skills folder is moved to the proposals and the
+  folder is put back (`holdBackSkillChanges`). Proposals are files, not approval cards, because a
+  card dies with its run and a nightly run cannot wait for an answer. "Stop using" moves a skill
+  back to the proposals, so there is a way back; an agent can neither keep nor remove one.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
   nicotine", "Fitness log"), not chats. A topic is one continuing conversation tied to one folder
   of the vault (an existing one or a new one); each session in it starts with that folder's notes.
