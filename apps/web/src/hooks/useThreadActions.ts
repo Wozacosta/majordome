@@ -18,6 +18,8 @@ import {
   sessionGrantsScope,
 } from "@t3tools/contracts";
 import { resolveWorktreeCleanup } from "@t3tools/shared/projectSettings";
+import { DONE_BLOCKER_WORDS, doneBlocker } from "../components/majordome/chats.logic";
+import { isMajordome } from "../env";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
@@ -858,6 +860,14 @@ export function useThreadActions() {
     });
     if (result._tag !== "Success") {
       action.finish();
+      // Majordome says why in the owner's words; the server's text names the chat by its id.
+      if (isMajordome && result._tag === "Failure") {
+        const failure = squashAtomCommandFailure(result);
+        const blocker = doneBlocker(failure instanceof Error ? failure.message : String(failure));
+        if (blocker !== null) {
+          return AsyncResult.failure(Cause.fail(new Error(DONE_BLOCKER_WORDS[blocker])));
+        }
+      }
       return result;
     }
     if (wokeAt !== null) {

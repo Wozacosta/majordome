@@ -7,6 +7,23 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Done chats leave the sidebar.** A topic's list in the sidebar shows only the chats still
+  going; the "Show done" row is gone. Done chats are at the bottom of "Other chats" in the
+  topic's side panel, under "Done", each with a "Bring back" button. The Chats page still lists
+  them all.
+- **An empty chat is not listed, and not made twice.** A chat opened with + or Cmd+T shows in the
+  tabs and the sidebar only while you are in it, until you write in it. Pressing + again opens
+  that same empty chat instead of adding another "New chat".
+
+**Fixed**
+
+- **Closing a chat that is still working asks first.** The X on a topic's tab used to fail with
+  an error naming the chat by a code. It now asks "Stop it and mark it as done?" and does both.
+  Elsewhere, a chat that cannot be marked as done says why in plain words: it is still working,
+  it is waiting for your answer, or it has a message waiting to be sent.
+
 ## 0.10.20
 
 **Fixed**

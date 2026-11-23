@@ -14,6 +14,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { isCommandPaletteOpen } from "../../commandPaletteBus";
+import { requestConfirmDialog } from "../../confirmDialog";
 import { isElectron } from "../../env";
 import { useThreadActions } from "../../hooks/useThreadActions";
 import { cn } from "../../lib/utils";
@@ -21,13 +22,15 @@ import { SETTLE_WORDS } from "../../settleWording";
 import { registerCommands } from "../../shortcuts/dispatcher";
 import { useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
+import { threadEnvironment } from "../../state/threads";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
-import { chatStatusWords } from "./chats.logic";
+import { chatStatusWords, DONE_BLOCKER_WORDS } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { stepAround, topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
@@ -111,6 +114,7 @@ function TopicTabStrip(props: {
   );
   const openTopic = useOpenTopic({ environmentId, projectId });
   const { settleThread } = useThreadActions();
+  const interruptTurn = useAtomCommand(threadEnvironment.interruptTurn, { reportFailure: false });
   const [starting, setStarting] = useState(false);
   const startChat = () => {
     if (starting) return;
@@ -176,14 +180,34 @@ function TopicTabStrip(props: {
   };
 
   const close = async (chat: (typeof tabs.chats)[number]) => {
-    const result = await settleThread(scopeThreadRef(chat.environmentId, chat.threadId));
+    const ref = scopeThreadRef(chat.environmentId, chat.threadId);
+    const messageOf = (failed: Parameters<typeof squashAtomCommandFailure>[0]) => {
+      const error = squashAtomCommandFailure(failed);
+      return error instanceof Error ? error.message : String(error);
+    };
+    let result = await settleThread(ref);
+    if (result._tag === "Failure" && messageOf(result) === DONE_BLOCKER_WORDS.working) {
+      const question = `"${chat.title}" is still working. Stop it and mark it as done?`;
+      const labels = { confirm: "Stop and mark as done", cancel: "Keep it going" };
+      const agreed = (await requestConfirmDialog(question, { labels })) ?? window.confirm(question);
+      if (!agreed) return;
+      await interruptTurn({
+        environmentId: chat.environmentId,
+        input: { threadId: chat.threadId },
+      });
+      // Stopping takes a moment to reach the chat's state, so the mark is tried until it holds.
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        result = await settleThread(ref);
+        if (result._tag !== "Failure" || messageOf(result) !== DONE_BLOCKER_WORDS.working) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
+    }
     if (result._tag === "Failure") {
       if (isAtomCommandInterrupted(result)) return;
-      const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
         title: SETTLE_WORDS.settleFailed,
-        description: error instanceof Error ? error.message : String(error),
+        description: messageOf(result),
       });
       return;
     }

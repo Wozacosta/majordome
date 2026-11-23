@@ -49,7 +49,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
-import { chatStatusWords, chatTitle } from "./chats.logic";
+import { chatStatusWords, chatTitle, isEmptyChat } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import {
@@ -421,7 +421,8 @@ function VaultTopics({
                             {
                               ...chat,
                               title: shell.title,
-                              done: shell.settledOverride === "settled",
+                              // Done or never written in: found again in the topic's side panel.
+                              away: shell.settledOverride === "settled" || isEmptyChat(shell),
                             },
                           ];
                     })}
@@ -496,8 +497,8 @@ function TopicRow(props: {
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId;
     readonly title: string;
-    /** Marked as done: folded away until asked for. */
-    readonly done: boolean;
+    /** Marked as done, or still empty: listed only while it is the chat being read. */
+    readonly away: boolean;
   }>;
   /** Whether a chat listed under the topic is working, needs the owner, or has a reply unread. */
   readonly chatStatus: (chat: {
@@ -555,9 +556,11 @@ function TopicRow(props: {
     NO_TOPICS,
     COLLAPSED_TOPICS,
   );
-  const hasNested = props.routines.length + props.sideChats.length + otherChats.length > 0;
+  const sideChats = props.sideChats.filter(
+    (chat) => !chat.away || scopedThreadKey(chat) === props.routeThreadKey,
+  );
+  const hasNested = props.routines.length + sideChats.length + otherChats.length > 0;
   const collapsed = collapsedTopics.includes(topic.id);
-  const [showDone, setShowDone] = useState(false);
   const chatDot = (chat: {
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId;
@@ -570,8 +573,6 @@ function TopicRow(props: {
       </>
     );
   };
-  const doneCount = props.sideChats.filter((chat) => chat.done).length;
-  const sideChats = showDone ? props.sideChats : props.sideChats.filter((chat) => !chat.done);
   return (
     <li
       data-topic-id={topic.id}
@@ -708,18 +709,6 @@ function TopicRow(props: {
               </Link>
             </li>
           ))}
-          {doneCount > 0 ? (
-            <li>
-              <button
-                type="button"
-                aria-expanded={showDone}
-                onClick={() => setShowDone((shown) => !shown)}
-                className={QUIET_ROW_CLASS}
-              >
-                {showDone ? "Hide done" : `Show ${doneCount} done`}
-              </button>
-            </li>
-          ) : null}
           {otherChats.map((chat) => (
             <li key={`${chat.environmentId}:${chat.threadId}`}>
               <Link

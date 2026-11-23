@@ -6,11 +6,13 @@ import {
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 
+import { readThreadShell } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
+import { isEmptyChat } from "./chats.logic";
 import { conversationHomeRef } from "./conversationHome";
 import { notePendingSideChat } from "./pendingSideChats";
 import type { MajordomeVault, VaultTopic } from "./topics.logic";
@@ -52,6 +54,17 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
     if (topic.threadId !== null && !sideChat) {
       goToThread(topic.threadEnvironmentId, topic.threadId);
       return true;
+    }
+    if (sideChat) {
+      // One chat nobody wrote in is enough: a second "New chat" opens it rather than adding another.
+      const empty = (topic.sideChats ?? []).find((chat) => {
+        const shell = readThreadShell(scopeThreadRef(chat.environmentId, chat.threadId));
+        return shell != null && shell.settledOverride !== "settled" && isEmptyChat(shell);
+      });
+      if (empty !== undefined) {
+        goToThread(empty.environmentId, empty.threadId);
+        return true;
+      }
     }
     const home = conversationHomeRef(scopeProjectRef(vault.environmentId, vault.projectId));
     if (home === null) return false;

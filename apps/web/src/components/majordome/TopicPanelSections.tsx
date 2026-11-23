@@ -28,7 +28,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useThreadActions } from "../../hooks/useThreadActions";
 import { cn } from "../../lib/utils";
+import { SETTLE_WORDS } from "../../settleWording";
 import { useProject, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
 import { projectEnvironment } from "../../state/projects";
@@ -336,6 +338,7 @@ function TopicChats({
   const { machineOf } = useMachineNames();
   const canStart = useAtomValue(majordomeEnvironment.openTopic.permissionAtom(environmentId));
   const openTopic = useOpenTopic({ environmentId, projectId });
+  const { unsettleThread } = useThreadActions();
   const [showDone, setShowDone] = useState(false);
   const [starting, setStarting] = useState(false);
   const shellByKey = new Map(
@@ -350,11 +353,25 @@ function TopicChats({
   if (!canStart && chats.open.length + chats.done.length + chats.elsewhere.length === 0) {
     return null;
   }
+  const bringBack = async (chat: {
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+  }) => {
+    const result = await unsettleThread(scopeThreadRef(chat.environmentId, chat.threadId));
+    if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
+    const error = squashAtomCommandFailure(result);
+    toastManager.add({
+      type: "error",
+      title: SETTLE_WORDS.unsettleFailed,
+      description: error instanceof Error ? error.message : String(error),
+    });
+  };
   const chatRow = (
     chat: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId },
     title: string,
+    Row: "li" | "div" = "li",
   ) => (
-    <li key={scopedThreadKey(chat)} className="flex min-w-0">
+    <Row key={scopedThreadKey(chat)} className="flex min-w-0 flex-1">
       <ThreadDetailsControl
         size="xs"
         variant="ghost"
@@ -371,7 +388,7 @@ function TopicChats({
         <MessageCircleIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
         <span className="min-w-0 flex-1 truncate">{title}</span>
       </ThreadDetailsControl>
-    </li>
+    </Row>
   );
   return (
     <ThreadDetailsSection
@@ -385,24 +402,10 @@ function TopicChats({
           aria-label={`Other chats in ${topic.title}`}
         >
           {chats.open.map((chat) => chatRow(chat, chat.title))}
-          {showDone ? chats.done.map((chat) => chatRow(chat, chat.title)) : null}
           {chats.elsewhere.map((chat) =>
             chatRow(chat, `Chat ${onMachine(machineOf(chat.environmentId))}`),
           )}
         </ul>
-        {chats.done.length > 0 ? (
-          <ThreadDetailsControl
-            size="xs"
-            variant="ghost"
-            part="row"
-            panel
-            tone="muted"
-            aria-expanded={showDone}
-            onClick={() => setShowDone((shown) => !shown)}
-          >
-            {showDone ? "Hide done" : `Show ${chats.done.length} done`}
-          </ThreadDetailsControl>
-        ) : null}
         {canStart ? (
           <ThreadDetailsControl
             size="xs"
@@ -419,6 +422,36 @@ function TopicChats({
             <MessageCirclePlusIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
             <span className="min-w-0 flex-1 truncate">New chat about this</span>
           </ThreadDetailsControl>
+        ) : null}
+        {chats.done.length > 0 ? (
+          <ThreadDetailsControl
+            size="xs"
+            variant="ghost"
+            part="row"
+            panel
+            tone="muted"
+            aria-expanded={showDone}
+            onClick={() => setShowDone((shown) => !shown)}
+          >
+            {showDone ? "Hide done chats" : `Done (${chats.done.length})`}
+          </ThreadDetailsControl>
+        ) : null}
+        {showDone ? (
+          <ul
+            className="m-0 flex list-none flex-col p-0"
+            aria-label={`Done chats in ${topic.title}`}
+          >
+            {chats.done.map((chat) => (
+              <li key={scopedThreadKey(chat)} className="flex min-w-0 items-center">
+                <div className="flex min-w-0 flex-1">{chatRow(chat, chat.title, "div")}</div>
+                <span className="mr-1.5 flex shrink-0">
+                  <Button size="xs" variant="ghost-muted" onClick={() => void bringBack(chat)}>
+                    {SETTLE_WORDS.unsettleThread}
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
     </ThreadDetailsSection>

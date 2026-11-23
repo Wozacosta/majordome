@@ -10,7 +10,7 @@ import type {
 import { remainingPercent } from "@t3tools/shared/usageLimits";
 
 import { isMarkdownPreviewFile } from "../files/filePreviewMode";
-import { chatTitle } from "./chats.logic";
+import { chatTitle, isEmptyChat } from "./chats.logic";
 import { isHiddenVaultPath } from "./notes.logic";
 import { plainDateTime, type RoutineItem, routineScheduleWords } from "./routines.logic";
 import { todoKey } from "./todos.logic";
@@ -253,9 +253,14 @@ export function topicPanelChats(input: {
   readonly own: VaultTopic;
   readonly merged: VaultTopic | undefined;
   readonly current: ChatRef;
-  readonly shellOf: (
-    chat: ChatRef,
-  ) => { readonly title: string; readonly settledOverride: string | null } | undefined;
+  readonly shellOf: (chat: ChatRef) =>
+    | {
+        readonly title: string;
+        readonly settledOverride: string | null;
+        readonly latestUserMessageAt?: string | null;
+        readonly latestRun?: unknown;
+      }
+    | undefined;
 }): {
   readonly open: ReadonlyArray<TopicPanelChat>;
   readonly done: ReadonlyArray<TopicPanelChat>;
@@ -276,6 +281,8 @@ export function topicPanelChats(input: {
   for (const chat of topic.sideChats ?? []) {
     const shell = input.shellOf(chat);
     if (shell === undefined || !fresh(chat)) continue;
+    // A chat opened and never written in is not worth a row; "New chat" opens it again.
+    if (isEmptyChat(shell)) continue;
     const row = {
       environmentId: chat.environmentId,
       threadId: chat.threadId,
@@ -301,9 +308,14 @@ export function topicTabs(input: {
   readonly own: VaultTopic;
   readonly merged: VaultTopic | undefined;
   readonly current: ChatRef;
-  readonly shellOf: (
-    chat: ChatRef,
-  ) => { readonly title: string; readonly settledOverride: string | null } | undefined;
+  readonly shellOf: (chat: ChatRef) =>
+    | {
+        readonly title: string;
+        readonly settledOverride: string | null;
+        readonly latestUserMessageAt?: string | null;
+        readonly latestRun?: unknown;
+      }
+    | undefined;
 }): {
   readonly main: ChatRef | null;
   readonly chats: ReadonlyArray<TopicPanelChat & { readonly done: boolean }>;
@@ -332,7 +344,7 @@ export function topicTabs(input: {
     if (shell === undefined || seen.has(key)) return [];
     seen.add(key);
     const done = shell.settledOverride === "settled";
-    if (done && key !== currentKey) return [];
+    if ((done || isEmptyChat(shell)) && key !== currentKey) return [];
     return [
       {
         environmentId: chat.environmentId,
