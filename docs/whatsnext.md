@@ -155,6 +155,16 @@ so it is not looked up twice:
     `user_data` and `metadata: yes`, labels to find it again, a firewall per server. About €6
     for 2 GB by the price index above; its own price page refused to load. Not found: what a
     stopped server costs, and the default limit on servers per account.
+- **How OpenBot hosts (2026-11-23, from its public `docs/hosted-servers.md`).** It answers the
+  open questions on sleeping, in production. One machine per account: a Leaseweb server taken
+  from a pool kept ready (Netherlands and US), or a boat.dev sandbox when the pool is empty,
+  moved to a pooled server later. A Cloudflare Worker with a database creates, stops and wakes
+  them and takes payment. The server reports to it when it is in use and when its next routine
+  runs; the Worker stops a server after 15 minutes without use, wakes it up to 10 minutes
+  before a routine, and the app shows "asleep" and wakes it on the next click. So the server
+  does not stop itself: the service that can also start it decides. Its code is licensed for
+  non-commercial use only: the design can be learned from, the code cannot be copied. Leaseweb
+  is Dutch, so a European-owned candidate not in the list above.
 - **GDPR.** Storing in Europe is not required, but it is the simplest position. The larger
   transfer is the AI: notes go to the model provider. Before a paying customer: a privacy
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
@@ -204,8 +214,8 @@ neither. What creating one for a customer needs:
 - **Something that says who may ask**, or anyone can run up the bill: an invite code first,
   payment later.
 - **A start-up script without Tailscale** (`cloudInitFor` in `serverMovePlan.ts` and
-  `deploy/docker-compose.yml` both assume it), carrying the connector token, the setup secret
-  and the customer's AI key.
+  `deploy/docker-compose.yml` both assume it), carrying the connector token and the setup
+  secret. No AI credential goes in it: the customer signs in from the app.
 - **The app's side:** a "Majordome hosts it" choice that sends the invite code, then pairs with
   the setup secret and copies the notes, as the move does today from the `pair` step on.
 - **One capped AI credential per customer.** Checked against Anthropic's docs on 2026-11-23:
