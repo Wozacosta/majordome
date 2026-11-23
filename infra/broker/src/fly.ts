@@ -92,12 +92,16 @@ export function makeFlyHost(config: {
     },
     updateServer: async (name) => {
       const machines = (await call("GET", `/apps/${name}/machines`)) as
-        | ReadonlyArray<{ readonly id?: string; readonly config?: unknown }>
+        | ReadonlyArray<{ readonly id?: string; readonly config?: Record<string, unknown> }>
         | undefined;
       for (const machine of machines ?? []) {
         if (typeof machine.id !== "string" || machine.config === undefined) continue;
-        // The same config: Fly looks the image's tag up again and restarts on what it finds.
-        await call("POST", `/apps/${name}/machines/${machine.id}`, { config: machine.config });
+        // The image by its tag: Fly looks the tag up again and restarts on what it finds. A
+        // machine updated with `fly machine update` has its image pinned to a digest, which
+        // would be kept if the config were sent back as it is.
+        await call("POST", `/apps/${name}/machines/${machine.id}`, {
+          config: { ...machine.config, image: config.image },
+        });
       }
     },
     deleteServer: async (name) => {
