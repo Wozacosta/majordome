@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.34
+
 **New**
 
 - **The phone code can open the Majordome app.** In Settings > Phone & notifications, the code
