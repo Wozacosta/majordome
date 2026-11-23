@@ -76,7 +76,7 @@ And when you want them:
 
 |                                                           |                                                                    |
 | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| **[On your phone](docs/user/phone-and-notifications.md)** | The same app on your Home Screen, over a private link.             |
+| **[On your phone](docs/user/phone-and-notifications.md)** | The same app on your Home Screen. Sign in, with no code to scan.   |
 | **[Always on](docs/user/always-on-server.md)**            | A small server of your own, so routines run while your Mac sleeps. |
 | **[Private documents](docs/user/private-documents.md)**   | Encrypted. Opened only after your yes, each time.                  |
 | **[Memory](docs/user/memory.md)**                         | A memory note it reads at the start of every conversation.         |
@@ -112,6 +112,14 @@ Majordome runs on a Mac.
 3. **Sign in to Claude or ChatGPT** on the welcome screen. It installs what it needs.
 4. **Choose your notes:** start new ones, or point it at a folder you already have. Majordome adds
    a few files of its own and changes nothing that is there.
+
+Then, when you want them, each is one page in Settings:
+
+- **Your account.** Sign in with an email or Google, and your computer joins your account.
+- **Your phone.** Open [majord.me/open](https://majord.me/open) on it, sign in with the same
+  account, press Open.
+- **Back up my brain.** Pick a folder such as iCloud Drive and a passphrase. A copy is made every
+  night.
 
 Work in progress, updated often. Something broken?
 [Report a problem](https://github.com/Wozacosta/majordome/issues).
