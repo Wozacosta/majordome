@@ -270,13 +270,24 @@ fly machine run ghcr.io/wozacosta/majordome:latest --app <app> --region cdg \
 fly ips allocate-v4 --shared --app <app> && fly ips allocate-v6 --app <app>
 ```
 
-1. **Passed: Majordome starts and answers over HTTPS.** No start-up script, no Tailscale, no
-   tunnel. It was listening about 4 seconds after the machine started and printed its pairing
+1. **Passed: Majordome starts, answers over HTTPS and pairs.** No start-up script, no Tailscale,
+   no tunnel. It was listening about 4 seconds after the machine started and printed its pairing
    link with the `fly.dev` address. The volume was writable by the image's `node` user with
-   nothing done. 605 MB of 1,970 MB in use at rest. Pairing from the app: not done yet.
-2. **Not done yet:** Claude signs in from the app and answers.
+   nothing done. 605 MB of 1,970 MB in use at rest. The owner paired from a browser.
+2. **Passed: Claude signed in from the welcome page and answered.** The sign-in is kept on the
+   volume (`/data/.claude`).
 3. **Not done yet:** a browser tab opens from the phone on a chat that runs there. A good sign:
    the log has no "this host blocks the sandbox" warning, which the OVH server prints.
+
+So Fly is the host. What the welcome page got wrong on a server, seen in that run:
+
+- Claude's sign-in ran in a hidden terminal and said a page had opened in the browser. Fixed
+  after 0.10.27: a server shows a link to open and a box for the code.
+- "A new folder called Majordome in your home folder": a hosted customer has no home folder
+  there. It should say the notes are kept on their Majordome server.
+- Codex, "Use a different AI", "Choose folder" and restoring from a folder all assume the
+  owner's own computer. A first hosted version shows Claude and "Start new notes" only.
+- The start-up log warns that the address "uses plain HTTP" although Fly serves it over HTTPS.
 
 If 1 and 2 pass, build on Fly: the service that creates a machine on request (in the address
 broker, behind an invite code), and the "Majordome hosts it" choice in the app.
