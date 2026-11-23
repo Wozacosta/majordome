@@ -19,9 +19,45 @@ export interface TodayStore {
   } | null;
   readonly note: { readonly date: string; readonly content: string | null } | null;
   readonly captures: ReadonlyArray<NoteCapture>;
+  /** The topics as the server last listed them. */
+  readonly topics: ReadonlyArray<TopicRow>;
 }
 
-export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [] };
+/** One topic as the phone lists it: a conversation with its latest message. */
+export interface TopicRow {
+  readonly id: string;
+  readonly title: string;
+  /** Null until the topic's conversation has been opened on that server. */
+  readonly threadId: string | null;
+  readonly preview: string | null;
+}
+
+export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [], topics: [] };
+
+/** The topics still going, each with a line saying where its conversation is. */
+export function topicRows(
+  topics: ReadonlyArray<{
+    readonly id: string;
+    readonly title: string;
+    readonly finishedAt?: string | undefined;
+    readonly threadId: string | null;
+    readonly lastMessagePreview?:
+      | { readonly author: "you" | "agent"; readonly text: string }
+      | null
+      | undefined;
+    readonly standing?: { readonly text: string } | null | undefined;
+  }>,
+): ReadonlyArray<TopicRow> {
+  return topics
+    .filter((topic) => topic.finishedAt === undefined)
+    .map((topic) => {
+      const last = topic.lastMessagePreview;
+      const preview = last
+        ? `${last.author === "you" ? "You: " : ""}${last.text}`
+        : (topic.standing?.text.split("\n")[0] ?? null);
+      return { id: topic.id, title: topic.title, threadId: topic.threadId, preview };
+    });
+}
 
 const two = (value: number) => String(value).padStart(2, "0");
 

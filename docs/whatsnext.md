@@ -332,9 +332,17 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   stay `t3code*`: pairing codes and link handling key on them, and they are never shown. If T3
   Code's own app is on the same phone, a `t3code://` link opened from outside may go to either.
 - **The name and wording are swapped as Metro bundles**, like the web build:
-  `apps/mobile/majordome/metroTransformer.cjs` applies the web tables in `apps/web/vite/wording`
-  plus the phone's own in `apps/mobile/majordome/wording.mts`. The shared pure code moved to
-  `apps/web/vite/majordomeReword.ts`. Tests read the source unswapped.
+  `apps/mobile/majordome/metroTransformer.cjs` applies the phone's own table,
+  `apps/mobile/majordome/wording.mts`, and the name. It does not apply the web tables: they hold
+  words like "Thread" that are route names in the phone app, and a swapped route name stopped
+  chats from opening (2026-11-23). The shared pure code is `apps/web/vite/majordomeReword.ts`.
+  The wording files are part of Metro's cache version, so an edited table is never served stale.
+  Tests read the source unswapped.
+- **Chats lists the topics first**, as conversations (`MajordomeTopicsSection`, in the chat
+  list's header): name, latest message, when it last moved. A topic's own conversation is left
+  out of the list below, which is headed "Other chats". The topics are kept on the phone too.
+- **The iPhone icon is the PNG.** Upstream's Icon Composer projects (`assets/*/app-icon.icon`)
+  still draw upstream's logo, so the identity step points `ios.icon` at the cloche PNG.
 - **Today sits in upstream's one-page Usage tab slot** (`MajordomeTodayScreen`), so the tab key
   is still `usage`. Upstream's tests of the tabs mock `src/majordome/env` with `isMajordome`
   false. The iPhone tab bar's label and icon are in Swift
@@ -348,5 +356,5 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   and add a throwaway folder holding `.majordome/config.json`.
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
   in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
-  about coding agents; decide whether to ship them), and the remaining coding words ("New
-  thread", "Settled", the two filters on Chats).
+  about coding agents; decide whether to ship them), the remaining coding words ("New thread",
+  "Settled"), and the terminal, git and files buttons on a chat's header.

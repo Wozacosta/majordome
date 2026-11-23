@@ -1,6 +1,5 @@
 // Majordome is upstream's phone app under another name. Upstream's source and catalogs keep
 // saying "T3 Code"; this swaps the name and wording as Metro bundles, like the web build does.
-const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -44,13 +43,4 @@ exports.transform = async (config, projectRoot, filename, data, options) => {
   const base = require(config.majordomeBaseTransformerPath);
   const file = path.resolve(projectRoot, filename).split(path.sep).join("/");
   return base.transform(config, projectRoot, filename, await swapped(file, data), options);
-};
-
-// Metro hashes this file alone; the tables decide the output too.
-exports.getCacheKey = (config) => {
-  const hash = crypto.createHash("sha1");
-  for (const file of [rewordModule, mobileWording]) hash.update(fs.readFileSync(file));
-  const base = require(config.majordomeBaseTransformerPath);
-  hash.update(base.getCacheKey?.(config) ?? "");
-  return hash.digest("hex");
 };

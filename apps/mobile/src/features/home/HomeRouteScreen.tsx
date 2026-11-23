@@ -40,6 +40,8 @@ import { useSelectWorkspaceTab } from "../layout/workspace/useSelectWorkspaceTab
 import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
 import { WorkspaceListEmptyDetail } from "../layout/workspace/WorkspaceListEmptyDetail";
 import { WorkspaceListHeader } from "../layout/workspace/WorkspaceListHeader";
+import { isMajordome } from "../../majordome/env";
+import { useTopicThreadIds } from "../../majordome/TopicsSection";
 import { buildHomeListFilterMenuItems, homeListFilterEnvironments } from "./home-list-filter-menu";
 
 export function HomeRouteScreen() {
@@ -65,6 +67,13 @@ export function HomeRouteScreen() {
     Platform.OS === "android"
       ? primarySidebarSearchQuery
       : (workspace?.state.tabs.threads.query ?? localSearchQuery);
+  // Majordome lists each topic's conversation above the list, so the list leaves them out.
+  // A search looks through all of them.
+  const topicThreadIds = useTopicThreadIds();
+  const listedThreads =
+    isMajordome && searchQuery === ""
+      ? threads.filter((thread) => !topicThreadIds.has(String(thread.id)))
+      : threads;
   const setSearchQuery = (query: string) => {
     if (Platform.OS === "android") setPrimarySidebarSearchQuery(query);
     else if (workspace) workspace.dispatch({ type: "query", query, tab: "threads" });
@@ -231,7 +240,7 @@ export function HomeRouteScreen() {
           searchQuery={searchQuery}
           selectedEnvironmentId={selectedEnvironmentId}
           selectedProjectKey={selectedProjectKey}
-          threads={threads}
+          threads={listedThreads}
           visible={visible}
         />
         <ThreadUndoNotice visible={visible} />

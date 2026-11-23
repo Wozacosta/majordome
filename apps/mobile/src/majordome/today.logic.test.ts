@@ -1,6 +1,6 @@
 import { expect, it } from "vite-plus/test";
 
-import { noteLines, toggleTodo } from "./today.logic";
+import { noteLines, toggleTodo, topicRows } from "./today.logic";
 
 const NOTE = [
   "---",
@@ -30,4 +30,27 @@ it("ticks and unticks one to-do and leaves every other line alone", () => {
   expect(toggleTodo(ticked, 5)).toBe(NOTE);
   expect(toggleTodo(NOTE, 6).split("\n")[6]).toBe("  - [ ] Find the IBAN");
   expect(toggleTodo(NOTE, 3)).toBe(NOTE);
+});
+
+it("lists the topics still going with their latest message, else where they stand", () => {
+  expect(
+    topicRows([
+      {
+        id: "a",
+        title: "Fitness",
+        threadId: "t1",
+        lastMessagePreview: { author: "you", text: "ran 5k" },
+      },
+      {
+        id: "b",
+        title: "Taxes",
+        threadId: null,
+        standing: { text: "Waiting on the form\nThen file" },
+      },
+      { id: "c", title: "Old", threadId: "t3", finishedAt: "2026-01-01" },
+    ]),
+  ).toEqual([
+    { id: "a", title: "Fitness", threadId: "t1", preview: "You: ran 5k" },
+    { id: "b", title: "Taxes", threadId: null, preview: "Waiting on the form" },
+  ]);
 });

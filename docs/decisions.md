@@ -316,7 +316,7 @@ takes over.
      Today; offline capture of a note or a request, shown as waiting to send.
    - **Where the first cut stands (2026-11-23):** it builds and runs in the iPhone simulator as
      Majordome (identifier `io.github.wozacosta.majordome.ios`, the owner's Apple team), pairs,
-     lists chats, and opens on Today: the day's note, to-dos that can be ticked, and a box that
+     lists the topics as conversations above the other chats, and opens on Today: the day's note, to-dos that can be ticked, and a box that
      adds a line to the note. A line typed with no connection is kept on the phone, shown as
      waiting, and sent when the server answers; the app reopens offline on the note it last saw.
      Requests typed offline use upstream's own message outbox. Not done: a TestFlight build, a

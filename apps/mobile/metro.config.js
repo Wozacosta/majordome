@@ -40,8 +40,18 @@ config.resolver = {
 
 // Majordome's name and wording go in ahead of whichever transformer is already set.
 function withMajordomeWording(metroConfig) {
+  // A changed table must not be served from the transform cache, so it is part of the version.
+  const wording = require("node:crypto").createHash("sha1");
+  for (const file of [
+    path.join(__dirname, "majordome/metroTransformer.cjs"),
+    path.join(__dirname, "majordome/wording.mts"),
+    path.join(workspaceRoot, "apps/web/vite/majordomeReword.ts"),
+  ]) {
+    wording.update(fs.readFileSync(file));
+  }
   return {
     ...metroConfig,
+    cacheVersion: `${metroConfig.cacheVersion ?? ""}:majordome:${wording.digest("hex")}`,
     transformerPath: require.resolve("./majordome/metroTransformer.cjs"),
     transformer: {
       ...metroConfig.transformer,

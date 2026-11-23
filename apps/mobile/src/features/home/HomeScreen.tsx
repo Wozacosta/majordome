@@ -103,6 +103,8 @@ import { useFabScroll } from "./FabScrollContext";
 import { holdLaunchSplashForHomeRows, settleLaunchSplashHomeRows } from "./home-launch-splash";
 import { useWorkspaceTabs } from "../layout/workspace/WorkspaceTabsContext";
 import { ThreadListFilters } from "./ThreadListFilters";
+import { isMajordome } from "../../majordome/env";
+import { MajordomeTopicsSection } from "../../majordome/TopicsSection";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -683,7 +685,12 @@ export function HomeScreen(props: HomeScreenProps) {
   const v2ListHeader = (
     <>
       {listHeader}
-      {Platform.OS === "ios" && workspace ? (
+      {isMajordome ? (
+        // Majordome lists the topics here; upstream's computer and project filters are put away.
+        props.searchQuery ? null : (
+          <MajordomeTopicsSection hasOtherChats={props.threads.length > 0} />
+        )
+      ) : Platform.OS === "ios" && workspace ? (
         <ThreadListFilters
           gutter={sidebarSurface ? 8 : 0}
           environments={props.environments}

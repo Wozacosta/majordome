@@ -1,5 +1,4 @@
 import { useAtomValue } from "@effect/atom-react";
-import { AsyncResult } from "effect/reactivity";
 import { useEffect, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,45 +11,12 @@ import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollVie
 import { useAdaptiveWorkspaceLayout } from "../features/layout/adaptive-workspace-context";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { uuidv4 } from "../lib/uuid";
-import { useProjects } from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { majordomeEnvironment, vaultTopicsAtom } from "./state";
-import {
-  localDate,
-  localTime,
-  noteLines,
-  toggleTodo,
-  waitingFor,
-  type TodayStore,
-} from "./today.logic";
+import { majordomeEnvironment } from "./state";
+import { useVault } from "./useVault";
+import { localDate, localTime, noteLines, toggleTodo, waitingFor } from "./today.logic";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
-
-/** The notes folder among the listed projects, or the one this phone last saw when offline. */
-function useVault(store: TodayStore | null): TodayStore["vault"] {
-  const projects = useProjects().filter((project) => !project.archivedAt && !project.isScratch);
-  const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
-  const topics = useAtomValue(vaultTopicsAtom(key));
-  const found = projects.find(
-    (_, index) =>
-      topics[index] !== undefined && AsyncResult.getOrElse(topics[index], () => null)?.isVault,
-  );
-  const foundEnvironmentId = found?.environmentId;
-  const foundProjectId = found?.id;
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- writes the found folder to the phone's file so Today opens offline
-  useEffect(() => {
-    if (foundEnvironmentId === undefined || foundProjectId === undefined) return;
-    updateTodayStore((current) =>
-      current.vault?.environmentId === foundEnvironmentId &&
-      current.vault.projectId === foundProjectId
-        ? current
-        : { ...current, vault: { environmentId: foundEnvironmentId, projectId: foundProjectId } },
-    );
-  }, [foundEnvironmentId, foundProjectId]);
-  return found
-    ? { environmentId: found.environmentId, projectId: found.id }
-    : (store?.vault ?? null);
-}
 
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
@@ -58,7 +24,7 @@ export function MajordomeTodayScreen() {
   const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
   const [draft, setDraft] = useState("");
-  const vault = useVault(store);
+  const { vault } = useVault(store);
   const note = useEnvironmentQuery(
     vault === null
       ? null
