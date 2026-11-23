@@ -18,6 +18,11 @@ it("lists only servers reached over HTTPS, once each", () => {
       ],
     }),
   ).toEqual([{ ...laptop, name: "Laptop again" }]);
+  const local = { environmentId: "env-local", url: "http://127.0.0.1:3774", name: "This Mac" };
+  expect(readAccountServers({ majordomeServers: [local] })).toEqual([]);
+  expect(readAccountServers({ majordomeServers: [local] }, { allowThisMachine: true })).toEqual([
+    local,
+  ]);
   expect(readAccountServers(null)).toEqual([]);
   expect(readAccountServers({ majordomeServers: "nonsense" })).toEqual([]);
 });

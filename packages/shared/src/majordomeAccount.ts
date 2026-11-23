@@ -17,21 +17,34 @@ const MAX_SERVERS = 20;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-function readServer(value: unknown): AccountServer | null {
+/** Reached over HTTPS, or, where a developer allows it, a server on this very machine. */
+function isReachable(value: string, allowThisMachine: boolean): boolean {
+  const url = URL.parse(value);
+  if (url === null) return false;
+  const onThisMachine =
+    url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+  return url.protocol === "https:" || (allowThisMachine && onThisMachine);
+}
+
+function readServer(value: unknown, allowThisMachine: boolean): AccountServer | null {
   if (!isRecord(value)) return null;
   const { environmentId, url, name } = value;
   if (typeof environmentId !== "string" || environmentId === "") return null;
-  if (typeof url !== "string" || URL.parse(url)?.protocol !== "https:") return null;
+  if (typeof url !== "string" || !isReachable(url, allowThisMachine)) return null;
   return { environmentId, url, name: typeof name === "string" && name !== "" ? name : url };
 }
 
 /** What the account lists, leaving out anything that is not a server reached over HTTPS. */
-export function readAccountServers(metadata: unknown): ReadonlyArray<AccountServer> {
+export function readAccountServers(
+  metadata: unknown,
+  /** Development builds also list a server on the developer's own machine. */
+  options: { readonly allowThisMachine?: boolean } = {},
+): ReadonlyArray<AccountServer> {
   const listed = isRecord(metadata) ? metadata[ACCOUNT_SERVERS_KEY] : undefined;
   if (!Array.isArray(listed)) return [];
   const servers = new Map<string, AccountServer>();
   for (const value of listed) {
-    const server = readServer(value);
+    const server = readServer(value, options.allowThisMachine === true);
     if (server !== null) servers.set(server.environmentId, server);
   }
   return Array.from(servers.values()).slice(0, MAX_SERVERS);

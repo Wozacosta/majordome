@@ -1,7 +1,6 @@
 import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native-components";
 import { useAtomValue } from "@effect/atom-react";
-import { useNavigation } from "@react-navigation/native";
 import { MAJORDOME_ACCOUNT_SIGN_IN_PATH } from "@t3tools/contracts";
 import {
   ACCOUNT_TOKEN_OPTIONS,
@@ -32,13 +31,12 @@ export function AccountScreen() {
 
 function ConfiguredAccountScreen() {
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
-  const navigation = useNavigation();
-
   if (!isLoaded) return <View className="flex-1 bg-sheet" />;
   if (!isSignedIn) {
     return (
       <View collapsable={false} className="flex-1 overflow-hidden bg-sheet">
-        <AuthView isDismissible={false} onHostBack={() => navigation.goBack()} />
+        {/* No host back button: the navigator's own header already has one. */}
+        <AuthView isDismissible={false} />
       </View>
     );
   }
@@ -50,7 +48,7 @@ function SignedIn() {
   const clerk = useClerk();
   const { user } = useUser();
   const connections = useAtomValue(savedConnectionsByIdAtom);
-  const servers = readAccountServers(user?.unsafeMetadata);
+  const servers = readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ });
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   return (

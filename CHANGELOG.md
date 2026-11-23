@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Sign in on the iPhone app.** "Add a computer" has a third way in: "Have a Majordome
+  account?" Sign in with Google or your email and the phone lists your servers; press Connect
+  and it is in, with no code to scan. (In the next iPhone build.)
+
 ## 0.10.35
 
 **New**
