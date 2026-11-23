@@ -1,5 +1,6 @@
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { T, useGT } from "gt-react-native";
+import { Button } from "../../components/ui/Button";
 import { ListRow } from "../../components/ui/ListRow";
 import * as Dialog from "../../components/ui/Dialog";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
@@ -101,6 +102,11 @@ function PairingForm({
   const headerIconColor = useUniwindTheme()["--color-icon"];
 
   const connectDisabled = connecting || hostInput.trim().length === 0;
+  // A code scanned outside the app arrives as a link: the owner only has to say yes, so the
+  // camera and the fields stay away until they ask for them.
+  const [confirmingLink, setConfirmingLink] = useState(
+    isMajordome && initialPairing.host !== "" && initialPairing.code !== "",
+  );
 
   const clearError = () => {
     setSubmitError(null);
@@ -242,77 +248,115 @@ function PairingForm({
           paddingBottom: Math.max(insets.bottom, 18) + 18,
         }}
       >
-        <View collapsable={false} className="gap-6.5">
-          <PairingScanCard
-            cameraActive={cameraPermission?.granted === true && screenFocused && !scanComplete}
-            onScan={handleQrScan}
-            onScanPress={() => {
-              void handleScanPress();
-            }}
-          />
-
-          <View collapsable={false} className="gap-2">
-            <Text className="px-4 text-sm font-t3-medium text-foreground-muted">
-              {isMajordome ? MAJORDOME_CONNECT.typeItHeading : <T>Or enter it</T>}
-            </Text>
-            <View
-              collapsable={false}
-              className={cn(
-                "overflow-hidden rounded-[26px] border-continuous border bg-grouped-card",
-                pairingConnectionError ? "border-danger-foreground" : "border-transparent",
-              )}
-            >
-              <PairingInputRow
-                label={gt("Address")}
-                keyboardType="url"
-                placeholder={
-                  isMajordome ? MAJORDOME_CONNECT.addressPlaceholder : "192.168.1.100:3773"
-                }
-                value={hostInput}
-                onChangeText={handleHostChange}
-              />
-              <View className="ml-4 border-t border-border-subtle" />
-              <PairingInputRow
-                label={gt("Code", { $context: "pairing code field" })}
-                placeholder={isMajordome ? MAJORDOME_CONNECT.codePlaceholder : gt("Pairing code")}
-                returnKeyType="go"
-                value={codeInput}
-                onChangeText={handleCodeChange}
-                onSubmitEditing={() => {
-                  if (!connectDisabled) void handleSubmit();
-                }}
-              />
+        {confirmingLink ? (
+          <View className="gap-4 px-1 pt-2">
+            <View className="gap-2 rounded-[26px] border-continuous bg-grouped-card p-5">
+              <Text className="text-sm text-foreground-muted">
+                {MAJORDOME_CONNECT.confirmHeading}
+              </Text>
+              <Text selectable className="text-xl font-t3-bold text-foreground">
+                {hostInput.replace(/^https?:\/\//, "")}
+              </Text>
+              <Text
+                accessibilityLiveRegion="polite"
+                className={cn(
+                  "text-sm leading-normal",
+                  pairingConnectionError ? "text-danger-foreground" : "text-foreground-muted",
+                )}
+              >
+                {pairingConnectionError ?? MAJORDOME_CONNECT.confirmHelp}
+              </Text>
             </View>
-            <Text
-              accessibilityLiveRegion="polite"
-              className={cn(
-                "px-4 text-sm leading-normal",
-                pairingConnectionError ? "text-danger-foreground" : "text-foreground-muted",
-              )}
-            >
-              {pairingConnectionError ??
-                (isMajordome
-                  ? routePairingUrl !== ""
-                    ? MAJORDOME_CONNECT.fromLinkHelp
-                    : MAJORDOME_CONNECT.typeItHelp
-                  : gt(
-                      "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
-                    ))}
-            </Text>
+            <Button
+              label={MAJORDOME_CONNECT.confirmButton}
+              fullWidth
+              tone="primary"
+              loading={connecting}
+              onPress={() => {
+                void handleSubmit();
+              }}
+            />
+            <Button
+              label={MAJORDOME_CONNECT.confirmOther}
+              tone="text"
+              fullWidth
+              disabled={connecting}
+              onPress={() => setConfirmingLink(false)}
+            />
           </View>
+        ) : (
+          <View collapsable={false} className="gap-6.5">
+            <PairingScanCard
+              cameraActive={cameraPermission?.granted === true && screenFocused && !scanComplete}
+              onScan={handleQrScan}
+              onScanPress={() => {
+                void handleScanPress();
+              }}
+            />
 
-          {isMajordome ? (
-            <View className="overflow-hidden rounded-[26px] border-continuous">
-              <ListRow
-                label={MAJORDOME_CONNECT.hostedLabel}
-                description={MAJORDOME_CONNECT.hostedDescription}
-                onPress={() => navigation.navigate("SettingsHostedSignup")}
-              />
+            <View collapsable={false} className="gap-2">
+              <Text className="px-4 text-sm font-t3-medium text-foreground-muted">
+                {isMajordome ? MAJORDOME_CONNECT.typeItHeading : <T>Or enter it</T>}
+              </Text>
+              <View
+                collapsable={false}
+                className={cn(
+                  "overflow-hidden rounded-[26px] border-continuous border bg-grouped-card",
+                  pairingConnectionError ? "border-danger-foreground" : "border-transparent",
+                )}
+              >
+                <PairingInputRow
+                  label={gt("Address")}
+                  keyboardType="url"
+                  placeholder={
+                    isMajordome ? MAJORDOME_CONNECT.addressPlaceholder : "192.168.1.100:3773"
+                  }
+                  value={hostInput}
+                  onChangeText={handleHostChange}
+                />
+                <View className="ml-4 border-t border-border-subtle" />
+                <PairingInputRow
+                  label={gt("Code", { $context: "pairing code field" })}
+                  placeholder={isMajordome ? MAJORDOME_CONNECT.codePlaceholder : gt("Pairing code")}
+                  returnKeyType="go"
+                  value={codeInput}
+                  onChangeText={handleCodeChange}
+                  onSubmitEditing={() => {
+                    if (!connectDisabled) void handleSubmit();
+                  }}
+                />
+              </View>
+              <Text
+                accessibilityLiveRegion="polite"
+                className={cn(
+                  "px-4 text-sm leading-normal",
+                  pairingConnectionError ? "text-danger-foreground" : "text-foreground-muted",
+                )}
+              >
+                {pairingConnectionError ??
+                  (isMajordome
+                    ? routePairingUrl !== ""
+                      ? MAJORDOME_CONNECT.fromLinkHelp
+                      : MAJORDOME_CONNECT.typeItHelp
+                    : gt(
+                        "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
+                      ))}
+              </Text>
             </View>
-          ) : null}
 
-          {hasCloudPublicConfig() ? <T3ConnectSection /> : null}
-        </View>
+            {isMajordome ? (
+              <View className="overflow-hidden rounded-[26px] border-continuous">
+                <ListRow
+                  label={MAJORDOME_CONNECT.hostedLabel}
+                  description={MAJORDOME_CONNECT.hostedDescription}
+                  onPress={() => navigation.navigate("SettingsHostedSignup")}
+                />
+              </View>
+            ) : null}
+
+            {hasCloudPublicConfig() ? <T3ConnectSection /> : null}
+          </View>
+        )}
       </ScrollView>
     </SettingsScreen>
   );

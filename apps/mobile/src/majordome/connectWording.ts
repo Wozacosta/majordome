@@ -7,6 +7,11 @@ export const MAJORDOME_CONNECT = {
   codePlaceholder: "The letters under the code",
   typeItHelp:
     "The address and the letters are on the same screen of your computer. A code works once, for a few minutes.",
+  confirmHeading: "Connect this phone to",
+  confirmHelp:
+    "This is the computer whose code you just scanned. If you don't recognise the address, close this.",
+  confirmButton: "Connect",
+  confirmOther: "Scan or type another code",
   fromLinkHelp:
     "Filled in from the code you scanned. Check that the address is your computer's, then press the tick at the top.",
   cameraDeniedTitle: "Majordome can't use the camera",

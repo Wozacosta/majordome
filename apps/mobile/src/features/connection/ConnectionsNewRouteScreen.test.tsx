@@ -17,6 +17,7 @@ vi.mock("../../majordome/env", () => ({ isMajordome: false, MAJORDOME_HIDDEN_TAB
 vi.mock("react-native", () => ({
   View: Children,
   Pressable: Children,
+  ActivityIndicator: () => null,
   Linking: { openSettings: vi.fn() },
   StyleSheet: { absoluteFill: {} },
 }));
