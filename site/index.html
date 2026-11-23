@@ -740,6 +740,69 @@
         font-size: 0.93rem;
       }
 
+      .fork {
+        display: grid;
+        grid-template-columns: 1fr 44px 1.6fr;
+        margin-top: 40px;
+      }
+      .fork > div:not(.plus) {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 18px 20px 20px;
+      }
+      .fork > div:last-child {
+        border: 2px solid var(--ink);
+      }
+      .fork .k {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .fork > div:last-child .k {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .fork ul {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .fork li {
+        padding: 5px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--bg);
+        font-size: 0.9rem;
+      }
+      .fork .out li {
+        color: var(--muted);
+        text-decoration: line-through;
+        background: transparent;
+      }
+      .fork .plus {
+        min-height: 44px;
+      }
+      .fork .sub {
+        margin-top: 18px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .fork .out {
+        margin-top: 8px;
+      }
+      @media (max-width: 860px) {
+        .fork {
+          grid-template-columns: 1fr;
+        }
+      }
       .compare-scroll {
         margin-top: 36px;
         overflow-x: auto;
@@ -1157,6 +1220,60 @@
             <a href="https://github.com/openclaw/openclaw">OpenClaw</a>,
             <a href="https://hermes-agent.nousresearch.com/docs">Hermes Agent</a>,
             <a href="https://x.ai">Grok Bot</a>.
+          </p>
+        </section>
+
+        <section id="t3code">
+          <div class="intro">
+            <h2>What it adds to T3 Code.</h2>
+            <p>
+              <a href="https://github.com/pingdotgg/t3code">T3 Code</a> runs coding agents on your
+              projects. Majordome points the same engine at your notes.
+            </p>
+          </div>
+          <div class="fork">
+            <div>
+              <div class="k">From T3 Code</div>
+              <ul>
+                <li>The engine behind every chat</li>
+                <li>Claude, ChatGPT and other AI</li>
+                <li>Desktop and web app</li>
+                <li>Linked machines</li>
+                <li>Scheduled tasks</li>
+              </ul>
+              <div class="sub">Left in T3 Code</div>
+              <ul class="out">
+                <li>Projects</li>
+                <li>Pull requests</li>
+                <li>Terminal</li>
+                <li>T3 account</li>
+              </ul>
+            </div>
+            <div class="plus" aria-hidden="true">+</div>
+            <div>
+              <div class="k"><span class="dot"></span>Majordome's own</div>
+              <ul>
+                <li>Notes folder as memory</li>
+                <li>Today</li>
+                <li>To-dos from every note</li>
+                <li>Reading list</li>
+                <li>Topics</li>
+                <li>Key facts</li>
+                <li>Routines in your words</li>
+                <li>Skills it writes itself</li>
+                <li>Private documents</li>
+                <li>Gmail, Calendar, Drive</li>
+                <li>Back up my brain</li>
+                <li>Phone, nothing to install</li>
+                <li>Always-on server setup</li>
+                <li>Plain words</li>
+              </ul>
+            </div>
+          </div>
+          <p class="compare-note">
+            <a href="https://github.com/Wozacosta/majordome/blob/main/docs/vs-t3-code.md"
+              >The full list, kept up to date</a
+            >.
           </p>
         </section>
 

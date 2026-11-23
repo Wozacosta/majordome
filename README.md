@@ -82,6 +82,25 @@ And when you want them:
 | **[Skills](docs/user/skills.md)**                         | Your ways of doing a job, written down, that it follows by name.   |
 | **[Notes search](docs/user/notes-search.md)**             | It looks inside every note, not only at file names.                |
 
+## What it adds to T3 Code
+
+[T3 Code](https://github.com/pingdotgg/t3code) runs coding agents on your projects. Majordome
+points the same engine at your notes.
+
+|                   | T3 Code                                  | Majordome                                          |
+| ----------------- | ---------------------------------------- | -------------------------------------------------- |
+| Made for          | Developers running coding agents         | Anyone, for notes and everyday life                |
+| You work in       | Projects: folders of code                | One folder of Markdown notes, split into topics    |
+| The sidebar lists | Projects and their threads               | Today, To-dos, Reading list, Routines, your topics |
+| What it remembers | Each thread's history                    | Your notes, and a memory note it reads every time  |
+| Words on screen   | Git, pull requests, terminals, worktrees | History, Undo this, Back up, Your phone            |
+| On your phone     | T3's phone apps, via T3 Connect          | The same app on your Home Screen                   |
+
+Majordome's own: Today, To-dos, Reading list, Topics, Key facts, routines in your words, skills the
+assistant writes for itself, private documents, backup and restore, a phone with nothing to install,
+and an always-on server set up for you. Coding stays in T3 Code.
+**[The full list](docs/vs-t3-code.md)**
+
 ## Install
 
 Majordome runs on a Mac.

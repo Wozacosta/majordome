@@ -1,0 +1,96 @@
+# Majordome and T3 Code
+
+Majordome is a fork of [T3 Code](https://github.com/pingdotgg/t3code). T3 Code is an app for
+running coding agents on your projects. Majordome uses the same engine for the rest of your life:
+your notes, your errands, your reading, your paperwork.
+
+This page lists what is Majordome's own. Keep it current: a change that adds, removes or hides
+something T3 Code does not have gets a line here, in the same commit as its `CHANGELOG.md` entry.
+The landing page and the README show a short version of this list.
+
+## In one table
+
+|                   | T3 Code                                   | Majordome                                            |
+| ----------------- | ----------------------------------------- | ---------------------------------------------------- |
+| Made for          | Developers running coding agents          | Anyone, for notes and everyday life                  |
+| You work in       | Projects: folders of code                 | One folder of Markdown notes, split into topics      |
+| The sidebar lists | Projects and their threads                | Today, To-dos, Reading list, Routines, your topics   |
+| What it remembers | Each thread's history                     | Your notes, and a memory note it reads every time    |
+| Words on screen   | Git, pull requests, terminals, worktrees  | History, Undo this, Back up, Your phone              |
+| On your phone     | T3's iOS and Android apps, via T3 Connect | The same app on your Home Screen, nothing to install |
+| Account           | A T3 account for T3 Connect               | None                                                 |
+
+## What Majordome adds
+
+### Your notes
+
+- **A notes folder as the memory.** Plain Markdown in a folder you own. An Obsidian vault works as
+  it is, and "Open in Obsidian" is one click away.
+- **Notes you can read, edit and search** inside the app, including the text inside every note.
+  [Searching your notes](./user/notes-search.md)
+- **A memory note** the assistant reads at the start of every conversation, with today's and
+  yesterday's daily notes, and a nightly "Tidy my memory" routine that keeps what will still matter.
+  [Memory](./user/memory.md)
+- **The notes layout and skills from [obrain](../packages/obrain)**, which lives in this
+  repository and is published to npm as `obrain`.
+
+### Pages for everyday life
+
+- **Today:** your day, the to-dos due, and what changed in your notes lately.
+- **To-dos:** every checkbox from every note in one list. Tick one and it is ticked in its note.
+- **Reading list:** links, videos and podcasts for later, with a Next view of three things, snooze,
+  subjects, and tags and a summary written for you. [Reading list](./user/reading-list.md)
+- **Topics:** one continuing conversation per part of life (Money, Meals, Trips), tied to its own
+  folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
+- **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
+  conversation in short, and a drawing of it. [Key facts](./user/key-facts.md)
+
+### An assistant that works without you
+
+- **Routines and reminders in your words,** with ready-made ones (What needs a reply, Prepare
+  tomorrow). Built on T3 Code's scheduled tasks. [Routines](./user/routines.md)
+- **Skills it writes for itself.** Say "from now on, do it this way" and it writes the skill down.
+  It is used only after you keep it. [Skills](./user/skills.md)
+- **Private documents:** encrypted, outside your notes, opened only after your yes, each time.
+  [Private documents](./user/private-documents.md)
+- **Email, calendar and files:** a guided way to connect Gmail, Calendar and Drive.
+
+### Your machines
+
+- **Back up my brain:** copies of your notes and their history to GitHub, a folder or Google
+  Drive, and a restore in the app. [Backup](./user/backup.md)
+- **Your phone with nothing to install:** scan a code, add the app to your Home Screen, get
+  notifications. It works away from home over a private address.
+  [Phone and notifications](./user/phone-and-notifications.md)
+- **An always-on server set up for you:** a small rented computer that keeps your conversations
+  and runs routines while your Mac sleeps, and updates itself every night.
+  [Always-on server](./user/always-on-server.md)
+- **Your own sign-in in the server's browser,** copied one site at a time, by you only.
+
+### First run and wording
+
+- **A welcome screen with two questions:** sign in to Claude or ChatGPT, and choose your notes.
+- **Plain words everywhere.** Settings open on Status, each page starts with one sentence saying
+  what it is for, and messages name pages as the app does.
+- **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
+  releases, never from T3 Code's.
+
+## What Majordome leaves out
+
+Coding stays in T3 Code. The code is still there, hidden, so that upstream changes merge cleanly.
+
+- Projects, worktrees, pull requests, the terminal and source control are not shown.
+- The assistant is not told about pull requests or issues.
+- About 27 settings that only matter when writing code are hidden, and so is the Usage page.
+- No T3 account, T3 Connect, or T3's phone apps. Adding a computer over SSH is not offered.
+
+## What comes from T3 Code
+
+Majordome would not exist without it. From T3 Code, unchanged or close to it:
+
+- The engine that runs conversations, keeps their history and survives restarts.
+- The connections to Claude, ChatGPT (Codex) and the other AI providers.
+- The desktop app, the web app and the link between your machines.
+- Scheduled tasks, secrets, the side browser and pictures in replies.
+
+T3 Code is by T3 Tools Inc., under the [MIT License](../LICENSE).
