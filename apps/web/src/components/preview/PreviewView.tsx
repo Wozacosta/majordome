@@ -79,7 +79,11 @@ import { showPreviewPopup } from "./showPreviewPopup";
 import { PreviewChromeRow } from "./PreviewChromeRow";
 import { PreviewEmptyState } from "./PreviewEmptyState";
 import { isMajordome } from "~/env";
-import { SiteSignInButton } from "../majordome/SiteSignInButton";
+import {
+  SiteSignInButton,
+  SiteSignInMenuItems,
+  type SiteSignInProps,
+} from "../majordome/SiteSignInButton";
 import { PreviewMoreMenu, type PreviewMoreMenuActions } from "./PreviewMoreMenu";
 import { commitBrowserViewportChange } from "~/browser/browserViewportActions";
 import { browserResponsiveViewportForToggle, useBrowserDefaults } from "~/browser/browserDefaults";
@@ -561,6 +565,21 @@ export function PreviewView({
           openDevTools: desktopCall(previewBridge.openDevTools),
           toggleNativePictureInPicture: () => handleNativePictureInPicture(),
           ...(canFindInPage ? { find: handleFind } : {}),
+        }
+      : null;
+
+  // Majordome's per-site sign-in: where it goes depends on which browser loads the tab.
+  const siteSignIn: SiteSignInProps | null =
+    isMajordome && tabId
+      ? {
+          environmentId: threadRef.environmentId,
+          place: isServerTab
+            ? { kind: "server", threadId: threadRef.threadId, tabId }
+            : { kind: "here", profileId: activeProfileId },
+          url: url === "" ? null : url,
+          onChanged: isServerTab
+            ? () => void adjustServerTab({ hardReload: true })
+            : desktopCall(previewBridge?.hardReload),
         }
       : null;
 
@@ -1052,22 +1071,7 @@ export function PreviewView({
         trailingActions={
           moreMenuActions ? (
             <>
-              {isMajordome && tabId ? (
-                <SiteSignInButton
-                  environmentId={threadRef.environmentId}
-                  place={
-                    isServerTab
-                      ? { kind: "server", threadId: threadRef.threadId, tabId }
-                      : { kind: "here", profileId: activeProfileId }
-                  }
-                  url={url === "" ? null : url}
-                  onChanged={
-                    isServerTab
-                      ? () => void adjustServerTab({ hardReload: true })
-                      : desktopCall(previewBridge?.hardReload)
-                  }
-                />
-              ) : null}
+              {siteSignIn ? <SiteSignInButton {...siteSignIn} /> : null}
               <PreviewMoreMenu
                 enabled={
                   runtimeTabId !== null &&
@@ -1077,6 +1081,7 @@ export function PreviewView({
                 {...(moveTarget
                   ? { move: { label: moveLabel, onMove: () => void handleMoveTab() } }
                   : {})}
+                {...(siteSignIn ? { extraItems: <SiteSignInMenuItems {...siteSignIn} /> } : {})}
                 profileName={activeProfileName}
                 findShortcutLabel={shortcutLabelForCommand(keybindings, "preview.find", {
                   context: { previewFocus: true },

@@ -53,6 +53,8 @@ interface Props {
   profileName: string | undefined;
   findShortcutLabel?: string | null;
   move?: { readonly label: string; readonly onMove: () => void };
+  /** Rows a host app adds above the profile's own, such as Majordome's per-site sign-in. */
+  extraItems?: React.ReactNode;
 }
 
 const MenuTriggerButton = () => {
@@ -93,6 +95,7 @@ export function PreviewMoreMenu({
   profileName,
   findShortcutLabel,
   move,
+  extraItems,
 }: Props) {
   const gt = useGT();
   const m = useMessages();
@@ -190,6 +193,7 @@ export function PreviewMoreMenu({
             </Button>
           </span>
         </MenuItem>
+        {extraItems}
         <MenuSeparator />
         <MenuGroup>
           {profileName ? (

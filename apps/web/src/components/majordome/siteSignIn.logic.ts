@@ -12,6 +12,17 @@ export function siteOfUrl(url: string | null | undefined): string | null {
   }
 }
 
+const SIGN_IN_HOST = /^(?:login|signin|sign-in|auth|accounts?|id|sso|secure-login)\./i;
+const SIGN_IN_PATH =
+  /(?:^|\/)(?:log-?in|sign-?in|sign_in|signon|sso|auth(?:enticate|orize)?|oauth2?|session(?:s\/new)?)(?:[/.]|$)/i;
+
+/** Whether a page's address looks like one that asks you to sign in. A hint, not a promise. */
+export function looksLikeSignInPage(url: string | null | undefined): boolean {
+  if (!url || siteOfUrl(url) === null) return false;
+  const { hostname, pathname } = new URL(url);
+  return SIGN_IN_HOST.test(hostname) || SIGN_IN_PATH.test(pathname);
+}
+
 export function siteLabel(host: string): string {
   return host.replace(/^www\./, "");
 }

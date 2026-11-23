@@ -22,12 +22,16 @@ import {
   MenuItem,
   MenuPopup,
   MenuSeparator,
+  MenuSub,
+  MenuSubPopup,
+  MenuSubTrigger,
   MenuTrigger,
 } from "../ui/menu";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   blockedSignInSources,
+  looksLikeSignInPage,
   signInFailureWords,
   type SignInSource,
   signInSources,
@@ -44,18 +48,20 @@ export type SiteSignInPlace =
   /** This app's own browser, on this computer. */
   | { readonly kind: "here"; readonly profileId: string | undefined };
 
-/**
- * Copies the owner's sign-in for the site a tab shows from one of their own browsers on this
- * computer into the browser the tab loads in, or removes it again. Only a person's click does
- * this; it is not something the assistant can ask for.
- */
-export function SiteSignInButton(props: {
+export interface SiteSignInProps {
   readonly environmentId: EnvironmentId;
   readonly place: SiteSignInPlace;
   readonly url: string | null;
   /** Loads the page again, now signed in or out. */
   readonly onChanged: () => void;
-}) {
+}
+
+/**
+ * Copies the owner's sign-in for the site a tab shows from one of their own browsers on this
+ * computer into the browser the tab loads in, or removes it again. Only a person's click does
+ * this; it is not something the assistant can ask for. Null where it cannot be offered.
+ */
+function useSiteSignIn(props: SiteSignInProps) {
   const allowed = useAtomValue(
     previewEnvironment.importSiteCookies.permissionAtom(props.environmentId),
   );
@@ -201,16 +207,58 @@ export function SiteSignInButton(props: {
     });
   };
 
-  const offered = sources === null ? [] : signInSources(sources, lastKey);
-  const blocked = sources === null ? [] : blockedSignInSources(sources);
+  return {
+    site,
+    busy,
+    /** Null until the owner's browsers have been looked at. */
+    offered: sources === null ? null : signInSources(sources, lastKey),
+    blocked: sources === null ? [] : blockedSignInSources(sources),
+    lookAtBrowsers: () => {
+      void bridge
+        .listBrowserImportSources()
+        .then(setSources)
+        .catch(() => setSources([]));
+    },
+    signIn,
+    signOut,
+  };
+}
+
+type SiteSignIn = NonNullable<ReturnType<typeof useSiteSignIn>>;
+
+/** The browsers a sign-in can be copied from, as menu rows. */
+function SignInSourceItems({ signIn }: { readonly signIn: SiteSignIn }) {
+  return (
+    <>
+      {signIn.offered === null ? (
+        <MenuItem disabled>Looking at your browsers…</MenuItem>
+      ) : signIn.offered.length === 0 ? (
+        <MenuItem disabled>No browser to copy a sign-in from</MenuItem>
+      ) : (
+        signIn.offered.map((source) => (
+          <MenuItem key={source.key} onClick={() => void signIn.signIn(source)}>
+            {source.label}
+          </MenuItem>
+        ))
+      )}
+      {signIn.blocked.map((source) => (
+        <MenuItem key={source.name} disabled title={source.why}>
+          {source.name} (needs Full Disk Access)
+        </MenuItem>
+      ))}
+    </>
+  );
+}
+
+/** The key button in the side browser's bar. It stands out on a page that asks to sign in. */
+export function SiteSignInButton(props: SiteSignInProps) {
+  const signIn = useSiteSignIn(props);
+  if (signIn === null) return null;
+  const asked = looksLikeSignInPage(props.url);
   return (
     <Menu
       onOpenChange={(open) => {
-        if (!open) return;
-        void bridge
-          .listBrowserImportSources()
-          .then(setSources)
-          .catch(() => setSources([]));
+        if (open) signIn.lookAtBrowsers();
       }}
     >
       <Tooltip>
@@ -219,43 +267,56 @@ export function SiteSignInButton(props: {
             <MenuTrigger
               render={
                 <Button
-                  variant="ghost"
+                  variant={asked ? "outline" : "ghost"}
                   size="icon-xs"
                   type="button"
-                  disabled={busy}
-                  aria-label={`Use my sign-in for ${site}`}
+                  disabled={signIn.busy}
+                  aria-label={`Use my sign-in for ${signIn.site}`}
                 />
               }
             />
           }
         >
-          <KeyRoundIcon />
+          <KeyRoundIcon className={asked ? "text-primary" : undefined} />
         </TooltipTrigger>
-        <TooltipPopup>Use my sign-in for this site</TooltipPopup>
+        <TooltipPopup>
+          {asked
+            ? "This page asks you to sign in. Use your own sign-in for this site"
+            : "Use my sign-in for this site"}
+        </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end">
         <MenuGroup>
-          <MenuGroupLabel>Sign in to {site} here with</MenuGroupLabel>
-          {sources === null ? (
-            <MenuItem disabled>Looking at your browsers…</MenuItem>
-          ) : offered.length === 0 ? (
-            <MenuItem disabled>No browser to copy a sign-in from</MenuItem>
-          ) : (
-            offered.map((source) => (
-              <MenuItem key={source.key} onClick={() => void signIn(source)}>
-                {source.label}
-              </MenuItem>
-            ))
-          )}
-          {blocked.map((source) => (
-            <MenuItem key={source.name} disabled title={source.why}>
-              {source.name} (needs Full Disk Access)
-            </MenuItem>
-          ))}
+          <MenuGroupLabel>Sign in to {signIn.site} here with</MenuGroupLabel>
+          <SignInSourceItems signIn={signIn} />
         </MenuGroup>
         <MenuSeparator />
-        <MenuItem onClick={() => void signOut()}>Sign out of {site} here</MenuItem>
+        <MenuItem onClick={() => void signIn.signOut()}>Sign out of {signIn.site} here</MenuItem>
       </MenuPopup>
     </Menu>
+  );
+}
+
+/** The same two actions as rows of the side browser's "more" menu. */
+export function SiteSignInMenuItems(props: SiteSignInProps) {
+  const signIn = useSiteSignIn(props);
+  if (signIn === null) return null;
+  return (
+    <>
+      <MenuSeparator />
+      <MenuSub
+        onOpenChange={(open) => {
+          if (open) signIn.lookAtBrowsers();
+        }}
+      >
+        <MenuSubTrigger disabled={signIn.busy}>Use my sign-in for {signIn.site}</MenuSubTrigger>
+        <MenuSubPopup>
+          <SignInSourceItems signIn={signIn} />
+        </MenuSubPopup>
+      </MenuSub>
+      <MenuItem disabled={signIn.busy} onClick={() => void signIn.signOut()}>
+        Sign out of {signIn.site} here
+      </MenuItem>
+    </>
   );
 }
