@@ -1,12 +1,7 @@
 import type { MajordomeBackupStatus } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-  backupHeadline,
-  backupAttention,
-  folderFormProblem,
-  restoreCommands,
-} from "./backup.logic";
+import { backupHeadline, backupAttention, folderFormProblem } from "./backup.logic";
 
 const base: MajordomeBackupStatus = {
   isVault: true,
@@ -186,10 +181,4 @@ describe("folderFormProblem", () => {
     expect(folderFormProblem({ ...ok, confirmation: ok.passphrase })).toBeNull();
     expect(folderFormProblem({ ...ok, path: null, confirmation: ok.passphrase })).toBeNull();
   });
-});
-
-it("shows restore commands with the vault's own file name", () => {
-  expect(restoreCommands("My Brain")[0]).toBe(
-    "age -d -o brain.bundle majordome-my-brain-YYYY-MM-DD.age",
-  );
 });

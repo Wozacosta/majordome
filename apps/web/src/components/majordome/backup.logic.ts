@@ -1,8 +1,4 @@
-import {
-  majordomeVaultSlug,
-  type MajordomeBackupPauseReason,
-  type MajordomeBackupStatus,
-} from "@t3tools/contracts";
+import type { MajordomeBackupPauseReason, MajordomeBackupStatus } from "@t3tools/contracts";
 
 export type BackupTone = "ok" | "warning" | "neutral";
 
@@ -29,8 +25,9 @@ const PAUSE_COPY: Record<MajordomeBackupPauseReason, { title: string; detail: st
       "These notes were changed here and somewhere else. Your edits are still saved on this computer; Majordome tries again every few minutes.",
   },
   "unfinished-merge": {
-    title: "Saving is paused while your notes are mid-merge",
-    detail: "Finish or cancel the merge in your notes folder, and saving starts again on its own.",
+    title: "Saving is paused: a change to your notes was left half done",
+    detail:
+      "Something started combining two versions of your notes and stopped before the end. Your notes are still on this computer. Ask the assistant to “finish or undo the change my notes are stuck on”, and saving starts again on its own.",
   },
 };
 
@@ -139,7 +136,20 @@ export function folderFormProblem(input: {
   return null;
 }
 
-export function restoreCommands(vaultFolderName: string): ReadonlyArray<string> {
-  const file = `majordome-${majordomeVaultSlug(vaultFolderName)}-YYYY-MM-DD.age`;
-  return [`age -d -o brain.bundle ${file}`, "git clone brain.bundle my-notes"];
+/** Why the restore form can't go on yet, or null when it can. */
+export function restoreFormProblem(input: {
+  readonly source: string;
+  readonly passphrase: string;
+}): string | null {
+  if (input.source.trim() === "") return "Choose the folder your backup is in.";
+  if (input.passphrase === "") return "Type your passphrase.";
+  return null;
+}
+
+/** The two commands that open a backup without Majordome. */
+export function restoreCommands(): ReadonlyArray<string> {
+  return [
+    "age -d -o notes.bundle majordome-NAME-YYYY-MM-DD.age",
+    "git clone notes.bundle my-notes",
+  ];
 }
