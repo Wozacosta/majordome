@@ -9,15 +9,16 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import {
-  canStartServerMove,
   chosenLocation,
   formatMonthlyPrice,
   hasReadyProvider,
   locationLabel,
+  openServerKey,
   problemsFor,
   serverMoveNextStep,
   serverMoveStepRows,
   serverMoveView,
+  serverSetupAction,
   serverSummary,
 } from "./serverMove.logic";
 
@@ -144,36 +145,49 @@ describe("problemsFor", () => {
   });
 });
 
-describe("canStartServerMove", () => {
+describe("openServerKey", () => {
+  it("opens one key at a time, in order, and the one being changed first", () => {
+    expect(openServerKey({ hetzner: false, tailscale: false }, null)).toBe("hetzner");
+    expect(openServerKey({ hetzner: true, tailscale: false }, null)).toBe("tailscale");
+    expect(openServerKey({ hetzner: true, tailscale: true }, null)).toBeNull();
+    expect(openServerKey({ hetzner: true, tailscale: false }, "hetzner")).toBe("hetzner");
+    expect(openServerKey({ hetzner: true, tailscale: true }, "tailscale")).toBe("tailscale");
+  });
+});
+
+describe("serverSetupAction", () => {
   const projectId = "vault";
-  it("needs both keys, a clean check, a location, notes, and no server already", () => {
-    expect(canStartServerMove({ status: status(), check: check(), projectId })).toBe(true);
-    expect(canStartServerMove({ status: status(), check: null, projectId })).toBe(false);
-    expect(canStartServerMove({ status: status(), check: check(), projectId: null })).toBe(false);
+  it("checks first, and starts only after a clean check with somewhere to put the server", () => {
+    expect(serverSetupAction({ status: status(), check: check(), projectId })).toBe("start");
+    expect(serverSetupAction({ status: status(), check: null, projectId })).toBe("check");
     expect(
-      canStartServerMove({
-        status: status({ keys: { hetzner: true, tailscale: false } }),
-        check: check(),
-        projectId,
-      }),
-    ).toBe(false);
-    expect(
-      canStartServerMove({
+      serverSetupAction({
         status: status(),
         check: check({ problems: [{ area: "notes", message: "no history" }] }),
         projectId,
       }),
-    ).toBe(false);
+    ).toBe("check");
     expect(
-      canStartServerMove({ status: status(), check: check({ locations: [] }), projectId }),
-    ).toBe(false);
+      serverSetupAction({ status: status(), check: check({ locations: [] }), projectId }),
+    ).toBe("check");
+  });
+
+  it("offers nothing without both keys, notes, or with a server already", () => {
+    expect(serverSetupAction({ status: status(), check: check(), projectId: null })).toBeNull();
     expect(
-      canStartServerMove({
+      serverSetupAction({
+        status: status({ keys: { hetzner: true, tailscale: false } }),
+        check: check(),
+        projectId,
+      }),
+    ).toBeNull();
+    expect(
+      serverSetupAction({
         status: status({ move: move({ phase: "ready" }) }),
         check: check(),
         projectId,
       }),
-    ).toBe(false);
+    ).toBeNull();
   });
 });
 
