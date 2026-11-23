@@ -181,6 +181,24 @@ const readProof = (sent: SentRequest | undefined) => {
   };
 };
 
+describe("hostedPhoneAddress", () => {
+  it("is the server's own HTTPS address on a server Majordome hosts, and nothing elsewhere", () => {
+    const url = "https://majordome-abc.example";
+    assert.deepStrictEqual(AnywhereAddress.hostedPhoneAddress({ hosted: true, publicUrl: url }), {
+      state: "ready",
+      url,
+      reason: null,
+    });
+    // The owner's own server keeps the address service, whatever its public URL.
+    assert.isNull(AnywhereAddress.hostedPhoneAddress({ hosted: false, publicUrl: url }));
+    // A phone needs HTTPS for notifications.
+    assert.isNull(
+      AnywhereAddress.hostedPhoneAddress({ hosted: true, publicUrl: "http://10.0.0.2:3773" }),
+    );
+    assert.isNull(AnywhereAddress.hostedPhoneAddress({ hosted: true, publicUrl: undefined }));
+  });
+});
+
 describe("AnywhereAddress", () => {
   it.effect("enable asks for an address, stores it, starts the connector and reports ready", () =>
     Effect.gen(function* () {

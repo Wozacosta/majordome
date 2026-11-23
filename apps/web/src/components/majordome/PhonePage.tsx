@@ -1,3 +1,4 @@
+import { HOSTED_SERVER_NAME } from "@t3tools/shared/majordome";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { phoneSetupRevision } from "@t3tools/client-runtime/state/majordome";
 import {
@@ -72,6 +73,8 @@ import {
   phoneWays,
   phoneWithNotifications,
 } from "./phone.logic";
+import { isHostedServer } from "./brains.logic";
+import { useMachineNames } from "./useMachineNames";
 import { readIsOnPhone } from "./pushNotifications";
 import { usePhoneEnvironment } from "./usePhoneEnvironment";
 
@@ -329,18 +332,22 @@ function PhoneWays({
   readonly checking: boolean;
 }) {
   const ways = phoneWays(setup);
+  const { machineOf } = useMachineNames();
+  const hosted = isHostedServer(machineOf(environmentId));
   const anywhere = (
     <AnywhereAddress
       environmentId={environmentId}
       elsewhere={elsewhere}
+      hosted={hosted}
       anywhere={setup.anywhere}
       tailscaleOnly={ways.tailscaleOnly}
       steps={steps}
       checking={checking}
     />
   );
-  // Tailscale and Wi-Fi are read from, and set up on, the computer in front of the owner.
-  if (elsewhere !== null) return anywhere;
+  // Tailscale and Wi-Fi are read from, and set up on, the computer in front of the owner. A server
+  // Majordome hosts is no one's computer and has its address already.
+  if (elsewhere !== null || hosted) return anywhere;
   return (
     <>
       {anywhere}
@@ -399,6 +406,7 @@ type Anywhere = MajordomePhoneSetup["anywhere"];
 function AnywhereAddress({
   environmentId,
   elsewhere,
+  hosted,
   anywhere: read,
   tailscaleOnly,
   steps,
@@ -406,6 +414,8 @@ function AnywhereAddress({
 }: {
   readonly environmentId: EnvironmentId;
   readonly elsewhere: string | null;
+  /** A server Majordome hosts: its address is its own, with no tunnel to turn on or off. */
+  readonly hosted: boolean;
   readonly anywhere: Anywhere;
   /** A phone may already work through Tailscale, so the offer says it keeps working. */
   readonly tailscaleOnly: boolean;
@@ -449,7 +459,7 @@ function AnywhereAddress({
 
   const anywhere = currentAnywhere(read, answered, checking);
   const view = anywhereView(anywhere, busy === "on");
-  const computer = phoneComputerWords(elsewhere);
+  const computer = phoneComputerWords(hosted ? HOSTED_SERVER_NAME : elsewhere);
   const problem =
     error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>;
   const notAllowed = canChange || elsewhere === null ? null : <NotAllowed name={elsewhere} />;
@@ -517,20 +527,24 @@ function AnywhereAddress({
           <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
             {computer.atStart}'s address is{" "}
             <span className="break-all text-foreground">{view.address}</span>. It is on the
-            internet, but only devices you add with a code from this screen can get in. The
-            connection passes through Cloudflare, a company that could technically read it.
+            internet, but only devices you add with a code from this screen can get in.
+            {hosted
+              ? null
+              : " The connection passes through Cloudflare, a company that could technically read it."}
           </Muted>
-          <div>
-            <Button
-              size="xs"
-              variant="ghost-muted"
-              disabled={!canChange || busy !== null}
-              onClick={() => ask("off")}
-            >
-              {busy === "off" ? <Spinner size="sm" /> : null}
-              Turn off this address
-            </Button>
-          </div>
+          {hosted ? null : (
+            <div>
+              <Button
+                size="xs"
+                variant="ghost-muted"
+                disabled={!canChange || busy !== null}
+                onClick={() => ask("off")}
+              >
+                {busy === "off" ? <Spinner size="sm" /> : null}
+                Turn off this address
+              </Button>
+            </div>
+          )}
           {problem}
         </>
       )}

@@ -331,6 +331,11 @@ What that first version does not do, in the order I would take them:
   their Mac has to restore a Google Drive backup or link the server by hand; there is no "move
   my notes to a Majordome server" as there is for a server of your own.
 - **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (5) bounds the bill.
+- **Codex counts as "needs you".** The image ships Codex too, so Status on a new server says two
+  things need you when only Claude is meant to be signed in. True on any server, more visible
+  on a hosted one that shows Claude alone at the start.
+- **The built-in browser.** On Fly, `majord browser setup` reports that Chrome's sandbox is
+  allowed, so it should work; no one has opened a tab from a phone yet.
 - **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
   limit on tries, so codes must be long and random.
 - **Before anyone pays:** the privacy policy and agreements above, and Anthropic's answer.

@@ -6,7 +6,9 @@
 
 import { MajordomePhoneError, type MajordomeAnywhere } from "@t3tools/contracts";
 import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { isWildcardHost } from "@t3tools/shared/hostClassification";
+import { hostedServerName } from "@t3tools/shared/majordome";
 import * as RelayClient from "@t3tools/shared/relayClient";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
@@ -27,7 +29,7 @@ import * as ServerConfig from "../config.ts";
 import * as ManagedLimits from "../policy/managedLimits.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
 import * as ServerActivation from "../serverActivation.ts";
-import { isLoopbackHost } from "../startupAccess.ts";
+import { isLoopbackHost, readPublicUrl } from "../startupAccess.ts";
 
 const ADDRESS_SERVICE_URL_VARIABLE = "MAJORDOME_ADDRESS_SERVICE_URL";
 const DEFAULT_ADDRESS_SERVICE_URL = "https://broker.majord.link";
@@ -148,6 +150,16 @@ export class AnywhereAddress extends Context.Service<
   }
 >()("t3/majordome/AnywhereAddress") {}
 
+/** The address a phone uses on a server Majordome hosts, or null on any other server. */
+export function hostedPhoneAddress(input: {
+  readonly hosted: boolean;
+  readonly publicUrl: string | undefined;
+}): MajordomeAnywhere | null {
+  return input.hosted && input.publicUrl?.startsWith("https://")
+    ? { state: "ready", url: input.publicUrl, reason: null }
+    : null;
+}
+
 const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;
   const policy = yield* ManagedPolicy.ManagedPolicy;
@@ -165,6 +177,12 @@ const make = Effect.gen(function* () {
     config.host === undefined || isWildcardHost(config.host) || isLoopbackHost(config.host);
   const problemRef = yield* Ref.make<Problem | null>(null);
   const serviceScope = yield* Effect.scope;
+  // A server Majordome hosts is made with a public HTTPS address already, so it has no tunnel to
+  // open or close: that address is its address for a phone.
+  const hostedAddress = hostedPhoneAddress({
+    hosted: hostedServerName(yield* HostProcess.Environment) !== null,
+    publicUrl: yield* readPublicUrl,
+  });
 
   const readStored = secrets.get(ADDRESS_SECRET).pipe(
     Effect.map(Option.flatMap((bytes) => decodeStoredAddress(new TextDecoder().decode(bytes)))),
@@ -232,6 +250,7 @@ const make = Effect.gen(function* () {
   });
 
   const read = Effect.fn("AnywhereAddress.read")(function* () {
+    if (hostedAddress !== null) return hostedAddress;
     const stored = yield* readStored;
     if (Option.isNone(stored)) return { state: "off" as const, url: null, reason: null };
     const { url } = stored.value;
@@ -246,6 +265,7 @@ const make = Effect.gen(function* () {
   });
 
   const enable = Effect.fn("AnywhereAddress.enable")(function* () {
+    if (hostedAddress !== null) return hostedAddress;
     if (!ManagedLimits.allowsRemoteClients(policy)) {
       return yield* new MajordomePhoneError({ message: REMOTE_CLIENTS_REFUSED });
     }
@@ -304,6 +324,7 @@ const make = Effect.gen(function* () {
 
   // The address service keeps the address for two weeks, so turning it on again gives the same one.
   const disable = Effect.fn("AnywhereAddress.disable")(function* () {
+    if (hostedAddress !== null) return hostedAddress;
     yield* runtime.withLinkStateLock(
       secrets.remove(ADDRESS_SECRET).pipe(
         Effect.mapError(

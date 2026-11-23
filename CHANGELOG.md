@@ -7,6 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **Phone setup on a Majordome server uses the server's own address.** The Phone page offered to
+  give it a second address, as it does for a computer of yours. It now goes straight to the code
+  to scan, says "your Majordome server", and leaves out Tailscale, same-Wi-Fi pairing and turning
+  the address off, which do not apply there.
+
+**Try this**
+
+- On your Majordome server, open Settings > Phone & notifications, press "Show the code" and
+  scan it with your phone.
+
 ## 0.10.30
 
 **Changed**
