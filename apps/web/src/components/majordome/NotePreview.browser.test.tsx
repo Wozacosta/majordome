@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, MajordomeNoteError, ProjectId } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import { expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -12,10 +12,10 @@ import { notesLink } from "./notes.logic";
 
 const state = vi.hoisted(() => ({
   canSave: true,
-  refused: null as string | null,
+  refused: null as "changed" | "failed" | null,
   saves: [] as Array<unknown>,
 }));
-const setup = (next: { readonly canSave?: boolean; readonly refused?: string }) => {
+const setup = (next: { readonly canSave?: boolean; readonly refused?: "changed" | "failed" }) => {
   state.canSave = next.canSave ?? true;
   state.refused = next.refused ?? null;
   state.saves = [];
@@ -44,7 +44,14 @@ vi.mock("../../state/use-atom-command", () => ({
     state.saves.push(request);
     return state.refused === null
       ? { _tag: "Success", value: undefined }
-      : { _tag: "Failure", cause: Cause.fail(new Error(state.refused)) };
+      : {
+          _tag: "Failure",
+          cause: Cause.fail(
+            state.refused === "changed"
+              ? new MajordomeNoteError({ message: "Changed.", reason: "changed" })
+              : new MajordomeNoteError({ message: "Could not save that note." }),
+          ),
+        };
   },
 }));
 
@@ -89,8 +96,8 @@ it("saves a note typed in place once the typing pauses", async () => {
   await expect.element(screen.getByText("Saved to your notes")).toBeVisible();
 });
 
-it("offers the three ways out when a save is refused", async () => {
-  setup({ refused: "This note changed while you were writing." });
+it("offers to keep either version when the note was changed somewhere else", async () => {
+  setup({ refused: "changed" });
   await using screen = await render(note);
   // A note opens as it reads; writing starts when asked for.
   await screen.getByRole("button", { name: "Edit" }).click();
@@ -102,15 +109,41 @@ it("offers the three ways out when a save is refused", async () => {
 
   const alert = screen.getByRole("alert");
   await expect
-    .element(alert.getByText("Not saved. This note changed while you were writing."))
+    .element(alert.getByText("This note was changed somewhere else while you were writing."))
     .toBeVisible();
-  await expect.element(alert.getByRole("button", { name: "Try again" })).toBeVisible();
-  await expect.element(alert.getByRole("button", { name: "Discard my changes" })).toBeVisible();
+  await expect.element(alert.getByRole("button", { name: "Use the other version" })).toBeVisible();
+  expect(alert.getByRole("button", { name: "Try again" }).query()).toBeNull();
 
   state.refused = null;
-  await alert.getByRole("button", { name: "Keep my version" }).click();
+  await alert.getByRole("button", { name: "Keep mine (replaces the other change)" }).click();
   await expect.element(screen.getByText("Saved to your notes")).toBeVisible();
   expect(state.saves).toEqual([saveOf("Paris!"), saveOf("Paris!")]);
+});
+
+it("keeps an unsaved note open on Done, and opens it on the same writing again", async () => {
+  setup({ refused: "failed" });
+  {
+    await using screen = await render(note);
+    await screen.getByRole("button", { name: "Edit" }).click();
+    const editor = screen.getByRole("textbox", { name: "This note" });
+    await editor.click();
+    await userEvent.keyboard("{End}?");
+    await screen.getByRole("button", { name: "Done" }).click();
+
+    await expect
+      .element(screen.getByRole("alert").getByText("Not saved. Could not save that note."))
+      .toBeVisible();
+    await expect.element(editor).toHaveTextContent("Paris?");
+  }
+
+  await using screen = await render(note);
+  await expect
+    .element(screen.getByRole("textbox", { name: "This note" }))
+    .toHaveTextContent("Paris?");
+  state.refused = null;
+  await screen.getByRole("alert").getByRole("button", { name: "Try again" }).click();
+  await expect.element(screen.getByText("Saved to your notes")).toBeVisible();
+  expect(state.saves.at(-1)).toEqual(saveOf("Paris?"));
 });
 
 it("shows the note as it reads to a device that may not save it", async () => {

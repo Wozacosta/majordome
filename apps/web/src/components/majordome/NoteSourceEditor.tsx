@@ -204,7 +204,7 @@ export function NoteSourceEditor({
   onBlur,
   onOpenLink,
 }: {
-  /** The note as it is on disk. */
+  /** The note as it is on disk, or the writing it opens on when that was never saved. */
   readonly value: string;
   /** True while the editor holds changes not yet on disk, so `value` must not replace them. */
   readonly held: boolean;
@@ -218,6 +218,7 @@ export function NoteSourceEditor({
   const callbacks = useStableCallback((): Callbacks => ({ onChange, onBlur, onOpenLink }));
   const crlf = value.includes("\r\n");
   const eol = useRef(crlf);
+  const loaded = useRef(false);
   const [extensions] = useState(() => [
     StarterKit.configure({
       blockquote: false,
@@ -261,7 +262,8 @@ export function NoteSourceEditor({
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the editor owns its document; a note changed on disk is loaded into it
   useEffect(() => {
-    if (held) return;
+    if (held && loaded.current) return;
+    loaded.current = true;
     const text = value.replaceAll("\r\n", "\n");
     if (docText(editor.state.doc).join("\n") === text) return;
     eol.current = crlf;

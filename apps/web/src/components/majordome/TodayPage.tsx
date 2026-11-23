@@ -42,7 +42,7 @@ import {
   stoppedRunKeys,
 } from "./feed.logic";
 import { useNoteSourceLinkOpener } from "./NotePreview";
-import { NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
+import { noteDraftKey, NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
 import { NoteSourceEditor } from "./NoteSourceEditor";
 import { notesLink } from "./notes.logic";
 import { requestDraftSend } from "./pendingDraftSend";
@@ -386,6 +386,7 @@ function DailyNoteCard({
   const [line, setLine] = useState("");
   const [adding, setAdding] = useState(false);
   const editing = useNoteEditing({
+    draftKey: noteDraftKey(vault, note.path),
     disk,
     save: (content, base) =>
       saveNote({ environmentId, input: { projectId, date: day, content, base } }),
@@ -437,7 +438,7 @@ function DailyNoteCard({
           <p className="text-sm text-muted-foreground">Nothing written for this day yet.</p>
         ) : (
           <NoteSourceEditor
-            value={disk ?? ""}
+            value={editing.view.draft ?? disk ?? ""}
             held={editing.held}
             editable={canWrite}
             placeholder="Nothing written for this day yet. Click here to write."

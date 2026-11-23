@@ -1,6 +1,7 @@
 import * as Schema from "effect/Schema";
 
 import { ProjectId } from "./baseSchemas.ts";
+import { MajordomeNoteSaveRefusal } from "./majordomeNotes.ts";
 
 const DAILY_NOTE_MAX = 200_000;
 const DAILY_LINE_MAX = 2_000;
@@ -42,6 +43,7 @@ export class MajordomeDailyNoteError extends Schema.TaggedError<MajordomeDailyNo
   "MajordomeDailyNoteError",
   {
     message: Schema.String,
+    reason: Schema.optional(MajordomeNoteSaveRefusal),
     cause: Schema.optional(Schema.Defect()),
   },
 ) {}

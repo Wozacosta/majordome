@@ -27,7 +27,13 @@ import {
 } from "./notes.logic";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
+import {
+  hasKeptNoteDraft,
+  noteDraftKey,
+  NoteSaveProblem,
+  NoteSaveStatus,
+  useNoteEditing,
+} from "./noteEditing";
 import { NoteOpenIn } from "./NoteOpenIn";
 import { NoteSourceEditor, type NoteSourceLink } from "./NoteSourceEditor";
 import { READING_MEASURE_CLASS } from "./paper";
@@ -190,7 +196,9 @@ function MarkdownNote({
 }) {
   const file = useProjectFileQuery(vault.environmentId, vault.workspaceRoot, path, true, revision);
   const canSave = useAtomValue(majordomeEnvironment.saveNote.permissionAtom(vault.environmentId));
-  const [writing, setWriting] = useState(false);
+  const draftKey = noteDraftKey(vault, path);
+  // Writing a save could not keep opens the note where it was left, with what went wrong.
+  const [writing, setWriting] = useState(() => hasKeptNoteDraft(draftKey));
   if (file.data === null) {
     return file.error ? (
       <Centered>{file.error}</Centered>
@@ -207,6 +215,7 @@ function MarkdownNote({
       <EditableNote
         vault={vault}
         path={path}
+        draftKey={draftKey}
         disk={file.data.contents}
         onSaved={file.refresh}
         onDone={() => setWriting(false)}
@@ -241,6 +250,7 @@ function MarkdownNote({
 function EditableNote({
   vault,
   path,
+  draftKey,
   disk,
   onSaved,
   onDone,
@@ -248,6 +258,7 @@ function EditableNote({
 }: {
   readonly vault: NotesVault;
   readonly path: string;
+  readonly draftKey: string;
   readonly disk: string;
   readonly onSaved: () => void;
   /** Back to the note as it reads, once what was typed is saved. */
@@ -259,6 +270,7 @@ function EditableNote({
     reportFailure: false,
   });
   const editing = useNoteEditing({
+    draftKey,
     disk,
     save: async (content, base) => {
       const outcome = await saveNote({
@@ -278,11 +290,27 @@ function EditableNote({
   });
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* At the top, where Edit was: the Assistant button floats over the bottom corner. */}
+      <div className="flex items-center gap-3 px-3 pt-2">
+        <NoteSaveStatus view={editing.view} className="min-w-0 flex-1" />
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() =>
+            void editing.flush().then((saved) => {
+              // An unsaved note stays open, with what went wrong and the ways out of it.
+              if (saved) onDone();
+            })
+          }
+        >
+          Done
+        </Button>
+      </div>
       <div className="min-h-0 flex-1 overflow-auto scrollbar-gutter-both">
         <div className={cn(READING_MEASURE_CLASS, "mx-auto px-5 py-8 sm:px-8")}>
           <NoteSaveProblem editing={editing} className="mb-4" />
           <NoteSourceEditor
-            value={disk}
+            value={editing.view.draft ?? disk}
             held={editing.held}
             editable
             placeholder="This note is empty. Click here to write."
@@ -292,12 +320,6 @@ function EditableNote({
             onOpenLink={openLink}
           />
         </div>
-      </div>
-      <div className="flex items-center gap-3 border-t border-border px-5 py-1.5 sm:px-8">
-        <NoteSaveStatus view={editing.view} className="min-w-0 flex-1" />
-        <Button size="xs" variant="outline" onClick={() => void editing.flush().then(onDone)}>
-          Done
-        </Button>
       </div>
     </div>
   );

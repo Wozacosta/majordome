@@ -4,8 +4,11 @@ import { writeFileStringAtomically } from "@t3tools/shared/atomicWrite";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
-export const NOTE_CHANGED_WHILE_WRITING =
-  "This note changed while you were writing. Copy your text, then reload.";
+/** What a save fails with when the note no longer reads as the editor loaded it. */
+export const NOTE_CHANGED_WHILE_WRITING = {
+  message: "This note was changed somewhere else while you were writing.",
+  reason: "changed",
+} as const;
 
 /** The note's text, or null when there is no such file. */
 export const readNoteText = Effect.fn("majordome.readNoteText")(function* (file: string) {

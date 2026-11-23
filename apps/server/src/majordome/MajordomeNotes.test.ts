@@ -70,7 +70,8 @@ it.layer(NodeServices.layer)("MajordomeNotes", (it) => {
 
       const error = yield* save("projects/trip.md", "Mine", "Paris\n").pipe(Effect.flip);
 
-      assert.include(error.message, "changed while you were writing");
+      // The editor tells this refusal from a passing failure by its reason, not its words.
+      assert.strictEqual(error.reason, "changed");
       assert.strictEqual(yield* read("projects/trip.md"), "Paris, by the assistant\n");
     }),
   );
@@ -88,7 +89,10 @@ it.layer(NodeServices.layer)("MajordomeNotes", (it) => {
       const refused = (notePath: string) =>
         save(notePath, "mine", "theirs").pipe(
           Effect.flip,
-          Effect.map((error) => error.message),
+          Effect.map((error) => {
+            assert.isUndefined(error.reason);
+            return error.message;
+          }),
         );
       const outsideMessage = "That note is not in your notes folder.";
       const goneMessage = "That note is no longer in your notes folder.";

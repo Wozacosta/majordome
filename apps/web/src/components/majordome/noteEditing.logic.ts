@@ -6,7 +6,14 @@
 /** How long typing pauses before the note is saved. */
 export const NOTE_SAVE_DELAY_MS = 800;
 
-export type NoteSaveOutcome = "saved" | "interrupted" | { readonly problem: string };
+export type NoteSaveOutcome =
+  | "saved"
+  | "interrupted"
+  | {
+      readonly problem: string;
+      /** The note was changed somewhere else, so the same save again would be refused again. */
+      readonly conflict: boolean;
+    };
 
 export interface NoteEditingView {
   /** What was typed and is not on disk yet; null when the editor shows the file as it is. */
@@ -15,13 +22,31 @@ export interface NoteEditingView {
   readonly settling: string | null | undefined;
   /** Why the last save did not go through, in words for the owner. */
   readonly problem: string | null;
+  /** True when that save was refused because the note was changed somewhere else. */
+  readonly conflict: boolean;
 }
 
 export const NOTE_EDITING_IDLE: NoteEditingView = {
   draft: null,
   settling: undefined,
   problem: null,
+  conflict: false,
 };
+
+/** Writing a save could not put on disk, kept so that leaving the note does not lose it. */
+export interface KeptNoteDraft {
+  readonly draft: string;
+  readonly base: string | null;
+  readonly problem: string | null;
+  readonly conflict: boolean;
+}
+
+/** How a note opens: as the file reads, or on the writing kept from the last time it was open. */
+export function noteEditingStart(kept: KeptNoteDraft | null): NoteEditingView {
+  return kept === null
+    ? NOTE_EDITING_IDLE
+    : { draft: kept.draft, settling: undefined, problem: kept.problem, conflict: kept.conflict };
+}
 
 /** True while the editor's text must not be replaced by the file's. */
 export function isNoteHeld(view: NoteEditingView, disk: string | null): boolean {
@@ -36,7 +61,10 @@ export function noteSaveStatus(view: NoteEditingView): string {
 
 export interface NoteEditing {
   readonly change: (text: string) => void;
-  /** Saves what is typed now, without waiting for the pause. True when nothing is left unsaved. */
+  /**
+   * Saves what is typed now, without waiting for the pause, and waits for a save already on its
+   * way. True when nothing is left unsaved.
+   */
   readonly flush: () => Promise<boolean>;
   /** After a save failed for a passing reason, such as a lost connection: the same save again. */
   readonly retry: () => void;
@@ -50,12 +78,18 @@ export function createNoteEditing(input: {
   /** `base` is the file content the edit started from. */
   readonly save: (content: string, base: string | null) => Promise<NoteSaveOutcome>;
   readonly publish: (view: NoteEditingView) => void;
+  /** What `keep` last held for this note. */
+  readonly kept?: KeptNoteDraft | null;
+  /** Told what a failed save left unsaved, and null once nothing is. Outlives the editor. */
+  readonly keep?: (kept: KeptNoteDraft | null) => void;
 }): NoteEditing {
-  let view = NOTE_EDITING_IDLE;
-  let draft: string | null = null;
-  let base: string | null = null;
-  let saving = false;
-  let blocked = false;
+  const kept = input.kept ?? null;
+  let view = noteEditingStart(kept);
+  let draft = kept?.draft ?? null;
+  let base = kept?.base ?? null;
+  let blocked = kept !== null && kept.problem !== null;
+  let failed = kept !== null;
+  let inFlight: Promise<boolean> | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const show = (patch: Partial<NoteEditingView>) => {
@@ -63,27 +97,45 @@ export function createNoteEditing(input: {
     input.publish(view);
   };
 
-  const flush = async (): Promise<boolean> => {
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
-    const content = draft;
-    if (content === null) return true;
-    if (saving || blocked) return false;
-    saving = true;
+  const remember = () =>
+    input.keep?.(
+      draft !== null && failed
+        ? { draft, base, problem: view.problem, conflict: view.conflict }
+        : null,
+    );
+
+  const save = async (content: string): Promise<boolean> => {
     const startedFrom = base;
+    failed = false;
+    remember();
     const outcome = await input.save(content, startedFrom);
-    saving = false;
-    if (outcome === "interrupted") return false;
     if (outcome !== "saved") {
-      blocked = true;
-      show({ problem: outcome.problem });
+      failed = true;
+      if (outcome !== "interrupted") {
+        blocked = true;
+        show(outcome);
+      }
+      remember();
       return false;
     }
     base = content;
-    if (draft !== content) return flush();
+    if (draft !== null && draft !== content) return save(draft);
     draft = null;
     show(content === startedFrom ? { draft: null } : { draft: null, settling: startedFrom });
     return true;
+  };
+
+  const flush = (): Promise<boolean> => {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+    if (draft === null) return Promise.resolve(true);
+    if (inFlight !== null) return inFlight;
+    if (blocked) return Promise.resolve(false);
+    const running = save(draft).finally(() => {
+      inFlight = null;
+    });
+    inFlight = running;
+    return running;
   };
 
   return {
@@ -97,24 +149,26 @@ export function createNoteEditing(input: {
       }
       draft = text;
       show({ draft: text, settling: undefined });
+      remember();
       if (timer !== null) clearTimeout(timer);
       timer = setTimeout(() => void flush(), NOTE_SAVE_DELAY_MS);
     },
     flush,
     retry: () => {
       blocked = false;
-      show({ problem: null });
+      show({ problem: null, conflict: false });
       void flush();
     },
     resolve: (keepMine) => {
       blocked = false;
-      show({ problem: null });
+      show({ problem: null, conflict: false });
       if (keepMine) {
         base = input.disk();
         void flush();
       } else {
         draft = null;
         show({ draft: null });
+        remember();
       }
     },
   };

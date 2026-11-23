@@ -57,7 +57,8 @@ it.layer(NodeServices.layer)("MajordomeDailyNotes", (it) => {
 
       const error = yield* service.save({ ...day, base: null, content: "Mine" }).pipe(Effect.flip);
 
-      assert.include(error.message, "changed while you were writing");
+      // The editor tells this refusal from a passing failure by its reason, not its words.
+      assert.strictEqual(error.reason, "changed");
       assert.strictEqual(yield* read("daily/2026-11-19.md"), "- 09:05 From a routine\n");
     }),
   );

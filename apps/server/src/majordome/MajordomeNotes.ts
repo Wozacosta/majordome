@@ -76,7 +76,7 @@ const make = Effect.gen(function* () {
         Effect.gen(function* () {
           const file = yield* resolveNote(project.workspaceRoot, input.path);
           if (!(yield* replaceNoteIfUnchanged({ ...input, file }))) {
-            return yield* new MajordomeNoteError({ message: NOTE_CHANGED_WHILE_WRITING });
+            return yield* new MajordomeNoteError(NOTE_CHANGED_WHILE_WRITING);
           }
         }),
       );

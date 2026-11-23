@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import {
   createNoteEditing,
   isNoteHeld,
+  type KeptNoteDraft,
   NOTE_EDITING_IDLE,
   NOTE_SAVE_DELAY_MS,
+  noteEditingStart,
   type NoteEditingView,
   type NoteSaveOutcome,
   noteSaveStatus,
@@ -15,8 +17,8 @@ function fakeTimers(): Disposable {
   return { [Symbol.dispose]: () => void vi.useRealTimers() };
 }
 
-function setUp(disk: string | null) {
-  const state = { disk, view: NOTE_EDITING_IDLE as NoteEditingView };
+function setUp(disk: string | null, kept: KeptNoteDraft | null = null) {
+  const state = { disk, view: NOTE_EDITING_IDLE as NoteEditingView, kept };
   const saves: Array<{
     readonly content: string;
     readonly base: string | null;
@@ -30,6 +32,10 @@ function setUp(disk: string | null) {
       }),
     publish: (view) => {
       state.view = view;
+    },
+    kept,
+    keep: (next) => {
+      state.kept = next;
     },
   });
   const pause = () => vi.advanceTimersByTimeAsync(NOTE_SAVE_DELAY_MS);
@@ -74,7 +80,8 @@ describe("createNoteEditing", () => {
     editing.change("One");
     await pause();
     editing.change("One two");
-    expect(await editing.flush()).toBe(false);
+    // Asking to save during a save waits for both.
+    const flushed = editing.flush();
     await settle("saved");
     expect(sent()).toEqual([
       { content: "One", base: null },
@@ -84,6 +91,7 @@ describe("createNoteEditing", () => {
 
     state.disk = "One";
     await settle("saved");
+    expect(await flushed).toBe(true);
     // The second save is not read back yet, so the next edit still starts from what it saved.
     editing.change("One two three");
     await pause();
@@ -113,8 +121,8 @@ describe("createNoteEditing", () => {
 
     editing.change("Mine");
     await pause();
-    await settle({ problem: "This note changed while you were writing." });
-    expect(state.view.problem).toBe("This note changed while you were writing.");
+    await settle({ problem: "Changed somewhere else.", conflict: true });
+    expect(state.view).toMatchObject({ problem: "Changed somewhere else.", conflict: true });
     expect(noteSaveStatus(state.view)).toBe("Not saved");
 
     editing.change("Mine, more");
@@ -125,13 +133,18 @@ describe("createNoteEditing", () => {
     editing.retry();
     expect(state.view.problem).toBeNull();
     expect(sent().at(-1)).toEqual({ content: "Mine, more", base: "Old" });
-    await settle({ problem: "Still changed." });
+    await settle({ problem: "Still changed.", conflict: true });
 
     state.disk = "Theirs";
     editing.resolve(true);
     expect(sent().at(-1)).toEqual({ content: "Mine, more", base: "Theirs" });
     await settle("saved");
-    expect(state.view).toEqual({ draft: null, settling: "Theirs", problem: null });
+    expect(state.view).toEqual({
+      draft: null,
+      settling: "Theirs",
+      problem: null,
+      conflict: false,
+    });
   });
 
   it("drops the draft when the owner discards it", async () => {
@@ -140,13 +153,59 @@ describe("createNoteEditing", () => {
 
     editing.change("Mine");
     await pause();
-    await settle({ problem: "Changed." });
+    await settle({ problem: "Changed.", conflict: true });
+    expect(state.kept).not.toBeNull();
     editing.resolve(false);
 
     expect(state.view).toEqual(NOTE_EDITING_IDLE);
     expect(isNoteHeld(state.view, "Theirs")).toBe(false);
     expect(await editing.flush()).toBe(true);
     expect(sent()).toHaveLength(1);
+    expect(state.kept).toBeNull();
+  });
+
+  it("keeps writing a save could not keep, and opens the note on it again", async () => {
+    using _timers = fakeTimers();
+    const first = setUp("Old");
+
+    first.editing.change("Mine");
+    await first.pause();
+    expect(first.state.kept).toBeNull();
+    await first.settle({ problem: "No connection.", conflict: false });
+    first.editing.change("Mine, more");
+    // Leaving the note asks for a save; a failed one is not sent again on its own.
+    expect(await first.editing.flush()).toBe(false);
+    const kept = { draft: "Mine, more", base: "Old", problem: "No connection.", conflict: false };
+    expect(first.state.kept).toEqual(kept);
+
+    const again = setUp("Old", kept);
+    expect(noteEditingStart(kept)).toMatchObject({
+      draft: "Mine, more",
+      problem: "No connection.",
+    });
+    expect(await again.editing.flush()).toBe(false);
+    again.editing.retry();
+    expect(again.sent()).toEqual([{ content: "Mine, more", base: "Old" }]);
+    await again.settle("saved");
+    expect(again.state.kept).toBeNull();
+    expect(noteSaveStatus(again.state.view)).toBe("Saved to your notes");
+  });
+
+  it("keeps writing whose save fails after the note was left", async () => {
+    using _timers = fakeTimers();
+    const { state, editing, settle } = setUp("Old");
+
+    editing.change("Mine");
+    const leaving = editing.flush();
+    await settle({ problem: "Changed somewhere else.", conflict: true });
+
+    expect(await leaving).toBe(false);
+    expect(state.kept).toEqual({
+      draft: "Mine",
+      base: "Old",
+      problem: "Changed somewhere else.",
+      conflict: true,
+    });
   });
 
   it("keeps the draft when a save is interrupted, and saves it on the next flush", async () => {
@@ -156,7 +215,14 @@ describe("createNoteEditing", () => {
     editing.change("Mine");
     await pause();
     await settle("interrupted");
-    expect(state.view).toEqual({ draft: "Mine", settling: undefined, problem: null });
+    expect(state.view).toEqual({
+      draft: "Mine",
+      settling: undefined,
+      problem: null,
+      conflict: false,
+    });
+    // An interrupted save is kept too, and saved when the note is opened again.
+    expect(state.kept).toEqual({ draft: "Mine", base: "Old", problem: null, conflict: false });
 
     const flushed = editing.flush();
     await settle("saved");
