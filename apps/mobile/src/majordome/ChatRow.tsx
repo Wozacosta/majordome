@@ -1,10 +1,14 @@
+import { SymbolView as ExpoSymbolView, type SFSymbol } from "expo-symbols";
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { withUniwind } from "uniwind";
 
-import { SymbolView, type SFSymbol } from "../components/ui/AppSymbol";
 import { AppText as Text } from "../components/ui/AppText";
 import { cn } from "../lib/cn";
 import { chatWantsAttention, type ChatLine, type ChatLineTone } from "./chat.logic";
+
+// The shared symbol component only takes the names upstream uses; topics wear others.
+const SymbolView = withUniwind(ExpoSymbolView);
 
 const LINE_TONES: Record<ChatLineTone, string> = {
   plain: "text-foreground-muted",
@@ -58,7 +62,7 @@ export function ChatRowContent(props: {
         style={props.color === undefined ? undefined : { backgroundColor: `${props.color}26` }}
       >
         {props.color === undefined ? (
-          <SymbolView name={props.symbol} size={20} tintColorClassName="accent-foreground-muted" />
+          <SymbolView name={props.symbol} size={20} tintColorClassName="accent-icon-muted" />
         ) : (
           <SymbolView name={props.symbol} size={22} tintColor={props.color} />
         )}

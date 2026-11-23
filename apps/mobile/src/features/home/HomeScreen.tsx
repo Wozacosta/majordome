@@ -104,7 +104,7 @@ import { holdLaunchSplashForHomeRows, settleLaunchSplashHomeRows } from "./home-
 import { useWorkspaceTabs } from "../layout/workspace/WorkspaceTabsContext";
 import { ThreadListFilters } from "./ThreadListFilters";
 import { isMajordome } from "../../majordome/env";
-import { MajordomeTopicsSection } from "../../majordome/TopicsSection";
+import { MajordomeTopicsSection, useHasTopics } from "../../majordome/TopicsSection";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -615,7 +615,10 @@ export function HomeScreen(props: HomeScreenProps) {
     workingShelfEnabled,
   };
 
+  // Majordome's topics are listed above the chats, so the list has rows even with no chat.
+  const hasTopics = useHasTopics() && isMajordome;
   const hasAnyThreads =
+    hasTopics ||
     props.threads.some((thread) => thread.archivedAt === null) ||
     props.pendingTasks.length > 0 ||
     threadListV2Layout.settledCount > 0;
@@ -688,7 +691,7 @@ export function HomeScreen(props: HomeScreenProps) {
       {isMajordome ? (
         // Majordome lists the topics here; upstream's computer and project filters are put away.
         props.searchQuery ? null : (
-          <MajordomeTopicsSection hasOtherChats={props.threads.length > 0} />
+          <MajordomeTopicsSection hasOtherChats={threadListV2Items[0]?.type === "v2-thread"} />
         )
       ) : Platform.OS === "ios" && workspace ? (
         <ThreadListFilters
@@ -747,7 +750,7 @@ export function HomeScreen(props: HomeScreenProps) {
         detail={gt("Choose another environment or create a new task.")}
         variant={Platform.OS === "android" ? "plain" : undefined}
       />
-    ) : (
+    ) : hasTopics ? null : (
       <EmptyState
         title={gt("No threads yet")}
         detail={gt("Create a task to start a new coding session.")}
@@ -755,7 +758,7 @@ export function HomeScreen(props: HomeScreenProps) {
       />
     );
 
-  if (Platform.OS === "android" && threadListV2Items.length === 0) {
+  if (Platform.OS === "android" && threadListV2Items.length === 0 && !hasTopics) {
     return (
       <ScreenContent surface="screen">
         <View

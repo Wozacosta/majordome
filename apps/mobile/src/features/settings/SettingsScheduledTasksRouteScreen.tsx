@@ -76,6 +76,8 @@ import { ScheduledTaskPromptField } from "./components/ScheduledTaskPromptField"
 import { useSettingsEnvironmentMenu } from "./components/SettingsEnvironmentFilterHeader";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_ROUTINE_LABELS } from "../../majordome/settingsRoutines";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
 import {
   changeDraftProject,
@@ -963,7 +965,13 @@ function TaskForm({
             }}
           />
         </SettingsSection>
-        <SettingsSection title={gt("Task", { $context: "section heading for a scheduled task" })}>
+        <SettingsSection
+          title={
+            isMajordome
+              ? MAJORDOME_ROUTINE_LABELS.section
+              : gt("Task", { $context: "section heading for a scheduled task" })
+          }
+        >
           <FormField
             label={gt("Name")}
             disabled={saving}
@@ -976,7 +984,7 @@ function TaskForm({
 
         <SettingsSection title={gt("Context", { $context: "section heading: project and model" })}>
           <SelectRow
-            label={gt("Project")}
+            label={isMajordome ? MAJORDOME_ROUTINE_LABELS.project : gt("Project")}
             value={
               projects.find((project) => project.id === draft.projectId)?.title ??
               (projects.length ? gt("Choose project") : gt("No projects available"))
@@ -1070,7 +1078,7 @@ function TaskForm({
           ) : null}
           {!offersThreadModes || draft.threadMode !== "new_thread" ? (
             <PickerRow
-              label={gt("Thread")}
+              label={isMajordome ? MAJORDOME_ROUTINE_LABELS.thread : gt("Thread")}
               borderTop={offersThreadModes}
               value={
                 draft.threadId === null && draft.threadMode !== "new_thread"
@@ -1083,69 +1091,71 @@ function TaskForm({
           ) : null}
         </SettingsSection>
 
-        <SettingsSection title={gt("Workspace")}>
-          <SelectRow
-            label={gt("Run in")}
-            value={
-              draft.workspace === "worktree"
-                ? gt("New worktree")
-                : draft.workspace === "root"
-                  ? gt("Project checkout")
-                  : gt("Specific checkout")
-            }
-            actions={[
-              {
-                id: "worktree",
-                title: gt("New worktree"),
-                state: draft.workspace === "worktree" ? "on" : undefined,
-              },
-              {
-                id: "root",
-                title: gt("Project checkout"),
-                state: draft.workspace === "root" ? "on" : undefined,
-              },
-              {
-                id: "existing_worktree",
-                title: gt("Specific checkout"),
-                state: draft.workspace === "existing_worktree" ? "on" : undefined,
-              },
-            ]}
-            onSelect={(id) => {
-              if (id === "worktree" || id === "root" || id === "existing_worktree")
-                setDraft((current) => ({ ...current, workspace: id }));
-            }}
-          />
-          {draft.workspace === "worktree" ? (
-            <PickerRow
-              label={gt("Base branch")}
-              value={resolveNewTaskBranchLabel(
-                {
-                  branchName: automaticBaseRefLoading ? null : worktreeBaseRef,
-                  startFromOrigin: draft.startFromOrigin,
-                  workspaceMode: "worktree",
-                },
-                m,
-              )}
-              borderTop
-              disabled={!draft.projectId || saving || dictationPending || environmentUnavailable}
-              onPress={() => navigation.navigate("SettingsScheduledTaskBranch")}
-            />
-          ) : null}
-          {draft.workspace === "existing_worktree" ? (
-            <FormField
-              label={gt("Checkout path")}
-              disabled={saving}
-              value={draft.checkoutPath}
-              borderTop
-              onChange={(checkoutPath) =>
-                setEnvironmentDraft((current) => ({
-                  ...current,
-                  checkoutPath: resolvePastedPath(current.checkoutPath, checkoutPath),
-                }))
+        {isMajordome ? null : (
+          <SettingsSection title={gt("Workspace")}>
+            <SelectRow
+              label={gt("Run in")}
+              value={
+                draft.workspace === "worktree"
+                  ? gt("New worktree")
+                  : draft.workspace === "root"
+                    ? gt("Project checkout")
+                    : gt("Specific checkout")
               }
+              actions={[
+                {
+                  id: "worktree",
+                  title: gt("New worktree"),
+                  state: draft.workspace === "worktree" ? "on" : undefined,
+                },
+                {
+                  id: "root",
+                  title: gt("Project checkout"),
+                  state: draft.workspace === "root" ? "on" : undefined,
+                },
+                {
+                  id: "existing_worktree",
+                  title: gt("Specific checkout"),
+                  state: draft.workspace === "existing_worktree" ? "on" : undefined,
+                },
+              ]}
+              onSelect={(id) => {
+                if (id === "worktree" || id === "root" || id === "existing_worktree")
+                  setDraft((current) => ({ ...current, workspace: id }));
+              }}
             />
-          ) : null}
-        </SettingsSection>
+            {draft.workspace === "worktree" ? (
+              <PickerRow
+                label={gt("Base branch")}
+                value={resolveNewTaskBranchLabel(
+                  {
+                    branchName: automaticBaseRefLoading ? null : worktreeBaseRef,
+                    startFromOrigin: draft.startFromOrigin,
+                    workspaceMode: "worktree",
+                  },
+                  m,
+                )}
+                borderTop
+                disabled={!draft.projectId || saving || dictationPending || environmentUnavailable}
+                onPress={() => navigation.navigate("SettingsScheduledTaskBranch")}
+              />
+            ) : null}
+            {draft.workspace === "existing_worktree" ? (
+              <FormField
+                label={gt("Checkout path")}
+                disabled={saving}
+                value={draft.checkoutPath}
+                borderTop
+                onChange={(checkoutPath) =>
+                  setEnvironmentDraft((current) => ({
+                    ...current,
+                    checkoutPath: resolvePastedPath(current.checkoutPath, checkoutPath),
+                  }))
+                }
+              />
+            ) : null}
+          </SettingsSection>
+        )}
 
         <SettingsSection title={gt("Schedule", { $context: "noun, section heading" })}>
           <View className="px-4 py-3">
@@ -1163,7 +1173,8 @@ function TaskForm({
                     ]
                   : []),
                 { value: "interval", label: gt("Interval") },
-                ...(webhookDenial === undefined || draft.schedule.mode === "webhook"
+                ...((webhookDenial === undefined && !isMajordome) ||
+                draft.schedule.mode === "webhook"
                   ? [{ value: "webhook" as const, label: gt("On webhook") }]
                   : []),
               ]}

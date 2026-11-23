@@ -34,6 +34,8 @@ import { splitEnvironmentSections } from "./environmentSections";
 import { leaveSettingsPage } from "../settings/settings-navigation";
 import { workspaceHasColumns } from "../layout/workspace/workspace-selection-store";
 import { m } from "../../i18n/messages";
+import { isMajordome } from "../../majordome/env";
+import { connectErrorForOwner, MAJORDOME_CONNECT } from "../../majordome/connectWording";
 
 type ConnectionsNewRouteParams = {
   readonly mode?: string;
@@ -83,7 +85,11 @@ function PairingForm({
     ownAttempt,
   );
   const connecting = isSubmitting || autoConnect.connecting;
-  const pairingConnectionError = submitError ?? autoConnect.error;
+  const rawConnectionError = submitError ?? autoConnect.error;
+  const pairingConnectionError =
+    isMajordome && rawConnectionError !== null
+      ? connectErrorForOwner(rawConnectionError)
+      : rawConnectionError;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const screenFocused = useIsFocused();
   const [scannerLocked, setScannerLocked] = useState(false);
@@ -123,8 +129,10 @@ function PairingForm({
     }
     if (permission.canAskAgain) return;
     Dialog.alert(
-      gt("Camera access needed"),
-      gt("Camera access was denied for this app. Open Settings to enable it."),
+      isMajordome ? MAJORDOME_CONNECT.cameraDeniedTitle : gt("Camera access needed"),
+      isMajordome
+        ? MAJORDOME_CONNECT.cameraDenied
+        : gt("Camera access was denied for this app. Open Settings to enable it."),
       [
         { text: gt("Cancel"), style: "cancel" },
         { text: gt("Open Settings"), onPress: () => void Linking.openSettings() },
@@ -139,30 +147,46 @@ function PairingForm({
 
     setScannerLocked(true);
 
-    try {
-      const pairingUrl = extractPairingUrlFromQrPayload(data);
-      const { host, code } = parsePairingUrl(pairingUrl);
-      setHostInput(host);
-      setCodeInput(code);
-      onChangeConnectionPairingUrl(pairingUrl);
-      setScanComplete(true);
-      setScannerLocked(false);
-    } catch (error) {
+    const rejectScan = (error: unknown) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Dialog.alert(
-        gt("Invalid QR code"),
-        error instanceof Error
-          ? (errorDisplayMessage(error, m) ?? error.message)
-          : gt("Scanned QR code was not recognized."),
+        isMajordome ? MAJORDOME_CONNECT.wrongCodeTitle : gt("Invalid QR code"),
+        isMajordome
+          ? MAJORDOME_CONNECT.wrongCode
+          : error instanceof Error
+            ? (errorDisplayMessage(error, m) ?? error.message)
+            : gt("Scanned QR code was not recognized."),
       );
       setTimeout(() => {
         setScannerLocked(false);
       }, 600);
+    };
+
+    let scanned: { pairingUrl: string; host: string; code: string };
+    try {
+      const pairingUrl = extractPairingUrlFromQrPayload(data);
+      scanned = { pairingUrl, ...parsePairingUrl(pairingUrl) };
+    } catch (error) {
+      rejectScan(error);
+      return;
     }
+    const { pairingUrl, host, code } = scanned;
+    // Any QR code parses as an address; only one carrying a code is Majordome's.
+    if (isMajordome && (host === "" || code === "")) {
+      rejectScan(null);
+      return;
+    }
+    setHostInput(host);
+    setCodeInput(code);
+    onChangeConnectionPairingUrl(pairingUrl);
+    setScanComplete(true);
+    setScannerLocked(false);
+    // The owner scanned their own computer's code: nothing is left for them to confirm.
+    if (isMajordome) void handleSubmit(buildPairingUrl(host, code));
   };
 
-  const handleSubmit = async () => {
-    const pairingUrl = buildPairingUrl(hostInput, codeInput);
+  const handleSubmit = async (scannedPairingUrl?: string) => {
+    const pairingUrl = scannedPairingUrl ?? buildPairingUrl(hostInput, codeInput);
     setOwnAttempt(true);
     setSubmitError(null);
     setIsSubmitting(true);
@@ -227,7 +251,7 @@ function PairingForm({
 
           <View collapsable={false} className="gap-2">
             <Text className="px-4 text-sm font-t3-medium text-foreground-muted">
-              <T>Or enter it</T>
+              {isMajordome ? MAJORDOME_CONNECT.typeItHeading : <T>Or enter it</T>}
             </Text>
             <View
               collapsable={false}
@@ -239,14 +263,16 @@ function PairingForm({
               <PairingInputRow
                 label={gt("Address")}
                 keyboardType="url"
-                placeholder="192.168.1.100:3773"
+                placeholder={
+                  isMajordome ? MAJORDOME_CONNECT.addressPlaceholder : "192.168.1.100:3773"
+                }
                 value={hostInput}
                 onChangeText={handleHostChange}
               />
               <View className="ml-4 border-t border-border-subtle" />
               <PairingInputRow
                 label={gt("Code", { $context: "pairing code field" })}
-                placeholder={gt("Pairing code")}
+                placeholder={isMajordome ? MAJORDOME_CONNECT.codePlaceholder : gt("Pairing code")}
                 returnKeyType="go"
                 value={codeInput}
                 onChangeText={handleCodeChange}
@@ -263,9 +289,11 @@ function PairingForm({
               )}
             >
               {pairingConnectionError ??
-                gt(
-                  "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
-                )}
+                (isMajordome
+                  ? MAJORDOME_CONNECT.typeItHelp
+                  : gt(
+                      "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
+                    ))}
             </Text>
           </View>
 
@@ -276,7 +304,8 @@ function PairingForm({
   );
 }
 
-const SCAN_CARD_HEIGHT = 250;
+// Majordome's caption says where the code is, over three lines.
+const SCAN_CARD_HEIGHT = isMajordome ? 276 : 250;
 const SCAN_RETICLE_SIZE = 150;
 const SCAN_RETICLE_TOP = 36;
 const SCAN_RETICLE_RADIUS = 28;
@@ -361,10 +390,18 @@ function PairingScanCard(props: {
             </>
           )}
         </View>
-        <Text className={cn("text-center text-sm", light ? "text-black/70" : "text-white/80")}>
-          {gt("Scan the code from {command} or desktop Connections settings", {
-            command: "t3 pair",
-          })}
+        <Text
+          className={cn(
+            "text-center text-sm",
+            isMajordome && "px-5",
+            light ? "text-black/70" : "text-white/80",
+          )}
+        >
+          {isMajordome
+            ? MAJORDOME_CONNECT.scanCaption
+            : gt("Scan the code from {command} or desktop Connections settings", {
+                command: "t3 pair",
+              })}
         </Text>
       </View>
     </Pressable>

@@ -12,6 +12,8 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { ListChoiceRow as SettingsChoiceRow } from "../../components/ui/ListChoiceRow";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsScreen } from "./components/SettingsScreen";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 
 const FOLLOW_UP_OPTIONS: ReadonlyArray<{
   readonly behavior: FollowUpBehavior;
@@ -73,5 +75,9 @@ export function SettingsFollowUpRouteScreen() {
     </ScrollView>
   );
 
-  return <SettingsScreen title={gt("Chat")}>{content}</SettingsScreen>;
+  return (
+    <SettingsScreen title={isMajordome ? MAJORDOME_SETTINGS_LABELS.SettingsFollowUp : gt("Chat")}>
+      {content}
+    </SettingsScreen>
+  );
 }

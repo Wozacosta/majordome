@@ -10,6 +10,7 @@ import { TerminalAppearanceSection } from "./appearance/sections/TerminalAppeara
 import { TextAppearanceSection } from "./appearance/sections/TextAppearanceSection";
 import { ThemeAppearanceSection } from "./appearance/sections/ThemeAppearanceSection";
 import { ToolCallsAppearanceSection } from "./appearance/sections/ToolCallsAppearanceSection";
+import { isMajordome } from "../../majordome/env";
 
 export function SettingsAppearanceRouteScreen() {
   const gt = useGT();
@@ -29,8 +30,8 @@ export function SettingsAppearanceRouteScreen() {
         <ThemeAppearanceSection />
         {Platform.OS === "android" ? <AndroidNavigationAppearanceSection /> : null}
         <TextAppearanceSection />
-        <TerminalAppearanceSection />
-        <CodeAppearanceSection />
+        {isMajordome ? null : <TerminalAppearanceSection />}
+        {isMajordome ? null : <CodeAppearanceSection />}
         <ToolCallsAppearanceSection />
       </ScrollView>
     </SettingsScreen>

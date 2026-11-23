@@ -106,7 +106,7 @@ function TopicRowView(props: {
           image: "square.and.pencil",
         },
         ...(shell && !unread
-          ? [{ id: "mark-unread", title: "Mark as unread", image: "envelope.badge" }]
+          ? [{ id: "mark-unread", title: "Mark unread", image: "envelope.badge" }]
           : []),
       ]}
       onPressAction={({ nativeEvent }) => {

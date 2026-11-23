@@ -26,6 +26,7 @@ import { SettingsSwitchRow } from "./components/SettingsSwitchRow";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { planAutoSettleSettingsSync, type AutoSettleSettings } from "./autoSettleSettingsSync";
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
+import { isMajordome } from "../../majordome/env";
 import {
   managedSettingReason,
   resolveMobileSettingsTargets,
@@ -157,13 +158,15 @@ export function AutoSettleSettingsRows(props: {
         </SettingsSection>
       ) : null}
       <SettingsSection title={gt("Auto-settle")}>
-        <SettingsSwitchRow
-          icon="arrow.triangle.branch"
-          label={gt("Auto-settle merged threads")}
-          value={referenceSettings.sidebarAutoSettleOnMerge}
-          disabled={disabledFor("sidebarAutoSettleOnMerge")}
-          onValueChange={(value) => writeToAll({ sidebarAutoSettleOnMerge: value })}
-        />
+        {isMajordome ? null : (
+          <SettingsSwitchRow
+            icon="arrow.triangle.branch"
+            label={gt("Auto-settle merged threads")}
+            value={referenceSettings.sidebarAutoSettleOnMerge}
+            disabled={disabledFor("sidebarAutoSettleOnMerge")}
+            onValueChange={(value) => writeToAll({ sidebarAutoSettleOnMerge: value })}
+          />
+        )}
         <SettingsSwitchRow
           icon="clock"
           label={gt("Auto-settle inactive threads")}

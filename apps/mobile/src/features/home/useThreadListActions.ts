@@ -42,6 +42,8 @@ import {
 import { getThreadListV2OrderedSection } from "../threads/threadListV2";
 import { threadCanArchive } from "./threadArchive";
 import { resolveThreadTitleRename } from "../threads/thread-title-rename";
+import { chatTitle, keepsChatTitle } from "../../majordome/chat.logic";
+import { isMajordome } from "../../majordome/env";
 
 function environmentConfigLoaded(environmentId: EnvironmentThreadShell["environmentId"]) {
   return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
@@ -622,6 +624,7 @@ export function useThreadListActions(): {
   };
   const renameThread = (thread: EnvironmentThreadShell) => {
     const commit = (title: string) => {
+      if (isMajordome && keepsChatTitle(title, thread.title)) return;
       const resolution = resolveThreadTitleRename({ title, originalTitle: thread.title });
       if (resolution.action === "reject-empty") {
         Dialog.alert(m(msg("Could not rename thread")), m(msg("Thread title cannot be empty.")));
@@ -646,7 +649,7 @@ export function useThreadListActions(): {
 
     Dialog.prompt({
       title: m(msg("Rename thread")),
-      initialValue: thread.title,
+      initialValue: isMajordome ? chatTitle(thread.title) : thread.title,
       confirmText: m(msg("Rename", { $context: "verb, confirms renaming a thread" })),
       onConfirm: commit,
     });

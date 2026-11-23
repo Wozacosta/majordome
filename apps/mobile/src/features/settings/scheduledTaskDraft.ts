@@ -28,6 +28,8 @@ import {
   resolveDefaultableModelSelection,
   resolveNewTaskModelSelection,
 } from "../../lib/modelOptions";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_ROUTINE_DRAFT } from "../../majordome/settingsRoutines";
 
 export function scheduledTaskDefaultModel(
   config: ServerConfig | null,
@@ -272,7 +274,7 @@ export function unbindDraftFromThread(draft: ScheduledTaskDraft): ScheduledTaskD
   return {
     ...draft,
     threadId: null,
-    ...(draft.workspace === "root"
+    ...(draft.workspace === "root" && !isMajordome
       ? { workspace: "worktree" as const, startFromOrigin: true }
       : {}),
   };
@@ -306,6 +308,7 @@ export function createDraft(
     enabled: true,
     startFromOrigin: true,
     runtimeMode: "full-access",
+    ...(isMajordome ? MAJORDOME_ROUTINE_DRAFT : {}),
   };
 }
 

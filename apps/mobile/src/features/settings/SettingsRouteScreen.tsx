@@ -34,6 +34,8 @@ import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
 import { filterSettingsSections } from "./settings-search";
 import { usePaneRole } from "../../components/ui/Pane";
 import { useGT, useMessages } from "gt-react-native";
+import { isMajordome } from "../../majordome/env";
+import { majordomeSettingsSections } from "../../majordome/settingsRows";
 
 export function SettingsRouteScreen() {
   const list = useSettingsListPlacement();
@@ -179,12 +181,12 @@ function SettingsList(props: { readonly connections: readonly SettingsListRow[] 
   const query = workspace?.state.tabs.settings.query ?? "";
   const overflowRows = useOverflowRows();
   const indexSections = useSettingsIndexSections();
-  const sections = filterSettingsSections(
-    [
-      { rows: overflowRows },
-      { title: gt("Connections"), rows: props.connections },
-      ...indexSections,
-    ],
+  const pages: SettingsListSection[] = [
+    { title: gt("Connections"), rows: props.connections },
+    ...indexSections,
+  ];
+  const sections = filterSettingsSections<SettingsListRow, SettingsListSection>(
+    [{ rows: overflowRows }, ...(isMajordome ? majordomeSettingsSections(pages) : pages)],
     query,
     m,
   );

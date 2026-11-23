@@ -96,6 +96,9 @@ import { ThreadSearchMatchExcerpt } from "./thread-search-match";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import { pullRequestStatus } from "../pull-requests/pullRequestStatus";
+import { chatMenuActions, chatStatusLine, chatTitle } from "../../majordome/chat.logic";
+import { ChatRowContent } from "../../majordome/ChatRow";
+import { isMajordome } from "../../majordome/env";
 
 interface StatusLabel {
   // Null when the icon and timer carry the status on their own.
@@ -669,6 +672,23 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
     </>
   );
 
+  // Majordome draws every row of the Chats list the same way, a waiting message included.
+  const shownRowContent = isMajordome ? (
+    <ChatRowContent
+      title={pendingTask.title}
+      symbol={isDraft ? "square.and.pencil" : "arrow.up.circle"}
+      line={
+        isDraft
+          ? { words: "Draft", tone: "asking" }
+          : { words: "Sends when your computer is back", tone: "plain" }
+      }
+      time={null}
+      selected={selected}
+    />
+  ) : (
+    rowContent
+  );
+
   return (
     <>
       {props.showPendingDivider ? (
@@ -725,11 +745,13 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
               style={rowAppearance.cardStyle}
             >
               {sidebarPane ? (
-                rowContent
+                shownRowContent
               ) : (
                 <View>
-                  <View className={THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME}>{rowContent}</View>
-                  {THREAD_LIST_V2_ROW_DIVIDERS && props.showTrailingDivider !== false ? (
+                  <View className={THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME}>{shownRowContent}</View>
+                  {THREAD_LIST_V2_ROW_DIVIDERS &&
+                  !isMajordome &&
+                  props.showTrailingDivider !== false ? (
                     <View className="ml-5 h-px bg-border-subtle" />
                   ) : null}
                 </View>
@@ -889,18 +911,22 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const timeLabel = props.timeLabel && m(props.timeLabel);
   const snoozeWakeLabelText =
     props.snoozeWakeLabelText === undefined ? undefined : m(props.snoozeWakeLabelText);
+  // Majordome shows a chat not named yet as "New chat" and says its status in plain words.
+  const shownTitle = isMajordome ? chatTitle(thread.title) : thread.title;
+  const majordomeLine = isMajordome ? chatStatusLine(status, isUnread) : null;
   const rowAccessibilityLabel = threadListV2RowAccessibilityLabel(
     {
-      title: thread.title,
+      title: shownTitle,
       variant,
       woke: showsWoke,
       // Working and waiting rows show only an icon and a duration, so name them for speech.
       statusLabel:
-        statusLabel &&
-        (statusLabel.label ??
-          (status === "waiting"
-            ? gt("Waiting", { $context: "thread status" })
-            : gt("Working", { $context: "thread status" }))),
+        majordomeLine?.words ??
+        (statusLabel &&
+          (statusLabel.label ??
+            (status === "waiting"
+              ? gt("Waiting", { $context: "thread status" })
+              : gt("Working", { $context: "thread status" })))),
       timeLabel,
       snoozeWakeLabel: snoozedRow ? snoozeWakeLabelText : undefined,
       providerNameLabel,
@@ -1630,9 +1656,48 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   ) : (
     cardContent
   );
+  const shownCardContent = isMajordome ? (
+    <ChatRowContent
+      title={shownTitle}
+      symbol="bubble.left.fill"
+      line={
+        showsWoke
+          ? { words: "Back from snooze", tone: "new" }
+          : (majordomeLine ??
+            (props.environmentLabel ? { words: props.environmentLabel, tone: "plain" } : null))
+      }
+      time={snoozedRow && snoozeWakeLabelText !== undefined ? snoozeWakeLabelText : timeLabel}
+      selected={selected}
+      faded={variant === "slim"}
+      marks={
+        <>
+          {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}
+          {pinnedRow ? (
+            <SymbolView
+              name="pin"
+              size={11}
+              tintColorClassName={rowAppearance.mutedIconTintClassName}
+              type="monochrome"
+            />
+          ) : null}
+        </>
+      }
+    >
+      {props.searchMatch ? (
+        <ThreadSearchMatchExcerpt
+          sidebar={sidebarPane}
+          match={props.searchMatch}
+          query={props.searchQuery ?? ""}
+          selected={selected}
+        />
+      ) : null}
+    </ChatRowContent>
+  ) : (
+    fadedCardContent
+  );
 
   const rowContent = (close: () => void) =>
-    variant === "card" ? (
+    variant === "card" || isMajordome ? (
       <RowPressable
         key={`${thread.environmentId}:${thread.id}`}
         interactionClassName={rowAppearance.interactionClassName}
@@ -1654,11 +1719,11 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         style={rowAppearance.cardStyle}
       >
         {sidebarPane ? (
-          fadedCardContent
+          shownCardContent
         ) : (
           <View>
-            <View className={THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME}>{fadedCardContent}</View>
-            {THREAD_LIST_V2_ROW_DIVIDERS && props.showTrailingDivider !== false ? (
+            <View className={THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME}>{shownCardContent}</View>
+            {THREAD_LIST_V2_ROW_DIVIDERS && !isMajordome && props.showTrailingDivider !== false ? (
               <View className="ml-5 h-px bg-border-subtle" />
             ) : null}
           </View>
@@ -1778,12 +1843,12 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         secondaryAction={secondaryAction}
         resetKey={`${thread.environmentId}:${thread.id}:${variant}:${snoozedRow}:${thread.settledAt}:${thread.unsettledAt}:${thread.snoozedUntil}:${thread.pinnedAt}`}
         simultaneousWith={props.simultaneousSwipeGesture}
-        threadTitle={thread.title}
+        threadTitle={shownTitle}
       >
         {(close) => (
           <Menu
             accessibilityLabel={rowAccessibilityLabel}
-            actions={menuActions}
+            actions={isMajordome ? chatMenuActions(menuActions) : menuActions}
             onPressAction={handleMenuAction}
             shouldOpenOnLongPress
           >

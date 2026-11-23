@@ -2,6 +2,8 @@
 // texts of two words or more; a single word may also be a route or screen name, so those are
 // listed one by one in wording.mts.
 const RULES = [
+  [/\bun-?settle thread\b/g, "bring the chat back"],
+  [/\bsettle thread\b/g, "mark the chat as done"],
   [/\bun-settled\b/g, "brought back"],
   [/\b[Uu]n-?settle\b/g, (word) => (word[0] === "U" ? "Bring back" : "bring back")],
   [/\bundo settle\b/g, "undo marking as done"],
@@ -9,6 +11,7 @@ const RULES = [
   [/\bon settle\b/g, "when marked as done"],
   [/\bauto-settle\b/g, "auto-done"],
   [/\bAuto-settle\b/g, "Auto-done"],
+  [/\bsettling\b/g, "marking as done"],
   [/\bsettled\b/g, "done"],
   [/\bSettled\b/g, "Done"],
   [/\bsettle\b/g, "mark as done"],
@@ -17,6 +20,7 @@ const RULES = [
   [/\b([Aa]) scheduled task\b/g, "$1 routine"],
   [/\bscheduled task(s?)\b/g, "routine$1"],
   [/\bScheduled task(s?)\b/g, "Routine$1"],
+  [/\bdeletes this task\b/g, "deletes this routine"],
   [/\bthe new task composer\b/g, "a new chat"],
   [/\bnew task\b/g, "new chat"],
   [/\bNew task\b/g, "New chat"],
@@ -26,6 +30,11 @@ const RULES = [
   [/\bthe environment's machine\b/g, "your computer"],
   [/\bmachine(s?)\b/g, "computer$1"],
   [/\bMachine(s?)\b/g, "Computer$1"],
+  [/\bThis environment's server\b/g, "Majordome on this computer"],
+  [/\bUpdate the server\b/g, "Update it there"],
+  [/\b(on|by) the server\b/g, "$1 your computer"],
+  [/\bThe server\b/g, "Your computer"],
+  [/\bthis server\b/g, "this computer"],
   [/\bthe host\b/g, "your computer"],
   [/\bThe host\b/g, "Your computer"],
   [/\broute(s?)\b/g, "address$1"],

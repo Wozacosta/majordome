@@ -17,6 +17,8 @@ const { Children, mocks } = vi.hoisted(() => ({
   },
 }));
 
+// isMajordome: false keeps covering upstream's screen, which Majordome trims and rewords.
+vi.mock("../../majordome/env", () => ({ isMajordome: false, MAJORDOME_HIDDEN_TABS: [] }));
 vi.mock("react-native", () => ({
   View: Children,
   Alert: { alert: mocks.alert },

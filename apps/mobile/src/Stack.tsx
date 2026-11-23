@@ -143,6 +143,8 @@ import { SettingsRouteScreen } from "./features/settings/SettingsRouteScreen";
 import { SettingsLabsRouteScreen } from "./features/settings/ThreadSettingsSections";
 import { SettingsEnvironmentFilterProvider } from "./features/settings/settings-environment-filter";
 import { openSettings, settingsOpenIn } from "./features/settings/settings-navigation";
+import { isMajordome } from "./majordome/env";
+import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
 import {
   isWorkspaceOverlayRoute,
@@ -211,6 +213,7 @@ const ROUTE_TITLES: Readonly<Record<string, string>> = {
   ConnectOnboarding: msg("Set up {product}", { product: "T3 Connect" }),
   Connections: msg("Environments"),
   ConnectionsNew: msg("Add Environment"),
+  ...(isMajordome ? MAJORDOME_SETTINGS_LABELS : {}),
 };
 
 // Thread settings keep the Duo's vertical bar so cancel, search, filter and confirm sit in the

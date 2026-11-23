@@ -45,11 +45,15 @@ import {
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import { AutoSettleSettingsRows } from "./ThreadSettingsSections";
 import { supportsSharedSettingsSync } from "@t3tools/client-runtime/state/shared-settings";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 
 type SettingsPage = "threads" | "source-control" | "worktrees" | "maintenance";
 
 const PAGE_TITLES: Record<SettingsPage, string> = {
-  threads: msg("Threads", { $context: "settings page title" }),
+  threads: isMajordome
+    ? MAJORDOME_SETTINGS_LABELS.SettingsThreads
+    : msg("Threads", { $context: "settings page title" }),
   "source-control": msg("Source control & issues"),
   worktrees: msg("Worktrees"),
   maintenance: msg("Maintenance"),
@@ -324,32 +328,34 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
             ) : null}
             {props.page === "threads" ? (
               <>
-                <SettingsSection
-                  title={gt("Default workspace")}
-                  footer={managed("defaultThreadEnvMode")}
-                  trailing={
-                    pendingWrites === 0 && isMixed("defaultThreadEnvMode") ? (
-                      <MixedValuesLabel projectSelected={projectSelected} />
-                    ) : null
-                  }
-                >
-                  {WORKSPACE_CHOICES.filter(
-                    (choice) => choice.mode !== null || !projectSelected,
-                  ).map((choice, index) => (
-                    <SettingsChoiceRow
-                      key={choice.mode ?? "inherit"}
-                      label={m(choice.label)}
-                      description={m(choice.description)}
-                      selected={
-                        !isMixed("defaultThreadEnvMode") &&
-                        uniform("defaultThreadEnvMode") === choice.mode
-                      }
-                      separated={index > 0}
-                      disabled={disabledFor("defaultThreadEnvMode")}
-                      onPress={() => write({ defaultThreadEnvMode: choice.mode })}
-                    />
-                  ))}
-                </SettingsSection>
+                {isMajordome ? null : (
+                  <SettingsSection
+                    title={gt("Default workspace")}
+                    footer={managed("defaultThreadEnvMode")}
+                    trailing={
+                      pendingWrites === 0 && isMixed("defaultThreadEnvMode") ? (
+                        <MixedValuesLabel projectSelected={projectSelected} />
+                      ) : null
+                    }
+                  >
+                    {WORKSPACE_CHOICES.filter(
+                      (choice) => choice.mode !== null || !projectSelected,
+                    ).map((choice, index) => (
+                      <SettingsChoiceRow
+                        key={choice.mode ?? "inherit"}
+                        label={m(choice.label)}
+                        description={m(choice.description)}
+                        selected={
+                          !isMixed("defaultThreadEnvMode") &&
+                          uniform("defaultThreadEnvMode") === choice.mode
+                        }
+                        separated={index > 0}
+                        disabled={disabledFor("defaultThreadEnvMode")}
+                        onPress={() => write({ defaultThreadEnvMode: choice.mode })}
+                      />
+                    ))}
+                  </SettingsSection>
+                )}
                 <SettingsSection
                   title={gt("Default permissions")}
                   footer={managed("defaultRuntimeMode")}
@@ -373,40 +379,44 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
                     />
                   ))}
                 </SettingsSection>
-                <SettingsSection
-                  title={gt("Response streaming")}
-                  footer={managed("responseStreamingMode")}
-                  trailing={
-                    pendingWrites === 0 && uniform("responseStreamingMode") === null ? (
-                      <MixedValuesLabel projectSelected={projectSelected} />
-                    ) : null
-                  }
-                >
-                  {STREAMING_CHOICES.map((choice, index) => (
-                    <SettingsChoiceRow
-                      key={choice.mode}
-                      label={m(choice.label)}
-                      description={m(choice.description)}
-                      selected={uniform("responseStreamingMode") === choice.mode}
-                      separated={index > 0}
-                      disabled={disabledFor("responseStreamingMode")}
-                      onPress={() => write({ responseStreamingMode: choice.mode })}
-                    />
-                  ))}
-                </SettingsSection>
-                <SettingsSection title={gt("Preview browser")}>
-                  <SettingsSwitchRow
-                    icon="globe"
-                    label={gt("Agent browser access")}
-                    subtitle={managedSubtitle(
-                      "enableAgentBrowserAccess",
-                      gt("Allow agents to use the in-app preview browser."),
-                    )}
-                    value={uniform("enableAgentBrowserAccess")}
-                    disabled={disabledFor("enableAgentBrowserAccess")}
-                    onValueChange={(value) => write({ enableAgentBrowserAccess: value })}
-                  />
-                </SettingsSection>
+                {isMajordome ? null : (
+                  <>
+                    <SettingsSection
+                      title={gt("Response streaming")}
+                      footer={managed("responseStreamingMode")}
+                      trailing={
+                        pendingWrites === 0 && uniform("responseStreamingMode") === null ? (
+                          <MixedValuesLabel projectSelected={projectSelected} />
+                        ) : null
+                      }
+                    >
+                      {STREAMING_CHOICES.map((choice, index) => (
+                        <SettingsChoiceRow
+                          key={choice.mode}
+                          label={m(choice.label)}
+                          description={m(choice.description)}
+                          selected={uniform("responseStreamingMode") === choice.mode}
+                          separated={index > 0}
+                          disabled={disabledFor("responseStreamingMode")}
+                          onPress={() => write({ responseStreamingMode: choice.mode })}
+                        />
+                      ))}
+                    </SettingsSection>
+                    <SettingsSection title={gt("Preview browser")}>
+                      <SettingsSwitchRow
+                        icon="globe"
+                        label={gt("Agent browser access")}
+                        subtitle={managedSubtitle(
+                          "enableAgentBrowserAccess",
+                          gt("Allow agents to use the in-app preview browser."),
+                        )}
+                        value={uniform("enableAgentBrowserAccess")}
+                        disabled={disabledFor("enableAgentBrowserAccess")}
+                        onValueChange={(value) => write({ enableAgentBrowserAccess: value })}
+                      />
+                    </SettingsSection>
+                  </>
+                )}
                 <AutoSettleSettingsRows write={write} pending={pendingWrites > 0} />
               </>
             ) : null}
