@@ -1052,13 +1052,20 @@ export function PreviewView({
         trailingActions={
           moreMenuActions ? (
             <>
-              {isMajordome && isServerTab && tabId ? (
+              {isMajordome && tabId ? (
                 <SiteSignInButton
                   environmentId={threadRef.environmentId}
-                  threadId={threadRef.threadId}
-                  tabId={tabId}
+                  place={
+                    isServerTab
+                      ? { kind: "server", threadId: threadRef.threadId, tabId }
+                      : { kind: "here", profileId: activeProfileId }
+                  }
                   url={url === "" ? null : url}
-                  onChanged={() => void adjustServerTab({ hardReload: true })}
+                  onChanged={
+                    isServerTab
+                      ? () => void adjustServerTab({ hardReload: true })
+                      : desktopCall(previewBridge?.hardReload)
+                  }
                 />
               ) : null}
               <PreviewMoreMenu

@@ -37,15 +37,21 @@ import {
 
 const LAST_SOURCE = Schema.NullOr(Schema.String);
 
+/** Which browser a tab loads in, and so where a sign-in has to go. */
+export type SiteSignInPlace =
+  /** Another computer's browser, such as the always-on server's, watched from here. */
+  | { readonly kind: "server"; readonly threadId: ThreadId; readonly tabId: string }
+  /** This app's own browser, on this computer. */
+  | { readonly kind: "here"; readonly profileId: string | undefined };
+
 /**
- * For a tab running on another computer, such as the always-on server: copies the owner's sign-in
- * for the site it shows from one of their own browsers on this computer, or removes it again.
- * Only a person's click does this; it is not something the assistant can ask for.
+ * Copies the owner's sign-in for the site a tab shows from one of their own browsers on this
+ * computer into the browser the tab loads in, or removes it again. Only a person's click does
+ * this; it is not something the assistant can ask for.
  */
 export function SiteSignInButton(props: {
   readonly environmentId: EnvironmentId;
-  readonly threadId: ThreadId;
-  readonly tabId: string;
+  readonly place: SiteSignInPlace;
   readonly url: string | null;
   /** Loads the page again, now signed in or out. */
   readonly onChanged: () => void;
@@ -60,10 +66,13 @@ export function SiteSignInButton(props: {
   const [busy, setBusy] = useState(false);
   const [lastKey, setLastKey] = useLocalStorage("majordome:site-sign-in-source", null, LAST_SOURCE);
   const host = siteOfUrl(props.url);
-  if (previewBridge === null || !allowed || host === null) return null;
+  const { place } = props;
+  if (previewBridge === null || host === null || props.url === null) return null;
+  if (place.kind === "server" && !allowed) return null;
   const bridge = previewBridge;
+  const pageUrl = props.url;
   const site = siteLabel(host);
-  const target = { threadId: props.threadId, tabId: props.tabId };
+  const where = place.kind === "server" ? "This browser" : "Majordome's browser";
 
   const failed = (title: string, result: AtomCommandResult<unknown, unknown>) => {
     if (result._tag !== "Failure") return;
@@ -76,68 +85,118 @@ export function SiteSignInButton(props: {
     });
   };
 
-  const signIn = async (source: SignInSource) => {
-    setBusy(true);
+  const readFailed = (source: SignInSource) => (cause: unknown) => {
+    toastManager.add({
+      type: "error",
+      title: `Could not read your ${source.label} sign-in`,
+      description: signInFailureWords(importFailureReason(cause)),
+    });
+    return null;
+  };
+  const noneFound = (source: SignInSource, undecryptable: boolean) =>
+    toastManager.add({
+      type: "info",
+      title: `No sign-in for ${site} in ${source.label}`,
+      description: undecryptable
+        ? "Its cookies for this site could not be decrypted on this computer."
+        : "Sign in to the site in that browser first, or sign in here by hand.",
+    });
+  const signedIn = (source: SignInSource) => {
+    setLastKey(source.key);
+    props.onChanged();
+    toastManager.add({
+      type: "success",
+      title: `${where} now uses your ${source.label} sign-in for ${site}`,
+      description: "If the site still asks you to sign in, it does not accept a copied session.",
+    });
+  };
+
+  /** Read here, written on the other computer. */
+  const signInThere = async (
+    source: SignInSource,
+    there: Extract<SiteSignInPlace, { kind: "server" }>,
+  ) => {
     const read = await bridge
       .readBrowserSiteCookies({
         sourceId: source.sourceId,
         sourceProfileDirectory: source.profileDirectory,
         host,
       })
-      .catch((cause: unknown) => {
-        toastManager.add({
-          type: "error",
-          title: `Could not read your ${source.label} sign-in`,
-          description: signInFailureWords(importFailureReason(cause)),
-        });
-        return null;
-      });
-    if (read === null) {
-      setBusy(false);
-      return;
-    }
+      .catch(readFailed(source));
+    if (read === null) return;
     if (read.cookies.length === 0) {
-      setBusy(false);
-      toastManager.add({
-        type: "info",
-        title: `No sign-in for ${site} in ${source.label}`,
-        description:
-          read.undecryptable > 0
-            ? "Its cookies for this site could not be decrypted on this computer."
-            : "Sign in to the site in that browser first, or sign in here by hand.",
-      });
+      noneFound(source, read.undecryptable > 0);
       return;
     }
     const result = await importSiteCookies({
       environmentId: props.environmentId,
-      input: { ...target, cookies: read.cookies },
+      input: { threadId: there.threadId, tabId: there.tabId, cookies: read.cookies },
     });
-    setBusy(false);
     if (result._tag === "Failure") {
       failed(`Could not sign in to ${site} here`, result);
       return;
     }
-    setLastKey(source.key);
-    props.onChanged();
-    toastManager.add({
-      type: "success",
-      title: `This browser now uses your ${source.label} sign-in for ${site}`,
-      description: "If the site still asks you to sign in, it does not accept a copied session.",
-    });
+    signedIn(source);
+  };
+
+  /** Read and written on this computer, without the cookies passing through the page. */
+  const signInHere = async (
+    source: SignInSource,
+    here: Extract<SiteSignInPlace, { kind: "here" }>,
+  ) => {
+    const written = await bridge
+      .importBrowserSiteCookies({
+        environmentId: props.environmentId,
+        ...(here.profileId === undefined ? {} : { targetProfileId: here.profileId }),
+        sourceId: source.sourceId,
+        sourceProfileDirectory: source.profileDirectory,
+        host,
+      })
+      .catch(readFailed(source));
+    if (written === null) return;
+    if (written.imported === 0) {
+      noneFound(source, false);
+      return;
+    }
+    signedIn(source);
+  };
+
+  const signIn = async (source: SignInSource) => {
+    setBusy(true);
+    await (place.kind === "server" ? signInThere(source, place) : signInHere(source, place));
+    setBusy(false);
   };
 
   const signOut = async () => {
     setBusy(true);
-    const result = await clearSiteCookies({ environmentId: props.environmentId, input: target });
-    setBusy(false);
-    if (result._tag === "Failure") {
-      failed(`Could not sign out of ${site} here`, result);
-      return;
+    if (place.kind === "server") {
+      const result = await clearSiteCookies({
+        environmentId: props.environmentId,
+        input: { threadId: place.threadId, tabId: place.tabId },
+      });
+      setBusy(false);
+      if (result._tag === "Failure") {
+        failed(`Could not sign out of ${site} here`, result);
+        return;
+      }
+    } else {
+      const cleared = await bridge
+        .clearBrowserSiteCookies({
+          environmentId: props.environmentId,
+          ...(place.profileId === undefined ? {} : { profileId: place.profileId }),
+          url: pageUrl,
+        })
+        .catch(() => null);
+      setBusy(false);
+      if (cleared === null) {
+        toastManager.add({ type: "error", title: `Could not sign out of ${site} here` });
+        return;
+      }
     }
     props.onChanged();
     toastManager.add({
       type: "success",
-      title: `Signed out of ${site} in this browser`,
+      title: `Signed out of ${site} in ${where === "This browser" ? "this browser" : where}`,
       description: "Your own browser on this computer is not affected.",
     });
   };

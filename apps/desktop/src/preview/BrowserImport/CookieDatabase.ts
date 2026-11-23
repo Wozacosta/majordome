@@ -102,39 +102,49 @@ const SAME_SITE: Record<ImportedCookie["sameSite"], SiteCookie["sameSite"]> = {
  * The cookies a browser would send to `host`: its own, and those a parent domain shares with its
  * subdomains. Never a sibling's or a subdomain's, and none already expired at `nowSeconds`.
  */
-export function cookiesForHost(
+export function importedCookiesForHost(
   cookies: ReadonlyArray<ImportedCookie>,
   host: string,
   nowSeconds: number,
-): ReadonlyArray<SiteCookie> {
+): ReadonlyArray<ImportedCookie> {
   const wanted = host.trim().toLowerCase().replace(/\.$/, "");
   if (wanted === "") return [];
-  return cookies.flatMap((cookie) => {
+  return cookies.filter((cookie) => {
     let ownHost: string;
     try {
       ownHost = new URL(cookie.url).hostname.toLowerCase();
     } catch {
-      return [];
+      return false;
     }
     const shared = cookie.domain === undefined ? null : bareHost(cookie.domain).toLowerCase();
     const sent =
       shared === null
         ? ownHost === wanted
         : shared === wanted || (shared.includes(".") && wanted.endsWith(`.${shared}`));
-    if (!sent) return [];
-    if (cookie.expirationDate !== undefined && cookie.expirationDate <= nowSeconds) return [];
+    return sent && (cookie.expirationDate === undefined || cookie.expirationDate > nowSeconds);
+  });
+}
+
+/** The same cookies, shaped for a browser on another computer. */
+export function cookiesForHost(
+  cookies: ReadonlyArray<ImportedCookie>,
+  host: string,
+  nowSeconds: number,
+): ReadonlyArray<SiteCookie> {
+  return importedCookiesForHost(cookies, host, nowSeconds).map((cookie) => {
     const sameSite = SAME_SITE[cookie.sameSite];
-    return [
-      {
-        name: cookie.name,
-        value: cookie.value,
-        domain: shared === null ? ownHost : `.${shared}`,
-        path: cookie.path,
-        secure: cookie.secure,
-        httpOnly: cookie.httpOnly,
-        ...(cookie.expirationDate === undefined ? {} : { expires: cookie.expirationDate }),
-        ...(sameSite === undefined ? {} : { sameSite }),
-      },
-    ];
+    return {
+      name: cookie.name,
+      value: cookie.value,
+      domain:
+        cookie.domain === undefined
+          ? new URL(cookie.url).hostname.toLowerCase()
+          : `.${bareHost(cookie.domain).toLowerCase()}`,
+      path: cookie.path,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      ...(cookie.expirationDate === undefined ? {} : { expires: cookie.expirationDate }),
+      ...(sameSite === undefined ? {} : { sameSite }),
+    };
   });
 }

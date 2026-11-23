@@ -19,18 +19,23 @@ On Windows, import supports Firefox, Zen, and Helium profiles that use standard 
 Other Chromium-based browsers use app-bound encryption and cannot be imported. Partitioned cookies
 are skipped on all platforms.
 
-## Use one site's sign-in on another computer
+## Use one site's sign-in
 
-A chat kept on another computer, such as an always-on server, browses in that computer's own
-browser, which starts signed out everywhere. To sign it in to the site a tab is showing, press
-the key button in the side browser's bar and choose the browser on this computer to copy the
-sign-in from. Only that site's cookies are copied, and the page loads again signed in.
+To sign in to just the site a tab is showing, press the key button in the side browser's bar and
+choose the browser on this computer to copy the sign-in from. Only that site's cookies are
+copied, and the page loads again signed in. It goes wherever the tab loads:
+
+- **A tab on this computer** gets the sign-in in Majordome's own browser.
+- **A tab the assistant opened on another computer**, such as an always-on server, gets it in
+  that computer's browser, which otherwise starts signed out everywhere.
+
+Good to know:
 
 - The browser you copy from can stay open.
-- **Sign out of this site here**, in the same menu, removes the site's cookies from the other
-  computer's browser. Your own browser is not affected.
+- **Sign out of this site here**, in the same menu, removes the site's cookies again. Your own
+  browser is not affected.
 - The button is in the desktop app only, and only you can press it: the assistant cannot ask for
   your sign-ins.
-- A copied sign-in lets that computer act as you on that site until you sign out there. Some
-  sites, banks especially, refuse a session that moves to another computer and ask you to sign in
+- A sign-in copied to another computer lets that computer act as you on that site until you sign
+  out there. Some sites, banks especially, refuse a session that moves and ask you to sign in
   again.

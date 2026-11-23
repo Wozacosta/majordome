@@ -20,7 +20,9 @@ import {
   BrowserImportSource,
   DesktopPreviewClearDataInputSchema,
   BrowserSiteCookiesResult,
+  DesktopPreviewClearSiteCookiesInputSchema,
   DesktopPreviewImportCookiesInputSchema,
+  DesktopPreviewImportSiteCookiesInputSchema,
   DesktopPreviewReadSiteCookiesInputSchema,
   DesktopPreviewCreateTabInputSchema,
   DesktopPreviewTabInputSchema,
@@ -468,6 +470,41 @@ export const readBrowserSiteCookies = DesktopIpc.makeIpcMethod({
   handler: Effect.fn("desktop.ipc.preview.readBrowserSiteCookies")(function* (input) {
     const browserImport = yield* BrowserImport.BrowserImport;
     return yield* browserImport.readSiteCookies(input);
+  }),
+});
+
+/** The same sign-in copy, for a tab this app loads in its own browser. */
+export const importBrowserSiteCookies = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.PREVIEW_IMPORT_SITE_COOKIES_CHANNEL,
+  payload: DesktopPreviewImportSiteCookiesInputSchema,
+  result: BrowserImportResult,
+  handler: Effect.fn("desktop.ipc.preview.importBrowserSiteCookies")(function* ({
+    environmentId,
+    targetProfileId,
+    ...source
+  }) {
+    const browserImport = yield* BrowserImport.BrowserImport;
+    return yield* browserImport.importSiteCookies({
+      input: source,
+      ...resolvePartitionScope(environmentId, targetProfileId),
+    });
+  }),
+});
+
+export const clearBrowserSiteCookies = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.PREVIEW_CLEAR_SITE_COOKIES_CHANNEL,
+  payload: DesktopPreviewClearSiteCookiesInputSchema,
+  result: Schema.Int,
+  handler: Effect.fn("desktop.ipc.preview.clearBrowserSiteCookies")(function* ({
+    environmentId,
+    profileId,
+    url,
+  }) {
+    const browserImport = yield* BrowserImport.BrowserImport;
+    return yield* browserImport.clearSiteCookies({
+      url,
+      ...resolvePartitionScope(environmentId, profileId),
+    });
   }),
 });
 

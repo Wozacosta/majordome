@@ -100,6 +100,26 @@ export const DesktopPreviewReadSiteCookiesInputSchema = Schema.Struct({
 export type DesktopPreviewReadSiteCookiesInput =
   typeof DesktopPreviewReadSiteCookiesInputSchema.Type;
 
+/** The same copy, into the browser this desktop app shows its own tabs with. */
+export const DesktopPreviewImportSiteCookiesInputSchema = Schema.Struct({
+  environmentId: TrimmedNonEmptyString,
+  targetProfileId: Schema.optional(BrowserProfileId),
+  sourceId: BrowserImportSourceId,
+  sourceProfileDirectory: TrimmedNonEmptyString,
+  host: TrimmedNonEmptyString.check(Schema.isMaxLength(255)),
+});
+export type DesktopPreviewImportSiteCookiesInput =
+  typeof DesktopPreviewImportSiteCookiesInputSchema.Type;
+
+/** Removes the cookies this desktop app's browser would send to `url`. */
+export const DesktopPreviewClearSiteCookiesInputSchema = Schema.Struct({
+  environmentId: TrimmedNonEmptyString,
+  profileId: Schema.optional(BrowserProfileId),
+  url: TrimmedNonEmptyString.check(Schema.isMaxLength(2_048)),
+});
+export type DesktopPreviewClearSiteCookiesInput =
+  typeof DesktopPreviewClearSiteCookiesInputSchema.Type;
+
 export const BrowserSiteCookiesResult = Schema.Struct({
   cookies: BrowserSiteCookies,
   /** Cookies of the site this computer could not decrypt, left out. */

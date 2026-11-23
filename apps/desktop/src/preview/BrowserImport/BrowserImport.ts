@@ -29,7 +29,12 @@ import type { ManagedPolicyFileError } from "@t3tools/shared/managedPolicyFile";
 import * as DesktopManagedPolicy from "../../app/DesktopManagedPolicy.ts";
 import * as BrowserSession from "../BrowserSession.ts";
 import { ChromiumCookieReadError, readChromiumCookies } from "./ChromiumCookies.ts";
-import { cookiesForHost, copyCookieFiles, type CookieReadResult } from "./CookieDatabase.ts";
+import {
+  cookiesForHost,
+  copyCookieFiles,
+  type CookieReadResult,
+  importedCookiesForHost,
+} from "./CookieDatabase.ts";
 import { FirefoxCookieReadError, readFirefoxCookies } from "./FirefoxCookies.ts";
 import { readSafariCookies, safariAccessDenied, SafariCookieReadError } from "./SafariCookies.ts";
 import {
@@ -135,6 +140,20 @@ export class BrowserImport extends Context.Service<
       BrowserSiteCookiesResult,
       BrowserImportFailedError | BrowserImportPolicyError
     >;
+    /** Copies one site's cookies into one of this app's own browser partitions. */
+    readonly importSiteCookies: (input: {
+      readonly input: DesktopPreviewReadSiteCookiesInput;
+      readonly scope: string;
+      readonly persistent: boolean;
+      readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
+    }) => Effect.Effect<BrowserImportResult, BrowserImportFailedError | BrowserImportPolicyError>;
+    /** Removes the cookies one of this app's browser partitions would send to `url`. */
+    readonly clearSiteCookies: (input: {
+      readonly url: string;
+      readonly scope: string;
+      readonly persistent: boolean;
+      readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
+    }) => Effect.Effect<number, BrowserImportFailedError>;
   }
 >()("@t3tools/desktop/preview/BrowserImport/BrowserImport") {}
 
@@ -417,7 +436,65 @@ export const make = Effect.gen(function* BrowserImportMake() {
     } satisfies BrowserSiteCookiesResult;
   });
 
-  return BrowserImport.of({ listSources, importCookies, readSiteCookies });
+  const partitionSession = (
+    sourceId: string,
+    input: {
+      readonly scope: string;
+      readonly persistent: boolean;
+      readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
+    },
+  ) =>
+    browserSession
+      .getSession(input.scope, input.persistent, input.namespace)
+      .pipe(
+        Effect.mapError(
+          (cause) =>
+            new BrowserImportFailedError({ sourceId, reason: "sessionUnavailable", cause }),
+        ),
+      );
+
+  const importSiteCookies: BrowserImport["Service"]["importSiteCookies"] = Effect.fn(
+    "BrowserImport.importSiteCookies",
+  )(function* (input) {
+    const read = yield* readSource({ input: input.input, whileRunning: true });
+    const now = yield* Clock.currentTimeMillis;
+    const session = yield* partitionSession(input.input.sourceId, input);
+    return yield* writeCookies(session, {
+      cookies: importedCookiesForHost(read.cookies, input.input.host, Math.floor(now / 1000)),
+      undecryptable: 0,
+      undecryptableHosts: [],
+    });
+  });
+
+  const clearSiteCookies: BrowserImport["Service"]["clearSiteCookies"] = Effect.fn(
+    "BrowserImport.clearSiteCookies",
+  )(function* (input) {
+    const session = yield* partitionSession("this app", input);
+    return yield* Effect.tryPromise({
+      try: async () => {
+        const cookies = await session.cookies.get({ url: input.url });
+        for (const cookie of cookies) {
+          const host = (cookie.domain ?? new URL(input.url).hostname).replace(/^\./, "");
+          await session.cookies.remove(
+            `${cookie.secure === true ? "https" : "http"}://${host}${cookie.path ?? "/"}`,
+            cookie.name,
+          );
+        }
+        await session.cookies.flushStore();
+        return cookies.length;
+      },
+      catch: (cause) =>
+        new BrowserImportFailedError({ sourceId: "this app", reason: "sessionUnavailable", cause }),
+    });
+  });
+
+  return BrowserImport.of({
+    listSources,
+    importCookies,
+    readSiteCookies,
+    importSiteCookies,
+    clearSiteCookies,
+  });
 });
 
 export const layer = Layer.effect(BrowserImport, make);

@@ -9,6 +9,8 @@ import type {
   BrowserImportSource,
   BrowserImportSourceId,
   BrowserSiteCookiesResult,
+  DesktopPreviewClearSiteCookiesInput,
+  DesktopPreviewImportSiteCookiesInput,
   DesktopPreviewReadSiteCookiesInput,
 } from "./browserImport.ts";
 import { AuthAccessTokenResult, AuthSessionState } from "./auth.ts";
@@ -1384,6 +1386,12 @@ export interface DesktopPreviewBridge {
   readBrowserSiteCookies: (
     input: DesktopPreviewReadSiteCookiesInput,
   ) => Promise<BrowserSiteCookiesResult>;
+  /** Copies one site's cookies from one of the owner's browsers into this app's own browser. */
+  importBrowserSiteCookies: (
+    input: DesktopPreviewImportSiteCookiesInput,
+  ) => Promise<BrowserImportResult>;
+  /** Removes one site's cookies from this app's own browser; resolves with how many. */
+  clearBrowserSiteCookies: (input: DesktopPreviewClearSiteCookiesInput) => Promise<number>;
   setAnnotationTheme: (theme: DesktopPreviewAnnotationTheme) => Promise<void>;
   setAnnotationSendEnabled: (tabId: string, enabled: boolean) => Promise<void>;
   annotationVoice: {
