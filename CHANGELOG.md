@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.30
+
 **Changed**
 
 - **A Majordome server's welcome page is two choices.** It shows Claude alone as the assistant,
