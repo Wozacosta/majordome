@@ -346,7 +346,7 @@ What that first version does not do, in the order I would take them:
   real: moving routines, which needs Claude signed in on the server. The server must be added
   to the app first, and must not have had "Start new notes" pressed, or it ends up with two
   notes folders.
-- **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (5) bounds the bill.
+- **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (10) bounds the bill.
 - **The built-in browser.** On Fly, `majord browser setup` reports that Chrome's sandbox is
   allowed, so it should work; no one has opened a tab from a phone yet.
 - **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
