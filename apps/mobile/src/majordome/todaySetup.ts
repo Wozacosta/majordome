@@ -17,6 +17,8 @@ export function useTodaySetup(
 ): {
   readonly setup: TodaySetup;
   readonly reach: ComputerReach;
+  /** A connected computer whose setup can be finished from here; null when none is connected. */
+  readonly connectedComputer: string | null;
   /** Tries the computers that are not connected again. */
   readonly reconnect: () => void;
 } {
@@ -62,6 +64,8 @@ export function useTodaySetup(
       folderComputer?.isEnabled === false ? undefined : folderComputer?.connectionState,
       phoneOffline,
     ),
+    connectedComputer:
+      active.find((_, index) => reaches[index] === "connected")?.environmentId ?? null,
     reconnect: () => {
       // Not the ones switched off: trying those again would switch them back on.
       for (const environment of active) {

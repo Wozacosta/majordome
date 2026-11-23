@@ -21,6 +21,7 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
+import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { majordomeEnvironment } from "./state";
 import { useVault } from "./useVault";
 import {
@@ -121,7 +122,8 @@ export function MajordomeTodayScreen() {
   const [draft, setDraft] = useState("");
   const [pulled, setPulled] = useState(false);
   const { vault } = useVault(store);
-  const { setup, reach, reconnect } = useTodaySetup(store, vault);
+  const { setup, reach, connectedComputer, reconnect } = useTodaySetup(store, vault);
+  const [settingUp, setSettingUp] = useState(false);
   const note = useEnvironmentQuery(
     vault === null
       ? null
@@ -257,6 +259,15 @@ export function MajordomeTodayScreen() {
     flush();
   };
 
+  const finishSettingUp = async () => {
+    if (connectedComputer === null) return;
+    setSettingUp(true);
+    setProblem(null);
+    const result = await openSetupPage(connectedComputer);
+    setSettingUp(false);
+    if (result !== "opened") setProblem(result === "notAllowed" ? SETUP_NOT_ALLOWED : SETUP_FAILED);
+  };
+
   const tick = (index: number) => {
     if (vault === null || content === null || !status.canTick) return;
     const next = toggleTodo(content, index);
@@ -357,9 +368,20 @@ export function MajordomeTodayScreen() {
         {setup === "starting" ? null : setup === "noComputer" ? (
           <EmptyState
             title="Add your computer"
-            detail="Your notes live on your computer. Add it to this phone to see today's note here."
-            actionLabel="Add a computer"
-            onAction={() => openSettings(navigation, "SettingsEnvironmentNew")}
+            detail="Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can host it for you."
+            action={
+              <View className="gap-2">
+                <Button
+                  label="Add a computer"
+                  tone="primary"
+                  onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+                />
+                <Button
+                  label="I have an invite code"
+                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+                />
+              </View>
+            }
           />
         ) : setup === "unreachable" ? (
           <EmptyState
@@ -371,10 +393,31 @@ export function MajordomeTodayScreen() {
         ) : setup === "looking" ? (
           <Text className="text-foreground-muted">Looking for your notes…</Text>
         ) : setup === "noFolder" ? (
-          <EmptyState
-            title="No notes folder yet"
-            detail="Open Majordome on your computer and choose a notes folder. Today's note shows here afterwards."
-          />
+          <>
+            <EmptyState
+              title="No notes folder yet"
+              detail="Finish setting up in your browser: sign in to Claude and start your notes there, then come back. If Majordome is on your computer, you can also choose a notes folder there."
+              action={
+                <Button
+                  label="Finish setting up"
+                  tone="primary"
+                  icon="safari"
+                  loading={settingUp}
+                  onPress={() => void finishSettingUp()}
+                />
+              }
+            />
+            {problem !== null ? (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                textRole="footnote"
+                className="text-danger"
+              >
+                {problem}
+              </Text>
+            ) : null}
+          </>
         ) : (
           <>
             {isToday ? (

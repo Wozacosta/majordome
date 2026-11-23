@@ -297,6 +297,16 @@ function PairingForm({
             </Text>
           </View>
 
+          {isMajordome ? (
+            <View className="overflow-hidden rounded-[26px] border-continuous">
+              <ListRow
+                label={MAJORDOME_CONNECT.hostedLabel}
+                description={MAJORDOME_CONNECT.hostedDescription}
+                onPress={() => navigation.navigate("SettingsHostedSignup")}
+              />
+            </View>
+          ) : null}
+
           {hasCloudPublicConfig() ? <T3ConnectSection /> : null}
         </View>
       </ScrollView>

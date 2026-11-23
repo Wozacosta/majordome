@@ -327,6 +327,9 @@ What that first version does not do, in the order I would take them:
   by hand is in its list only if it has a row in `hosted_invites`; the demo server has one.
 - **Phone setup: done.** A hosted server reports its own address as the phone's, and the Phone
   page goes straight to the code to scan. Seen on a real hosted server.
+- **From the iPhone app: built, not run for real.** The phone has its own "A Majordome server"
+  screen that spends a code, waits, connects the phone as the owner and then opens the server's
+  welcome page in the browser. See "The iPhone app" below.
 - **Backups.** A Fly volume is one disk on one machine. A hosted customer has no backup unless
   they turn on Google Drive themselves; it should be on from the start.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
@@ -397,6 +400,21 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   repository and run `git init` in it. A notes folder inside the worktree has the worktree as its
   git repository, so the server's autosave and backup committed the whole checkout as "Your
   edits", rebased it and pushed it to `main` every few minutes (2026-11-23, five such commits).
+- **Signing up with an invite code** (2026-11-23). The route `SettingsHostedSignup`
+  (`src/majordome/HostedSignupScreen.tsx`) is reached from "Add a computer" and from Today when
+  no computer is added. It posts the code to the broker, asks `/v1/hosted/ready` every 3 seconds
+  as the web page does, then connects the phone with the returned link through
+  `pairEnvironment`, the call a scanned code uses. A made server is kept in
+  `majordome-hosted-signup.json` on the phone until its setup is finished, so a failed
+  connection is tried again without the spent code. The rules are in `hostedSignup.logic.ts`.
+  - The phone has no sign-in or new-notes screens, so "Finish setting up" makes a one-time
+    code (`createPairingCredential`) and opens the server's `/pair#token=…` page in Safari.
+    Today's "No notes folder yet" offers the same button for any connected computer.
+  - `EXPO_PUBLIC_MAJORDOME_BROKER_URL` at build or Metro start points it at another broker;
+    the default is `https://broker.majord.link`.
+  - Not run for real: no server was made from the phone, and nothing was looked at in the
+    simulator. Unit tests cover the requests, the answers and the steps only. If the broker's
+    answer is lost on the way back, the code is spent and the phone does not know the server.
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
   in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
   about coding agents; decide whether to ship them), and the stored title "New thread" on a
