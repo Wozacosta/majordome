@@ -7,16 +7,6 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
-**Fixed**
-
-- **The list of devices that get notifications keeps itself up to date.** Turning notifications
-  on from your phone did not show on your computer until you reopened the page. The list now
-  reads again every few seconds while you look at it.
-- **Removing a phone also stops its notifications.** A phone removed from "Phones that can open
-  Majordome" stayed in the list of devices that get notifications. It now leaves both. This works
-  for phones that turn notifications on from this version; one set up before still has to be
-  removed from the second list by hand.
-
 ## 0.10.22
 
 **Changed**
@@ -29,6 +19,13 @@ Not released yet.
 
 **Fixed**
 
+- **The list of devices that get notifications keeps itself up to date.** Turning notifications
+  on from your phone did not show on your computer until you reopened the page. The list now
+  reads again every few seconds while you look at it.
+- **Removing a phone also stops its notifications.** A phone removed from "Phones that can open
+  Majordome" stayed in the list of devices that get notifications. It now leaves both. This works
+  for phones that turn notifications on from this version; one set up before still has to be
+  removed from the second list by hand.
 - **Unsaved writing comes back when the note's computer can't be reached.** Going back to a note
   whose save failed showed "Environment … is offline" instead of what you wrote. It now shows your
   text with the "Not saved" line and Try again. A note that can't be read says so in plain words.
