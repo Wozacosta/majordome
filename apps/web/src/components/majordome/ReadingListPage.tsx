@@ -1,14 +1,21 @@
 import {
+  type Announcements,
   closestCenter,
   DndContext,
   type DragEndEvent,
+  KeyboardSensor,
   MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
@@ -42,6 +49,7 @@ import {
   HeadphonesIcon,
   LightbulbIcon,
   LinkIcon,
+  ListFilterIcon,
   type LucideIcon,
   MessageCircleQuestionIcon,
   NotebookPenIcon,
@@ -49,14 +57,13 @@ import {
   RefreshCwIcon,
   PlayIcon,
   PlusIcon,
-  ShapesIcon,
   StarIcon,
   SunriseIcon,
   TargetIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactElement, type ReactNode, useState } from "react";
 
 import { isElectron } from "../../env";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
@@ -80,6 +87,9 @@ import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collaps
 import { Input } from "../ui/input";
 import {
   Menu,
+  MenuCheckboxItem,
+  MenuGroup,
+  MenuGroupLabel,
   MenuItem,
   MenuPopup,
   MenuRadioGroup,
@@ -98,6 +108,7 @@ import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
 import { Toggle as ViewToggle, ToggleGroup } from "../ui/toggle-group";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { useAskAssistant } from "./AssistantDock";
 import {
@@ -124,6 +135,7 @@ import {
   type ReadingSnoozeChoice,
   readingAddedWords,
   readingBackOnWords,
+  readingFocusWords,
   readingLengthWords,
   readingMoreWords,
   readingSnoozeDate,
@@ -159,7 +171,23 @@ const KIND_ICONS: Readonly<Record<MajordomeReadingKind, LucideIcon>> = {
 const MOUSE_DRAG = { activationConstraint: { distance: 6 } };
 // A held finger drags; a swipe still scrolls the list.
 const TOUCH_DRAG = { activationConstraint: { delay: 250, tolerance: 8 } };
+const KEYBOARD_DRAG = { coordinateGetter: sortableKeyboardCoordinates };
 const DRAG_MODIFIERS = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
+const MOVE_HELP = "Drag to move, or press Space, then the arrow keys, then Space again";
+const MOVE_INSTRUCTIONS = {
+  draggable:
+    "To move this row, press Space, use the up and down arrows, then press Space again to put it down. Escape cancels.",
+};
+
+/** A name that shows when the pointer rests on a button that is only an icon. */
+function Tip({ label, children }: { readonly label: string; readonly children: ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipPopup>{label}</TooltipPopup>
+    </Tooltip>
+  );
+}
 
 type Patch = Omit<MajordomeUpdateReadingItemInput, "projectId" | "itemId">;
 
@@ -176,7 +204,7 @@ function ItemTile({
   readonly dimmed: boolean;
   readonly large?: boolean;
 }) {
-  const size = large ? "h-16 w-24 sm:h-20 sm:w-32" : "h-10 w-16";
+  const size = large ? "h-16 w-24 sm:h-20 sm:w-32" : "h-9 w-12 sm:h-10 sm:w-16";
   // Keyed by address, so a picture that failed is tried again once the link is looked up anew.
   const [failed, setFailed] = useState<string | null>(null);
   const KindIcon = KIND_ICONS[item.kind];
@@ -285,6 +313,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const sensors = useSensors(
     useSensor(MouseSensor, MOUSE_DRAG),
     useSensor(TouchSensor, TOUCH_DRAG),
+    useSensor(KeyboardSensor, KEYBOARD_DRAG),
   );
 
   const [kind, setKind] = useState<MajordomeReadingKind | null>(null);
@@ -292,6 +321,8 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
   const [subject, setSubject] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [allTags, setAllTags] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [deleting, setDeleting] = useState<MajordomeReadingItem | null>(null);
   const [hideFinished, setHideFinished] = useLocalStorage(
     "majordome:reading-list-hide-finished",
     true,
@@ -365,6 +396,22 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
         onClick: () => {
           toastManager.close(toastId);
           void update(item, { snoozedUntil: null });
+        },
+      },
+    });
+  };
+
+  const finish = async (item: MajordomeReadingItem) => {
+    if (!(await update(item, { done: true }))) return;
+    const toastId = toastManager.add({
+      type: "success",
+      title: "Finished",
+      description: item.title,
+      actionProps: {
+        children: "Undo",
+        onClick: () => {
+          toastManager.close(toastId);
+          void update(item, { done: false });
         },
       },
     });
@@ -456,6 +503,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     onUpdate: (patch: Patch) => update(item, patch),
     onSnooze: (choice: ReadingSnoozeChoice) => void snooze(item, choice),
     onDoneABit: (progress: string) => doneABit(item, progress),
+    onFinished: () => void finish(item),
     onRemove: () => void remove(item),
     onAsk: askAssistant === null ? null : () => askAssistant(askAboutReadingMessage(item)),
   });
@@ -471,6 +519,20 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
     />
   );
   const moreWords = readingMoreWords(later);
+  const focusWords = readingFocusWords(kept, now, subjects);
+  const filterCount = (filters.kind === null ? 0 : 1) + (filters.tag === null ? 0 : 1);
+  const titleOf = (id: string | number) =>
+    saved.find((item) => item.id === String(id))?.title ?? "the row";
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `Picked up ${titleOf(active.id)}.`,
+    onDragOver: ({ active, over }) =>
+      over === null ? undefined : `${titleOf(active.id)} is now where ${titleOf(over.id)} was.`,
+    onDragEnd: ({ active, over }) =>
+      over === null
+        ? `${titleOf(active.id)} is back where it was.`
+        : `${titleOf(active.id)} was put down where ${titleOf(over.id)} was.`,
+    onDragCancel: ({ active }) => `Cancelled. ${titleOf(active.id)} is back where it was.`,
+  };
 
   return (
     <>
@@ -528,6 +590,14 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
           </div>
           {view === "next" ? (
             <>
+              {focusWords === null ? null : (
+                <FocusLine
+                  words={focusWords}
+                  subjects={subjects}
+                  canChange={canChange}
+                  onSave={putSubjects}
+                />
+              )}
               {next.length === 0 ? (
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border py-3">
                   <Muted className="flex-1 basis-48">
@@ -582,25 +652,49 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                 onSave={putSubjects}
               />
               <div className="mt-1 flex flex-wrap items-center gap-0.5">
-                <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
-                  All
-                </Chip>
-                {kinds.map((entry) => (
-                  <Chip
-                    key={entry}
-                    pressed={filters.kind === entry}
-                    onPressedChange={(pressed) => setKind(pressed ? entry : null)}
+                {/* On a phone the kinds and tags wait behind this one button. */}
+                <div className="sm:hidden">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    aria-expanded={filtersOpen}
+                    onClick={() => setFiltersOpen(!filtersOpen)}
                   >
-                    {READING_KIND_LABELS[entry]}
+                    <ListFilterIcon />
+                    {filterCount === 0 ? "Filter" : `Filter (${filterCount})`}
+                  </Button>
+                </div>
+                <div
+                  className={cn(
+                    "order-2 basis-full flex-wrap items-center gap-0.5 sm:order-1 sm:flex sm:basis-auto",
+                    filtersOpen ? "flex" : "hidden",
+                  )}
+                >
+                  <Chip pressed={filters.kind === null} onPressedChange={() => setKind(null)}>
+                    All
                   </Chip>
-                ))}
+                  {kinds.map((entry) => (
+                    <Chip
+                      key={entry}
+                      pressed={filters.kind === entry}
+                      onPressedChange={(pressed) => setKind(pressed ? entry : null)}
+                    >
+                      {READING_KIND_LABELS[entry]}
+                    </Chip>
+                  ))}
+                </div>
                 {/* A switch, not a chip: a chip on its own gives no way to tell on from off. */}
-                <SwitchLabel className="ms-auto min-h-8 text-xs text-muted-foreground">
+                <SwitchLabel className="order-1 ms-auto min-h-8 text-xs text-muted-foreground sm:order-2">
                   <Switch checked={hideFinished} onCheckedChange={setHideFinished} />
                   Hide finished
                 </SwitchLabel>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-0.5 empty:hidden">
+              <div
+                className={cn(
+                  "mt-1 flex-wrap items-center gap-0.5 empty:hidden sm:flex",
+                  filtersOpen ? "flex" : "hidden",
+                )}
+              >
                 {(allTags ? tags : tags.slice(0, TAG_CHIPS_SHOWN)).map((entry) => (
                   <Chip
                     key={entry.tag}
@@ -621,6 +715,7 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 modifiers={DRAG_MODIFIERS}
+                accessibility={{ announcements, screenReaderInstructions: MOVE_INSTRUCTIONS }}
                 onDragEnd={({ active, over }: DragEndEvent) => {
                   if (over !== null) {
                     void reorder(placeReadingItem(items, String(active.id), String(over.id)));
@@ -697,13 +792,44 @@ function VaultReadingList({ vault }: { readonly vault: MajordomeVault }) {
                           item={item}
                           canChange={canChange}
                           onPutBack={() => void putBack(item)}
-                          onDelete={() => void deleteForGood(item)}
+                          onDelete={() => setDeleting(item)}
                         />
                       ))}
                     </EntryList>
                   </CollapsiblePanel>
                 </Collapsible>
               )}
+              <AlertDialog
+                open={deleting !== null}
+                onOpenChange={(open) => {
+                  if (!open) setDeleting(null);
+                }}
+              >
+                <AlertDialogPopup>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete “{deleting?.title}” for good?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      It leaves your reading list and the Trash. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogClose render={<Button variant="outline" />}>
+                      Keep it in the Trash
+                    </AlertDialogClose>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        const gone = deleting;
+                        if (gone === null) return;
+                        setDeleting(null);
+                        void deleteForGood(gone);
+                      }}
+                    >
+                      Delete for good
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogPopup>
+              </AlertDialog>
             </>
           )}
         </>
@@ -869,6 +995,57 @@ function SubjectsBar({
   );
 }
 
+/** What the Next view is the top of, with the subjects to put in or out of focus. */
+function FocusLine({
+  words,
+  subjects,
+  canChange,
+  onSave,
+}: {
+  readonly words: string;
+  readonly subjects: ReadonlyArray<MajordomeReadingSubject>;
+  readonly canChange: boolean;
+  readonly onSave: (subjects: MajordomeSaveReadingSubjectsInput["subjects"]) => Promise<boolean>;
+}) {
+  // One change at a time: a second sent before the first is read back would undo it.
+  const [saving, setSaving] = useState(false);
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <Muted className="text-xs">{words}</Muted>
+      {canChange ? (
+        <Menu>
+          <MenuTrigger render={<Button size="xs" variant="outline" />}>
+            <TargetIcon />
+            {subjects.some((subject) => subject.focus === true) ? "Change" : "Choose"}
+          </MenuTrigger>
+          <MenuPopup align="start">
+            <MenuGroup>
+              <MenuGroupLabel>Subjects in focus</MenuGroupLabel>
+              {subjects.map((subject) => (
+                <MenuCheckboxItem
+                  key={subject.id}
+                  checked={subject.focus === true}
+                  disabled={saving}
+                  onCheckedChange={(checked) => {
+                    setSaving(true);
+                    void onSave(
+                      subjects.map((entry) =>
+                        entry.id === subject.id ? { ...entry, focus: checked } : entry,
+                      ),
+                    ).then(() => setSaving(false));
+                  }}
+                >
+                  {subject.name}
+                </MenuCheckboxItem>
+              ))}
+            </MenuGroup>
+          </MenuPopup>
+        </Menu>
+      ) : null}
+    </div>
+  );
+}
+
 function AddReadingItem({
   onAdd,
   onDuplicate,
@@ -929,6 +1106,8 @@ interface ItemActions {
   readonly onSnooze: (choice: ReadingSnoozeChoice) => void;
   /** Keeps where they got to (empty for nowhere worth saying) and snoozes it until tomorrow. */
   readonly onDoneABit: (progress: string) => Promise<boolean>;
+  /** Marks it finished and offers to undo that. */
+  readonly onFinished: () => void;
   readonly onRemove: () => void;
   readonly onAsk: (() => void) | null;
 }
@@ -944,6 +1123,7 @@ function ItemText({
   editing,
   onEditing,
   length = null,
+  phoneMeta = null,
   large = false,
 }: Pick<
   ItemActions,
@@ -953,6 +1133,8 @@ function ItemText({
   readonly onEditing: (editing: Editing) => void;
   /** Said beside the source, where the item has no column of its own for it. */
   readonly length?: string | null;
+  /** Said beside the source on a phone only, where the row's own column for it is hidden. */
+  readonly phoneMeta?: string | null;
   readonly large?: boolean;
 }) {
   const done = item.doneAt !== undefined;
@@ -1059,6 +1241,11 @@ function ItemText({
         {source.length === 0 ? null : (
           <span className="me-1 text-xs text-muted-foreground">{source.join(" · ")}</span>
         )}
+        {phoneMeta ? (
+          <span className="me-1 text-xs text-muted-foreground tabular-nums sm:hidden">
+            {phoneMeta}
+          </span>
+        ) : null}
         {item.tags.map((tag) => (
           <Badge key={tag} variant="secondary">
             {tag}
@@ -1101,14 +1288,16 @@ function ItemText({
             </div>
           </form>
         ) : (
-          <Button
-            size="icon-micro"
-            variant="ghost-muted"
-            aria-label={`Add a tag to ${item.title}`}
-            onClick={() => onEditing("tag")}
-          >
-            <PlusIcon />
-          </Button>
+          <Tip label="Add a tag">
+            <Button
+              size="icon-micro"
+              variant="ghost-muted"
+              aria-label={`Add a tag to ${item.title}`}
+              onClick={() => onEditing("tag")}
+            >
+              <PlusIcon />
+            </Button>
+          </Tip>
         )}
       </div>
     </div>
@@ -1152,66 +1341,6 @@ function ItemMenu({
           <LightbulbIcon />
           {item.why ? "Edit why" : "Say why"}
         </MenuItem>
-        <MenuItem onClick={() => onEditing("length")}>
-          <ClockIcon />
-          Change length
-        </MenuItem>
-        <MenuItem onClick={() => onEditing("title")}>
-          <PencilIcon />
-          Rename
-        </MenuItem>
-        <MenuSub>
-          <MenuSubTrigger>
-            <ShapesIcon />
-            Change kind
-          </MenuSubTrigger>
-          <MenuSubPopup>
-            <MenuRadioGroup
-              value={item.kind}
-              onValueChange={(chosen) => {
-                const kind = MAJORDOME_READING_KINDS.find((entry) => entry === chosen);
-                if (kind !== undefined && kind !== item.kind) void onUpdate({ kind });
-              }}
-            >
-              {MAJORDOME_READING_KINDS.map((kind) => (
-                <MenuRadioItem key={kind} value={kind} closeOnClick>
-                  {READING_KIND_NAMES[kind]}
-                </MenuRadioItem>
-              ))}
-            </MenuRadioGroup>
-          </MenuSubPopup>
-        </MenuSub>
-        {subjects.length === 0 ? null : (
-          <MenuSub>
-            <MenuSubTrigger>
-              <FolderIcon />
-              Subject
-            </MenuSubTrigger>
-            <MenuSubPopup>
-              <MenuRadioGroup
-                value={readingSubjectOf(item, subjects)?.id ?? NO_SUBJECT}
-                onValueChange={(chosen) =>
-                  void onUpdate({ subjectId: chosen === NO_SUBJECT ? null : String(chosen) })
-                }
-              >
-                <MenuRadioItem value={NO_SUBJECT} closeOnClick>
-                  No subject
-                </MenuRadioItem>
-                {subjects.map((subject) => (
-                  <MenuRadioItem key={subject.id} value={subject.id} closeOnClick>
-                    {subject.name}
-                  </MenuRadioItem>
-                ))}
-              </MenuRadioGroup>
-            </MenuSubPopup>
-          </MenuSub>
-        )}
-        {item.url === null ? null : (
-          <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
-            <RefreshCwIcon />
-            Look it up again
-          </MenuItem>
-        )}
         {item.doneAt !== undefined || snoozed ? null : (
           <MenuItem onClick={() => onEditing("progress")}>
             <FootprintsIcon />
@@ -1238,6 +1367,70 @@ function ItemMenu({
             </MenuSubPopup>
           </MenuSub>
         )}
+        {subjects.length === 0 ? null : (
+          <MenuSub>
+            <MenuSubTrigger>
+              <FolderIcon />
+              Subject
+            </MenuSubTrigger>
+            <MenuSubPopup>
+              <MenuRadioGroup
+                value={readingSubjectOf(item, subjects)?.id ?? NO_SUBJECT}
+                onValueChange={(chosen) =>
+                  void onUpdate({ subjectId: chosen === NO_SUBJECT ? null : String(chosen) })
+                }
+              >
+                <MenuRadioItem value={NO_SUBJECT} closeOnClick>
+                  No subject
+                </MenuRadioItem>
+                {subjects.map((subject) => (
+                  <MenuRadioItem key={subject.id} value={subject.id} closeOnClick>
+                    {subject.name}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuSubPopup>
+          </MenuSub>
+        )}
+        <MenuSub>
+          <MenuSubTrigger>
+            <PencilIcon />
+            Edit details
+          </MenuSubTrigger>
+          <MenuSubPopup>
+            <MenuItem onClick={() => onEditing("title")}>
+              <PencilIcon />
+              Rename
+            </MenuItem>
+            <MenuItem onClick={() => onEditing("length")}>
+              <ClockIcon />
+              Change length
+            </MenuItem>
+            {item.url === null ? null : (
+              <MenuItem onClick={() => void onUpdate({ lookUp: true, enrich: true })}>
+                <RefreshCwIcon />
+                Look it up again
+              </MenuItem>
+            )}
+            <MenuSeparator />
+            <MenuGroup>
+              <MenuGroupLabel>Kind</MenuGroupLabel>
+              <MenuRadioGroup
+                value={item.kind}
+                onValueChange={(chosen) => {
+                  const kind = MAJORDOME_READING_KINDS.find((entry) => entry === chosen);
+                  if (kind !== undefined && kind !== item.kind) void onUpdate({ kind });
+                }}
+              >
+                {MAJORDOME_READING_KINDS.map((kind) => (
+                  <MenuRadioItem key={kind} value={kind} closeOnClick>
+                    {READING_KIND_NAMES[kind]}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuGroup>
+          </MenuSubPopup>
+        </MenuSub>
         {onAsk !== null ? (
           <>
             <MenuSeparator />
@@ -1273,14 +1466,17 @@ function ReadingRow({
   readonly handleGap: boolean;
   readonly highlighted: boolean;
 }) {
-  const { item, canChange, onUpdate } = actions;
-  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { item, canChange, onUpdate, onFinished } = actions;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
     disabled: !draggable,
   });
   const [editing, setEditing] = useState<Editing>(null);
   const done = item.doneAt !== undefined;
   const length = readingLengthWords(item);
+  const when = snoozed
+    ? readingBackOnWords(item.snoozedUntil ?? "", now)
+    : readingAddedWords(item.addedAt, now);
 
   return (
     <li
@@ -1298,48 +1494,55 @@ function ReadingRow({
     >
       {draggable ? (
         <span className="-mx-1.5 flex h-9 shrink-0 items-center">
+          <Tip label={MOVE_HELP}>
+            <Button
+              size="icon-xs"
+              variant="ghost-muted"
+              {...attributes}
+              {...listeners}
+              aria-label={`Move ${item.title}`}
+            >
+              <GripVerticalIcon />
+            </Button>
+          </Tip>
+        </span>
+      ) : handleGap ? (
+        <span aria-hidden className="-mx-1.5 hidden w-6 shrink-0 sm:block" />
+      ) : null}
+      <ItemTile item={item} dimmed={done || snoozed} />
+      <ItemText
+        {...actions}
+        phoneMeta={[length, when].filter(Boolean).join(" · ")}
+        editing={editing}
+        onEditing={setEditing}
+      />
+      <div className="flex shrink-0 items-center gap-1">
+        <div className="me-1 hidden flex-col items-end text-xs text-muted-foreground tabular-nums sm:flex">
+          {length !== null ? <span>{length}</span> : null}
+          <span>{when}</span>
+        </div>
+        <Tip label={item.starred === true ? "Take the star off" : "Star: you would recommend it"}>
           <Button
             size="icon-xs"
             variant="ghost-muted"
-            aria-label={`Move ${item.title}`}
-            {...listeners}
+            aria-label={`Star ${item.title}`}
+            aria-pressed={item.starred === true}
+            disabled={!canChange}
+            onClick={() => void onUpdate({ starred: item.starred !== true })}
           >
-            <GripVerticalIcon />
+            <StarIcon className={item.starred === true ? "fill-warning text-warning" : undefined} />
           </Button>
-        </span>
-      ) : handleGap ? (
-        <span aria-hidden className="-mx-1.5 w-7 shrink-0 sm:w-6" />
-      ) : null}
-      <ItemTile item={item} dimmed={done || snoozed} />
-      <ItemText {...actions} editing={editing} onEditing={setEditing} />
-      <div className="flex shrink-0 items-center gap-1">
-        <div className="me-1 flex flex-col items-end text-xs text-muted-foreground tabular-nums">
-          {length !== null ? <span>{length}</span> : null}
-          <span>
-            {snoozed
-              ? readingBackOnWords(item.snoozedUntil ?? "", now)
-              : readingAddedWords(item.addedAt, now)}
-          </span>
-        </div>
-        <Button
-          size="icon-xs"
-          variant="ghost-muted"
-          aria-label={`Star ${item.title}`}
-          aria-pressed={item.starred === true}
-          disabled={!canChange}
-          onClick={() => void onUpdate({ starred: item.starred !== true })}
-        >
-          <StarIcon className={item.starred === true ? "fill-warning text-warning" : undefined} />
-        </Button>
+        </Tip>
         <ItemMenu {...actions} snoozed={snoozed} onEditing={setEditing} />
-        <span className="ms-1 flex items-center">
+        {/* The label is the box's tap target, wider than the box itself. */}
+        <label className="-my-1 -me-1.5 flex size-8 items-center justify-center">
           <Checkbox
             aria-label={`Finished: ${item.title}`}
             checked={done}
             disabled={!canChange}
-            onCheckedChange={(checked) => void onUpdate({ done: checked })}
+            onCheckedChange={(checked) => (checked ? onFinished() : void onUpdate({ done: false }))}
           />
-        </span>
+        </label>
       </div>
     </li>
   );
@@ -1380,7 +1583,7 @@ function TrashRow({
 
 /** One of the first things to do, with room to breathe and the answers that matter. */
 function NextCard(actions: ItemActions) {
-  const { item, canChange, onUpdate, onSnooze } = actions;
+  const { item, canChange, onFinished, onSnooze } = actions;
   const [editing, setEditing] = useState<Editing>(null);
 
   return (
@@ -1399,7 +1602,7 @@ function NextCard(actions: ItemActions) {
         </div>
         {canChange ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => void onUpdate({ done: true })}>
+            <Button size="sm" variant="outline" onClick={onFinished}>
               <CheckIcon />
               Finished
             </Button>
@@ -1447,7 +1650,7 @@ function InlineEdit({
   };
   return (
     <form
-      className={cn("flex gap-2", multiline ? "flex-col" : "items-center")}
+      className={cn("flex gap-2", multiline ? "flex-col" : "flex-wrap items-center")}
       onSubmit={(event) => {
         event.preventDefault();
         onSave(draft.trim());
@@ -1462,7 +1665,7 @@ function InlineEdit({
           onChange={(event) => setDraft(event.target.value)}
         />
       ) : (
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-32">
           <Input
             nativeInput
             {...field}

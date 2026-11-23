@@ -26,7 +26,8 @@ A subject groups what you saved around one thing you are learning or following, 
 - Press a subject to see only its rows, or **No subject** for what is not filed yet. With a
   subject chosen, the **…** beside the subjects renames it, deletes it, or puts it in focus.
 - Put the few subjects you are working on now **in focus**. The others wait, and nothing in them
-  is lost.
+  is lost. The quickest way is in **Next**: the line at the top says which subjects it is showing,
+  and **Change** beside it lists your subjects to tick or untick.
 - Deleting a subject keeps its rows on your list, under no subject.
 
 ## Next or Everything
@@ -43,19 +44,21 @@ The switch at the top chooses what you see, and is remembered on this device.
 
 ## Keep it in order
 
-- Tick the box on the right when you have finished something. Finished rows are hidden; turn off
-  **Hide finished** to see them again, and untick one to bring it back.
+- Tick the box on the right when you have finished something. A **Finished** message offers
+  **Undo** for a few seconds. Finished rows are hidden; turn off **Hide finished** to see them
+  again, and untick one to bring it back.
 - The search field finds rows by any words in their title, site, tags, summary, notes or link.
-- Drag a row by its handle to put what matters most on top. Dragging is off while a search, a
-  subject, a kind or a tag narrows the list.
+- Drag a row by its handle to put what matters most on top. From the keyboard, go to the handle
+  with Tab, press Space, move the row with the up and down arrows, and press Space again to put it
+  down; Escape cancels. Moving is off while a search, a subject, a kind or a tag narrows the list.
 - Press **+** under a title to add a tag, and **×** on a tag to take it off. The chips above the
-  list show only one kind or one tag at a time.
-- The star marks what you would recommend. The **…** menu renames a row, changes its length or its
-  kind (article, video, podcast…), adds a note in your own words or a line on why to read it, or
-  removes it.
+  list show only one kind or one tag at a time. On a phone they wait behind the **Filter** button.
+- The star marks what you would recommend. The **…** menu adds a note in your own words or a line
+  on why to read it, or removes the row. Under **Edit details** it renames a row and changes its
+  length or its kind (article, video, podcast…).
 - A removed row goes to the folded **Trash** group under the list. **Put back** returns it to its
-  place; **Delete for good** cannot be undone. Saving a link that is in the Trash brings it back.
-- **Look it up again** in the **…** menu reads the link once more. Use it on a video saved before
+  place; **Delete for good** asks first, and cannot be undone. Saving a link that is in the Trash brings it back.
+- **Look it up again**, under **Edit details** in the **…** menu, reads the link once more. Use it on a video saved before
   Majordome could tell its length.
 - A link saved without a picture, because its page was down or refused to be read, is looked up
   again by itself each time Majordome starts. The picture shows the next time you open the list.

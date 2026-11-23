@@ -14,6 +14,7 @@ import {
   presentReadingKinds,
   readingAddedWords,
   readingBackOnWords,
+  readingFocusWords,
   readingLengthWords,
   readingMoreWords,
   readingSubjectOf,
@@ -269,6 +270,14 @@ it("with subjects in focus, next is the top of each, then what was started elsew
   expect(ids(later)).toEqual(["a", "d", "h"]);
   // No subject in focus has anything left: the top of the list, as without subjects.
   expect(ids(nextReadingItems(saved, NOW, [subjects[2]!]).next)).toEqual(["a", "c", "d"]);
+  expect(readingFocusWords(saved, NOW, subjects)).toBe("Showing the top of: Sleep, Rust");
+  expect(readingFocusWords(saved, NOW, [subjects[2]!])).toBe(
+    "No subject is in focus, so this is the top of your whole list.",
+  );
+  expect(readingFocusWords([saved[4]!], NOW, subjects)).toBe(
+    "Nothing left in Sleep, Rust, so this is the top of your whole list.",
+  );
+  expect(readingFocusWords(saved, NOW, [])).toBeNull();
 
   expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: "sleep" }))).toEqual(["e", "f"]);
   expect(ids(filterReadingItems(saved, { ...NO_FILTERS, subject: NO_SUBJECT }))).toEqual(["h"]);
