@@ -1,5 +1,7 @@
 import { type HostClient, HostError } from "./hosting.ts";
 
+const SNAPSHOT_RETENTION_DAYS = 30;
+
 interface FlyErrorBody {
   readonly error?: string;
   readonly status?: string;
@@ -65,6 +67,9 @@ export function makeFlyHost(config: {
         name: "data",
         region: config.region,
         size_gb: config.volumeGb,
+        // Fly copies the disk every day. The copies are the only backup a customer has before
+        // they connect one of their own, so they are kept a month, not the default five days.
+        snapshot_retention: SNAPSHOT_RETENTION_DAYS,
       })) as { readonly id?: string } | undefined;
       if (typeof volume?.id !== "string") throw new HostError(502, "Fly returned no volume id.");
       await call("POST", `${app}/machines`, {

@@ -68,6 +68,8 @@ const AUTH_KEY = "tskey-auth-kKEY1CNTRL-AuthKeySecretPart0123";
 const SESSION = "session-token-0123456789";
 const PAIRING_CODE = "PAIRCODE2345";
 const TAILNET = "tail1234.ts.net";
+const HOSTED_HOST = "majordome-abcdefgh23.fly.dev";
+const HOSTED_CODE = "HOSTEDCODE23";
 
 const signedIn: TailscaleStatus = {
   running: true,
@@ -119,6 +121,8 @@ function fakeWorld() {
     },
     registry: { manifestStatus: 200 },
     server: {
+      /** A server that was there before any move, such as one Majordome hosts. */
+      existing: undefined as { readonly credential: string; readonly label: string } | undefined,
       answers: true,
       acceptsSecret: true,
       secretSpent: false,
@@ -344,14 +348,17 @@ function fakeWorld() {
   const newServer = (sent: SentRequest): FakeReply => {
     const state = world.server;
     const made = [...world.hetzner.servers.values()][0];
-    if (!state.answers || made === undefined) return { status: 502 };
+    const expected =
+      state.existing?.credential ??
+      (made === undefined ? undefined : envOf(made, "MAJORDOME_SETUP_SECRET"));
+    if (!state.answers || expected === undefined) return { status: 502 };
     const authorized = sent.headers.authorization === `Bearer ${SESSION}`;
     switch (`${sent.method} ${sent.url.pathname}`) {
       case "GET /.well-known/t3/environment":
         return {
           body: {
             environmentId: THERE,
-            label: "majordome",
+            label: state.existing?.label ?? "majordome",
             platform: { os: "linux", arch: "x64" },
             serverVersion: "1.4.2",
             capabilities: { repositoryIdentity: true },
@@ -359,11 +366,7 @@ function fakeWorld() {
         };
       case "POST /oauth/token": {
         const offered = new URLSearchParams(sent.body).get("subject_token");
-        if (
-          !state.acceptsSecret ||
-          state.secretSpent ||
-          offered !== envOf(made, "MAJORDOME_SETUP_SECRET")
-        ) {
+        if (!state.acceptsSecret || state.secretSpent || offered !== expected) {
           return { status: 401, body: { code: "invalid_credential" } };
         }
         state.secretSpent = true;
@@ -424,7 +427,9 @@ function fakeWorld() {
           ? { body: { token: "registry-token" } }
           : { status: world.registry.manifestStatus, body: {} };
       default:
-        return sent.url.host.endsWith(TAILNET) ? newServer(sent) : { status: 404 };
+        return sent.url.host.endsWith(TAILNET) || sent.url.host === HOSTED_HOST
+          ? newServer(sent)
+          : { status: 404 };
     }
   };
   /** A request the test holds open, to act while the service is known to be waiting on it. */
@@ -647,6 +652,70 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
       assert.strictEqual(world.server.ranRoutines, 1);
       assert.strictEqual(Option.getOrNull(yield* readVaultRunner(vault.root)), THERE);
     }).pipe(Effect.provide(computer())),
+  );
+
+  it.effect(
+    "copies the notes to a Majordome server that exists, and leaves it there on removal",
+    () =>
+      Effect.gen(function* () {
+        const { vault, world, service, linked, ranHere } = yield* ready();
+        world.server.existing = { credential: HOSTED_CODE, label: "Majordome server" };
+
+        const refused = yield* Effect.flip(
+          service.begin({
+            projectId,
+            location: "hosted",
+            existing: { url: `http://${HOSTED_HOST}`, credential: HOSTED_CODE },
+          }),
+        );
+        assert.match(refused.message, /not the address of a Majordome server/);
+
+        yield* service.begin({
+          projectId,
+          location: "hosted",
+          existing: { url: `https://${HOSTED_HOST}/settings`, credential: HOSTED_CODE },
+        });
+        const done = yield* awaitPhase(service, "ready");
+        // Only its own steps: nothing is checked, keyed or created for a server that exists.
+        assert.deepStrictEqual(stepStates(done), { start: "done", pair: "done", notes: "done" });
+        assert.isTrue(done.move?.hosted);
+        assert.strictEqual(done.move?.server?.name, "Majordome server");
+        assert.strictEqual(done.move?.server?.url, `https://${HOSTED_HOST}`);
+        assert.strictEqual(world.hetzner.servers.size, 0);
+        assert.strictEqual(world.hetzner.firewalls.size, 0);
+        assert.strictEqual(world.tailscale.keys.size, 0);
+        // The credential that server issued was spent to pair, and the notes went over.
+        assert.isTrue(world.server.secretSpent);
+        assert.strictEqual(world.server.uploads.length, 1);
+        assert.deepStrictEqual(linked, [
+          {
+            vaultRoot: vault.root,
+            url: `https://${HOSTED_HOST}`,
+            token: SESSION,
+            label: "Majordome server",
+            environmentId: THERE,
+          },
+        ]);
+
+        world.server.canRun = true;
+        assert.isTrue((yield* service.moveRoutines()).move?.routinesOnServer);
+
+        const fs = yield* FileSystem.FileSystem;
+        const out = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-hosted-bundle-" });
+        yield* createVaultBundle({ cwd: vault.root, bundlePath: `${out}/server.bundle` });
+        world.server.bundle = yield* fs.readFile(`${out}/server.bundle`);
+        const removed = yield* service.remove({ force: false });
+        assert.isNull(removed.move);
+        assert.deepStrictEqual(removed.removal?.problems, []);
+        assert.strictEqual(
+          removed.removal?.did.at(-1),
+          "Your Majordome server was left as it is, with the copy of your notes it has.",
+        );
+        assert.deepStrictEqual(ranHere, [projectId]);
+        // Nothing was asked of Hetzner or Tailscale, which this computer never used for it.
+        assert.deepStrictEqual(world.hetzner.deleted, []);
+        assert.deepStrictEqual(world.tailscale.deletedDevices, []);
+      }).pipe(Effect.provide(computer())),
   );
 
   it.effect("sends the GitHub sign-in and remote along when the notes are backed up there", () =>

@@ -182,8 +182,13 @@ const MoveRecord = Schema.Struct({
   url: Schema.optional(Schema.String),
   environmentId: Schema.optional(Schema.String),
   serverLabel: Schema.optional(Schema.String),
+  /** The server existed already, so nothing here was made at Hetzner or on Tailscale. */
+  hosted: Schema.optional(Schema.Boolean),
 });
 type MoveRecord = typeof MoveRecord.Type;
+
+/** Moving to a server that exists: reach it, pair with the credential it issued, send the notes. */
+const HOSTED_STEPS: ReadonlyArray<MajordomeServerMoveStepId> = ["start", "pair", "notes"];
 
 const Ledger = Schema.Struct({
   move: Schema.NullOr(MoveRecord),
@@ -238,6 +243,7 @@ function toStatus(state: State): MajordomeServerMoveStatus {
             phase: move.phase,
             steps: move.steps,
             routinesOnServer: move.routinesOnServer,
+            ...(move.hosted === true ? { hosted: true } : {}),
             server:
               move.serverName === undefined
                 ? null
@@ -888,7 +894,24 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
     return yield* lastError;
   });
 
+  /** A server that exists already only has to answer, and say which Majordome it is. */
+  const reachStep = Effect.fn("MajordomeServerMove.reachStep")(function* (move: MoveRecord) {
+    const answering = move.url === undefined ? Option.none() : yield* fetchEnvironment(move.url);
+    if (Option.isNone(answering)) {
+      return yield* new MoveStepError({
+        message:
+          "Your Majordome server did not answer. Check that it opens in a browser, then try again.",
+      });
+    }
+    yield* patchMove({
+      environmentId: answering.value.environmentId,
+      serverLabel: answering.value.label,
+      serverName: answering.value.label,
+    });
+  });
+
   const startStep = Effect.fn("MajordomeServerMove.startStep")(function* (move: MoveRecord) {
+    if (move.hosted === true) return yield* reachStep(move);
     const before = new Set(move.devicesBefore ?? []);
     const deadline = (yield* Clock.currentTimeMillis) + Duration.toMillis(START_TIMEOUT);
     let token = yield* tailscaleToken;
@@ -949,7 +972,9 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       if (secret === undefined) {
         return yield* new MoveStepError({
           message:
-            "The server's one-time setup code is gone from this computer. Stop to remove the server, then start again.",
+            move.hosted === true
+              ? "The one-time code for your Majordome server is gone from this computer. Stop, then start again."
+              : "The server's one-time setup code is gone from this computer. Stop to remove the server, then start again.",
         });
       }
       const session = yield* redeemSetupSecret(move.url, {
@@ -960,7 +985,9 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
           error.reason === "signed-out"
             ? new MoveStepError({
                 message:
-                  "The server did not accept its one-time setup code: it had expired or was already used. Stop to remove the server, then start again.",
+                  move.hosted === true
+                    ? "Your Majordome server did not accept the one-time code: it had expired or was already used. Stop, then start again."
+                    : "The server did not accept its one-time setup code: it had expired or was already used. Stop to remove the server, then start again.",
               })
             : error,
         ),
@@ -1080,7 +1107,9 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
     for (const id of STEP_ORDER) {
       const move = yield* currentMove;
       if (move === null || move.phase !== "running") return;
-      if (move.steps.find((step) => step.id === id)?.state === "done") continue;
+      const step = move.steps.find((candidate) => candidate.id === id);
+      // A move to a server that exists has fewer steps: the ones it does not list are not its own.
+      if (step === undefined || step.state === "done") continue;
       yield* setStep(id, { state: "working" });
       const outcome = yield* steps[id](move).pipe(
         Effect.catchDefect((cause) =>
@@ -1270,12 +1299,17 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
         // A forced removal that left notes behind says so again if it has to be resumed.
         if (back._tag === "Success") yield* patchMove({ broughtBack: true });
       }
-      yield* removeFromHetzner(move, did);
-      const tailscale = yield* removeFromTailscale(move, did).pipe(Effect.result);
-      if (tailscale._tag === "Failure") {
-        problems.push(
-          `The server could not be removed from Tailscale (${problemOf(tailscale.failure, "unexpected error")}). Remove ${move.hostname ?? SERVER_BASE_NAME} on Tailscale's Machines page.`,
-        );
+      if (move.hosted === true) {
+        // Not this computer's to delete: it was there before, and Majordome looks after it.
+        did.push("Your Majordome server was left as it is, with the copy of your notes it has.");
+      } else {
+        yield* removeFromHetzner(move, did);
+        const tailscale = yield* removeFromTailscale(move, did).pipe(Effect.result);
+        if (tailscale._tag === "Failure") {
+          problems.push(
+            `The server could not be removed from Tailscale (${problemOf(tailscale.failure, "unexpected error")}). Remove ${move.hostname ?? SERVER_BASE_NAME} on Tailscale's Machines page.`,
+          );
+        }
       }
       yield* Effect.forEach([AUTH_KEY_SECRET, SETUP_SECRET, SESSION_SECRET], dropSecret, {
         discard: true,
@@ -1285,7 +1319,10 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
         yield* peers.unlink(move.vaultRoot);
       }
       const at = isoTime(yield* Clock.currentTimeMillis);
-      yield* updateLedger(() => ({ move: null, removal: { at, did, problems } }));
+      yield* updateLedger(() => ({
+        move: null,
+        removal: { at, did, problems, ...(move.hosted === true ? { hosted: true } : {}) },
+      }));
     }).pipe(Effect.provide(services));
     return yield* removal.pipe(
       Effect.tapError(() => patchMove({ phase: previous, phaseBeforeRemoval: undefined })),
@@ -1378,6 +1415,13 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
         if (vault === undefined) {
           return yield* new MoveStepError({ message: "Choose a notes folder to move first." });
         }
+        const existing = input.existing;
+        const existingUrl = existing === undefined ? undefined : URL.parse(existing.url);
+        if (existing !== undefined && existingUrl?.protocol !== "https:") {
+          return yield* new MoveStepError({
+            message: "That is not the address of a Majordome server. It starts with https://.",
+          });
+        }
         const move: MoveRecord = {
           id: yield* random
             .uuidV4()
@@ -1392,12 +1436,18 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
           startedAt: isoTime(yield* Clock.currentTimeMillis),
           location: input.location,
           phase: "running",
-          steps: STEP_ORDER.map((id) => ({ id, state: "pending" as const })),
+          steps: (existingUrl == null ? STEP_ORDER : HOSTED_STEPS).map((id) => ({
+            id,
+            state: "pending" as const,
+          })),
           routinesOnServer: false,
+          ...(existingUrl == null ? {} : { hosted: true, url: existingUrl.origin }),
         };
         yield* Effect.forEach([AUTH_KEY_SECRET, SETUP_SECRET, SESSION_SECRET], dropSecret, {
           discard: true,
         });
+        // The credential that server issued takes the place of the secret a new server is given.
+        if (existing !== undefined) yield* writeSecret(SETUP_SECRET, existing.credential);
         yield* updateLedger(() => ({ move, removal: null }));
         yield* forkRun;
       }),

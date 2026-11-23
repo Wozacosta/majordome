@@ -7,6 +7,21 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Move the notes on your computer to your Majordome server.** Once the server is in this app
+  (Settings > Computers > Add a computer), Settings > Your server > "Let Majordome host it" has
+  a button, "Move my notes to your Majordome server". It copies your notes with their history,
+  then the two copies follow each other, as with a server of your own. Nothing on your computer
+  is removed. The page then shows what is left: signing in to Claude there, and moving
+  routines. "Bring my notes back" undoes it and leaves the server as it is.
+- **A Majordome server keeps a month of daily copies of its disk**, where it kept five days.
+
+**Try this**
+
+- On a new Majordome server, do not press "Start new notes". Add the server to the Mac app,
+  then press "Move my notes to your Majordome server" and check a note appears on both.
+
 ## 0.10.31
 
 **Fixed**

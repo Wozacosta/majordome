@@ -64,6 +64,11 @@ export const MajordomeServerMove = Schema.Struct({
   server: Schema.NullOr(MajordomeServerMoveServer),
   /** True once the server runs the notes' routines. */
   routinesOnServer: Schema.Boolean,
+  /**
+   * A server Majordome hosts, which already existed: this computer only copies its notes there.
+   * Nothing was made at Hetzner or on Tailscale, and removing leaves the server as it is.
+   */
+  hosted: Schema.optionalKey(Schema.Boolean),
 });
 export type MajordomeServerMove = typeof MajordomeServerMove.Type;
 
@@ -73,6 +78,8 @@ export const MajordomeServerMoveRemoval = Schema.Struct({
   did: Schema.Array(Schema.String),
   /** What could not be removed and needs the owner's hand. */
   problems: Schema.Array(Schema.String),
+  /** The server was one Majordome hosts: the notes came back and the server was left alone. */
+  hosted: Schema.optionalKey(Schema.Boolean),
 });
 export type MajordomeServerMoveRemoval = typeof MajordomeServerMoveRemoval.Type;
 
@@ -127,6 +134,16 @@ export type MajordomeServerMoveCheck = typeof MajordomeServerMoveCheck.Type;
 export const MajordomeServerMoveStartInput = Schema.Struct({
   projectId: ProjectId,
   location: TrimmedNonEmptyString.check(Schema.isMaxLength(32)),
+  /**
+   * Move the notes to a server that exists already, such as one Majordome hosts, instead of
+   * making one: its address, and a one-time credential that server issued. `location` is unused.
+   */
+  existing: Schema.optionalKey(
+    Schema.Struct({
+      url: TrimmedNonEmptyString.check(Schema.isMaxLength(512)),
+      credential: TrimmedNonEmptyString.check(Schema.isMaxLength(512)),
+    }),
+  ),
 });
 export type MajordomeServerMoveStartInput = typeof MajordomeServerMoveStartInput.Type;
 

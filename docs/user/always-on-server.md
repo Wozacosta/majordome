@@ -214,10 +214,26 @@ Tailscale:
    else runs, and a plan's limits are meant for ordinary individual use.
 4. Press **Start new notes**.
 
-The app calls it your **Majordome server**. It starts with new notes; to bring in notes you
-already have, restore a Google Drive backup on its first page. To use it from the Mac app or
-your phone, open **Settings > Connections** or **Phone & notifications** on the server and
-follow the steps there.
+The app calls it your **Majordome server**. To use it from your phone, open **Settings > Phone &
+notifications** on the server and scan the code.
+
+### Bring the notes on your computer to it
+
+If your notes are already on your computer, skip step 4 and move them instead:
+
+1. In the Mac app, open **Settings > Computers**, press **Add a computer**, and paste the
+   server's address with a code from it.
+2. Open **Settings > Your server**, then **Let Majordome host it**, and press **Move my notes
+   to your Majordome server**.
+
+Your notes are copied with their whole history, and from then on the two copies follow each
+other every few minutes. Nothing on your computer is removed. The page then lists what is
+left: signing in to Claude on the server, and moving your routines there so they run while
+your computer sleeps. **Bring my notes back** undoes it: notes changed on the server come back,
+routines run on your computer again, and the server is left as it is.
+
+Majordome keeps a copy of the server's disk every day, for a month. That protects against a
+lost disk; a backup you own (**Settings > Back up my brain**) is still the one to rely on.
 
 The address is the one the page sent you to, so keep it. A code makes one server.
 

@@ -40,6 +40,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { AlwaysOnManualGuide } from "./AlwaysOnManualGuide";
+import { MoveToMajordomeServer } from "./MoveToMajordomeServer";
 import { isHostedServer } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
@@ -117,6 +118,17 @@ const INTRO: Record<ServerMoveView, string> = {
     "Majordome is removing your server. Your notes and routines come back to this computer.",
 };
 
+/** The same views when the server is one Majordome hosts, which nobody here rented or set up. */
+const HOSTED_INTRO: Record<ServerMoveView, string> = {
+  setup: INTRO.setup,
+  progress:
+    "Majordome is copying your notes to your Majordome server, which never sleeps, so your routines can run while this computer is off.",
+  ready:
+    "Your notes are on your Majordome server too, and the two copies follow each other. This page shows what is left to do, and how to bring your notes back.",
+  removing:
+    "Majordome is bringing your notes and routines back to this computer. Your Majordome server is left as it is.",
+};
+
 /** Set up a rented server that never sleeps from here, or follow the guide to do it by hand. */
 export function AlwaysOnServerPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
@@ -134,29 +146,31 @@ export function AlwaysOnServerPage() {
   }
   return environmentId === null ? (
     <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
-      <ManualGuide />
+      <ManualGuide environmentId={null} />
     </MajordomeSettingsPage>
   ) : (
     <ServerMovePage environmentId={environmentId} />
   );
 }
 
-const HOSTED_START_URL = "https://broker.majord.link/start";
-
-function ManualGuide() {
+function ManualGuide({ environmentId }: { readonly environmentId: EnvironmentId | null }) {
   return (
     <Section>
       <Disclosure summary="Do it by hand">
         <AlwaysOnManualGuide />
       </Disclosure>
       <Disclosure summary="Let Majordome host it">
-        <Muted>
-          With an invite code, Majordome makes a server for you and looks after it: nothing to rent
-          and nothing to install. It starts with new notes, and you sign in to Claude there with
-          your own account. Open{" "}
-          <ExternalLink href={HOSTED_START_URL}>broker.majord.link/start</ExternalLink> and enter
-          your code.
-        </Muted>
+        {environmentId === null ? (
+          <Muted>
+            With an invite code, Majordome makes a server for you and looks after it. Open{" "}
+            <ExternalLink href="https://broker.majord.link/start">
+              broker.majord.link/start
+            </ExternalLink>{" "}
+            and enter your code.
+          </Muted>
+        ) : (
+          <MoveToMajordomeServer environmentId={environmentId} />
+        )}
       </Disclosure>
     </Section>
   );
@@ -170,7 +184,10 @@ function ServerMovePage({ environmentId }: { readonly environmentId: Environment
   const status = AsyncResult.getOrElse(result, () => null);
   const view = status === null ? "setup" : serverMoveView(status);
   return (
-    <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO[view]}>
+    <MajordomeSettingsPage
+      searchId="majordome-always-on"
+      intro={status?.move?.hosted === true ? HOSTED_INTRO[view] : INTRO[view]}
+    >
       {!canManage ? (
         <Section>
           <Muted>Open this screen on the computer where Majordome runs to set up a server.</Muted>
@@ -188,7 +205,7 @@ function ServerMovePage({ environmentId }: { readonly environmentId: Environment
       ) : (
         <ServerMove environmentId={environmentId} status={status} />
       )}
-      {view === "setup" ? <ManualGuide /> : null}
+      {view === "setup" ? <ManualGuide environmentId={environmentId} /> : null}
     </MajordomeSettingsPage>
   );
 }
@@ -218,7 +235,8 @@ function ServerMove({
         <Section label="Your server">
           <StatusLine tone="neutral">
             <span className="inline-flex items-center gap-2">
-              <Spinner size="sm" /> Removing the server…
+              <Spinner size="sm" />{" "}
+              {status.move?.hosted === true ? "Bringing your notes back…" : "Removing the server…"}
             </span>
           </StatusLine>
         </Section>
@@ -228,7 +246,11 @@ function ServerMove({
 
 function RemovalSummary({ removal }: { readonly removal: MajordomeServerMoveRemoval }) {
   return (
-    <Section label="The server was removed">
+    <Section
+      label={
+        removal.hosted === true ? "Your notes are back on this computer" : "The server was removed"
+      }
+    >
       <EntryList>
         {removal.did.map((line) => (
           <Entry key={line}>
@@ -642,6 +664,7 @@ function ProgressPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const failed = move.phase === "failed";
+  const hosted = move.hosted === true;
 
   const act = async (action: () => Promise<AtomCommandResult<unknown, unknown>>) => {
     setBusy(true);
@@ -653,7 +676,15 @@ function ProgressPanel({
   };
 
   return (
-    <Section label={failed ? "The setup stopped" : "Setting up your server"}>
+    <Section
+      label={
+        failed
+          ? "The setup stopped"
+          : hosted
+            ? "Moving your notes to your Majordome server"
+            : "Setting up your server"
+      }
+    >
       <EntryList>
         {serverMoveStepRows(move).map((row) => (
           <Entry
@@ -670,7 +701,7 @@ function ProgressPanel({
           </Entry>
         ))}
       </EntryList>
-      {move.server === null ? null : (
+      {move.server === null || hosted ? null : (
         <Muted className="mt-2">{serverSummary(move)}. Hetzner bills it while it exists.</Muted>
       )}
       {error === null ? null : (
@@ -695,20 +726,24 @@ function ProgressPanel({
       <AlertDialog open={stopping} onOpenChange={setStopping}>
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Stop setting up the server?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {hosted ? "Stop moving your notes?" : "Stop setting up the server?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Majordome removes what it made at Hetzner and on your Tailscale network, so nothing is
-              billed. Your notes on this computer are not touched.
-              {failed
-                ? ""
-                : " You can also keep what was made and try again later; Hetzner bills the server while it exists."}
+              {hosted
+                ? "Your notes on this computer are not touched, and your Majordome server stays as it is. You can start again at any time."
+                : `Majordome removes what it made at Hetzner and on your Tailscale network, so nothing is billed. Your notes on this computer are not touched.${
+                    failed
+                      ? ""
+                      : " You can also keep what was made and try again later; Hetzner bills the server while it exists."
+                  }`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
               Go on
             </AlertDialogClose>
-            {failed ? null : (
+            {failed || hosted ? null : (
               <Button
                 variant="outline"
                 disabled={busy}
@@ -723,7 +758,7 @@ function ProgressPanel({
               onClick={() => void act(() => cancel({ environmentId, input: { keep: false } }))}
             >
               {busy ? <Spinner size="sm" /> : null}
-              Stop and remove it
+              {hosted ? "Stop" : "Stop and remove it"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -742,6 +777,7 @@ function ReadyPanel({
   readonly hasKeys: boolean;
 }) {
   const serverId = move.server?.environmentId ?? null;
+  const hosted = move.hosted === true;
   const { environments, isReady } = useEnvironments();
   const providers = useEnvironmentProviders();
   const saved = serverId !== null && environments.some((entry) => entry.environmentId === serverId);
@@ -811,8 +847,9 @@ function ReadyPanel({
     }
     setRemoving(null);
     setRemoveError(failure?.message ?? null);
-    // The server is gone; this app's saved connection to it goes with it.
-    if (result._tag === "Success" && serverId !== null) void forget(serverId);
+    // The server is gone; this app's saved connection to it goes with it. A server Majordome hosts
+    // is still there and still the owner's, so it stays in the app.
+    if (result._tag === "Success" && serverId !== null && !hosted) void forget(serverId);
   };
 
   const signInLink =
@@ -831,9 +868,12 @@ function ReadyPanel({
       <Section label="Your server">
         <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
           Running at <span className="font-medium break-all">{move.server?.url}</span>, with your
-          notes on it. Only your devices on your Tailscale network can reach it.
+          notes on it.
+          {hosted
+            ? " Majordome looks after it for you."
+            : " Only your devices on your Tailscale network can reach it."}
         </StatusLine>
-        <Muted className="mt-1">{serverSummary(move)}</Muted>
+        {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
       </Section>
       <Section label={next === "done" ? "Done" : "What is left"}>
         <Steps>
@@ -905,12 +945,11 @@ function ReadyPanel({
           </Step>
         </Steps>
       </Section>
-      <Section label="Remove this server">
+      <Section label={hosted ? "Bring your notes back" : "Remove this server"}>
         <Muted className={READING_MEASURE_CLASS}>
-          Majordome copies the notes changed on the server back to this computer, moves routines
-          back here, then deletes the server at Hetzner and its entry in Tailscale. Hetzner stops
-          billing it. Removing needs both keys: Majordome keeps them on this computer until you
-          choose Forget these keys, and asks for them again if you have.
+          {hosted
+            ? "Majordome copies the notes changed on the server back to this computer and moves routines back here. Your Majordome server is left as it is, with the copy of your notes it has."
+            : "Majordome copies the notes changed on the server back to this computer, moves routines back here, then deletes the server at Hetzner and its entry in Tailscale. Hetzner stops billing it. Removing needs both keys: Majordome keeps them on this computer until you choose Forget these keys, and asks for them again if you have."}
         </Muted>
         {removeError === null ? null : (
           <StatusLine tone="error" className="mt-2">
@@ -924,9 +963,9 @@ function ReadyPanel({
             disabled={busy !== null}
             onClick={() => setRemoving({ problem: null })}
           >
-            Remove this server
+            {hosted ? "Bring my notes back" : "Remove this server"}
           </Button>
-          {hasKeys ? (
+          {hasKeys && !hosted ? (
             <ForgetKeys
               environmentId={environmentId}
               disabled={busy !== null}
@@ -943,11 +982,19 @@ function ReadyPanel({
           <AlertDialogPopup>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {removing?.problem ? "Remove it anyway?" : "Remove this server?"}
+                {removing?.problem
+                  ? hosted
+                    ? "Stop anyway?"
+                    : "Remove it anyway?"
+                  : hosted
+                    ? "Bring your notes back to this computer?"
+                    : "Remove this server?"}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {removing?.problem ??
-                  "Your notes and routines come back to this computer first. The server, its firewall and its Tailscale entry are then deleted for good."}
+                  (hosted
+                    ? "Your notes and routines come back to this computer, and the two copies stop following each other. Your Majordome server is not deleted."
+                    : "Your notes and routines come back to this computer first. The server, its firewall and its Tailscale entry are then deleted for good.")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -955,7 +1002,7 @@ function ReadyPanel({
                 disabled={busy !== null}
                 render={<Button variant="outline" disabled={busy !== null} />}
               >
-                Keep it
+                {hosted ? "Not now" : "Keep it"}
               </AlertDialogClose>
               <Button
                 variant="destructive"
@@ -963,7 +1010,13 @@ function ReadyPanel({
                 onClick={() => void doRemove(Boolean(removing?.problem))}
               >
                 {busy === "remove" ? <Spinner size="sm" /> : null}
-                {removing?.problem ? "Remove anyway" : "Remove it"}
+                {hosted
+                  ? removing?.problem
+                    ? "Stop anyway"
+                    : "Bring them back"
+                  : removing?.problem
+                    ? "Remove anyway"
+                    : "Remove it"}
               </Button>
             </AlertDialogFooter>
           </AlertDialogPopup>

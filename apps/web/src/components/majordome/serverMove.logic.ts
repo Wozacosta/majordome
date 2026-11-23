@@ -60,7 +60,10 @@ const STEP_STATE_LABEL: Record<MajordomeServerMoveStep["state"], string> = {
 export function serverMoveStepRows(move: MajordomeServerMove): ReadonlyArray<ServerMoveStepRow> {
   return move.steps.map((step) => ({
     id: step.id,
-    label: MAJORDOME_SERVER_MOVE_STEP_LABELS[step.id],
+    label:
+      move.hosted === true && step.id === "start"
+        ? "Find your Majordome server"
+        : MAJORDOME_SERVER_MOVE_STEP_LABELS[step.id],
     state: step.state,
     tone: STEP_TONE[step.state],
     stateLabel: STEP_STATE_LABEL[step.state],

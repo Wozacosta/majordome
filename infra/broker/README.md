@@ -87,6 +87,11 @@ pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jso
   --command "UPDATE hosted_invites SET removed_at = unixepoch() * 1000 WHERE app_name = 'majordome-xxxxxxxxxx'"
 ```
 
+Each server's volume is copied by Fly every day and the copies are kept 30 days
+(`snapshot_retention`). To bring one back: `fly volumes snapshots list <volume id>`, then
+`fly volumes create data --snapshot-id <id> --app <app>` and attach it to a new Machine. Not
+tried yet.
+
 Removing the Fly app deletes the customer's notes with it, so it is done by hand. `removed_at`
 frees the server's place under `MAX_HOSTED_SERVERS`.
 

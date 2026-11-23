@@ -330,13 +330,20 @@ What that first version does not do, in the order I would take them:
 - **From the iPhone app: built, not run for real.** The phone has its own "A Majordome server"
   screen that spends a code, waits, connects the phone as the owner and then opens the server's
   welcome page in the browser. See "The iPhone app" below.
-- **Backups.** A Fly volume is one disk on one machine. A hosted customer has no backup unless
-  they turn on Google Drive themselves; it should be on from the start.
+- **Backups: a first layer is on.** Fly copies each volume daily; new servers keep those copies
+  30 days, and so do the two that existed. Not done: restoring one has never been tried, and a
+  backup the customer owns (Google Drive, GitHub) is still theirs to turn on.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
-  domain of ours needs a certificate per server on Fly.
-- **Coming from the Mac app.** The page starts with new notes. Someone who already has notes on
-  their Mac has to restore a Google Drive backup or link the server by hand; there is no "move
-  my notes to a Majordome server" as there is for a server of your own.
+  domain of ours needs a certificate per server on Fly. The owner has `majord.me` (the landing
+  page today) and `majord.link` (the tunnels' addresses); a subdomain of `majord.me` is the
+  natural home, since `majord.link` hands its names to tunnels.
+- **Coming from the Mac app: done.** "Move my notes to your Majordome server" in Settings > Your
+  server reuses the move to a server of your own from its pairing step on, with a one-time code
+  the app asks the server for. Run for real between this Mac and a server on Fly: notes and
+  history copied in about a second, a note written on the server brought back. Not tried for
+  real: moving routines, which needs Claude signed in on the server. The server must be added
+  to the app first, and must not have had "Start new notes" pressed, or it ends up with two
+  notes folders.
 - **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (5) bounds the bill.
 - **The built-in browser.** On Fly, `majord browser setup` reports that Chrome's sandbox is
   allowed, so it should work; no one has opened a tab from a phone yet.
