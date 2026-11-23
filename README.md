@@ -96,7 +96,8 @@ points the same engine at your notes.
 | Words on screen   | Git, pull requests, terminals, worktrees | History, Undo this, Back up, Your phone            |
 | On your phone     | T3's phone apps, via T3 Connect          | The same app on your Home Screen                   |
 
-Majordome's own: Today, To-dos, Reading list, Topics, Key facts, routines in your words, skills the
+Majordome's own: Today, To-dos, Reading list, Topics, Key facts, routines in your words, an undo for
+what the assistant did, skills the
 assistant writes for itself, private documents, backup and restore, a phone with nothing to install,
 and an always-on server set up for you. Coding stays in T3 Code.
 **[The full list](docs/vs-t3-code.md)**

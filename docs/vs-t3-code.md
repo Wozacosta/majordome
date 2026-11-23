@@ -42,6 +42,8 @@ The landing page and the README show a short version of this list.
   subjects, and tags and a summary written for you. [Reading list](./user/reading-list.md)
 - **Topics:** one continuing conversation per part of life (Money, Meals, Trips), tied to its own
   folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
+- **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
+  when the assistant ends with an offer.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
   conversation in short, and a drawing of it. [Key facts](./user/key-facts.md)
 
@@ -49,11 +51,16 @@ The landing page and the README show a short version of this list.
 
 - **Routines and reminders in your words,** with ready-made ones (What needs a reply, Prepare
   tomorrow). Built on T3 Code's scheduled tasks. [Routines](./user/routines.md)
+- **What it did, with Undo this.** Every change the assistant makes to your notes is listed in
+  plain words, with the notes it touched, and one press takes it back.
 - **Skills it writes for itself.** Say "from now on, do it this way" and it writes the skill down.
   It is used only after you keep it. [Skills](./user/skills.md)
 - **Private documents:** encrypted, outside your notes, opened only after your yes, each time.
   [Private documents](./user/private-documents.md)
-- **Email, calendar and files:** a guided way to connect Gmail, Calendar and Drive.
+- **Email, calendar and files:** the steps to connect Gmail, Calendar and Drive through your Claude
+  account, on one page.
+- **Set it up by asking.** The assistant beside every screen can check how Majordome is set up and
+  change most settings for you. [Setting Majordome up by asking](./user/assistant-settings.md)
 
 ### Your machines
 
@@ -65,11 +72,14 @@ The landing page and the README show a short version of this list.
 - **An always-on server set up for you:** a small rented computer that keeps your conversations
   and runs routines while your Mac sleeps, and updates itself every night.
   [Always-on server](./user/always-on-server.md)
+- **Conversations kept on the server,** so your phone and your computer show the same ones.
 - **Your own sign-in in the server's browser,** copied one site at a time, by you only.
 
 ### First run and wording
 
 - **A welcome screen with two questions:** sign in to Claude or ChatGPT, and choose your notes.
+- **A Status page** that answers one question: is your assistant OK? What needs you is listed
+  first, each line leading to where you fix it. [Status](./user/overview.md)
 - **Plain words everywhere.** Settings open on Status, each page starts with one sentence saying
   what it is for, and messages name pages as the app does.
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
