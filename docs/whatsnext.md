@@ -257,27 +257,26 @@ new customers and some of our existing customers", and its cost-optimized line i
 wanted before real paying customers. A customer's notes are plain files with a backup, so
 moving one to another host later is a copy.
 
-The test that decides it, on one machine (not run yet; the commands are from memory of Fly's
-docs and may need adjusting):
+The test that decides it, on one machine. Run on 2026-11-23 with the released image (0.10.26),
+2 shared CPUs and 2 GB in Paris; these are the commands that worked:
 
 ```sh
-fly launch --no-deploy --image ghcr.io/wozacosta/majordome:latest --name <app> --region cdg
-fly volumes create data --size 3 --region cdg --app <app>
-# fly.toml: [mounts] source = "data", destination = "/data"
-#           [http_service] internal_port = 3773, force_https = true,
-#                          auto_stop_machines = "off", min_machines_running = 1
-#           [[vm]] memory = "2gb"
-#           [env] MAJORDOME_PUBLIC_URL = "https://<app>.fly.dev"
-fly deploy --app <app>
-fly ssh console --app <app> -C "majord pair"
+fly apps create --generate-name --org personal
+fly volumes create data --size 3 --region cdg --app <app> --yes
+fly machine run ghcr.io/wozacosta/majordome:latest --app <app> --region cdg \
+  --vm-memory 2048 --vm-cpus 2 --vm-cpu-kind shared --volume data:/data \
+  --port 443:3773/tcp:http:tls --port 80:3773/tcp:http \
+  --env MAJORDOME_PUBLIC_URL=https://<app>.fly.dev --restart always --detach
+fly ips allocate-v4 --shared --app <app> && fly ips allocate-v6 --app <app>
 ```
 
-1. Majordome starts and the app pairs with it. Likely first snag: the image runs as the user
-   `node` and a new Fly volume belongs to root, so `/data` may not be writable.
-2. Claude signs in from the app and answers.
-3. A browser tab opens from the phone on a chat that runs there. The server's own browser needs
-   Chrome's sandbox; in Docker it gets it from `deploy/browser-seccomp.json`, which Fly does not
-   use. Good to have, not a reason to stop.
+1. **Passed: Majordome starts and answers over HTTPS.** No start-up script, no Tailscale, no
+   tunnel. It was listening about 4 seconds after the machine started and printed its pairing
+   link with the `fly.dev` address. The volume was writable by the image's `node` user with
+   nothing done. 605 MB of 1,970 MB in use at rest. Pairing from the app: not done yet.
+2. **Not done yet:** Claude signs in from the app and answers.
+3. **Not done yet:** a browser tab opens from the phone on a chat that runs there. A good sign:
+   the log has no "this host blocks the sandbox" warning, which the OVH server prints.
 
 If 1 and 2 pass, build on Fly: the service that creates a machine on request (in the address
 broker, behind an invite code), and the "Majordome hosts it" choice in the app.
