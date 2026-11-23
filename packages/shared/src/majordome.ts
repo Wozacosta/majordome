@@ -19,3 +19,9 @@ export function isT3CodeHome(baseDir: string, homeDirectory: string): boolean {
 export function t3CodeHomeRefusal(baseDir: string): string {
   return `Majordome will not use ${baseDir}: T3 Code keeps its data there. Unset T3CODE_HOME or pass --home-dir with another folder, such as ~/${MAJORDOME_HOME_DIRNAME}.`;
 }
+
+/**
+ * Majordome is for notes, not code: its chats are not listed the pull request, issue and
+ * worktree tools, and are not told how to use them. Upstream's tests of those turn this off.
+ */
+export const hidesCodingTools: boolean = true;

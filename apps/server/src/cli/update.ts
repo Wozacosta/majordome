@@ -257,6 +257,9 @@ const versionArgument = Argument.String("version").pipe(
   Argument.optional,
 );
 
+const MAJORDOME_UPDATE_GUIDANCE =
+  "Majordome does not update from the command line. The app offers each new version itself, in its sidebar. A server run with Docker updates with `docker compose pull && docker compose up -d`.";
+
 export const updateCommand = Command.make("update", {
   ...updateFlags,
   version: versionArgument,
@@ -266,6 +269,11 @@ export const updateCommand = Command.make("update", {
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
+      // Majordome publishes its app and a server image, never the command-line build this installs.
+      const environment = yield* HostProcess.Environment;
+      if (!environment[CLI_RELEASE_BASE_URL_ENV]?.trim()) {
+        return yield* new CliUpdateError({ reason: MAJORDOME_UPDATE_GUIDANCE });
+      }
       const logLevel = yield* GlobalFlag.LogLevel;
       const config = yield* resolveCliAuthConfig(flags, logLevel);
       return yield* runUpdate({
