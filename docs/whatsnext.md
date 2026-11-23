@@ -165,6 +165,17 @@ so it is not looked up twice:
   does not stop itself: the service that can also start it decides. Its code is licensed for
   non-commercial use only: the design can be learned from, the code cannot be copied. Leaseweb
   is Dutch, so a European-owned candidate not in the list above.
+- **boat.dev (2026-11-23, from its site and docs; nothing was run).** A persistent Linux
+  machine per sandbox, made, stopped and resumed by API, in Germany, Finland and France. The
+  smallest is 2 vCPU and 4 GB at $0.018 an hour: about $13 a month always on, about $1 at two
+  hours a day, and a stopped one has no charge. Plans start at $20 a month (100 running at once,
+  200 starts a day). Its terms allow giving end users their own sandboxes and charging for it.
+  Against it as the home of a customer's notes: the terms say it is not guaranteed "suitable for
+  production" and that boat may stop or delete; a stopped disk is kept "at least 14 days", so an
+  idle customer must be woken to keep it; memory is not saved and the resume time is not given;
+  the address changes at each resume; a data processing agreement is on request; it is a young
+  US company. OpenBot uses it only when its own pool is empty. A better fit than Fly for the
+  one-day trial of sleeping machines: European regions, and a 7-day trial with 25 hours.
 - **GDPR.** Storing in Europe is not required, but it is the simplest position. The larger
   transfer is the AI: notes go to the model provider. Before a paying customer: a privacy
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
