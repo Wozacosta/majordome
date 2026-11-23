@@ -87,6 +87,9 @@ Not released yet.
   or "Environments" now name "Computers" and "AI accounts".
 - **Clearer buttons on routines and reminders.** Cancelling a reminder asks with "Keep it" and
   "Cancel reminder", and "Run now" shows "Running…" while a routine runs.
+- **Links and hints lead to Majordome.** The start-up error screen's download and "report a
+  problem" links, and two terminal messages that told you to run T3 Code's installer, now point
+  to Majordome's download page and its always-on server guide.
 
 **Try this**
 

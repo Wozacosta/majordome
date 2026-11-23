@@ -53,11 +53,9 @@ export const installCli = Effect.fn("cli.install.install")(function* () {
   const runtime = yield* standaloneRuntime;
   const windows = platform === "win32";
   if (Option.isNone(runtime)) {
-    const script = windows
-      ? "irm https://t3.codes/install.ps1 | iex"
-      : "curl -fsSL https://t3.codes/install.sh | sh";
     return yield* new CliInstallError({
-      reason: `Only the standalone t3 can install itself. Use \`${script}\`, or Settings in the desktop app.`,
+      reason:
+        "Majordome has no command-line installer. On a Mac, download the app from https://github.com/Wozacosta/majordome/releases/latest. For a server that stays on, follow https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md.",
     });
   }
   const { executable, versionsDir, runtimeDir } = runtime.value;
