@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.32
+
 **New**
 
 - **Move the notes on your computer to your Majordome server.** Once the server is in this app
