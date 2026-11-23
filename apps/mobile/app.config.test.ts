@@ -30,6 +30,16 @@ it.each([
   const config = await loadConfig(value);
   expect(config.ios?.bundleIdentifier).toBe(`io.github.wozacosta.majordome.ios${suffix}`);
   expect(config.ios?.appleTeamId).toBe("5RDKJ8PDGZ");
+  const splash = config.plugins?.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "expo-splash-screen",
+  );
+  expect(splash).toMatchObject([
+    "expo-splash-screen",
+    {
+      image: "./assets/majordome-splash-light.png",
+      dark: { image: "./assets/majordome-splash-dark.png" },
+    },
+  ]);
   // Its own link scheme, so a link never opens upstream's app on a phone that has both.
   expect(config.scheme).toBe(`majordome${suffix.replace(".", "-")}`);
   expect(config.ios?.icon).toBe("../../assets/prod/black-ios-1024.png");

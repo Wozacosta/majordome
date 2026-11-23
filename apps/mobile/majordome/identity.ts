@@ -15,6 +15,28 @@ const ICONS = [
   [BRAND_ASSET_PATHS.nightlyIosIconPng, BRAND_ASSET_PATHS.productionIosIconPng],
 ] as const;
 
+// The launch screen shows the cloche alone: the app icon there is a dark square on white.
+const SPLASH = {
+  light: "./assets/majordome-splash-light.png",
+  dark: "./assets/majordome-splash-dark.png",
+};
+
+function withMajordomeSplash(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
+  return plugins?.map((plugin) => {
+    if (!Array.isArray(plugin) || plugin[0] !== "expo-splash-screen") return plugin;
+    const options = (plugin[1] ?? {}) as { readonly dark?: object };
+    return [
+      plugin[0],
+      {
+        ...options,
+        image: SPLASH.light,
+        imageWidth: 132,
+        dark: { ...options.dark, image: SPLASH.dark },
+      },
+    ];
+  });
+}
+
 const majordomeScheme = (scheme: string) => scheme.replace(/^t3code/, "majordome");
 
 export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
@@ -31,6 +53,7 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   return {
     ...rest,
     slug: "majordome",
+    plugins: withMajordomeSplash(renamed.plugins),
     ...(renamed.scheme === undefined
       ? {}
       : {
