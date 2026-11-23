@@ -89,7 +89,7 @@ folders can no longer preview Office files.
 ## What the AI costs: measure, then improve
 
 Hosted Majordome sells about $20 of AI a month (see `docs/decisions.md`), so what a chat message
-and a routine run cost decides whether that price holds. It waits for the hosted work, but the
+and a routine run cost decides whether that price holds. It is part of the hosted work, and the
 saving applies to anyone on an API key.
 
 Measured on 2026-11-23 from one week of the owner's use, all on Opus 5.5 (66 chat turns on the
@@ -120,7 +120,7 @@ they are cached for an hour.
 
 ## Hosted Majordome: where the servers come from
 
-Deferred, like the hosted tier itself (see `docs/decisions.md`). What was learned on 2026-11-23,
+Next in line since 2026-11-23 (see `docs/decisions.md`). What was learned that day,
 so it is not looked up twice:
 
 - **Size.** The owner's server uses about 425 MB of memory at rest and 1.5 GB of disk, and is

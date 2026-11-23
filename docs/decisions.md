@@ -80,7 +80,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   most people never need sync. It runs on "this computer" by default (background service), with
   "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
-  cloud machine. **Hosted Majordome** is a later milestone: one isolated machine per user, paid, offered as a
+  cloud machine. **Hosted Majordome** is the next piece of work (2026-11-23): one isolated machine per user, paid, offered as a
   choice at install beside "this computer" and "your own server". The assistant there runs on an
   API key Majordome holds, one per customer with a monthly spend cap, and the customer pays one
   flat price: the server, a small margin and about $20 of AI (2026-11-23). A customer's Claude
@@ -310,7 +310,7 @@ takes over.
    - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.
-10. **Later.** Hosted Majordome, a paid choice at install, on an API key Majordome holds (see
+10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, on an API key Majordome holds (see
     Servers and sync). No single host (2026-11-23): in 2026 Hetzner rationed new cloud servers
     and every host raised prices as memory got dearer, so creating a server goes behind one small
     interface (what is on offer and its price, create with a start-up script, status, delete)
