@@ -279,6 +279,21 @@ fly ips allocate-v4 --shared --app <app> && fly ips allocate-v6 --app <app>
 3. **Not done yet:** a browser tab opens from the phone on a chat that runs there. A good sign:
    the log has no "this host blocks the sandbox" warning, which the OVH server prints.
 
+Also seen that day:
+
+- **A Fly account without a card stops every machine after 5 minutes** ("Trial machine
+  stopping"), and starts it again on the next request. Pay As You Go lifted it without
+  recreating the machine.
+- **Stop and wake works.** After such a stop, a request started the machine in under a second
+  and Majordome was listening 9 seconds later. The visitor who wakes it gets a 503 page from
+  Fly's proxy in between, which is what a "waking your server" screen has to cover. Data and
+  the Claude sign-in survived every stop.
+- **Each start prints a new pairing link**; a link made with `majord pair` kept working across
+  a restart.
+- **The new sign-in (0.10.28) was used for real** on a fresh machine: a link, a code, Ready.
+  Left to tidy: its card still says "Claude says Ready above in a moment" once Claude is Ready.
+- The test server that is kept is the app `patient-petal-578`, on Pay As You Go.
+
 So Fly is the host. What the welcome page got wrong on a server, seen in that run:
 
 - Claude's sign-in ran in a hidden terminal and said a page had opened in the browser. Fixed
