@@ -6,6 +6,8 @@
     "prepare": "vp config --no-agent",
     "dev": "node scripts/dev-runner.ts dev",
     "profile:startup": "node scripts/profile-startup.mjs",
+    "mobile:testflight": "bash scripts/majordome-testflight.sh",
+    "mobile:testflight:build-number": "node scripts/majordome-testflight-build-number.mjs",
     "dev:share": "node scripts/dev-runner.ts dev --share",
     "dev:server": "node scripts/dev-runner.ts dev:server",
     "dev:web": "node scripts/dev-runner.ts dev:web",
