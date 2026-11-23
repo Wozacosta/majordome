@@ -41,3 +41,19 @@ export function hostedServerName(
   const flag = environment.MAJORDOME_HOSTED?.trim().toLowerCase();
   return flag === "1" || flag === "true" ? HOSTED_SERVER_NAME : null;
 }
+
+/**
+ * What a Majordome server is drawn as: a cloud for one Majordome hosts, a server for one the
+ * owner runs. What the machine looks like from inside says the opposite as often as not: a
+ * rented server is a virtual machine, and a hosted one does not look like one.
+ */
+export function majordomeMachineKind<Detected>(input: {
+  readonly hosted: boolean;
+  /** The name the server gives itself. */
+  readonly label: string;
+  /** What the machine looks like from inside, when that could be told. */
+  readonly detected: Detected;
+}): Detected | "cloud" | "server" {
+  if (input.hosted) return "cloud";
+  return input.label === OWN_SERVER_NAME ? "server" : input.detected;
+}

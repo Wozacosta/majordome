@@ -23,7 +23,7 @@ import * as ServerConfig from "../config.ts";
 import { databaseMigrationHead } from "../persistence/databaseMigrationHead.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import { isSpeechPlatformSupported } from "../speech/platform.ts";
-import { hostedServerName } from "@t3tools/shared/majordome";
+import { hostedServerName, majordomeMachineKind } from "@t3tools/shared/majordome";
 import { resolveServerEnvironmentLabel } from "./ServerEnvironmentLabel.ts";
 import { detectServerEnvironmentMachineKind } from "./ServerEnvironmentMachine.ts";
 
@@ -194,10 +194,13 @@ export const make = Effect.gen(function* () {
   const hostLibc = hostPlatform === "linux" ? yield* HostProcess.LinuxLibc : undefined;
   const environmentId = yield* identity.getEnvironmentId;
   const cwdBaseName = path.basename(serverConfig.cwd).trim();
-  const label =
-    hostedServerName(yield* HostProcess.Environment) ??
-    (yield* resolveServerEnvironmentLabel({ cwdBaseName }));
-  const machine = yield* detectServerEnvironmentMachineKind();
+  const hostedName = hostedServerName(yield* HostProcess.Environment);
+  const label = hostedName ?? (yield* resolveServerEnvironmentLabel({ cwdBaseName }));
+  const machine = majordomeMachineKind({
+    hosted: hostedName !== null,
+    label,
+    detected: yield* detectServerEnvironmentMachineKind(),
+  });
   const launcher = yield* resolveServiceLauncherMode();
   const serverSelfUpdate = resolveServerSelfUpdateCapability({
     desktopManaged: serverConfig.mode === "desktop",

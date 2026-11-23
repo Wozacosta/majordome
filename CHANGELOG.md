@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **The icons of your servers were the wrong way round** in Settings > Computers and wherever a
+  computer is shown: a server of your own had a cloud and a Majordome server had a server. A
+  Majordome server is now drawn as a cloud and your own as a server. Each server shows the right
+  one once it has updated.
+
 ## 0.10.32
 
 **New**
