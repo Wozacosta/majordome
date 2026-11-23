@@ -342,6 +342,18 @@ What that first version does not do, in the order I would take them:
   allowed, so it should work; no one has opened a tab from a phone yet.
 - **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
   limit on tries, so codes must be long and random.
+- **Accounts (looked at 2026-11-23, not built).** An invite code leads to a server once; after
+  that nothing leads back to it, so a new phone or a wiped one needs a code from the server's
+  Phone page. An account fixes that ("sign in, here is your server") and is where payment hangs
+  later. Clerk fits: upstream already carries it for T3 Connect in the web, desktop and phone
+  apps (native Apple and Google sign-in, token storage), switched off here only because no key
+  is set. What it takes: a Clerk application of Majordome's own; `hasCloudPublicConfig` (web and
+  phone) no longer requiring a relay address; Sign in with Apple enabled for the bundle ID and
+  `webcredentials:<Clerk domain>` put back in `majordome/identity.ts`; and in the broker an owner
+  column on `hosted_invites`, a check of the Clerk token against the application's public keys,
+  and `GET /v1/hosted/mine`, which needs a way to give an existing server a fresh setup secret.
+  Dexie Cloud is not the tool: it syncs a browser database between devices, and Majordome's data
+  is a notes folder on a server; its login would add a second copy of nothing.
 - **Before anyone pays:** the privacy policy and agreements above, and Anthropic's answer.
 
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
