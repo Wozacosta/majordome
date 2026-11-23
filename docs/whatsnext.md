@@ -380,7 +380,10 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
 - **Testing writes safely:** `vp run dev` seeds from the real data, so the notes folder it lists
   is the real one. Before adding a line or ticking a to-do from the simulator, remove that
   project from the dev server (`majord project remove --base-dir <worktree>/.t3 --force <id>`)
-  and add a throwaway folder holding `.majordome/config.json`.
+  and add a throwaway folder holding `.majordome/config.json`. Put that folder outside this
+  repository and run `git init` in it. A notes folder inside the worktree has the worktree as its
+  git repository, so the server's autosave and backup committed the whole checkout as "Your
+  edits", rebased it and pushed it to `main` every few minutes (2026-11-23, five such commits).
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
   in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
   about coding agents; decide whether to ship them), and the stored title "New thread" on a
