@@ -141,9 +141,30 @@ so it is not looked up twice:
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
   payment provider, and an hour with someone who does this for French small businesses.
 
-Order when the work starts: the first few customers by hand on one European host, each with
-their own capped API key; then creating servers behind one interface with a second host; then a
-one-day trial of sleeping machines if idle servers have become a real cost.
+No customers set up by hand (2026-11-23): a customer's server is created when they ask for it.
+"Set up a server for me" cannot do that as it is. It runs on the owner's computer with the
+owner's own Hetzner key and puts the server on the owner's Tailscale network; a customer has
+neither. What creating one for a customer needs:
+
+- **A service that holds Majordome's host keys** and creates the server. The address broker
+  (`infra/broker`) is the natural place: it is already deployed, already holds a secret, and
+  can make the server's `majord.link` address in the same request and hand the connector token
+  to the start-up script, so the server needs no Tailscale and no open port.
+- **Something that says who may ask**, or anyone can run up the bill: an invite code first,
+  payment later.
+- **A start-up script without Tailscale** (`cloudInitFor` in `serverMovePlan.ts` and
+  `deploy/docker-compose.yml` both assume it), carrying the connector token, the setup secret
+  and the customer's AI key.
+- **The app's side:** a "Majordome hosts it" choice that sends the invite code, then pairs with
+  the setup secret and copies the notes, as the move does today from the `pair` step on.
+- **One AI key per customer**, capped. Whether the provider lets a key be made by API is not
+  checked; if not, keys are made ahead and handed out.
+
+The Hetzner calls (`hetznerApi.ts`) have never run against a real account, and Hetzner rations
+new servers, so the first real run decides whether the second host comes before or after.
+
+Then: creating servers behind one interface with a second host, and a one-day trial of sleeping
+machines if idle servers have become a real cost.
 
 ## Phone
 
