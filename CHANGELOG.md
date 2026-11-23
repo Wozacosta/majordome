@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.29
+
 **Changed**
 
 - **"Always-on server" is now "Your server".** The settings page, the guides and every sentence
