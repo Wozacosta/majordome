@@ -1,0 +1,54 @@
+name: Majordome scenarios
+
+# Majordome only. Runs the scenarios written for Majordome's own screens (notes, chats, backup)
+# on every push to main: the real dev stack and a real browser, with the replay agent in place of
+# a model. A release is tagged only once this is green. See docs/operations/scenarios.md.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: majordome-scenarios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  majordome_scenarios:
+    name: Majordome scenarios
+    if: github.repository == 'Wozacosta/majordome'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Setup Vite+
+        uses: ./.github/actions/setup-ci-deps
+
+      - name: Install the test browser
+        run: node scripts/node_modules/playwright-core/cli.js install --with-deps --only-shell chromium ffmpeg
+
+      - name: Run the scenarios
+        run: vp run scenarios 'scenarios/majordome-*.e2e.ts' --target web
+
+      - name: Show the summary
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f scripts/.e2e/summary.md ]; then
+            cat scripts/.e2e/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Traces, screenshots and videos of a failed run. Every page is fixture data.
+      - name: Upload the failed run
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: majordome-scenarios
+          path: scripts/.e2e
+          if-no-files-found: ignore
+          retention-days: 7

@@ -7,6 +7,16 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Restoring notes: the destination can be typed.** "Where your notes go" has a "Type a path
+  instead" line, like the backup's location has.
+
+**Fixed**
+
+- **The "Not saved" message on a note no longer squeezes into a one-word-wide column** when the
+  note is shown in a narrow space; its buttons move below the text instead.
+
 ## 0.10.23
 
 **New**

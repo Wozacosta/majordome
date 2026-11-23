@@ -129,6 +129,16 @@ export function RestoreNotes({
           label="Put them somewhere else"
           onChoose={setInto}
         />
+        <Disclosure summary="Type a path instead">
+          <Input
+            value={into ?? ""}
+            placeholder="~/Documents"
+            onChange={(event) =>
+              setInto(event.target.value.trim() === "" ? null : event.target.value)
+            }
+            aria-label="Folder to put your notes in"
+          />
+        </Disclosure>
       </div>
       {error === null ? null : (
         <p role="alert" className="text-sm break-words text-destructive-foreground">

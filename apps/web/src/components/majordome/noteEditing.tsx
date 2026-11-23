@@ -143,7 +143,7 @@ export function NoteSaveProblem({
     >
       {conflict ? (
         <>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-40 flex-1">
             This note was changed somewhere else while you were writing.
           </span>
           <Button type="button" size="sm" variant="ghost" onClick={() => editing.resolve(false)}>
@@ -155,7 +155,7 @@ export function NoteSaveProblem({
         </>
       ) : (
         <>
-          <span className="min-w-0 flex-1">Not saved. {problem}</span>
+          <span className="min-w-40 flex-1">Not saved. {problem}</span>
           <Button type="button" size="sm" variant="ghost" onClick={() => editing.resolve(false)}>
             Discard my changes
           </Button>

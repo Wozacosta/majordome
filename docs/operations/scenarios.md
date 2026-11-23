@@ -89,6 +89,17 @@ names or prefixes ending in `*`, separated by commas.
 T3_SCENARIO_INHERIT_ENV='SHELL,MY_FIXTURE_*' vp run scenarios:prove scripts/scenarios/name.e2e.ts --base main
 ```
 
+## Majordome's own screens
+
+Scenarios named `majordome-*.e2e.ts` cover what Majordome adds: notes, chats and backup. Pass
+`NOTES_FOLDER` from [`majordome.ts`](../../scripts/scenarios/majordome.ts) as the files of
+`t3.project` to get a notes folder; a project is one when it holds a `.majordome` folder. They run
+on every push to `main` (`majordome-scenarios.yml`), and a release waits for them.
+
+The app under test runs with your real home folder. A scenario that makes the app write files
+must give it a path under the folder `t3.project` returns, never a default that lands in the
+home folder.
+
 ## Run
 
 ```sh
