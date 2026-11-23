@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.33
+
 **Fixed**
 
 - **The icons of your servers were the wrong way round** in Settings > Computers and wherever a
