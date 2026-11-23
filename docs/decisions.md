@@ -81,21 +81,21 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
   cloud machine. **Hosted Majordome** is the next piece of work (2026-11-23): one isolated machine per user, paid, offered as a
-  choice at install beside "this computer" and "your own server". The assistant there runs on an
-  API key Majordome holds, one per customer with a monthly spend cap, and the customer pays one
-  flat price: the server, a small margin and about $20 of AI (2026-11-23). A customer's Claude
-  plan is not signed in on our machines, and they are not asked for their own API key: getting one is a step people who are not technical will not do. One good
-  default is enough to start, with no model picker: Claude Sonnet 5.5 for chat and routines,
-  Claude Haiku 5.5 for small jobs such as sorting the reading list and summarising notes. Opus
-  5.5, measured on a week of real use, came to about $108 a month against about $54 for Sonnet;
-  see "What the AI costs" in `docs/whatsnext.md`. **Open before building
-  (read 2026-11-23):** Anthropic's Claude Code legal page says a platform that hosts Claude Code
-  "may not pay for, resell, or intermediate Claude usage on their end users' behalf", which may
-  rule this shape out when the assistant runs through Claude Code or its Agent SDK; the same
-  page allows an end user to sign in with their own plan where a platform hosts the unmodified
-  program, but forbids the platform from storing or relaying the sign-in. Neither shape is
-  clearly allowed for a hosted server that keeps a session for unattended routines. Ask
-  Anthropic before building either. See `docs/whatsnext.md`.
+  choice at install beside "this computer" and "your own server". To start (2026-11-23), the
+  customer signs their own Claude plan in on that server, with the sign-in from the app that
+  exists today, and pays Majordome for the server only: no AI in the price, no API key, no
+  metering. OpenBot (openbot.run) sells hosted servers the same way. Anthropic's Claude Code
+  legal page allows an end user to sign in with their own plan "including where a platform
+  hosts Claude Code", but also says developers "may not collect, store, or intermediate
+  Claude.ai credentials or session tokens", and the server keeps the session to run routines
+  unattended; Anthropic has not confirmed that this is permitted, and it can enforce without
+  notice. The owner accepted that risk to get a demo and the first few users quickly; the page
+  where a customer signs in says so, and the customer can use an API key of their own instead.
+  Set aside, not dropped: AI included in the price on a credential Majordome holds (about $20
+  of AI, Sonnet 5.5 with Haiku 5.5 for small jobs). That shape is what the same page forbids
+  ("may not pay for, resell, or intermediate Claude usage on their end users' behalf") when the
+  assistant runs through Claude Code or its Agent SDK, so it waits for Anthropic's approval or
+  for an engine that calls the model directly. The quotes are in `docs/whatsnext.md`.
 - **No forge.** The server's vault already is the git repo. For people who edit in Obsidian on a
   laptop, the server can expose it as a git remote (advanced).
 - **History is a local git repo, created silently.** No remote and no account by default. "Undo
@@ -316,7 +316,7 @@ takes over.
    - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.
-10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, on an API key Majordome holds (see
+10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, with the customer's own Claude plan (see
     Servers and sync). No single host (2026-11-23): in 2026 Hetzner rationed new cloud servers
     and every host raised prices as memory got dearer, so creating a server goes behind one small
     interface (what is on offer and its price, create with a start-up script, status, delete)

@@ -160,7 +160,15 @@ so it is not looked up twice:
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
   payment provider, and an hour with someone who does this for French small businesses.
 
-**Anthropic's terms come before any of this.** Read on 2026-11-23 at
+**Decided on 2026-11-23: start the way OpenBot does.** The customer signs their own Claude plan
+in on the hosted server and pays for the server only. It needs no credential of ours, no cap
+and no metering, so the capped credential per customer below is set aside until AI is included
+in the price. The risk is in the quotes that follow and was accepted for a demo and the first
+few users. What it asks of the work: the sign-in page tells the customer that Anthropic has not
+confirmed this use and that their plan's limits are meant for ordinary individual use, and an
+API key of their own stays possible. The price is then the server plus a margin.
+
+**Anthropic's terms, read before that decision.** Read on 2026-11-23 at
 https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):
 
 - Running Claude Code in a product, "e.g. in hosted sandboxes or other agent infrastructure",
