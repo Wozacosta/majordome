@@ -133,6 +133,7 @@ describe("RPC authorization scopes", () => {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }
     expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetPhoneSetup)).toBe(AuthAccessReadScope);
+    expect(requiredScopeForRpcMethod(WS_METHODS.majordomeGetAccount)).toBe(AuthAccessReadScope);
     // Setting up a server rents one and grants access to it: all of it needs access-write.
     expect(requiredScopeForRpcMethod(WS_METHODS.majordomeServerMoveSubscribe)).toBe(
       AuthAccessReadScope,
@@ -154,6 +155,8 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeEnableSecureAddress,
       WS_METHODS.majordomeEnableAnywhereAddress,
       WS_METHODS.majordomeDisableAnywhereAddress,
+      WS_METHODS.majordomeLinkAccount,
+      WS_METHODS.majordomeUnlinkAccount,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthAccessWriteScope);
     }

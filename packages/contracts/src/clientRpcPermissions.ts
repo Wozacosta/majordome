@@ -92,6 +92,9 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   // Opens or closes this server's public address, reachable from the whole internet.
   [WS_METHODS.majordomeEnableAnywhereAddress]: AuthAccessWriteScope,
   [WS_METHODS.majordomeDisableAnywhereAddress]: AuthAccessWriteScope,
+  // Decides which account may sign in to this server as its owner.
+  [WS_METHODS.majordomeLinkAccount]: AuthAccessWriteScope,
+  [WS_METHODS.majordomeUnlinkAccount]: AuthAccessWriteScope,
   // Rents a billed server, adds a device to the owner's tailnet and hands out pairing links;
   // even its check spends the saved Hetzner and Tailscale keys.
   [WS_METHODS.majordomeServerMoveSaveKeys]: AuthAccessWriteScope,

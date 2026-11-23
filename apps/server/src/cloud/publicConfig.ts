@@ -218,6 +218,19 @@ export function makeCloudCliOAuthConfig({
 
 export const cloudCliOAuthConfig = makeCloudCliOAuthConfig();
 
+/**
+ * Where Majordome's account service answers, which is also the issuer of its tokens: from
+ * `MAJORDOME_ACCOUNT_ISSUER`, else the Clerk publishable key. Fails when neither is set.
+ */
+export const accountIssuerConfig = Config.NonEmptyString("MAJORDOME_ACCOUNT_ISSUER").pipe(
+  Config.map((value) => value.trim().replace(/\/+$/u, "")),
+  Config.orElse(() =>
+    makePublicValueConfig("T3CODE_CLERK_PUBLISHABLE_KEY", buildTimeClerkPublishableKey).pipe(
+      Config.map(clerkFrontendApiUrlFromPublishableKey),
+    ),
+  ),
+);
+
 export const hasCloudPublicConfig = Boolean(
   (normalizeSecureRelayUrl(process.env.T3CODE_RELAY_URL ?? "") ?? buildTimeRelayUrl) &&
   (process.env.T3CODE_CLERK_PUBLISHABLE_KEY?.trim() || buildTimeClerkPublishableKey) &&

@@ -130,6 +130,7 @@ import * as DocumentText from "./provider/DocumentText.ts";
 import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
+import * as MajordomeAccount from "./majordome/MajordomeAccount.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
@@ -1506,6 +1507,7 @@ export const layerWsRpc = (
       const scheduledTasks = yield* ScheduledTasks.ScheduledTaskService;
       const majordomePush = yield* MajordomePush.MajordomePush;
       const majordomePhoneSetup = yield* MajordomePhoneSetup.PhoneSetup;
+      const majordomeAccount = yield* MajordomeAccount.MajordomeAccount;
       const majordomeServerMove = yield* MajordomeServerMove.MajordomeServerMove;
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
@@ -2424,6 +2426,9 @@ export const layerWsRpc = (
           majordomePhoneSetup.enableAnywhereAddress(),
         [WS_METHODS.majordomeDisableAnywhereAddress]: (_input) =>
           majordomePhoneSetup.disableAnywhereAddress(),
+        [WS_METHODS.majordomeGetAccount]: (_input) => majordomeAccount.read(),
+        [WS_METHODS.majordomeLinkAccount]: (input) => majordomeAccount.link(input.token),
+        [WS_METHODS.majordomeUnlinkAccount]: (_input) => majordomeAccount.unlink(),
         [WS_METHODS.majordomeServerMoveSubscribe]: (_input) => majordomeServerMove.changes,
         [WS_METHODS.majordomeServerMoveSaveKeys]: (input) => majordomeServerMove.saveKeys(input),
         [WS_METHODS.majordomeServerMoveForgetKeys]: (_input) => majordomeServerMove.forgetKeys(),

@@ -68,6 +68,7 @@ export * from "./usage.ts";
 export * from "./scheduledTask.ts";
 export * from "./majordome.ts";
 export * from "./majordomePhone.ts";
+export * from "./majordomeAccount.ts";
 export * from "./majordomeBackup.ts";
 export * from "./majordomeConnectors.ts";
 export * from "./majordomeNotesSearch.ts";

@@ -107,6 +107,11 @@ import {
   MajordomeVaultUndoResult,
 } from "./majordome.ts";
 import {
+  MajordomeAccount,
+  MajordomeAccountError,
+  MajordomeAccountTokenInput,
+} from "./majordomeAccount.ts";
+import {
   MajordomePhoneError,
   MajordomePhoneSetup,
   MajordomePushConfig,
@@ -835,6 +840,9 @@ export const WS_METHODS = {
   majordomeEnableSecureAddress: "majordome.enableSecureAddress",
   majordomeEnableAnywhereAddress: "majordome.enableAnywhereAddress",
   majordomeDisableAnywhereAddress: "majordome.disableAnywhereAddress",
+  majordomeGetAccount: "majordome.getAccount",
+  majordomeLinkAccount: "majordome.linkAccount",
+  majordomeUnlinkAccount: "majordome.unlinkAccount",
   majordomeListVaultHistory: "majordome.listVaultHistory",
   majordomeSubscribeVaultChanges: "majordome.subscribeVaultChanges",
   majordomeUndoVaultRun: "majordome.undoVaultRun",
@@ -2570,6 +2578,24 @@ const WsMajordomeDisableAnywhereAddressRpc = Rpc.make(WS_METHODS.majordomeDisabl
   error: Schema.Union([MajordomePhoneError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeGetAccountRpc = Rpc.make(WS_METHODS.majordomeGetAccount, {
+  payload: Schema.Struct({}),
+  success: MajordomeAccount,
+  error: Schema.Union([MajordomeAccountError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeLinkAccountRpc = Rpc.make(WS_METHODS.majordomeLinkAccount, {
+  payload: MajordomeAccountTokenInput,
+  success: MajordomeAccount,
+  error: Schema.Union([MajordomeAccountError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeUnlinkAccountRpc = Rpc.make(WS_METHODS.majordomeUnlinkAccount, {
+  payload: Schema.Struct({}),
+  success: MajordomeAccount,
+  error: Schema.Union([MajordomeAccountError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeListVaultHistoryRpc = Rpc.make(WS_METHODS.majordomeListVaultHistory, {
   payload: MajordomeVaultHistoryInput,
   success: MajordomeVaultHistoryResult,
@@ -3291,6 +3317,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeEnableSecureAddressRpc,
   WsMajordomeEnableAnywhereAddressRpc,
   WsMajordomeDisableAnywhereAddressRpc,
+  WsMajordomeGetAccountRpc,
+  WsMajordomeLinkAccountRpc,
+  WsMajordomeUnlinkAccountRpc,
   WsMajordomeListVaultHistoryRpc,
   WsMajordomeSubscribeVaultChangesRpc,
   WsMajordomeUndoVaultRunRpc,

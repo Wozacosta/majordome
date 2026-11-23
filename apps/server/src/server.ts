@@ -140,6 +140,8 @@ import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
+import * as MajordomeAccount from "./majordome/MajordomeAccount.ts";
+import * as AccountHttp from "./majordome/accountHttp.ts";
 import * as MajordomeAnywhereAddress from "./majordome/AnywhereAddress.ts";
 import * as MajordomePushReactor from "./majordome/PushReactor.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
@@ -974,6 +976,7 @@ const layerRuntimeCoreDependencies = layerRuntimeCoreDependenciesBase.pipe(
   Layer.provideMerge(layerRepositoryIdentityResolver),
   Layer.provideMerge(CodexManagedTokenBroker.layer),
   Layer.provideMerge(layerServerEnvironment),
+  Layer.provideMerge(MajordomeAccount.layer.pipe(Layer.provide(ServerSecretStore.layer))),
   Layer.provideMerge(layerAuth),
   Layer.provideMerge(
     Layer.mergeAll(AssetSigner.layer, EnvironmentKeys.layer, WorkspacePreviewRevisions.layer),
@@ -1062,6 +1065,7 @@ const layerMakeRoutes = Layer.mergeAll(
     // What a server answers to another of the owner's machines keeping the notes in step.
     PeerSyncHttp.layer.pipe(Layer.provide(layerMajordomePeerSync)),
     GuestHttp.layer,
+    AccountHttp.layer,
     DeviceHubProxy.layer,
     ServerBrowserStream.routeLayer,
     PreviewTunnel.routeLayer,
