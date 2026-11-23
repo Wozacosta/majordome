@@ -155,6 +155,8 @@ import {
   MajordomeBackUpNowInput,
   MajordomeBackupStatus,
   MajordomeConfigureBackupInput,
+  MajordomeRestoreNotesInput,
+  MajordomeRestoreNotesResult,
   MajordomeGitHubConnectPrompt,
   MajordomeGoogleDriveConnectPrompt,
   MajordomeLinkPeerInput,
@@ -835,6 +837,7 @@ export const WS_METHODS = {
   majordomeAddReadyRoutine: "majordome.addReadyRoutine",
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeStartNotes: "majordome.startNotes",
+  majordomeRestoreNotes: "majordome.restoreNotes",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
   majordomeListConnectors: "majordome.listConnectors",
   majordomeSearchNotes: "majordome.searchNotes",
@@ -2597,6 +2600,12 @@ const WsMajordomeStartNotesRpc = Rpc.make(WS_METHODS.majordomeStartNotes, {
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeRestoreNotesRpc = Rpc.make(WS_METHODS.majordomeRestoreNotes, {
+  payload: MajordomeRestoreNotesInput,
+  success: MajordomeRestoreNotesResult,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeSearchNotesRpc = Rpc.make(WS_METHODS.majordomeSearchNotes, {
   payload: MajordomeNotesSearchInput,
   success: MajordomeNotesSearchResult,
@@ -3270,6 +3279,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeAddReadyRoutineRpc,
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeStartNotesRpc,
+  WsMajordomeRestoreNotesRpc,
   WsMajordomeGetBackupStatusRpc,
   WsMajordomeServerMoveSubscribeRpc,
   WsMajordomeServerMoveSaveKeysRpc,

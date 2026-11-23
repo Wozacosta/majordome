@@ -96,6 +96,13 @@ export const MajordomeBackupPeer = Schema.Struct({
 });
 export type MajordomeBackupPeer = typeof MajordomeBackupPeer.Type;
 
+/** A folder a cloud service keeps on this computer, offered as a place for the backup. */
+export const MajordomeBackupFolderSuggestion = Schema.Struct({
+  label: Schema.String,
+  path: Schema.String,
+});
+export type MajordomeBackupFolderSuggestion = typeof MajordomeBackupFolderSuggestion.Type;
+
 export const MajordomeBackupStatus = Schema.Struct({
   isVault: Schema.Boolean,
   /**
@@ -117,6 +124,8 @@ export const MajordomeBackupStatus = Schema.Struct({
   /** Absent from older servers; null when the notes are not kept in step with another machine. */
   peer: Schema.optional(Schema.NullOr(MajordomeBackupPeer)),
   folder: Schema.NullOr(MajordomeBackupFolder),
+  /** Absent from older servers. */
+  folderSuggestions: Schema.optional(Schema.Array(MajordomeBackupFolderSuggestion)),
   /** The nightly copy to Google Drive, when this vault has one. */
   drive: Schema.NullOr(MajordomeBackupDrive),
   /** Whether this vault has an encryption passphrase for its folder and Drive copies. */
@@ -154,6 +163,25 @@ export const MajordomeConfigureBackupInput = Schema.Struct({
   change: MajordomeBackupChange,
 });
 export type MajordomeConfigureBackupInput = typeof MajordomeConfigureBackupInput.Type;
+
+/** Brings notes back from an encrypted folder copy, into a new folder that opens as the notes. */
+export const MajordomeRestoreNotesInput = Schema.Struct({
+  /** The backup file, or the folder that holds it; the newest copy in a folder is used. */
+  source: TrimmedNonEmptyString,
+  passphrase: Schema.String,
+  /** The folder the new notes folder is made in; null means the home folder. */
+  into: Schema.NullOr(TrimmedNonEmptyString),
+});
+export type MajordomeRestoreNotesInput = typeof MajordomeRestoreNotesInput.Type;
+
+export const MajordomeRestoreNotesResult = Schema.Struct({
+  projectId: ProjectId,
+  /** The new folder the notes are in. */
+  folder: Schema.String,
+  /** The backup file that was opened. */
+  file: Schema.String,
+});
+export type MajordomeRestoreNotesResult = typeof MajordomeRestoreNotesResult.Type;
 
 export const MajordomeLinkPeerInput = Schema.Struct({
   projectId: ProjectId,

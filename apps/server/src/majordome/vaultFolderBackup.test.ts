@@ -11,6 +11,7 @@ import {
   createVaultBundle,
   decryptFile,
   encryptFile,
+  findCloudFolders,
   storeFolderBackup,
   validateBackupFolder,
 } from "./vaultFolderBackup.ts";
@@ -98,6 +99,26 @@ it.layer(testLayer)("folder backup", (it) => {
         "majordome-brain-2026-10-04.age",
         "majordome-brain-2026-11-15.age",
         "majordome-work-2026-10-01.age",
+      ]);
+    }),
+  );
+
+  it.effect("suggests the cloud folders that are on this computer", () =>
+    Effect.gen(function* () {
+      const { fs } = yield* makeVault();
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-home-" });
+      assert.deepStrictEqual(yield* findCloudFolders(home), []);
+
+      const icloud = `${home}/Library/Mobile Documents/com~apple~CloudDocs`;
+      const drive = `${home}/Library/CloudStorage/GoogleDrive-someone@example.com/My Drive`;
+      yield* fs.makeDirectory(icloud, { recursive: true });
+      yield* fs.makeDirectory(drive, { recursive: true });
+      yield* fs.makeDirectory(`${home}/Library/CloudStorage/Dropbox`, { recursive: true });
+      yield* fs.makeDirectory(`${home}/Dropbox`);
+      assert.deepStrictEqual(yield* findCloudFolders(home), [
+        { label: "iCloud Drive", path: icloud },
+        { label: "Dropbox", path: `${home}/Dropbox` },
+        { label: "Google Drive", path: drive },
       ]);
     }),
   );

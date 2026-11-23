@@ -2464,6 +2464,7 @@ export const layerWsRpc = (
             Effect.andThen(majordomeVault.setRoutineLimits(input)),
           ),
         [WS_METHODS.majordomeStartNotes]: (input) => majordomeVault.startNotes(input),
+        [WS_METHODS.majordomeRestoreNotes]: (input) => majordomeVault.restoreNotes(input),
         [WS_METHODS.majordomeGetBackupStatus]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeBackup.getStatus(input)),
