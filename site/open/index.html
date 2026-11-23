@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Majordome</title>
+    <meta name="description" content="Sign in to open your Majordome server from any browser." />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 30rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li .name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 600;
+      }
+      li .host {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+      li .problem {
+        flex-basis: 100%;
+        margin-top: 0;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        margin-top: 28px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>Open Majordome</h1>
+      <p class="muted" id="intro">Sign in to find your servers.</p>
+      <p class="problem" id="problem" role="alert" hidden></p>
+      <div id="sign-in"></div>
+      <ul id="servers" hidden></ul>
+      <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+    </main>
+    <script type="module">
+      // The account service's key is public. It only signs in on majord.me and its subdomains.
+      const PUBLISHABLE_KEY = "pk_live_Y2xlcmsubWFqb3JkLm1lJA";
+      const SIGN_IN_PATH = "/api/majordome/account/sign-in";
+      const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      // On a developer's machine only: another account service, and servers on that machine.
+      const key = (local && new URLSearchParams(location.search).get("key")) || PUBLISHABLE_KEY;
+
+      const $ = (id) => document.getElementById(id);
+      const showProblem = (message) => {
+        $("problem").textContent = message;
+        $("problem").hidden = message === "";
+      };
+
+      function serverUrl(value) {
+        const url = typeof value === "string" ? URL.parse(value) : null;
+        if (url === null) return null;
+        const onThisMachine = local && url.protocol === "http:" && url.hostname === "localhost";
+        return url.protocol === "https:" || onThisMachine ? url : null;
+      }
+
+      /** The servers the account lists, written by the app when a server is added to it. */
+      function accountServers(user) {
+        const listed = user.unsafeMetadata?.majordomeServers;
+        const servers = new Map();
+        for (const entry of Array.isArray(listed) ? listed : []) {
+          const url = serverUrl(entry?.url);
+          if (url === null || typeof entry.environmentId !== "string") continue;
+          const name = typeof entry.name === "string" && entry.name !== "" ? entry.name : url.host;
+          servers.set(entry.environmentId, { url, name });
+        }
+        return Array.from(servers.values());
+      }
+
+      /** Trades a fresh account token for the one-time code that server's pairing page takes. */
+      async function open(clerk, server) {
+        const token = await clerk.session?.getToken({ template: "majordome", skipCache: true });
+        if (!token) return "Sign in again, then try once more.";
+        const response = await fetch(new URL(SIGN_IN_PATH, server.url), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token }),
+        }).catch(() => null);
+        if (response === null) return `${server.name} did not answer. It may be off.`;
+        const body = await response.json().catch(() => null);
+        if (!response.ok || typeof body?.credential !== "string") {
+          return typeof body?.message === "string"
+            ? body.message
+            : `${server.name} refused the sign-in.`;
+        }
+        const pair = new URL("/pair", server.url);
+        pair.hash = new URLSearchParams({ token: body.credential }).toString();
+        location.assign(pair);
+        return null;
+      }
+
+      function serverRow(clerk, server) {
+        const row = document.createElement("li");
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = server.name;
+        const host = document.createElement("span");
+        host.className = "host muted";
+        host.textContent = server.url.host;
+        name.append(host);
+        const button = document.createElement("button");
+        button.className = "button";
+        button.type = "button";
+        button.textContent = "Open";
+        const problem = document.createElement("p");
+        problem.className = "problem";
+        problem.setAttribute("role", "alert");
+        problem.hidden = true;
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          problem.hidden = true;
+          const failure = await open(clerk, server);
+          if (failure === null) return;
+          button.disabled = false;
+          problem.textContent = failure;
+          problem.hidden = false;
+        });
+        row.append(name, button, problem);
+        return row;
+      }
+
+      let shown;
+      function render(clerk) {
+        const { user } = clerk;
+        // The account service announces more than sign-in and sign-out; draw only what changed.
+        const next = user ? JSON.stringify([user.id, user.unsafeMetadata]) : null;
+        if (next === shown) return;
+        shown = next;
+        $("sign-out").hidden = !user;
+        $("servers").hidden = !user;
+        if (!user) {
+          $("intro").textContent = "Sign in to find your servers.";
+          clerk.mountSignIn($("sign-in"), {
+            forceRedirectUrl: location.href,
+            signUpForceRedirectUrl: location.href,
+          });
+          return;
+        }
+        clerk.unmountSignIn($("sign-in"));
+        const servers = accountServers(user);
+        $("intro").textContent =
+          servers.length === 0
+            ? "No server is in your account yet. On your computer, open Majordome, go to Settings, then Your account, and add it."
+            : "Pick the server to open on this device.";
+        $("servers").replaceChildren(...servers.map((server) => serverRow(clerk, server)));
+      }
+
+      try {
+        const frontendApi = atob(key.split("_")[2]).replace(/\$$/, "");
+        // The account service's library, then its sign-in screens, which it ships separately.
+        const load = (name, attributes = {}) =>
+          new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = `https://${frontendApi}/npm/@clerk/${name}`;
+            script.crossOrigin = "anonymous";
+            Object.assign(script.dataset, attributes);
+            script.addEventListener("load", resolve);
+            script.addEventListener("error", reject);
+            document.head.append(script);
+          });
+        await Promise.all([
+          load("clerk-js@6/dist/clerk.browser.js", { clerkPublishableKey: key }),
+          load("ui@1/dist/ui.browser.js"),
+        ]);
+        await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+        $("sign-out").addEventListener("click", () =>
+          window.Clerk.signOut({ redirectUrl: location.href }),
+        );
+        window.Clerk.addListener(() => render(window.Clerk));
+        render(window.Clerk);
+      } catch {
+        showProblem("Sign-in could not be loaded. Check your connection and reload the page.");
+      }
+    </script>
+  </body>
+</html>
