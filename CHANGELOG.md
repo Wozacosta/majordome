@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.24
+
 **New**
 
 - **Long settings pages list their sections under the title.** The line stays at the top while
@@ -20,8 +22,17 @@ Not released yet.
 
 **Fixed**
 
+- **The sign-in button shows on every tab.** The key button in the side browser's bar only
+  appeared on tabs running on another computer. It is now there for tabs that load on this
+  computer too, where it signs Majordome's own browser in to the site.
 - **The "Not saved" message on a note no longer squeezes into a one-word-wide column** when the
   note is shown in a narrow space; its buttons move below the text instead.
+
+**Try this**
+
+- Open a site in the side browser yourself, such as github.com. Press the key button in its bar
+  and pick Chrome: the page should reload signed in.
+- Open Back up my brain in Settings and use the line of sections under the title.
 
 ## 0.10.23
 
