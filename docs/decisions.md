@@ -311,7 +311,11 @@ takes over.
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.
 10. **Later.** Hosted Majordome, a paid choice at install, on an API key Majordome holds (see
-    Servers and sync). Hetzner first, since the one-button move already creates servers there.
+    Servers and sync). No single host (2026-11-23): in 2026 Hetzner rationed new cloud servers
+    and every host raised prices as memory got dearer, so creating a server goes behind one small
+    interface (what is on offer and its price, create with a start-up script, status, delete)
+    with Hetzner, already built, as the first of several. The start-up script and everything
+    after it (pairing, copying notes, moving routines) do not depend on the host.
     The AWS shape, if the price needs it: the same image, one container and
     encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
     and wake for routines and when the owner opens the app, to keep the price low.
