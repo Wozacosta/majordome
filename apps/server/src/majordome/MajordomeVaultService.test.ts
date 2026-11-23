@@ -23,6 +23,7 @@ import * as MajordomeVaultService from "./MajordomeVaultService.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { commitVaultRun, vaultCommitMessage } from "./VaultCommitReactor.ts";
+import { createVaultBundle, encryptFile } from "./vaultFolderBackup.ts";
 
 const testLayer = GitVcsDriver.layer.pipe(
   Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-service-" })),
@@ -354,6 +355,70 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       assert.equal(first.folder, `${home}/Majordome`);
       assert.isTrue(yield* fs.exists(`${home}/Majordome/.majordome/config.json`));
       assert.deepEqual(yield* start(first.folder), first);
+    }),
+  );
+
+  it.effect("restores a backup into a new folder, and leaves nothing behind when it cannot", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const vault = yield* makeFolder({ vault: true });
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-home-" });
+      const backups = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-backups-" });
+      const work = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-work-" });
+      const passphrase = "correct horse battery staple";
+      yield* createVaultBundle({ cwd: vault.root, bundlePath: `${work}/vault.bundle` });
+      yield* encryptFile({
+        source: `${work}/vault.bundle`,
+        target: `${backups}/majordome-notes-2026-11-15.age`,
+        passphrase,
+        scryptWorkFactor: 10,
+      });
+      yield* fs.writeFileString(`${backups}/majordome-notes-2026-11-01.age`, "an older copy");
+      const service = yield* makeService({});
+      const restore = (input: { source: string; passphrase: string; into?: string }) =>
+        service
+          .restoreNotes({ into: null, ...input })
+          .pipe(Effect.provideService(HostProcess.HomeDirectory, home));
+
+      const wrong = yield* Effect.flip(restore({ source: backups, passphrase: "not the one" }));
+      assert.include(wrong.message, "passphrase does not open");
+      assert.notInclude(JSON.stringify(wrong), "not the one");
+      const notOurs = yield* Effect.flip(restore({ source: `${work}/vault.bundle`, passphrase }));
+      assert.include(notOurs.message, "not a Majordome backup");
+      const empty = yield* Effect.flip(restore({ source: work, passphrase }));
+      assert.include(empty.message, "no Majordome backup");
+      const nowhere = yield* Effect.flip(
+        restore({ source: backups, passphrase, into: `${home}/missing` }),
+      );
+      assert.include(nowhere.message, "does not exist");
+      assert.deepEqual(yield* fs.readDirectory(home), []);
+
+      const first = yield* restore({ source: backups, passphrase });
+      assert.equal(first.folder, `${home}/Majordome`);
+      assert.equal(first.file, `${backups}/majordome-notes-2026-11-15.age`);
+      assert.equal(yield* fs.readFileString(`${first.folder}/memory.md`), "- Likes tea\n");
+      const git = yield* GitVcsDriver.GitVcsDriver;
+      const inRestored = (args: ReadonlyArray<string>) =>
+        git
+          .execute({ operation: "test.restored", cwd: first.folder, args })
+          .pipe(Effect.map((result) => result.stdout.trim()));
+      assert.equal(
+        yield* inRestored(["rev-list", "--max-parents=0", "HEAD"]),
+        yield* vault.run(["rev-list", "--max-parents=0", "HEAD"]),
+      );
+      assert.equal(yield* inRestored(["remote"]), "");
+
+      // The folder that is there is never written into: a second restore sits beside it.
+      yield* fs.writeFileString(`${first.folder}/memory.md`, "- Likes coffee\n");
+      const second = yield* restore({
+        source: `${backups}/majordome-notes-2026-11-15.age`,
+        passphrase,
+        into: home,
+      });
+      assert.equal(second.folder, `${home}/Majordome 2`);
+      assert.notEqual(second.projectId, first.projectId);
+      assert.equal(yield* fs.readFileString(`${first.folder}/memory.md`), "- Likes coffee\n");
+      assert.deepEqual((yield* fs.readDirectory(home)).toSorted(), ["Majordome", "Majordome 2"]);
     }),
   );
 

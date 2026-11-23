@@ -30,6 +30,7 @@
 - [Phone and notifications](./user/phone-and-notifications.md)
 - [Always-on server](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)
+- [Backing up and restoring your notes](./user/backup.md)
 - [Searching your notes](./user/notes-search.md)
 - [Reading list](./user/reading-list.md)
 - [Key facts](./user/key-facts.md)

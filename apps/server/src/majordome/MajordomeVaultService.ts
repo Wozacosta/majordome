@@ -8,6 +8,8 @@ import {
   type MajordomeVaultChangesInput,
   type MajordomeRoutineLimits,
   type MajordomeSetRoutineLimitsInput,
+  type MajordomeRestoreNotesInput,
+  type MajordomeRestoreNotesResult,
   type MajordomeStartNotesInput,
   type MajordomeStartNotesResult,
   MajordomeVaultError,
@@ -44,6 +46,7 @@ import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import { isTooBroadForNotes, NotesFolderError, setUpNotesFolder } from "./starterNotes.ts";
+import { findBackupFile, FolderBackupError, restoreFolderBackup } from "./vaultFolderBackup.ts";
 import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
@@ -56,6 +59,7 @@ const isVaultError = Schema.is(MajordomeVaultError);
 /** Under the home folder, not Documents: macOS asks before a background service may read that. */
 const DEFAULT_NOTES_FOLDER = "Majordome";
 const isNotesFolderError = Schema.is(NotesFolderError);
+const isFolderBackupError = Schema.is(FolderBackupError);
 
 export class MajordomeVaultService extends Context.Service<
   MajordomeVaultService,
@@ -77,6 +81,10 @@ export class MajordomeVaultService extends Context.Service<
     readonly startNotes: (
       input: MajordomeStartNotesInput,
     ) => Effect.Effect<MajordomeStartNotesResult, MajordomeVaultError>;
+    /** Opens an encrypted backup into a new folder and opens that folder as the notes. */
+    readonly restoreNotes: (
+      input: MajordomeRestoreNotesInput,
+    ) => Effect.Effect<MajordomeRestoreNotesResult, MajordomeVaultError>;
   }
 >()("t3/majordome/MajordomeVaultService") {}
 
@@ -292,7 +300,65 @@ const make = Effect.gen(function* () {
     ),
   );
 
-  return MajordomeVaultService.of({ listHistory, undo, changes, setRoutineLimits, startNotes });
+  const restoreNotes: MajordomeVaultService["Service"]["restoreNotes"] = Effect.fn(
+    "MajordomeVaultService.restoreNotes",
+  )(
+    function* (input) {
+      const home = yield* HostProcess.HomeDirectory;
+      if (input.into !== null && !path.isAbsolute(input.into)) {
+        return yield* new MajordomeVaultError({ message: "Give the folder's full path." });
+      }
+      const into = path.resolve(input.into ?? home);
+      const place = yield* fileSystem.stat(into).pipe(Effect.option);
+      if (Option.isNone(place) || place.value.type !== "Directory") {
+        return yield* new MajordomeVaultError({
+          message: "The folder you chose for your notes does not exist on this computer.",
+        });
+      }
+      const withFiles = Effect.provideService(FileSystem.FileSystem, fileSystem);
+      const withPath = Effect.provideService(Path.Path, path);
+      const file = yield* findBackupFile({ source: input.source, homeDirectory: home }).pipe(
+        withFiles,
+        withPath,
+      );
+      const folder = yield* restoreFolderBackup({
+        file,
+        passphrase: input.passphrase,
+        into,
+        name: DEFAULT_NOTES_FOLDER,
+      }).pipe(Effect.provide(services), withFiles, withPath);
+      yield* vaultLock.withLock(
+        folder,
+        setUpNotesFolder(folder).pipe(Effect.provide(services), withFiles, withPath),
+      );
+      const project = yield* projectService.create({
+        commandId: CommandId.make(`majordome:restore-notes:${yield* random.uuidV4()}`),
+        projectId: ProjectId.make(yield* random.uuidV4()),
+        title: path.basename(folder),
+        workspaceRoot: folder,
+      });
+      return { projectId: project.id, folder, file };
+    },
+    Effect.mapError((cause) =>
+      isVaultError(cause)
+        ? cause
+        : new MajordomeVaultError({
+            message: isFolderBackupError(cause)
+              ? cause.message
+              : "Your notes were brought back, but Majordome could not open the folder.",
+            cause,
+          }),
+    ),
+  );
+
+  return MajordomeVaultService.of({
+    listHistory,
+    undo,
+    changes,
+    setRoutineLimits,
+    startNotes,
+    restoreNotes,
+  });
 });
 
 export const layer = Layer.effect(MajordomeVaultService, make);

@@ -3,17 +3,14 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { ArrowUpIcon, CheckIcon, FolderIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { isElectron } from "../../env";
-import { cn } from "../../lib/utils";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
-import { filesystemEnvironment } from "../../state/filesystem";
 import { majordomeEnvironment } from "../../state/majordome";
-import { useEnvironmentQuery } from "../../state/query";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { useAtomCommand } from "../../state/use-atom-command";
 import {
@@ -24,9 +21,10 @@ import {
 } from "../onboarding/WelcomePage";
 import { Button } from "../ui/button";
 import { SidebarInset } from "../ui/sidebar";
-import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { FolderBrowser } from "./FolderBrowser";
+import { RestoreNotes } from "./RestoreNotes";
 
 /**
  * Majordome's setup: the assistant to install or sign in to, and the folder to start or pick.
@@ -141,6 +139,7 @@ function NotesFolderSetup({
   });
   const { settled } = useAssistantSettled(environmentId);
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   // Only the desktop app can show the computer's own folder picker.
   const canPickFolder = typeof window !== "undefined" && window.desktopBridge !== undefined;
 
@@ -208,155 +207,42 @@ function NotesFolderSetup({
           <FolderBrowser
             environmentId={environmentId}
             disabled={busy}
+            forNotes
             onUse={(folder) => void start(folder)}
           />
         )}
       </NotesChoice>
-    </div>
-  );
-}
-
-const withoutEndSlash = (folder: string) => folder.replace(/(?<=.)\/+$/, "");
-
-/**
- * Picks a folder on the server's computer by walking its folders, for a browser, which has no
- * folder picker of its own. Starts in the home folder.
- */
-function FolderBrowser({
-  environmentId,
-  disabled,
-  onUse,
-}: {
-  readonly environmentId: EnvironmentId;
-  readonly disabled: boolean;
-  readonly onUse: (folder: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [path, setPath] = useState("~/");
-  const listing = useEnvironmentQuery(
-    open ? filesystemEnvironment.browse({ environmentId, input: { partialPath: path } }) : null,
-  );
-  // The last folder that opened stays on screen while the next one loads or fails to open.
-  const [shown, setShown] = useState(listing.data);
-  const [home, setHome] = useState<string | null>(null);
-  const [confirmingHome, setConfirmingHome] = useState(false);
-  if (listing.data !== null && listing.data !== shown) {
-    setShown(listing.data);
-    if (path === "~/") setHome(withoutEndSlash(listing.data.parentPath));
-  }
-  const here = shown?.parentPath ?? null;
-  const folders = (shown?.entries ?? []).filter((entry) => !entry.name.startsWith("."));
-  const parent = here === null ? null : here.replace(/[^/]+\/?$/, "");
-  const loading = open && listing.data === null && listing.error === null;
-  const nameOf = (folder: string) => withoutEndSlash(folder).split("/").pop() ?? "";
-  const hereName = here === null ? "" : nameOf(here);
-  const go = (next: string) => {
-    setConfirmingHome(false);
-    if (next === path) listing.refresh();
-    else setPath(next);
-  };
-
-  if (!open) {
-    return (
-      <div className="mt-2">
-        <Button size="sm" variant="outline" disabled={disabled} onClick={() => setOpen(true)}>
-          Choose folder
-        </Button>
-      </div>
-    );
-  }
-  return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-border/70">
-      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-1.5">
-        <Button
-          size="icon-xs"
-          variant="ghost-muted"
-          aria-label="Up one folder"
-          disabled={parent === null || parent === "" || parent === here}
-          onClick={() => parent && go(parent)}
-        >
-          <ArrowUpIcon />
-        </Button>
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          {here === null ? (listing.error === null ? "Looking…" : "") : shortFolder(here)}
-        </span>
-        {loading ? <Spinner size="xs" tone="muted" /> : null}
-        <Button
-          size="xs"
-          variant="ghost-muted"
-          onClick={() => {
-            setConfirmingHome(false);
-            setOpen(false);
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="xs"
-          disabled={disabled || here === null || loading || confirmingHome}
-          onClick={() => {
-            if (here === null) return;
-            if (withoutEndSlash(here) === home) setConfirmingHome(true);
-            else onUse(here);
-          }}
-        >
-          {hereName === "" ? "Use this folder" : `Use “${hereName}”`}
-        </Button>
-      </div>
-      {confirmingHome && here !== null ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
-          <p className="min-w-0 flex-1 basis-64 text-xs leading-relaxed text-foreground">
-            This is your whole home folder. Everything in it would count as your notes. A folder
-            inside it is usually the better choice.
-          </p>
-          <Button size="xs" variant="outline" onClick={() => setConfirmingHome(false)}>
-            Pick another
-          </Button>
-          <Button size="xs" variant="outline" disabled={disabled} onClick={() => onUse(here)}>
-            Use my home folder
-          </Button>
-        </div>
-      ) : null}
-      {listing.error === null ? null : (
-        <p role="alert" className="border-b border-border/60 px-3 py-1.5 text-xs text-destructive">
-          {nameOf(path) === "" || path === "~/"
-            ? "This folder could not be opened."
-            : `“${nameOf(path)}” could not be opened.`}
-        </p>
-      )}
-      <ul
-        aria-label="Folders here"
-        aria-busy={loading}
-        className={cn("max-h-56 overflow-y-auto py-1", loading && "opacity-60")}
+      <NotesChoice
+        title="Restore from a backup"
+        description="Bring back notes from an encrypted copy Majordome made, in a folder or in Google Drive. You need the passphrase you wrote down."
+        action={
+          restoring ? null : (
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => setRestoring(true)}>
+              Restore
+            </Button>
+          )
+        }
       >
-        {folders.map((entry) => (
-          <li key={entry.fullPath}>
-            <button
-              type="button"
-              disabled={loading}
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-sm text-foreground hover:bg-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default"
-              onClick={() => go(`${entry.fullPath}/`)}
-            >
-              <FolderIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="truncate">{entry.name}</span>
-            </button>
-          </li>
-        ))}
-        {shown !== null && folders.length === 0 ? (
-          <li className="px-3 py-1 text-xs leading-relaxed text-muted-foreground">
-            No folders to show here. If you expected some, Majordome may not be allowed to look
-            inside this one.
-          </li>
+        {restoring ? (
+          <RestoreNotes
+            environmentId={environmentId}
+            onThisComputer
+            onStart={() => {
+              if (!settled) onStay();
+            }}
+            onRestored={(result) =>
+              toastManager.add({
+                type: "success",
+                title: "Your notes are back",
+                description: result.folder,
+              })
+            }
+            onCancel={() => setRestoring(false)}
+          />
         ) : null}
-      </ul>
+      </NotesChoice>
     </div>
   );
-}
-
-/** The last two folders of a path, which is the part that tells folders apart. */
-function shortFolder(folder: string): string {
-  const parts = folder.split("/").filter((part) => part !== "");
-  return parts.length <= 2 ? folder : `…/${parts.slice(-2).join("/")}`;
 }
 
 function NotesChoice({

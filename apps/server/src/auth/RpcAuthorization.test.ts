@@ -80,6 +80,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeUndoVaultRun,
       WS_METHODS.majordomeRunRoutinesHere,
       WS_METHODS.majordomeBackUpNow,
+      WS_METHODS.majordomeRestoreNotes,
       WS_METHODS.majordomeRebuildNotesIndex,
       WS_METHODS.majordomeCreateTopic,
       WS_METHODS.majordomeSuggestTopicFolder,

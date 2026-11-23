@@ -164,6 +164,11 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:start-notes",
       tag: WS_METHODS.majordomeStartNotes,
     }),
+    restoreNotes: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:restore-notes",
+      tag: WS_METHODS.majordomeRestoreNotes,
+      onSettled: ({ environmentId }, registry) => bumpBackup(environmentId, registry),
+    }),
     backupStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:backup-status",
       tag: WS_METHODS.majordomeGetBackupStatus,

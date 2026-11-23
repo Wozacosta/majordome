@@ -74,6 +74,7 @@ import {
   backupFilePattern,
   createVaultBundle,
   encryptFile,
+  findCloudFolders,
   folderBackupFileName,
   FOLDER_BACKUP_KEEP,
   storeFolderBackup,
@@ -779,6 +780,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
               lastFile: state.lastFolderFile ?? null,
               lastError: state.folderError ?? null,
             },
+      folderSuggestions: yield* findCloudFolders(homeDirectory).pipe(Effect.provide(services)),
       drive:
         state.drive === undefined
           ? null

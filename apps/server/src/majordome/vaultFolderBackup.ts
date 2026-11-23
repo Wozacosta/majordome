@@ -1,7 +1,7 @@
 /**
  * Folder backup: the vault's whole history as one `git bundle`, encrypted with `age` and the
  * owner's passphrase, written as `majordome-<vault>-<YYYY-MM-DD>.age`. The last few are kept.
- * Restoring needs only `age -d` and `git clone`, no Majordome.
+ * Majordome restores one into a new folder; `age -d` and `git clone` do the same without it.
  */
 
 // @effect-diagnostics nodeBuiltinImport:off -- age encrypts Web streams; Node's file streams feed it without holding a whole vault in memory.
@@ -15,6 +15,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
+import * as Stream from "effect/Stream";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 
@@ -181,4 +182,186 @@ export const validateBackupFolder = Effect.fn("majordome.validateBackupFolder")(
     ),
   );
   return folder;
+});
+
+const ANY_BACKUP_FILE = /^majordome-(.+)-(\d{4}-\d{2}-\d{2})\.age$/;
+const AGE_HEADER = "age-encryption.org/v1";
+
+const expandHome = (raw: string, homeDirectory: string, path: Path.Path) =>
+  raw === "~" ? homeDirectory : raw.startsWith("~/") ? path.join(homeDirectory, raw.slice(2)) : raw;
+
+/** The backup file to open: the one named, or the newest copy in the folder named. */
+export const findBackupFile = Effect.fn("majordome.findBackupFile")(function* (input: {
+  readonly source: string;
+  readonly homeDirectory: string;
+}) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const expanded = expandHome(input.source.trim(), input.homeDirectory, path);
+  if (!path.isAbsolute(expanded)) {
+    return yield* new FolderBackupError({
+      message: "Give the backup's full path, starting with / or ~/.",
+    });
+  }
+  const source = path.resolve(expanded);
+  const info = yield* fileSystem.stat(source).pipe(Effect.option);
+  if (info._tag === "None") {
+    return yield* new FolderBackupError({
+      message: "Majordome cannot find that file or folder on this computer.",
+    });
+  }
+  if (info.value.type !== "Directory") return source;
+  const copies = (yield* fileSystem
+    .readDirectory(source)
+    .pipe(Effect.orElseSucceed((): Array<string> => []))).flatMap((name) => {
+    const match = ANY_BACKUP_FILE.exec(name);
+    return match === null ? [] : [{ name, notes: match[1]!, date: match[2]! }];
+  });
+  if (copies.length === 0) {
+    return yield* new FolderBackupError({
+      message:
+        "There is no Majordome backup in that folder. Backup files have names like majordome-notes-2026-01-31.age.",
+    });
+  }
+  const notes = [...new Set(copies.map((copy) => copy.notes))];
+  if (notes.length > 1) {
+    return yield* new FolderBackupError({
+      message: `That folder holds backups of ${notes.length} different notes folders (${notes.join(", ")}). Give the full path of the file you want instead.`,
+    });
+  }
+  const newest = copies.toSorted((left, right) => right.date.localeCompare(left.date))[0]!;
+  return path.join(source, newest.name);
+});
+
+/**
+ * Opens an encrypted backup into a new folder inside `into` and returns that folder. It never
+ * writes into a folder that exists: a taken name gets a number. A failure leaves nothing behind.
+ */
+export const restoreFolderBackup = Effect.fn("majordome.restoreFolderBackup")(function* (input: {
+  readonly file: string;
+  readonly passphrase: string;
+  readonly into: string;
+  readonly name: string;
+}) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const git = yield* GitVcsDriver.GitVcsDriver;
+  const notBackup = new FolderBackupError({
+    message: "That file is not a Majordome backup. Backup files end in .age.",
+  });
+
+  const header = yield* fileSystem.stream(input.file, { bytesToRead: AGE_HEADER.length }).pipe(
+    Stream.decodeText(),
+    Stream.mkString,
+    Effect.orElseSucceed(() => ""),
+  );
+  if (header !== AGE_HEADER) return yield* notBackup;
+
+  return yield* Effect.scoped(
+    Effect.gen(function* () {
+      const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-restore-" });
+      const bundlePath = path.join(temp, "notes.bundle");
+      yield* decryptFile({
+        source: input.file,
+        target: bundlePath,
+        passphrase: input.passphrase,
+      }).pipe(
+        Effect.mapError(
+          (cause) =>
+            new FolderBackupError({
+              message:
+                "That passphrase does not open this backup. Check it for typos and try again.",
+              cause,
+            }),
+        ),
+      );
+
+      // Made beside its final place, so the move into place is one step and never a half copy.
+      const staging = yield* fileSystem
+        .makeTempDirectoryScoped({ directory: input.into, prefix: ".majordome-restoring-" })
+        .pipe(
+          Effect.mapError(
+            (cause) =>
+              new FolderBackupError({
+                message: "Majordome cannot write to the folder you chose for your notes.",
+                cause,
+              }),
+          ),
+        );
+      const clone = path.join(staging, "notes");
+      const cloned = yield* git.execute({
+        operation: "majordome.restoreClone",
+        cwd: staging,
+        args: ["clone", "--quiet", bundlePath, clone],
+        allowNonZeroExit: true,
+        timeoutMs: 10 * 60_000,
+      });
+      if (cloned.exitCode !== 0) return yield* notBackup;
+      // The clone remembers the temporary file it came from; a later backup must not go there.
+      yield* git.execute({
+        operation: "majordome.restoreClone",
+        cwd: clone,
+        args: ["remote", "remove", "origin"],
+        allowNonZeroExit: true,
+      });
+
+      for (let attempt = 1; attempt <= 50; attempt++) {
+        const folder = path.join(
+          input.into,
+          attempt === 1 ? input.name : `${input.name} ${attempt}`,
+        );
+        if (yield* fileSystem.exists(folder)) continue;
+        yield* fileSystem.rename(clone, folder);
+        return folder;
+      }
+      return yield* new FolderBackupError({
+        message: `There are too many folders called ${input.name} there. Choose another place.`,
+      });
+    }),
+  ).pipe(
+    Effect.mapError((cause) =>
+      cause._tag === "FolderBackupError"
+        ? cause
+        : new FolderBackupError({ message: "Could not bring your notes back.", cause }),
+    ),
+  );
+});
+
+/** Folders that cloud services keep on this computer, as places to suggest for the backup. */
+export const findCloudFolders = Effect.fn("majordome.findCloudFolders")(function* (
+  homeDirectory: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const isFolder = (folder: string) =>
+    fileSystem.stat(folder).pipe(
+      Effect.map((info) => info.type === "Directory"),
+      Effect.orElseSucceed(() => false),
+    );
+  const cloudStorage = path.join(homeDirectory, "Library", "CloudStorage");
+  const mounted = (yield* fileSystem
+    .readDirectory(cloudStorage)
+    .pipe(Effect.orElseSucceed((): Array<string> => []))).toSorted();
+  const candidates = [
+    {
+      label: "iCloud Drive",
+      path: path.join(homeDirectory, "Library", "Mobile Documents", "com~apple~CloudDocs"),
+    },
+    { label: "Dropbox", path: path.join(homeDirectory, "Dropbox") },
+    ...mounted.flatMap((name) =>
+      name.startsWith("Dropbox")
+        ? [{ label: "Dropbox", path: path.join(cloudStorage, name) }]
+        : name.startsWith("OneDrive")
+          ? [{ label: "OneDrive", path: path.join(cloudStorage, name) }]
+          : name.startsWith("GoogleDrive")
+            ? [{ label: "Google Drive", path: path.join(cloudStorage, name, "My Drive") }]
+            : [],
+    ),
+  ];
+  const found: Array<{ readonly label: string; readonly path: string }> = [];
+  for (const candidate of candidates) {
+    if (found.some((other) => other.label === candidate.label)) continue;
+    if (yield* isFolder(candidate.path)) found.push(candidate);
+  }
+  return found;
 });

@@ -11,7 +11,7 @@ import type {
   MajordomeGoogleDriveProblem,
   ProjectId,
 } from "@t3tools/contracts";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {
   CircleAlertIcon,
@@ -53,10 +53,10 @@ import {
   backupAttention,
   backupHeadline,
   folderFormProblem,
-  restoreCommands,
   twoVersionsTitle,
 } from "./backup.logic";
 import { brainKey, groupBrains, labelCopies } from "./brains.logic";
+import { ChooseFolder } from "./FolderBrowser";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   Disclosure,
@@ -73,6 +73,7 @@ import {
   Surface,
   SwitchLabel,
 } from "./paper";
+import { RestoreNotes } from "./RestoreNotes";
 import { linkedPairKey, type PeerLinkPlan, peerLinkPlans } from "./peerLink.logic";
 import { useDeclinedPeerLinks, useLinkMachines } from "./useKeepMachinesInStep";
 import { useMachineNames } from "./useMachineNames";
@@ -81,7 +82,6 @@ interface BackupVault {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly title: string;
-  readonly folderName: string;
   readonly brainId?: string | null | undefined;
   readonly peer: MajordomeBackupStatus["peer"];
 }
@@ -126,7 +126,6 @@ export function BackupPage() {
         environmentId: project.environmentId,
         projectId: project.id,
         title: project.title,
-        folderName: project.workspaceRoot.split(/[\\/]/).findLast((part) => part !== "") ?? "",
         brainId: status.brainId,
         peer: status.peer,
         status,
@@ -161,6 +160,7 @@ export function BackupPage() {
             status={copy.status}
             label={label}
             elsewhere={isElsewhere(copy.environmentId)}
+            onThisComputer={copy.environmentId === localEnvironmentId}
             offer={offers.find((offer) => offer.local === copy)}
             nowMs={nowMs}
           />
@@ -181,7 +181,107 @@ export function BackupPage() {
           )}
         </Section>
       )}
+      {primaryEnvironmentId === null ? null : (
+        <RestoreSection
+          environmentId={primaryEnvironmentId}
+          onThisComputer={primaryEnvironmentId === localEnvironmentId}
+          hasNotes={vaults.length > 0}
+        />
+      )}
     </MajordomeSettingsPage>
+  );
+}
+
+/** The way back from an encrypted copy, for the computer this window belongs to. */
+function RestoreSection({
+  environmentId,
+  onThisComputer,
+  hasNotes,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly onThisComputer: boolean;
+  readonly hasNotes: boolean;
+}) {
+  const allowed = useAtomValue(majordomeEnvironment.restoreNotes.permissionAtom(environmentId));
+  const [open, setOpen] = useState(false);
+  if (!allowed) return null;
+  return (
+    <Section label="Restore from a backup" data-backup-restore>
+      <Muted className={READING_MEASURE_CLASS}>
+        Bring your notes and their whole history back from an encrypted copy, in a backup folder or
+        downloaded from Google Drive. You need the passphrase you wrote down.
+        {hasNotes
+          ? " They come back as a new notes folder beside the ones you have; nothing is replaced."
+          : ""}
+      </Muted>
+      {open ? (
+        <RestoreNotes
+          environmentId={environmentId}
+          onThisComputer={onThisComputer}
+          onRestored={(result) => {
+            setOpen(false);
+            toastManager.add({
+              type: "success",
+              title: "Your notes are back",
+              description: hasNotes
+                ? `They are in ${result.folder}, as a new notes folder. Your other notes were not changed.`
+                : `They are in ${result.folder}.`,
+            });
+          }}
+          onCancel={() => setOpen(false)}
+        />
+      ) : (
+        <div>
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+            Restore from a backup
+          </Button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/** Asks before something stops: what stops, what stays, and a button that names the action. */
+function AskFirst({
+  ask,
+  onClose,
+}: {
+  readonly ask: {
+    readonly title: string;
+    readonly detail: string;
+    readonly action: string;
+    readonly run: () => void;
+  } | null;
+  readonly onClose: () => void;
+}) {
+  return (
+    <AlertDialog
+      open={ask !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      {ask === null ? null : (
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ask.title}</AlertDialogTitle>
+            <AlertDialogDescription>{ask.detail}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>Keep it</AlertDialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onClose();
+                ask.run();
+              }}
+            >
+              {ask.action}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      )}
+    </AlertDialog>
   );
 }
 
@@ -194,6 +294,7 @@ function VaultBackup({
   status,
   label,
   elsewhere,
+  onThisComputer,
   offer,
   nowMs,
 }: {
@@ -202,6 +303,8 @@ function VaultBackup({
   /** The brain or machine this is, when several are listed. */
   readonly label: string | null;
   readonly elsewhere: boolean;
+  /** The notes are on the computer this app runs on, so its owner can change things on it. */
+  readonly onThisComputer: boolean;
   /** Another machine these notes could be kept in step with, when they are not yet. */
   readonly offer: PeerLinkPlan<BackupVault> | undefined;
   readonly nowMs: number;
@@ -255,9 +358,22 @@ function VaultBackup({
             <Muted className={READING_MEASURE_CLASS}>{headline.detail}</Muted>
           ) : null}
           {status.paused !== null && status.paused.files.length > 0 ? (
-            <ul className="m-0 list-disc ps-5 text-sm break-all text-foreground">
+            <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
               {status.paused.files.map((file) => (
-                <li key={file}>{file}</li>
+                <li key={file} className="flex flex-wrap gap-x-3 break-all">
+                  <span className="text-foreground">{file}</span>
+                  <Link
+                    to="/notes"
+                    search={{
+                      project: vault.projectId,
+                      environment: vault.environmentId,
+                      path: file,
+                    }}
+                    className={ROW_ACTION_CLASS}
+                  >
+                    Open the note
+                  </Link>
+                </li>
               ))}
             </ul>
           ) : null}
@@ -298,11 +414,21 @@ function VaultBackup({
           {facts.length > 0 ? (
             <p className="text-xs text-muted-foreground">{facts.join(" · ")}</p>
           ) : null}
-          {status.secretScan ? null : (
+          {status.secretScan || !onThisComputer ? null : (
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <ShieldIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              The secret check (gitleaks) isn't installed on this computer, so notes are saved
-              without it.
+              <span>
+                Majordome isn't checking your notes for passwords or keys before it saves them and
+                backs them up, because the checker it uses, gitleaks, isn't on this computer.{" "}
+                <a
+                  href="https://github.com/gitleaks/gitleaks#installing"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  How to install it
+                </a>
+              </span>
             </p>
           )}
         </div>
@@ -330,7 +456,13 @@ function VaultBackup({
           ) : null}
           {/* A folder on another machine, such as a server, isn't the iCloud or USB drive meant here. */}
           {elsewhere && status.folder === null ? null : (
-            <FolderOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+            <FolderOption
+              vault={vault}
+              status={status}
+              canConfigure={canConfigure}
+              onThisComputer={onThisComputer}
+              nowMs={nowMs}
+            />
           )}
           <GoogleDriveOption
             vault={vault}
@@ -365,7 +497,9 @@ function OtherMachine({
     label: "stop keeping in step",
   });
   const link = useLinkMachines();
+  const router = useRouter();
   const { machineOf } = useMachineNames();
+  const [ask, setAsk] = useState<Parameters<typeof AskFirst>[0]["ask"]>(null);
   const { decline, allow } = useDeclinedPeerLinks();
   const [busy, setBusy] = useState(false);
   const peer = vault.peer ?? null;
@@ -379,13 +513,24 @@ function OtherMachine({
       const problem = await link(offer!);
       setBusy(false);
       if (problem === null) return;
-      toastManager.add({
+      const toastId = toastManager.add({
         type: "error",
         title: `Could not keep these notes in step with ${machine}`,
         description:
           problem === "no-access"
-            ? `This app is not allowed to do that on ${machine}. Add ${machine} again in Connections with a new code, then try again.`
+            ? `This app is not allowed to do that on ${machine}. Add ${machine} again in Computers with a new code, then try again.`
             : problem,
+        ...(problem === "no-access"
+          ? {
+              actionProps: {
+                children: "Open Computers",
+                onClick: () => {
+                  toastManager.close(toastId);
+                  void router.navigate({ to: "/settings/connections" });
+                },
+              },
+            }
+          : {}),
       });
     };
     return (
@@ -415,9 +560,6 @@ function OtherMachine({
     peer.lastInStepAt === null ? null : formatRelativeTimeLabel(peer.lastInStepAt, nowMs);
   const pairKey = linkedPairKey(brainKey(vault), vault);
   const stop = async () => {
-    const message = `Stop keeping these notes in step with ${peer.label}?\nBoth machines keep their notes as they are now. Changes made on one no longer reach the other.`;
-    const confirmed = (await requestConfirmDialog(message)) ?? window.confirm(message);
-    if (!confirmed) return;
     setBusy(true);
     const result = await unlinkPeer({
       environmentId: vault.environmentId,
@@ -456,12 +598,26 @@ function OtherMachine({
           </Muted>
           {peer.linkedHere && canConfigure ? (
             <div>
-              <Button size="xs" variant="outline" disabled={busy} onClick={() => void stop()}>
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  setAsk({
+                    title: `Stop keeping these notes in step with ${peer.label}?`,
+                    detail:
+                      "Both machines keep their notes as they are now. Changes made on one no longer reach the other.",
+                    action: "Stop keeping in step",
+                    run: () => void stop(),
+                  })
+                }
+              >
                 {busy ? <Spinner size="sm" /> : null}
                 Stop keeping in step
               </Button>
             </div>
           ) : null}
+          <AskFirst ask={ask} onClose={() => setAsk(null)} />
         </Entry>
       </EntryList>
     </Section>
@@ -524,6 +680,7 @@ function GitHubOption({
   readonly nowMs: number;
 }) {
   const [open, setOpen] = useState(false);
+  const [ask, setAsk] = useState<Parameters<typeof AskFirst>[0]["ask"]>(null);
   const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
     label: "forget github",
   });
@@ -604,13 +761,27 @@ function GitHubOption({
             </Button>
           ) : null}
           {status.github.signedIn ? (
-            <Button size="xs" variant="ghost-muted" onClick={() => void forget()}>
+            <Button
+              size="xs"
+              variant="ghost-muted"
+              onClick={() =>
+                setAsk({
+                  title: "Forget your GitHub sign-in?",
+                  detail: connected
+                    ? "Your notes stop being sent to GitHub from this computer until you sign in again. What is already on GitHub stays there, and your notes here are not touched."
+                    : "Majordome forgets the sign-in it keeps on this computer. Nothing on GitHub changes, and you can sign in again at any time.",
+                  action: "Forget sign-in",
+                  run: () => void forget(),
+                })
+              }
+            >
               Forget GitHub sign-in
             </Button>
           ) : null}
         </div>
       ) : null}
       {connected ? <Disclosure summary="How this works">{how}</Disclosure> : null}
+      <AskFirst ask={ask} onClose={() => setAsk(null)} />
       <AlertDialog open={open} onOpenChange={setOpen}>
         {open ? <GitHubSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
       </AlertDialog>
@@ -843,6 +1014,7 @@ function GoogleDriveOption({
 }) {
   const [open, setOpen] = useState(false);
   const [settingPassphrase, setSettingPassphrase] = useState(false);
+  const [ask, setAsk] = useState<Parameters<typeof AskFirst>[0]["ask"]>(null);
   const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
     label: "disconnect google drive",
   });
@@ -885,7 +1057,22 @@ function GoogleDriveOption({
                   {connectAction}
                 </Button>
               ) : null}
-              <Button size="xs" variant="ghost-muted" onClick={() => void disconnect()}>
+              <Button
+                size="xs"
+                variant="ghost-muted"
+                onClick={() =>
+                  setAsk({
+                    title: "Disconnect Google Drive?",
+                    detail: `The nightly copies to Google Drive stop, and Majordome signs out of Google on this computer. Copies already in your Drive stay there. ${
+                      status.folder === null
+                        ? "Your passphrase is forgotten here too: keep the one you wrote down, since it still opens those copies, and you'll choose one again to turn this back on."
+                        : "Your backup folder carries on as before."
+                    }`,
+                    action: "Disconnect Google Drive",
+                    run: () => void disconnect(),
+                  })
+                }
+              >
                 Disconnect Google Drive
               </Button>
             </div>
@@ -910,6 +1097,8 @@ function GoogleDriveOption({
               <FolderForm
                 vault={vault}
                 mode="passphrase"
+                onThisComputer={false}
+                suggestions={[]}
                 initialPath=""
                 onDone={() => {
                   setSettingPassphrase(false);
@@ -932,10 +1121,10 @@ function GoogleDriveOption({
           ) : null}
         </>
       )}
+      <AskFirst ask={ask} onClose={() => setAsk(null)} />
       <AlertDialog open={open} onOpenChange={setOpen}>
         {open ? <GoogleDriveSignInPopup vault={vault} onClose={() => setOpen(false)} /> : null}
       </AlertDialog>
-      <RestoreNote folderName={vault.folderName} source="drive" />
     </Entry>
   );
 }
@@ -970,14 +1159,17 @@ function FolderOption({
   vault,
   status,
   canConfigure,
+  onThisComputer,
   nowMs,
 }: {
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
   readonly canConfigure: boolean;
+  readonly onThisComputer: boolean;
   readonly nowMs: number;
 }) {
   const [editing, setEditing] = useState(false);
+  const [ask, setAsk] = useState<Parameters<typeof AskFirst>[0]["ask"]>(null);
   const configure = useAtomCommand(majordomeEnvironment.configureBackup, {
     label: "remove backup folder",
   });
@@ -1012,7 +1204,22 @@ function FolderOption({
               <Button size="xs" variant="outline" onClick={() => setEditing(true)}>
                 Change folder or passphrase
               </Button>
-              <Button size="xs" variant="ghost-muted" onClick={() => void remove()}>
+              <Button
+                size="xs"
+                variant="ghost-muted"
+                onClick={() =>
+                  setAsk({
+                    title: "Stop backing up to this folder?",
+                    detail: `No new copies are made. Copies already in the folder stay, and your passphrase still opens them. ${
+                      status.drive === null
+                        ? "Majordome forgets the passphrase on this computer, so you'll need it to turn this back on."
+                        : "Your Google Drive copies carry on as before."
+                    }`,
+                    action: "Stop backing up",
+                    run: () => void remove(),
+                  })
+                }
+              >
                 Stop backing up to this folder
               </Button>
             </div>
@@ -1027,6 +1234,8 @@ function FolderOption({
             <FolderForm
               vault={vault}
               mode="folder"
+              onThisComputer={onThisComputer}
+              suggestions={status.folderSuggestions ?? []}
               initialPath={folder?.path ?? ""}
               onDone={() => setEditing(false)}
               {...(folder !== null ? { onCancel: () => setEditing(false) } : {})}
@@ -1034,7 +1243,7 @@ function FolderOption({
           ) : null}
         </>
       )}
-      <RestoreNote folderName={vault.folderName} source="folder" />
+      <AskFirst ask={ask} onClose={() => setAsk(null)} />
     </Entry>
   );
 }
@@ -1043,12 +1252,17 @@ function FolderOption({
 function FolderForm({
   vault,
   mode,
+  onThisComputer,
+  suggestions,
   initialPath,
   onDone,
   onCancel,
 }: {
   readonly vault: BackupVault;
   readonly mode: "folder" | "passphrase";
+  readonly onThisComputer: boolean;
+  /** Cloud folders found on the notes' computer, offered with one click. */
+  readonly suggestions: NonNullable<MajordomeBackupStatus["folderSuggestions"]>;
   readonly initialPath: string;
   readonly onDone: () => void;
   readonly onCancel?: () => void;
@@ -1150,15 +1364,45 @@ function FolderForm({
         }}
       >
         {mode === "folder" ? (
-          <label className="flex flex-col gap-1 text-sm text-foreground">
-            Folder on this computer
-            <Input
-              value={path}
-              placeholder="~/Library/Mobile Documents/com~apple~CloudDocs/Majordome"
-              onChange={(event) => setPath(event.target.value)}
-              aria-label="Backup folder"
+          <div className="flex flex-col gap-1 text-sm text-foreground">
+            Where the copies go
+            {path.trim() === "" ? null : (
+              <p className="flex min-w-0 items-center gap-2" data-backup-folder-choice>
+                <FolderIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 break-all">{path}</span>
+              </p>
+            )}
+            {suggestions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion.path}
+                    size="xs"
+                    variant="outline"
+                    type="button"
+                    onClick={() => setPath(suggestion.path)}
+                  >
+                    {suggestion.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            <ChooseFolder
+              environmentId={vault.environmentId}
+              onThisComputer={onThisComputer}
+              disabled={false}
+              label={path.trim() === "" ? "Choose folder" : "Choose another folder"}
+              onChoose={setPath}
             />
-          </label>
+            <Disclosure summary="Type a path instead">
+              <Input
+                value={path}
+                placeholder="~/Dropbox"
+                onChange={(event) => setPath(event.target.value)}
+                aria-label="Backup folder"
+              />
+            </Disclosure>
+          </div>
         ) : (
           <Muted>Choose a passphrase to encrypt your copies. Google never sees your notes.</Muted>
         )}
@@ -1202,37 +1446,5 @@ function FolderForm({
         </div>
       </form>
     </Surface>
-  );
-}
-
-function RestoreNote({
-  folderName,
-  source,
-}: {
-  readonly folderName: string;
-  readonly source: "folder" | "drive";
-}) {
-  const [decrypt, clone] = restoreCommands(folderName);
-  return (
-    <Disclosure
-      summary={
-        source === "folder"
-          ? "How to restore from a folder copy"
-          : "How to restore from a Google Drive copy"
-      }
-    >
-      <p className={READING_MEASURE_CLASS}>
-        You don't need Majordome to restore.{" "}
-        {source === "drive"
-          ? "Download the newest .age file from the “Majordome backups” folder in Google Drive. "
-          : ""}
-        Install age from age-encryption.org, then, in the folder with your copy, run these two
-        commands. The first asks for your passphrase.
-      </p>
-      <pre className="overflow-x-auto rounded-lg border border-border bg-muted/50 px-3 py-2.5 font-mono text-xs text-foreground">
-        {`${decrypt}\n${clone}`}
-      </pre>
-      <p>The my-notes folder then holds your notes and their whole history.</p>
-    </Disclosure>
   );
 }

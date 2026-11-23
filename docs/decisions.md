@@ -133,7 +133,9 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   ask for the broad `repo` permission; the screen says so. A vault that already pushes somewhere
   shows as backed up.
 - **Folder backup** is a nightly `age`-encrypted `git bundle`, encrypted with a passphrase the owner
-  chooses, kept in the Keychain and shown once as a recovery phrase to write down.
+  chooses, kept in the Keychain and shown once as a recovery phrase to write down. Restoring one
+  (welcome screen and Back up my brain) always makes a new folder, never writes into one that
+  exists, and does not keep the passphrase; `age -d` and `git clone` still work without the app.
 - **One runner, chosen explicitly.** `.majordome/runner` names the server that runs routines and the
   inbox watcher. Moving it is one button; if it is offline, the Overview says so. No heartbeat (it
   would commit every few minutes through git) and no automatic takeover in v1.
