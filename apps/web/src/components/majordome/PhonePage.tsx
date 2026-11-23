@@ -266,6 +266,12 @@ function PairedPhones({
           <Entry
             key={phone.sessionId}
             title={phone.name}
+            meta={`Added ${new Date(phone.addedAt).toLocaleString(undefined, {
+              day: "numeric",
+              month: "short",
+              hour: "numeric",
+              minute: "2-digit",
+            })}`}
             aside={phone.connected ? <Badge variant="secondary">Open now</Badge> : null}
             actions={
               <Button

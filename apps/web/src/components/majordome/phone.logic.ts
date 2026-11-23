@@ -6,6 +6,7 @@ import type {
   MajordomeRoutinesRunner,
 } from "@t3tools/contracts";
 
+import * as DateTime from "effect/DateTime";
 import { machineInSentence } from "./brains.logic";
 import { alwaysOnCopy } from "./home.logic";
 
@@ -198,7 +199,26 @@ export const phoneAppPairingLink = (pairingUrl: string) =>
 export interface PairedPhone {
   readonly sessionId: AuthClientSession["sessionId"];
   readonly name: string;
+  /** When it was added, in epoch milliseconds: two phones can carry the same name. */
+  readonly addedAt: number;
   readonly connected: boolean;
+}
+
+/** "iPhone, Safari" or "iPhone, Majordome app": the phone app reports an OS and no browser. */
+function phoneName(client: AuthClientSession["client"]): string {
+  const tablet = client.deviceType === "tablet";
+  const device =
+    client.os === "iOS"
+      ? tablet
+        ? "iPad"
+        : "iPhone"
+      : client.os === "Android"
+        ? tablet
+          ? "Android tablet"
+          : "Android phone"
+        : client.os;
+  if (device === undefined) return client.browser ?? "A phone";
+  return `${device}, ${client.browser ?? "Majordome app"}`;
 }
 
 /**
@@ -207,7 +227,7 @@ export interface PairedPhone {
  */
 export function pairedPhones(
   sessions: ReadonlyArray<
-    Pick<AuthClientSession, "sessionId" | "client" | "connected" | "current">
+    Pick<AuthClientSession, "sessionId" | "client" | "issuedAt" | "connected" | "current">
   >,
 ): ReadonlyArray<PairedPhone> {
   return sessions
@@ -218,9 +238,10 @@ export function pairedPhones(
           client.deviceType === "mobile" ||
           client.deviceType === "tablet"),
     )
-    .map(({ sessionId, client, connected }) => ({
+    .map(({ sessionId, client, issuedAt, connected }) => ({
       sessionId,
-      name: [client.os, client.browser].filter(Boolean).join(" · ") || "A phone",
+      name: phoneName(client),
+      addedAt: DateTime.toEpochMillis(issuedAt),
       connected,
     }));
 }

@@ -1,4 +1,5 @@
 import { EnvironmentId, type MajordomeRoutinesRunner } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -156,7 +157,13 @@ describe("phone setup checklist", () => {
       sessionId: string,
       client: Parameters<typeof pairedPhones>[0][number]["client"],
       current = false,
-    ) => ({ sessionId: sessionId as never, client, connected: sessionId === "a", current });
+    ) => ({
+      sessionId: sessionId as never,
+      client,
+      issuedAt: DateTime.makeUnsafe(1_000),
+      connected: sessionId === "a",
+      current,
+    });
     expect(
       pairedPhones([
         session("a", { label: "Phone", deviceType: "mobile", os: "iOS", browser: "Safari" }),
@@ -164,11 +171,13 @@ describe("phone setup checklist", () => {
         session("c", { deviceType: "tablet", os: "Android" }),
         session("d", { deviceType: "desktop", os: "macOS" }),
         session("e", { label: "Phone", deviceType: "mobile" }, true),
+        session("f", { label: "Phone", deviceType: "mobile", os: "iOS" }),
       ]),
     ).toEqual([
-      { sessionId: "a", name: "iOS · Safari", connected: true },
-      { sessionId: "b", name: "A phone", connected: false },
-      { sessionId: "c", name: "Android", connected: false },
+      { sessionId: "a", name: "iPhone, Safari", addedAt: 1_000, connected: true },
+      { sessionId: "b", name: "A phone", addedAt: 1_000, connected: false },
+      { sessionId: "c", name: "Android tablet, Majordome app", addedAt: 1_000, connected: false },
+      { sessionId: "f", name: "iPhone, Majordome app", addedAt: 1_000, connected: false },
     ]);
   });
 });

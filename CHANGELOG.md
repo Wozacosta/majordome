@@ -15,6 +15,13 @@ Not released yet.
   phone, the page also has an "Open in the Majordome app" button. (The iPhone app is not in the
   App Store yet.)
 
+**Improved**
+
+- **You can tell your phones apart.** In Settings > Phone & notifications, each phone that can
+  open Majordome now says what it is and how it gets in, such as "iPhone, Majordome app" or
+  "iPhone, Safari", with the day and time it was added. Before, two of them could both read
+  "iOS".
+
 ## 0.10.33
 
 **Fixed**
