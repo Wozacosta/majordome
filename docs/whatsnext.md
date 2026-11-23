@@ -321,8 +321,12 @@ What that first version does not do, in the order I would take them:
 
 - **Updates: done.** Every night the broker reads the latest release and restarts each hosted
   server that reports another version. Run for real: a server went from 0.10.29 to 0.10.30 in
-  36 seconds, and a second run restarted nothing. It does not yet wait for a run in progress to
-  finish, and servers made by hand (not through an invite) are not in its list.
+  36 seconds, and a second run restarted nothing. It names the image by its tag, since a
+  machine updated with `fly machine update` has its image pinned to a digest and would otherwise
+  restart on the same one. It does not yet wait for a run in progress to finish. A server made
+  by hand is in its list only if it has a row in `hosted_invites`; the demo server has one.
+- **Phone setup: done.** A hosted server reports its own address as the phone's, and the Phone
+  page goes straight to the code to scan. Seen on a real hosted server.
 - **Backups.** A Fly volume is one disk on one machine. A hosted customer has no backup unless
   they turn on Google Drive themselves; it should be on from the start.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
@@ -331,9 +335,6 @@ What that first version does not do, in the order I would take them:
   their Mac has to restore a Google Drive backup or link the server by hand; there is no "move
   my notes to a Majordome server" as there is for a server of your own.
 - **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (5) bounds the bill.
-- **Codex counts as "needs you".** The image ships Codex too, so Status on a new server says two
-  things need you when only Claude is meant to be signed in. True on any server, more visible
-  on a hosted one that shows Claude alone at the start.
 - **The built-in browser.** On Fly, `majord browser setup` reports that Chrome's sandbox is
   allowed, so it should work; no one has opened a tab from a phone yet.
 - **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
