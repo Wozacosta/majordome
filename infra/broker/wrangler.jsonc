@@ -39,6 +39,9 @@
     "HOSTED_REGION": "cdg",
     // Each server is billed to the Fly account, so this bounds the bill.
     "MAX_HOSTED_SERVERS": "10",
+    // Majordome's account service and the one site allowed to ask for a server from a browser.
+    "ACCOUNT_ISSUER": "https://clerk.majord.me",
+    "ACCOUNT_PAGE_ORIGIN": "https://majord.me",
   },
   // CLOUDFLARE_API_TOKEN is a secret: `wrangler secret put CLOUDFLARE_API_TOKEN`.
   // FLY_API_TOKEN is a secret too, from `fly tokens create org`.

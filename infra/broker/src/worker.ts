@@ -1,3 +1,4 @@
+import { type AccountKey, makeAccountVerifier } from "./account.ts";
 import { type AddressRequest, type Broker, CloudflareError, makeBroker } from "./broker.ts";
 import { makeCloudflareClient } from "./cloudflare.ts";
 import { BrokerError, type BrokerErrorCode, ERROR_STATUS } from "./errors.ts";
@@ -30,6 +31,10 @@ interface Env {
   readonly HOSTED_IMAGE?: string;
   readonly HOSTED_REGION?: string;
   readonly MAX_HOSTED_SERVERS?: string;
+  /** Majordome's account service. With it, a new server can belong to a signed-in account. */
+  readonly ACCOUNT_ISSUER?: string;
+  /** The one other site allowed to ask for a hosted server: where people sign in. */
+  readonly ACCOUNT_PAGE_ORIGIN?: string;
 }
 
 const MAX_BODY_CHARS = 4096;
@@ -159,7 +164,52 @@ async function serverProgress(
   return { switchedOn: await host.isSwitchedOn(name).catch(() => false), ready };
 }
 
-async function readInvite(request: Request): Promise<string> {
+// Kept between requests while the Worker stays warm, so the keys are not fetched for each one.
+let accountVerifier: {
+  readonly issuer: string;
+  readonly verify: (token: string) => Promise<string>;
+} | null = null;
+
+function accountVerifierFor(issuer: string) {
+  if (accountVerifier?.issuer !== issuer) {
+    accountVerifier = {
+      issuer,
+      verify: makeAccountVerifier({
+        issuer,
+        now: () => Date.now(),
+        fetchKeys: async () => {
+          const response = await fetch(`${issuer}/.well-known/jwks.json`, {
+            signal: AbortSignal.timeout(8000),
+          });
+          const body = (await response.json()) as { keys?: ReadonlyArray<AccountKey> };
+          if (!response.ok || !Array.isArray(body.keys)) throw new Error("no account keys");
+          return body.keys;
+        },
+      }),
+    };
+  }
+  return accountVerifier.verify;
+}
+
+/** The headers that let the sign-in site call the hosted routes from a browser; none otherwise. */
+export function accountPageCors(
+  requestOrigin: string | null,
+  allowedOrigin: string | undefined,
+): Record<string, string> {
+  return allowedOrigin !== undefined && requestOrigin === allowedOrigin
+    ? {
+        "access-control-allow-origin": allowedOrigin,
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "600",
+        vary: "origin",
+      }
+    : {};
+}
+
+async function readInvite(
+  request: Request,
+): Promise<{ readonly invite: string; readonly accountToken: string | null }> {
   const text = await request.text();
   let body: unknown;
   try {
@@ -167,11 +217,11 @@ async function readInvite(request: Request): Promise<string> {
   } catch {
     body = undefined;
   }
-  const { invite } = (body ?? {}) as { invite?: unknown };
+  const { invite, accountToken } = (body ?? {}) as { invite?: unknown; accountToken?: unknown };
   if (typeof invite !== "string") {
     throw new BrokerError("invalid_request", "Send a JSON body with invite.");
   }
-  return invite;
+  return { invite, accountToken: typeof accountToken === "string" ? accountToken : null };
 }
 
 const errorResponse = (code: BrokerErrorCode, message: string, headers?: HeadersInit) =>
@@ -221,10 +271,17 @@ async function handle(request: Request, env: Env): Promise<Response> {
     });
   }
   if (host !== null && pathname === "/v1/hosted" && request.method === "POST") {
+    const { invite, accountToken } = await readInvite(request);
+    // The account is checked before the invite is spent, so a bad sign-in costs nothing.
+    const ownerAccountId =
+      accountToken === null || env.ACCOUNT_ISSUER === undefined
+        ? undefined
+        : await accountVerifierFor(env.ACCOUNT_ISSUER)(accountToken);
     return Response.json(
       await hostingFor(env, host).create({
-        invite: await readInvite(request),
+        invite,
         clientIp: request.headers.get("cf-connecting-ip") ?? "unknown",
+        ...(ownerAccountId === undefined ? {} : { ownerAccountId }),
       }),
     );
   }
@@ -243,24 +300,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request, env) {
-    try {
-      return await handle(request, env);
-    } catch (error) {
-      if (error instanceof BrokerError) return errorResponse(error.code, error.message);
-      console.error("Address request failed", error);
-      if (error instanceof HostError) {
-        return errorResponse(
-          "upstream",
-          "Majordome could not make your server just now. Your invite is still good: try again in a few minutes.",
-        );
-      }
-      const retryAfter = error instanceof CloudflareError ? error.retryAfter : null;
-      return errorResponse(
-        "upstream",
-        "The address service could not reach Cloudflare. Try again in a few minutes.",
-        retryAfter === null ? undefined : { "retry-after": retryAfter },
-      );
+    const hosted = new URL(request.url).pathname.startsWith("/v1/hosted");
+    const cors = hosted
+      ? accountPageCors(request.headers.get("origin"), env.ACCOUNT_PAGE_ORIGIN)
+      : {};
+    if (hosted && request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: cors });
     }
+    const answer = await answerFor(request, env);
+    for (const [name, value] of Object.entries(cors)) answer.headers.set(name, value);
+    return answer;
   },
   async scheduled(controller, env) {
     // Each run has its own budget of requests, so the two jobs never share one.
@@ -271,3 +320,24 @@ export default {
     console.log("Reaped addresses", await brokerFor(env).reap());
   },
 } satisfies ExportedHandler<Env>;
+
+async function answerFor(request: Request, env: Env): Promise<Response> {
+  try {
+    return await handle(request, env);
+  } catch (error) {
+    if (error instanceof BrokerError) return errorResponse(error.code, error.message);
+    console.error("Address request failed", error);
+    if (error instanceof HostError) {
+      return errorResponse(
+        "upstream",
+        "Majordome could not make your server just now. Your invite is still good: try again in a few minutes.",
+      );
+    }
+    const retryAfter = error instanceof CloudflareError ? error.retryAfter : null;
+    return errorResponse(
+      "upstream",
+      "The address service could not reach Cloudflare. Try again in a few minutes.",
+      retryAfter === null ? undefined : { "retry-after": retryAfter },
+    );
+  }
+}

@@ -87,6 +87,8 @@ export function makeHosting(deps: {
     create: async (input: {
       readonly invite: string;
       readonly clientIp: string;
+      /** The signed-in account the server belongs to from its first start, when there is one. */
+      readonly ownerAccountId?: string;
     }): Promise<HostedServer> => {
       const code = input.invite.trim();
       if (code === "" || code.length > MAX_INVITE_CHARS) {
@@ -108,7 +110,13 @@ export function makeHosting(deps: {
       try {
         const { url } = await deps.host.createServer({
           name,
-          env: { MAJORDOME_HOSTED: "1", MAJORDOME_SETUP_SECRET: secret },
+          env: {
+            MAJORDOME_HOSTED: "1",
+            MAJORDOME_SETUP_SECRET: secret,
+            ...(input.ownerAccountId === undefined
+              ? {}
+              : { MAJORDOME_OWNER_ACCOUNT: input.ownerAccountId }),
+          },
         });
         return { name, url, pairingUrl: `${url}/pair#token=${secret}` };
       } catch (error) {

@@ -55,8 +55,16 @@ function setup(options: { readonly maxServers?: number; readonly failCreate?: bo
   return { hosting, invites, servers, deleted };
 }
 
-const create = (hosting: ReturnType<typeof setup>["hosting"], invite: string) =>
-  hosting.create({ invite, clientIp: "203.0.113.7" });
+const create = (
+  hosting: ReturnType<typeof setup>["hosting"],
+  invite: string,
+  ownerAccountId?: string,
+) =>
+  hosting.create({
+    invite,
+    clientIp: "203.0.113.7",
+    ...(ownerAccountId === undefined ? {} : { ownerAccountId }),
+  });
 
 describe("hosted servers", () => {
   it("spends an invite on a server that says it is hosted and pairs once with its secret", async () => {
@@ -73,6 +81,16 @@ describe("hosted servers", () => {
     expect(env.MAJORDOME_SETUP_SECRET).toMatch(/^mjsetup-(\d{1,12})-[A-Za-z0-9_-]{43}$/u);
     expect(env.MAJORDOME_SETUP_SECRET).toContain(`-${START / 1000 + 24 * 60 * 60}-`);
     expect(server.pairingUrl).toBe(`${server.url}/pair#token=${env.MAJORDOME_SETUP_SECRET}`);
+  });
+
+  it("makes the server the signed-in account's from its first start", async () => {
+    const { hosting, servers } = setup();
+    await create(hosting, "welcome-1", "user_owner");
+    expect([...servers.values()][0]?.MAJORDOME_OWNER_ACCOUNT).toBe("user_owner");
+
+    const unsigned = setup();
+    await create(unsigned.hosting, "welcome-1");
+    expect([...unsigned.servers.values()][0]).not.toHaveProperty("MAJORDOME_OWNER_ACCOUNT");
   });
 
   it("knows the names it makes from any other", () => {
