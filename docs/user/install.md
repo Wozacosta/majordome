@@ -20,7 +20,7 @@ command the first time it opens.
 ## On a server that stays on
 
 To keep routines running and reach your notes while your computer is off, run Majordome on a
-small server with Docker. Follow [An always-on server](./always-on-server.md).
+small server with Docker. Follow [A server of your own](./always-on-server.md).
 
 ## On your phone
 
@@ -140,5 +140,5 @@ installation, update checks, and shutdown limits keep their existing behavior.
 - [Permission modes](./permission-modes.md): choose when agents ask before acting.
 - [Remote access](./remote-access.md): connect from another device.
 - [Running in the background](./background-service.md): keep a host available.
-- [An always-on server](./always-on-server.md): keep Majordome running on a server.
+- [A server of your own](./always-on-server.md): keep Majordome running on a server.
 - [Managed policy](./managed-policy.md): configure T3 Code for everyone on a machine.

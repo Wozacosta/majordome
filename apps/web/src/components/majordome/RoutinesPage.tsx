@@ -173,7 +173,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
                       to="/settings/always-on"
                       className="rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
-                      Move them to an always-on server
+                      Move them to a server of your own
                     </Link>
                   </StatusLine>
                 ) : null}

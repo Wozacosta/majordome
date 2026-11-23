@@ -115,7 +115,7 @@ describe("buildFeedItems", () => {
       machine,
     });
     const mac = copyOn("mac", "This Mac");
-    const vps = copyOn("vps", "Always-on server");
+    const vps = copyOn("vps", "Your server");
     const shared = [
       entry({
         commit: "undo",
@@ -147,9 +147,9 @@ describe("buildFeedItems", () => {
       items.map((item) => [item.entry.commit, item.vault.environmentId, item.machine, item.undone]),
     ).toEqual([
       ["undo", "mac", "This Mac", false],
-      ["day2", "vps", "Always-on server", false],
+      ["day2", "vps", "Your server", false],
       ["edit", "mac", null, false],
-      ["d1d1d1d", "vps", "Always-on server", true],
+      ["d1d1d1d", "vps", "Your server", true],
     ]);
   });
 });
@@ -508,8 +508,8 @@ describe("routinesBlockedLine", () => {
   it.each([
     [
       { ready: false, reason: "no-provider" },
-      "Always-on server",
-      { text: "Routines can't run: no AI is signed in on Always-on server.", tone: "warning" },
+      "Your server",
+      { text: "Routines can't run: no AI is signed in on your server.", tone: "warning" },
     ],
     [
       { ready: false, reason: "provider-signed-out", provider: "Claude" },

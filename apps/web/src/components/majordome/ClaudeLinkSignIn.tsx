@@ -28,7 +28,7 @@ export function ClaudeLinkSignIn({
           {step.kind === "starting"
             ? "Getting your sign-in link…"
             : step.kind === "done"
-              ? "Signed in. Claude says Ready above in a moment."
+              ? "Signed in."
               : "Sign-in did not start."}
         </p>
       )}

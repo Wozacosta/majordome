@@ -6,6 +6,7 @@ import type {
   MajordomeRoutinesRunner,
 } from "@t3tools/contracts";
 
+import { machineInSentence } from "./brains.logic";
 import { alwaysOnCopy } from "./home.logic";
 
 /**
@@ -166,11 +167,13 @@ export function phoneComputerWords(name: string | null): {
   readonly atStart: string;
 } {
   if (name === null) return { inSentence: "this computer", atStart: "This computer" };
-  // The names Majordome gives a computer by itself read as descriptions, not as names.
-  if (/^always-on server$/i.test(name)) {
-    return { inSentence: "your always-on server", atStart: "Your always-on server" };
-  }
-  return { inSentence: name.replace(/^Another /, "another "), atStart: name };
+  const inSentence = machineInSentence(name).replace(/^Another /, "another ");
+  // "Your server", "Your Majordome server": a name Majordome gave reads as a description.
+  const described = inSentence.startsWith("your ");
+  return {
+    inSentence,
+    atStart: described ? `Y${inSentence.slice(1)}` : name,
+  };
 }
 
 /** The first phone or tablet that gets notifications, by the name it registered with. */

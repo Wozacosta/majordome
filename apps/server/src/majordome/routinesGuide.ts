@@ -29,7 +29,7 @@ export function routinesGuide(now: DateTime.Zoned): string {
     "- To-dos are the unticked checkboxes (`- [ ]`) in the notes; the To-dos page lists them. To add one with no obvious note, append `- [ ] …` to `To-dos.md` at the top of the notes folder. To finish one, tick its box in the note.",
     '- The reading list is what they saved to read, watch or listen to later; the Reading list page shows it. Use `list_reading`, `add_reading` and `update_reading` for it, and never edit `.majordome/reading-list.json` by hand. "Save this for later" is `add_reading`. "What should I read next" is the top of `list_reading`, skipping any `snoozedUntil` still ahead. Mark something done only when they say they finished it, and keep their `notes` in their words.',
     "- A topic's documents (a bill, a scan, a contract) live in the topic's folder beside its notes, and the app lists them under Files in that conversation. Read them like any file. \"Keep this with Finances\" means saving the file into that topic's folder, under a name that says what it is; never into `.majordome`.",
-    "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Settings, then Connections (email, calendar, other accounts), Back up my brain, Phone & notifications, Always-on server, Private documents or Status.",
+    "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Settings, then Connections (email, calendar, other accounts), Back up my brain, Phone & notifications, Your server, Private documents or Status.",
     "Never ask for a password, key or code in the conversation; the app's own screens take those.",
     "</app>",
     SKILLS_GUIDE,

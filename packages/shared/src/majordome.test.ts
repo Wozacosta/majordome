@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { isT3CodeHome } from "./majordome.ts";
+import { hostedServerName, isT3CodeHome } from "./majordome.ts";
 
 describe("isT3CodeHome", () => {
   it.each([
@@ -22,5 +22,14 @@ describe("isT3CodeHome", () => {
     "/Users/bob/.t3",
   ])("allows %s", (baseDir) => {
     expect(isT3CodeHome(baseDir, "/Users/alice")).toBe(false);
+  });
+});
+
+describe("hostedServerName", () => {
+  it("names a server Majordome hosts only when its creation said so", () => {
+    expect(hostedServerName({ MAJORDOME_HOSTED: "1" })).toBe("Majordome server");
+    expect(hostedServerName({ MAJORDOME_HOSTED: " true " })).toBe("Majordome server");
+    expect(hostedServerName({ MAJORDOME_HOSTED: "0" })).toBeNull();
+    expect(hostedServerName({})).toBeNull();
   });
 });

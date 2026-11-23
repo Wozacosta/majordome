@@ -5,6 +5,8 @@ import {
   copyLabel,
   groupBrains,
   labelCopies,
+  isHostedServer,
+  machineInSentence,
   machineName,
   routinesMachine,
   runnerCopy,
@@ -26,7 +28,7 @@ const copy = (
   routinesRunner,
 });
 
-const names = new Map([[vps, "Always-on server"]]);
+const names = new Map([[vps, "Your server"]]);
 const machineOf = (environmentId: EnvironmentId) =>
   machineName(environmentId, { primaryEnvironmentId: mac, desktop: "mac", labels: names });
 
@@ -55,13 +57,32 @@ describe("machineName", () => {
     const input = { primaryEnvironmentId: mac, labels: names };
     expect(machineName(mac, { ...input, desktop: "mac" })).toBe("This Mac");
     expect(machineName(mac, { ...input, desktop: "other" })).toBe("This computer");
-    expect(machineName(vps, { ...input, desktop: "mac" })).toBe("Always-on server");
+    expect(machineName(vps, { ...input, desktop: "mac" })).toBe("Your server");
     expect(
       machineName(mac, { ...input, desktop: null, labels: new Map([[mac, " Studio "]]) }),
     ).toBe("Studio");
     expect(machineName(EnvironmentId.make("gone"), { ...input, desktop: null })).toBe(
       "Another computer",
     );
+  });
+  it("gives a connection saved under the old name the new one", () => {
+    const labels = new Map([[vps, "Always-on server"]]);
+    expect(machineName(vps, { primaryEnvironmentId: mac, desktop: "mac", labels })).toBe(
+      "Your server",
+    );
+  });
+});
+
+describe("machineInSentence", () => {
+  it("reads the names Majordome gives a server as descriptions", () => {
+    expect(machineInSentence("This Mac")).toBe("this Mac");
+    expect(machineInSentence("Your server")).toBe("your server");
+    expect(machineInSentence("Always-on server")).toBe("your server");
+    expect(machineInSentence("Majordome server")).toBe("your Majordome server");
+    expect(machineInSentence("Studio")).toBe("Studio");
+    expect(isHostedServer("Majordome server")).toBe(true);
+    expect(isHostedServer("Your server")).toBe(false);
+    expect(isHostedServer(null)).toBe(false);
   });
 });
 
@@ -73,14 +94,14 @@ describe("copyLabel", () => {
     expect(label(null, true)).toBe("brain");
     expect(label("This Mac", false)).toBe("This Mac");
     expect(label("This Mac", true)).toBe("brain on this Mac");
-    expect(label("Always-on server", true)).toBe("brain on Always-on server");
+    expect(label("Your server", true)).toBe("brain on your server");
   });
 
   it("labels the copies of one brain on two servers by machine", () => {
     const brains = groupBrains([copy(vps, "brain", "root"), copy(mac, "brain", "root")], mac);
     expect(labelCopies(brains, machineOf).map(({ label }) => label)).toEqual([
       "This Mac",
-      "Always-on server",
+      "Your server",
     ]);
   });
 });
@@ -92,7 +113,7 @@ describe("routines", () => {
       mac,
     );
     expect(runnerCopy(shared!).environmentId).toBe(vps);
-    expect(routinesMachine(shared!, machineOf)).toBe("Always-on server");
+    expect(routinesMachine(shared!, machineOf)).toBe("Your server");
 
     const [alone] = groupBrains([copy(mac, "brain", "root", "this-server")], mac);
     expect(routinesMachine(alone!, machineOf)).toBeNull();

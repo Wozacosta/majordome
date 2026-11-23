@@ -7,6 +7,22 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **"Always-on server" is now "Your server".** The settings page, the guides and every sentence
+  that named it say "your server". A server you already connected shows the new name too, and
+  searching Settings for "always-on" still finds the page.
+- **A server that Majordome hosts for you is called "Majordome server"**, and gets a cloud beside
+  its chats where your own server gets a server and this computer a laptop. On its welcome page,
+  starting fresh says the notes folder is on your Majordome server, not in your home folder.
+- After signing in to Claude with a link and a code, the card just says "Signed in."
+
+**Try this**
+
+- Open Settings: the page that was "Always-on server" is "Your server". Search for "always-on"
+  and it still comes up.
+- On Routines or Status, check that sentences read "on your server".
+
 ## 0.10.28
 
 **Changed**

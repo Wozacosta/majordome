@@ -106,13 +106,13 @@ function Problems({ messages }: { readonly messages: ReadonlyArray<string> }) {
 
 const INTRO: Record<ServerMoveView, string> = {
   setup:
-    "Majordome runs on this computer, so your routines only run while it is awake. An always-on server is a small computer you rent that never sleeps, so your routines run on time and your phone can always reach Majordome.",
+    "Majordome runs on this computer, so your routines only run while it is awake. A server of your own is a small computer you rent that never sleeps, so your routines run on time and your phone can always reach Majordome.",
   progress:
-    "Majordome is setting up your always-on server: a small rented computer that never sleeps, so your routines run even while this computer is off.",
+    "Majordome is setting up your server: a small rented computer that never sleeps, so your routines run even while this computer is off.",
   ready:
-    "You have an always-on server: a small rented computer that never sleeps, with a copy of your notes. This page shows what is left to do on it, and how to remove it.",
+    "You have a server of your own: a small rented computer that never sleeps, with a copy of your notes. This page shows what is left to do on it, and how to remove it.",
   removing:
-    "Majordome is removing your always-on server. Your notes and routines come back to this computer.",
+    "Majordome is removing your server. Your notes and routines come back to this computer.",
 };
 
 /** Set up a rented server that never sleeps from here, or follow the guide to do it by hand. */

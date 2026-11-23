@@ -1,7 +1,7 @@
-# Always-on server
+# Your server
 
 Majordome runs on your computer by default, so routines like "Start my day" only run while it is
-awake. An always-on server is a small computer you rent that never sleeps. Majordome runs there
+awake. A server of your own is a small computer you rent that never sleeps. Majordome runs there
 the same way, and your phone and computer connect to it.
 
 Once the server is set up and signed in to your AI, your conversations are kept there, so your
@@ -9,7 +9,7 @@ phone and your computer show the same ones. Conversations you had before stay on
 they are listed under their topic as "Chat on this Mac". While the server can't be reached, new
 conversations wait until it is back.
 
-**Settings > Always-on server** sets one up for you. You need:
+**Settings > Your server** sets one up for you. You need:
 
 - an account at [Hetzner](https://www.hetzner.com/cloud), the company the server is rented from,
   with a payment card. The account is free; the server is not ([below](#what-it-costs)).

@@ -25,3 +25,19 @@ export function t3CodeHomeRefusal(baseDir: string): string {
  * worktree tools, and are not told how to use them. Upstream's tests of those turn this off.
  */
 export const hidesCodingTools: boolean = true;
+
+/** What a server the owner runs calls itself, set in the image. */
+export const OWN_SERVER_NAME = "Your server";
+/** What a server Majordome hosts for the owner calls itself. */
+export const HOSTED_SERVER_NAME = "Majordome server";
+
+/**
+ * The name of a server Majordome hosts, from the variable set when it is created. The app tells
+ * a hosted server by this name, never by its address, so a change of host changes nothing.
+ */
+export function hostedServerName(
+  environment: Readonly<Record<string, string | undefined>>,
+): string | null {
+  const flag = environment.MAJORDOME_HOSTED?.trim().toLowerCase();
+  return flag === "1" || flag === "true" ? HOSTED_SERVER_NAME : null;
+}

@@ -340,7 +340,7 @@ export const SETTINGS_WORDING: Wording = [
   ["Loading linked environments…", "Loading linked computers…"],
   [
     "Link another machine running T3 Code, such as a VPS, so agents here can launch and drive threads there.",
-    "Link another computer running T3 Code, such as your always-on server, so the assistant here can start and follow chats there.",
+    "Link another computer running T3 Code, such as your server, so the assistant here can start and follow chats there.",
   ],
   ["Link an environment", "Link a computer"],
   [

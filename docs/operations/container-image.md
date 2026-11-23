@@ -2,7 +2,7 @@
 
 `ghcr.io/wozacosta/majordome` is the server and web client from `Dockerfile`, run headless with
 `majord serve`. Owners deploy it with `deploy/docker-compose.yml`; the user guide is
-[Always-on server](../user/always-on-server.md).
+[Your server](../user/always-on-server.md).
 
 ## What is in it
 

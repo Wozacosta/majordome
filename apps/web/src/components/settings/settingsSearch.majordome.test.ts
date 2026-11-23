@@ -36,7 +36,7 @@ it("opens on Status, groups pages by what is being set up, and folds T3's plumbi
     {
       heading: "Your devices",
       collapsible: false,
-      labels: ["Phone & notifications", "Always-on server"],
+      labels: ["Phone & notifications", "Your server"],
     },
     {
       heading: "This app",

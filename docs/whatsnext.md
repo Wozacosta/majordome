@@ -299,7 +299,9 @@ So Fly is the host. What the welcome page got wrong on a server, seen in that ru
 - Claude's sign-in ran in a hidden terminal and said a page had opened in the browser. Fixed
   after 0.10.27: a server shows a link to open and a box for the code.
 - "A new folder called Majordome in your home folder": a hosted customer has no home folder
-  there. It should say the notes are kept on their Majordome server.
+  there. Fixed: a server created with `MAJORDOME_HOSTED=1` is named "Majordome server" and its
+  welcome page says the notes folder is on it. Whatever creates a hosted server must set that
+  variable.
 - Codex, "Use a different AI", "Choose folder" and restoring from a folder all assume the
   owner's own computer. A first hosted version shows Claude and "Start new notes" only.
 - The start-up log warns that the address "uses plain HTTP" although Fly serves it over HTTPS.

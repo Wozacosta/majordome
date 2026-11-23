@@ -30,7 +30,7 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
     reportFailure: false,
   });
   const syncNotes = useAtomCommand(majordomeEnvironment.backUpNow, {
-    label: "send a new topic to the always-on server",
+    label: "send a new topic to your server",
     reportFailure: false,
   });
 

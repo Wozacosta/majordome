@@ -59,5 +59,5 @@ assistant reading one without asking.
 It does not protect against someone who controls the machine, or your account on it, while
 Majordome runs there. On a server, the key sits in the same data folder as the encrypted files, so
 a copy of that whole folder can open them: keep the server private, as the
-[always-on server guide](./always-on-server.md) sets it up. Passwords do not belong here; keep
+[guide to your own server](./always-on-server.md) sets it up. Passwords do not belong here; keep
 them in a password manager.

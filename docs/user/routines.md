@@ -87,7 +87,7 @@ keep the last 5 nightly copies.
 
 ## Good to know
 
-- With an [always-on server](./always-on-server.md), routines run there, and the Routines screen
+- With a [server of your own](./always-on-server.md), routines run there, and the Routines screen
   talks to that machine. The assistant in a conversation on another machine can set a reminder but
   not a routine; it tells you to use the Routines screen instead.
 - **Limits**, at the bottom of the list, stop a run that takes too long and cap how many runs start

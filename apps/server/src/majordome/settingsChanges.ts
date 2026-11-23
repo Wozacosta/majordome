@@ -161,8 +161,8 @@ export const SETTING_CHANGE_RULES: {
   },
   set_up_always_on_server: {
     risk: "owner_only",
-    does: "set up or remove an always-on server",
-    where: "Settings, then Always-on server",
+    does: "set up or remove a server of their own",
+    where: "Settings, then Your server",
   },
   // A skill steers later runs, so an agent never approves its own or drops one.
   keep_or_remove_skill: {

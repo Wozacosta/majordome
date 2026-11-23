@@ -64,7 +64,7 @@ RUN printf '#!/bin/sh\nexec node /opt/majordome/dist/bin.mjs "$@"\n' > /usr/loca
   && ln -s majord /usr/local/bin/t3 \
   && mkdir -p /data \
   && chown node:node /data \
-  && echo 'PRETTY_HOSTNAME="Always-on server"' > /etc/machine-info
+  && echo 'PRETTY_HOSTNAME="Your server"' > /etc/machine-info
 
 # HOME is the volume too, so provider sign-ins (~/.claude, ~/.codex) and git settings survive updates.
 ENV HOME=/data \

@@ -324,7 +324,7 @@ function machineLine(
 const RUNNER_LINE: Record<MajordomeRoutinesRunner, Omit<OverviewLine, "key">> = {
   "this-server": {
     text: "Routines run on this computer",
-    detail: "Only while it's awake. Move them to an always-on server",
+    detail: "Only while it's awake. Move them to a server of your own",
     tone: "ok",
     link: { to: "/settings/always-on" },
   },

@@ -14,7 +14,7 @@ Open **Settings > Phone & notifications** on your computer.
 4. On the phone, open **Settings > Phone & notifications** and turn on **Notifications on this
    device**.
 
-If you have an always-on server, the page sets the phone up on the server, not on this computer:
+If you have a server of your own, the page sets the phone up on the server, not on this computer:
 the server runs your routines and never sleeps. The page names the computer your phone connects to.
 
 The page marks a step **Done** when it can see it: opening Majordome on the phone, and turning

@@ -26,7 +26,7 @@ choose the browser on this computer to copy the sign-in from. Only that site's c
 copied, and the page loads again signed in. It goes wherever the tab loads:
 
 - **A tab on this computer** gets the sign-in in Majordome's own browser.
-- **A tab the assistant opened on another computer**, such as an always-on server, gets it in
+- **A tab the assistant opened on another computer**, such as a server of your own, gets it in
   that computer's browser, which otherwise starts signed out everywhere.
 
 Good to know:

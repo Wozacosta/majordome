@@ -69,9 +69,11 @@ The landing page and the README show a short version of this list.
 - **Your phone with nothing to install:** scan a code, add the app to your Home Screen, get
   notifications. It works away from home over a private address.
   [Phone and notifications](./user/phone-and-notifications.md)
-- **An always-on server set up for you:** a small rented computer that keeps your conversations
+- **Two kinds of server, told apart by name and icon:** "Your server" for one you run and
+  "Majordome server", with a cloud, for one Majordome hosts for you.
+- **A server of your own, set up for you:** a small rented computer that keeps your conversations
   and runs routines while your Mac sleeps, and updates itself every night.
-  [Always-on server](./user/always-on-server.md)
+  [Your server](./user/always-on-server.md)
 - **Conversations kept on the server,** so your phone and your computer show the same ones.
 - **Your own sign-in in the server's browser,** copied one site at a time, by you only.
 

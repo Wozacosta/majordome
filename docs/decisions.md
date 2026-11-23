@@ -79,6 +79,12 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   documents live on one Majordome server; the desktop app and the phone are windows onto it, so
   most people never need sync. It runs on "this computer" by default (background service), with
   "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
+- **What a server is called (2026-11-23).** One the owner runs is "Your server" ("your server"
+  in a sentence), not "Always-on server". One Majordome hosts is "Majordome server" ("your
+  Majordome server"), drawn with a cloud. The host's name (Fly, or any other) is never shown, and
+  nothing is called "cloud". A hosted server says what it is: it is created with
+  `MAJORDOME_HOSTED=1` and reports that name; the app never guesses from the address. The image
+  names itself "Your server", and a connection saved under the old name is shown under the new.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
   cloud machine. **Hosted Majordome** is the next piece of work (2026-11-23): one isolated machine per user, paid, offered as a
   choice at install beside "this computer" and "your own server". To start (2026-11-23), the

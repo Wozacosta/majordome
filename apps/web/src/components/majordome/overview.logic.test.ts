@@ -161,7 +161,7 @@ describe("whereItRunsSection", () => {
       ["Running in the background since 08:00", "Version 1.4.0", "ok"],
       [
         "Routines run on this computer",
-        "Only while it's awake. Move them to an always-on server",
+        "Only while it's awake. Move them to a server of your own",
         "ok",
       ],
     ]);
@@ -173,7 +173,7 @@ describe("whereItRunsSection", () => {
       ...base,
       machines: [
         machine({ label: "This Mac" }),
-        machine({ environmentId: server, label: "Always-on server", primary: false }),
+        machine({ environmentId: server, label: "Your server", primary: false }),
       ],
       runners: [
         { key: "brain", label: null, runner: "another-server", runsOn: "This Mac" },
@@ -181,17 +181,17 @@ describe("whereItRunsSection", () => {
           key: "work",
           label: "Work",
           runner: "another-server",
-          runsOn: "Always-on server",
+          runsOn: "Your server",
           keepsConversations: true,
         },
       ],
     });
     expect(facts(section.lines)).toEqual([
       ["This Mac: Running", "Version 1.4.0", "ok"],
-      ["Always-on server: Connected", "Version 1.4.0", "ok"],
+      ["Your server: Connected", "Version 1.4.0", "ok"],
       ["Routines run on this Mac", null, "ok"],
       [
-        "Work: Routines run on Always-on server",
+        "Work: Routines run on your server",
         "Chats are kept there too, so your phone shows the same ones.",
         "ok",
       ],
@@ -275,9 +275,9 @@ describe("routinesSection", () => {
   it("leaves out the routines kept on a computer that does not run them, but not its reminders", () => {
     const section = build([
       routineBrain({
-        runner: { environmentId: mac, machine: "Always-on server" },
+        runner: { environmentId: mac, machine: "Your server" },
         copies: [
-          { key: "server:brain", label: "Always-on server", tasks: ready({ tasks: [task({})] }) },
+          { key: "server:brain", label: "Your server", tasks: ready({ tasks: [task({})] }) },
           {
             key: "mac:brain",
             label: "This Mac",
@@ -300,7 +300,7 @@ describe("routinesSection", () => {
       }),
     ]);
     const titles = section.lines.map((line) => line.text);
-    expect(titles).toContain("Always-on server: Start my day");
+    expect(titles).toContain("Your server: Start my day");
     expect(titles).toContain("This Mac: Call the bank");
     expect(titles.join("|")).not.toContain("Tidy my memory");
     expect(section.lines.some((line) => line.tone === "error")).toBe(false);
@@ -511,14 +511,14 @@ describe("notesSection", () => {
   it("names the copy where several are listed, and the machines it cannot ask", () => {
     const section = notesSection({
       copies: [copy({ label: "This Mac" })],
-      offline: [{ key: "server", label: "Always-on server" }],
+      offline: [{ key: "server", label: "Your server" }],
       loading: false,
       formatAgo,
     });
     expect(section.lines.map((line) => line.text)).toEqual([
       "This Mac: Backed up to GitHub ✓",
       "This Mac: Notes search is ready",
-      "Always-on server: Not connected",
+      "Your server: Not connected",
     ]);
   });
 

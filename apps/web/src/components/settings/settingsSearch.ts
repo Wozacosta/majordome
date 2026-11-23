@@ -134,7 +134,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/private-documents": msg("Private documents"),
   "/settings/skills": msg("Skills"),
   "/settings/phone": msg("Phone & notifications"),
-  "/settings/always-on": msg("Always-on server"),
+  "/settings/always-on": msg("Your server"),
 };
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
@@ -1290,11 +1290,11 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "majordome-always-on",
-    title: msg("Always-on server"),
+    title: msg("Your server"),
     to: "/settings/always-on",
     majordomeOnly: true,
     searchTerms: [
-      "vps server cloud docker 24/7 move routines runner deploy host",
+      "always-on always on vps server cloud docker 24/7 move routines runner deploy host",
       "sleep asleep awake laptop lid closed shut off overnight keep running",
     ],
   },

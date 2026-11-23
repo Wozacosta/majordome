@@ -1,3 +1,4 @@
+import { HOSTED_SERVER_NAME, OWN_SERVER_NAME } from "@t3tools/shared/majordome";
 import { scopedProjectKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, MajordomeRoutinesRunner, ProjectId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
@@ -62,11 +63,24 @@ export function machineName(
   if (environmentId === input.primaryEnvironmentId && input.desktop !== null) {
     return input.desktop === "mac" ? "This Mac" : "This computer";
   }
-  return input.labels.get(environmentId)?.trim() || "Another computer";
+  const label = input.labels.get(environmentId)?.trim();
+  // A connection saved before the name changed still carries the old one.
+  if (label !== undefined && /^always-on server$/i.test(label)) return OWN_SERVER_NAME;
+  return label || "Another computer";
 }
 
-/** "This Mac" as it reads mid-sentence: "on this Mac". */
+/** Whether this is a server Majordome hosts: it says so by its name, never by its address. */
+export function isHostedServer(name: string | null | undefined): boolean {
+  return name?.trim().toLowerCase() === HOSTED_SERVER_NAME.toLowerCase();
+}
+
+/**
+ * A machine's name as it reads mid-sentence: "this Mac", "your server", "your Majordome server".
+ * The names Majordome gives a server by itself read as descriptions, not as names.
+ */
 export function machineInSentence(name: string): string {
+  if (isHostedServer(name)) return "your Majordome server";
+  if (/^(your|always-on) server$/i.test(name.trim())) return "your server";
   return name.replace(/^This /, "this ");
 }
 

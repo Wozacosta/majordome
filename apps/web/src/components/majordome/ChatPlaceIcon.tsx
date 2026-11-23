@@ -1,19 +1,19 @@
 import type { EnvironmentId } from "@t3tools/contracts";
-import { LaptopIcon, ServerIcon } from "lucide-react";
+import { CloudIcon, LaptopIcon, ServerIcon } from "lucide-react";
 
 import { cn } from "../../lib/utils";
-import { onMachine } from "./brains.logic";
+import { isHostedServer, onMachine } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
 
-/** "kept on this Mac", "kept on Always-on server": where a chat is, for a tooltip. */
+/** "kept on this Mac", "kept on your server": where a chat is, for a tooltip. */
 export function useChatPlaceWords() {
   const { machineOf } = useMachineNames();
   return (environmentId: EnvironmentId) => `kept ${onMachine(machineOf(environmentId))}`;
 }
 
 /**
- * Which machine keeps a chat, for notes that are on several: a server for the always-on one, a
- * laptop for a computer. Shown beside the chat's name, and read out for those who do not see it.
+ * Which machine keeps a chat, for notes that are on several: a cloud for a server Majordome
+ * hosts, a server for one the owner runs, a laptop for a computer. Shown beside the chat's name, and read out for those who do not see it.
  */
 export function ChatPlaceIcon(props: {
   readonly environmentId: EnvironmentId;
@@ -21,11 +21,13 @@ export function ChatPlaceIcon(props: {
   readonly homeEnvironmentId: EnvironmentId | null;
   readonly className?: string;
 }) {
-  const { primaryEnvironmentId } = useMachineNames();
+  const { primaryEnvironmentId, machineOf } = useMachineNames();
   const words = useChatPlaceWords();
   // Conversations are kept away from this window's own machine only on an always-on server.
-  const Icon =
-    props.environmentId !== primaryEnvironmentId && props.environmentId === props.homeEnvironmentId
+  const Icon = isHostedServer(machineOf(props.environmentId))
+    ? CloudIcon
+    : props.environmentId !== primaryEnvironmentId &&
+        props.environmentId === props.homeEnvironmentId
       ? ServerIcon
       : LaptopIcon;
   return (

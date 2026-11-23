@@ -13,13 +13,13 @@ The place a reference points to is a **secret source**. You add sources in **Set
 | Where Majordome's server runs          | Use                      | A reference looks like        |
 | -------------------------------------- | ------------------------ | ----------------------------- |
 | On your Mac                            | **Mac Keychain**         | `keychain://Majordome/openai` |
-| On an always-on server (Linux, a VPS)  | **Encrypted file**       | `secret://openai`             |
+| On a server of your own (Linux, a VPS) | **Encrypted file**       | `secret://openai`             |
 | Anywhere, and you use 1Password        | **1Password**            | `op://vault/item/field`       |
 | Anywhere, and you use a team tool      | **Command**              | `exec://OPENAI_API_KEY`       |
 | In a container that is handed its keys | **Environment variable** | `env://OPENAI_API_KEY`        |
 
 "The server" is the computer that runs Majordome, which is not always the one in front of you. When
-you use Majordome from your phone, the secrets are read on your Mac or your always-on server.
+you use Majordome from your phone, the secrets are read on your Mac or your server.
 
 ## Add a source and use it
 
@@ -96,7 +96,7 @@ account: the shorthand, sign-in address (without `https://`), or ID that `op acc
 Copy a reference from 1Password with **Copy Secret Reference**.
 
 A desktop sign-in asks for approval on the server's screen, which you cannot answer from elsewhere.
-On an always-on server, sign `op` in with a
+On a server of your own, sign `op` in with a
 [service account](./secrets-1password-service-account.md) or a
 [Connect server](./secrets-1password-connect.md) instead.
 

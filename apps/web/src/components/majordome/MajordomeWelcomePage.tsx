@@ -11,6 +11,7 @@ import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { ensureLocalApi } from "../../localApi";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
+import { isHostedServer } from "./brains.logic";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { useAtomCommand } from "../../state/use-atom-command";
 import {
@@ -76,6 +77,7 @@ export function MajordomeWelcomePage({
                 <NotesFolderSetup
                   environmentId={environmentId}
                   notesFolder={notesFolder}
+                  hosted={isHostedServer(label)}
                   onStay={onStay}
                 />
               </WelcomeSection>
@@ -128,10 +130,13 @@ function SetupEnd({
 function NotesFolderSetup({
   environmentId,
   notesFolder,
+  hosted,
   onStay,
 }: {
   readonly environmentId: EnvironmentId;
   readonly notesFolder: string | null;
+  /** A server Majordome hosts, where the owner has no home folder to speak of. */
+  readonly hosted: boolean;
   readonly onStay: () => void;
 }) {
   const startNotes = useAtomCommand(majordomeEnvironment.startNotes, {
@@ -185,7 +190,11 @@ function NotesFolderSetup({
     <div className="flex flex-col">
       <NotesChoice
         title="Start fresh"
-        description="A new folder called Majordome in your home folder, ready to use."
+        description={
+          hosted
+            ? "A new notes folder on your Majordome server, ready to use."
+            : "A new folder called Majordome in your home folder, ready to use."
+        }
         action={
           <Button size="sm" disabled={busy} onClick={() => void start(null)}>
             Start new notes

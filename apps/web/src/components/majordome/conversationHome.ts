@@ -78,7 +78,7 @@ export function conversationHomeRef(ref: ScopedProjectRef): ScopedProjectRef | n
     home.kind === "unreachable"
       ? {
           type: "warning",
-          title: "Your always-on server can't be reached",
+          title: "Your server can't be reached",
           description:
             "Conversations are kept there, so wait until it is back, or check Status in Settings.",
         }
