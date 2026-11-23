@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.28
+
 **Changed**
 
 - **Signing in to Claude on a server is a link and a code.** On the welcome page of a server you
