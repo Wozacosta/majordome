@@ -67,6 +67,14 @@ export function createPreviewEnvironmentAtoms<R, E>(
       label: "environment-data:preview:clear-profile",
       tag: WS_METHODS.previewClearProfile,
     }),
+    importSiteCookies: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:preview:import-site-cookies",
+      tag: WS_METHODS.previewImportSiteCookies,
+    }),
+    clearSiteCookies: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:preview:clear-site-cookies",
+      tag: WS_METHODS.previewClearSiteCookies,
+    }),
     reportProfiles: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:preview:report-profiles",
       tag: WS_METHODS.previewReportProfiles,

@@ -3,12 +3,16 @@ import type {
   BrowserImportResult,
   BrowserImportSource,
   BrowserImportUnavailableReason,
+  BrowserSiteCookiesResult,
+  DesktopPreviewReadSiteCookiesInput,
 } from "@t3tools/contracts";
 import {
+  BROWSER_SITE_COOKIES_MAX,
   BrowserImportFailureReason,
   type ManagedPolicyDocument,
   managedPolicyDeniedMessage,
 } from "@t3tools/contracts";
+import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import type { Session } from "electron";
 import * as Effect from "effect/Effect";
@@ -25,7 +29,7 @@ import type { ManagedPolicyFileError } from "@t3tools/shared/managedPolicyFile";
 import * as DesktopManagedPolicy from "../../app/DesktopManagedPolicy.ts";
 import * as BrowserSession from "../BrowserSession.ts";
 import { ChromiumCookieReadError, readChromiumCookies } from "./ChromiumCookies.ts";
-import type { CookieReadResult } from "./CookieDatabase.ts";
+import { cookiesForHost, copyCookieFiles, type CookieReadResult } from "./CookieDatabase.ts";
 import { FirefoxCookieReadError, readFirefoxCookies } from "./FirefoxCookies.ts";
 import { readSafariCookies, safariAccessDenied, SafariCookieReadError } from "./SafariCookies.ts";
 import {
@@ -124,6 +128,13 @@ export class BrowserImport extends Context.Service<
       readonly persistent: boolean;
       readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
     }) => Effect.Effect<BrowserImportResult, BrowserImportFailedError | BrowserImportPolicyError>;
+    /** One site's cookies from one of the owner's browsers, which may be open. Nothing is written. */
+    readonly readSiteCookies: (
+      input: DesktopPreviewReadSiteCookiesInput,
+    ) => Effect.Effect<
+      BrowserSiteCookiesResult,
+      BrowserImportFailedError | BrowserImportPolicyError
+    >;
   }
 >()("@t3tools/desktop/preview/BrowserImport/BrowserImport") {}
 
@@ -223,18 +234,21 @@ export const make = Effect.gen(function* BrowserImportMake() {
       return {
         id: definition.id,
         name: definition.name,
+        // An open browser keeps its profiles listed: one site's cookies can be read from a copy.
         profiles:
-          unavailable === undefined ? yield* listSourceProfiles(definition, pathContext) : [],
+          unavailable === undefined || unavailable === "browserRunning"
+            ? yield* listSourceProfiles(definition, pathContext)
+            : [],
         ...(unavailable === undefined ? {} : { unavailable }),
       } satisfies BrowserImportSource;
     }),
   ).pipe(Effect.provide(platformServices));
 
-  const importCookies = Effect.fn("BrowserImport.importCookies")(function* (input: {
-    readonly input: BrowserImportInput;
-    readonly scope: string;
-    readonly persistent: boolean;
-    readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
+  /** Reads every cookie of one of the owner's browser profiles, decrypted. */
+  const readSource = Effect.fn("BrowserImport.readSource")(function* (input: {
+    readonly input: Pick<BrowserImportInput, "sourceId" | "sourceProfileDirectory">;
+    /** Read a copy of the cookie file when the browser is open, instead of refusing. */
+    readonly whileRunning: boolean;
   }) {
     yield* checkBrowserImportPolicy(managedPolicy.read);
     const definition = BROWSER_IMPORT_SOURCES.find(
@@ -250,7 +264,8 @@ export const make = Effect.gen(function* BrowserImportMake() {
     const blocked = yield* unavailableReason(definition, pathContext).pipe(
       Effect.provide(platformServices),
     );
-    if (blocked !== undefined) {
+    const running = blocked === "browserRunning";
+    if (blocked !== undefined && !(running && input.whileRunning)) {
       return yield* new BrowserImportFailedError({ sourceId: definition.id, reason: blocked });
     }
 
@@ -286,22 +301,39 @@ export const make = Effect.gen(function* BrowserImportMake() {
       return yield* new BrowserImportFailedError({ sourceId: definition.id, reason: "readFailed" });
     }
 
+    // An open browser locks its cookie file, so a copy made beside nothing else is read instead.
+    const readablePath = running
+      ? copyCookieFiles(databasePath).pipe(
+          Effect.provide(platformServices),
+          Effect.mapError(
+            (cause) =>
+              new BrowserImportFailedError({
+                sourceId: definition.id,
+                reason: "readFailed",
+                cause,
+              }),
+          ),
+        )
+      : Effect.succeed(databasePath);
+
     const userDataDirectory = definition.userDataDirectory(pathContext);
-    const read: Effect.Effect<
+    const read = (
+      cookiePath: string,
+    ): Effect.Effect<
       CookieReadResult,
       ChromiumCookieReadError | FirefoxCookieReadError | SafariCookieReadError,
       FileSystem.FileSystem | Path.Path | Scope.Scope | ChildProcessSpawner.ChildProcessSpawner
-    > =
+    > =>
       definition.engine === "safari"
-        ? readSafariCookies(databasePath).pipe(
+        ? readSafariCookies(cookiePath).pipe(
             Effect.map((cookies) => ({ cookies, undecryptable: 0, undecryptableHosts: [] })),
           )
         : definition.engine === "firefox"
-          ? readFirefoxCookies(databasePath).pipe(
+          ? readFirefoxCookies(cookiePath).pipe(
               Effect.map((cookies) => ({ cookies, undecryptable: 0, undecryptableHosts: [] })),
             )
           : readChromiumCookies({
-              cookieDatabasePath: databasePath,
+              cookieDatabasePath: cookiePath,
               keychainService: definition.keychainService,
               keychainAccount: definition.keychainAccount,
               linuxSecretApplication: definition.linuxSecretApplication,
@@ -313,7 +345,8 @@ export const make = Effect.gen(function* BrowserImportMake() {
               platform,
             });
 
-    const result = yield* read.pipe(
+    return yield* readablePath.pipe(
+      Effect.flatMap(read),
       Effect.scoped,
       Effect.provide(platformServices),
       Effect.catchTags({
@@ -331,6 +364,15 @@ export const make = Effect.gen(function* BrowserImportMake() {
           ),
       }),
     );
+  });
+
+  const importCookies = Effect.fn("BrowserImport.importCookies")(function* (input: {
+    readonly input: BrowserImportInput;
+    readonly scope: string;
+    readonly persistent: boolean;
+    readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
+  }) {
+    const result = yield* readSource({ input: input.input, whileRunning: false });
 
     const session = yield* browserSession
       .getSession(input.scope, input.persistent, input.namespace)
@@ -338,7 +380,7 @@ export const make = Effect.gen(function* BrowserImportMake() {
         Effect.mapError(
           (cause) =>
             new BrowserImportFailedError({
-              sourceId: definition.id,
+              sourceId: input.input.sourceId,
               reason: "sessionUnavailable",
               cause,
             }),
@@ -349,7 +391,33 @@ export const make = Effect.gen(function* BrowserImportMake() {
     return yield* writeCookies(session, result);
   });
 
-  return BrowserImport.of({ listSources, importCookies });
+  const readSiteCookies = Effect.fn("BrowserImport.readSiteCookies")(function* (
+    input: DesktopPreviewReadSiteCookiesInput,
+  ) {
+    const read = yield* readSource({ input, whileRunning: true });
+    const now = yield* Clock.currentTimeMillis;
+    const wanted = cookiesForHost(read.cookies, input.host, Math.floor(now / 1000));
+    return {
+      cookies: wanted.slice(0, BROWSER_SITE_COOKIES_MAX),
+      undecryptable: cookiesForHost(
+        read.undecryptableHosts.map((host) => ({
+          url: `https://${host}/`,
+          name: "",
+          value: "",
+          domain: `.${host}`,
+          path: "/",
+          secure: true,
+          httpOnly: false,
+          expirationDate: undefined,
+          sameSite: "unspecified" as const,
+        })),
+        input.host,
+        0,
+      ).length,
+    } satisfies BrowserSiteCookiesResult;
+  });
+
+  return BrowserImport.of({ listSources, importCookies, readSiteCookies });
 });
 
 export const layer = Layer.effect(BrowserImport, make);

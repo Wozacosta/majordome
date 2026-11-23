@@ -18,3 +18,19 @@ the import wizard afterward. You can revoke Full Disk Access once the import is 
 On Windows, import supports Firefox, Zen, and Helium profiles that use standard profile encryption.
 Other Chromium-based browsers use app-bound encryption and cannot be imported. Partitioned cookies
 are skipped on all platforms.
+
+## Use one site's sign-in on another computer
+
+A chat kept on another computer, such as an always-on server, browses in that computer's own
+browser, which starts signed out everywhere. To sign it in to the site a tab is showing, press
+the key button in the side browser's bar and choose the browser on this computer to copy the
+sign-in from. Only that site's cookies are copied, and the page loads again signed in.
+
+- The browser you copy from can stay open.
+- **Sign out of this site here**, in the same menu, removes the site's cookies from the other
+  computer's browser. Your own browser is not affected.
+- The button is in the desktop app only, and only you can press it: the assistant cannot ask for
+  your sign-ins.
+- A copied sign-in lets that computer act as you on that site until you sign out there. Some
+  sites, banks especially, refuse a session that moves to another computer and ask you to sign in
+  again.

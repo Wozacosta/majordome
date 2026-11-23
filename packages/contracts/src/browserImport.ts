@@ -69,6 +69,44 @@ export const DesktopPreviewImportCookiesInputSchema = Schema.Struct({
   targetProfileId: BrowserProfileId,
 });
 
+/** The most cookies one site's sign-in is copied with; a site rarely keeps a tenth of this. */
+export const BROWSER_SITE_COOKIES_MAX = 300;
+
+/** One cookie of a site, as read from the owner's browser and written to another one. */
+export const BrowserSiteCookie = Schema.Struct({
+  name: Schema.String.check(Schema.isMaxLength(512)),
+  value: Schema.String.check(Schema.isMaxLength(8_192)),
+  /** With a leading dot for a cookie its subdomains also get, else the one host it belongs to. */
+  domain: TrimmedNonEmptyString.check(Schema.isMaxLength(255)),
+  path: Schema.String.check(Schema.isMaxLength(2_048)),
+  secure: Schema.Boolean,
+  httpOnly: Schema.Boolean,
+  /** Seconds since 1970; absent for a cookie that lasts until the browser closes. */
+  expires: Schema.optional(Schema.Number),
+  sameSite: Schema.optional(Schema.Literals(["Strict", "Lax", "None"])),
+});
+export type BrowserSiteCookie = typeof BrowserSiteCookie.Type;
+
+export const BrowserSiteCookies = Schema.Array(BrowserSiteCookie).check(
+  Schema.isMaxLength(BROWSER_SITE_COOKIES_MAX),
+);
+
+export const DesktopPreviewReadSiteCookiesInputSchema = Schema.Struct({
+  sourceId: BrowserImportSourceId,
+  sourceProfileDirectory: TrimmedNonEmptyString,
+  /** The host of the page being signed in to, such as `github.com`. */
+  host: TrimmedNonEmptyString.check(Schema.isMaxLength(255)),
+});
+export type DesktopPreviewReadSiteCookiesInput =
+  typeof DesktopPreviewReadSiteCookiesInputSchema.Type;
+
+export const BrowserSiteCookiesResult = Schema.Struct({
+  cookies: BrowserSiteCookies,
+  /** Cookies of the site this computer could not decrypt, left out. */
+  undecryptable: Schema.Int,
+});
+export type BrowserSiteCookiesResult = typeof BrowserSiteCookiesResult.Type;
+
 export const BrowserImportResult = Schema.Struct({
   imported: Schema.Int,
   skipped: Schema.Int,

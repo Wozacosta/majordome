@@ -23,6 +23,9 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.claudeSignInSubmit]: AuthProvidersManageScope,
   [WS_METHODS.claudeSignInCancel]: AuthProvidersManageScope,
   [WS_METHODS.previewClose]: AuthPreviewOperateScope,
+  // Changes who the server's browser is signed in as on a site.
+  [WS_METHODS.previewImportSiteCookies]: AuthPreviewOperateScope,
+  [WS_METHODS.previewClearSiteCookies]: AuthPreviewOperateScope,
   // Stopping a server signals its processes, as closing a terminal does.
   [WS_METHODS.previewStopLocalServer]: AuthTerminalOperateScope,
   [WS_METHODS.serverRunStorageCleanup]: AuthSettingsWriteScope,

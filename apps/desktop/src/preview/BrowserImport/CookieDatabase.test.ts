@@ -7,7 +7,7 @@ import * as Path from "effect/Path";
 import * as Scope from "effect/Scope";
 import * as SqlClient from "effect/sql/SqlClient";
 
-import { snapshotCookieDatabase } from "./CookieDatabase.ts";
+import { cookiesForHost, type ImportedCookie, snapshotCookieDatabase } from "./CookieDatabase.ts";
 
 const runNode = <A, E>(
   effect: Effect.Effect<A, E, FileSystem.FileSystem | Path.Path | Scope.Scope>,
@@ -62,4 +62,64 @@ describe("snapshotCookieDatabase", () => {
       }),
     ),
   );
+});
+
+describe("cookiesForHost", () => {
+  const cookie = (
+    host: string,
+    name: string,
+    more: Partial<ImportedCookie> = {},
+  ): ImportedCookie => ({
+    url: `https://${host.replace(/^\./, "")}/`,
+    name,
+    value: "v",
+    domain: host.startsWith(".") ? host : undefined,
+    path: "/",
+    secure: true,
+    httpOnly: true,
+    expirationDate: undefined,
+    sameSite: "lax",
+    ...more,
+  });
+
+  it("keeps what a browser would send to the host, and nothing from other sites", () => {
+    const jar = [
+      cookie("github.com", "__Host-session"),
+      cookie(".github.com", "logged_in", { sameSite: "no_restriction", expirationDate: 2_000 }),
+      cookie("gist.github.com", "gist_only"),
+      cookie(".gist.github.com", "gist_shared"),
+      cookie("evilgithub.com", "lookalike"),
+      cookie(".com", "public_suffix"),
+      cookie("bank.example", "bank"),
+      cookie(".github.com", "stale", { expirationDate: 500 }),
+    ];
+    expect(cookiesForHost(jar, "GitHub.com", 1_000)).toEqual([
+      {
+        name: "__Host-session",
+        value: "v",
+        domain: "github.com",
+        path: "/",
+        secure: true,
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+      {
+        name: "logged_in",
+        value: "v",
+        domain: ".github.com",
+        path: "/",
+        secure: true,
+        httpOnly: true,
+        expires: 2_000,
+        sameSite: "None",
+      },
+    ]);
+    // A subdomain gets its own cookies and the ones its parent shares, not its parent's own.
+    expect(cookiesForHost(jar, "gist.github.com", 1_000).map((kept) => kept.name)).toEqual([
+      "logged_in",
+      "gist_only",
+      "gist_shared",
+    ]);
+    expect(cookiesForHost(jar, "", 1_000)).toEqual([]);
+  });
 });

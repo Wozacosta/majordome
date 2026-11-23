@@ -40,6 +40,10 @@ import {
   type PreviewAutomationUploadInput,
   type PreviewAutomationWaitForInput,
   PreviewClearProfileError,
+  type PreviewClearSiteCookiesInput,
+  type PreviewImportSiteCookiesInput,
+  PreviewSiteCookiesError,
+  type PreviewSiteCookiesResult,
   type PreviewEvent,
   type PreviewNavStatus,
   type PreviewSessionSnapshot,
@@ -300,6 +304,15 @@ export class ServerBrowser extends Context.Service<
     }) => Effect.Effect<Option.Option<{ readonly path: string; readonly fileName: string }>>;
 
     readonly clearProfile: (profileId: string) => Effect.Effect<void, PreviewClearProfileError>;
+
+    /** Writes one site's cookies into the browser profile the tab runs in. */
+    readonly importSiteCookies: (
+      input: PreviewImportSiteCookiesInput,
+    ) => Effect.Effect<PreviewSiteCookiesResult, PreviewSiteCookiesError>;
+    /** Removes the cookies the tab's browser would send to the page it is showing. */
+    readonly clearSiteCookies: (
+      input: PreviewClearSiteCookiesInput,
+    ) => Effect.Effect<PreviewSiteCookiesResult, PreviewSiteCookiesError>;
 
     readonly profileReporter: Effect.Effect<ProfileReporter, never, Scope.Scope>;
   }
@@ -3535,9 +3548,62 @@ const make = Effect.gen(function* () {
       catch: (cause) => new PreviewClearProfileError({ profileId, cause }),
     });
 
+  const siteCookieTab = (input: { readonly threadId: string; readonly tabId: string }) => {
+    const tab = tabs.get(tabKey(input.threadId, input.tabId));
+    return tab === undefined
+      ? Effect.fail(new PreviewSiteCookiesError({ reason: "tabNotFound", cause: undefined }))
+      : Effect.succeed(tab);
+  };
+
+  const importSiteCookies: ServerBrowser["Service"]["importSiteCookies"] = Effect.fn(
+    "ServerBrowser.importSiteCookies",
+  )(function* (input) {
+    const tab = yield* siteCookieTab(input);
+    yield* Effect.tryPromise({
+      try: () =>
+        tab.page.context().addCookies(
+          input.cookies.map((cookie) => ({
+            name: cookie.name,
+            value: cookie.value,
+            domain: cookie.domain,
+            path: cookie.path,
+            secure: cookie.secure,
+            httpOnly: cookie.httpOnly,
+            ...(cookie.expires === undefined ? {} : { expires: cookie.expires }),
+            ...(cookie.sameSite === undefined ? {} : { sameSite: cookie.sameSite }),
+          })),
+        ),
+      catch: (cause) => new PreviewSiteCookiesError({ reason: "failed", cause }),
+    });
+    return { count: input.cookies.length };
+  });
+
+  const clearSiteCookies: ServerBrowser["Service"]["clearSiteCookies"] = Effect.fn(
+    "ServerBrowser.clearSiteCookies",
+  )(function* (input) {
+    const tab = yield* siteCookieTab(input);
+    const url = tab.page.url();
+    if (!/^https?:/i.test(url)) {
+      return yield* new PreviewSiteCookiesError({ reason: "notAWebPage", cause: undefined });
+    }
+    return yield* Effect.tryPromise({
+      try: async () => {
+        const context = tab.page.context();
+        const cookies = await context.cookies([url]);
+        for (const { name, domain, path } of cookies) {
+          await context.clearCookies({ name, domain, path });
+        }
+        return { count: cookies.length };
+      },
+      catch: (cause) => new PreviewSiteCookiesError({ reason: "failed", cause }),
+    });
+  });
+
   return ServerBrowser.of({
     attachViewer,
     clearProfile,
+    importSiteCookies,
+    clearSiteCookies,
     profileReporter,
     openDownload,
     answerFileChooser,

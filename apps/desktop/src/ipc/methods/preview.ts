@@ -19,7 +19,9 @@ import {
   BrowserImportResult,
   BrowserImportSource,
   DesktopPreviewClearDataInputSchema,
+  BrowserSiteCookiesResult,
   DesktopPreviewImportCookiesInputSchema,
+  DesktopPreviewReadSiteCookiesInputSchema,
   DesktopPreviewCreateTabInputSchema,
   DesktopPreviewTabInputSchema,
   DesktopPreviewTunnelAccessResolutionInputSchema,
@@ -455,6 +457,17 @@ export const importBrowserCookies = DesktopIpc.makeIpcMethod({
       persistent,
       ...(namespace === undefined ? {} : { namespace }),
     });
+  }),
+});
+
+/** For "Use my sign-in for this site": the cookies go on to a server's browser, not this one. */
+export const readBrowserSiteCookies = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.PREVIEW_READ_SITE_COOKIES_CHANNEL,
+  payload: DesktopPreviewReadSiteCookiesInputSchema,
+  result: BrowserSiteCookiesResult,
+  handler: Effect.fn("desktop.ipc.preview.readBrowserSiteCookies")(function* (input) {
+    const browserImport = yield* BrowserImport.BrowserImport;
+    return yield* browserImport.readSiteCookies(input);
   }),
 });
 

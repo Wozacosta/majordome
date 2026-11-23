@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { NonNegativeInt, PositiveInt, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { BrowserSiteCookies } from "./browserImport.ts";
 import { BROWSER_PROFILE_MAX_COUNT, BrowserProfile, BrowserProfileId } from "./browserProfile.ts";
 
 export const PREVIEW_URL_MAX_LENGTH = 2_048;
@@ -208,6 +209,24 @@ export const PreviewAdjustInput = Schema.Struct({
 });
 export type PreviewAdjustInput = typeof PreviewAdjustInput.Type;
 
+/** Copies one site's sign-in into the browser a server tab runs in. Only a person asks for this. */
+export const PreviewImportSiteCookiesInput = Schema.Struct({
+  threadId: ThreadId,
+  tabId: PreviewTabId,
+  cookies: BrowserSiteCookies,
+});
+export type PreviewImportSiteCookiesInput = typeof PreviewImportSiteCookiesInput.Type;
+
+export const PreviewSiteCookiesResult = Schema.Struct({ count: NonNegativeInt });
+export type PreviewSiteCookiesResult = typeof PreviewSiteCookiesResult.Type;
+
+/** Removes the cookies the tab's browser holds for the site the tab is showing. */
+export const PreviewClearSiteCookiesInput = Schema.Struct({
+  threadId: ThreadId,
+  tabId: PreviewTabId,
+});
+export type PreviewClearSiteCookiesInput = typeof PreviewClearSiteCookiesInput.Type;
+
 export const PreviewCloseInput = Schema.Struct({
   threadId: ThreadId,
   tabId: Schema.optional(PreviewTabId),
@@ -388,6 +407,19 @@ export class PreviewControlRequiredError extends Schema.TaggedError<PreviewContr
 ) {
   override get message() {
     return "Take control of the server browser and use its viewer controls.";
+  }
+}
+
+export class PreviewSiteCookiesError extends Schema.TaggedError<PreviewSiteCookiesError>()(
+  "PreviewSiteCookiesError",
+  { reason: Schema.Literals(["tabNotFound", "notAWebPage", "failed"]), cause: Schema.Defect() },
+) {
+  override get message() {
+    return this.reason === "tabNotFound"
+      ? "That browser tab is no longer open."
+      : this.reason === "notAWebPage"
+        ? "Open a website in the tab first."
+        : "The browser could not change this site's sign-in.";
   }
 }
 

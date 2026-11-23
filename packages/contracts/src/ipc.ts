@@ -8,6 +8,8 @@ import type {
   BrowserImportResult,
   BrowserImportSource,
   BrowserImportSourceId,
+  BrowserSiteCookiesResult,
+  DesktopPreviewReadSiteCookiesInput,
 } from "./browserImport.ts";
 import { AuthAccessTokenResult, AuthSessionState } from "./auth.ts";
 import { AdvertisedEndpoint } from "./remoteAccess.ts";
@@ -1378,6 +1380,10 @@ export interface DesktopPreviewBridge {
     readonly sourceProfileDirectory: string;
     readonly targetProfileId: string;
   }) => Promise<BrowserImportResult>;
+  /** One site's cookies from one of the owner's browsers, to sign a server's browser in with. */
+  readBrowserSiteCookies: (
+    input: DesktopPreviewReadSiteCookiesInput,
+  ) => Promise<BrowserSiteCookiesResult>;
   setAnnotationTheme: (theme: DesktopPreviewAnnotationTheme) => Promise<void>;
   setAnnotationSendEnabled: (tabId: string, enabled: boolean) => Promise<void>;
   annotationVoice: {

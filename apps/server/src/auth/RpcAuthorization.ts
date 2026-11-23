@@ -240,6 +240,8 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.previewClose]: AuthPreviewOperateScope,
   [WS_METHODS.previewList]: AuthOrchestrationReadScope,
   [WS_METHODS.previewClearProfile]: AuthPreviewOperateScope,
+  [WS_METHODS.previewImportSiteCookies]: AuthPreviewOperateScope,
+  [WS_METHODS.previewClearSiteCookies]: AuthPreviewOperateScope,
   [WS_METHODS.previewReportProfiles]: AuthPreviewOperateScope,
   [WS_METHODS.previewReportStatus]: AuthPreviewOperateScope,
   [WS_METHODS.previewStopLocalServer]: AuthTerminalOperateScope,
