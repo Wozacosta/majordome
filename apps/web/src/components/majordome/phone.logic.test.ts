@@ -17,6 +17,7 @@ import {
   phoneAppPairingLink,
   phoneComputerWords,
   phoneEnvironmentId,
+  phoneSignIn,
   phoneStepStates,
   phoneWays,
   phoneWithNotifications,
@@ -232,6 +233,36 @@ describe("the address from anywhere", () => {
     const ways = phoneWays({ anywhere, tailscale });
     expect([ways.tailscaleOpen, ways.tailscaleOnly, ways.bothInUse]).toEqual(expected);
   });
+
+  const owner = { accountId: "user_1", email: "sam@example.com" };
+  it.each([
+    ["a build with no accounts", false, { available: true, owner, address: URL }, null],
+    ["a computer that has not answered", true, null, null],
+    ["a computer with no accounts", true, { available: false, owner: null, address: null }, null],
+    [
+      "a computer in no account",
+      true,
+      { available: true, owner: null, address: URL },
+      { kind: "needs-account" },
+    ],
+    [
+      "a computer in an account, with no address",
+      true,
+      { available: true, owner, address: null },
+      { kind: "needs-address" },
+    ],
+    [
+      "a computer in an account, with an address",
+      true,
+      { available: true, owner, address: URL },
+      { kind: "ready", email: "sam@example.com" },
+    ],
+  ] as const)(
+    "puts signing in before the code only where there are accounts: %s",
+    (_name, hasAccounts, account, expected) => {
+      expect(phoneSignIn(hasAccounts, account)).toEqual(expected);
+    },
+  );
 
   it.each([
     ["anywhere first", ready, "ready", { way: "anywhere", url: URL }],

@@ -5,7 +5,26 @@ phone, and it works away from home.
 
 ## Set up your phone
 
-Open **Settings > Phone & notifications** on your computer.
+Open **Settings > Phone & notifications** on your computer. The page lists the steps and marks
+them as you go.
+
+### By signing in
+
+With a [Majordome account](./account.md) there is no code to scan.
+
+1. On your phone, open <https://majord.me/open> in the browser, sign in with the same account,
+   and press **Open** next to your computer.
+2. Add Majordome to your Home Screen, then open it from there.
+3. On the phone, open **Settings > Phone & notifications** and turn on **Notifications on this
+   device**.
+
+This needs your computer to be in your account and to have an address. When it is not, the first
+step says which is missing and links to **Settings > Your account**, where both are done.
+
+### With a code
+
+No account? Open **No account? Use a code instead** on the same page. On a version of Majordome
+without accounts, these steps are the page.
 
 1. Choose **Set up my phone** and confirm. Majordome gets this computer its own address, which can
    take half a minute the first time.
@@ -20,8 +39,9 @@ the server runs your routines and never sleeps. The page names the computer your
 The page marks a step **Done** when it can see it: opening Majordome on the phone, and turning
 notifications on. It can't see whether you added Majordome to the Home Screen, and says so.
 
-To add another phone, show a new code and follow steps 2 to 4 again. On an iPhone or iPad,
-notifications only work from the Home Screen app.
+To add another phone, follow the same steps on it: sign in there, or show a new code. On an iPhone
+or iPad, notifications only work from the Home Screen app. If the Home Screen app asks for a code
+the first time, show one under **No account? Use a code instead** and type its letters.
 
 ### Remove a phone
 
@@ -30,7 +50,7 @@ notifications only work from the Home Screen app.
 got notifications, remove it from the notifications list too. Computers and other devices are in
 **Settings > Sharing & access**.
 
-The address is on the internet, but only devices you add with a code can get in, and the
+The address is on the internet, but only devices signed in to your account or added with a code can get in, and the
 connection passes through Cloudflare, a company that could technically read it. **Turn off this
 address** closes it at once; phones set up with it stop working until you turn it on again. Turn it
 on again within two weeks and the address is the same.

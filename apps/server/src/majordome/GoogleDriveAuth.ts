@@ -79,7 +79,7 @@ interface PendingSignIn {
 const storeError = (cause: unknown) =>
   new GoogleDriveError({
     reason: "failed",
-    message: "The server could not use its secret store for the Google sign-in.",
+    message: "Majordome could not keep the Google sign-in on this computer. Try again.",
     cause,
   });
 
@@ -123,7 +123,7 @@ export const make = Effect.gen(function* () {
         if (Option.isNone(refreshToken)) {
           return yield* new GoogleDriveError({
             reason: "signed-out",
-            message: "Google Drive isn't connected on this computer. Connect it again.",
+            message: "Google Drive isn't connected on this computer. Connect Google Drive again.",
           });
         }
         const renewed = yield* refreshGoogleAccessToken({
@@ -196,7 +196,7 @@ export const make = Effect.gen(function* () {
     if (current === null) {
       return yield* new GoogleDriveError({
         reason: "failed",
-        message: "No Google sign-in is in progress. Start again.",
+        message: "No Google sign-in is in progress. Choose Connect Google Drive again.",
       });
     }
     return yield* Deferred.await(current.deferred);

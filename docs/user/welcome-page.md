@@ -1,5 +1,22 @@
 # Welcome page
 
+## In Majordome
+
+Majordome opens its own, shorter Welcome page the first time. It asks for two things:
+
+1. **The assistant.** Press **Install** or **Sign in** next to Claude and follow what it
+   shows. It uses your own AI plan.
+2. **Your notes.** Press **Start new notes** for a new folder called Majordome in your home
+   folder. If you already keep notes in a folder, such as an Obsidian vault, press
+   **Choose folder** instead: Majordome adds a few files of its own and changes nothing that
+   is there. **Restore** brings notes back from a [backup](./backup.md).
+
+When both are ready, Majordome opens on Today. If the assistant is still being set up, the
+page stays open; press **Go to Today** when it is ready, or **Continue without the assistant**
+to set it up later in Settings. An account is not needed; see [Your account](./account.md).
+
+The rest of this page describes the Welcome page of T3 Code, which Majordome is built on.
+
 T3 Code shows a Welcome page when you open a new installation. Existing
 workspaces skip it. It shows what T3 Code found on the computer you are using,
 on one page: your agents, projects from your Claude Code, Codex, and Pi history,

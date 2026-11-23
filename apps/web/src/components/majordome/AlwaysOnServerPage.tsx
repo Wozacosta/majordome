@@ -40,7 +40,11 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { AlwaysOnManualGuide } from "./AlwaysOnManualGuide";
-import { MoveToMajordomeServer } from "./MoveToMajordomeServer";
+import {
+  HOSTED_START_ADDRESS,
+  HOSTED_START_URL,
+  MoveToMajordomeServer,
+} from "./MoveToMajordomeServer";
 import { isHostedServer } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
@@ -109,7 +113,7 @@ function Problems({ messages }: { readonly messages: ReadonlyArray<string> }) {
 
 const INTRO: Record<ServerMoveView, string> = {
   setup:
-    "Majordome runs on this computer, so your routines only run while it is awake. A server of your own is a small computer you rent that never sleeps, so your routines run on time and your phone can always reach Majordome.",
+    "Majordome runs on this computer, so your routines only run while it is awake. A server is a small computer that never sleeps, so your routines run on time and your phone can always reach Majordome. Majordome can keep one for you, or you can rent your own.",
   progress:
     "Majordome is setting up your server: a small rented computer that never sleeps, so your routines run even while this computer is off.",
   ready:
@@ -146,31 +150,37 @@ export function AlwaysOnServerPage() {
   }
   return environmentId === null ? (
     <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
-      <ManualGuide environmentId={null} />
+      <HostedWay environmentId={null} />
+      <ManualGuide />
     </MajordomeSettingsPage>
   ) : (
     <ServerMovePage environmentId={environmentId} />
   );
 }
 
-function ManualGuide({ environmentId }: { readonly environmentId: EnvironmentId | null }) {
+/** The way with nothing to rent or install, so it comes before renting a server of one's own. */
+function HostedWay({ environmentId }: { readonly environmentId: EnvironmentId | null }) {
+  return (
+    <Section label="Let Majordome host it">
+      {environmentId === null ? (
+        <Muted className={READING_MEASURE_CLASS}>
+          With an invite code, Majordome makes a server for you and looks after it: nothing to rent
+          and nothing to install. Open{" "}
+          <ExternalLink href={HOSTED_START_URL}>{HOSTED_START_ADDRESS}</ExternalLink>, sign in and
+          enter your code.
+        </Muted>
+      ) : (
+        <MoveToMajordomeServer environmentId={environmentId} />
+      )}
+    </Section>
+  );
+}
+
+function ManualGuide() {
   return (
     <Section>
-      <Disclosure summary="Do it by hand">
+      <Disclosure summary="Rent your own and set it up by hand, in a terminal">
         <AlwaysOnManualGuide />
-      </Disclosure>
-      <Disclosure summary="Let Majordome host it">
-        {environmentId === null ? (
-          <Muted>
-            With an invite code, Majordome makes a server for you and looks after it. Open{" "}
-            <ExternalLink href="https://broker.majord.link/start">
-              broker.majord.link/start
-            </ExternalLink>{" "}
-            and enter your code.
-          </Muted>
-        ) : (
-          <MoveToMajordomeServer environmentId={environmentId} />
-        )}
       </Disclosure>
     </Section>
   );
@@ -188,6 +198,11 @@ function ServerMovePage({ environmentId }: { readonly environmentId: Environment
       searchId="majordome-always-on"
       intro={status?.move?.hosted === true ? HOSTED_INTRO[view] : INTRO[view]}
     >
+      {/* What a removal did comes before any offer to set one up again. */}
+      {view === "setup" && canManage && status !== null && status.removal !== null ? (
+        <RemovalSummary removal={status.removal} />
+      ) : null}
+      {view === "setup" ? <HostedWay environmentId={environmentId} /> : null}
       {!canManage ? (
         <Section>
           <Muted>Open this screen on the computer where Majordome runs to set up a server.</Muted>
@@ -205,7 +220,7 @@ function ServerMovePage({ environmentId }: { readonly environmentId: Environment
       ) : (
         <ServerMove environmentId={environmentId} status={status} />
       )}
-      {view === "setup" ? <ManualGuide environmentId={environmentId} /> : null}
+      {view === "setup" ? <ManualGuide /> : null}
     </MajordomeSettingsPage>
   );
 }
@@ -491,8 +506,7 @@ function SetupPanel({
 
   return (
     <>
-      {status.removal === null ? null : <RemovalSummary removal={status.removal} />}
-      <Section label="What you need">
+      <Section label="Or rent your own: what you need">
         <EntryList>
           <Entry title="A Hetzner account, with a payment card">
             Hetzner is the company that rents you the server. The account is free; the server costs

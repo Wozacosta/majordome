@@ -91,7 +91,14 @@ export const requestDeviceCode = Effect.fn("majordome.github.requestDeviceCode")
     "/login/device/code",
     { client_id: clientId, scope: "repo" },
     DeviceCodeResponse,
-  ).pipe(Effect.mapError((cause) => failed("Could not reach GitHub to start the sign-in.", cause)));
+  ).pipe(
+    Effect.mapError((cause) =>
+      failed(
+        "Could not reach GitHub to start the sign-in. Check the internet connection and try again.",
+        cause,
+      ),
+    ),
+  );
   if (
     code.device_code === undefined ||
     code.user_code === undefined ||
@@ -126,7 +133,7 @@ export const pollDeviceToken = Effect.fn("majordome.github.pollDeviceToken")(fun
     if ((yield* Clock.currentTimeMillis) >= input.code.expiresAt) {
       return yield* new GitHubBackupError({
         reason: "expired",
-        message: "The sign-in code expired. Start again.",
+        message: "The sign-in code ran out of time. Choose Continue for a new one.",
       });
     }
     const answer: Option.Option<TokenResponse> = yield* postForm(
@@ -150,7 +157,7 @@ export const pollDeviceToken = Effect.fn("majordome.github.pollDeviceToken")(fun
       case "expired_token":
         return yield* new GitHubBackupError({
           reason: "expired",
-          message: "The sign-in code expired. Start again.",
+          message: "The sign-in code ran out of time. Choose Continue for a new one.",
         });
       case "access_denied":
         return yield* new GitHubBackupError({
@@ -224,7 +231,9 @@ export const createBackupRepo = Effect.fn("majordome.github.createBackupRepo")(f
       )
       .pipe(
         Effect.timeout(REQUEST_TIMEOUT),
-        Effect.mapError((cause) => failed("Could not reach GitHub.", cause)),
+        Effect.mapError((cause) =>
+          failed("Could not reach GitHub. Check the internet connection and try again.", cause),
+        ),
       );
     // 422 is GitHub's answer for a name already in use.
     if (response.status === 422) continue;
@@ -232,17 +241,22 @@ export const createBackupRepo = Effect.fn("majordome.github.createBackupRepo")(f
       return yield* failed("GitHub no longer accepts this sign-in. Connect GitHub again.");
     }
     if (response.status < 200 || response.status >= 300) {
-      return yield* failed(`GitHub could not create the repository (HTTP ${response.status}).`);
+      return yield* failed(
+        `GitHub could not make the private copy for your notes (error ${response.status}). Try again in a few minutes.`,
+      );
     }
     const repo = yield* HttpClientResponse.schemaBodyJson(CreatedRepo)(response).pipe(
       Effect.mapError((cause) =>
-        failed("GitHub answered in a way Majordome did not expect.", cause),
+        failed(
+          "GitHub answered in a way Majordome did not expect. Try again in a few minutes.",
+          cause,
+        ),
       ),
     );
     return { cloneUrl: repo.clone_url, webUrl: repo.html_url, fullName: repo.full_name };
   }
   return yield* failed(
-    `Every name from ${BACKUP_REPO_NAME} to ${BACKUP_REPO_NAME}-${MAX_NAME_ATTEMPTS} is taken.`,
+    `Your GitHub account already has everything from ${BACKUP_REPO_NAME} to ${BACKUP_REPO_NAME}-${MAX_NAME_ATTEMPTS}. Delete one you no longer use on GitHub, then connect again.`,
   );
 });
 

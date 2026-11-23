@@ -20,6 +20,7 @@ import { AsyncResult } from "effect/reactivity";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { cn } from "../../lib/utils";
 import { authEnvironment } from "../../state/auth";
 import { majordomeEnvironment } from "../../state/majordome";
@@ -66,9 +67,12 @@ import {
   currentAnywhere,
   NOTIFICATIONS_ANCHOR,
   PHONE_PAIRING_LABEL,
+  PHONE_SIGN_IN_ADDRESS,
   type PairedPhone,
   pairedPhones,
   phoneComputerWords,
+  type PhoneSignIn,
+  phoneSignIn,
   type PhoneStepState,
   phoneStepStates,
   phoneWays,
@@ -158,6 +162,10 @@ function PhoneSetupSection({
   const phones =
     access.data?.type === "snapshot" ? pairedPhones(access.data.payload.clientSessions) : null;
   const steps = phoneStepStates({ paired: phones?.length ?? null, notified: phone });
+  const hasAccounts = hasAccountPublicConfig();
+  const accountResult = useAtomValue(majordomeEnvironment.account({ environmentId, input: {} }));
+  // Waiting for it keeps the page from leading with the code, then with signing in.
+  const accountPending = hasAccounts && accountResult._tag === "Initial";
 
   const connecting = setup?.anywhere.state === "starting";
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- A real timer: while the computer is still connecting its address, only asking it again shows when the address is ready.
@@ -190,11 +198,17 @@ function PhoneSetupSection({
           ) : (
             <Skeleton className="h-24 w-full" />
           )
+        ) : accountPending ? (
+          <Skeleton className="h-24 w-full" />
         ) : (
           <PhoneWays
             environmentId={environmentId}
             elsewhere={elsewhere}
             setup={setup}
+            signIn={phoneSignIn(
+              hasAccounts,
+              AsyncResult.getOrElse(accountResult, () => null),
+            )}
             steps={steps}
             onCheckAgain={checkAgain}
             checking={result.waiting}
@@ -328,6 +342,7 @@ function PhoneWays({
   environmentId,
   elsewhere,
   setup,
+  signIn,
   steps,
   onCheckAgain,
   checking,
@@ -335,6 +350,8 @@ function PhoneWays({
   readonly environmentId: EnvironmentId;
   readonly elsewhere: string | null;
   readonly setup: MajordomePhoneSetup;
+  /** Null where there are no accounts: the code then leads, as it always did. */
+  readonly signIn: PhoneSignIn | null;
   readonly steps: PhoneSteps;
   readonly onCheckAgain: () => void;
   readonly checking: boolean;
@@ -353,14 +370,29 @@ function PhoneWays({
       checking={checking}
     />
   );
+  const leading =
+    signIn === null ? (
+      anywhere
+    ) : (
+      <>
+        <SignInWay
+          signIn={signIn}
+          computer={phoneComputerWords(hosted ? HOSTED_SERVER_NAME : elsewhere)}
+          steps={steps}
+        />
+        <Disclosure className="mt-4" summary={CODE_WAY_SUMMARY}>
+          {anywhere}
+        </Disclosure>
+      </>
+    );
   // Tailscale and Wi-Fi are read from, and set up on, the computer in front of the owner. A server
   // Majordome hosts is no one's computer and has its address already.
-  if (elsewhere !== null || hosted) return anywhere;
+  if (elsewhere !== null || hosted) return leading;
   return (
     <>
-      {anywhere}
+      {leading}
       <Disclosure
-        className="mt-4"
+        className={signIn === null ? "mt-4" : undefined}
         summary="More private: only your own devices"
         open={ways.tailscaleOpen}
       >
@@ -405,6 +437,66 @@ function PhoneWays({
         )}
       </Disclosure>
     </>
+  );
+}
+
+const CODE_WAY_SUMMARY = "No account? Use a code instead";
+
+/** Who an address on the internet lets in; with accounts, signing in is a way in too. */
+const whoGetsIn = () =>
+  hasAccountPublicConfig()
+    ? "only devices signed in to your account, or added with a code from this screen, can get in"
+    : "only devices you add with a code from this screen can get in";
+
+/** The first way where there are accounts: the phone signs in and finds this computer, no code. */
+function SignInWay({
+  signIn,
+  computer,
+  steps,
+}: {
+  readonly signIn: PhoneSignIn;
+  readonly computer: ReturnType<typeof phoneComputerWords>;
+  readonly steps: PhoneSteps;
+}) {
+  const yourAccount = (
+    <Link to="/settings/account" className="underline underline-offset-2">
+      Your account
+    </Link>
+  );
+  return (
+    <Steps>
+      <SetupStep title="Open Majordome on your phone" done={steps.open}>
+        {signIn.kind === "ready" ? (
+          <>
+            <p>
+              On your phone, open{" "}
+              <ExternalLink href={`https://${PHONE_SIGN_IN_ADDRESS}`}>
+                {PHONE_SIGN_IN_ADDRESS}
+              </ExternalLink>{" "}
+              in the browser and sign in
+              {signIn.email === null ? " with your Majordome account" : ` as ${signIn.email}`}.{" "}
+              {computer.atStart} is listed there: press Open. There is no code to scan.
+            </p>
+            <p>If you have the Majordome iPhone app, choose Sign in there instead.</p>
+          </>
+        ) : signIn.kind === "needs-account" ? (
+          <p>
+            Your phone can open Majordome by signing in, with no code to scan, once{" "}
+            {computer.inSentence} is in your Majordome account. Add it in {yourAccount}, then come
+            back here.
+          </p>
+        ) : (
+          <p>
+            {computer.atStart} is in your account, but your phone can't reach it yet: it needs an
+            address. Give it one in {yourAccount}, then come back here.
+          </p>
+        )}
+      </SetupStep>
+      <AfterOpeningSteps
+        steps={steps}
+        newCode={`open “${CODE_WAY_SUMMARY}” below, press “Show the code”`}
+      />
+    </Steps>
   );
 }
 
@@ -502,7 +594,8 @@ function AnywhereAddress({
           </StatusLine>
           {elsewhere === null ? (
             <Muted className={READING_MEASURE_CLASS}>
-              You can still set up your phone with Tailscale, in the steps below.
+              You can still set up your phone the more private way, in the steps below. It takes
+              about 10 minutes.
             </Muted>
           ) : null}
           <div>
@@ -535,7 +628,7 @@ function AnywhereAddress({
           <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
             {computer.atStart}'s address is{" "}
             <span className="break-all text-foreground">{view.address}</span>. It is on the
-            internet, but only devices you add with a code from this screen can get in.
+            internet, but {whoGetsIn()}.
             {hosted
               ? null
               : " The connection passes through Cloudflare, a company that could technically read it."}
@@ -607,7 +700,7 @@ function AnywhereDialog({
           <AlertDialogDescription>
             {change === "off"
               ? "Phones set up with this address stop working until you turn it on again. The address stays the same if you turn it on again within two weeks."
-              : "Your phone uses this address to reach Majordome from anywhere. The address is on the internet, but only devices you add with a code from this screen can get in. The connection passes through Cloudflare, a company that could technically read it. You can turn it off at any time."}
+              : `Your phone uses this address to reach Majordome from anywhere. The address is on the internet, but ${whoGetsIn()}. The connection passes through Cloudflare, a company that could technically read it. You can turn it off at any time.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -823,14 +916,30 @@ function OnPhoneSteps({
           </>
         )}
       </SetupStep>
+      <AfterOpeningSteps steps={steps} newCode="press “Show the code” here again" />
+    </>
+  );
+}
+
+/** The Home Screen and notifications, the same whichever way the phone first opened Majordome. */
+function AfterOpeningSteps({
+  steps,
+  newCode,
+}: {
+  readonly steps: PhoneSteps;
+  /** How to get a new code from this page, for a Home Screen app that asks for one. */
+  readonly newCode: string;
+}) {
+  return (
+    <>
       <SetupStep title="Add Majordome to your Home Screen" done={steps.homeScreen}>
         <p>
           On iPhone, tap Share, then “Add to Home Screen”. On Android, open Chrome's menu and tap
           “Add to Home screen” or “Install app”.
         </p>
         <p>
-          Then open Majordome from your Home Screen. If it asks for a code, press “Show the code”
-          here again and type the letters under the new one.
+          Then open Majordome from your Home Screen. If it asks for a code, {newCode} and type the
+          letters under the new one.
         </p>
       </SetupStep>
       <SetupStep title="Notifications on your phone" done={steps.notifications}>

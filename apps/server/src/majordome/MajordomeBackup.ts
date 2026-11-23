@@ -355,7 +355,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
         vaultRoot,
         cause: result.failure,
       });
-      return yield* updateState(vaultRoot, { saveError: "Your latest edits could not be saved." });
+      return yield* updateState(vaultRoot, {
+        saveError: "Your latest edits could not be saved. Majordome tries again in a few minutes.",
+      });
     }
     const outcome = result.success;
     switch (outcome.status) {
@@ -378,7 +380,8 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
         });
       case "scan-failed":
         return yield* updateState(vaultRoot, {
-          saveError: "The secret scan did not finish, so your edits were not saved this time.",
+          saveError:
+            "The check for passwords in your notes did not finish, so your edits were not saved this time. Majordome tries again in a few minutes.",
         });
     }
   });
@@ -462,7 +465,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
         vaultRoot,
         cause: result.failure,
       });
-      return yield* updateState(vaultRoot, { syncError: "Syncing stopped with an error." });
+      return yield* updateState(vaultRoot, {
+        syncError: "Sending your notes stopped with an error.",
+      });
     }
     const outcome = result.success;
     switch (outcome.status) {
@@ -580,7 +585,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           const passphrase = yield* passphrases.get(passphraseKey(vaultRoot));
           if (Option.isNone(passphrase)) {
             return yield* vaultError(
-              "The backup passphrase is missing on this computer. Set it again on this screen.",
+              "Majordome no longer has your backup passphrase on this computer. Type it again under “Change folder or passphrase”, or disconnect Google Drive and connect it again.",
             );
           }
           const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "majordome-bundle-" });
@@ -601,7 +606,10 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           return encryptedPath;
         }).pipe(Effect.result);
         if (prepared._tag === "Failure") {
-          const message = errorMessage(prepared.failure, "The encrypted copy could not be made.");
+          const message = errorMessage(
+            prepared.failure,
+            "The encrypted copy could not be made. Majordome tries again in a few minutes.",
+          );
           yield* Effect.logWarning("Majordome could not make a vault's encrypted copy.", {
             vaultRoot,
             cause: prepared.failure,
@@ -1021,7 +1029,10 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       .pipe(
         Effect.provide(services),
         Effect.mapError((cause) =>
-          vaultError("Could not add the GitHub repository to your notes.", cause),
+          vaultError(
+            "Could not link your notes to their copy on GitHub. Connect GitHub again.",
+            cause,
+          ),
         ),
       );
   });
@@ -1057,7 +1068,9 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
           secrets
             .set(GITHUB_TOKEN_SECRET, new TextEncoder().encode(accessToken))
             .pipe(
-              Effect.mapError((cause) => vaultError("Could not save the GitHub sign-in.", cause)),
+              Effect.mapError((cause) =>
+                vaultError("Could not save the GitHub sign-in on this computer. Try again.", cause),
+              ),
             ),
         ),
         Effect.flatMap((accessToken) =>
@@ -1117,7 +1130,7 @@ export const make = Effect.fn("MajordomeBackup.make")(function* (options?: {
       .get(passphraseKey(vaultRoot))
       .pipe(Effect.mapError((cause) => vaultError(cause.message, cause)));
     if (Option.isNone(passphrase)) {
-      return yield* vaultError("Choose a passphrase for the encrypted copies first.");
+      return yield* vaultError("Choose a passphrase for your backups first.");
     }
     const prompt = yield* googleAuth
       .start()

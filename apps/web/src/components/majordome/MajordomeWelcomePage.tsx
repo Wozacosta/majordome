@@ -64,7 +64,7 @@ export function MajordomeWelcomePage({
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Two things to set up: the assistant that does the work, and the folder it keeps your
-              notes in.
+              notes in. Then Majordome opens on Today.
             </p>
             <div className="mt-10 border-t border-border/60">
               <AgentsSection

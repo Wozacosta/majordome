@@ -53,6 +53,7 @@ import { toastManager } from "../ui/toast";
 import {
   backupAttention,
   backupHeadline,
+  backupNextCopy,
   folderFormProblem,
   twoVersionsTitle,
 } from "./backup.logic";
@@ -219,8 +220,8 @@ function RestoreSection({
   return (
     <Section label="Restore from a backup" data-backup-restore>
       <Muted className={READING_MEASURE_CLASS}>
-        Bring your notes and their whole history back from an encrypted copy, in a backup folder or
-        downloaded from Google Drive. You need the passphrase you wrote down.
+        Get your notes and their whole history back from a backup folder, or from a copy you
+        downloaded from Google Drive. You need the passphrase you chose for your backups.
         {hasNotes
           ? " They come back as a new notes folder beside the ones you have; nothing is replaced."
           : ""}
@@ -235,8 +236,8 @@ function RestoreSection({
               type: "success",
               title: "Your notes are back",
               description: hasNotes
-                ? `They are in ${result.folder}, as a new notes folder. Your other notes were not changed.`
-                : `They are in ${result.folder}.`,
+                ? `They are in ${result.folder}, as a new notes folder. Your other notes were not changed. The new folder is not backed up yet.`
+                : `They are in ${result.folder}. They are not backed up from this computer yet: choose a place on this page.`,
             });
           }}
           onCancel={() => setOpen(false)}
@@ -341,10 +342,17 @@ function VaultBackup({
 
   const facts = [
     status.lastSavedAt === null ? null : `Your edits saved ${when(status.lastSavedAt)}`,
-    status.remote?.lastSyncedAt ? `Sent ${when(status.remote.lastSyncedAt)}` : null,
+    status.remote?.lastSyncedAt
+      ? `Sent to ${status.remote.isGitHub ? "GitHub" : (status.remote.host ?? "the backup")} ${when(status.remote.lastSyncedAt)}`
+      : null,
     status.folder?.lastBackupAt ? `Folder copy ${when(status.folder.lastBackupAt)}` : null,
+    status.drive?.lastBackupAt ? `Google Drive copy ${when(status.drive.lastBackupAt)}` : null,
   ].filter((fact) => fact !== null);
   const remote = status.remote;
+  const nextCopy = backupNextCopy(status);
+  const nothingChosen = remote === null && status.folder === null && status.drive === null;
+  // A folder on another machine, such as a server, isn't the iCloud or USB drive meant here.
+  const offersFolder = !(elsewhere && status.folder === null);
 
   return (
     <div className="mt-8" data-backup-vault={vault.projectId}>
@@ -365,6 +373,7 @@ function VaultBackup({
           {headline.detail ? (
             <Muted className={READING_MEASURE_CLASS}>{headline.detail}</Muted>
           ) : null}
+          {nextCopy === null ? null : <Muted className={READING_MEASURE_CLASS}>{nextCopy}</Muted>}
           {status.paused !== null && status.paused.files.length > 0 ? (
             <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
               {status.paused.files.map((file) => (
@@ -427,8 +436,8 @@ function VaultBackup({
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <ShieldIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               <span>
-                Majordome isn't checking your notes for passwords or keys before it saves them and
-                backs them up, because the checker it uses, gitleaks, isn't on this computer.{" "}
+                Majordome can't check your notes for passwords before it backs them up: the checker
+                it uses, gitleaks, isn't installed on this computer. Backups still work.{" "}
                 <a
                   href="https://github.com/gitleaks/gitleaks#installing"
                   target="_blank"
@@ -441,7 +450,7 @@ function VaultBackup({
             </p>
           )}
         </div>
-        {canBackUp ? (
+        {canBackUp && !(nothingChosen && (vault.peer ?? null) === null) ? (
           <Button size="sm" variant="outline" disabled={busy} onClick={() => void runNow()}>
             {busy ? <Spinner size="sm" /> : null}
             Back up now
@@ -455,16 +464,16 @@ function VaultBackup({
         labelAs="h2"
         nowMs={nowMs}
       />
-      <Section label="Backups" labelAs="h2">
+      <Section label={nothingChosen ? "Choose where to keep a copy" : "Backups"} labelAs="h2">
+        {nothingChosen ? (
+          <Muted className={READING_MEASURE_CLASS}>
+            {offersFolder
+              ? "One is enough. A backup folder is the quickest: it needs no other account."
+              : "One is enough."}
+          </Muted>
+        ) : null}
         <EntryList>
-          <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
-          {remote !== null && !remote.isGitHub ? (
-            <Entry title={remote.host ?? "Another copy"} data-backup-destination="remote">
-              <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
-            </Entry>
-          ) : null}
-          {/* A folder on another machine, such as a server, isn't the iCloud or USB drive meant here. */}
-          {elsewhere && status.folder === null ? null : (
+          {offersFolder ? (
             <FolderOption
               vault={vault}
               status={status}
@@ -472,13 +481,20 @@ function VaultBackup({
               onThisComputer={onThisComputer}
               nowMs={nowMs}
             />
-          )}
+          ) : null}
           <GoogleDriveOption
             vault={vault}
             status={status}
             canConfigure={canConfigure}
+            primary={!offersFolder}
             nowMs={nowMs}
           />
+          <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
+          {remote !== null && !remote.isGitHub ? (
+            <Entry title={remote.host ?? "Another copy"} data-backup-destination="remote">
+              <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
+            </Entry>
+          ) : null}
         </EntryList>
       </Section>
     </div>
@@ -670,7 +686,7 @@ function RemoteSync({
           rel="noreferrer"
           className="flex min-h-10 items-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
-          Open
+          See the copy
         </a>
       ) : null}
     </div>
@@ -701,7 +717,7 @@ function GitHubOption({
   const offersConnect = !connected || needsSignIn || status.github.signedIn;
   const connect = async () => {
     if (connected && !needsSignIn) {
-      const message = `Your notes are already backed up to ${remote.webUrl ?? "GitHub"}.\nThis creates a new repository and sends them there instead. Other computers keep using the old one until you change them too.`;
+      const message = `Your notes are already backed up to ${remote.webUrl ?? "GitHub"}.\nThis makes a new private copy on GitHub and sends your notes there instead. The old copy stays on GitHub, and other computers keep using it until you change them too.`;
       const confirmed = (await requestConfirmDialog(message)) ?? window.confirm(message);
       if (!confirmed) return;
     }
@@ -720,12 +736,13 @@ function GitHubOption({
   const how = (
     <>
       <Muted className={READING_MEASURE_CLASS}>
-        Majordome creates a private repository called majordome-brain on your GitHub account and
-        sends your notes there after every save.
+        For people who already have a GitHub account. Majordome keeps a private copy of your notes
+        there, called majordome-brain, and updates it a few minutes after every change. There is no
+        passphrase to remember.
       </Muted>
       <Muted className={READING_MEASURE_CLASS}>
-        GitHub only offers this kind of sign-in with access to all your repositories. Majordome only
-        uses it for your notes' backup.
+        When you sign in, GitHub asks to let Majordome into everything on your account; it offers no
+        narrower choice. Majordome only touches the copy of your notes.
       </Muted>
     </>
   );
@@ -758,14 +775,14 @@ function GitHubOption({
           {offersConnect ? (
             <Button
               size="xs"
-              variant={connected && !needsSignIn ? "outline" : "default"}
+              variant={needsSignIn ? "default" : "outline"}
               onClick={() => void connect()}
             >
               <GithubIcon />
               {needsSignIn
                 ? "Sign in to GitHub"
                 : connected
-                  ? "Connect another GitHub repository"
+                  ? "Start a new copy on GitHub"
                   : "Connect GitHub"}
             </Button>
           ) : null}
@@ -800,6 +817,7 @@ function GitHubOption({
 
 interface DeviceSignInCopy {
   readonly title: string;
+  readonly failed: string;
   readonly intro: string;
   readonly waitingFor: string;
   readonly working: string;
@@ -807,17 +825,19 @@ interface DeviceSignInCopy {
 
 const GITHUB_SIGN_IN: DeviceSignInCopy = {
   title: "Connect GitHub",
+  failed: "Could not connect GitHub",
   intro:
-    "You'll sign in on GitHub's website with a one-time code. GitHub asks to allow access to all your repositories; Majordome only creates and updates its own private backup.",
-  waitingFor: "Waiting for GitHub…",
-  working: "Creating your private repository and sending your notes…",
+    "You'll sign in on GitHub's website with a one-time code. GitHub then asks to let Majordome into all your repositories; Majordome only makes and updates the private copy of your notes.",
+  waitingFor: "Waiting for you to finish on GitHub. This closes by itself.",
+  working: "Making your private copy on GitHub and sending your notes…",
 };
 
 const GOOGLE_DRIVE_SIGN_IN: DeviceSignInCopy = {
   title: "Connect Google Drive",
+  failed: "Could not connect Google Drive",
   intro:
     "You'll sign in on Google's website with a one-time code. Majordome asks only to see and manage the files it creates in your Drive.",
-  waitingFor: "Waiting for Google…",
+  waitingFor: "Waiting for you to finish on Google. This closes by itself.",
   working: "Sending your first encrypted copy to Google Drive…",
 };
 
@@ -856,7 +876,7 @@ function DeviceSignInPopup({
     setPhase("starting");
     const started = await start(target);
     if (started._tag === "Failure") {
-      reportFailure(`Could not ${copy.title.toLowerCase()}`, started);
+      reportFailure(copy.failed, started);
       setPhase("idle");
       return;
     }
@@ -960,6 +980,9 @@ function GitHubSignInPopup({
           title: status.remote?.backedUp
             ? "Backed up to GitHub"
             : "GitHub is connected; the first backup hasn't finished",
+          description: status.remote?.backedUp
+            ? "New changes are sent a few minutes after you make them."
+            : "It carries on by itself. This page says when it is done.",
         })
       }
       onClose={onClose}
@@ -996,6 +1019,9 @@ function GoogleDriveSignInPopup({
           title: status.drive?.lastBackupAt
             ? "Backed up to Google Drive"
             : "Google Drive is connected; the first copy hasn't gone up yet",
+          description: status.drive?.lastBackupAt
+            ? "A new copy is made every night."
+            : "Majordome tries again in a few minutes.",
         })
       }
       onClose={onClose}
@@ -1014,11 +1040,14 @@ function GoogleDriveOption({
   vault,
   status,
   canConfigure,
+  primary,
   nowMs,
 }: {
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
   readonly canConfigure: boolean;
+  /** Whether this is the first place offered, so its button is the screen's main one. */
+  readonly primary: boolean;
   readonly nowMs: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -1097,7 +1126,12 @@ function GoogleDriveOption({
           ) : canConfigure ? (
             status.hasPassphrase ? (
               <div>
-                <Button size="xs" onClick={() => setOpen(true)} data-google-drive="connect">
+                <Button
+                  size="xs"
+                  variant={primary ? "default" : "outline"}
+                  onClick={() => setOpen(true)}
+                  data-google-drive="connect"
+                >
                   <CloudUploadIcon />
                   Connect Google Drive
                 </Button>
@@ -1119,6 +1153,7 @@ function GoogleDriveOption({
               <div>
                 <Button
                   size="xs"
+                  variant={primary ? "default" : "outline"}
                   onClick={() => setSettingPassphrase(true)}
                   data-google-drive="choose-passphrase"
                 >
@@ -1145,7 +1180,6 @@ function CopyStatus({
 }: {
   readonly copy: {
     readonly lastBackupAt: string | null;
-    readonly lastFile: string | null;
     readonly lastError: string | null;
   };
   readonly nowMs: number;
@@ -1155,8 +1189,8 @@ function CopyStatus({
       <StatusLine tone={copy.lastError ? "warning" : copy.lastBackupAt ? "ok" : "neutral"}>
         <span className="break-words">
           {copy.lastBackupAt
-            ? `Last copy ${formatRelativeTimeLabel(copy.lastBackupAt, nowMs)}: ${copy.lastFile ?? ""}`
-            : "No copy yet."}
+            ? `${copy.lastError ? "Last good copy" : "Last copy"} ${formatRelativeTimeLabel(copy.lastBackupAt, nowMs)}`
+            : "No copy yet"}
         </span>
       </StatusLine>
       {copy.lastError ? <ErrorLine>{copy.lastError}</ErrorLine> : null}
@@ -1320,6 +1354,9 @@ function FolderForm({
       title: result.value.folder?.lastError
         ? "The folder is set, but the first copy failed"
         : "Your first encrypted copy is in the folder",
+      description:
+        result.value.folder?.lastError ??
+        "A new one is made every night. Keep your passphrase somewhere safe.",
     });
     setPassphrase("");
     setConfirmation("");
@@ -1376,10 +1413,15 @@ function FolderForm({
             </Disclosure>
           </div>
         ) : (
-          <Muted>Choose a passphrase to encrypt your copies. Google never sees your notes.</Muted>
+          <Muted>
+            Choose a passphrase that locks your copies, so nobody at Google can read your notes.
+          </Muted>
         )}
         <label className="flex flex-col gap-1 text-sm text-foreground">
           Passphrase
+          <span className="text-xs leading-relaxed font-normal text-muted-foreground">
+            A password only for your backups. You need it to get your notes back.
+          </span>
           <Input
             type="password"
             value={passphrase}
@@ -1402,8 +1444,8 @@ function FolderForm({
           <TriangleAlertIcon />
           <AlertTitle>Write this passphrase down on paper</AlertTitle>
           <AlertDescription>
-            It's the only way to open these backups if this computer is lost. Majordome keeps it in
-            this computer's keychain and can't show it to you again.
+            It's the only way to open these backups if this computer is lost. Majordome remembers it
+            on this computer and can't show it to you again.
           </AlertDescription>
         </Alert>
         {problem === null ? null : <p className="text-xs text-warning-foreground">{problem}</p>}

@@ -73,6 +73,11 @@ export function withoutAccountServer(metadata: unknown, environmentId: string) {
 /** The account service's token template whose tokens a Majordome server accepts. */
 export const ACCOUNT_TOKEN_OPTIONS = { template: "majordome", skipCache: true } as const;
 
+const accountServerSilent = (name: string) =>
+  `${name} did not answer. Check that it is on and connected to the internet, then try again.`;
+const accountServerRefused = (name: string) =>
+  `${name} did not let you in. Sign out, sign in again, then try once more.`;
+
 export type AccountSignIn =
   | { readonly ok: true; readonly credential: string }
   | { readonly ok: false; readonly message: string };
@@ -97,7 +102,7 @@ export async function signInToAccountServer(input: {
     })
     .catch(() => null);
   if (response === null) {
-    return { ok: false, message: `${server.name} did not answer. It may be off.` };
+    return { ok: false, message: accountServerSilent(server.name) };
   }
   const body: unknown = await response.json().catch(() => null);
   const read = (key: string) => {
@@ -107,5 +112,5 @@ export async function signInToAccountServer(input: {
   const credential = read("credential");
   return response.ok && credential !== null
     ? { ok: true, credential }
-    : { ok: false, message: read("message") ?? `${server.name} refused the sign-in.` };
+    : { ok: false, message: read("message") ?? accountServerRefused(server.name) };
 }

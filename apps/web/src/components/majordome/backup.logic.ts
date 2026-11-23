@@ -17,7 +17,7 @@ const PAUSE_COPY: Record<MajordomeBackupPauseReason, { title: string; detail: st
   "secret-not-sent": {
     title: "A possible secret was found in your notes; syncing is paused",
     detail:
-      "A saved change holds what looks like a password or key, so it stays on this computer. Your edits are still saved here.",
+      "A saved change holds what looks like a password or key, so it is not sent anywhere. Your edits are still saved on this computer.",
   },
   conflict: {
     title: "Your notes changed in two places; syncing is paused",
@@ -99,6 +99,25 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 }
 
 /**
+ * What happens next for a backup that is working, so "backed up" also says it stays that way.
+ * Null while nothing is chosen or the newest copy failed.
+ */
+export function backupNextCopy(status: MajordomeBackupStatus): string | null {
+  if (backupHeadline(status).tone !== "ok") return null;
+  const { remote } = status;
+  const nightly = [status.folder, status.drive].some(
+    (copy) => copy !== null && copy.lastBackupAt !== null && copy.lastError === null,
+  );
+  const parts = [
+    remote !== null && remote.syncing && remote.backedUp
+      ? `New changes go to ${remoteLabel(remote)} a few minutes after you make them.`
+      : null,
+    nightly ? "A new copy is made every night, or the next time the computer is on." : null,
+  ].filter((part) => part !== null);
+  return parts.length === 0 ? null : parts.join(" ");
+}
+
+/**
  * The sidebar's short alert when saving, a chosen backup or keeping in step with another machine
  * is paused or failing, or a note waits in two versions, else null.
  * "Not backed up yet" and "On two of your computers" alone do not count: a backup is a choice still
@@ -142,7 +161,7 @@ export function restoreFormProblem(input: {
   readonly passphrase: string;
 }): string | null {
   if (input.source.trim() === "") return "Choose the folder your backup is in.";
-  if (input.passphrase === "") return "Type your passphrase.";
+  if (input.passphrase === "") return "Type the passphrase you chose for your backups.";
   return null;
 }
 

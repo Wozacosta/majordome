@@ -12,6 +12,9 @@ import { Step, Steps } from "./paper";
 
 const COMPOSE_URL =
   "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/docker-compose.yml";
+// The compose file names it as the built-in browser's sandbox rules, and will not start without it.
+const BROWSER_RULES_URL =
+  "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/browser-seccomp.json";
 const UPDATES_URL =
   "https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install-updates.sh";
 const TAILSCALE_KEYS_URL = "https://login.tailscale.com/admin/settings/keys";
@@ -40,6 +43,7 @@ export function AlwaysOnManualGuide() {
         Paste your key in place of the dots, then run each line:
         <CommandBlock command="mkdir majordome && cd majordome" />
         <CommandBlock command={`curl -fsSLO ${COMPOSE_URL}`} />
+        <CommandBlock command={`curl -fsSLO ${BROWSER_RULES_URL}`} />
         <CommandBlock command='echo "TS_AUTHKEY=tskey-auth-…" > .env' />
         <CommandBlock command="docker compose up -d" />
         Then this once, so the server updates itself every night:

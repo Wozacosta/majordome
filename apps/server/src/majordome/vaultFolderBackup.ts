@@ -97,7 +97,12 @@ export const decryptFile = (input: {
         NodeFS.createWriteStream(input.target, { mode: 0o600 }),
       );
     },
-    catch: (cause) => new FolderBackupError({ message: "Could not decrypt the backup.", cause }),
+    catch: (cause) =>
+      new FolderBackupError({
+        message:
+          "That passphrase did not open the backup. Check it against the one you wrote down: capitals and spaces count.",
+        cause,
+      }),
   }).pipe(Effect.withSpan("majordome.decryptFile"));
 
 /** Copies the encrypted bundle into the folder under today's name and drops the oldest copies. */

@@ -13,17 +13,18 @@ export const MAJORDOME_CONNECT = {
   confirmButton: "Connect",
   confirmOther: "Scan or type another code",
   fromLinkHelp:
-    "Filled in from the code you scanned. Check that the address is your computer's, then press the tick at the top.",
+    "Filled in from the code you scanned. Check that the address is your computer's, then press Connect.",
   cameraDeniedTitle: "Majordome can't use the camera",
   cameraDenied:
     "The camera is only used to read the code on your computer. Allow it in Settings, or type the code in instead.",
   wrongCodeTitle: "That isn't a Majordome code",
   wrongCode:
     "Scan the code Majordome shows on your computer, under Settings, then Phone & notifications.",
-  accountLabel: "Have a Majordome account?",
-  accountDescription: "Sign in and this phone finds your servers. No code to scan.",
+  accountLabel: "Sign in to your Majordome account",
+  accountDescription:
+    "With a Majordome account, this phone finds your computer by itself. No code to scan.",
   hostedLabel: "No computer to leave on?",
-  hostedDescription: "Majordome can host it for you. You need an invite code.",
+  hostedDescription: "Majordome can keep one running for you. You need an invite code.",
 } as const;
 
 const REFUSED_CODE =
@@ -41,5 +42,27 @@ export function connectErrorForOwner(message: string): string {
   if (NO_ANSWER.test(message)) {
     return "Your computer didn't answer at that address. Check that it is on, that Majordome is open on it, and that the address is the one it shows.";
   }
+  return message;
+}
+
+/** The Majordome account screen, for someone who signed in and expects their computer to be there. */
+export const MAJORDOME_ACCOUNT = {
+  noComputerTitle: "Your account has no computer yet",
+  noComputer:
+    "On your computer, open Majordome and go to Settings, then Your account. Sign in there with this same account and follow what it says. Then come back here.",
+  checkAgain: "Check again",
+  codeInstead: "Scan a code instead",
+  sessionEnded: "Your sign-in ended. Sign out below, sign in again, then press Connect.",
+} as const;
+
+/**
+ * Why connecting through the account failed. The account already holds the address, so there is
+ * none for the owner to check.
+ */
+export function accountConnectErrorForOwner(message: string, name: string): string {
+  if (NO_ANSWER.test(message)) {
+    return `${name} didn't answer. Check that it is on and connected to the internet, then press Connect again.`;
+  }
+  if (REFUSED_CODE.test(message)) return `${name} took too long to answer. Press Connect again.`;
   return message;
 }

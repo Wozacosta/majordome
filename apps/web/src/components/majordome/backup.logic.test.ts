@@ -1,7 +1,7 @@
 import type { MajordomeBackupStatus } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { backupHeadline, backupAttention, folderFormProblem } from "./backup.logic";
+import { backupHeadline, backupAttention, backupNextCopy, folderFormProblem } from "./backup.logic";
 
 const base: MajordomeBackupStatus = {
   isVault: true,
@@ -146,6 +146,24 @@ describe("backupHeadline", () => {
         drive: { ...drive, lastError: "Your Google Drive is full.", problem: "quota-full" },
       }),
     ).toMatchObject({ tone: "warning", title: "Couldn't back up to Google Drive" });
+  });
+
+  it("says when the next copy is made, only for copies that work", () => {
+    const copy = { lastBackupAt: "2026-11-15T02:00:00Z", lastFile: "x.age", lastError: null };
+    const drive = { ...copy, problem: null };
+    const folder = { ...copy, path: "/Volumes/USB", keep: 5 };
+    expect(backupNextCopy(base)).toBeNull();
+    expect(backupNextCopy({ ...base, drive })).toBe(
+      "A new copy is made every night, or the next time the computer is on.",
+    );
+    expect(backupNextCopy({ ...base, drive: { ...drive, lastError: "Full." } })).toBeNull();
+    expect(backupNextCopy({ ...base, remote: remote({}) })).toBe(
+      "New changes go to GitHub a few minutes after you make them.",
+    );
+    // A folder copy that failed is not promised again beside a GitHub backup that works.
+    expect(
+      backupNextCopy({ ...base, remote: remote({}), folder: { ...folder, lastError: "No." } }),
+    ).toBe("New changes go to GitHub a few minutes after you make them.");
   });
 
   it("reports a failed send, and a folder backup that worked", () => {

@@ -193,12 +193,19 @@
           alt="Majordome"
       /></a>
       <h1>Your Majordome server</h1>
-      <p class="muted" id="intro">Sign in first. The server will belong to your account.</p>
+      <p class="muted" id="intro">Sign in to make your server. It will belong to your account.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
       <form id="ask" hidden>
         <label for="invite">Invite code</label>
-        <input id="invite" name="invite" autocomplete="off" autocapitalize="none" required />
+        <input
+          id="invite"
+          name="invite"
+          autocomplete="off"
+          autocapitalize="none"
+          placeholder="The code from your invitation"
+          required
+        />
         <button class="button" id="go" type="submit">Make my server</button>
       </form>
       <ol id="steps" hidden>
@@ -263,13 +270,17 @@
         const response = await fetch(`${broker}/v1/hosted`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ invite: $("invite").value, accountToken }),
-        });
+          body: JSON.stringify({ invite: $("invite").value.trim(), accountToken }),
+        }).catch(() => null);
+        if (response === null) {
+          throw new Error("Could not reach Majordome. Check your connection, then try again.");
+        }
         const server = await response.json().catch(() => ({}));
         if (!response.ok) {
           throw new Error(server.message || "That did not work. Try again in a few minutes.");
         }
         show("on");
+        $("note").textContent = "This usually takes under a minute. Keep this page open.";
         const started = Date.now();
         let ready = false;
         while (!ready && Date.now() - started < 240000) {
@@ -284,7 +295,7 @@
           show(progress.switchedOn === true ? "ready" : "on");
           if (Date.now() - started > 90000) {
             $("note").textContent =
-              "This is taking longer than usual. Your server is made; it is still starting.";
+              "This is taking longer than usual. Your server is made; it is still starting. Keep this page open.";
           }
           await wait(2500);
         }
@@ -312,7 +323,7 @@
         $("sign-out").hidden = !signedIn;
         $("ask").hidden = !signedIn;
         if (!signedIn) {
-          $("intro").textContent = "Sign in first. The server will belong to your account.";
+          $("intro").textContent = "Sign in to make your server. It will belong to your account.";
           clerk.mountSignIn($("sign-in"), {
             forceRedirectUrl: location.href,
             signUpForceRedirectUrl: location.href,
@@ -358,9 +369,12 @@
             $("steps").hidden = true;
             $("ask").hidden = false;
             $("go").disabled = false;
+            $("note").textContent = "";
             showProblem(error.message);
           }
         });
+        // An invitation link can carry its code, so there is nothing to type.
+        $("invite").value = query.get("invite") ?? "";
         window.Clerk.addListener(() => render(window.Clerk));
         render(window.Clerk);
       } catch {

@@ -2,6 +2,7 @@
 export const MAJORDOME_SETTINGS_LABELS = {
   SettingsEnvironments: "Computers",
   SettingsEnvironmentDetail: "Computer",
+  SettingsEnvironmentNew: "Add a computer",
   SettingsProviderAccounts: "AI accounts",
   SettingsScheduledTasks: "Routines",
   SettingsOrganization: "Language",

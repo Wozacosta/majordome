@@ -136,7 +136,12 @@ export const requestGoogleDeviceCode = Effect.fn("majordome.google.requestDevice
     client_id: client.clientId,
     scope: DRIVE_FILE_SCOPE,
   }).pipe(
-    Effect.mapError((cause) => failed("Could not reach Google to start the sign-in.", cause)),
+    Effect.mapError((cause) =>
+      failed(
+        "Could not reach Google to start the sign-in. Check the internet connection and try again.",
+        cause,
+      ),
+    ),
   );
   if (
     code.device_code === undefined ||
@@ -173,7 +178,7 @@ export const pollGoogleDeviceToken = Effect.fn("majordome.google.pollDeviceToken
       if ((yield* Clock.currentTimeMillis) >= input.code.expiresAt) {
         return yield* new GoogleDriveError({
           reason: "expired",
-          message: "The sign-in code expired. Start again.",
+          message: "The sign-in code ran out of time. Choose Continue for a new one.",
         });
       }
       const answer = yield* postOAuth("/token", {
@@ -201,7 +206,7 @@ export const pollGoogleDeviceToken = Effect.fn("majordome.google.pollDeviceToken
         case "expired_token":
           return yield* new GoogleDriveError({
             reason: "expired",
-            message: "The sign-in code expired. Start again.",
+            message: "The sign-in code ran out of time. Choose Continue for a new one.",
           });
         case "access_denied":
           return yield* new GoogleDriveError({
@@ -225,7 +230,11 @@ export const refreshGoogleAccessToken = Effect.fn("majordome.google.refreshAcces
       client_secret: input.client.clientSecret,
       grant_type: "refresh_token",
       refresh_token: input.refreshToken,
-    }).pipe(Effect.mapError((cause) => failed("Could not reach Google Drive.", cause)));
+    }).pipe(
+      Effect.mapError((cause) =>
+        failed("Could not reach Google Drive. Check the internet connection.", cause),
+      ),
+    );
     // Revoked, expired (Testing apps' sign-ins last 7 days) or the password changed.
     if (response.error === "invalid_grant") return yield* SIGNED_OUT;
     if (response.access_token === undefined) {
@@ -277,7 +286,7 @@ export function driveError(status: number, body: unknown): GoogleDriveError {
     });
   }
   return failed(
-    `Google Drive could not take the backup (error ${status}${reasons[0] ? `, ${reasons[0]}` : ""}).`,
+    `Google Drive could not take the backup (error ${status}${reasons[0] ? `, ${reasons[0]}` : ""}). Majordome tries again in a few minutes.`,
   );
 }
 
@@ -292,7 +301,9 @@ const driveCall = Effect.fn("majordome.google.driveCall")(function* (
     .execute(request.pipe(HttpClientRequest.bearerToken(accessToken)))
     .pipe(
       Effect.timeout(timeout),
-      Effect.mapError((cause) => failed("Could not reach Google Drive.", cause)),
+      Effect.mapError((cause) =>
+        failed("Could not reach Google Drive. Check the internet connection.", cause),
+      ),
     );
   const body = response.status === 204 ? {} : yield* readJson(response);
   if (response.status < 200 || response.status >= 300) {

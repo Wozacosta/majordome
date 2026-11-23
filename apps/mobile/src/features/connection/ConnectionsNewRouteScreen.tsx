@@ -37,6 +37,7 @@ import { workspaceHasColumns } from "../layout/workspace/workspace-selection-sto
 import { m } from "../../i18n/messages";
 import { isMajordome } from "../../majordome/env";
 import { connectErrorForOwner, MAJORDOME_CONNECT } from "../../majordome/connectWording";
+import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 
 type ConnectionsNewRouteParams = {
   readonly mode?: string;
@@ -220,12 +221,14 @@ function PairingForm({
 
   return (
     <SettingsScreen
-      title={gt("Add environment")}
+      title={isMajordome ? MAJORDOME_SETTINGS_LABELS.SettingsEnvironmentNew : gt("Add environment")}
       actions={[
         {
           accessibilityLabel: connecting
             ? gt("Connecting", { $context: "connection status" })
-            : gt("Add environment"),
+            : isMajordome
+              ? MAJORDOME_CONNECT.confirmButton
+              : gt("Add environment"),
           loading: connecting,
           icon: "checkmark",
           tintColor: headerIconColor,
@@ -286,6 +289,15 @@ function PairingForm({
           </View>
         ) : (
           <View collapsable={false} className="gap-6.5">
+            {isMajordome && hasAccountPublicConfig() ? (
+              <View className="overflow-hidden rounded-[26px] border-continuous">
+                <ListRow
+                  label={MAJORDOME_CONNECT.accountLabel}
+                  description={MAJORDOME_CONNECT.accountDescription}
+                  onPress={() => navigation.navigate("SettingsAccount")}
+                />
+              </View>
+            ) : null}
             <PairingScanCard
               cameraActive={cameraPermission?.granted === true && screenFocused && !scanComplete}
               onScan={handleQrScan}
@@ -342,17 +354,22 @@ function PairingForm({
                         "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
                       ))}
               </Text>
+              {/* The tick in the header is easy to miss; typed in full, the way on is a button. */}
+              {isMajordome && hostInput.trim() !== "" && codeInput.trim() !== "" ? (
+                <Button
+                  label={MAJORDOME_CONNECT.confirmButton}
+                  fullWidth
+                  tone="primary"
+                  loading={connecting}
+                  onPress={() => {
+                    void handleSubmit();
+                  }}
+                />
+              ) : null}
             </View>
 
             {isMajordome ? (
               <View className="overflow-hidden rounded-[26px] border-continuous">
-                {hasAccountPublicConfig() ? (
-                  <ListRow
-                    label={MAJORDOME_CONNECT.accountLabel}
-                    description={MAJORDOME_CONNECT.accountDescription}
-                    onPress={() => navigation.navigate("SettingsAccount")}
-                  />
-                ) : null}
                 <ListRow
                   label={MAJORDOME_CONNECT.hostedLabel}
                   description={MAJORDOME_CONNECT.hostedDescription}

@@ -68,10 +68,9 @@ export function RestoreNotes({
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-foreground">1. Where is your backup?</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Choose the folder your copies are in. They are files with names that start with
-          “majordome-” and end in “.age”; the newest one is used. For a copy in Google Drive,
-          download the newest file from the “Majordome backups” folder first, then choose the folder
-          you saved it in.
+          Choose the folder your copies are in, such as your backup folder in iCloud Drive or on a
+          USB drive. The newest copy is used. For a copy in Google Drive, download the newest file
+          from the “Majordome backups” folder first, then choose the folder you saved it in.
         </p>
         {source === "" ? null : (
           <p className="text-sm break-all text-foreground" data-restore-source>
@@ -100,7 +99,7 @@ export function RestoreNotes({
       <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
         2. Your passphrase
         <span className="text-xs leading-relaxed font-normal text-muted-foreground">
-          The one you wrote down when you set up the backup. It is used once, here, and not kept.
+          The one you chose when you set up the backup. It is used once, here, and not kept.
         </span>
         <Input
           type="password"
@@ -122,14 +121,14 @@ export function RestoreNotes({
           Nothing that is already on this computer is changed: if there is a Majordome folder there,
           the new one gets a number.
         </p>
-        <ChooseFolder
-          environmentId={environmentId}
-          onThisComputer={onThisComputer}
-          disabled={busy}
-          label="Put them somewhere else"
-          onChoose={setInto}
-        />
-        <Disclosure summary="Type a path instead">
+        <Disclosure summary="Put them somewhere else">
+          <ChooseFolder
+            environmentId={environmentId}
+            onThisComputer={onThisComputer}
+            disabled={busy}
+            label="Choose folder"
+            onChoose={setInto}
+          />
           <Input
             value={into ?? ""}
             placeholder="~/Documents"

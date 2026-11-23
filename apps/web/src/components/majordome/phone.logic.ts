@@ -1,6 +1,7 @@
 import type {
   AuthClientSession,
   EnvironmentId,
+  MajordomeAccount,
   MajordomePhoneSetup,
   MajordomePushDevice,
   MajordomeRoutinesRunner,
@@ -135,6 +136,30 @@ export function phoneWays(setup: Pick<MajordomePhoneSetup, "anywhere" | "tailsca
     tailscaleOnly: tailscaleReady && anywhere === "off",
     bothInUse: tailscaleReady && anywhere !== "off" && anywhere !== "unavailable",
   };
+}
+
+/** Where a phone signs in: the account service only signs in on its own domain. */
+export const PHONE_SIGN_IN_ADDRESS = "majord.me/open";
+
+/** Whether a phone can open this computer by signing in, and if not, what is missing. */
+export type PhoneSignIn =
+  | { readonly kind: "ready"; readonly email: string | null }
+  | { readonly kind: "needs-account" }
+  | { readonly kind: "needs-address" };
+
+/**
+ * Signing in leads phone setup wherever there are accounts, and the code becomes the second way.
+ * Null keeps the code first: a build or a computer with no accounts, or one that has not answered.
+ */
+export function phoneSignIn(
+  hasAccounts: boolean,
+  account: Pick<MajordomeAccount, "available" | "owner" | "address"> | null,
+): PhoneSignIn | null {
+  if (!hasAccounts || account === null || !account.available) return null;
+  if (account.owner === null) return { kind: "needs-account" };
+  return account.address === null
+    ? { kind: "needs-address" }
+    : { kind: "ready", email: account.owner.email };
 }
 
 /** The address a phone uses away from home: the one from anywhere first, then Tailscale's. */

@@ -7,6 +7,7 @@ import { AuthAccessWriteScope, type EnvironmentId, type ProjectId } from "@t3too
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { authEnvironment } from "../../state/auth";
 import { useEnvironments } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
@@ -19,7 +20,9 @@ import { Muted, READING_MEASURE_CLASS, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
-const START_URL = "https://broker.majord.link/start";
+/** Where an invite code becomes a server; it asks for the Majordome account the server is for. */
+export const HOSTED_START_ADDRESS = "majord.me/start";
+export const HOSTED_START_URL = `https://${HOSTED_START_ADDRESS}`;
 
 /**
  * Sends this computer's notes to a server Majordome hosts for the owner. The server has to be in
@@ -96,23 +99,36 @@ export function MoveToMajordomeServer({
         With an invite code, Majordome makes a server for you and looks after it: nothing to rent
         and nothing to install. Open{" "}
         <a
-          href={START_URL}
+          href={HOSTED_START_URL}
           target="_blank"
           rel="noreferrer"
           className="underline underline-offset-2"
         >
-          broker.majord.link/start
-        </a>{" "}
-        and enter your code. You sign in to Claude there with your own account.
+          {HOSTED_START_ADDRESS}
+        </a>
+        , sign in and enter your code. About half a minute later the page opens your server, where
+        you sign in to Claude with your own plan.
       </Muted>
       {servers.length === 0 ? (
         <Muted className={READING_MEASURE_CLASS}>
-          To bring the notes on this computer to it: skip "Start new notes" on the server, add the
-          server to this app in{" "}
-          <Link to="/settings/connections" className="underline underline-offset-2">
-            Computers
-          </Link>
-          , then come back here.
+          Already have notes on this computer? On the server, skip “Start new notes”. Then{" "}
+          {hasAccountPublicConfig() ? (
+            <>
+              open{" "}
+              <Link to="/settings/account" className="underline underline-offset-2">
+                Your account
+              </Link>{" "}
+              here, sign in with the same account and connect the server listed there
+            </>
+          ) : (
+            <>
+              add the server to this app in{" "}
+              <Link to="/settings/connections" className="underline underline-offset-2">
+                Computers
+              </Link>
+            </>
+          )}
+          . Come back to this page and it offers to move your notes.
         </Muted>
       ) : (
         <>

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Open Majordome</title>
-    <meta name="description" content="Sign in to open your Majordome server from any browser." />
+    <meta name="description" content="Sign in to open your Majordome from any browser." />
     <meta name="robots" content="noindex" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
@@ -157,7 +157,7 @@
           alt="Majordome"
       /></a>
       <h1>Open Majordome</h1>
-      <p class="muted" id="intro">Sign in to find your servers.</p>
+      <p class="muted" id="intro">Sign in to open your Majordome on this device.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
       <ul id="servers" hidden></ul>
@@ -167,6 +167,7 @@
       // The account service's key is public. It only signs in on majord.me and its subdomains.
       const PUBLISHABLE_KEY = "pk_live_Y2xlcmsubWFqb3JkLm1lJA";
       const SIGN_IN_PATH = "/api/majordome/account/sign-in";
+      const OPENED_KEY = "majordome-opened";
       const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
       // On a developer's machine only: another account service, and servers on that machine.
       const key = (local && new URLSearchParams(location.search).get("key")) || PUBLISHABLE_KEY;
@@ -206,12 +207,14 @@
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ token }),
         }).catch(() => null);
-        if (response === null) return `${server.name} did not answer. It may be off.`;
+        if (response === null) {
+          return `${server.name} did not answer. Check that it is on and connected to the internet, then try again.`;
+        }
         const body = await response.json().catch(() => null);
         if (!response.ok || typeof body?.credential !== "string") {
           return typeof body?.message === "string"
             ? body.message
-            : `${server.name} refused the sign-in.`;
+            : `${server.name} did not let you in. Sign out, sign in again, then try once more.`;
         }
         const pair = new URL("/pair", server.url);
         pair.hash = new URLSearchParams({ token: body.credential }).toString();
@@ -238,15 +241,28 @@
         problem.hidden = true;
         button.addEventListener("click", async () => {
           button.disabled = true;
+          button.textContent = "Opening…";
           problem.hidden = true;
           const failure = await open(clerk, server);
           if (failure === null) return;
           button.disabled = false;
+          button.textContent = "Open";
           problem.textContent = failure;
           problem.hidden = false;
         });
         row.append(name, button, problem);
         return row;
+      }
+
+      /** True once per tab. Where the browser keeps nothing, the button is pressed by hand. */
+      function firstVisit() {
+        try {
+          if (sessionStorage.getItem(OPENED_KEY) !== null) return false;
+          sessionStorage.setItem(OPENED_KEY, "1");
+          return true;
+        } catch {
+          return false;
+        }
       }
 
       let shown;
@@ -259,7 +275,7 @@
         $("sign-out").hidden = !user;
         $("servers").hidden = !user;
         if (!user) {
-          $("intro").textContent = "Sign in to find your servers.";
+          $("intro").textContent = "Sign in to open your Majordome on this device.";
           clerk.mountSignIn($("sign-in"), {
             forceRedirectUrl: location.href,
             signUpForceRedirectUrl: location.href,
@@ -270,10 +286,21 @@
         const servers = accountServers(user);
         $("intro").textContent =
           servers.length === 0
-            ? "No server is in your account yet. On your computer, open Majordome, go to Settings, then Your account, and add it."
-            : "Pick the server to open on this device.";
-        $("servers").replaceChildren(...servers.map((server) => serverRow(clerk, server)));
+            ? "Nothing to open yet. On your computer, open Majordome, go to Settings, then Your account. Sign in there, and press Give it an address if it asks. Then reload this page."
+            : servers.length === 1
+              ? "Press Open to use Majordome on this device."
+              : "Pick the one to open on this device.";
+        const rows = servers.map((server) => serverRow(clerk, server));
+        $("servers").replaceChildren(...rows);
+        // With one server there is nothing to pick: open it, once, so coming back here to sign
+        // out or try again still shows the page.
+        if (rows.length === 1 && firstVisit()) rows[0].querySelector("button").click();
       }
+
+      // A page brought back by the Back button is redrawn, so its Open button works again.
+      addEventListener("pageshow", (event) => {
+        if (event.persisted) location.reload();
+      });
 
       try {
         const frontendApi = atob(key.split("_")[2]).replace(/\$$/, "");

@@ -1,6 +1,7 @@
 import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native-components";
 import { useAtomValue } from "@effect/atom-react";
+import { StackActions, useNavigation } from "@react-navigation/native";
 import { MAJORDOME_ACCOUNT_SIGN_IN_PATH } from "@t3tools/contracts";
 import {
   ACCOUNT_TOKEN_OPTIONS,
@@ -19,10 +20,12 @@ import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollVie
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { buildPairingUrl } from "../features/connection/pairing";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
+import { openSettings } from "../features/settings/settings-navigation";
 import {
   pairEnvironment,
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
+import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT } from "./connectWording";
 
 // A build with no account service has no way in here.
 export function AccountScreen() {
@@ -45,11 +48,24 @@ function ConfiguredAccountScreen() {
 
 function SignedIn() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const clerk = useClerk();
   const { user } = useUser();
   const connections = useAtomValue(savedConnectionsByIdAtom);
   const servers = readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ });
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
+  const [checking, setChecking] = useState(false);
+  // A phone's first computer is what it came here for: Today can show its notes now.
+  const leaveOnceConnected =
+    Object.keys(connections).length === 0
+      ? () => navigation.dispatch(StackActions.popToTop())
+      : undefined;
+
+  const checkAgain = async () => {
+    setChecking(true);
+    await user?.reload().catch(() => undefined);
+    setChecking(false);
+  };
 
   return (
     <SettingsScreen title="Your account">
@@ -66,16 +82,31 @@ function SignedIn() {
           </Text>
         )}
         {servers.length === 0 ? (
-          <Text className="text-foreground-muted">
-            No server is in your account yet. On your computer, open Majordome, go to Settings, then
-            Your account, and add it.
-          </Text>
+          <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-5">
+            <Text textRole="headline" className="font-t3-bold text-foreground">
+              {MAJORDOME_ACCOUNT.noComputerTitle}
+            </Text>
+            <Text className="text-foreground-muted">{MAJORDOME_ACCOUNT.noComputer}</Text>
+            <Button
+              label={MAJORDOME_ACCOUNT.checkAgain}
+              tone="primary"
+              icon="arrow.clockwise"
+              loading={checking}
+              onPress={() => void checkAgain()}
+            />
+            <Button
+              label={MAJORDOME_ACCOUNT.codeInstead}
+              tone="text"
+              onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+            />
+          </View>
         ) : (
           servers.map((server) => (
             <ServerCard
               key={server.environmentId}
               server={server}
               connected={server.environmentId in connections}
+              onConnected={leaveOnceConnected}
             />
           ))
         )}
@@ -85,7 +116,12 @@ function SignedIn() {
   );
 }
 
-function ServerCard(props: { readonly server: AccountServer; readonly connected: boolean }) {
+function ServerCard(props: {
+  readonly server: AccountServer;
+  readonly connected: boolean;
+  /** Called after this phone connected, when there is somewhere better to be than this list. */
+  readonly onConnected: (() => void) | undefined;
+}) {
   const { server } = props;
   const { getToken } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -93,7 +129,7 @@ function ServerCard(props: { readonly server: AccountServer; readonly connected:
 
   const connect = async (): Promise<string | null> => {
     const token = await getToken(ACCOUNT_TOKEN_OPTIONS);
-    if (token === null) return "Sign in again, then try once more.";
+    if (token === null) return MAJORDOME_ACCOUNT.sessionEnded;
     const signedIn = await signInToAccountServer({
       server,
       token,
@@ -103,7 +139,10 @@ function ServerCard(props: { readonly server: AccountServer; readonly connected:
     if (!signedIn.ok) return signedIn.message;
     // The same spelling a scanned code is connected with.
     const outcome = await pairEnvironment(buildPairingUrl(server.url, signedIn.credential));
-    return outcome.ok ? null : (outcome.error ?? `This phone couldn't connect to ${server.name}.`);
+    if (outcome.ok) return null;
+    return outcome.error === null
+      ? `This phone couldn't connect to ${server.name}.`
+      : accountConnectErrorForOwner(outcome.error, server.name);
   };
 
   const run = async () => {
@@ -117,6 +156,7 @@ function ServerCard(props: { readonly server: AccountServer; readonly connected:
         ? Haptics.NotificationFeedbackType.Success
         : Haptics.NotificationFeedbackType.Error,
     );
+    if (failure === null) props.onConnected?.();
   };
 
   return (

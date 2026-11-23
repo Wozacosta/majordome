@@ -27,13 +27,14 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { resolveDesktopPairingUrl } from "../settings/pairingUrls";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { listAccountServer } from "./accountLink";
+import { listAccountServer, markSignInAsked, useAddServersAfterSignIn } from "./accountLink";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { Entry, EntryList, Muted, Section, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 const SIGN_IN_AGAIN = "Sign in again, then try once more.";
-const ADDRESS_FAILED = "This computer could not get an address.";
+const addressFailed = (name: string) =>
+  `${name} could not get an address. Check its internet connection, then try again.`;
 
 const failureMessage = (failure: unknown) =>
   failure instanceof Error ? failure.message : String(failure);
@@ -43,7 +44,7 @@ export function AccountPage() {
     <MajordomeSettingsPage
       searchId="majordome-account"
       outline={false}
-      intro="Sign in on a new phone or computer and it finds your servers by itself. Optional: pairing with a code keeps working."
+      intro="Sign in here, then on your phone or another computer: it finds this one by itself, with no code to scan. An account is optional."
     >
       {hasAccountPublicConfig() ? (
         <SignedInOrOut />
@@ -69,6 +70,9 @@ function SignedInOrOut() {
     if (isSignedIn) clerk.closeSignIn();
   }, [isSignedIn, clerk]);
 
+  // Here too: the sidebar, which also does this, is not always on screen with this page.
+  useAddServersAfterSignIn();
+
   if (!isLoaded) return <Muted className="mt-6">Checking your account…</Muted>;
 
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
@@ -89,8 +93,15 @@ function SignedInOrOut() {
           <Entry
             as="div"
             title="Not signed in"
+            meta="Use Google or your email."
             actions={
-              <Button size="sm" onClick={() => clerk.openSignIn()}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  markSignInAsked();
+                  clerk.openSignIn();
+                }}
+              >
                 Sign in
               </Button>
             }
@@ -215,7 +226,7 @@ function ServerAccount({
         : failureMessage(squashAtomCommandFailure(opened));
     }
     const { anywhere } = opened.value;
-    if (anywhere.state === "unavailable") return anywhere.reason ?? ADDRESS_FAILED;
+    if (anywhere.state === "unavailable") return anywhere.reason ?? addressFailed(name);
     const token = await readToken();
     if (token === null) return SIGN_IN_AGAIN;
     const linked = await link({ environmentId, input: { token } });
@@ -230,17 +241,37 @@ function ServerAccount({
     if (answer !== null) setError(answer);
   };
 
+  // Signed out, a computer in no account has nothing to say: the one thing to do is sign in.
+  if (account.owner === null && !signedIn) return null;
+
+  const ownerEmail = account.owner?.email ?? null;
+  const ownerMeta = mine
+    ? account.address === null
+      ? null
+      : "To open it on your phone, go to majord.me/open and sign in."
+    : account.fixed
+      ? "Set when this server was made. It cannot be removed."
+      : !signedIn
+        ? null
+        : ownerEmail === null
+          ? "This is not the account you are signed in to. Sign in to that account to use it."
+          : `This is not the account you are signed in to. Sign in as ${ownerEmail} to use it.`;
+
   return (
     <Section label={name}>
       {account.owner === null ? (
         <Entry
           as="div"
-          title="Not in an account"
-          meta="Add it, and signing in on another device connects that device here."
+          title="Not in your account yet"
+          meta={
+            canChange
+              ? "Add it, and your other devices find it when you sign in on them."
+              : `This device is not allowed to add it. Open Majordome on ${name} and add it there.`
+          }
           actions={
-            signedIn && canChange ? (
+            canChange ? (
               <Button size="sm" disabled={busy} onClick={() => void run("link")}>
-                Add to my account
+                {busy ? "Adding…" : "Add to my account"}
               </Button>
             ) : null
           }
@@ -250,13 +281,7 @@ function ServerAccount({
           as="div"
           title={account.owner.email ?? "In an account"}
           aside={mine ? <Badge variant="secondary">Your account</Badge> : null}
-          meta={
-            account.fixed
-              ? "Set when this server was made. It cannot be removed."
-              : !signedIn || mine
-                ? null
-                : "This is another account than the one you are signed in to."
-          }
+          meta={ownerMeta}
           actions={
             account.fixed || !canChange ? null : (
               <Button
@@ -274,8 +299,9 @@ function ServerAccount({
       {mine && account.address === null ? (
         <div className="mt-3 flex flex-wrap items-start gap-x-3 gap-y-2">
           <StatusLine tone="warning" className="min-w-0 flex-1 basis-60">
-            Your phone cannot reach {name} yet. It needs an address on the internet, which only
-            devices signed in to your account or paired with a code can open.
+            {canOpenAddress
+              ? `Your phone cannot reach ${name} yet. Give it an address: only devices signed in to your account, or paired with a code, can open it.`
+              : `Your phone cannot reach ${name} yet. Open Majordome on ${name}, go to Settings, then Your account, and press Give it an address.`}
           </StatusLine>
           {canOpenAddress ? (
             <Button size="sm" disabled={busy} onClick={() => void runGiveAddress()}>
@@ -293,34 +319,24 @@ function AccountServers() {
   const { user } = useUser();
   const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
   const connected = new Set<string>(catalog.entries.keys());
-  const servers = readAccountServers(user?.unsafeMetadata);
+  // The connected ones each have their own section above; these are the ones left to connect.
+  const servers = readAccountServers(user?.unsafeMetadata).filter(
+    (server) => !connected.has(server.environmentId),
+  );
+  if (servers.length === 0) return null;
 
   return (
-    <Section label="Your servers">
-      {servers.length === 0 ? (
-        <Muted>No server is in your account yet.</Muted>
-      ) : (
-        <EntryList>
-          {servers.map((server) => (
-            <AccountServerRow
-              key={server.environmentId}
-              server={server}
-              connected={connected.has(server.environmentId)}
-            />
-          ))}
-        </EntryList>
-      )}
+    <Section label="Also in your account">
+      <EntryList>
+        {servers.map((server) => (
+          <AccountServerRow key={server.environmentId} server={server} />
+        ))}
+      </EntryList>
     </Section>
   );
 }
 
-function AccountServerRow({
-  server,
-  connected,
-}: {
-  readonly server: AccountServer;
-  readonly connected: boolean;
-}) {
+function AccountServerRow({ server }: { readonly server: AccountServer }) {
   const readToken = useAccountToken();
   const connect = useAtomCommand(connectPairing, { reportFailure: false });
   const [busy, setBusy] = useState(false);
@@ -355,13 +371,10 @@ function AccountServerRow({
     <Entry
       title={server.name}
       meta={new URL(server.url).host}
-      aside={connected ? <Badge variant="secondary">Connected</Badge> : null}
       actions={
-        connected ? null : (
-          <Button size="sm" disabled={busy} onClick={() => void run()}>
-            Connect
-          </Button>
-        )
+        <Button size="sm" disabled={busy} onClick={() => void run()}>
+          {busy ? "Connecting…" : "Connect"}
+        </Button>
       }
     >
       {error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>}

@@ -53,7 +53,12 @@ export const makeKeychain = Effect.fn("BackupPassphraseStore.makeKeychain")(func
       })
       .pipe(
         Effect.mapError(
-          (cause) => new BackupPassphraseError({ message: "Could not reach the Keychain.", cause }),
+          (cause) =>
+            new BackupPassphraseError({
+              message:
+                "Could not reach this Mac's Keychain, where the passphrase is kept. Try again.",
+              cause,
+            }),
         ),
       );
   const quoted = (value: string) => `"${value.replaceAll(/["\\]/g, "")}"`;
@@ -62,7 +67,9 @@ export const makeKeychain = Effect.fn("BackupPassphraseStore.makeKeychain")(func
     const result = yield* security(["find-generic-password", "-s", service, "-a", key, "-w"]);
     if (result.code === 0) return Option.some(fromBase64(result.stdout.trim()));
     if (result.code === KEYCHAIN_ITEM_NOT_FOUND) return Option.none<string>();
-    return yield* new BackupPassphraseError({ message: "Could not read the Keychain." });
+    return yield* new BackupPassphraseError({
+      message: "Could not read the passphrase from this Mac's Keychain. Try again.",
+    });
   });
   const set = Effect.fn("BackupPassphraseStore.keychainSet")(function* (
     key: string,
@@ -74,14 +81,16 @@ export const makeKeychain = Effect.fn("BackupPassphraseStore.makeKeychain")(func
     );
     if (result.code !== 0) {
       return yield* new BackupPassphraseError({
-        message: "Could not save the passphrase to the Keychain.",
+        message: "Could not save the passphrase in this Mac's Keychain. Try again.",
       });
     }
   });
   const remove = Effect.fn("BackupPassphraseStore.keychainRemove")(function* (key: string) {
     const result = yield* security(["delete-generic-password", "-s", service, "-a", key]);
     if (result.code !== 0 && result.code !== KEYCHAIN_ITEM_NOT_FOUND) {
-      return yield* new BackupPassphraseError({ message: "Could not remove the passphrase." });
+      return yield* new BackupPassphraseError({
+        message: "Could not remove the passphrase from this Mac's Keychain. Try again.",
+      });
     }
   });
   return BackupPassphraseStore.of({ get, set, remove });
@@ -92,7 +101,10 @@ export const makeSecretStore = Effect.fn("BackupPassphraseStore.makeSecretStore"
   const name = (key: string) => `majordome-backup-passphrase-${key}`;
   const mapError = Effect.mapError(
     (cause: unknown) =>
-      new BackupPassphraseError({ message: "Could not use the server's secret store.", cause }),
+      new BackupPassphraseError({
+        message: "Majordome could not keep the passphrase on this computer. Try again.",
+        cause,
+      }),
   );
   const get = Effect.fn("BackupPassphraseStore.storeGet")(function* (key: string) {
     const bytes = yield* secrets.get(name(key)).pipe(mapError);

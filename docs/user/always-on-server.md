@@ -9,7 +9,9 @@ phone and your computer show the same ones. Conversations you had before stay on
 they are listed under their topic as "Chat on this Mac". While the server can't be reached, new
 conversations wait until it is back.
 
-**Settings > Your server** sets one up for you. You need:
+**Settings > Your server** starts with the way that needs the least: with an invite code,
+[Majordome hosts the server](#let-majordome-host-it), with nothing to rent or install. The rest
+of the page rents one in your name. For that you need:
 
 - an account at [Hetzner](https://www.hetzner.com/cloud), the company the server is rented from,
   with a payment card. The account is free; the server is not ([below](#what-it-costs)).
@@ -122,7 +124,8 @@ move would be lost.
 
 ## Do it by hand
 
-For any other provider, or if you prefer a terminal.
+For any other provider, or if you prefer a terminal. In the app, these steps are at the bottom of
+**Settings > Your server**.
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.
@@ -215,16 +218,17 @@ Tailscale:
    else runs, and a plan's limits are meant for ordinary individual use.
 4. Press **Start new notes**.
 
-The app calls it your **Majordome server**. To use it from your phone, open **Settings > Phone &
-notifications** on the server and scan the code.
+The app calls it your **Majordome server**. To use it from your phone, open
+<https://majord.me/open> on the phone, sign in with the same account, and press **Open**. No code
+is needed ([Phone and notifications](./phone-and-notifications.md)).
 
 ### Bring the notes on your computer to it
 
 If your notes are already on your computer, skip step 4 and move them instead:
 
-1. In the Mac app, open **Settings > Computers**, press **Add a computer**, and paste the
-   server's address with a code from it.
-2. Open **Settings > Your server**, then **Let Majordome host it**, and press **Move my notes
+1. In the Mac app, open **Settings > Your account**, sign in with the same account, and press
+   **Connect** next to the server.
+2. Open **Settings > Your server** and, under **Let Majordome host it**, press **Move my notes
    to your Majordome server**.
 
 Your notes are copied with their whole history, and from then on the two copies follow each

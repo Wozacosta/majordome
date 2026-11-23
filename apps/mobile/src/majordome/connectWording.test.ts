@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { connectErrorForOwner } from "./connectWording";
+import { accountConnectErrorForOwner, connectErrorForOwner } from "./connectWording";
 
 describe("connectErrorForOwner", () => {
   it.each([
@@ -18,5 +18,17 @@ describe("connectErrorForOwner", () => {
   it("shows an answer it does not recognise as it came", () => {
     const message = "That address reaches Studio, a different machine.";
     expect(connectErrorForOwner(message)).toBe(message);
+  });
+});
+
+describe("accountConnectErrorForOwner", () => {
+  it.each([
+    ["Remote environment endpoint https://x/api timed out after 10000ms.", /^Studio didn't answer/],
+    ["That pairing code is unknown, expired, or already used.", /Press Connect again/],
+    ["That address reaches Den, a different machine.", /^That address reaches Den/],
+  ])("names the computer and never asks for an address or a code: %j", (message, expected) => {
+    const said = accountConnectErrorForOwner(message, "Studio");
+    expect(said).toMatch(expected);
+    expect(said).not.toMatch(/Show the code|the address is the one/);
   });
 });

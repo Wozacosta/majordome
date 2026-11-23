@@ -7,6 +7,33 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **Signing in from the Mac app adds your computers every time.** After a sign-in with Google,
+  which leaves for the browser and comes back, nothing was added and the phone listed no
+  server. The app now remembers that you pressed Sign in, waits for its connections to come
+  back, adds each computer and opens Settings > Your account.
+
+**Improved**
+
+- **Set up your phone by signing in.** Settings > Phone & notifications now starts with
+  majord.me/open: sign in on the phone and press Open, with no code to scan. It says what is
+  missing when the computer is not in your account or has no address. The code is still
+  there, under "No account? Use a code instead".
+- **Your account page is shorter.** One Sign in button when signed out, each computer says
+  what to do next, and errors say how to fix them.
+- **Back up my brain puts the easy choice first.** The backup folder comes first, the page
+  says one place is enough and shows one main button. A working backup says when the next
+  copy is made, and messages use plainer words. A wrong passphrase on restore now says so.
+- **Your server starts with the easy way.** Settings > Your server puts "Let Majordome host
+  it" first, with the right address (majord.me/start); renting your own and the terminal
+  guide follow. The terminal guide was missing one file to download.
+- **The iPhone app gets you to your notes faster.** Sign in is the first choice everywhere,
+  connecting your first computer returns to Today, an empty account says what to do on the
+  computer with a Check again button, and a typed code has a Connect button.
+- **majord.me/open opens your Majordome by itself** when you have only one, and
+  majord.me/start accepts an invitation link with the code in it.
+
 ## 0.10.38
 
 **Improved**
