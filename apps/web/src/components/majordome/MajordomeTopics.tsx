@@ -425,6 +425,12 @@ function VaultTopics({
                             },
                           ];
                     })}
+                    chatStatus={(chat) => {
+                      const shell = threadByKey.get(scopedThreadKey(chat));
+                      return shell === undefined
+                        ? null
+                        : resolveThreadStatusPill({ thread: shell });
+                    }}
                     onMove={
                       topics.length < 2
                         ? null
@@ -493,6 +499,11 @@ function TopicRow(props: {
     /** Marked as done: folded away until asked for. */
     readonly done: boolean;
   }>;
+  /** Whether a chat listed under the topic is working, needs the owner, or has a reply unread. */
+  readonly chatStatus: (chat: {
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+  }) => ReturnType<typeof resolveThreadStatusPill>;
   /** The ways to move it in the list without dragging; null when it is the only topic. */
   readonly onMove: {
     readonly up: boolean;
@@ -547,6 +558,18 @@ function TopicRow(props: {
   const hasNested = props.routines.length + props.sideChats.length + otherChats.length > 0;
   const collapsed = collapsedTopics.includes(topic.id);
   const [showDone, setShowDone] = useState(false);
+  const chatDot = (chat: {
+    readonly environmentId: EnvironmentId;
+    readonly threadId: ThreadId;
+  }) => {
+    const chatStatus = props.chatStatus(chat);
+    return chatStatus === null ? null : (
+      <>
+        <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", chatStatus.dotClass)} />
+        <span className="sr-only">{chatStatus.label}</span>
+      </>
+    );
+  };
   const doneCount = props.sideChats.filter((chat) => chat.done).length;
   const sideChats = showDone ? props.sideChats : props.sideChats.filter((chat) => !chat.done);
   return (
@@ -680,7 +703,8 @@ function TopicRow(props: {
                     aria-hidden
                   />
                 )}
-                <span className="truncate">{chatTitle(chat.title)}</span>
+                <span className="min-w-0 flex-1 truncate">{chatTitle(chat.title)}</span>
+                {chatDot(chat)}
               </Link>
             </li>
           ))}
@@ -710,9 +734,10 @@ function TopicRow(props: {
                   environmentId={chat.environmentId}
                   homeEnvironmentId={homeEnvironmentId}
                 />
-                <span className="truncate text-sidebar-foreground">
+                <span className="min-w-0 flex-1 truncate text-sidebar-foreground">
                   Chat {onMachine(machineOf(chat.environmentId))}
                 </span>
+                {chatDot(chat)}
               </Link>
             </li>
           ))}

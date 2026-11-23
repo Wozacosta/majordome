@@ -7,10 +7,15 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.19
+
 **New**
 
 - **Cmd+T starts a new chat in a topic.** While reading a topic, Cmd+T (Ctrl+T on Windows and
   Linux) does what the + beside its tabs does: a new chat about it, starting from its notes.
+- **Chats under a topic show how they are doing.** In the sidebar, each chat listed under a topic
+  now carries the same small dot as the topic itself: working, waiting for you, or a reply you
+  have not read.
 - **Claude with an API key.** No Claude plan? In Settings, under AI accounts, the Claude account
   now has a "Claude API key" field. Paste a key from the Claude Console and Majordome uses it:
   every message is then billed by use, and your connectors are left out. Remove the key to go
@@ -112,6 +117,8 @@ Not released yet.
 - On the Chats page, open the "…" beside a chat and rename it.
 - Open Routines: each row says On or Off and when it last ran.
 - In Settings, open Back up my brain and choose a backup folder with the picker.
+- In a topic, press Cmd+T: a new chat about it opens. Send it a message, go to another chat, and
+  watch the dot on its row in the sidebar.
 
 ## 0.10.18
 
