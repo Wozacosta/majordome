@@ -248,11 +248,42 @@ neither. What creating one for a customer needs:
     one admin federation rule made in the Console.
   - Not tried against a real organization.
 
-The Hetzner calls (`hetznerApi.ts`) have never run against a real account, and Hetzner rations
-new servers, so the first real run decides whether the second host comes before or after.
+**Decided on 2026-11-23: Fly.io first, always on.** It runs the image as it is and gives each
+server an HTTPS address, so it is the least to build for a demo and the first few users;
+sleeping can be turned on later without moving anyone. Hetzner is out for now: its status page
+still says, since 26 June 2026, that it restricts "the creation of new cloud servers for both
+new customers and some of our existing customers", and its cost-optimized line is marked
+"Currently not available". UpCloud is the fallback, and the answer if a European-owned host is
+wanted before real paying customers. A customer's notes are plain files with a backup, so
+moving one to another host later is a copy.
 
-Then: creating servers behind one interface with a second host, and a one-day trial of sleeping
-machines if idle servers have become a real cost.
+The test that decides it, on one machine (not run yet; the commands are from memory of Fly's
+docs and may need adjusting):
+
+```sh
+fly launch --no-deploy --image ghcr.io/wozacosta/majordome:latest --name <app> --region cdg
+fly volumes create data --size 3 --region cdg --app <app>
+# fly.toml: [mounts] source = "data", destination = "/data"
+#           [http_service] internal_port = 3773, force_https = true,
+#                          auto_stop_machines = "off", min_machines_running = 1
+#           [[vm]] memory = "2gb"
+#           [env] MAJORDOME_PUBLIC_URL = "https://<app>.fly.dev"
+fly deploy --app <app>
+fly ssh console --app <app> -C "majord pair"
+```
+
+1. Majordome starts and the app pairs with it. Likely first snag: the image runs as the user
+   `node` and a new Fly volume belongs to root, so `/data` may not be writable.
+2. Claude signs in from the app and answers.
+3. A browser tab opens from the phone on a chat that runs there. The server's own browser needs
+   Chrome's sandbox; in Docker it gets it from `deploy/browser-seccomp.json`, which Fly does not
+   use. Good to have, not a reason to stop.
+
+If 1 and 2 pass, build on Fly: the service that creates a machine on request (in the address
+broker, behind an invite code), and the "Majordome hosts it" choice in the app.
+
+Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
+OpenBot's does), a second host behind one interface, a pool of ready servers.
 
 ## Phone
 

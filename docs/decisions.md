@@ -317,7 +317,8 @@ takes over.
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.
 10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, with the customer's own Claude plan (see
-    Servers and sync). No single host (2026-11-23): in 2026 Hetzner rationed new cloud servers
+    Servers and sync). Fly.io first, always on, with UpCloud as the fallback (2026-11-23; the
+    reasons and the deciding test are in `docs/whatsnext.md`). No single host: in 2026 Hetzner rationed new cloud servers
     and every host raised prices as memory got dearer, so creating a server goes behind one small
     interface (what is on offer and its price, create with a start-up script, status, delete)
     with Hetzner, already built, as the first of several. The start-up script and everything
