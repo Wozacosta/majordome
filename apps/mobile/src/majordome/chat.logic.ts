@@ -60,32 +60,171 @@ export function topicLine(
   };
 }
 
-/** What VoiceOver reads for a row: its title, its line, when it last moved, and whether it is unread. */
+/**
+ * What a chat at rest shows where its latest message would be. The server's list of chats carries
+ * no message text, so this says only who spoke last, and on which computer when there are several.
+ */
+export function chatRestLine(
+  chat: {
+    readonly latestUserMessageAt: string | null;
+    readonly latestRun: { readonly completedAt: string | null } | null;
+  },
+  computer: string | null = null,
+): ChatLine | null {
+  const repliedAt = Date.parse(chat.latestRun?.completedAt ?? "");
+  const wroteAt = Date.parse(chat.latestUserMessageAt ?? "");
+  const state =
+    chat.latestUserMessageAt === null && chat.latestRun === null
+      ? "No messages yet"
+      : !Number.isNaN(repliedAt) && (Number.isNaN(wroteAt) || repliedAt >= wroteAt)
+        ? "Replied"
+        : null;
+  const words = [state, computer].filter((part) => part !== null).join(" · ");
+  return words === "" ? null : { words, tone: "plain" };
+}
+
+/** What VoiceOver reads for a row: its title, what it is, its line, and when it last moved. */
 export function chatRowLabel(input: {
   readonly title: string;
   readonly line: ChatLine | null;
   readonly time: string | null;
+  readonly topic?: boolean;
+  readonly pinned?: boolean;
+  readonly done?: boolean;
 }): string {
   const unread = input.line?.tone === "new" && input.line.words !== "New reply";
-  return [input.title, unread ? "New reply" : null, input.line?.words, input.time]
+  return [
+    input.title,
+    input.topic ? "topic" : null,
+    unread ? "New reply" : null,
+    input.line?.words,
+    input.time,
+    input.pinned ? "pinned" : null,
+    input.done ? "done" : null,
+  ]
     .filter((part) => part !== null && part !== undefined && part !== "")
     .join(", ");
 }
 
-// A chat's long-press menu offers these upstream; they are about code and mean nothing here.
-const CODING_MENU_ACTIONS = new Set([
-  "new-thread-on-branch",
-  "copy-thread-id",
-  "turn-into-project",
-]);
+// What a chat's long-press menu keeps, in the order shown; upstream's other entries are about code
+// or repeat these (archive beside done and delete).
+const CHAT_MENU_ORDER = [
+  "pin",
+  "unpin",
+  "rename",
+  "mark-unread",
+  "snooze",
+  "unsnooze",
+  "settle",
+  "unsettle",
+  "share-guest",
+  "delete",
+];
 
-/** A chat's long-press menu without the entries about code, at any depth. */
+/** A chat's long-press menu as one short list: upstream's nested menus flattened and trimmed. */
 export function chatMenuActions<
   T extends { readonly id?: string; readonly subactions?: ReadonlyArray<T> },
 >(actions: ReadonlyArray<T>): Array<T> {
-  return actions
-    .filter((action) => action.id === undefined || !CODING_MENU_ACTIONS.has(action.id))
-    .map((action) =>
-      action.subactions ? { ...action, subactions: chatMenuActions(action.subactions) } : action,
-    );
+  const found = new Map<string, T>();
+  const collect = (list: ReadonlyArray<T>) => {
+    for (const action of list) {
+      if (action.id !== undefined && CHAT_MENU_ORDER.includes(action.id)) {
+        if (!found.has(action.id)) found.set(action.id, action);
+      } else if (action.subactions) {
+        collect(action.subactions);
+      }
+    }
+  };
+  collect(actions);
+  return CHAT_MENU_ORDER.flatMap((id) => found.get(id) ?? []);
+}
+
+/** A topic's long-press menu: the chat entries that also fit a topic, around its own two. */
+export function topicMenuActions<T extends { readonly id?: string }>(
+  chatActions: ReadonlyArray<T>,
+  title: string,
+): Array<T | { readonly id: string; readonly title: string; readonly image: string }> {
+  const kept = (ids: ReadonlyArray<string>) =>
+    chatActions.filter((action) => action.id !== undefined && ids.includes(action.id));
+  return [
+    { id: "topic-side-chat", title: `New chat about ${title}`, image: "square.and.pencil" },
+    ...kept(["pin", "unpin", "mark-unread"]),
+    { id: "topic-finish", title: "Mark as done", image: "checkmark" },
+  ];
+}
+
+/** True when a row's title or line contains what was typed in the search box. */
+export function chatMatchesSearch(
+  query: string,
+  row: { readonly title: string; readonly preview?: string | null },
+): boolean {
+  const wanted = query.trim().toLocaleLowerCase();
+  return (
+    wanted === "" ||
+    row.title.toLocaleLowerCase().includes(wanted) ||
+    (row.preview ?? "").toLocaleLowerCase().includes(wanted)
+  );
+}
+
+/**
+ * The Chats list with its open chats ordered like a messaging app: whatever moved last comes
+ * first. Pinned rows, the shelves and the rows inside them keep the places upstream gave them.
+ */
+export function orderChatsByActivity<
+  T extends {
+    readonly type: string;
+    readonly item?: {
+      readonly variant: string;
+      readonly pinned: boolean;
+      readonly snoozed: boolean;
+    };
+  },
+>(items: ReadonlyArray<T>, activityOf: (item: T) => string | null): Array<T> {
+  const open = (item: T) =>
+    item.type === "v2-thread" &&
+    item.item?.variant === "card" &&
+    item.item.pinned === false &&
+    item.item.snoozed === false;
+  const at = (item: T) => {
+    const parsed = Date.parse(activityOf(item) ?? "");
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+  const ordered = [...items];
+  let start = 0;
+  while (start < ordered.length) {
+    if (!open(ordered[start]!)) {
+      start += 1;
+      continue;
+    }
+    let end = start;
+    while (end < ordered.length && open(ordered[end]!)) end += 1;
+    const run = ordered.slice(start, end).sort((left, right) => at(right) - at(left));
+    ordered.splice(start, run.length, ...run);
+    start = end;
+  }
+  return ordered;
+}
+
+/** What the Chats tab says when there is nothing to list and a chat can be started. */
+export const NO_CHATS_YET = {
+  title: "No chats yet",
+  detail: "Ask anything, or say what you want noted down.",
+  action: "Start a chat",
+} as const;
+
+/** What a search of the Chats tab says when it finds no chat and no topic. */
+export function nothingFound(query: string): { readonly title: string; readonly detail: string } {
+  return {
+    title: "Nothing found",
+    detail: `No chat or topic matches "${query.trim()}". Try another word.`,
+  };
+}
+
+/** True when the empty Chats tab can offer a new chat: a computer answers and has a notes folder. */
+export function canStartFirstChat(input: {
+  readonly loading: boolean;
+  readonly hasReadyComputer: boolean;
+  readonly folders: number;
+}): boolean {
+  return !input.loading && input.hasReadyComputer && input.folders > 0;
 }

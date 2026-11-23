@@ -372,9 +372,15 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   chats from opening (2026-11-23). The shared pure code is `apps/web/vite/majordomeReword.ts`.
   The wording files are part of Metro's cache version, so an edited table is never served stale.
   Tests read the source unswapped.
-- **Chats lists the topics first**, as conversations (`MajordomeTopicsSection`, in the chat
-  list's header): name, latest message, when it last moved. A topic's own conversation is left
-  out of the list below, which is headed "Other chats". The topics are kept on the phone too.
+- **Chats is one list.** A topic sits on its own conversation's row (name, icon, latest
+  message) and moves with it, most recent first; topics not opened yet sit above, under no
+  heading. Topics marked done fold into "Done topics" at the bottom, with "Bring back". Plain
+  chats have no message preview: the server sends none (`latestVisibleMessage` is always null).
+- **Today can show another day** (arrows beside the date); only today's note is kept on the
+  phone, and the add box shows on today only, as on the desktop.
+- **A literal the code looks things up by must not be swapped.** They are listed in
+  `MOBILE_KEPT` (`majordome/wording.mts`), and `majordome/literals.test.ts` fails when a route
+  name, a kept text or an unreviewed literal outside a translation call would change.
 - **The iPhone icon is the PNG.** Upstream's Icon Composer projects (`assets/*/app-icon.icon`)
   still draw upstream's logo, so the identity step points `ios.icon` at the cloche PNG.
 - **Today sits in upstream's one-page Usage tab slot** (`MajordomeTodayScreen`), so the tab key

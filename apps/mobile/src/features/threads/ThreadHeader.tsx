@@ -7,6 +7,9 @@ import {
   useWorkspacePaneState,
 } from "../layout/AdaptiveWorkspaceLayout";
 import type { ThreadInspectorMode } from "./thread-inspector-navigation";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { chatTitle } from "../../majordome/chat.logic";
+import { useConversationMenu } from "../../majordome/conversationMenu";
 import { isMajordome } from "../../majordome/env";
 import { useWorkspaceBackNavigation } from "../layout/workspace/useAndroidWorkspaceNavigation";
 import {
@@ -15,7 +18,7 @@ import {
   type ThreadGitControlsProps,
 } from "./ThreadGitControls";
 
-export function ThreadHeader(props: {
+interface ThreadHeaderProps {
   readonly title: string;
   readonly subtitle: string;
   readonly gitControls: ThreadGitControlsProps;
@@ -24,7 +27,24 @@ export function ThreadHeader(props: {
   readonly hasThreadCwd: boolean;
   readonly inspectorMode: ThreadInspectorMode | null;
   readonly onOpenFilesInspector: () => void;
-}) {
+  /** Majordome: the chat this header is for, which gives it a menu of its own. */
+  readonly chat?: EnvironmentThreadShell;
+}
+
+export function ThreadHeader(props: ThreadHeaderProps) {
+  return isMajordome && props.chat ? (
+    <MajordomeChatHeader {...props} chat={props.chat} />
+  ) : (
+    <ThreadHeaderBar {...props} chatMenu={null} />
+  );
+}
+
+function MajordomeChatHeader(props: ThreadHeaderProps & { readonly chat: EnvironmentThreadShell }) {
+  const chatMenu = useConversationMenu(props.chat);
+  return <ThreadHeaderBar {...props} chatMenu={chatMenu} />;
+}
+
+function ThreadHeaderBar(props: ThreadHeaderProps & { readonly chatMenu: AppBarMenu | null }) {
   const gt = useGT();
   const m = useMessages();
   const goBack = useWorkspaceBackNavigation();
@@ -49,12 +69,14 @@ export function ThreadHeader(props: {
         ]
       : [];
   const menus = isMajordome
-    ? []
+    ? props.chatMenu === null
+      ? []
+      : [props.chatMenu]
     : [gitMenu, terminalMenu].filter((menu): menu is AppBarMenu => menu !== null);
 
   return (
     <AppBar
-      title={props.title}
+      title={isMajordome ? chatTitle(props.title) : props.title}
       subtitle={props.subtitle}
       onBackToList={goBack}
       onCompose={props.draft ? undefined : startNewTask}

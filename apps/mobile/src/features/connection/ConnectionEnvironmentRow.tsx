@@ -7,6 +7,7 @@ import { hasSavedBearerRoute, hostFreezeNotice } from "@t3tools/client-runtime/c
 import type { AtomCommandResult } from "@t3tools/client-runtime/state/runtime";
 import { type EnvironmentId, resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
@@ -28,6 +29,13 @@ import { ConnectionFormField } from "./ConnectionFormField";
 import { ConnectionStatusDot } from "./ConnectionStatusDot";
 import { environmentStatusText } from "./environmentStatusText";
 import type { MessageResolver } from "../../i18n/messages";
+import {
+  type ComputerAction,
+  computerState,
+  computerStateText,
+  MAJORDOME_COMPUTER_ROW,
+} from "../../majordome/connectionState";
+import { isMajordome } from "../../majordome/env";
 
 function connectionStatusLabel(
   environment: ConnectedEnvironmentSummary,
@@ -79,6 +87,33 @@ export function ConnectionEnvironmentRow(props: {
     presentation,
   );
   const enabled = props.environment.isEnabled && !unsupported;
+  const navigation = useNavigation();
+  const onComputerPage = useRoute().name === "SettingsEnvironmentDetail";
+  const computer = isMajordome
+    ? computerState({
+        enabled: props.environment.isEnabled,
+        phase: props.environment.connectionState,
+        network: connectionState.network,
+        failure: connectionState.lastFailure,
+      })
+    : null;
+  const computerText =
+    computer === null ? null : computerStateText(computer, props.environment.environmentLabel);
+  // The computer's own page already shows its update below this row.
+  const computerAction =
+    computerText === null ||
+    props.opensDetails ||
+    (computerText.action?.does === "openComputer" && onComputerPage)
+      ? null
+      : computerText.action;
+  const runComputerAction = (action: ComputerAction) => {
+    const { environmentId } = props.environment;
+    if (action === "switchOn") props.onSetEnabled(environmentId, true);
+    else if (action === "retry") props.onReconnect(environmentId);
+    else if (action === "pairAgain") {
+      navigation.navigate("SettingsEnvironmentNew", { routeFor: environmentId });
+    } else navigation.navigate("SettingsEnvironmentDetail", { environmentId });
+  };
   const statusLabel = connectionStatusLabel(props.environment, m);
   const statusTraceId = enabled ? props.environment.connectionErrorTraceId : null;
   const hasConnectionFailure = enabled && props.environment.connectionError !== null;
@@ -149,7 +184,16 @@ export function ConnectionEnvironmentRow(props: {
               {props.environment.displayUrl}
             </Text>
           ) : null}
-          {diagnosis ? (
+          {isMajordome ? (
+            <Text
+              className={cn(
+                "text-xs",
+                computerText?.failed ? "text-danger-foreground" : "text-foreground-muted",
+              )}
+            >
+              {computerText?.sentence ?? MAJORDOME_COMPUTER_ROW.connected}
+            </Text>
+          ) : diagnosis ? (
             <>
               <Text className="text-xs text-danger-foreground">{diagnosis.headline}</Text>
               {connectionState.attempt > 0 ? (
@@ -227,13 +271,23 @@ export function ConnectionEnvironmentRow(props: {
         </Pressable>
       </View>
 
+      {computerAction ? (
+        <View className="px-4 pb-3.5">
+          <Button
+            label={computerAction.label}
+            tone="secondary"
+            onPress={() => runComputerAction(computerAction.does)}
+          />
+        </View>
+      ) : null}
+
       {props.expanded ? (
         <Animated.View
           entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(150)}
           className="gap-3 px-4 pb-4"
         >
-          {diagnosis ? (
+          {diagnosis && !isMajordome ? (
             <ConnectionDiagnosisDetails
               hostLabel={props.environment.environmentLabel}
               diagnosis={diagnosis}
@@ -248,7 +302,11 @@ export function ConnectionEnvironmentRow(props: {
           ) : (
             <>
               <ConnectionFormField
-                label={gt("Label", { $context: "noun, environment name field" })}
+                label={
+                  isMajordome
+                    ? MAJORDOME_COMPUTER_ROW.name
+                    : gt("Label", { $context: "noun, environment name field" })
+                }
                 autoCapitalize="words"
                 autoCorrect={false}
                 placeholder={gt("My MacBook")}
@@ -257,7 +315,7 @@ export function ConnectionEnvironmentRow(props: {
               />
 
               <ConnectionFormField
-                label="URL"
+                label={isMajordome ? MAJORDOME_COMPUTER_ROW.address : "URL"}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"

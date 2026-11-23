@@ -429,7 +429,8 @@ function UserMessageCopyButton(props: {
     />
   );
   const linkText = replaceComposerContextReferences(props.text, (reference) => reference.label);
-  if (linkText.length > PROMPT_LINK_MAX_PROMPT_LENGTH) return button;
+  // A prompt link opens upstream's app, so Majordome offers plain Copy only.
+  if (isMajordome || linkText.length > PROMPT_LINK_MAX_PROMPT_LENGTH) return button;
   return (
     <Menu
       actions={USER_MESSAGE_COPY_MENU_ACTIONS.map((action) => ({
@@ -2188,7 +2189,7 @@ function renderFeedEntry(
         shimmer={entry.shimmer}
         thought={entry.thought}
         trailing={
-          entry.checkpointSummary ? (
+          entry.checkpointSummary && !isMajordome ? (
             <TurnDiffStat
               checkpoint={entry.checkpointSummary}
               onOpenTurnDiff={props.onOpenTurnDiff}
@@ -2698,7 +2699,7 @@ function renderFeedEntry(
           onPressPreview={props.onPressPreview}
           onPlaybackStart={props.onPlaybackStart}
         />
-        {showAssistantMeta && message.checkpointSummary ? (
+        {showAssistantMeta && message.checkpointSummary && !isMajordome ? (
           <TurnDiffStat
             checkpoint={message.checkpointSummary}
             onOpenTurnDiff={props.onOpenTurnDiff}
@@ -2713,7 +2714,7 @@ function renderFeedEntry(
               buttonSize={props.replyActionSize.button}
               iconSize={props.replyActionSize.icon}
             />
-            {message.projectedItem ? (
+            {message.projectedItem && !isMajordome ? (
               <AssistantForkButton
                 environmentId={props.environmentId}
                 iconColor={iconSubtleColor}

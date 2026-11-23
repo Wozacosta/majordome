@@ -108,7 +108,10 @@ import {
 } from "./provider-catalog-refresh";
 import { useSearchToolbarInset } from "../../components/ui/useBarInset";
 import type { AppBarSearch } from "../../components/ui/AppBar";
+import type { AppBarMenu } from "../../components/ui/AppBar.types";
 import { ModelRow, ChoiceRow } from "./ThreadSettingsRows";
+import { MODEL_PICKER_WORDS } from "../../majordome/conversation.logic";
+import { isMajordome } from "../../majordome/env";
 import {
   compatibleRuntimeModeForChoices,
   runtimeModeChoicesForSupportedModes,
@@ -148,6 +151,8 @@ const EMPTY_MODEL_FAVORITES: ReadonlyArray<{
   readonly model: string;
 }> = [];
 const FAVORITES_PROVIDER_FILTER = "@favorites";
+// Majordome lists every AI account at once, so it has no filters.
+const upstreamMenus = (menus: ReadonlyArray<AppBarMenu>) => (isMajordome ? [] : menus);
 // Servers that predate `migrateModelPreferences` drop it and keep reporting null favorites.
 const attemptedMigrationGenerations = new Map<EnvironmentId, number>();
 function ProviderHeader(props: {
@@ -986,11 +991,19 @@ function ThreadSettingsOptionsItem(props: {
         ?.providers.find((provider) => provider.instanceId === session.providerInstanceId) ?? null)
     : null;
 
+  // Majordome keeps what changes the answer. The rest stays mounted but hidden, so upstream's
+  // markup merges untouched; who may do what is set on the computer.
+  const upstreamOnly = isMajordome ? ({ display: "none" } as const) : undefined;
+  const lastDescriptorId = isMajordome ? session.displayedDescriptors.at(-1)?.id : undefined;
+  if (isMajordome && session.displayedDescriptors.length === 0) {
+    return <View style={{ paddingBottom: insets.bottom + props.bottomInset + 12 }} />;
+  }
+
   return (
     <View style={{ paddingBottom: insets.bottom + props.bottomInset + 12 }}>
       <ChatGptSharingStatus provider={selectedProvider} />
       <Text className="px-5 pb-2 pt-2 text-sm font-t3-medium text-foreground-muted">
-        <T>Options</T>
+        {isMajordome ? MODEL_PICKER_WORDS.options : <T>Options</T>}
       </Text>
       <Animated.View
         className="mx-4 overflow-hidden rounded-2xl bg-grouped-card"
@@ -1008,6 +1021,7 @@ function ThreadSettingsOptionsItem(props: {
                 layout={THREAD_SETTINGS_OPTIONS_LAYOUT_TRANSITION}
               >
                 <DisclosureRow
+                  isLast={descriptor.id === lastDescriptorId}
                   label={descriptor.label}
                   value={
                     session.promptTraits.ultrathinkPromptControlled &&
@@ -1032,6 +1046,7 @@ function ThreadSettingsOptionsItem(props: {
               layout={THREAD_SETTINGS_OPTIONS_LAYOUT_TRANSITION}
             >
               <SwitchRow
+                isLast={descriptor.id === lastDescriptorId}
                 label={descriptor.label}
                 value={descriptor.currentValue ?? false}
                 onValueChange={(value) => session.applyOptionChange(descriptor.id, value)}
@@ -1039,7 +1054,7 @@ function ThreadSettingsOptionsItem(props: {
             </Animated.View>
           );
         })}
-        <Animated.View layout={THREAD_SETTINGS_OPTIONS_LAYOUT_TRANSITION}>
+        <Animated.View layout={THREAD_SETTINGS_OPTIONS_LAYOUT_TRANSITION} style={upstreamOnly}>
           <DisclosureRow
             isLast
             label={gt("Runtime", { $context: "agent permission mode setting" })}
@@ -1054,10 +1069,13 @@ function ThreadSettingsOptionsItem(props: {
         </Animated.View>
       </Animated.View>
 
-      <Text className="px-5 pb-2 pt-7 text-sm font-t3-medium text-foreground-muted">
+      <Text
+        className="px-5 pb-2 pt-7 text-sm font-t3-medium text-foreground-muted"
+        style={upstreamOnly}
+      >
         {gt("Catalog", { $context: "section heading for the model catalog" })}
       </Text>
-      <View className="mx-4 overflow-hidden rounded-2xl bg-grouped-card">
+      <View className="mx-4 overflow-hidden rounded-2xl bg-grouped-card" style={upstreamOnly}>
         <SwitchRow
           label={gt("Manage hidden models")}
           value={session.manageHidden}
@@ -1372,11 +1390,13 @@ function ThreadSettingsModelsScreen() {
   return (
     <>
       <AppBar
-        title={gt("Thread settings")}
+        title={isMajordome ? MODEL_PICKER_WORDS.title : gt("Thread settings")}
         onClose={presentation.onClose}
-        closeAccessibilityLabel={gt("Cancel thread settings")}
+        closeAccessibilityLabel={
+          isMajordome ? MODEL_PICKER_WORDS.close : gt("Cancel thread settings")
+        }
         search={search}
-        menus={[
+        menus={upstreamMenus([
           {
             title: gt("Model filters"),
             icon: hasCustomCatalogFilter
@@ -1405,7 +1425,7 @@ function ThreadSettingsModelsScreen() {
                 : []),
             ],
           },
-        ]}
+        ])}
         optionsVersion={[
           session.providerFilter,
           session.providerGroups.map((group) => group.providerKey),
@@ -1471,7 +1491,10 @@ function ThreadSettingsPickerNavigator(props: ThreadSettingsPickerPresentation) 
         <ThreadSettingsPickerStack.Screen
           name="ThreadSettingsModels"
           component={ThreadSettingsModelsScreen}
-          options={{ headerBackVisible: false, title: gt("Thread settings") }}
+          options={{
+            headerBackVisible: false,
+            title: isMajordome ? MODEL_PICKER_WORDS.title : gt("Thread settings"),
+          }}
         />
         <ThreadSettingsPickerStack.Screen
           name="ThreadSettingsChoice"

@@ -84,7 +84,11 @@ export function ChatRowContent(props: {
             <Text
               className={cn(
                 "text-xs tabular-nums",
-                selected ? "text-thread-selected-foreground-muted" : "text-foreground-tertiary",
+                selected
+                  ? "text-thread-selected-foreground-muted"
+                  : attention
+                    ? "font-t3-medium text-primary-text"
+                    : "text-foreground-tertiary",
               )}
             >
               {props.time}

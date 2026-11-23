@@ -41,7 +41,7 @@ import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspace
 import { WorkspaceListEmptyDetail } from "../layout/workspace/WorkspaceListEmptyDetail";
 import { WorkspaceListHeader } from "../layout/workspace/WorkspaceListHeader";
 import { isMajordome } from "../../majordome/env";
-import { useTopicThreadIds } from "../../majordome/TopicsSection";
+import { useDoneTopicThreadIds } from "../../majordome/TopicsSection";
 import { buildHomeListFilterMenuItems, homeListFilterEnvironments } from "./home-list-filter-menu";
 
 export function HomeRouteScreen() {
@@ -67,12 +67,11 @@ export function HomeRouteScreen() {
     Platform.OS === "android"
       ? primarySidebarSearchQuery
       : (workspace?.state.tabs.threads.query ?? localSearchQuery);
-  // Majordome lists each topic's conversation above the list, so the list leaves them out.
-  // A search looks through all of them.
-  const topicThreadIds = useTopicThreadIds();
+  // A topic marked as done leaves Majordome's list with its conversation; a search still finds it.
+  const doneTopicThreadIds = useDoneTopicThreadIds();
   const listedThreads =
     isMajordome && searchQuery === ""
-      ? threads.filter((thread) => !topicThreadIds.has(String(thread.id)))
+      ? threads.filter((thread) => !doneTopicThreadIds.has(String(thread.id)))
       : threads;
   const setSearchQuery = (query: string) => {
     if (Platform.OS === "android") setPrimarySidebarSearchQuery(query);

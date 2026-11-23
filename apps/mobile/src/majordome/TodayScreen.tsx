@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
+import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
@@ -8,11 +9,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text, AppTextInput as TextInput } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
+import { EmptyState } from "../components/ui/EmptyState";
+import { IconButton } from "../components/ui/IconButton";
 import { ListSection } from "../components/ui/ListSection";
 import { RefreshControl } from "../components/ui/RefreshControl";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { useAdaptiveWorkspaceLayout } from "../features/layout/adaptive-workspace-context";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
+import { openSettings } from "../features/settings/settings-navigation";
 import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
@@ -20,7 +24,6 @@ import { useAtomCommand } from "../state/use-atom-command";
 import { majordomeEnvironment } from "./state";
 import { useVault } from "./useVault";
 import {
-  friendlyDate,
   localDate,
   localTime,
   noteSections,
@@ -28,7 +31,9 @@ import {
   waitingFor,
   type NoteBodyLine,
 } from "./today.logic";
+import { useTodaySetup } from "./todaySetup";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
+import { dayFromToday, dayTitle, noteStatus, shiftDay, todoProgress } from "./todayView.logic";
 
 const INDENT = 22;
 const MAX_DEPTH = 4;
@@ -97,19 +102,32 @@ function NoteLineRow(props: {
   );
 }
 
+const NOTICES = {
+  connecting: "Connecting to your computer…",
+  unreachable: "Your computer can't be reached right now.",
+  failed: "This day's note couldn't be read.",
+} as const;
+
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const store = useAtomValue(todayStoreAtom);
   const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
+  // Null follows the calendar, so a screen left open overnight moves on to the new day.
+  const [picked, setPicked] = useState<string | null>(null);
+  const day = picked ?? today;
+  const isToday = day === today;
   const [draft, setDraft] = useState("");
+  const [pulled, setPulled] = useState(false);
   const { vault } = useVault(store);
+  const { setup, reach, reconnect } = useTodaySetup(store, vault);
   const note = useEnvironmentQuery(
     vault === null
       ? null
       : majordomeEnvironment.dailyNote({
           environmentId: vault.environmentId,
-          input: { projectId: vault.projectId, date: today },
+          input: { projectId: vault.projectId, date: day },
         }),
   );
   const addToDailyNote = useAtomCommand(majordomeEnvironment.addToDailyNote, {
@@ -120,6 +138,7 @@ export function MajordomeTodayScreen() {
   });
   // The note as the owner's ticks leave it, shown over the last read (`over`) until a fresh one lands.
   const [edit, setEdit] = useState<{
+    readonly date: string;
     readonly shown: string;
     readonly over: string | null;
     readonly saving: boolean;
@@ -159,31 +178,65 @@ export function MajordomeTodayScreen() {
 
   const answered = note.successResult;
   const loaded = store !== null;
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- a fresh answer means the server is reachable: keep its note on the phone and send what waited
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- a fresh answer means the server is reachable: keep today's note on the phone and send what waited
   useEffect(() => {
     if (!answered || !loaded) return;
     const content = answered.value.content;
-    updateTodayStore((current) =>
-      current.note?.date === today && current.note.content === content
-        ? current
-        : { ...current, note: { date: today, content } },
-    );
+    // Only today's note is kept: it is the one the phone opens on with no connection.
+    if (isToday) {
+      updateTodayStore((current) =>
+        current.note?.date === day && current.note.content === content
+          ? current
+          : { ...current, note: { date: day, content } },
+      );
+    }
     flush();
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `flush` is new each render and only reads the store and stable commands
-  }, [answered, loaded, today]);
+  }, [answered, loaded, day, isToday]);
 
-  const read = note.isSuccess
-    ? (note.data?.content ?? null)
-    : store?.note?.date === today
-      ? store.note.content
-      : null;
-  if (edit !== null && !edit.saving && read !== edit.over) setEdit(null);
-  const content = edit === null ? read : edit.shown;
-  const sections = content === null ? [] : noteSections(content, today);
-  const waiting = waitingFor(store?.captures ?? [], vault, today);
-  // An unreachable server leaves the read pending for good; a line that stays waiting says so sooner.
-  const offline = vault !== null && !note.isSuccess && (!note.isPending || waiting.length > 0);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the computer coming back is outside React: send what waited for it
+  useEffect(() => {
+    if (reach === "connected") flush();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `flush` is new each render and only reads the store and stable commands
+  }, [reach]);
+
+  const kept = store?.note?.date === day ? store.note : null;
+  const read = note.isSuccess ? (note.data?.content ?? null) : (kept?.content ?? null);
+  if (edit !== null && !edit.saving && (edit.date !== day || read !== edit.over)) setEdit(null);
+  const content = edit !== null && edit.date === day ? edit.shown : read;
+  const sections = content === null ? [] : noteSections(content, day);
+  const waiting = waitingFor(store?.captures ?? [], vault, day);
+  const status = noteStatus({
+    reach,
+    read: note.isSuccess
+      ? "answered"
+      : note.isPending || note.failure === null
+        ? "waiting"
+        : "failed",
+    hasNote: kept !== null,
+  });
+  const progress = todoProgress(sections);
+  const away = dayFromToday(day, today);
   const canAdd = draft.trim().length > 0 && vault !== null;
+  // The pull's own turn only: later reads happen quietly, and none is waited for without a connection.
+  const refreshing = pulled && reach === "connected" && note.isPending;
+  if (pulled && !refreshing) setPulled(false);
+
+  const show = (next: string) => {
+    const now = localDate(new Date());
+    setToday(now);
+    setPicked(next === now ? null : next);
+    setProblem(null);
+    void Haptics.selectionAsync();
+  };
+
+  const tryAgain = () => {
+    setToday(localDate(new Date()));
+    setProblem(null);
+    reconnect();
+    note.refresh();
+    flush();
+  };
 
   const add = () => {
     // One line in the note: a pasted line break would start a second, untimed one.
@@ -205,15 +258,15 @@ export function MajordomeTodayScreen() {
   };
 
   const tick = (index: number) => {
-    if (vault === null || content === null || !note.isSuccess) return;
+    if (vault === null || content === null || !status.canTick) return;
     const next = toggleTodo(content, index);
     if (next === content) return;
     void Haptics.selectionAsync();
     setProblem(null);
-    setEdit({ shown: next, over: read, saving: true });
-    const input = { projectId: vault.projectId, date: today, content: next, base: content };
+    setEdit({ date: day, shown: next, over: read, saving: true });
+    const input = { projectId: vault.projectId, date: day, content: next, base: content };
     // Each save starts from what the one before it wrote, so ticks made in a row go out in order.
-    const before = edit === null ? Promise.resolve(true) : saves.current;
+    const before = edit === null || edit.date !== day ? Promise.resolve(true) : saves.current;
     saves.current = before.then(async (carryOn) => {
       if (!carryOn) return false;
       const result = await saveDailyNote({ environmentId: vault.environmentId, input });
@@ -226,7 +279,7 @@ export function MajordomeTodayScreen() {
         typeof error === "object" && error !== null && "reason" in error
           ? error.reason === "changed"
           : false;
-      setEdit(null);
+      setEdit((current) => (current?.date === input.date ? null : current));
       setProblem(
         changed
           ? "That tick wasn't saved: the note changed on your computer in the meantime. This is the latest version, so you can tick it again."
@@ -249,66 +302,130 @@ export function MajordomeTodayScreen() {
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 96 }}
         refreshControl={
           <RefreshControl
-            // Never held open: with no connection the read does not come back.
-            refreshing={false}
+            refreshing={refreshing}
             onRefresh={() => {
-              setToday(localDate(new Date()));
-              setProblem(null);
-              note.refresh();
-              flush();
+              tryAgain();
+              setPulled(true);
             }}
           />
         }
       >
-        <Text accessibilityRole="header" textRole="largeTitle" className="font-t3-bold">
-          {friendlyDate(today)}
-        </Text>
+        <View className="gap-1">
+          <View className="flex-row items-center gap-1">
+            <Text
+              accessibilityRole="header"
+              textRole="largeTitle"
+              className="min-w-0 flex-1 font-t3-bold"
+            >
+              {dayTitle(day, today)}
+            </Text>
+            {setup === "ready" ? (
+              <>
+                <IconButton
+                  icon="chevron.left"
+                  accessibilityLabel="Previous day"
+                  onPress={() => show(shiftDay(day, -1))}
+                />
+                <IconButton
+                  icon="chevron.right"
+                  accessibilityLabel="Next day"
+                  onPress={() => show(shiftDay(day, 1))}
+                />
+              </>
+            ) : null}
+          </View>
+          {setup === "ready" && (away !== null || progress !== null) ? (
+            <Text textRole="footnote" className="text-foreground-secondary">
+              {[
+                away,
+                progress === null ? null : `${progress.done} of ${progress.total} to-dos done`,
+              ]
+                .filter((part) => part !== null)
+                .join(" · ")}
+            </Text>
+          ) : null}
+          {setup === "ready" && !isToday ? (
+            <Button
+              label="Back to today"
+              tone="text"
+              icon="arrow.uturn.backward"
+              onPress={() => show(today)}
+            />
+          ) : null}
+        </View>
 
-        {store === null ? null : vault === null ? (
-          <Text className="text-foreground-muted">
-            No notes folder yet. Open Majordome on your computer and choose one; it shows here once
-            this phone is connected.
-          </Text>
+        {setup === "starting" ? null : setup === "noComputer" ? (
+          <EmptyState
+            title="Add your computer"
+            detail="Your notes live on your computer. Add it to this phone to see today's note here."
+            actionLabel="Add a computer"
+            onAction={() => openSettings(navigation, "SettingsEnvironmentNew")}
+          />
+        ) : setup === "unreachable" ? (
+          <EmptyState
+            title="Your computer can't be reached"
+            detail="Check that it is on and that Majordome is open on it."
+            actionLabel="Try again"
+            onAction={tryAgain}
+          />
+        ) : setup === "looking" ? (
+          <Text className="text-foreground-muted">Looking for your notes…</Text>
+        ) : setup === "noFolder" ? (
+          <EmptyState
+            title="No notes folder yet"
+            detail="Open Majordome on your computer and choose a notes folder. Today's note shows here afterwards."
+          />
         ) : (
           <>
-            <View className="gap-2">
-              <TextInput
-                accessibilityLabel="Add a line to today's note"
-                placeholder="Add a line to today's note…"
-                multiline
-                // Return adds the line and puts the keyboard away; a line break has no place in one line.
-                submitBehavior="blurAndSubmit"
-                returnKeyType="done"
-                value={draft}
-                onChangeText={setDraft}
-                onSubmitEditing={add}
-              />
-              <View className="flex-row items-center justify-between gap-2">
-                <Button
-                  label="Add to note"
-                  accessibilityLabel="Add to today's note"
-                  tone="primary"
-                  size="compact"
-                  onPress={add}
-                  disabled={!canAdd}
+            {isToday ? (
+              <View className="gap-2">
+                <TextInput
+                  accessibilityLabel="Add a line to today's note"
+                  placeholder="Add a line to today's note…"
+                  multiline
+                  // Return adds the line and puts the keyboard away; a line break has no place in one line.
+                  submitBehavior="blurAndSubmit"
+                  returnKeyType="done"
+                  value={draft}
+                  onChangeText={setDraft}
+                  onSubmitEditing={add}
                 />
-                <Button
-                  label="Ask Majordome"
-                  accessibilityHint="Starts a new chat"
-                  tone="text"
-                  size="compact"
-                  onPress={startNewTask}
-                />
+                <View className="flex-row flex-wrap items-center justify-between gap-2">
+                  <Button
+                    label="Add to note"
+                    accessibilityLabel="Add to today's note"
+                    tone="primary"
+                    onPress={add}
+                    disabled={!canAdd}
+                  />
+                  <Button
+                    label="Ask Majordome"
+                    accessibilityHint="Starts a new chat"
+                    tone="text"
+                    onPress={startNewTask}
+                  />
+                </View>
               </View>
-            </View>
+            ) : null}
 
-            {offline ? (
-              <View className="flex-row gap-2" accessibilityRole="text">
-                <SymbolView name="wifi.slash" size={16} tintColorClassName="accent-icon-muted" />
-                <Text textRole="footnote" className="flex-1 text-foreground-secondary">
-                  Your computer can't be reached right now. What you add is kept on this phone and
-                  sent when it can.
-                </Text>
+            {status.notice !== null ? (
+              <View className="gap-2">
+                <View className="flex-row gap-2" accessibilityRole="text">
+                  <SymbolView
+                    name={status.notice === "failed" ? "exclamationmark.triangle" : "wifi.slash"}
+                    size={16}
+                    tintColorClassName="accent-icon-muted"
+                  />
+                  <Text textRole="footnote" className="flex-1 text-foreground-secondary">
+                    {NOTICES[status.notice]}
+                    {status.notice !== "failed" && isToday
+                      ? " What you add is kept on this phone and sent when it can."
+                      : ""}
+                  </Text>
+                </View>
+                {status.notice === "connecting" ? null : (
+                  <Button label="Try again" icon="arrow.clockwise" onPress={tryAgain} />
+                )}
               </View>
             ) : null}
 
@@ -336,13 +453,15 @@ export function MajordomeTodayScreen() {
               </ListSection>
             ) : null}
 
-            {sections.length === 0 && waiting.length === 0 ? (
+            {sections.length === 0 && waiting.length === 0 && status.empty !== null ? (
               <Text className="text-foreground-muted">
-                {content !== null || note.isSuccess
-                  ? "Nothing in today's note yet. Add a line above to start it."
-                  : offline
-                    ? "Today's note will show here once your computer is reachable."
-                    : "Getting today's note…"}
+                {status.empty === "getting"
+                  ? "Getting the note…"
+                  : status.empty === "later"
+                    ? "The note will show here once your computer is reachable."
+                    : isToday
+                      ? "Nothing in today's note yet. Add a line above to start it."
+                      : "Nothing written for this day yet."}
               </Text>
             ) : null}
 
@@ -363,7 +482,7 @@ export function MajordomeTodayScreen() {
                       <NoteLineRow
                         key={line.index}
                         line={line}
-                        canTick={note.isSuccess}
+                        canTick={status.canTick}
                         onTick={tick}
                       />
                     ))}

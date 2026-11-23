@@ -181,6 +181,11 @@ import type {
   ThreadFeedLatestRun,
 } from "../../lib/threadActivity";
 import { PendingApprovalCard } from "./PendingApprovalCard";
+import {
+  composerPlaceholder,
+  connectionProblemInPlainWords,
+} from "../../majordome/conversation.logic";
+import { isMajordome } from "../../majordome/env";
 import { ComposerErrorNotice } from "./ComposerErrorNotice";
 import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
 import { FreshSessionNotice } from "./FreshSessionNotice";
@@ -822,7 +827,18 @@ function ThreadDetailBody(
       messages,
     );
     if (connectionStatus !== null && !props.draftMode) {
-      return connectionStatus;
+      const problem = props.connectionStateLabel;
+      return isMajordome &&
+        connectionStatus.kind === "connection" &&
+        (problem === "offline" ||
+          problem === "unsupported" ||
+          problem === "error" ||
+          problem === "available")
+        ? {
+            ...connectionStatus,
+            label: connectionProblemInPlainWords(problem, props.environmentLabel),
+          }
+        : connectionStatus;
     }
     // Before the request check: an agent stuck on an approval may also ignore Stop.
     if (runStop !== null && contentPresentationKind === "ready") {
@@ -1902,11 +1918,16 @@ function ThreadDetailBody(
                         reportedModelSelection={reportedModelSelection}
                         editorRef={composerEditorRef}
                         placeholder={
-                          props.activePendingApproval
-                            ? props.activePendingApproval.supportsFeedback
-                              ? gt("Send feedback to decline this request")
-                              : gt("Send a message to decline and redirect the agent")
-                            : gt("Ask anything")
+                          isMajordome
+                            ? composerPlaceholder({
+                                waitsForApproval: props.activePendingApproval !== null,
+                                working: props.activeThreadBusy,
+                              })
+                            : props.activePendingApproval
+                              ? props.activePendingApproval.supportsFeedback
+                                ? gt("Send feedback to decline this request")
+                                : gt("Send a message to decline and redirect the agent")
+                              : gt("Ask anything")
                         }
                         contentMaxWidth={contentMaxWidth}
                         draftControls={props.draftMode?.controls(draftViewportHeight)}

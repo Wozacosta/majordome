@@ -36,6 +36,8 @@ import { connectionTone } from "../connection/connectionTone";
 import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActionRow";
 import { SettingsDragHandle } from "./components/SettingsDragHandle";
 import { SettingsSection } from "./components/SettingsSection";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_COMPUTERS } from "../../majordome/settingsComputers";
 
 const ICON_SIZE = Platform.OS === "android" ? 24 : 22;
 const REMOVE_SIZE = 20;
@@ -137,6 +139,7 @@ export function EnvironmentRoutesSection({
   return (
     <SettingsSection
       title={gt("Routes")}
+      {...(isMajordome ? { footer: MAJORDOME_COMPUTERS.addressesHelp } : {})}
       trailing={
         routes.length > 1 ? (
           <Button
@@ -147,11 +150,13 @@ export function EnvironmentRoutesSection({
         ) : undefined
       }
     >
-      <SettingsActionRow
-        icon="checkmark.circle"
-        label={gt("Your permissions")}
-        onPress={() => setPermissionsOpen((open) => !open)}
-      />
+      {isMajordome ? null : (
+        <SettingsActionRow
+          icon="checkmark.circle"
+          label={gt("Your permissions")}
+          onPress={() => setPermissionsOpen((open) => !open)}
+        />
+      )}
       {permissionsOpen ? (
         <View className="gap-2 px-4 py-3">
           {activeRouteId !== null &&

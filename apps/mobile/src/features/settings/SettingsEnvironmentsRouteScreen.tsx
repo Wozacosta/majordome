@@ -9,6 +9,11 @@ import { RefreshControl } from "../../components/ui/RefreshControl";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SettingsScreen } from "./components/SettingsScreen";
+import { SettingsSection } from "./components/SettingsSection";
+import { AppText as Text } from "../../components/ui/AppText";
+import { ListActionRow } from "../../components/ui/ListActionRow";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_COMPUTERS } from "../../majordome/settingsComputers";
 import { CloudEnvironmentRows } from "../connection/CloudEnvironmentRows";
 import { LocalEnvironmentList } from "../connection/LocalEnvironmentList";
 import { PullRequestRoutingSettings } from "../connection/PullRequestRoutingSettings";
@@ -117,7 +122,7 @@ export function SettingsEnvironmentsRouteScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         className="flex-1"
-        contentContainerClassName="px-5 pt-4"
+        contentContainerClassName={isMajordome ? "gap-4 px-5 pt-4" : "px-5 pt-4"}
         contentContainerStyle={{
           paddingBottom: Math.max(insets.bottom, 18) + 18,
         }}
@@ -130,6 +135,9 @@ export function SettingsEnvironmentsRouteScreen() {
           ) : undefined
         }
       >
+        {isMajordome ? (
+          <Text className="px-2 text-sm text-foreground-muted">{MAJORDOME_COMPUTERS.intro}</Text>
+        ) : null}
         <LocalEnvironmentList
           environments={localEnvironments}
           expandedId={null}
@@ -154,7 +162,17 @@ export function SettingsEnvironmentsRouteScreen() {
               }
             : {})}
         />
-        <PullRequestRoutingSettings />
+        {isMajordome ? (
+          <SettingsSection>
+            <ListActionRow
+              icon="plus"
+              label={MAJORDOME_COMPUTERS.add}
+              onPress={() => navigation.navigate("SettingsEnvironmentNew")}
+            />
+          </SettingsSection>
+        ) : (
+          <PullRequestRoutingSettings />
+        )}
       </ScrollView>
     </SettingsScreen>
   );

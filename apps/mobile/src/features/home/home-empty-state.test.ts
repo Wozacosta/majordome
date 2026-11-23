@@ -1,5 +1,7 @@
 import { EnvironmentId } from "@t3tools/contracts";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
+
+vi.mock("../../majordome/env", () => ({ isMajordome: false, MAJORDOME_HIDDEN_TABS: [] }));
 
 import type { WorkspaceEnvironment, WorkspaceState } from "../../state/workspaceModel";
 import { deriveHomeEmptyState } from "./home-empty-state";
@@ -101,4 +103,26 @@ describe("home empty state", () => {
     const { title, loading, showsAddEnvironment } = deriveHomeEmptyState(state, projectCount);
     expect({ title, loading, showsAddEnvironment }).toEqual(expected);
   });
+
+  it.each([
+    [
+      "error",
+      "The saved environment is offline. Check the URL or start the environment, then retry.",
+    ],
+    ["unsupported", "Use compatible versions of the app and server to connect."],
+  ] as const)(
+    "says what to do instead of the %s connection's own text",
+    (connectionState, detail) => {
+      const state = workspaceState({
+        hasLoadedShellSnapshot: false,
+        hasReadyEnvironment: false,
+        connectionState,
+        connectionError: "ECONNREFUSED 100.64.0.1:3773",
+      });
+      expect(deriveHomeEmptyState(state, 0, undefined, true).detail).toBe(detail);
+      expect(deriveHomeEmptyState(state, 0, undefined, false).detail).toBe(
+        "ECONNREFUSED 100.64.0.1:3773",
+      );
+    },
+  );
 });

@@ -16,6 +16,7 @@ import {
 } from "@t3tools/client-runtime/state/shell";
 import { pickableProjectGroups } from "@t3tools/client-runtime/state/project-grouping";
 import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
+import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import { type EnvironmentId, type SidebarProjectGroupingMode } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -104,7 +105,17 @@ import { holdLaunchSplashForHomeRows, settleLaunchSplashHomeRows } from "./home-
 import { useWorkspaceTabs } from "../layout/workspace/WorkspaceTabsContext";
 import { ThreadListFilters } from "./ThreadListFilters";
 import { isMajordome } from "../../majordome/env";
-import { MajordomeTopicsSection, useHasTopics } from "../../majordome/TopicsSection";
+import {
+  canStartFirstChat,
+  NO_CHATS_YET,
+  nothingFound,
+  orderChatsByActivity,
+} from "../../majordome/chat.logic";
+import {
+  MajordomeDoneTopics,
+  MajordomeTopicsSection,
+  useChatListTopics,
+} from "../../majordome/TopicsSection";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -417,7 +428,7 @@ export function HomeScreen(props: HomeScreenProps) {
   const pendingOrder = usePendingThreadOrder();
   const {
     layout: threadListV2Layout,
-    items: threadListV2Items,
+    items: upstreamListItems,
     contentOnlyThreadKeys,
     olderSettledShelf,
   } = useThreadListV2({
@@ -442,6 +453,17 @@ export function HomeScreen(props: HomeScreenProps) {
     settledShelfExpanded,
     selectedThreadKey,
   });
+  // Majordome orders its open chats like a messaging app; a search keeps its ranking.
+  const threadListV2Items =
+    isMajordome && !hasSearchQuery
+      ? orderChatsByActivity(upstreamListItems, (item) =>
+          item.type === "v2-thread"
+            ? (resolveThreadActivityTimestamp(item.item.thread) ?? item.item.thread.createdAt)
+            : null,
+        )
+      : upstreamListItems;
+  // Majordome's topics are rows of this list too, so it is not empty with topics and no chat.
+  const chatTopics = useChatListTopics(props.threads, props.searchQuery);
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
   const { onSelectThread } = props;
@@ -597,6 +619,9 @@ export function HomeScreen(props: HomeScreenProps) {
         onSwipeableWillOpen={handleSwipeableWillOpen}
         simultaneousSwipeGesture={homeScrollGesture}
         activationKey={item.key}
+        topic={isMajordome ? chatTopics.byThread.get(thread.id) : undefined}
+        onStartTopicSideChat={chatTopics.startSideChat}
+        onSetTopicFinished={chatTopics.setFinished}
       />
     );
   };
@@ -613,10 +638,10 @@ export function HomeScreen(props: HomeScreenProps) {
     selectedThreadKey,
     threadSearchMatchByKey,
     workingShelfEnabled,
+    topicsByThread: chatTopics.byThread,
   };
 
-  // Majordome's topics are listed above the chats, so the list has rows even with no chat.
-  const hasTopics = useHasTopics() && isMajordome;
+  const hasTopics = isMajordome && chatTopics.total > 0;
   const hasAnyThreads =
     hasTopics ||
     props.threads.some((thread) => thread.archivedAt === null) ||
@@ -633,7 +658,17 @@ export function HomeScreen(props: HomeScreenProps) {
       ? null
       : (props.savedConnectionsById[props.selectedEnvironmentId]?.environmentLabel ??
         "this environment");
-  const emptyState = deriveHomeEmptyState(props.catalogState, props.projects.length, m);
+  const upstreamEmptyState = deriveHomeEmptyState(props.catalogState, props.projects.length, m);
+  const offersFirstChat =
+    isMajordome &&
+    canStartFirstChat({
+      loading: upstreamEmptyState.loading,
+      hasReadyComputer: props.catalogState.hasReadyEnvironment,
+      folders: props.projects.length,
+    });
+  const emptyState = offersFirstChat
+    ? { ...upstreamEmptyState, ...NO_CHATS_YET }
+    : upstreamEmptyState;
 
   if (!hasAnyThreads) {
     return (
@@ -656,8 +691,20 @@ export function HomeScreen(props: HomeScreenProps) {
               <EmptyState
                 title={emptyState.title}
                 detail={emptyState.detail}
-                actionLabel={emptyState.showsAddEnvironment ? gt("Add environment") : undefined}
-                onAction={emptyState.showsAddEnvironment ? props.onAddConnection : undefined}
+                actionLabel={
+                  offersFirstChat
+                    ? NO_CHATS_YET.action
+                    : emptyState.showsAddEnvironment
+                      ? gt("Add environment")
+                      : undefined
+                }
+                onAction={
+                  offersFirstChat
+                    ? props.onStartNewTask
+                    : emptyState.showsAddEnvironment
+                      ? props.onAddConnection
+                      : undefined
+                }
                 action={
                   Platform.OS === "android" && emptyState.showsAddEnvironment ? (
                     <FloatingActionButton
@@ -689,10 +736,12 @@ export function HomeScreen(props: HomeScreenProps) {
     <>
       {listHeader}
       {isMajordome ? (
-        // Majordome lists the topics here; upstream's computer and project filters are put away.
-        props.searchQuery ? null : (
-          <MajordomeTopicsSection hasOtherChats={threadListV2Items[0]?.type === "v2-thread"} />
-        )
+        // Majordome lists the topics not yet among the chats here; upstream's filters are put away.
+        <MajordomeTopicsSection
+          topics={chatTopics}
+          hasChatsBelow={threadListV2Items.length > 0}
+          searching={hasSearchQuery}
+        />
       ) : Platform.OS === "ios" && workspace ? (
         <ThreadListFilters
           gutter={sidebarSurface ? 8 : 0}
@@ -732,6 +781,13 @@ export function HomeScreen(props: HomeScreenProps) {
         })}
         variant={Platform.OS === "android" ? "plain" : undefined}
       />
+    ) : hasSearchQuery && isMajordome ? (
+      chatTopics.apart.length > 0 ? null : (
+        <EmptyState
+          {...nothingFound(props.searchQuery)}
+          variant={Platform.OS === "android" ? "plain" : undefined}
+        />
+      )
     ) : hasSearchQuery ? (
       <EmptyState
         title={gt("No results")}
@@ -801,20 +857,25 @@ export function HomeScreen(props: HomeScreenProps) {
                 // Lifted above the rows so an iOS filter menu's dismissal morph is not covered.
                 ListHeaderComponentStyle={{ zIndex: 1 }}
                 ListFooterComponent={
-                  settledShelfExpanded && threadListV2Layout.hiddenSettledCount > 0 ? (
-                    <ThreadListV2ShowMoreRow
-                      hiddenCount={threadListV2Layout.hiddenSettledCount}
-                      {...(olderSettledShelf.loading
-                        ? { state: "loading" as const }
-                        : olderSettledShelf.failed
-                          ? { state: "failed" as const }
-                          : {})}
-                      onPress={() => {
-                        olderSettledShelf.retry();
-                        showMoreSettled();
-                      }}
-                    />
-                  ) : null
+                  <>
+                    {settledShelfExpanded && threadListV2Layout.hiddenSettledCount > 0 ? (
+                      <ThreadListV2ShowMoreRow
+                        hiddenCount={threadListV2Layout.hiddenSettledCount}
+                        {...(olderSettledShelf.loading
+                          ? { state: "loading" as const }
+                          : olderSettledShelf.failed
+                            ? { state: "failed" as const }
+                            : {})}
+                        onPress={() => {
+                          olderSettledShelf.retry();
+                          showMoreSettled();
+                        }}
+                      />
+                    ) : null}
+                    {isMajordome && !hasSearchQuery ? (
+                      <MajordomeDoneTopics topics={chatTopics} />
+                    ) : null}
+                  </>
                 }
                 ListEmptyComponent={v2ListEmpty}
                 style={{ flex: 1 }}

@@ -23,7 +23,28 @@ describe("majordomeWords", () => {
       "Update this provider on the environment's machine.",
       "Update this AI account on your computer.",
     ],
-    ["Choose a project in this environment.", "Choose a notes folder in this computer."],
+    ["Choose a project in this environment.", "Choose a notes folder on this computer."],
+    [
+      "That address claims to be {host}, which is already saved. Add it as a route from that environment's settings instead.",
+      "That address claims to be {host}, which is already saved. Add it as an address from that computer's settings instead.",
+    ],
+    ["The environment endpoint could not be found.", "Your computer could not be found."],
+    [
+      "Relay returned status for a different environment endpoint.",
+      "Relay returned status for a different computer.",
+    ],
+    [
+      "Could not create the environment request authorization proof.",
+      "Could not create the computer request authorization proof.",
+    ],
+    [
+      "The device preference was saved. Update older environment servers to apply the setting there.",
+      "The device preference was saved. Update older computers to apply the setting there.",
+    ],
+    [
+      "Not authenticated on this server. Sign in with the {tool} tool on the server host, or save a token here.",
+      "Not authenticated on this computer. Sign in with the {tool} tool on your computer, or save a token here.",
+    ],
     ["{host} did not answer on any saved route.", "{host} did not answer on any saved address."],
     ["Waiting for approval on the host", "Waiting for approval on your computer"],
     ["Your edit is still in the composer.", "Your edit is still in the message box."],

@@ -14,6 +14,8 @@ import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
 import type { PendingApproval } from "../../lib/threadActivity";
+import { MajordomeApprovalCard } from "../../majordome/conversationApprovalCard";
+import { isMajordome } from "../../majordome/env";
 
 export interface PendingApprovalCardProps {
   readonly canOperateThread: boolean;
@@ -25,7 +27,9 @@ export interface PendingApprovalCardProps {
   ) => Promise<unknown>;
 }
 
-export function PendingApprovalCard(props: PendingApprovalCardProps) {
+export const PendingApprovalCard = isMajordome ? MajordomeApprovalCard : UpstreamApprovalCard;
+
+function UpstreamApprovalCard(props: PendingApprovalCardProps) {
   const gt = useGT();
   const m = useMessages();
   const options: ReadonlyArray<ProviderApprovalOption> = props.approval.options ?? [

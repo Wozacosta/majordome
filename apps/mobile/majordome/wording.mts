@@ -2,10 +2,61 @@
 // apps/web/vite/wording: upstream's exact whole English text, then the text Majordome shows.
 // A text is swapped wherever source spells it out, so never list one that is also a route or
 // screen name ("Thread", "Home", "Settings"): navigation would stop finding it.
-export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome: string]> = [
-  // Kept as it is: this is the title a chat is stored with until it is named, and the desktop
-  // compares it. `chatTitle` in src/majordome/chat.logic.ts shows it as "New chat".
-  ["New thread", "New thread"],
+type Wording = ReadonlyArray<readonly [upstream: string, majordome: string]>;
+
+const kept = (texts: readonly string[]): Wording => texts.map((text) => [text, text] as const);
+
+/**
+ * Texts code looks things up by, so they stay as upstream spells them: a swapped key or stored
+ * value stops matching what the unswapped side (the computer, packages/contracts) sends.
+ */
+export const MOBILE_KEPT: Wording = kept([
+  // The title a chat is stored with until it is named, which the desktop compares.
+  // `chatTitle` in src/majordome/chat.logic.ts shows it as "New chat".
+  "New thread",
+  // Keys of the table that translates packages/contracts' stage labels (contractLabels.ts).
+  "Start agent",
+  // A tool's label, joined into the key of its sentences (t3ToolSentences.ts).
+  "linked environments",
+  // Keys of the tool names table (t3McpToolPresentationCopy.ts), looked up by a name built
+  // from unswapped parts.
+  "List scheduled tasks",
+  "Update a scheduled task",
+  "Delete a scheduled task",
+  "Run a scheduled task",
+  "Create T3 threads",
+  "Start a T3 thread",
+  "List T3 threads",
+  "Read a T3 thread",
+  "Send to a T3 thread",
+  "Wait for a T3 thread",
+  "Interrupt a T3 thread",
+  "Hand off thread to a git worktree",
+  "Get thread worktree status",
+  "Read thread configuration",
+  "Use thread model settings",
+  "Use thread transfers",
+  "Fork this thread",
+  "Merge thread context",
+  "Search thread content",
+  "Read thread transfers",
+  "Organize a thread",
+  "Update T3 thread metadata",
+  "Read environment preferences",
+  "List linked environments",
+  "Ask to link an environment",
+  "Forget a linked environment",
+  "Update environment preferences",
+  "Launch a project thread",
+  "List projects",
+  "Read a project",
+  "Register a project",
+  "Update a project",
+  "Delete a project",
+]);
+
+export const MOBILE_WORDING: Wording = [
+  ...MOBILE_KEPT,
   // Single words, checked to be display text only (never a route or screen name).
   ["Settle", "Mark as done"],
   ["Un-settle", "Bring back"],
@@ -116,7 +167,75 @@ export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome
     "Install {product} {version}. Majordome restarts on your computer and reconnects. Chats in progress may be interrupted.",
   ],
 
+  // Computers, and one computer's page.
+  ["Could not update environment", "Couldn't save the changes"],
+  ["The environment could not be updated.", "Check the name and the address, then try again."],
+  ["Reconnect environment", "Try connecting again"],
+  ["Remove environment", "Remove this computer"],
+  ["Remove from this device?", "Remove this computer?"],
+  [
+    "Forget {name} and its cached threads on this device. Switch it off instead to keep it saved.",
+    "This phone forgets {name} and the chats it kept from it. Nothing is deleted on the computer, and you can add it again with a new code.",
+  ],
+  [
+    "Forget {name} and its cached threads on this device.",
+    "This phone forgets {name} and the chats it kept from it. Nothing is deleted on the computer.",
+  ],
+  [
+    "This environment is no longer saved on this device.",
+    "This computer was removed from this phone.",
+  ],
+  ["Connect this environment to manage it.", "Connect to this computer to see its details."],
+  ["Update environment?", "Update Majordome there?"],
+  ["Opens environment settings", "Opens your computers"],
+
+  // Connection states, where upstream's own text still shows.
+  ["You are offline", "This phone is offline"],
+  ["This device is offline", "This phone is offline"],
+  ["{environment} is unavailable", "{environment} can't be reached"],
+  ["{environment} is disconnected", "Not connected to {environment}"],
+  ["Waiting for approval on the host", "Waiting for you to approve this phone on your computer"],
+  [
+    "Waiting for {environment} to approve this device",
+    "Waiting for you to approve this phone on {environment}",
+  ],
+
   // Settings pages Majordome keeps.
+  [
+    "This session can view {environment}''s providers but can't change their settings.",
+    "This phone can see the AI accounts on {environment} but isn't allowed to change them.",
+  ],
+  [
+    "Configure a provider with in-app sign-in in web or desktop Settings.",
+    "Sign in to an AI account from Majordome on your computer, under Settings.",
+  ],
+  [
+    "No in-app sign-in advertised. Follow the provider's docs to finish setup.",
+    "This AI account can't be signed in to from here. Follow its instructions to finish.",
+  ],
+  ["Could not open the provider docs.", "Could not open the instructions."],
+  [
+    "This removes offline threads, server metadata, and cached branches for this environment. The saved connection and credentials stay intact.",
+    "This removes the chats this phone kept from this computer to show them offline. The connection stays, and nothing is deleted on the computer.",
+  ],
+  ["Clear all client caches?", "Clear everything kept on this phone?"],
+  [
+    "This removes offline data for every environment. Connections, credentials, account data, and app preferences stay intact.",
+    "This removes what this phone kept from every computer to show it offline. Your computers and settings stay, and nothing is deleted on the computers.",
+  ],
+  ["Environment caches", "Kept from each computer"],
+  [
+    "Offline cache records will appear here after environments are used.",
+    "What this phone keeps to work offline appears here once a computer is connected.",
+  ],
+  [
+    "Clearing caches never removes environment connections, credentials, account data, or appearance preferences.",
+    "Clearing never removes your computers, sign-ins or settings.",
+  ],
+  [
+    "Client storage is temporarily unavailable. Try again after restarting the app.",
+    "This page can't be read right now. Restart the app and try again.",
+  ],
   ["Client Storage", "Saved on this phone"],
   ["Tool calls in chat", "Steps the assistant takes"],
   [
@@ -153,6 +272,18 @@ export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome
   // Routines, which upstream calls tasks: so does a new chat, so the word has no rule.
   ["Check for issues", "Morning summary"],
   ["One thread, fresh session", "One chat, starting fresh each run"],
+  [
+    "Runs share one thread, each in a fresh session without earlier runs' context. The first run starts the thread. Deleting it also deletes this task.",
+    "Every run writes in the same chat and starts fresh, without remembering earlier runs. The first run starts the chat. Deleting that chat also deletes this routine.",
+  ],
+  [
+    "Runs share one thread, each in a fresh session without earlier runs' context. Deleting it also deletes this task.",
+    "Every run writes in the same chat and starts fresh, without remembering earlier runs. Deleting that chat also deletes this routine.",
+  ],
+  [
+    "{reason} Switch the task to a timer, or turn it off, to save it.",
+    "{reason} Switch the routine to a timer, or turn it off, to save it.",
+  ],
   ["Saving task", "Saving routine"],
   [
     "Wait for the task to finish saving before leaving.",
@@ -185,4 +316,98 @@ export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome
   ["Loading tasks…", "Loading routines…"],
   ["No tasks in this project.", "No routines in this notes folder."],
   ["Delete task?", "Delete routine?"],
+  // The conversation screen.
+  ["Stop agent", "Stop"],
+  ["Resume thread", "Send waiting messages"],
+  ["Queue", "Send after this reply"],
+  ["Steer", "Send now"],
+  ["Steer now", "Send now"],
+  ["Restart turn", "Start over with this message"],
+  ["Run after the current turn", "Sent once this reply is finished"],
+  ["Interrupt what the agent is doing", "Majordome reads it right away"],
+  ["Start the turn over with this message", "Stops this reply and answers this instead"],
+  ["Add attachment", "Add a photo or file"],
+  ["Choose Files", "Choose files"],
+  ["Starting the task…", "Starting the chat…"],
+  [
+    "This connection cannot control this task. You can still edit your draft.",
+    "This phone can't send messages to that computer. You can still write your message.",
+  ],
+  ["Could not start task", "Couldn't start the chat"],
+  ["Your prompt was kept in the project draft.", "Your message was kept."],
+  ["Edit task", "Edit message"],
+  [
+    "Your next message starts a fresh session. The agent won't see earlier messages in this thread.",
+    "Your next message starts afresh: Majordome won't see the earlier messages in this chat.",
+  ],
+  ["Keep the current session", "Keep the conversation going"],
+  ["New session", "Started afresh"],
+  [
+    "{count, plural, one {Ran {count} command} other {Ran {count} commands}}",
+    "{count, plural, one {Did {count} step} other {Did {count} steps}}",
+  ],
+  [
+    "{count, plural, one {Read {count} file} other {Read {count} files}}",
+    "{count, plural, one {Read {count} note} other {Read {count} notes}}",
+  ],
+  [
+    "{count, plural, one {Changed {count} file} other {Changed {count} files}}",
+    "{count, plural, one {Updated {count} note} other {Updated {count} notes}}",
+  ],
+  [
+    "{count, plural, one {Searched code {count} time} other {Searched code {count} times}}",
+    "{count, plural, one {Searched your notes} other {Searched your notes {count} times}}",
+  ],
+  [
+    "{count, plural, one {Used {count} tool} other {Used {count} tools}}",
+    "{count, plural, one {Did {count} other step} other {Did {count} other steps}}",
+  ],
+  [
+    "{count, plural, one {Created {count} thread} other {Created {count} threads}}",
+    "{count, plural, one {Started {count} chat} other {Started {count} chats}}",
+  ],
+  ["{preview}, tool call failed", "{preview}, didn't work"],
+  ["Load earlier activity", "Show earlier messages"],
+  ["Loading earlier activity…", "Loading earlier messages…"],
+  ["Not responding to Stop", "Still stopping…"],
+  ["Force stop", "Stop anyway"],
+  ["Force stop the agent?", "Stop anyway?"],
+  ["Turn stopped; the agent is still shutting down", "Stopped. Majordome is still finishing up."],
+  ["Find a model", "Search"],
+  ["Model unavailable", "This AI isn't available"],
+  [
+    "Set up this provider on web or desktop, or select another model.",
+    "Set up this AI account on your computer, or pick another one.",
+  ],
+  ["Model unavailable. Open model settings.", "This AI isn't available. Pick another."],
+  ["No available models", "No AI account is set up yet. Add one on your computer."],
+  ["Thread unavailable", "This chat isn't available"],
+  [
+    "This thread was deleted or is no longer available.",
+    "This chat was deleted or can't be found any more.",
+  ],
+  [
+    "This thread is not available in the current mobile snapshot.",
+    "This chat isn't on this phone yet. Reconnect to your computer to load it.",
+  ],
+  ["Messages not cached", "Messages not on this phone yet"],
+  [
+    "Reconnect this environment to load the conversation.",
+    "Reconnect to your computer to load the conversation.",
+  ],
+  ["Could not load conversation", "Couldn't load this chat"],
+  ["Retrying connection…", "Reconnecting…"],
+  ["Awaiting device approval", "Waiting for approval on your computer"],
+  ["Manage environments", "Manage computers"],
+  ["Opening thread…", "Opening chat…"],
+  ["Usage limit reached.", "Your AI account has reached its limit."],
+  [
+    "Usage limit reached. Retry after {resetTime}.",
+    "Your AI account has reached its limit. Try again after {resetTime}.",
+  ],
+  ["Delete thread?", "Delete this chat?"],
+  [
+    "“{title}” will be permanently deleted, including its terminal history.",
+    "“{title}” will be deleted for good.",
+  ],
 ];

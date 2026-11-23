@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppBar } from "../../components/ui/AppBar";
 import { useRemoteConnections } from "../../state/use-remote-environment-registry";
+import { isMajordome } from "../../majordome/env";
 import { LocalEnvironmentList } from "./LocalEnvironmentList";
 import { PullRequestRoutingSettings } from "./PullRequestRoutingSettings";
 import { LinkedEnvironmentsSection } from "./LinkedEnvironmentsSection";
@@ -63,7 +64,7 @@ export function ConnectionsRouteScreen() {
           onSetEnabled={onSetEnvironmentEnabled}
           onUpdate={onUpdateEnvironment}
         />
-        {connectedEnvironments
+        {(isMajordome ? [] : connectedEnvironments)
           .filter((environment) => environment.connectionState === "connected")
           .map((environment) => (
             <Fragment key={environment.environmentId}>
@@ -77,7 +78,7 @@ export function ConnectionsRouteScreen() {
               />
             </Fragment>
           ))}
-        <PullRequestRoutingSettings />
+        {isMajordome ? null : <PullRequestRoutingSettings />}
       </ScrollView>
     </View>
   );

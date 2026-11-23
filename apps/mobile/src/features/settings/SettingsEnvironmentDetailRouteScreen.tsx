@@ -37,6 +37,9 @@ import { OutdatedServerUpdateSection } from "./OutdatedServerUpdateSection";
 import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActionRow";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
+import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_COMPUTERS } from "../../majordome/settingsComputers";
+import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 import {
   canMaintainEnvironment,
   canUpdateEnvironmentProvider,
@@ -191,7 +194,12 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
   }
 
   return (
-    <SettingsScreen title={environment?.environmentLabel ?? gt("Environment")}>
+    <SettingsScreen
+      title={
+        environment?.environmentLabel ??
+        (isMajordome ? MAJORDOME_SETTINGS_LABELS.SettingsEnvironmentDetail : gt("Environment"))
+      }
+    >
       <ScreenScrollView
         contentInsetAdjustmentBehavior="automatic"
         className="flex-1"
@@ -199,9 +207,21 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
         {!environment ? (
-          <Text className="text-base text-foreground-muted">
-            <T>This environment is no longer saved on this device.</T>
-          </Text>
+          <>
+            <Text className="text-base text-foreground-muted">
+              <T>This environment is no longer saved on this device.</T>
+              {isMajordome ? ` ${MAJORDOME_COMPUTERS.removed}` : null}
+            </Text>
+            {isMajordome ? (
+              <SettingsSection>
+                <SettingsActionRow
+                  icon="plus"
+                  label={MAJORDOME_COMPUTERS.add}
+                  onPress={() => navigation.navigate("SettingsEnvironmentNew")}
+                />
+              </SettingsSection>
+            ) : null}
+          </>
         ) : (
           <>
             <SettingsSection title={gt("Connection")}>
@@ -439,6 +459,16 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                     ))}
                 </SettingsSection>
               </>
+            ) : null}
+            {isMajordome ? (
+              <SettingsSection footer={MAJORDOME_COMPUTERS.removeHelp}>
+                <SettingsActionRow
+                  icon="trash"
+                  tone="danger"
+                  label={MAJORDOME_COMPUTERS.remove}
+                  onPress={() => connections.onRemoveEnvironmentPress(environmentId)}
+                />
+              </SettingsSection>
             ) : null}
           </>
         )}

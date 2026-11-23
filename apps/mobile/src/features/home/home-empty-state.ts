@@ -1,6 +1,7 @@
 import { msg } from "gt-react-native";
 
 import { m, type MessageResolver } from "../../i18n/messages";
+import { isMajordome } from "../../majordome/env";
 import { isWorkspaceCatalogPending, type WorkspaceState } from "../../state/workspaceModel";
 
 export interface HomeEmptyState {
@@ -14,8 +15,10 @@ export function deriveHomeEmptyState(
   catalogState: WorkspaceState,
   projectCount: number,
   resolve: MessageResolver = m,
+  // Majordome says what to do; the connection's own error is written for developers.
+  plain: boolean = isMajordome,
 ): HomeEmptyState {
-  const emptyState = deriveEmptyState(catalogState, projectCount, resolve);
+  const emptyState = deriveEmptyState(catalogState, projectCount, resolve, plain);
   return {
     ...emptyState,
     showsAddEnvironment: !emptyState.loading && !catalogState.hasReadyEnvironment,
@@ -26,6 +29,7 @@ function deriveEmptyState(
   catalogState: WorkspaceState,
   projectCount: number,
   resolve: MessageResolver,
+  plain: boolean,
 ): Omit<HomeEmptyState, "showsAddEnvironment"> {
   if (catalogState.isLoadingConnections) {
     return {
@@ -56,12 +60,14 @@ function deriveEmptyState(
           ? resolve(msg("Client not supported"))
           : resolve(msg("Environment unavailable")),
       detail:
-        catalogState.connectionError ??
-        resolve(
-          msg(
-            "The saved environment is offline. Check the URL or start the environment, then retry.",
-          ),
-        ),
+        plain && catalogState.connectionState === "unsupported"
+          ? resolve(msg("Use compatible versions of the app and server to connect."))
+          : ((plain ? null : catalogState.connectionError) ??
+            resolve(
+              msg(
+                "The saved environment is offline. Check the URL or start the environment, then retry.",
+              ),
+            )),
       loading: false,
     };
   }

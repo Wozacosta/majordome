@@ -1045,6 +1045,7 @@ function ThreadRouteContent(
           header={
             props.inspectorPresentation ? null : (
               <ThreadHeader
+                chat={selectedThread}
                 title={selectedThread.title}
                 subtitle={threadStatusLabel ?? headerSubtitle}
                 gitControls={threadGitControlProps}

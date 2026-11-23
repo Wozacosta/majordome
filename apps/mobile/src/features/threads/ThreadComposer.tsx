@@ -95,6 +95,7 @@ import {
 import { useComposerTextRole } from "../settings/appearance/useScaledTextRole";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 import { Menu } from "../../components/ui/Menu";
+import { isMajordome } from "../../majordome/env";
 import {
   composerRunsDraftLocally,
   type ActiveTurnComposerAction,
@@ -702,8 +703,9 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
       ? props.compactBeforeSend
       : null;
   const compactTokens = compactBeforeSend ? formatTokens(compactBeforeSend.tokens) : null;
+  // Majordome leaves the conversation's token count out of the message box.
   const compactControl =
-    compactBeforeSend && compactTokens !== null ? (
+    !isMajordome && compactBeforeSend && compactTokens !== null ? (
       <ComposerInlineControl
         size={usesLargeControls ? "large" : "regular"}
         icon="arrow.down.right.and.arrow.up.left"

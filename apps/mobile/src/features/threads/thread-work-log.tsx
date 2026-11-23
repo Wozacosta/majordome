@@ -55,7 +55,7 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { environmentThreadDetails, threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
-import { isJavaScriptReplTool } from "@t3tools/shared/toolActivity";
+import { collectToolFilePaths, isJavaScriptReplTool } from "@t3tools/shared/toolActivity";
 import { useMarkdownCodeHighlight } from "./markdownCodeHighlightState";
 import { highlightCommand, type HighlightedLines } from "../../lib/highlights";
 import {
@@ -110,6 +110,8 @@ import { useAssetUrl } from "../../state/assets";
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import { useOpenLinkedThread } from "./useOpenLinkedThread";
 import { startShimmerSteps } from "./work-shimmer-steps";
+import { activityInPlainWords, failureInPlainWords } from "../../majordome/conversation.logic";
+import { isMajordome } from "../../majordome/env";
 
 const SHIMMER_WIDTH = 72;
 const SHIMMER_ICON_AND_GAP_WIDTH = 30;
@@ -912,14 +914,16 @@ const ThreadWorkLogRow = function ThreadWorkLogRow(
       ? resetTime
         ? gt("Usage limit reached. Retry after {resetTime}.", { resetTime })
         : gt("Usage limit reached.")
-      : row.summary;
+      : isMajordome
+        ? failureInPlainWords(failureItem.failure)
+        : row.summary;
     return (
       <WorkLogPressable
         accessibilityLabel={
           warning
             ? label
             : gt("{summary}: {message}", {
-                summary: row.summary,
+                summary: label,
                 message: failureItem.failure.message,
               })
         }
@@ -962,7 +966,12 @@ const ThreadWorkLogRow = function ThreadWorkLogRow(
             </Text>
           </View>
           {!warning ? (
-            <Text selectable className="ml-7 text-sm text-foreground">
+            <Text
+              selectable
+              className={
+                isMajordome ? "ml-7 text-xs text-foreground-muted" : "ml-7 text-sm text-foreground"
+              }
+            >
               {failureItem.failure.message}
             </Text>
           ) : null}
@@ -1031,13 +1040,28 @@ const ThreadWorkLogRow = function ThreadWorkLogRow(
       </Text>
     );
   const toolPresentation = resolveWorkEntryToolPresentation(row.workEntry, undefined, messages);
-  const previewText = row.groupStandIn?.label ?? workEntryRowLabel(row.workEntry, false, messages);
+  // Majordome says the step in plain words; the command and path show once the row is opened.
+  const plainWords = isMajordome
+    ? activityInPlainWords({
+        kind: toolGroupAction(row.workEntry),
+        state: row.live ? "working" : row.status === "failure" ? "failed" : "done",
+        itemType: row.projectedItem.item.type,
+        paths: row.workEntry.changedFiles ?? collectToolFilePaths(row.workEntry.toolData),
+        sentence: toolPresentation?.displayName,
+        service: row.workEntry.toolSource?.name,
+        fallback: workEntryRowLabel(row.workEntry, false, messages),
+      })
+    : null;
+  const previewText =
+    row.groupStandIn?.label ?? plainWords ?? workEntryRowLabel(row.workEntry, false, messages);
   const answerPreview = row.workEntry.questionAnswer
     ? getQuestionAnswerPreview(row.workEntry.questionAnswer)
     : null;
   const accessiblePreview = [previewText, answerPreview].filter(Boolean).join(": ");
   const displayText =
-    row.groupStandIn?.label ?? workEntryRowLabel(row.workEntry, expanded, messages);
+    row.groupStandIn?.label ??
+    (expanded ? null : plainWords) ??
+    workEntryRowLabel(row.workEntry, expanded, messages);
   const isSystemNotice = row.projectedItem.item.type === "system_notice";
   const isUsageLimit =
     row.projectedItem.item.type === "error" &&

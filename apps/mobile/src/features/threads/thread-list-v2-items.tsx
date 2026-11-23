@@ -96,9 +96,21 @@ import { ThreadSearchMatchExcerpt } from "./thread-search-match";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 import { pullRequestStatus } from "../pull-requests/pullRequestStatus";
-import { chatMenuActions, chatStatusLine, chatTitle } from "../../majordome/chat.logic";
+import {
+  chatMenuActions,
+  chatRestLine,
+  chatRowLabel,
+  chatStatusLine,
+  chatTitle,
+  topicLine,
+  topicMenuActions,
+} from "../../majordome/chat.logic";
 import { ChatRowContent } from "../../majordome/ChatRow";
 import { isMajordome } from "../../majordome/env";
+import type { TopicRow } from "../../majordome/today.logic";
+import { TONE_COLORS, TOPIC_SYMBOLS } from "../../majordome/topicFaces";
+import { relativeTime } from "../../lib/time";
+import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 
 interface StatusLabel {
   // Null when the icon and timer carry the status on their own.
@@ -819,6 +831,10 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   readonly searchMatch?: EnvironmentThreadSearchMatch;
   readonly searchQuery?: string;
   readonly simultaneousSwipeGesture?: ComponentProps<typeof ThreadSwipeable>["simultaneousWith"];
+  /** Majordome: the topic this chat is the conversation of, which the row then shows. */
+  readonly topic?: TopicRow | undefined;
+  readonly onStartTopicSideChat?: (topic: TopicRow) => void;
+  readonly onSetTopicFinished?: (topic: TopicRow, finished: boolean) => void;
 }) {
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const titleTypography = useScaledTextRole("body");
@@ -912,9 +928,25 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const snoozeWakeLabelText =
     props.snoozeWakeLabelText === undefined ? undefined : m(props.snoozeWakeLabelText);
   // Majordome shows a chat not named yet as "New chat" and says its status in plain words.
-  const shownTitle = isMajordome ? chatTitle(thread.title) : thread.title;
-  const majordomeLine = isMajordome ? chatStatusLine(status, isUnread) : null;
-  const rowAccessibilityLabel = threadListV2RowAccessibilityLabel(
+  // A topic's conversation wears the topic's name, picture and latest message.
+  const topic = props.topic ?? null;
+  const shownTitle = topic ? topic.title : isMajordome ? chatTitle(thread.title) : thread.title;
+  const statusLine = isMajordome ? chatStatusLine(status, isUnread) : null;
+  const majordomeLine = !isMajordome
+    ? null
+    : showsWoke
+      ? ({ words: "Back from snooze", tone: "new" } as const)
+      : topic
+        ? topicLine(topic, statusLine)
+        : (statusLine ?? chatRestLine(thread, props.environmentLabel));
+  // Upstream leaves the time off a row that says its status; a chat list always says when.
+  const majordomeTime = !isMajordome
+    ? null
+    : snoozedRow && snoozeWakeLabelText !== undefined
+      ? snoozeWakeLabelText
+      : timeLabel ||
+        relativeTime(resolveThreadActivityTimestamp(thread) ?? thread.createdAt, undefined, m);
+  const upstreamAccessibilityLabel = threadListV2RowAccessibilityLabel(
     {
       title: shownTitle,
       variant,
@@ -935,6 +967,16 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     },
     m,
   );
+  const rowAccessibilityLabel = isMajordome
+    ? chatRowLabel({
+        title: shownTitle,
+        topic: topic !== null,
+        line: majordomeLine,
+        time: majordomeTime,
+        pinned: pinnedRow,
+        done: variant === "slim",
+      })
+    : upstreamAccessibilityLabel;
 
   const visitThread = useAtomCommand(threadEnvironment.visit, { reportFailure: false });
   const markThreadUnread = useAtomCommand(threadEnvironment.markUnread, { reportFailure: false });
@@ -1383,11 +1425,13 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         : null,
     [gt, handleMenuAction, snoozePresetActions, swipeActions.secondary, thread.title],
   );
-  const swipeAccessibilityHint = !canOperateThread
-    ? gt("Opens the thread")
-    : secondaryAction === null
-      ? primaryAction.swipeHint
-      : primaryAction.swipeSnoozeHint;
+  const swipeAccessibilityHint = topic
+    ? "Opens the topic's conversation. Touch and hold for more."
+    : !canOperateThread
+      ? gt("Opens the thread")
+      : secondaryAction === null
+        ? primaryAction.swipeHint
+        : primaryAction.swipeSnoozeHint;
 
   const titleTextInset = props.project ? projectIconSize + 8 : 0;
   const cardContent = (
@@ -1659,14 +1703,10 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const shownCardContent = isMajordome ? (
     <ChatRowContent
       title={shownTitle}
-      symbol="bubble.left.fill"
-      line={
-        showsWoke
-          ? { words: "Back from snooze", tone: "new" }
-          : (majordomeLine ??
-            (props.environmentLabel ? { words: props.environmentLabel, tone: "plain" } : null))
-      }
-      time={snoozedRow && snoozeWakeLabelText !== undefined ? snoozeWakeLabelText : timeLabel}
+      symbol={topic ? TOPIC_SYMBOLS[topic.icon ?? "hash"] : "bubble.left.fill"}
+      color={topic ? TONE_COLORS[topic.tone ?? "amber"] : undefined}
+      line={majordomeLine}
+      time={majordomeTime}
       selected={selected}
       faded={variant === "slim"}
       marks={
@@ -1821,6 +1861,12 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   if (!canOperateThread)
     return <View style={rowAppearance.swipeContainerStyle}>{rowContent(() => {})}</View>;
 
+  const majordomeMenuActions = !isMajordome
+    ? menuActions
+    : topic
+      ? topicMenuActions(chatMenuActions(menuActions), topic.title)
+      : chatMenuActions(menuActions);
+
   return (
     <View collapsable={false}>
       {customSnoozeOpen && (
@@ -1828,6 +1874,8 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       )}
       <ThreadSwipeable
         dormant={dormant}
+        // A swipe deletes or marks a chat as done; a topic is neither, so it only has its menu.
+        enabled={topic === null}
         threadKey={`${thread.environmentId}:${thread.id}`}
         backgroundColor={rowAppearance.swipeBackgroundColor}
         compactActions={variant === "slim"}
@@ -1848,8 +1896,16 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         {(close) => (
           <Menu
             accessibilityLabel={rowAccessibilityLabel}
-            actions={isMajordome ? chatMenuActions(menuActions) : menuActions}
-            onPressAction={handleMenuAction}
+            actions={majordomeMenuActions}
+            onPressAction={(event) => {
+              if (topic && event.nativeEvent.event === "topic-side-chat") {
+                props.onStartTopicSideChat?.(topic);
+              } else if (topic && event.nativeEvent.event === "topic-finish") {
+                props.onSetTopicFinished?.(topic, true);
+              } else {
+                handleMenuAction(event);
+              }
+            }}
             shouldOpenOnLongPress
           >
             {rowContent(close)}
