@@ -90,7 +90,7 @@ export function KeyFactsSection({
           {groups.length === 0 ? (
             <p className="px-2.5 pb-1 text-xs text-muted-foreground">
               {data === null && result.waiting
-                ? "Reading this conversation…"
+                ? "Reading this chat…"
                 : "Links, places, dates and names you mention are noted here after each reply."}
             </p>
           ) : (

@@ -121,7 +121,7 @@ function VaultSkills({ vault }: { readonly vault: MajordomeVault }) {
                               keepSkill({ environmentId, input: { projectId, name: skill.name } }),
                             {
                               title: `Kept: ${skillTitle(skill.name)}`,
-                              description: "Your assistant uses it from its next conversation.",
+                              description: "Your assistant uses it from its next chat.",
                             },
                             "Could not keep that skill",
                           )

@@ -88,7 +88,7 @@ export function DrawConversationButton({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPopup className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>This conversation, drawn</DialogTitle>
+            <DialogTitle>This chat, drawn</DialogTitle>
             <DialogDescription>
               Made by your AI from the latest messages. Each drawing is one small request to your AI
               plan.

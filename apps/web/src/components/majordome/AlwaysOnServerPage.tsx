@@ -814,9 +814,7 @@ function ReadyPanel({
         <Steps>
           <Step title="Add it to this app">
             {saved ? (
-              <StatusLine tone="ok">
-                It is in this app. Its conversations show beside yours.
-              </StatusLine>
+              <StatusLine tone="ok">It is in this app. Its chats show beside yours.</StatusLine>
             ) : busy === "add" ? (
               <StatusLine tone="neutral">
                 <span className="inline-flex items-center gap-2">

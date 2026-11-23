@@ -14,7 +14,6 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 
-import { scheduleLabel } from "../settings/scheduledTasksSettings.logic";
 import { backupAttention, backupHeadline } from "./backup.logic";
 import { machineInSentence } from "./brains.logic";
 import { aiRows } from "./connections.logic";
@@ -31,7 +30,12 @@ import {
   phoneComputerWords,
 } from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
-import { ROUTINE_LAST_RUN, routineKind, routinesPausedText } from "./routines.logic";
+import {
+  ROUTINE_LAST_RUN,
+  routineKind,
+  routineScheduleWords,
+  routinesPausedText,
+} from "./routines.logic";
 
 /**
  * How a part of the setup is doing. Warning (orange) and error (red) are the sidebar's dots:
@@ -290,7 +294,7 @@ function machineLine(
       : {
           key,
           text: say(machine.label, NOT_CONNECTED),
-          detail: "Majordome can't reach this machine right now. Is it on?",
+          detail: "Majordome can't reach this computer right now. Is it on?",
           tone: "warning",
           link: { to: "/settings/connections" },
         };
@@ -365,7 +369,7 @@ export function whereItRunsSection(input: {
           key,
           text: say(brain.label, `Routines run on ${machineInSentence(brain.runsOn)}`),
           ...(brain.keepsConversations === true
-            ? { detail: "Conversations are kept there too, so your phone shows the same ones." }
+            ? { detail: "Chats are kept there too, so your phone shows the same ones." }
             : {}),
           tone: "ok",
           link: { to: "/feed" },
@@ -428,9 +432,7 @@ function routineLine(
   const parts = !task.enabled
     ? ["Off"]
     : [
-        task.schedule.type === "webhook"
-          ? "When something arrives"
-          : scheduleLabel(task.schedule, timeZone, task.nextRunAt),
+        routineScheduleWords(task.schedule, { serverTimeZone: timeZone }),
         task.schedule.type === "webhook"
           ? null
           : task.nextRunAt === null
@@ -704,7 +706,7 @@ function providerLines(machine: OverviewAccessMachine): ReadonlyArray<OverviewLi
           {
             key: `provider:${machine.key}:none`,
             text: say(machine.label, "No AI is ready to work"),
-            detail: "Sign in to Claude, Codex or another AI so conversations and routines can run.",
+            detail: "Sign in to Claude, Codex or another AI so chats and routines can run.",
             tone: "warning" as const,
             link,
           },

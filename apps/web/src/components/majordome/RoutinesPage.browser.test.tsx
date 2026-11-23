@@ -149,7 +149,7 @@ it("lists routines in plain words, with the assistant beside them", async () => 
   await expect.element(routine.getByText(/^Last run went well/)).toBeVisible();
   // A task another service calls is still a routine, not an error; it has nothing to run now.
   const outside = screen.getByRole("list", { name: "Routines" }).getByRole("listitem").nth(1);
-  await expect.element(outside.getByText("Runs when called from outside")).toBeVisible();
+  await expect.element(outside.getByText("When something arrives")).toBeVisible();
   await expect.element(outside.getByRole("button", { name: "Run now" })).not.toBeInTheDocument();
   await expect.element(screen.getByRole("list", { name: "Reminders" })).not.toBeInTheDocument();
 

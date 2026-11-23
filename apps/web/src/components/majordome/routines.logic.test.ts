@@ -135,7 +135,7 @@ describe("routineScheduleWords", () => {
     [{ type: "interval", everyMs: 2 * 60 * 60_000 }, "Every 2 hours"],
     [{ type: "interval", everyMs: 24 * 60 * 60_000 }, "Every day"],
     [{ type: "once", runAt: "2026-11-17T10:00:00+00:00" }, "Once, Tue 17 Nov, 10:00"],
-    [{ type: "webhook", signature: null }, "Runs when called from outside"],
+    [{ type: "webhook", signature: null }, "When something arrives"],
   ] as const)("%j reads as %s", (schedule, expected) => {
     expect(words(schedule)).toBe(expected);
   });
@@ -162,7 +162,7 @@ describe("routineWhenLine", () => {
         NOW,
         options,
       ),
-    ).toBe("Runs when called from outside");
+    ).toBe("When something arrives");
     expect(routineWhenLine(task("a", { blockedByPolicy: "Not allowed here." }), NOW, options)).toBe(
       "Every day at 8:00 · Not allowed here.",
     );
@@ -254,16 +254,16 @@ describe("routinesHold", () => {
 
 describe("routineWhenLine while routines are held", () => {
   it.each([
-    ["paused", "Every day at 8:00 · Paused until tomorrow"],
-    ["nowhere", "Every day at 8:00 · Not running"],
-    ["blocked", "Every day at 8:00 · Not running"],
+    ["paused", "Every day at 8:00 AM · Paused until tomorrow"],
+    ["nowhere", "Every day at 8:00 AM · Not running"],
+    ["blocked", "Every day at 8:00 AM · Not running"],
   ] as const)("does not promise a next run when %s", (hold, line) => {
     expect(routineWhenLine(task("daily"), NOW, { hold })).toBe(line);
   });
 
   it("still says a routine is off", () => {
     expect(routineWhenLine(task("off", { enabled: false }), NOW, { hold: "paused" })).toBe(
-      "Every day at 8:00 · Off",
+      "Every day at 8:00 AM · Off",
     );
   });
 });
@@ -318,7 +318,7 @@ describe("routineLastRun", () => {
       ),
     ).toEqual({
       tone: "warning",
-      text: "Skipped on Mon at 8:00: the computer was asleep or off",
+      text: "Skipped on Mon at 8:00 AM: the computer was asleep or off",
       remedy: "run-now",
     });
   });
@@ -330,7 +330,7 @@ describe("routineLastRun", () => {
       lastRunErrorCode: "missed",
     });
     expect(routineLastRun(fridays, NOW, zones)?.text).toBe(
-      "Skipped on Fri at 18:00: the computer was asleep or off",
+      "Skipped on Fri at 6:00 PM: the computer was asleep or off",
     );
   });
 
@@ -341,7 +341,7 @@ describe("routineLastRun", () => {
       lastRunErrorCode: "missed",
     });
     expect(routineLastRun(late, NOW, { ...zones, serverTimeZone: "America/New_York" })?.text).toBe(
-      "Skipped on Sun at 23:00: the computer was asleep or off",
+      "Skipped on Sun at 11:00 PM: the computer was asleep or off",
     );
   });
 

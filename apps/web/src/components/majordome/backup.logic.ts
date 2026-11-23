@@ -87,8 +87,8 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
   if (peer !== null) {
     return {
       tone: "neutral",
-      title: "On two of your machines",
-      detail: `These notes are also on ${peer.label}, and the two are kept in step. A backup somewhere else (GitHub, a folder or Google Drive) still protects you if both machines are lost, or if a mistake reaches both.`,
+      title: "On two of your computers",
+      detail: `These notes are also on ${peer.label}, and the two are kept in step. A backup somewhere else (GitHub, a folder or Google Drive) still protects you if both computers are lost, or if a mistake reaches both.`,
     };
   }
   return {
@@ -101,7 +101,7 @@ export function backupHeadline(status: MajordomeBackupStatus): BackupHeadline {
 /**
  * The sidebar's short alert when saving, a chosen backup or keeping in step with another machine
  * is paused or failing, or a note waits in two versions, else null.
- * "Not backed up yet" and "On two of your machines" alone do not count: a backup is a choice still
+ * "Not backed up yet" and "On two of your computers" alone do not count: a backup is a choice still
  * to make, and a mark that never goes away teaches people to ignore it.
  */
 export function backupAttention(status: MajordomeBackupStatus): string | null {

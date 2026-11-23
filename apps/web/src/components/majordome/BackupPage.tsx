@@ -382,8 +382,9 @@ function VaultBackup({
             <div className={cn("flex flex-col gap-1.5", READING_MEASURE_CLASS)}>
               <StatusLine tone="warning">{twoVersionsTitle(status.otherVersions ?? [])}</StatusLine>
               <Muted>
-                They changed on two machines at the same time, so Majordome kept both. Keep what you
-                want in the note and delete the other version, or ask the assistant to combine them.
+                They changed on two computers at the same time, so Majordome kept both. Keep what
+                you want in the note and delete the other version, or ask the assistant to combine
+                them.
               </Muted>
               <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
                 {(status.otherVersions ?? []).map((kept) => (
@@ -534,7 +535,7 @@ function OtherMachine({
       });
     };
     return (
-      <Section label="Your other machine" labelAs={labelAs}>
+      <Section label="Your other computer" labelAs={labelAs}>
         <EntryList>
           <Entry title={machine} data-backup-destination="machine">
             <StatusLine tone="neutral">Not kept in step</StatusLine>
@@ -571,7 +572,7 @@ function OtherMachine({
     if (pairKey !== null) decline(pairKey);
   };
   return (
-    <Section label="Your other machine" labelAs={labelAs}>
+    <Section label="Your other computer" labelAs={labelAs}>
       <EntryList>
         <Entry title={peer.label} data-backup-destination="machine">
           {peer.problem !== null ? (
@@ -606,7 +607,7 @@ function OtherMachine({
                   setAsk({
                     title: `Stop keeping these notes in step with ${peer.label}?`,
                     detail:
-                      "Both machines keep their notes as they are now. Changes made on one no longer reach the other.",
+                      "Both computers keep their notes as they are now. Changes made on one no longer reach the other.",
                     action: "Stop keeping in step",
                     run: () => void stop(),
                   })

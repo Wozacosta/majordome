@@ -72,7 +72,7 @@ export function PrivateDocumentsPage() {
   return (
     <MajordomeSettingsPage
       searchId="majordome-private-documents"
-      intro="For a passport scan, a tax return, a contract: files your assistant can use only after you say yes, each time. They are kept encrypted on one machine, outside your notes and their backups."
+      intro="For a passport scan, a tax return, a contract: files your assistant can use only after you say yes, each time. They are kept encrypted on one computer, outside your notes and their backups."
     >
       {machines.length === 0 ? (
         <Section>
@@ -91,7 +91,7 @@ export function PrivateDocumentsPage() {
             {machine.connection.phase === "connected" ? (
               <Machine environmentId={machine.environmentId} name={name} />
             ) : (
-              <Muted className="mt-2">Majordome isn't connected to this machine right now.</Muted>
+              <Muted className="mt-2">Majordome isn't connected to this computer right now.</Muted>
             )}
           </div>
         );
@@ -99,18 +99,18 @@ export function PrivateDocumentsPage() {
       <Section>
         <Disclosure summary="How private is this?">
           <p>
-            Each document is encrypted on its own. The key stays on that machine: in the Keychain on
-            a Mac, in Majordome's own folder on a server. A copy of your notes, their GitHub or
+            Each document is encrypted on its own. The key stays on that computer: in the Keychain
+            on a Mac, in Majordome's own folder on a server. A copy of your notes, their GitHub or
             Drive backup, or the document files themselves shows nothing readable.
           </p>
           <p>
             When you allow a request, Majordome makes a temporary readable copy of that one document
-            for that conversation or routine, and deletes it when the run ends or after 15 minutes.
-            The assistant has read it by then, so allow only what the task needs.
+            for that chat or routine, and deletes it when the run ends or after 15 minutes. The
+            assistant has read it by then, so allow only what the task needs.
           </p>
           <p>
-            It does not protect against someone who controls the machine or your account on it while
-            Majordome is running. Passwords belong in a password manager, not here.
+            It does not protect against someone who controls the computer or your account on it
+            while Majordome is running. Passwords belong in a password manager, not here.
           </p>
         </Disclosure>
       </Section>
@@ -151,7 +151,7 @@ function Machine({
     );
   }
 
-  const where = name === null ? "this machine" : machineInSentence(name);
+  const where = name === null ? "this computer" : machineInSentence(name);
   return (
     <>
       <Section label="Documents" labelAs={labelAs} className={sectionClassName}>
@@ -236,7 +236,7 @@ function DocumentEntry({
         description:
           result._tag === "Failure"
             ? privateDocumentFailureMessage(squashAtomCommandFailure(result))
-            : "Majordome isn't connected to this machine right now.",
+            : "Majordome isn't connected to this computer right now.",
       });
       return;
     }

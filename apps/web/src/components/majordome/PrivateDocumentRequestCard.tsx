@@ -76,8 +76,8 @@ export function PrivateDocumentRequestCard({
         turnItemId={item.id}
       />
       <Muted className="text-xs">
-        Allowing opens this one private document for this conversation. Its readable copy is deleted
-        when the run ends or after 15 minutes.
+        Allowing opens this one private document for this chat. Its readable copy is deleted when
+        the run ends or after 15 minutes.
       </Muted>
     </div>
   );

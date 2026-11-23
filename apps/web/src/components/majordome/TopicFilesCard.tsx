@@ -53,7 +53,7 @@ import {
 import type { VaultTopic } from "./topics.logic";
 import { usePendingUpload } from "./usePendingUpload";
 
-const NOT_CONNECTED = "Majordome isn't connected to this machine right now.";
+const NOT_CONNECTED = "Majordome isn't connected to this computer right now.";
 
 const failureMessage = (result: AtomCommandResult<unknown, unknown>) => {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return null;
@@ -468,7 +468,7 @@ export function TopicFiles({
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                   With the topic's notes, your assistant can read it and it is backed up with them.
-                  Kept private, it is encrypted on this machine, outside your notes and their
+                  Kept private, it is encrypted on this computer, outside your notes and their
                   backups, and your assistant asks you each time before opening it.
                 </AlertDialogDescription>
               </AlertDialogHeader>

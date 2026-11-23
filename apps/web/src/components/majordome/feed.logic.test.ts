@@ -414,8 +414,8 @@ describe("notes", () => {
     ).toEqual([
       "Today",
       "Yesterday",
-      "Tue 3 Nov",
-      "31 Dec 2025",
+      "Tue, Nov 3",
+      "Dec 31, 2025",
       "2026-11-15",
       "Lisbon move",
       "handover 2026-11-03",
@@ -491,7 +491,7 @@ describe("foldOwnChanges", () => {
       "r2",
       "You edited 1 note yesterday (o2)",
       "r1",
-      "You edited 2 notes on Tue 3 Nov (o1)",
+      "You edited 2 notes on Tue, Nov 3 (o1)",
     ]);
     // One heading where each day starts.
     expect(
@@ -500,7 +500,7 @@ describe("foldOwnChanges", () => {
         (row) => (row.kind === "own-day" ? row.at : row.item.entry.committedAt),
         NOW,
       ).map(({ day }) => day),
-    ).toEqual(["Today", null, "Yesterday", "Tue 3 Nov", null]);
+    ).toEqual(["Today", null, "Yesterday", "Tue, Nov 3", null]);
   });
 });
 

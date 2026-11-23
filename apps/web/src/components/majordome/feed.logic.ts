@@ -59,7 +59,7 @@ export function memoryOverLimitLine(
   memoryOverLimit: { readonly tidyRoutineOn: boolean } | undefined,
 ): string | null {
   if (memoryOverLimit === undefined) return null;
-  const problem = "Your memory note is too long, so its end isn't loaded into conversations.";
+  const problem = "Your memory note is too long, so its end isn't loaded into chats.";
   return memoryOverLimit.tidyRoutineOn
     ? `${problem} “Tidy my memory” shortens it tonight.`
     : `${problem} Turn on “Tidy my memory” in Routines, or shorten the note yourself.`;
@@ -403,12 +403,12 @@ export function feedVaultNotes(history: {
 
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DAY_MS = 86_400_000;
-const dayFormatter = new Intl.DateTimeFormat("en-GB", {
+const dayFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
   day: "numeric",
   month: "short",
 });
-const dayWithYearFormatter = new Intl.DateTimeFormat("en-GB", {
+const dayWithYearFormatter = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
   month: "short",
   year: "numeric",

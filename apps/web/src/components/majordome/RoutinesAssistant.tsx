@@ -63,7 +63,7 @@ export function RoutinesAssistant({
     majordomeEnvironment.openRoutinesConversation.permissionAtom(environmentId),
   );
   const open = useAtomCommand(majordomeEnvironment.openRoutinesConversation, {
-    label: "open the routines conversation",
+    label: "open the routines chat",
     reportFailure: false,
   });
   const [error, setError] = useState<string | null>(null);

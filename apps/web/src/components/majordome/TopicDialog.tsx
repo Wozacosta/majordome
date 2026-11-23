@@ -258,7 +258,7 @@ export function TopicDialog({
       ? "The folder and its notes stay as they are."
       : request.kind === "folder"
         ? "The topic reads and keeps its log in this folder. No notes are moved."
-        : "One ongoing conversation about a subject, with its own notes, so nothing is lost when the chat gets long.";
+        : "One ongoing chat about a subject, with its own notes, so nothing is lost when it gets long.";
   const readyTopics =
     request.kind === "create" && request.threadId === undefined && title.trim() === ""
       ? (vault.readyTopics ?? [])

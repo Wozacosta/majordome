@@ -81,7 +81,7 @@ describe("backupHeadline", () => {
     const onTwo = { ...base, peer: peer({}) };
     expect(backupHeadline(onTwo)).toMatchObject({
       tone: "neutral",
-      title: "On two of your machines",
+      title: "On two of your computers",
     });
     expect(backupHeadline(onTwo).detail).toContain("also on majordome");
     expect(backupAttention(onTwo)).toBeNull();

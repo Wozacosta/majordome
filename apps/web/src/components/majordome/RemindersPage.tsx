@@ -40,7 +40,7 @@ export function RemindersPage() {
               intro={
                 activeVault === null && !loading
                   ? "Open a notes folder to give it reminders."
-                  : "What Majordome will remind you of. To add one, ask in any conversation, such as “remind me on Friday at 9 to call the bank”."
+                  : "What Majordome will remind you of. To add one, ask in any chat, such as “remind me on Friday at 9 to call the bank”."
               }
             />
             {activeVault === null ? null : (

@@ -186,8 +186,15 @@ function everyWords(everyMs: number): string {
   return count === 1 ? `Every ${unit}` : `Every ${count} ${unit}s`;
 }
 
-/** "9:30" for the 24-hour "09:30" a schedule stores. */
-const plainTime = (timeOfDay: string) => timeOfDay.replace(/^0(\d)/, "$1");
+/** The 24-hour "09:30" a schedule stores, as the reader's locale writes a time: "9:30" or "9:30 AM". */
+function plainTime(timeOfDay: string, locale?: string): string {
+  const [hour = 0, minute = 0] = timeOfDay.split(":").map(Number);
+  return new Intl.DateTimeFormat(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(Date.UTC(2000, 0, 1, hour, minute));
+}
 
 /** A date and time in the reader's own zone: "Tue 17 Nov, 10:00". */
 export function plainDateTime(iso: string, locale?: string, timeZone?: string): string {
@@ -214,7 +221,7 @@ export function routineScheduleWords(
     readonly locale?: string | undefined;
   } = {},
 ): string {
-  if (schedule.type === "webhook") return "Runs when called from outside";
+  if (schedule.type === "webhook") return "When something arrives";
   if (schedule.type === "interval") return everyWords(schedule.everyMs);
   if (schedule.type === "once") {
     return `Once, ${plainDateTime(schedule.runAt, options.locale, options.readerTimeZone)}`;
@@ -232,7 +239,7 @@ export function routineScheduleWords(
     options.serverTimeZone !== undefined && options.serverTimeZone !== reader
       ? scheduleTimeZoneLabel(options.serverTimeZone)
       : undefined;
-  return `${when} at ${plainTime(schedule.timeOfDay)}${zone === undefined ? "" : ` (${zone})`}`;
+  return `${when} at ${plainTime(schedule.timeOfDay, options.locale)}${zone === undefined ? "" : ` (${zone})`}`;
 }
 
 /** "in 20 minutes", "in 3 hours", "in 2 days": how long until something upcoming. */

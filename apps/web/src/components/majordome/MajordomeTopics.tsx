@@ -445,7 +445,7 @@ function VaultTopics({
         </DndContext>
       ) : vault.suggestions.length === 0 ? (
         <p className="px-2 pb-1 text-xs text-sidebar-muted-foreground">
-          Keep each ongoing subject here: one conversation, with its own folder of notes.
+          Keep each ongoing subject here: one chat, with its own folder of notes.
         </p>
       ) : null}
       {finished.length > 0 ? (

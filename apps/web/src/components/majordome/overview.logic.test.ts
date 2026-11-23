@@ -192,7 +192,7 @@ describe("whereItRunsSection", () => {
       ["Routines run on this Mac", null, "ok"],
       [
         "Work: Routines run on Always-on server",
-        "Conversations are kept there too, so your phone shows the same ones.",
+        "Chats are kept there too, so your phone shows the same ones.",
         "ok",
       ],
     ]);
@@ -339,10 +339,10 @@ describe("routinesSection", () => {
       }),
     ]);
     expect(facts(section.lines)).toEqual([
-      ["Start my day", "Daily at 08:00 · Next tomorrow at 8:00 · Last run went well", "ok"],
+      ["Start my day", "Every day at 8:00 AM · Next tomorrow at 8:00 · Last run went well", "ok"],
       [
         "Review my week",
-        "Daily at 08:00 · Next tomorrow at 8:00 · Last run couldn't finish",
+        "Every day at 8:00 AM · Next tomorrow at 8:00 · Last run couldn't finish",
         "error",
       ],
       ["Tidy my memory", "Off", "neutral"],
@@ -396,7 +396,10 @@ describe("routinesSection", () => {
       }),
     ]);
     expect(facts(section.lines).map(([text, detail]) => [text, detail])).toEqual([
-      ["This Mac: Start my day", "Daily at 08:00 · Next tomorrow at 8:00 · Last run went well"],
+      [
+        "This Mac: Start my day",
+        "Every day at 8:00 AM · Next tomorrow at 8:00 · Last run went well",
+      ],
       ["Old server: Update this server to see its routines", null],
       ["Bad: Couldn't read its routines", "Timed out."],
     ]);

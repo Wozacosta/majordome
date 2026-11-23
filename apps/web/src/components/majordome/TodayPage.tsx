@@ -475,7 +475,7 @@ function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
     ).catch((error: unknown) => {
       toastManager.add({
         type: "error",
-        title: "Could not start the conversation",
+        title: "Could not start the chat",
         description: error instanceof Error ? error.message : undefined,
       });
       return null;
