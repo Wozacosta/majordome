@@ -126,6 +126,9 @@
         "index.ts!",
         "fingerprint.config.js",
         "plugins/*.cjs",
+        // Metro loads the wording step by path, and it loads the table the same way.
+        "majordome/metroTransformer.cjs",
+        "majordome/wording.mts",
         "scripts/generate-device-stream.mts",
         "src/features/devices/device-stream.browser.ts!",
         "src/features/browser/preview-stream.browser.ts!",

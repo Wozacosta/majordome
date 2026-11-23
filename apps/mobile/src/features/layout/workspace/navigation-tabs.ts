@@ -11,6 +11,7 @@ import {
   type NavigationTab,
 } from "./navigation-tab-order";
 import type { AppSymbolName } from "../../../components/ui/AppSymbol";
+import { MAJORDOME_HIDDEN_TABS, isMajordome } from "../../../majordome/env";
 import { mobilePreferencesAtom } from "../../../state/preferences";
 import { PullRequestGlyph } from "../../pull-requests/pullRequestGlyphs";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
@@ -24,13 +25,14 @@ export const WORKSPACE_TAB_LABELS = {
         pullRequests: msg("PRs", { $context: "navigation tab, pull requests" }),
       }
     : {}),
+  ...(isMajordome ? { usage: msg("Today", { $context: "navigation tab, the day's page" }) } : {}),
 };
 
 export const NAVIGATION_TAB_ICONS = {
   threads: "text.bubble",
   pullRequests: PullRequestGlyph.pullRequest,
   issues: "git.issue",
-  usage: "chart.bar.xaxis",
+  usage: isMajordome ? "sun.max" : "chart.bar.xaxis",
 } as const satisfies Readonly<Record<NavigationTab, AppSymbolName>>;
 
 export function useNavigationTabOrder() {
@@ -50,6 +52,7 @@ export function useHiddenNavigationTabs() {
       ? resolveHiddenNavigationTabs(saved?.hiddenNavigationTabs)
       : []),
     sharedSlotAbsentee(selected, saved?.sharedSlotTab),
+    ...MAJORDOME_HIDDEN_TABS,
   ];
 }
 

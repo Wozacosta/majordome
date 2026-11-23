@@ -1,5 +1,6 @@
 import type { ExpoConfig } from "expo/config";
 
+import { withMajordomeIdentity } from "./majordome/identity.ts";
 import { BRAND_ASSET_PATHS } from "../../scripts/lib/brand-assets.ts";
 import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
 
@@ -499,4 +500,4 @@ const config: ExpoConfig = {
   },
 };
 
-export default config;
+export default withMajordomeIdentity(config);

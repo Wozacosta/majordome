@@ -308,6 +308,14 @@ takes over.
    - **First cut, the owner's phone through TestFlight:** Majordome's name, icon and bundle ID
      under the owner's Apple account, with T3 Connect sign-in off; pair; chat with the assistant;
      Today; offline capture of a note or a request, shown as waiting to send.
+   - **Where the first cut stands (2026-11-23):** it builds and runs in the iPhone simulator as
+     Majordome (identifier `io.github.wozacosta.majordome.ios`, the owner's Apple team), pairs,
+     lists chats, and opens on Today: the day's note, to-dos that can be ticked, and a box that
+     adds a line to the note. A line typed with no connection is kept on the phone, shown as
+     waiting, and sent when the server answers; the app reopens offline on the note it last saw.
+     Requests typed offline use upstream's own message outbox. Not done: a TestFlight build, a
+     run on a real phone, and the long tail of coding words on the chat screens. How it is put
+     together is in `docs/whatsnext.md` ("The iPhone app").
    - **Then:** push sent by the owner's server with the owner's own Apple push key (the same four
      kinds as web push), share-sheet "Send to Majordome", and the remaining screens (topics, feed,
      routines, notes). The share sheet is also how a link reaches the reading list from the

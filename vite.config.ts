@@ -602,6 +602,7 @@ export default defineConfig({
           "packages/client-runtime/src/rpc/**",
           // Majordome's own screens ship in English only for now.
           "apps/web/src/components/majordome/**",
+          "apps/mobile/src/majordome/**",
           "apps/web/src/settleWording.ts",
           "apps/web/src/components/settings/ClaudeSignInSection*.{ts,tsx}",
           "apps/web/src/components/settings/Secret{sSettings,ProviderDialog,SourceInput}*.{ts,tsx}",

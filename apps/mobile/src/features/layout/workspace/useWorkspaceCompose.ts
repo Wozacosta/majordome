@@ -1,5 +1,6 @@
 import { useGT } from "gt-react-native";
 
+import { isMajordome } from "../../../majordome/env";
 import { useAdaptiveWorkspaceLayout } from "../adaptive-workspace-context";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
 
@@ -8,7 +9,9 @@ export function useWorkspaceCompose() {
   const gt = useGT();
   const workspace = useWorkspaceTabs();
   const { startNewTask } = useAdaptiveWorkspaceLayout();
-  if (!workspace || workspace.settingsOpen || workspace.state.selectedTab !== "threads")
-    return null;
+  const tab = workspace?.state.selectedTab;
+  // Majordome's Today page sits in the usage slot and starts chats too.
+  const composes = tab === "threads" || (isMajordome && tab === "usage");
+  if (!workspace || workspace.settingsOpen || !composes) return null;
   return { label: gt("New chat"), onPress: startNewTask } as const;
 }

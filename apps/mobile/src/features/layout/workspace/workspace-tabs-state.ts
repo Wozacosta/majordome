@@ -4,8 +4,15 @@ import {
   resolveNavigationTabOrder,
   type NavigationTab,
 } from "./navigation-tab-order";
+import { isMajordome } from "../../../majordome/env";
 
-export function resolveWorkspaceTabOrder(saved: readonly unknown[] | undefined) {
+/** Majordome shows Today, in upstream's one-page usage slot, then the chats; no coding tabs. */
+const MAJORDOME_TAB_ORDER = ["usage", "threads"] as const satisfies readonly NavigationTab[];
+
+export function resolveWorkspaceTabOrder(
+  saved: readonly unknown[] | undefined,
+): readonly NavigationTab[] {
+  if (isMajordome) return MAJORDOME_TAB_ORDER;
   return navigationCustomizationAvailable()
     ? resolveNavigationTabOrder(saved)
     : NAVIGATION_TAB_ORDER;
@@ -45,7 +52,7 @@ export function workspaceTabOf(routeName: string | undefined): WorkspaceTab {
 }
 
 export function initialWorkspaceTabsState(
-  selectedTab: WorkspaceTab = "threads",
+  selectedTab: WorkspaceTab = isMajordome ? "usage" : "threads",
 ): WorkspaceTabsState {
   return {
     selectedTab,

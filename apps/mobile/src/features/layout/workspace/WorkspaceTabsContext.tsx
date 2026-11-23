@@ -1,3 +1,4 @@
+import { MAJORDOME_HIDDEN_TABS } from "../../../majordome/env";
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { createContext, use, useState, type Dispatch, type ReactNode } from "react";
@@ -51,6 +52,7 @@ function resolveWorkspaceTabsSelection(
       ? resolveHiddenNavigationTabs(saved?.hiddenNavigationTabs)
       : []),
     sharedSlotAbsentee(state.selectedTab, saved?.sharedSlotTab),
+    ...MAJORDOME_HIDDEN_TABS,
   ];
   const selected = resolveSelectedNavigationTab(order, hidden, state.selectedTab);
   return selected && selected !== state.selectedTab

@@ -319,3 +319,32 @@ M8 note in `docs/decisions.md`.
 
 Not asked for yet: a calendar of finished items, images in notes, playlist import, an "action"
 kind, publishing a list, filing one item under several subjects, and Empty Trash.
+
+## The iPhone app
+
+Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to know:
+
+- **Identity is applied after upstream's config.** `apps/mobile/majordome/identity.ts` turns the
+  finished Expo config into Majordome's (name, bundle identifier, Apple team, the cloche icon,
+  no over-the-air updates, no associated domains). `app.config.ts` only calls it. The URL schemes
+  stay `t3code*`: pairing codes and link handling key on them, and they are never shown. If T3
+  Code's own app is on the same phone, a `t3code://` link opened from outside may go to either.
+- **The name and wording are swapped as Metro bundles**, like the web build:
+  `apps/mobile/majordome/metroTransformer.cjs` applies the web tables in `apps/web/vite/wording`
+  plus the phone's own in `apps/mobile/majordome/wording.mts`. The shared pure code moved to
+  `apps/web/vite/majordomeReword.ts`. Tests read the source unswapped.
+- **Today sits in upstream's one-page Usage tab slot** (`MajordomeTodayScreen`), so the tab key
+  is still `usage`. Upstream's tests of the tabs mock `src/majordome/env` with `isMajordome`
+  false. The iPhone tab bar's label and icon are in Swift
+  (`modules/t3-native-controls/ios/T3SidebarTabBarView.swift`).
+- **Building here:** Xcode 26.6 builds it, with CocoaPods from Homebrew.
+  `T3_NATIVE_CLIENT_BUILD=local T3_NATIVE_CLIENT_CACHE=off vp run mobile:install ios <simulator>`
+  then `vp run dev:client` in `apps/mobile`. A build is about six minutes.
+- **Testing writes safely:** `vp run dev` seeds from the real data, so the notes folder it lists
+  is the real one. Before adding a line or ticking a to-do from the simulator, remove that
+  project from the dev server (`majord project remove --base-dir <worktree>/.t3 --force <id>`)
+  and add a throwaway folder holding `.majordome/config.json`.
+- **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
+  in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
+  about coding agents; decide whether to ship them), and the remaining coding words ("New
+  thread", "Settled", the two filters on Chats).

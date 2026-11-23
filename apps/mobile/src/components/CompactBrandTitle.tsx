@@ -6,12 +6,14 @@ import { Platform, View } from "react-native";
 
 import { AppText as Text } from "./ui/AppText";
 import { T3Wordmark } from "./T3Wordmark";
+import { isMajordome } from "../majordome/env";
 import { IPAD_HOME_TITLE_OFFSET } from "../lib/layoutMetrics";
 import { resolveMobileStageLabel } from "../lib/mobileBranding";
 import { useAndroidControlSizing } from "./ui/useAndroidControlSizing";
 
 const BRAND_MAX_FONT_SCALE = 1.4;
 const WORDMARK_SUFFIX = "Code";
+const MAJORDOME_NAME = "Majordome";
 
 export function brandTitleOffset(): number {
   if (Platform.OS !== "ios") return 0;
@@ -52,15 +54,19 @@ export function CompactBrandTitle(
         props.fit && { flexShrink: 0 },
       ]}
     >
-      <T3Wordmark colorClassName="accent-icon" height={Math.round(15 * scale)} />
+      {isMajordome ? null : (
+        <T3Wordmark colorClassName="accent-icon" height={Math.round(15 * scale)} />
+      )}
       {/* A logo beside a fixed-size wordmark: it may grow with Dynamic Type, not crowd the bar. */}
       <Text
         allowFontScaling={props.allowFontScaling}
         maxFontSizeMultiplier={BRAND_MAX_FONT_SCALE}
-        className="font-t3-medium text-foreground-muted"
+        className={
+          isMajordome ? "font-t3-medium text-foreground" : "font-t3-medium text-foreground-muted"
+        }
         style={{ fontSize: 21 * scale, letterSpacing: -0.5 * scale }}
       >
-        {WORDMARK_SUFFIX}
+        {isMajordome ? MAJORDOME_NAME : WORDMARK_SUFFIX}
       </Text>
       {showStage ? (
         <View

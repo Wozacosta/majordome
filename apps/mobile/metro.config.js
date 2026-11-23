@@ -38,6 +38,18 @@ config.resolver = {
   },
 };
 
+// Majordome's name and wording go in ahead of whichever transformer is already set.
+function withMajordomeWording(metroConfig) {
+  return {
+    ...metroConfig,
+    transformerPath: require.resolve("./majordome/metroTransformer.cjs"),
+    transformer: {
+      ...metroConfig.transformer,
+      majordomeBaseTransformerPath: metroConfig.transformerPath,
+    },
+  };
+}
+
 async function writeFileIfChanged(filePath, contents) {
   try {
     if ((await fs.promises.readFile(filePath, "utf8")) === contents) return;
@@ -112,9 +124,11 @@ async function prepareStreamScripts() {
 
 module.exports = Promise.all([generateMobileThirdPartyLicenses(), prepareStreamScripts()]).then(
   () =>
-    withUniwindConfig(config, {
-      cssEntryFile: "./global.css",
-      extraThemes,
-      polyfills: { rem: 14 },
-    }),
+    withMajordomeWording(
+      withUniwindConfig(config, {
+        cssEntryFile: "./global.css",
+        extraThemes,
+        polyfills: { rem: 14 },
+      }),
+    ),
 );
