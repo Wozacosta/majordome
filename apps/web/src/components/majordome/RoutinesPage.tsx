@@ -4,7 +4,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +21,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { useAskAssistant } from "./AssistantDock";
 import { machineInSentence } from "./brains.logic";
@@ -34,6 +35,7 @@ import {
   PageHeader,
   Section,
   StatusLine,
+  SwitchLabel,
 } from "./paper";
 import { ReadyRoutines } from "./ReadyRoutines";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
@@ -42,9 +44,15 @@ import { RoutinePlace } from "./RoutinePlace";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import {
   changeRoutineMessage,
+  NEW_ROUTINE_MESSAGE,
   plainDateTime,
   type RoutineItem,
   routineKind,
+  routineLastRun,
+  type RoutinesHold,
+  routinesHold,
+  routinesPausedText,
+  ROUTINES_NOWHERE_TEXT,
   routineWhenLine,
   untilWords,
 } from "./routines.logic";
@@ -81,7 +89,7 @@ export function RoutinesPage() {
 function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
-  const { machineOf } = useMachineNames();
+  const { machineOf, localEnvironmentId } = useMachineNames();
   const { routines, runner, runnerHistory, runnerUnreachable, loading, routinesFailed, retry } =
     useVaultRoutines(vault);
   const canChange = useAtomValue(
@@ -94,6 +102,13 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const { copies } = useMajordomeVaults();
   const askAssistant = useAskAssistant();
   const askToChange = (title: string) => askAssistant?.(changeRoutineMessage(title));
+  const hold = runnerUnreachable ? null : routinesHold(runnerHistory);
+  const newRoutine =
+    askAssistant === null || !canChange || runnerUnreachable ? null : (
+      <Button size="sm" onClick={() => askAssistant(NEW_ROUTINE_MESSAGE)}>
+        Set up a routine
+      </Button>
+    );
 
   return (
     <ScrollArea className="min-h-0 flex-1">
@@ -101,6 +116,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
         <PageHeader
           title="Routines"
           intro="What Majordome does for you on its own. To add or change one, tell the assistant."
+          action={routines.length > 0 ? newRoutine : null}
         />
         {runner !== null ? (
           <div className="mt-3 flex flex-col">
@@ -121,12 +137,47 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
                 ) : null}
               </div>
             ) : (
-              <RoutinesBlockedLine
-                environmentId={runner.environmentId}
-                status={runnerHistory?.routinesStatus}
-                machine={machineOf(runner.environmentId)}
-                label={null}
-              />
+              <>
+                <RoutinesBlockedLine
+                  environmentId={runner.environmentId}
+                  status={runnerHistory?.routinesStatus}
+                  machine={machineOf(runner.environmentId)}
+                  label={null}
+                />
+                {hold === "nowhere" ? (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <StatusLine
+                      tone="warning"
+                      className="flex-1 basis-64 py-2.5"
+                      data-routines-hold={hold}
+                    >
+                      {ROUTINES_NOWHERE_TEXT}, so none of them will run.
+                    </StatusLine>
+                    {canMoveHere ? (
+                      <Button size="xs" variant="outline" onClick={() => setMoving(true)}>
+                        Move routines here
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : hold === "paused" ? (
+                  <StatusLine tone="warning" className="py-2.5" data-routines-hold={hold}>
+                    {routinesPausedText(runnerHistory?.routineLimits?.runsPerDay ?? null)}. You can
+                    change that number under Limits below.
+                  </StatusLine>
+                ) : hold === null &&
+                  runnerHistory?.routinesRunner === "this-server" &&
+                  runner.environmentId === localEnvironmentId ? (
+                  <StatusLine tone="neutral" className="py-2.5" data-routines-awake-only>
+                    Routines run only while this computer is awake.{" "}
+                    <Link
+                      to="/settings/always-on"
+                      className="rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    >
+                      Move them to an always-on server
+                    </Link>
+                  </StatusLine>
+                ) : null}
+              </>
             )}
           </div>
         ) : null}
@@ -147,6 +198,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
                     vault={vault}
                     copies={copies}
                     nowMs={nowMs}
+                    hold={hold}
                     onChange={() => askToChange(item.task.title)}
                   />
                 ))}
@@ -156,10 +208,13 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
             ) : routinesFailed ? (
               <LoadFailed onRetry={retry}>Couldn't load your routines.</LoadFailed>
             ) : (
-              <Muted className="border-t border-border py-3">
-                No routines yet. Tell the assistant what you'd like done and when, such as “every
-                Friday evening, list what I spent this week”.
-              </Muted>
+              <div className="flex flex-col items-start gap-3 border-t border-border py-3">
+                <Muted>
+                  No routines yet. Tell the assistant what you'd like done and when, such as “every
+                  Friday evening, list what I spent this week”.
+                </Muted>
+                {newRoutine}
+              </div>
             )}
           </Section>
         )}
@@ -172,7 +227,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
           />
         )}
 
-        <Disclosure summary="Limits" className="mt-8">
+        <Disclosure summary="Limits" className="mt-8" open={hold === "paused"}>
           <RoutineLimits />
         </Disclosure>
         <MoveRoutinesDialog
@@ -202,12 +257,18 @@ function useTaskAction(item: RoutineItem) {
     label: "routine delete",
     reportFailure: false,
   });
-  const act = async (action: "toggle" | "run" | "delete", confirmation?: string) => {
+  const navigate = useNavigate();
+  const act = async (
+    action: "toggle" | "run" | "delete",
+    confirmation?: { readonly question: string; readonly confirm: string },
+  ) => {
     if (busy || !canOperate) return;
     if (confirmation !== undefined) {
       const confirmed =
-        (await requestConfirmDialog(confirmation, { variant: "destructive" })) ??
-        window.confirm(confirmation);
+        (await requestConfirmDialog(confirmation.question, {
+          variant: "destructive",
+          labels: { confirm: confirmation.confirm, cancel: "Keep it" },
+        })) ?? window.confirm(confirmation.question);
       if (!confirmed) return;
     }
     setBusy(true);
@@ -227,7 +288,25 @@ function useTaskAction(item: RoutineItem) {
         description: failure instanceof Error ? failure.message : String(failure),
       });
     } else if (result._tag === "Success" && action === "run") {
-      toastManager.add({ type: "success", title: `“${task.title}” is running` });
+      const threadId = "task" in result.value ? result.value.task.threadId : null;
+      const toastId = toastManager.add({
+        type: "success",
+        title: `“${task.title}” is running`,
+        ...(threadId === null
+          ? {}
+          : {
+              actionProps: {
+                children: "Open the chat",
+                onClick: () => {
+                  toastManager.close(toastId);
+                  void navigate({
+                    to: "/$environmentId/$threadId",
+                    params: buildThreadRouteParams(scopeThreadRef(environmentId, threadId)),
+                  });
+                },
+              },
+            }),
+      });
     }
   };
   return { act, disabled: busy || !canOperate };
@@ -238,24 +317,50 @@ function RoutineRow({
   vault,
   copies,
   nowMs,
+  hold,
   onChange,
 }: {
   readonly item: RoutineItem;
   readonly vault: MajordomeVault;
   readonly copies: ReadonlyArray<MajordomeVault>;
   readonly nowMs: number;
+  readonly hold: RoutinesHold | null;
   readonly onChange: () => void;
 }) {
   const { task } = item;
   const { act, disabled } = useTaskAction(item);
   const calledFromOutside = routineKind(task) === "outside";
+  const running = task.lastRunStatus === "running";
+  const lastRun = routineLastRun(task, nowMs, { serverTimeZone: item.timeZone });
+  const linkClass =
+    "rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
   return (
     <RoutineEntry
       title={task.title}
       prompt={task.prompt}
-      when={routineWhenLine(task, nowMs, { serverTimeZone: item.timeZone })}
-      lastRunStatus={task.lastRunStatus}
-      lastRunError={task.lastRunError}
+      when={routineWhenLine(task, nowMs, { serverTimeZone: item.timeZone, hold })}
+      lastRun={lastRun}
+      lastRunRemedy={
+        lastRun?.remedy === "run-now" ? (
+          <>
+            Press Run now to do it now, or{" "}
+            <Link to="/settings/always-on" className={linkClass}>
+              keep routines running while the computer sleeps
+            </Link>
+          </>
+        ) : lastRun?.remedy === "open-chat" && task.threadId !== null ? (
+          <>
+            <Link
+              to="/$environmentId/$threadId"
+              params={buildThreadRouteParams(scopeThreadRef(item.environmentId, task.threadId))}
+              className={linkClass}
+            >
+              Open the chat
+            </Link>{" "}
+            to let it go ahead or remove it
+          </>
+        ) : null
+      }
       place={
         calledFromOutside ? null : (
           <RoutinePlace item={item} vault={vault} copies={copies} disabled={disabled} />
@@ -263,31 +368,49 @@ function RoutineRow({
       }
       controls={
         <>
-          <Switch
-            checked={task.enabled}
-            disabled={disabled}
-            aria-label={`${task.title} is ${task.enabled ? "on" : "off"}`}
-            onCheckedChange={() => void act("toggle")}
-          />
+          <SwitchLabel className="me-1 text-xs text-muted-foreground">
+            <Switch
+              checked={task.enabled}
+              disabled={disabled}
+              aria-label={`${task.title} is ${task.enabled ? "on" : "off"}`}
+              onCheckedChange={() => void act("toggle")}
+            />
+            {task.enabled ? "On" : "Off"}
+          </SwitchLabel>
           {calledFromOutside ? null : (
-            <Button size="xs" variant="outline" disabled={disabled} onClick={() => void act("run")}>
-              Run now
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={disabled || running}
+              onClick={() => void act("run")}
+            >
+              {running ? "Running…" : "Run now"}
             </Button>
           )}
           <Button size="xs" variant="ghost" disabled={disabled} onClick={onChange}>
             Edit
           </Button>
-          <Button
-            size="icon-sm"
-            variant="ghost-destructive"
-            disabled={disabled}
-            aria-label={`Delete ${task.title}`}
-            onClick={() =>
-              void act("delete", `Delete the routine “${task.title}”?\nThis cannot be undone.`)
-            }
-          >
-            <Trash2Icon />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon-sm"
+                  variant="ghost-destructive"
+                  disabled={disabled}
+                  aria-label={`Delete ${task.title}`}
+                  onClick={() =>
+                    void act("delete", {
+                      question: `Delete the routine “${task.title}”?\nThis cannot be undone.`,
+                      confirm: "Delete routine",
+                    })
+                  }
+                />
+              }
+            >
+              <Trash2Icon />
+            </TooltipTrigger>
+            <TooltipPopup>Delete this routine</TooltipPopup>
+          </Tooltip>
         </>
       }
     />
@@ -339,7 +462,12 @@ export function ReminderRow({
           variant="ghost"
           disabled={disabled}
           aria-label={`Cancel the reminder ${task.title}`}
-          onClick={() => void act("delete", `Cancel the reminder “${task.title}”?`)}
+          onClick={() =>
+            void act("delete", {
+              question: `Cancel the reminder “${task.title}”?`,
+              confirm: "Cancel reminder",
+            })
+          }
         >
           Cancel
         </Button>

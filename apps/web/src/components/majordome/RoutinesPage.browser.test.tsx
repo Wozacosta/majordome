@@ -26,6 +26,7 @@ const task = (id: string, overrides: Partial<ScheduledTask>) =>
     enabled: true,
     schedule: { type: "fixed_time", timeOfDay: "08:00" },
     nextRunAt: "2026-11-17T08:00:00.000Z",
+    lastRunAt: "2026-11-16T08:00:00.000Z",
     lastRunStatus: "succeeded",
     lastRunError: null,
     threadId: null,
@@ -46,7 +47,7 @@ vi.mock("../../state/entities", () => ({ useQuietThreadShell: () => null }));
 vi.mock("../../state/use-atom-command", () => ({
   useAtomCommand: (command: unknown) => (value: unknown) => {
     state.commands.push([command, value]);
-    return Promise.resolve({ _tag: "Success" });
+    return Promise.resolve({ _tag: "Success", value: { task: { threadId: null } } });
   },
 }));
 vi.mock("./useMachineNames", () => ({ useMachineNames: () => ({ machineOf: () => "This Mac" }) }));
@@ -145,7 +146,7 @@ it("lists routines in plain words, with the assistant beside them", async () => 
   await expect.element(routine.getByText("Start my day")).toBeVisible();
   await expect.element(routine.getByText("Every day at 8:00 · Next in 23 hours")).toBeVisible();
   await expect.element(routine.getByText(/^Open today's daily note/)).toBeVisible();
-  await expect.element(routine.getByText("Last run went well")).toBeVisible();
+  await expect.element(routine.getByText(/^Last run went well/)).toBeVisible();
   // A task another service calls is still a routine, not an error; it has nothing to run now.
   const outside = screen.getByRole("list", { name: "Routines" }).getByRole("listitem").nth(1);
   await expect.element(outside.getByText("Runs when called from outside")).toBeVisible();

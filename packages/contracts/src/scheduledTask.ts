@@ -217,6 +217,14 @@ export type ScheduledTaskUpsertSchedule = typeof ScheduledTaskUpsertSchedule.Typ
 export const ScheduledTaskRunStatus = Schema.Literals(["never", "running", "succeeded", "failed"]);
 export type ScheduledTaskRunStatus = typeof ScheduledTaskRunStatus.Type;
 
+/**
+ * A known cause behind `lastRunError`, for clients that word it themselves: the server was not
+ * running at the scheduled time, an earlier run is still held in the thread's queue, or the run
+ * was stopped before it finished.
+ */
+export const ScheduledTaskRunErrorCode = Schema.Literals(["missed", "held", "stopped"]);
+export type ScheduledTaskRunErrorCode = typeof ScheduledTaskRunErrorCode.Type;
+
 export const ScheduledTaskWebhookEndpoint = Schema.Struct({
   path: TrimmedNonEmptyString,
   url: Schema.NullOr(TrimmedNonEmptyString),
@@ -259,6 +267,8 @@ export const ScheduledTask = Schema.Struct({
   lastRunAt: Schema.NullOr(IsoDateTime),
   lastRunStatus: ScheduledTaskRunStatus,
   lastRunError: Schema.NullOr(Schema.String),
+  /** A `ScheduledTaskRunErrorCode` when the cause is a known one. A string so new codes decode. */
+  lastRunErrorCode: Schema.optional(Schema.String),
   runCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   webhook: Schema.optional(ScheduledTaskWebhookEndpoint),
   /** Why the task cannot run regardless of `enabled`, such as a managed policy refusing webhooks. */

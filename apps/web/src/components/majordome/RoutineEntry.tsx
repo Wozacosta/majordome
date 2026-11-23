@@ -1,17 +1,16 @@
-import type { ScheduledTaskRunStatus } from "@t3tools/contracts";
 import { type ReactNode, useState } from "react";
 
 import { cn } from "../../lib/utils";
-import { Entry, Muted, StatusLine } from "./paper";
-import { ROUTINE_LAST_RUN } from "./routines.logic";
+import { Disclosure, Entry, Muted, StatusLine } from "./paper";
+import type { RoutineLastRun } from "./routines.logic";
 
 /** One routine on the Routines screen: what it does, when it runs, and how its last run went. */
 export function RoutineEntry({
   title,
   prompt,
   when,
-  lastRunStatus,
-  lastRunError,
+  lastRun,
+  lastRunRemedy,
   place,
   controls,
 }: {
@@ -20,13 +19,14 @@ export function RoutineEntry({
   readonly prompt: string;
   /** When it runs and when it runs next, in plain words. */
   readonly when: string;
-  readonly lastRunStatus: ScheduledTaskRunStatus;
-  readonly lastRunError: string | null | undefined;
+  /** How its last run went and when; null before the first one. */
+  readonly lastRun: RoutineLastRun | null;
+  /** What to do about a skipped run, after the status. */
+  readonly lastRunRemedy?: ReactNode;
   /** Where its runs arrive, and the way to change that. */
   readonly place?: ReactNode;
   readonly controls: ReactNode;
 }) {
-  const lastRun = lastRunStatus === "never" ? null : ROUTINE_LAST_RUN[lastRunStatus];
   const [open, setOpen] = useState(false);
   return (
     <Entry title={title} meta={when} actions={controls} data-routine={title}>
@@ -42,12 +42,15 @@ export function RoutineEntry({
         {open ? "Hide instructions" : "Show instructions"}
       </button>
       {lastRun ? (
-        <StatusLine tone={lastRun.tone} data-routine-last-run={lastRunStatus}>
+        <StatusLine tone={lastRun.tone} data-routine-last-run={lastRun.tone}>
           {lastRun.text}
-          {lastRunError ? `: ${lastRunError}` : ""}
+          {lastRunRemedy ? <>. {lastRunRemedy}</> : null}
         </StatusLine>
-      ) : lastRunError ? (
-        <StatusLine tone="error">{lastRunError}</StatusLine>
+      ) : null}
+      {lastRun?.details ? (
+        <Disclosure summary="Details">
+          <p className="break-words whitespace-pre-wrap">{lastRun.details}</p>
+        </Disclosure>
       ) : null}
       {place}
     </Entry>

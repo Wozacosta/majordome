@@ -2,6 +2,8 @@ import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { scheduleTimeZoneLabel } from "@t3tools/client-runtime/scheduled-task-time-zone";
 import type {
   EnvironmentId,
+  MajordomeRoutinesRunner,
+  MajordomeRoutinesStatus,
   ProjectId,
   ScheduledTask,
   ScheduledTaskRunStatus,
@@ -244,20 +246,174 @@ export function untilWords(iso: string, nowMs: number): string {
   return plural(Math.round(hours / 24), "day");
 }
 
+/**
+ * Why none of a notes folder's routines will run for now: today's runs are used up, no computer
+ * runs them, or the AI they use can't be reached. Null when they run.
+ */
+export type RoutinesHold = "paused" | "nowhere" | "blocked";
+
+export function routinesHold(
+  history: {
+    readonly routinesRunner: MajordomeRoutinesRunner;
+    readonly pausedToday?: boolean | undefined;
+    readonly routinesStatus?: MajordomeRoutinesStatus | undefined;
+  } | null,
+): RoutinesHold | null {
+  if (history === null) return null;
+  if (history.routinesRunner === "none") return "nowhere";
+  const status = history.routinesStatus;
+  // "not-created" clears by itself at the server's next check.
+  if (status !== undefined && !status.ready && status.reason !== "not-created") return "blocked";
+  return history.pausedToday === true ? "paused" : null;
+}
+
+export const ROUTINES_NOWHERE_TEXT = "Routines don't run on any computer yet";
+
+/** The line for routines that wait for tomorrow; `runsPerDay` is null when the number is unknown. */
+export function routinesPausedText(runsPerDay: number | null): string {
+  return `Routines are paused until tomorrow: they used today's ${runsPerDay === null ? "" : `${runsPerDay} `}runs`;
+}
+
+const HOLD_WORDS: Record<RoutinesHold, string> = {
+  paused: "Paused until tomorrow",
+  nowhere: "Not running",
+  blocked: "Not running",
+};
+
 /** The line under a routine's name: when it runs, then whether it is on and when it runs next. */
 export function routineWhenLine(
   task: Pick<ScheduledTask, "schedule" | "enabled" | "nextRunAt" | "blockedByPolicy">,
   nowMs: number,
-  options?: Parameters<typeof routineScheduleWords>[1],
+  options?: Parameters<typeof routineScheduleWords>[1] & {
+    /** Set while none of the routines run, so the line does not promise a next run. */
+    readonly hold?: RoutinesHold | null | undefined;
+  },
 ): string {
   const words = routineScheduleWords(task.schedule, options);
   if (task.blockedByPolicy !== undefined) return `${words} · ${task.blockedByPolicy}`;
   if (!task.enabled) return `${words} · Off`;
+  if (options?.hold != null) return `${words} · ${HOLD_WORDS[options.hold]}`;
   if (task.schedule.type === "webhook" || task.nextRunAt === null) return words;
   return `${words} · Next ${untilWords(task.nextRunAt, nowMs)}`;
+}
+
+const dayKey = (ms: number, timeZone: string | undefined) =>
+  new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(timeZone === undefined ? {} : { timeZone }),
+  }).format(ms);
+
+const DAY_MS = 86_400_000;
+
+/** When something happened, for the reader: "today 8:00", "yesterday 8:00", "Tue 17 Nov, 8:00". */
+export function sinceWords(iso: string, nowMs: number, locale?: string, timeZone?: string): string {
+  const at = Date.parse(iso);
+  const day = dayKey(at, timeZone);
+  const near =
+    day === dayKey(nowMs, timeZone)
+      ? "today"
+      : day === dayKey(nowMs - DAY_MS, timeZone)
+        ? "yesterday"
+        : null;
+  if (near === null) return plainDateTime(iso, locale, timeZone);
+  const time = new Intl.DateTimeFormat(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    ...(timeZone === undefined ? {} : { timeZone }),
+  }).format(at);
+  return `${near} ${time}`;
+}
+
+/**
+ * The run a fixed-time routine last skipped, as "on Tue at 8:00": the slot before its next run,
+ * since the server keeps no time for a run it missed. Null when the schedule has no such slot.
+ */
+function skippedSlotWords(
+  task: Pick<ScheduledTask, "schedule" | "nextRunAt">,
+  serverTimeZone: string | undefined,
+): string | null {
+  const { schedule } = task;
+  if (schedule.type !== "fixed_time" || task.nextRunAt === null) return null;
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    ...(serverTimeZone === undefined ? {} : { timeZone: serverTimeZone }),
+  });
+  const next = Date.parse(task.nextRunAt);
+  const everyDay = schedule.weekdays === undefined || schedule.weekdays.length === 0;
+  for (let daysBack = 1; daysBack <= 7; daysBack++) {
+    const name = weekday.format(next - daysBack * DAY_MS);
+    if (
+      everyDay ||
+      schedule.weekdays?.includes(WEEKDAYS.findIndex((day) => day.startsWith(name)))
+    ) {
+      return `on ${name} at ${plainTime(schedule.timeOfDay)}`;
+    }
+  }
+  return null;
+}
+
+export interface RoutineLastRun {
+  readonly tone: "ok" | "neutral" | "warning" | "error";
+  readonly text: string;
+  /** What the owner can do about a run that was skipped. */
+  readonly remedy?: "run-now" | "open-chat";
+  /** What the server said went wrong, when it is not a cause this screen words itself. */
+  readonly details?: string;
+}
+
+/** How a routine's last run went and when, in the owner's words; null before its first run. */
+export function routineLastRun(
+  task: Pick<
+    ScheduledTask,
+    "schedule" | "nextRunAt" | "lastRunAt" | "lastRunStatus" | "lastRunError" | "lastRunErrorCode"
+  >,
+  nowMs: number,
+  options: {
+    readonly serverTimeZone?: string | undefined;
+    readonly readerTimeZone?: string | undefined;
+    readonly locale?: string | undefined;
+  } = {},
+): RoutineLastRun | null {
+  const when =
+    task.lastRunAt === null
+      ? ""
+      : ` · ${sinceWords(task.lastRunAt, nowMs, options.locale, options.readerTimeZone)}`;
+  if (task.lastRunStatus === "running") return { tone: "neutral", text: "Running now" };
+  if (task.lastRunStatus === "succeeded") {
+    return { tone: "ok", text: `${ROUTINE_LAST_RUN.succeeded.text}${when}` };
+  }
+  if (task.lastRunStatus === "never" && task.lastRunError === null) return null;
+  if (task.lastRunErrorCode === "missed") {
+    const slot = skippedSlotWords(task, options.serverTimeZone);
+    return {
+      tone: "warning",
+      text: `Skipped ${slot ?? "a run"}: the computer was asleep or off`,
+      remedy: "run-now",
+    };
+  }
+  if (task.lastRunErrorCode === "held") {
+    return {
+      tone: "warning",
+      text: "Skipped a run: an earlier one is still waiting in its chat",
+      remedy: "open-chat",
+    };
+  }
+  if (task.lastRunErrorCode === "stopped") {
+    return { tone: "neutral", text: `Last run was stopped${when}` };
+  }
+  return {
+    tone: "error",
+    text: `${ROUTINE_LAST_RUN.failed.text}${when}`,
+    ...(task.lastRunError ? { details: task.lastRunError } : {}),
+  };
 }
 
 /** What the owner would write to change a routine; they finish the sentence. */
 export function changeRoutineMessage(title: string): string {
   return `I'd like to change my routine “${title}”: `;
 }
+
+/** What the owner would write to set up their first routine; they finish the sentence. */
+export const NEW_ROUTINE_MESSAGE = "I'd like a new routine: ";

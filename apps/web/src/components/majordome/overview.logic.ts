@@ -31,7 +31,7 @@ import {
   phoneComputerWords,
 } from "./phone.logic";
 import { describeAccess } from "./privateDocuments.logic";
-import { ROUTINE_LAST_RUN, routineKind } from "./routines.logic";
+import { ROUTINE_LAST_RUN, routineKind, routinesPausedText } from "./routines.logic";
 
 /**
  * How a part of the setup is doing. Warning (orange) and error (red) are the sidebar's dots:
@@ -470,10 +470,7 @@ export function routinesSection(input: {
     if (brain.pausedRunsPerDay !== null) {
       lines.push({
         key: `paused:${brain.key}`,
-        text: say(
-          brain.label,
-          `Routines are paused until tomorrow: they used today's ${brain.pausedRunsPerDay} runs`,
-        ),
+        text: say(brain.label, routinesPausedText(brain.pausedRunsPerDay)),
         tone: "warning",
         link: tasksLink,
       });

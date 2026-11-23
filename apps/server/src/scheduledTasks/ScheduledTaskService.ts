@@ -22,6 +22,7 @@ import {
   type ScheduledTaskListResult,
   type ScheduledTaskMutationResult,
   type ScheduledTaskRunNowInput,
+  type ScheduledTaskRunErrorCode,
   type ScheduledTaskRunNowResult,
   type ScheduledTaskSetEnabledInput,
   type ScheduledTaskThreadMode,
@@ -351,6 +352,13 @@ const UNSUCCESSFUL_RUN_ERRORS = {
   cancelled: "The run was cancelled.",
   rolled_back: "The run was rolled back.",
 } as const;
+const MISSED_RUN_ERROR = "Missed a scheduled run because the server was not running at that time.";
+const RUN_ERROR_CODES: Readonly<Record<string, ScheduledTaskRunErrorCode>> = {
+  [MISSED_RUN_ERROR]: "missed",
+  [HELD_OCCURRENCE_ERROR]: "held",
+  [UNSUCCESSFUL_RUN_ERRORS.interrupted]: "stopped",
+  [UNSUCCESSFUL_RUN_ERRORS.cancelled]: "stopped",
+};
 const localNow = DateTime.withCurrentZoneLocal(DateTime.nowInCurrentZone);
 
 function nextRunAt(
@@ -433,6 +441,8 @@ const decodeRow = Effect.fnUntraced(
     const webhook = schedule.type === "webhook" ? webhookEndpoint(row, origin) : undefined;
     const workspaceStrategy = yield* decodeWorkspaceStrategyJson(row.workspace_strategy_json);
     const modelSelection = yield* decodeModelSelectionJson(row.model_selection_json);
+    const lastRunErrorCode =
+      row.last_run_error === null ? undefined : RUN_ERROR_CODES[row.last_run_error];
     return yield* decodeTask({
       id: row.task_id,
       title: row.title,
@@ -454,6 +464,7 @@ const decodeRow = Effect.fnUntraced(
       lastRunAt: row.last_run_at,
       lastRunStatus: row.last_run_status,
       lastRunError: row.last_run_error,
+      ...(lastRunErrorCode === undefined ? {} : { lastRunErrorCode }),
       runCount: row.run_count,
       ...(webhook === undefined ? {} : { webhook }),
     });
@@ -1206,6 +1217,7 @@ export const layer = Layer.effect(
             ),
             lastRunStatus,
             lastRunError,
+            lastRunErrorCode: lastRunError === null ? undefined : RUN_ERROR_CODES[lastRunError],
             runCount: scheduleSource.runCount + 1,
           };
           if (current === null) return { recorded: completed, written: false };
@@ -1370,12 +1382,7 @@ export const layer = Layer.effect(
         ({ task, dueAt }) =>
           Effect.suspend(() =>
             isMissedFixedTimeRun(task.schedule, dueAt, now)
-              ? rescheduleMissedRun(
-                  task,
-                  now,
-                  "missed",
-                  "Missed a scheduled run because the server was not running at that time.",
-                )
+              ? rescheduleMissedRun(task, now, "missed", MISSED_RUN_ERROR)
               : runTask(task, "scheduled"),
           ).pipe(
             Effect.catch((cause) =>
@@ -1644,6 +1651,7 @@ export const layer = Layer.effect(
         lastRunAt: existingTask?.lastRunAt ?? null,
         lastRunStatus: existingTask?.lastRunStatus ?? "never",
         lastRunError: existingTask?.lastRunError ?? null,
+        lastRunErrorCode: existingTask?.lastRunErrorCode,
         runCount: existingTask?.runCount ?? 0,
       };
       yield* saveTask(
