@@ -27,7 +27,11 @@ export const START_PAGE = `<!doctype html>
   .bar > div { height: 100%; width: 0; background: var(--accent); border-radius: 1rem; transition: width .4s ease; }
   ol { list-style: none; margin: 0 0 1.25rem; padding: 0; }
   li { display: flex; gap: .6rem; padding: .3rem 0; color: var(--muted); }
-  li .mark { flex: none; width: 1.2rem; text-align: center; }
+  li .mark { flex: none; width: 1.2rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; }
+  /* The step under way turns, so the page never looks stuck during the long one. */
+  li.now .mark::before { content: ""; width: .85rem; height: .85rem; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: turn .8s linear infinite; }
+  @keyframes turn { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { li.now .mark::before { animation: none; border-color: var(--accent); } }
   li.now { color: var(--fg); font-weight: 600; }
   li.done { color: var(--fg); }
   li.done .mark { color: var(--ok); }
@@ -70,7 +74,7 @@ export const START_PAGE = `<!doctype html>
     for (const item of byId("steps").children) {
       const index = ORDER.indexOf(item.dataset.step);
       item.className = index < at ? "done" : index === at ? "now" : "";
-      item.querySelector(".mark").textContent = index < at ? "\\u2713" : index === at ? "\\u2026" : "\\u25CB";
+      item.querySelector(".mark").textContent = index < at ? "\\u2713" : index === at ? "" : "\\u25CB";
     }
     byId("fill").style.width = (at / ORDER.length) * 100 + "%";
     byId("fill").parentElement.setAttribute("aria-valuenow", String(at));
