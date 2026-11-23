@@ -214,6 +214,9 @@ const MAJORDOME_HIDDEN_SURFACES = new Set([
 ]);
 const isMajordomeSurfaceAction = (action: { readonly label: string }) =>
   !isMajordome || !MAJORDOME_HIDDEN_SURFACES.has(action.label);
+// Not in the wording tables: "Files" is also the name browsers give dragged files.
+const FILES_LABEL = isMajordome ? "Notes" : msg("Files");
+const DIFF_LABEL = isMajordome ? "What changed" : msg("Diff");
 
 const SURFACE_UNAVAILABLE_HINTS = {
   browser: msg("Only available in the desktop app."),
@@ -378,7 +381,7 @@ function RightPanelEmptyState(props: {
       onClick: props.onAddTerminal,
     },
     {
-      label: msg("Files"),
+      label: FILES_LABEL,
       icon: Files,
       shortcut: "F",
       available: props.filesAvailable,
@@ -386,7 +389,7 @@ function RightPanelEmptyState(props: {
       onClick: props.onAddFiles,
     },
     {
-      label: msg("Diff"),
+      label: DIFF_LABEL,
       icon: FileDiff,
       shortcut: "D",
       available: props.diffAvailable,
@@ -602,9 +605,9 @@ function surfaceTitle(
 ): string {
   switch (surface.kind) {
     case "diff":
-      return resolve(msg("Diff"));
+      return resolve(DIFF_LABEL);
     case "files":
-      return resolve(msg("Files"));
+      return resolve(FILES_LABEL);
     case "file":
       return surface.relativePath.slice(
         Math.max(surface.relativePath.lastIndexOf("/"), surface.relativePath.lastIndexOf("\\")) + 1,
@@ -1208,7 +1211,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
       onClick: props.onAddTerminal,
     },
     {
-      label: msg("Files"),
+      label: FILES_LABEL,
       icon: Files,
       shortcut: "F",
       available: props.filesAvailable,
@@ -1216,7 +1219,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
       onClick: props.onAddFiles,
     },
     {
-      label: msg("Diff"),
+      label: DIFF_LABEL,
       icon: FileDiff,
       shortcut: "D",
       available: props.diffAvailable,

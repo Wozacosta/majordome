@@ -46,7 +46,8 @@ import { useClientSettings } from "../../hooks/useSettings";
 import { GuestShareIndicator } from "./GuestShareControls";
 import { isMajordome } from "../../env";
 import { MakeTopicAction } from "../majordome/MakeTopicAction";
-import { TopicHeader } from "../majordome/TopicHeader";
+import { chatTitle } from "../majordome/chats.logic";
+import { TopicHeader, useIsTopicConversation } from "../majordome/TopicHeader";
 
 interface ChatHeaderProps {
   activeThreadEnvironmentId: EnvironmentId;
@@ -202,6 +203,8 @@ export const ChatHeader = memo(function ChatHeader({
       }
     });
   };
+  const isTopicConversation = useIsTopicConversation(activeThreadEnvironmentId, activeThreadId);
+  const shownTitle = isMajordome ? chatTitle(activeThreadTitle) : activeThreadTitle;
   const { openMenu, closeMenu } = useThreadActionMenu({
     threadRef: isServerThread ? activeThreadRef : null,
     projectCwd: activeProjectCwd,
@@ -223,6 +226,8 @@ export const ChatHeader = memo(function ChatHeader({
   };
   const handleHeaderContextMenu = (event: ReactMouseEvent) => {
     if (renamingTitle !== null) return;
+    // A topic keeps its conversation, so the chat menu's archive and delete are not offered on it.
+    if (isMajordome && isTopicConversation) return;
     if (!isServerThread && (isMajordome || onOpenProjectSettings === undefined)) return;
     event.preventDefault();
     if (!isServerThread) {
@@ -257,7 +262,7 @@ export const ChatHeader = memo(function ChatHeader({
         render={
           <button
             type="button"
-            aria-label={gt("Thread actions for {title}", { title: activeThreadTitle })}
+            aria-label={gt("Thread actions for {title}", { title: shownTitle })}
             aria-haspopup="menu"
             onClick={openMenuFromTitle}
             onDoubleClick={canOperateThread ? handleTitleDoubleClick : undefined}
@@ -265,16 +270,21 @@ export const ChatHeader = memo(function ChatHeader({
           />
         }
       >
-        <h2 className="min-w-0" dir={textDirection(activeThreadTitle)}>
-          <WorkspaceBreadcrumbText>{activeThreadTitle}</WorkspaceBreadcrumbText>
+        <h2 className="min-w-0" dir={textDirection(shownTitle)}>
+          <WorkspaceBreadcrumbText>{shownTitle}</WorkspaceBreadcrumbText>
         </h2>
         <ChevronDownIcon
           aria-hidden
           data-thread-title-chevron
-          className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/thread-title:opacity-100 group-focus-visible/thread-title:opacity-100"
+          className={cn(
+            "size-3.5 shrink-0 text-muted-foreground",
+            // Majordome shows it always: on a touch screen nothing hovers to reveal it.
+            !isMajordome &&
+              "opacity-0 transition-opacity group-hover/thread-title:opacity-100 group-focus-visible/thread-title:opacity-100",
+          )}
         />
       </TooltipTrigger>
-      <TooltipPopup side="top">{activeThreadTitle}</TooltipPopup>
+      <TooltipPopup side="top">{shownTitle}</TooltipPopup>
     </Tooltip>
   );
   return (

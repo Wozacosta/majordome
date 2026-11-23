@@ -124,7 +124,7 @@ it("moves a topic to where it is dragged and keeps it there once saved", async (
       item.getAttribute("data-topic-id"),
     ),
   ).toEqual(["b", "c", "a"]);
-  await expect.element(screen.getByRole("button", { name: "Show 1 finished" })).toBeVisible();
+  await expect.element(screen.getByRole("button", { name: "Show 1 done" })).toBeVisible();
 });
 
 it("still opens a topic on a plain click", async () => {

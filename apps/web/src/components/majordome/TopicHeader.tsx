@@ -11,13 +11,24 @@ import { textDirection } from "../../textDirection";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Menu, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
+import { Menu, MenuPopup, MenuTrigger } from "../ui/menu";
 import { notesLink } from "./notes.logic";
 import { topicOfThread } from "./topicFiles.logic";
-import { TopicEditMenuItems, TopicFinishMenuItem, useTopicActions } from "./TopicHeaderActions";
+import { TopicMenuItems, useTopicActions } from "./TopicHeaderActions";
 import { TopicIconBadge } from "./TopicIcon";
 import { topicHeaderFacts, type MajordomeVault, type VaultTopic } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
+import { useOpenTopic } from "./useOpenTopic";
+
+/** Whether this chat is a topic's own conversation, which is kept for as long as the topic is. */
+export function useIsTopicConversation(environmentId: EnvironmentId, threadId: ThreadId): boolean {
+  const { copies } = useMajordomeVaults();
+  return copies.some(
+    (copy) =>
+      copy.environmentId === environmentId &&
+      copy.topics.some((topic) => topic.threadId === threadId),
+  );
+}
 
 /**
  * The title of a chat that is a topic's conversation: the topic's icon and name, where its notes
@@ -52,6 +63,7 @@ function TopicTitle({
   readonly threadId: ThreadId;
 }) {
   const actions = useTopicActions(vault);
+  const openTopic = useOpenTopic(vault);
   const thread = useQuietThreadShell(scopeThreadRef(vault.environmentId, threadId));
   const nowMinute = useNowMinute();
   const activity = thread === null ? null : resolveThreadActivityTimestamp(thread);
@@ -70,7 +82,7 @@ function TopicTitle({
           </h2>
           {finished ? (
             <Badge variant="secondary" size="sm">
-              Finished
+              Done
             </Badge>
           ) : null}
         </div>
@@ -102,9 +114,11 @@ function TopicTitle({
           <EllipsisIcon />
         </MenuTrigger>
         <MenuPopup align="start">
-          <TopicEditMenuItems topic={topic} actions={actions} />
-          <MenuSeparator />
-          <TopicFinishMenuItem topic={topic} actions={actions} />
+          <TopicMenuItems
+            topic={topic}
+            actions={actions}
+            onNewChat={() => void openTopic(topic, { sideChat: true })}
+          />
         </MenuPopup>
       </Menu>
       {actions.dialogs}

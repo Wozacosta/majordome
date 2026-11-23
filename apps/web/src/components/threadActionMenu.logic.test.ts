@@ -103,11 +103,7 @@ describe("buildThreadActionMenuItems", () => {
       }),
     );
     expect(ids(thread)).toEqual([
-      "pin",
       "settle",
-      "snooze",
-      "snooze:hour",
-      "snooze:custom",
       "rename",
       "regenerate-title",
       "mark-unread",
@@ -118,6 +114,12 @@ describe("buildThreadActionMenuItems", () => {
       "copy-thread",
       "archive",
       "delete",
+    ]);
+    const parked = majordomeMenuItems(
+      buildThreadActionMenuItems({ ...baseState, isPinned: true, isSnoozed: true }),
+    );
+    expect(ids(parked).filter((id) => id.includes("pin") || id.includes("snooze"))).toEqual([
+      "unsnooze",
     ]);
     const draft = majordomeMenuItems(
       buildDraftActionMenuItems({ hasPath: true, hasBranch: true, hasProject: true }),

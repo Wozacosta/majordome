@@ -27,6 +27,7 @@ import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
+import { chatStatusWords } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { stepAround, topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
@@ -169,7 +170,7 @@ function TopicTabStrip(props: {
     return status === null ? null : (
       <>
         <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", status.dotClass)} />
-        <span className="sr-only">{status.label}</span>
+        <span className="sr-only">{chatStatusWords(status.label)}</span>
       </>
     );
   };
@@ -252,16 +253,22 @@ function TopicTabStrip(props: {
                 <span className="truncate">{chat.title}</span>
               </Link>
               {chat.done ? null : (
-                <Button
-                  size="icon-micro"
-                  variant="ghost-muted"
-                  aria-label={`${SETTLE_WORDS.settleThread}: ${chat.title}`}
-                  title={SETTLE_WORDS.settleThread}
-                  className="mr-1 shrink-0"
-                  onClick={() => void close(chat)}
-                >
-                  <XIcon />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="icon-micro"
+                        variant="ghost-muted"
+                        aria-label={`Done with this chat: ${chat.title}`}
+                        className="mr-1 shrink-0"
+                        onClick={() => void close(chat)}
+                      />
+                    }
+                  >
+                    <XIcon />
+                  </TooltipTrigger>
+                  <TooltipPopup side="bottom">Done with this chat</TooltipPopup>
+                </Tooltip>
               )}
             </li>
           );

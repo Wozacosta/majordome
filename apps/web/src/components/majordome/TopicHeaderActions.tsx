@@ -6,11 +6,15 @@ import {
 import type { MajordomeTopic } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CircleCheckIcon,
   FolderInputIcon,
+  MessageCirclePlusIcon,
   NotebookTextIcon,
   PencilIcon,
   ShapesIcon,
+  TrashIcon,
   Undo2Icon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -27,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
-import { MenuItem } from "../ui/menu";
+import { MenuItem, MenuSeparator } from "../ui/menu";
 import { toastManager } from "../ui/toast";
 import { notesLink } from "./notes.logic";
 import { TopicDialog, type TopicDialogRequest } from "./TopicDialog";
@@ -49,7 +53,7 @@ export interface TopicActions {
   readonly openDialog: (request: TopicDialogRequest) => void;
   readonly changeIcon: (topic: MajordomeTopic) => void;
   readonly openFolder: (topic: MajordomeTopic) => void;
-  /** Marks the topic as finished, or brings it back; says so, with a way to undo finishing. */
+  /** Marks the topic as done, or brings it back; says so, with a way to undo. */
   readonly setFinished: (topic: MajordomeTopic, finished: boolean) => Promise<void>;
   readonly remove: (topic: MajordomeTopic) => void;
   /** The dialogs these open; render it once, beside the menus. */
@@ -81,9 +85,7 @@ export function useTopicActions(
     });
     if (result._tag === "Failure") {
       reportTopicFailure(
-        finished
-          ? `Could not mark ${topic.title} as finished`
-          : `Could not bring ${topic.title} back`,
+        finished ? `Could not mark ${topic.title} as done` : `Could not bring ${topic.title} back`,
         result,
       );
       return;
@@ -94,7 +96,7 @@ export function useTopicActions(
     }
     const toastId = toastManager.add({
       type: "success",
-      title: `${topic.title} is finished`,
+      title: `${topic.title} is marked as done`,
       description: "Its notes and chat are kept.",
       actionProps: {
         children: "Undo",
@@ -146,16 +148,38 @@ export function useTopicActions(
   };
 }
 
-/** Rename, change folder, change icon and open the folder: a topic's menu, wherever it shows. */
-export function TopicEditMenuItems({
+/**
+ * A topic's menu, the same wherever it shows: on its row in the sidebar and in its chat's header.
+ * A topic marked as done offers no new chat and has no place to move to.
+ */
+export function TopicMenuItems({
   topic,
   actions,
+  onNewChat,
+  onMove,
 }: {
   readonly topic: MajordomeTopic;
   readonly actions: TopicActions;
+  readonly onNewChat: () => void;
+  /** The ways to move it in the sidebar's list; null where it cannot move. */
+  readonly onMove?: {
+    readonly up: boolean;
+    readonly down: boolean;
+    readonly by: (offset: number) => void;
+  } | null;
 }) {
+  const done = topic.finishedAt !== undefined;
   return (
     <>
+      {done ? null : (
+        <>
+          <MenuItem onClick={onNewChat}>
+            <MessageCirclePlusIcon />
+            New chat about this
+          </MenuItem>
+          <MenuSeparator />
+        </>
+      )}
       <MenuItem onClick={() => actions.openDialog({ kind: "rename", topic })}>
         <PencilIcon />
         Rename
@@ -172,23 +196,29 @@ export function TopicEditMenuItems({
         <NotebookTextIcon />
         Open folder in Notes
       </MenuItem>
+      {done || onMove == null ? null : (
+        <>
+          <MenuSeparator />
+          <MenuItem disabled={!onMove.up} onClick={() => onMove.by(-1)}>
+            <ArrowUpIcon />
+            Move up
+          </MenuItem>
+          <MenuItem disabled={!onMove.down} onClick={() => onMove.by(1)}>
+            <ArrowDownIcon />
+            Move down
+          </MenuItem>
+        </>
+      )}
+      <MenuSeparator />
+      <MenuItem onClick={() => void actions.setFinished(topic, !done)}>
+        {done ? <Undo2Icon /> : <CircleCheckIcon />}
+        {done ? "Bring back" : "Mark as done"}
+      </MenuItem>
+      <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
+        <TrashIcon />
+        Remove topic
+      </MenuItem>
     </>
-  );
-}
-
-export function TopicFinishMenuItem({
-  topic,
-  actions,
-}: {
-  readonly topic: MajordomeTopic;
-  readonly actions: TopicActions;
-}) {
-  const finished = topic.finishedAt !== undefined;
-  return (
-    <MenuItem onClick={() => void actions.setFinished(topic, !finished)}>
-      {finished ? <Undo2Icon /> : <CircleCheckIcon />}
-      {finished ? "Bring back" : "Mark as finished"}
-    </MenuItem>
   );
 }
 
@@ -227,8 +257,8 @@ function RemoveTopicDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {topic.title} from your topics?</AlertDialogTitle>
           <AlertDialogDescription>
-            Its notes stay in {topic.folder}. Its chats move to Recent, and a routine that posts in
-            this topic keeps posting in the same chat.
+            Its notes stay in {topic.folder}. Its chats move to Chats, outside any topic, and a
+            routine that posts in this topic keeps posting in the same chat.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

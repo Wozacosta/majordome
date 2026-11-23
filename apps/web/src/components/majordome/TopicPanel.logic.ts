@@ -10,6 +10,7 @@ import type {
 import { remainingPercent } from "@t3tools/shared/usageLimits";
 
 import { isMarkdownPreviewFile } from "../files/filePreviewMode";
+import { chatTitle } from "./chats.logic";
 import { isHiddenVaultPath } from "./notes.logic";
 import { plainDateTime, type RoutineItem, routineScheduleWords } from "./routines.logic";
 import { todoKey } from "./todos.logic";
@@ -278,7 +279,7 @@ export function topicPanelChats(input: {
     const row = {
       environmentId: chat.environmentId,
       threadId: chat.threadId,
-      title: shell.title === "New thread" ? "New chat" : shell.title,
+      title: chatTitle(shell.title),
     };
     (shell.settledOverride === "settled" ? done : open).push(row);
   }
@@ -336,7 +337,7 @@ export function topicTabs(input: {
       {
         environmentId: chat.environmentId,
         threadId: chat.threadId,
-        title: shell.title === "New thread" ? "New chat" : shell.title,
+        title: chatTitle(shell.title),
         done,
       },
     ];

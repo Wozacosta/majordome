@@ -11,6 +11,7 @@ import {
 import { canSnooze, effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
 import {
   AuthOrchestrationOperateScope,
+  type ContextMenuItem,
   type ScopedThreadRef,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -69,6 +70,9 @@ export function useThreadActionMenu(input: {
   readonly onStartRename: () => void;
   readonly onFind?: ((threadRef: ScopedThreadRef) => void) | undefined;
   readonly canShareWithGuest: boolean;
+  /** Majordome's own entries, shown after the mark-unread group; `onExtraAction` gets the one picked. */
+  readonly extraItems?: ReadonlyArray<ContextMenuItem<`extra:${string}`>> | undefined;
+  readonly onExtraAction?: ((id: `extra:${string}`) => void) | undefined;
 }) {
   const { threadRef, projectCwd, onStartRename, onFind, canShareWithGuest } = input;
   const router = useRouter();
@@ -139,7 +143,7 @@ export function useThreadActionMenu(input: {
       };
       const isRegeneratingTitle = thread.titleRegeneration != null;
       const snoozePresets = resolveSnoozePresets(now, timestampFormat, threadRef.environmentId);
-      const items = buildThreadActionMenuItems({
+      const threadItems = buildThreadActionMenuItems({
         canOperate: readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope),
         canFind: onFind !== undefined,
         branch: thread.branch ?? null,
@@ -156,9 +160,20 @@ export function useThreadActionMenu(input: {
         canShareWithGuest,
         canTurnIntoProject: canTurnThreadIntoProject(threadRef),
       });
+      const extraAt = threadItems.findIndex((item) => item.id === "copy");
+      const items: ReadonlyArray<ContextMenuItem<ThreadActionMenuId | `extra:${string}`>> = [
+        ...threadItems.slice(0, extraAt),
+        ...(input.extraItems ?? []),
+        ...threadItems.slice(extraAt),
+      ];
       const clicked = await settlePromise(() => api.contextMenu.show(items, position));
       if (clicked._tag === "Failure" || clicked.value === null) return;
-      const action: ThreadActionMenuId = clicked.value;
+      const picked = clicked.value;
+      if (picked.startsWith("extra:")) {
+        input.onExtraAction?.(picked as `extra:${string}`);
+        return;
+      }
+      const action = picked as ThreadActionMenuId;
       if (
         threadActionRequiresOperate(action) &&
         !readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope)

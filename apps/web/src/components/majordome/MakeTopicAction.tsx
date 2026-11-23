@@ -15,28 +15,23 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { TopicDialog } from "./TopicDialog";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
-/**
- * What a one-off chat's header offers: list it under a topic, or make it a topic of its own. Topic
- * chats, and chats outside a vault, get nothing.
- */
-export function MakeTopicAction(props: {
-  readonly environmentId: EnvironmentId;
-  readonly projectId: ProjectId | null;
-  readonly threadId: ThreadId;
-  readonly title: string;
-}) {
-  // The chat's own server's copy: the topic is made where the chat is.
-  const { copies } = useMajordomeVaults();
-  const [open, setOpen] = useState(false);
+/** Lists a chat under a topic, or with no topic takes it back out; says how it went. */
+export function useSetChatTopic() {
   const setThreadTopic = useAtomCommand(majordomeEnvironment.setThreadTopic, {
     label: "move a chat to a topic",
     reportFailure: false,
   });
-  const place = async (topicId: string | null, topicTitle: string) => {
-    if (props.projectId === null) return;
+  return async (
+    chat: {
+      readonly environmentId: EnvironmentId;
+      readonly projectId: ProjectId;
+      readonly threadId: ThreadId;
+    },
+    topic: { readonly id: string; readonly title: string } | null,
+  ) => {
     const result = await setThreadTopic({
-      environmentId: props.environmentId,
-      input: { projectId: props.projectId, threadId: props.threadId, topicId },
+      environmentId: chat.environmentId,
+      input: { projectId: chat.projectId, threadId: chat.threadId, topicId: topic?.id ?? null },
     });
     if (result._tag === "Failure") {
       if (isAtomCommandInterrupted(result)) return;
@@ -50,8 +45,35 @@ export function MakeTopicAction(props: {
     }
     toastManager.add({
       type: "success",
-      title: topicId === null ? "Moved back to Recent" : `Now under ${topicTitle}`,
+      title: topic === null ? "Moved to Chats, outside any topic" : `Now under ${topic.title}`,
     });
+  };
+}
+
+/**
+ * What a one-off chat's header offers: list it under a topic, or make it a topic of its own. Topic
+ * chats, and chats outside a vault, get nothing.
+ */
+export function MakeTopicAction(props: {
+  readonly environmentId: EnvironmentId;
+  readonly projectId: ProjectId | null;
+  readonly threadId: ThreadId;
+  readonly title: string;
+}) {
+  // The chat's own server's copy: the topic is made where the chat is.
+  const { copies } = useMajordomeVaults();
+  const [open, setOpen] = useState(false);
+  const setChatTopic = useSetChatTopic();
+  const place = async (topic: { readonly id: string; readonly title: string } | null) => {
+    if (props.projectId === null) return;
+    await setChatTopic(
+      {
+        environmentId: props.environmentId,
+        projectId: props.projectId,
+        threadId: props.threadId,
+      },
+      topic,
+    );
   };
   const vault = copies.find(
     (candidate) =>
@@ -91,7 +113,7 @@ export function MakeTopicAction(props: {
             <TooltipPopup side="bottom">
               {placedIn === undefined
                 ? "List this chat under one of your topics"
-                : `Listed under ${placedIn.title}. Move it to another topic or back to Recent`}
+                : `Listed under ${placedIn.title}. Move it to another topic or out of this one`}
             </TooltipPopup>
           </Tooltip>
           <MenuPopup align="start">
@@ -101,7 +123,7 @@ export function MakeTopicAction(props: {
                 <MenuItem
                   key={topic.id}
                   disabled={topic.id === placedIn?.id}
-                  onClick={() => void place(topic.id, topic.title)}
+                  onClick={() => void place(topic)}
                 >
                   {topic.id === placedIn?.id ? <CheckIcon /> : <FolderInputIcon />}
                   {topic.title}
@@ -110,9 +132,9 @@ export function MakeTopicAction(props: {
             {placedIn === undefined ? null : (
               <>
                 <MenuSeparator />
-                <MenuItem onClick={() => void place(null, placedIn.title)}>
+                <MenuItem onClick={() => void place(null)}>
                   <FolderOutputIcon />
-                  Move back to Recent
+                  Move out of this topic
                 </MenuItem>
               </>
             )}

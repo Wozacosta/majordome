@@ -400,9 +400,7 @@ function TopicChats({
             aria-expanded={showDone}
             onClick={() => setShowDone((shown) => !shown)}
           >
-            {showDone
-              ? "Hide chats marked as done"
-              : `Show ${chats.done.length} earlier ${chats.done.length === 1 ? "chat" : "chats"}`}
+            {showDone ? "Hide done" : `Show ${chats.done.length} done`}
           </ThreadDetailsControl>
         ) : null}
         {canStart ? (
