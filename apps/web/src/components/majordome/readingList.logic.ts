@@ -9,9 +9,9 @@ export const READING_KIND_LABELS: Readonly<Record<MajordomeReadingKind, string>>
   article: "Articles",
   video: "Videos",
   paper: "Papers",
-  repo: "Repos",
+  repo: "Code",
   podcast: "Podcasts",
-  doc: "Docs",
+  doc: "Documents",
   other: "Other",
 };
 
@@ -20,9 +20,9 @@ export const READING_KIND_NAMES: Readonly<Record<MajordomeReadingKind, string>> 
   article: "Article",
   video: "Video",
   paper: "Paper",
-  repo: "Repo",
+  repo: "Code",
   podcast: "Podcast",
-  doc: "Doc",
+  doc: "Document",
   other: "Other",
 };
 
@@ -196,6 +196,11 @@ export function splitSnoozedReading(
   };
 }
 
+const openReadingItems = (items: ReadonlyArray<MajordomeReadingItem>, now: Date) =>
+  items.filter(
+    (item) => !isFinished(item) && !isReadingSnoozed(item, now) && item.deletedAt === undefined,
+  );
+
 /**
  * What to do next, and the unfinished ones after. With subjects in focus it is the top item of
  * each, in the subjects' order, then anything already started elsewhere. Without, or when none
@@ -209,9 +214,7 @@ export function nextReadingItems(
   readonly next: ReadonlyArray<MajordomeReadingItem>;
   readonly later: ReadonlyArray<MajordomeReadingItem>;
 } {
-  const open = items.filter(
-    (item) => !isFinished(item) && !isReadingSnoozed(item, now) && item.deletedAt === undefined,
-  );
+  const open = openReadingItems(items, now);
   const tops = subjects
     .filter((subject) => subject.focus === true)
     .flatMap((subject) => open.find((item) => item.subjectId === subject.id) ?? []);
@@ -220,6 +223,22 @@ export function nextReadingItems(
       ? open.slice(0, READING_NEXT_COUNT)
       : [...tops, ...open.filter((item) => item.progress !== undefined && !tops.includes(item))];
   return { next, later: open.filter((item) => !next.includes(item)) };
+}
+
+/** What the Next view says it is showing; null without subjects, when there is nothing to choose. */
+export function readingFocusWords(
+  items: ReadonlyArray<MajordomeReadingItem>,
+  now: Date,
+  subjects: ReadonlyArray<MajordomeReadingSubject>,
+): string | null {
+  if (subjects.length === 0) return null;
+  const focused = subjects.filter((subject) => subject.focus === true);
+  if (focused.length === 0) return "No subject is in focus, so this is the top of your whole list.";
+  const names = focused.map((subject) => subject.name).join(", ");
+  const open = openReadingItems(items, now);
+  return focused.some((subject) => open.some((item) => item.subjectId === subject.id))
+    ? `Showing the top of: ${names}`
+    : `Nothing left in ${names}, so this is the top of your whole list.`;
 }
 
 /** "12 more on your list · 5 h 24 min" for what comes after the Next ones; null for none. */

@@ -6,6 +6,7 @@ import "~/index.css";
 
 import { render } from "../../../test/render";
 import { SidebarProvider } from "../ui/sidebar";
+import { ToastProvider } from "../ui/toast";
 import { ReadingListPage } from "./ReadingListPage";
 
 const state = vi.hoisted(() => ({
@@ -65,9 +66,11 @@ vi.mock("../../state/use-atom-command", () => ({
 }));
 
 const readingPage = (
-  <SidebarProvider>
-    <ReadingListPage />
-  </SidebarProvider>
+  <ToastProvider>
+    <SidebarProvider>
+      <ReadingListPage />
+    </SidebarProvider>
+  </ToastProvider>
 );
 const handle = (container: HTMLElement, id: string) => {
   const button = container.querySelector<HTMLButtonElement>(`[data-reading-id="${id}"] button`);
@@ -81,7 +84,7 @@ const middle = (element: HTMLElement) => {
 const mouse = (type: string, at: { clientX: number; clientY: number }) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...at });
 
-it("saves what is typed on Enter and marks a row finished from its checkbox", async () => {
+it("saves what is typed on Enter, marks a row finished from its checkbox and undoes it", async () => {
   setup();
   await using screen = await render(readingPage);
 
@@ -107,6 +110,31 @@ it("saves what is typed on Enter and marks a row finished from its checkbox", as
     expect(state.commands[2]).toEqual([
       "update",
       { environmentId: "env", input: { projectId: "project", itemId: "b", done: true } },
+    ]),
+  );
+  await screen.getByRole("button", { name: "Undo" }).click();
+  await vi.waitFor(() => expect(state.commands.slice(3)).toEqual([sent("b", { done: false })]));
+});
+
+it("moves a row with Space and the arrow keys", async () => {
+  setup();
+  await using screen = await render(readingPage);
+
+  handle(screen.container, "a").focus();
+  await userEvent.keyboard(" ");
+  await vi.waitFor(() =>
+    expect(screen.container.querySelector("[data-reading-id='a'][data-dragging]")).not.toBeNull(),
+  );
+  await userEvent.keyboard("{ArrowDown}");
+  await expect.element(screen.getByText("Link a is now where Link b was.")).toBeInTheDocument();
+  await userEvent.keyboard(" ");
+
+  await vi.waitFor(() =>
+    expect(state.commands).toEqual([
+      [
+        "reorder",
+        { environmentId: "env", input: { projectId: "project", itemIds: ["b", "a", "c", "z"] } },
+      ],
     ]),
   );
 });
@@ -140,9 +168,11 @@ it("moves a row to where it is dragged and keeps it there once saved", async () 
   );
   // The save has answered and the list has not been read again: the new order stays on screen.
   await screen.rerender(
-    <SidebarProvider>
-      <ReadingListPage />
-    </SidebarProvider>,
+    <ToastProvider>
+      <SidebarProvider>
+        <ReadingListPage />
+      </SidebarProvider>
+    </ToastProvider>,
   );
   expect(
     [...screen.container.querySelectorAll("[data-reading-id]")].map((row) =>
@@ -168,13 +198,14 @@ it("offers the first things as Next, and snoozes, wakes and changes the kind of 
 
   await screen.getByRole("button", { name: "Everything" }).click();
   await screen.getByRole("button", { name: "Snoozed (1)" }).click();
-  await expect.element(screen.getByText("back on Tue 1 Jan 2999")).toBeVisible();
+  // Said twice, once for a phone and once for wider screens; only one of them shows.
+  await expect.element(screen.getByText("back on Tue 1 Jan 2999").first()).toBeInTheDocument();
   await screen.getByRole("button", { name: "More for Link z" }).click();
   await screen.getByRole("menuitem", { name: "Wake it now" }).click();
   await vi.waitFor(() => expect(state.commands[1]).toEqual(sent("z", { snoozedUntil: null })));
 
   await screen.getByRole("button", { name: "More for Link b" }).click();
-  await screen.getByRole("menuitem", { name: "Change kind" }).click();
+  await screen.getByRole("menuitem", { name: "Edit details" }).click();
   await screen.getByRole("menuitemradio", { name: "Video" }).click();
   await vi.waitFor(() => expect(state.commands[2]).toEqual(sent("b", { kind: "video" })));
 });
