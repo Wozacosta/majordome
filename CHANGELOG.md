@@ -21,17 +21,72 @@ Not released yet.
   notes. Nothing it writes is used until you say yes: Settings, then Skills lists what waits, with
   the exact steps to read, and Keep or Delete. "Stop using" on a skill moves it back to the
   waiting list. A reply that wrote a skill says so under it, with a Review button.
+- **Restore from a backup, in the app.** Choose the folder your backup is in, type your
+  passphrase, and your notes come back in a new folder. It is on the welcome screen and in Back
+  up my brain; nothing already on the computer is changed.
+- **Notes and What it did in the sidebar.** Notes has its own row, and the list of what the
+  assistant did is under Automatic. That list is now called "What it did" everywhere.
+- **Act on a chat without opening it.** Every chat on the Chats page has a "…" menu: rename it,
+  mark it as done or bring it back, add it to a topic, or delete it. The arrow next to a chat's
+  title is always visible, so the same menu is easy to find on a phone.
+- **See and remove the phones that can open Majordome.** Phone & notifications lists every phone
+  you added. If you lose one, "Remove this phone" cuts its access.
+- **Connecting Gmail, Calendar and Drive is explained.** "Email, calendar and files" shows the
+  steps and a button to your Claude account's connectors when nothing is connected, and a
+  connector that needs a sign-in links to where you sign in.
+- **See and change your focus from Next.** The reading list's Next view says which subjects it is
+  showing, with a Change button to tick subjects in or out of focus.
+- **Set up a routine from the page.** The Routines page has a "Set up a routine" button, and each
+  routine's switch says "On" or "Off".
 
 **Changed**
 
 - **Chats no longer carry coding tools.** Your assistant is not told about pull requests, issue
   trackers or code worktrees any more: about a fifth less to read before each answer.
+- **Routines say when nothing will run.** The Routines page tells you when routines are paused
+  until tomorrow, when no computer runs them, or when they only run while this computer is awake.
+  A routine stops promising a next run in the meantime.
+- **A skipped run reads as skipped.** A routine whose time passed while the computer was asleep
+  says so, with the day and time, instead of showing a failure. Every last run says when it was.
+- **Reminders warn when nothing will ring.** If no phone or computer has notifications turned on,
+  the Reminders page says so and links to where you turn them on.
+- **Always-on server setup says what it needs first.** The page lists the two accounts, the
+  payment card and the rough monthly price before asking for anything, shows one key's steps at a
+  time, and has one button: "Check my keys", then "Set up a server for me". Putting the server on
+  your phone now goes through Phone & notifications, with nothing to install.
+- **Phone setup shows your progress.** Each step is marked Done as soon as Majordome can see it,
+  and the notifications switch says why it won't turn on.
+- **Pick the backup folder instead of typing it,** with one-click buttons for iCloud Drive,
+  Dropbox, OneDrive and Google Drive when they are on the computer.
+- **Asking before removing.** Stopping a backup, disconnecting Google Drive, forgetting the GitHub
+  sign-in or the server keys, and "Delete for good" in the reading list's Trash now ask first and
+  say what stops and what stays. Ticking something off the reading list offers Undo.
+- **The reading list fits a phone.** A row's length and date sit under its title, kinds and tags
+  wait behind one Filter button, and the "…" menu is shorter. Rows can be moved from the keyboard.
+- **One word for one thing.** Topics and chats are both "done" (not "finished" or "earlier"),
+  chats outside a topic are in "Chats" (not "Recent"), a chat not named yet reads "New chat", and
+  messages say "computer" and "chat" throughout. Chat statuses read "Needs your OK", "Waiting for
+  your answer", "New reply". Times and dates follow your device's own style.
+- **Less developer talk.** Pin and Snooze are gone from chat menus and the Usage page from the
+  sidebar and the search. The side panel offers "Notes" and "What changed", and a side chat is a
+  "Quick question". A topic's "…" offers the same actions in the sidebar and in its header.
 
 **Fixed**
 
 - **`majord update` can no longer fetch another app.** It looked for new versions in T3 Code's
   releases. It now says how Majordome updates: the app offers each new version itself, and a
   Docker server updates with `docker compose pull && docker compose up -d`.
+- **A note that could not be saved keeps your text.** If saving fails, Done keeps the note open,
+  and leaving the note no longer drops what you wrote: it is there, with the same message, when
+  you open the note again. Done and the save status moved to the top of the note, where the
+  Assistant button no longer covers them.
+- **A clearer choice when a note changed somewhere else.** When the assistant or another device
+  changed a note while you were writing, you choose between "Keep mine (replaces the other
+  change)" and "Use the other version".
+- **Page names in messages match the app.** Messages that pointed to "Connections", "Providers"
+  or "Environments" now name "Computers" and "AI accounts".
+- **Clearer buttons on routines and reminders.** Cancelling a reminder asks with "Keep it" and
+  "Cancel reminder", and "Run now" shows "Running…" while a routine runs.
 
 **Try this**
 
@@ -42,6 +97,10 @@ Not released yet.
   it. It moves to "In use".
 - Choose "Stop using" on it: it goes back to the waiting list, where Keep brings it back and
   Delete removes it.
+- Open a note, press Edit, write something and press Done: Done is now at the top.
+- On the Chats page, open the "…" beside a chat and rename it.
+- Open Routines: each row says On or Off and when it last ran.
+- In Settings, open Back up my brain and choose a backup folder with the picker.
 
 ## 0.10.18
 
