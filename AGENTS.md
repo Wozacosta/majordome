@@ -4,6 +4,20 @@ T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provid
 
 You can think of T3 Code as an open source "bring-your-own-subscription" alternative to apps like Claude Desktop, Codex App, Cursor Glass and Conductor.
 
+## Majordome (this fork)
+
+This repository is Majordome, a fork of T3 Code for a second brain. Where the two disagree, these
+rules win. The design is in [docs/decisions.md](docs/decisions.md).
+
+Every change a user can see ships with both of these, in the same commit:
+
+- **Changelog.** An entry in [CHANGELOG.md](CHANGELOG.md) under `## Next`, in the app's own words:
+  what changed, and under "Try this" what is worth trying.
+- **What sets Majordome apart.** If the change adds, removes or hides something T3 Code does not
+  have, a line in [docs/vs-t3-code.md](docs/vs-t3-code.md). When it is headline-worthy, also update
+  the short versions: the `#t3code` section of `site/index.html` and "What it adds to T3 Code" in
+  `README.md`.
+
 ## What makes T3 Code special?
 
 We have over 500,000 users who love T3 Code. It's important we maintain the things they love as we continue to iterate on the product. Here's a brief list of the things we can never compromise on.
