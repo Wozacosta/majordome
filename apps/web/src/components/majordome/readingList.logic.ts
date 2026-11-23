@@ -332,11 +332,11 @@ export function parseReadingMinutes(typed: string): number | null | undefined {
   return Number.isInteger(minutes) && minutes > 0 && minutes <= 6000 ? minutes : undefined;
 }
 
-/** "Nov 6", with the year once it is not this one. */
+/** "Nov 6" as the reader's locale writes it, with the year once it is not this one. */
 export function readingAddedWords(addedAt: string, now: Date): string {
   const added = new Date(addedAt);
   if (Number.isNaN(added.getTime())) return "";
-  return added.toLocaleDateString("en-US", {
+  return added.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     ...(added.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
