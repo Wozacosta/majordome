@@ -7,6 +7,24 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.23
+
+**New**
+
+- **Use your own sign-in in the server's browser, one site at a time.** A chat kept on your
+  always-on server browses signed out. In the desktop app, the side browser's bar now has a key
+  button: press it on a page and choose Chrome, Safari or another browser on this computer, and
+  that one site's sign-in is copied over. The same menu signs the server out of the site again.
+  Only you can press it; the assistant cannot ask for your sign-ins.
+
+**Try this**
+
+- In a chat kept on your always-on server, ask the assistant to open a site you are signed in to
+  in Chrome, such as github.com. Press the key button in the side browser's bar and pick Chrome:
+  the page should reload signed in as you.
+- From the same menu, choose "Sign out of … here": the page should reload signed out, and your
+  own Chrome should still be signed in.
+
 ## 0.10.22
 
 **Changed**
