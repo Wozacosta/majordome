@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How signing in works | Majordome</title>
+    <meta
+      name="description"
+      content="How a Majordome account connects your phone and your computers, in four pictures, and what each part knows about you."
+    />
+    <link rel="canonical" href="https://majord.me/account" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 54rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li .name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 600;
+      }
+      li .host {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+      li .problem {
+        flex-basis: 100%;
+        margin-top: 0;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        margin-top: 28px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 1.45rem;
+        letter-spacing: -0.01em;
+        margin: 40px 0 10px;
+      }
+      h3 {
+        font-size: 1.02rem;
+        margin: 22px 0 4px;
+      }
+      main p + p {
+        margin-top: 12px;
+      }
+      main ul {
+        display: block;
+        border: 0;
+        list-style: disc;
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      main li {
+        display: list-item;
+        padding: 3px 0;
+        border: 0;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      .lede {
+        font-size: 1.15rem;
+        max-width: 40rem;
+      }
+      .map {
+        margin: 28px 0 8px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+      .map-scroll {
+        overflow-x: auto;
+      }
+      .map svg {
+        display: block;
+        width: 100%;
+        /* Below this the labels are too small to read, so a phone scrolls the picture sideways. */
+        min-width: 640px;
+        height: auto;
+      }
+      .map .box {
+        fill: var(--bg);
+        stroke: var(--ink);
+        stroke-width: 1.5;
+      }
+      .map .soft {
+        fill: var(--bg);
+        stroke: var(--line);
+        stroke-width: 1.5;
+      }
+      .map text {
+        fill: var(--ink);
+        font: 600 15px var(--sans);
+      }
+      .map .small {
+        fill: var(--muted);
+        font: 400 12.5px var(--sans);
+      }
+      .map .step {
+        fill: var(--muted);
+        font: 400 12.5px var(--sans);
+      }
+      .map .wire {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 1.5;
+      }
+      .map .notes {
+        fill: none;
+        stroke: var(--live-text);
+        stroke-width: 2;
+        stroke-dasharray: 5 5;
+      }
+      .map .notes-label {
+        fill: var(--live-text);
+        font: 600 12.5px var(--sans);
+      }
+      .map .num {
+        fill: var(--ink);
+      }
+      .map .num-text {
+        fill: var(--bg);
+        font: 700 12px var(--sans);
+      }
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: 6px 24px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        border: 0;
+      }
+      .legend li {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        align-items: baseline;
+        padding: 0;
+        border: 0;
+        font-size: 0.95rem;
+      }
+      .legend b {
+        flex: none;
+        display: inline-grid;
+        place-items: center;
+        width: 1.45rem;
+        height: 1.45rem;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--bg);
+        font-size: 0.8rem;
+      }
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 10px;
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+        border: 0;
+        counter-reset: step;
+      }
+      .flow li {
+        position: relative;
+        flex: 1 1 9.5rem;
+        display: block;
+        padding: 14px 14px 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        font-size: 0.95rem;
+        line-height: 1.4;
+        counter-increment: step;
+      }
+      .flow li::before {
+        content: counter(step);
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      .flow li strong {
+        display: block;
+      }
+      .flow li.end {
+        border-color: var(--live-text);
+      }
+      .flow li.end::before {
+        content: "\2713";
+        color: var(--live-text);
+      }
+      .where {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-top: 4px;
+      }
+      table {
+        width: 100%;
+        margin-top: 14px;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+      th,
+      td {
+        padding: 10px 12px 10px 0;
+        border-top: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        white-space: nowrap;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      :root {
+        --live-text: #17804a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --live-text: #3ddc84;
+        }
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>How signing in works</h1>
+      <p class="lede muted">
+        A Majordome account does one thing: it tells a new device where your servers are, so you
+        never scan a code. Your notes never pass through it.
+      </p>
+
+      <h2>The whole picture</h2>
+      <div class="map">
+        <div class="map-scroll">
+          <svg viewBox="0 0 820 400" role="img" aria-labelledby="map-title map-desc">
+            <title id="map-title">Signing in, from device to server</title>
+            <desc id="map-desc">
+              A device signs in to the account, gets the list of your servers and a one-minute pass,
+              shows the pass to a server, and the server lets it in. Notes travel only between the
+              device and the server.
+            </desc>
+            <defs>
+              <marker
+                id="arrow"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7.5"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0 0 9 4.5 0 9Z" fill="var(--ink)" />
+              </marker>
+              <marker
+                id="arrow-notes"
+                markerWidth="9"
+                markerHeight="9"
+                refX="7.5"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0 0 9 4.5 0 9Z" fill="var(--live-text)" />
+              </marker>
+            </defs>
+
+            <rect class="box" x="20" y="150" width="210" height="150" rx="14" />
+            <text x="40" y="182">Your device</text>
+            <text class="small" x="40" y="206">The Mac app, the iPhone</text>
+            <text class="small" x="40" y="224">app, or a browser</text>
+            <text class="small" x="40" y="258">Holds nothing until you</text>
+            <text class="small" x="40" y="276">sign in</text>
+
+            <rect class="box" x="305" y="20" width="210" height="112" rx="14" />
+            <text x="325" y="52">Your account</text>
+            <text class="small" x="325" y="76">Knows who you are and</text>
+            <text class="small" x="325" y="94">the addresses of your</text>
+            <text class="small" x="325" y="112">servers. Nothing else.</text>
+
+            <rect class="box" x="590" y="150" width="210" height="150" rx="14" />
+            <text x="610" y="182">Your server</text>
+            <text class="small" x="610" y="206">Your computer, or one</text>
+            <text class="small" x="610" y="224">Majordome hosts for you</text>
+            <text class="small" x="610" y="258">Keeps your notes and</text>
+            <text class="small" x="610" y="276">your conversations</text>
+
+            <path class="wire" d="M110 150 C110 70 200 55 300 55" marker-end="url(#arrow)" />
+            <circle class="num" cx="150" cy="78" r="11" />
+            <text class="num-text" x="150" y="82" text-anchor="middle">1</text>
+            <text class="step" x="98" y="122" text-anchor="end">You sign in</text>
+
+            <path class="wire" d="M305 105 C240 105 190 120 180 146" marker-end="url(#arrow)" />
+            <circle class="num" cx="252" cy="118" r="11" />
+            <text class="num-text" x="252" y="122" text-anchor="middle">2</text>
+            <text class="step" x="268" y="150">Your servers,</text>
+            <text class="step" x="268" y="166">and a one-minute pass</text>
+
+            <path class="wire" d="M230 200 L586 200" marker-end="url(#arrow)" />
+            <circle class="num" cx="330" cy="200" r="11" />
+            <text class="num-text" x="330" y="204" text-anchor="middle">3</text>
+            <text class="step" x="350" y="192">The device shows the pass</text>
+
+            <path class="wire" d="M590 245 L234 245" marker-end="url(#arrow)" />
+            <circle class="num" cx="490" cy="245" r="11" />
+            <text class="num-text" x="490" y="249" text-anchor="middle">4</text>
+            <text class="step" x="300" y="268">The server checks it and lets you in</text>
+
+            <path
+              class="notes"
+              d="M125 300 C125 372 695 372 695 304"
+              marker-end="url(#arrow-notes)"
+            />
+            <text class="notes-label" x="410" y="388" text-anchor="middle">
+              Notes and conversations travel here only, never through the account
+            </text>
+          </svg>
+        </div>
+        <ul class="legend">
+          <li><b>1</b><span>You sign in with Google or your email.</span></li>
+          <li>
+            <b>2</b
+            ><span>The account hands back your server list and a pass that lasts a minute.</span>
+          </li>
+          <li><b>3</b><span>Your device shows that pass to the server it wants to open.</span></li>
+          <li>
+            <b>4</b
+            ><span
+              >The server checks the pass itself, then connects the device like a scanned code
+              would.</span
+            >
+          </li>
+        </ul>
+      </div>
+
+      <h2>On your Mac</h2>
+      <p class="where">Majordome app, bottom of the sidebar</p>
+      <ol class="flow">
+        <li><strong>Press Sign in</strong>Use Google or your email.</li>
+        <li>
+          <strong>Your computers join</strong>Every computer and server the app is connected to is
+          added to your account.
+        </li>
+        <li>
+          <strong>Give the Mac an address</strong>One button, only if you want your phone to reach
+          this Mac. A hosted server already has one.
+        </li>
+        <li class="end"><strong>Done</strong>Your account now knows where your servers are.</li>
+      </ol>
+
+      <h2>On your iPhone</h2>
+      <p class="where">Majordome app, first screen</p>
+      <ol class="flow">
+        <li><strong>Press Sign in</strong>The same account as on your Mac.</li>
+        <li><strong>See your servers</strong>The phone lists them by name.</li>
+        <li><strong>Press Connect</strong>No code to scan, nothing to type.</li>
+        <li class="end"><strong>You are in</strong>Today, your chats and your notes are there.</li>
+      </ol>
+
+      <h2>In any browser</h2>
+      <p class="where">On a borrowed computer, or a phone without the app</p>
+      <ol class="flow">
+        <li><strong>Open majord.me/open</strong>One address to remember.</li>
+        <li><strong>Sign in</strong>Google or your email.</li>
+        <li><strong>Press Open</strong>Next to the server you want.</li>
+        <li class="end"><strong>You are in</strong>The browser lands on your server, signed in.</li>
+      </ol>
+
+      <h2>With no computer to leave on</h2>
+      <p class="where">Majordome hosts the server, by invitation</p>
+      <ol class="flow">
+        <li><strong>Open majord.me/start</strong>Sign in first.</li>
+        <li><strong>Enter your invite code</strong>That is all it asks.</li>
+        <li><strong>Wait half a minute</strong>A private server is made for you.</li>
+        <li class="end">
+          <strong>It is yours</strong>It belongs to your account from its first second, so losing a
+          device never locks you out.
+        </li>
+      </ol>
+
+      <h2>What each part knows</h2>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th scope="row">Your account</th>
+            <td>Your email, how you sign in, and the name and address of each of your servers.</td>
+          </tr>
+          <tr>
+            <th scope="row">Each server</th>
+            <td>
+              Which account it belongs to, plus your notes, your conversations and your AI sign-in.
+              These never leave it.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Your device</th>
+            <td>That it is signed in, and a key to each server it is connected to.</td>
+          </tr>
+          <tr>
+            <th scope="row">Majordome, the project</th>
+            <td>
+              Nothing about your notes. For a hosted server or a phone address, see
+              <a href="/privacy">Privacy</a>.
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <h2>Good to know</h2>
+      <p>
+        An account is optional. Scanning the code your computer shows still works, with no account
+        at all. Whoever can sign in to your account can open your servers, so protect it as you
+        would your email. To take a computer out, open Settings, then Your account, and press Remove
+        from account: every device that got in by signing in is signed out of it.
+      </p>
+      <p>
+        <a href="https://github.com/Wozacosta/majordome/blob/main/docs/user/account.md"
+          >The full guide</a
+        >
+        has the details.
+      </p>
+    </main>
+  </body>
+</html>
