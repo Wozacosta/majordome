@@ -99,6 +99,8 @@ export function PageOutline({ className }: { readonly className?: string }) {
     <button
       key={item.index}
       type="button"
+      // Named apart from the page's own controls, which often carry a section's exact words.
+      aria-label={`Go to ${item.label}`}
       aria-current={item.index === current ? "location" : undefined}
       onClick={() => jumpTo(item.index)}
       className={cn(
