@@ -61,6 +61,8 @@ in Settings.
 - `Ctrl+Tab` and `Ctrl+Shift+Tab` move to the next and the previous chat of the topic you are
   reading, as do `Mod+Alt+Right` and `Mod+Alt+Left`.
 
+`Mod+T` starts a new chat about the topic you are reading (`topic.newChat`).
+
 Each list wraps around at its ends. In a browser tab, `Ctrl+Tab` belongs to the browser, so use
 the arrow shortcuts there. The commands are `topic.search`, `topic.previous`, `topic.next`,
 `topic.previousChat` and `topic.nextChat`.

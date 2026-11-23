@@ -9,6 +9,8 @@ Not released yet.
 
 **New**
 
+- **Cmd+T starts a new chat in a topic.** While reading a topic, Cmd+T (Ctrl+T on Windows and
+  Linux) does what the + beside its tabs does: a new chat about it, starting from its notes.
 - **Claude with an API key.** No Claude plan? In Settings, under AI accounts, the Claude account
   now has a "Claude API key" field. Paste a key from the Claude Console and Majordome uses it:
   every message is then billed by use, and your connectors are left out. Remove the key to go

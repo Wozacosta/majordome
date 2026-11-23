@@ -111,6 +111,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "topic.next",
   "topic.previousChat",
   "topic.nextChat",
+  "topic.newChat",
   "editor.openFavorite",
   "usage.cost",
   "usage.tokens",

@@ -134,6 +134,8 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "ctrl+tab", command: "topic.nextChat" },
   { key: "mod+alt+arrowleft", command: "topic.previousChat", when: "!terminalFocus" },
   { key: "mod+alt+arrowright", command: "topic.nextChat", when: "!terminalFocus" },
+  // After rightPanel.new, so in a topic's chat Mod+T opens a chat rather than a panel tab.
+  { key: "mod+t", command: "topic.newChat", when: "topicChat && !terminalFocus" },
   { key: "mod+shift+c", command: "thread.copyReference", when: "!terminalFocus" },
   { key: "mod+shift+s", command: "thread.settle", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },

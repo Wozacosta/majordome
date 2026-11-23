@@ -111,6 +111,11 @@ function TopicTabStrip(props: {
   const openTopic = useOpenTopic({ environmentId, projectId });
   const { settleThread } = useThreadActions();
   const [starting, setStarting] = useState(false);
+  const startChat = () => {
+    if (starting) return;
+    setStarting(true);
+    void openTopic(homeTopic, { sideChat: true }).finally(() => setStarting(false));
+  };
   const shellByKey = new Map(
     shells.map((shell) => [scopedThreadKey(scopeThreadRef(shell.environmentId, shell.id)), shell]),
   );
@@ -141,10 +146,23 @@ function TopicTabStrip(props: {
     };
     // Capture phase: the message box would otherwise keep Tab for itself.
     return registerCommands(
-      { "topic.previousChat": step(-1), "topic.nextChat": step(1) },
-      { capture: true, when: () => !isCommandPaletteOpen() },
+      {
+        "topic.previousChat": step(-1),
+        "topic.nextChat": step(1),
+        "topic.newChat": (event) => {
+          if (!canStart) return false;
+          event.preventDefault();
+          event.stopPropagation();
+          startChat();
+        },
+      },
+      {
+        capture: true,
+        when: () => !isCommandPaletteOpen(),
+        context: () => ({ topicChat: true }),
+      },
     );
-  }, [tabOrder, currentKey, navigate]);
+  });
   const dot = (chat: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId }) => {
     const shell = shellByKey.get(scopedThreadKey(chat));
     const status = shell === undefined ? null : resolveThreadStatusPill({ thread: shell });
@@ -278,10 +296,7 @@ function TopicTabStrip(props: {
                 aria-label="New chat about this"
                 disabled={starting}
                 className="shrink-0"
-                onClick={() => {
-                  setStarting(true);
-                  void openTopic(homeTopic, { sideChat: true }).finally(() => setStarting(false));
-                }}
+                onClick={startChat}
               />
             }
           >
