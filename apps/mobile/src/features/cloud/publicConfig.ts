@@ -78,6 +78,15 @@ export function hasCloudPublicConfig(): boolean {
   return Boolean(config.clerk.publishableKey && config.clerk.jwtTemplate && config.relay.url);
 }
 
+/**
+ * Whether this build has Majordome accounts: an account service and no relay. With a relay the
+ * account service belongs to T3 Connect.
+ */
+export function hasAccountPublicConfig(): boolean {
+  const config = resolveCloudPublicConfig();
+  return Boolean(config.clerk.publishableKey && !config.relay.url);
+}
+
 type Configured<T> = {
   readonly [Key in keyof T]: NonNullable<T[Key]>;
 };

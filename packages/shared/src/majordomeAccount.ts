@@ -56,3 +56,43 @@ export function withoutAccountServer(metadata: unknown, environmentId: string) {
     ),
   };
 }
+
+/** The account service's token template whose tokens a Majordome server accepts. */
+export const ACCOUNT_TOKEN_OPTIONS = { template: "majordome", skipCache: true } as const;
+
+export type AccountSignIn =
+  | { readonly ok: true; readonly credential: string }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Shows `server` a fresh account token and gets the one-time code its pairing takes. `path` is
+ * `MAJORDOME_ACCOUNT_SIGN_IN_PATH`; this package cannot import the contracts.
+ */
+export async function signInToAccountServer(input: {
+  readonly server: AccountServer;
+  readonly token: string;
+  readonly path: string;
+  /** The app's own `fetch`; this package makes no requests of its own. */
+  readonly request: (url: URL, init: RequestInit) => Promise<Response>;
+}): Promise<AccountSignIn> {
+  const { server } = input;
+  const response = await input
+    .request(new URL(input.path, server.url), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: input.token }),
+    })
+    .catch(() => null);
+  if (response === null) {
+    return { ok: false, message: `${server.name} did not answer. It may be off.` };
+  }
+  const body: unknown = await response.json().catch(() => null);
+  const read = (key: string) => {
+    const value = typeof body === "object" && body !== null ? Reflect.get(body, key) : null;
+    return typeof value === "string" ? value : null;
+  };
+  const credential = read("credential");
+  return response.ok && credential !== null
+    ? { ok: true, credential }
+    : { ok: false, message: read("message") ?? `${server.name} refused the sign-in.` };
+}

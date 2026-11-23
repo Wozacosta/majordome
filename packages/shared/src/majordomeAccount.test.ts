@@ -1,6 +1,6 @@
 import { expect, it } from "vite-plus/test";
 
-import { readAccountServers, withAccountServer, withoutAccountServer } from "./account.logic";
+import { readAccountServers, withAccountServer, withoutAccountServer } from "./majordomeAccount.ts";
 
 const laptop = { environmentId: "env-laptop", url: "https://k7m2xq9d.majord.link", name: "Laptop" };
 const hosted = { environmentId: "env-hosted", url: "https://majordome-abc.fly.dev", name: "Cloud" };

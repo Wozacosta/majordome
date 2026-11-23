@@ -6,10 +6,11 @@ import { cloudAccountService, deactivateCloudRelayAccount } from "./cloudAccount
 import { resolveCloudPublicConfig } from "./publicConfig";
 
 const cloudConfig = resolveCloudPublicConfig();
-// Build-time constant: null when this build has no cloud config.
-const publishableKey = cloudConfig.relay.url ? cloudConfig.clerk.publishableKey : null;
+// Build-time constant: null when this build has no account service at all. Without a relay the
+// account service is Majordome's own, which signs in and has no relay account to attach.
+const { publishableKey } = cloudConfig.clerk;
 
-if (publishableKey) {
+if (publishableKey && cloudConfig.relay.url) {
   // The same native singleton ClerkProvider renders with, so the service
   // observes it for the app's lifetime without a React subscription.
   cloudAccountService.attach(getClerkInstance({ publishableKey }));

@@ -12,6 +12,7 @@ export const MAJORDOME_SETTINGS_LABELS = {
   SettingsEnvironmentAgentBehavior: "New chat defaults",
   SettingsArchive: "Archived chats",
   SettingsHostedSignup: "A Majordome server",
+  SettingsAccount: "Your account",
 } as const;
 
 type Labelled = keyof typeof MAJORDOME_SETTINGS_LABELS;

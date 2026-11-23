@@ -28,7 +28,7 @@ import { FrostedCutout } from "../../components/ui/FrostedCutout";
 import { buildPairingUrl, extractPairingUrlFromQrPayload, parsePairingUrl } from "./pairing";
 import { useRemoteConnections } from "../../state/use-remote-environment-registry";
 import { SymbolView } from "../../components/ui/AppSymbol";
-import { hasCloudPublicConfig } from "../cloud/publicConfig";
+import { hasAccountPublicConfig, hasCloudPublicConfig } from "../cloud/publicConfig";
 import { CloudEnvironmentRows } from "./CloudEnvironmentRows";
 import { autoConnectReport, devAutoConnectAttemptAtom } from "./devAutoConnect";
 import { splitEnvironmentSections } from "./environmentSections";
@@ -346,6 +346,13 @@ function PairingForm({
 
             {isMajordome ? (
               <View className="overflow-hidden rounded-[26px] border-continuous">
+                {hasAccountPublicConfig() ? (
+                  <ListRow
+                    label={MAJORDOME_CONNECT.accountLabel}
+                    description={MAJORDOME_CONNECT.accountDescription}
+                    onPress={() => navigation.navigate("SettingsAccount")}
+                  />
+                ) : null}
                 <ListRow
                   label={MAJORDOME_CONNECT.hostedLabel}
                   description={MAJORDOME_CONNECT.hostedDescription}

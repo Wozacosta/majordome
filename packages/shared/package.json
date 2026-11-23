@@ -7,6 +7,10 @@
       "types": "./src/majordome.ts",
       "import": "./src/majordome.ts"
     },
+    "./majordomeAccount": {
+      "types": "./src/majordomeAccount.ts",
+      "import": "./src/majordomeAccount.ts"
+    },
     "./majordomeTopicIcons": {
       "types": "./src/majordomeTopicIcons.ts",
       "import": "./src/majordomeTopicIcons.ts"

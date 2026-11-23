@@ -144,6 +144,7 @@ import { SettingsLabsRouteScreen } from "./features/settings/ThreadSettingsSecti
 import { SettingsEnvironmentFilterProvider } from "./features/settings/settings-environment-filter";
 import { openSettings, settingsOpenIn } from "./features/settings/settings-navigation";
 import { isMajordome } from "./majordome/env";
+import { AccountScreen } from "./majordome/AccountScreen";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
@@ -315,6 +316,10 @@ const SETTINGS_SCREENS = {
   }),
   SettingsHostedSignup: createNativeStackScreen({
     screen: HostedSignupScreen,
+    options: settingsPage(),
+  }),
+  SettingsAccount: createNativeStackScreen({
+    screen: AccountScreen,
     options: settingsPage(),
   }),
   SettingsArchive: createNativeStackScreen({

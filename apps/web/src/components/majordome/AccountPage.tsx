@@ -9,6 +9,14 @@ import {
   MAJORDOME_ACCOUNT_SIGN_IN_PATH,
   type MajordomeAccount,
 } from "@t3tools/contracts";
+import {
+  ACCOUNT_TOKEN_OPTIONS,
+  type AccountServer,
+  readAccountServers,
+  signInToAccountServer,
+  withAccountServer,
+  withoutAccountServer,
+} from "@t3tools/shared/majordomeAccount";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import { useEffect, useState } from "react";
@@ -21,17 +29,10 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { resolveDesktopPairingUrl } from "../settings/pairingUrls";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import {
-  type AccountServer,
-  readAccountServers,
-  withAccountServer,
-  withoutAccountServer,
-} from "./account.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { Entry, EntryList, Muted, Section, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
-const TOKEN_OPTIONS = { template: "majordome", skipCache: true } as const;
 const SIGN_IN_AGAIN = "Sign in again, then try once more.";
 
 const failureMessage = (failure: unknown) =>
@@ -102,7 +103,7 @@ function SignedInOrOut() {
 /** Reads a fresh token for the signed-in account, or null when the session has ended. */
 function useAccountToken() {
   const clerk = useClerk();
-  return async () => (await clerk.session?.getToken(TOKEN_OPTIONS)) ?? null;
+  return async () => (await clerk.session?.getToken(ACCOUNT_TOKEN_OPTIONS)) ?? null;
 }
 
 function ThisServer({
@@ -279,23 +280,15 @@ function AccountServerRow({
   const signIn = async (): Promise<string | null> => {
     const token = await readToken();
     if (token === null) return SIGN_IN_AGAIN;
-    const response = await fetch(new URL(MAJORDOME_ACCOUNT_SIGN_IN_PATH, server.url), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token }),
-    }).catch(() => null);
-    if (response === null) return `${server.name} did not answer. It may be off.`;
-    const body: unknown = await response.json().catch(() => null);
-    const read = (key: string) => {
-      const value = typeof body === "object" && body !== null ? Reflect.get(body, key) : null;
-      return typeof value === "string" ? value : null;
-    };
-    const credential = read("credential");
-    if (!response.ok || credential === null) {
-      return read("message") ?? `${server.name} refused the sign-in.`;
-    }
+    const signedIn = await signInToAccountServer({
+      server,
+      token,
+      path: MAJORDOME_ACCOUNT_SIGN_IN_PATH,
+      request: (url, init) => fetch(url, init),
+    });
+    if (!signedIn.ok) return signedIn.message;
     const paired = await connect({
-      pairingUrl: resolveDesktopPairingUrl(server.url, credential),
+      pairingUrl: resolveDesktopPairingUrl(server.url, signedIn.credential),
     });
     if (paired._tag === "Success" || isAtomCommandInterrupted(paired)) return null;
     return failureMessage(squashAtomCommandFailure(paired));

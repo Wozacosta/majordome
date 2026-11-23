@@ -20,6 +20,8 @@ export const MAJORDOME_CONNECT = {
   wrongCodeTitle: "That isn't a Majordome code",
   wrongCode:
     "Scan the code Majordome shows on your computer, under Settings, then Phone & notifications.",
+  accountLabel: "Have a Majordome account?",
+  accountDescription: "Sign in and this phone finds your servers. No code to scan.",
   hostedLabel: "No computer to leave on?",
   hostedDescription: "Majordome can host it for you. You need an invite code.",
 } as const;
