@@ -117,6 +117,21 @@ export function hasCloudPublicConfig(): boolean {
   }
 }
 
+/**
+ * Whether this build has Majordome accounts: an account service and no relay. With a relay the
+ * account service belongs to T3 Connect, whose screens take over.
+ */
+export function hasAccountPublicConfig(): boolean {
+  const { clerkPublishableKey, relayUrl } = resolveCloudPublicConfig();
+  if (!clerkPublishableKey || relayUrl) return false;
+  // A production account service only signs in on its own domain; the desktop app is exempt.
+  return (
+    typeof window === "undefined" ||
+    window.desktopBridge !== undefined ||
+    !clerkPublishableKey.startsWith("pk_live_")
+  );
+}
+
 export function resolveRelayClerkTokenOptions() {
   const { clerkJwtTemplate } = resolveCloudPublicConfig();
   if (!clerkJwtTemplate) {

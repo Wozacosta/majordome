@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 import "@fontsource-variable/inter";
 import "./index.css";
 
-import { hasCloudPublicConfig } from "./cloud/publicConfig";
+import { hasAccountPublicConfig, hasCloudPublicConfig } from "./cloud/publicConfig";
 import { isElectron } from "./env";
 import { startAppServices } from "./appInit";
 import { AppRoot } from "./AppRoot";
@@ -31,7 +31,11 @@ const managedAuthShellModule =
     ? isElectron
       ? import("./components/clerk/ElectronManagedAuthShell")
       : import("./components/clerk/BrowserManagedAuthShell")
-    : null;
+    : clerkPublishableKey && hasAccountPublicConfig()
+      ? isElectron
+        ? import("./components/majordome/ElectronAccountShell")
+        : import("./components/majordome/BrowserAccountShell")
+      : null;
 
 export const startup = Promise.all([
   managedAuthShellModule?.then((module) => module.default) ?? null,

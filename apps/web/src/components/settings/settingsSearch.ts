@@ -1,5 +1,6 @@
 import { HOSTED_APP_CHANNEL } from "~/branding";
 import { isElectron, isMajordome, isSecretsFeatureEnabled } from "~/env";
+import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
 import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@t3tools/contracts";
 import type { EnvironmentId } from "@t3tools/contracts";
@@ -48,6 +49,7 @@ export type SettingsPath =
   | "/settings/private-documents"
   | "/settings/skills"
   | "/settings/phone"
+  | "/settings/account"
   | "/settings/always-on";
 
 export type SettingsSearchScope =
@@ -134,11 +136,14 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/private-documents": msg("Private documents"),
   "/settings/skills": msg("Skills"),
   "/settings/phone": msg("Phone & notifications"),
+  "/settings/account": msg("Your account"),
   "/settings/always-on": msg("Your server"),
 };
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
 const MAJORDOME_HIDDEN_SETTINGS: ReadonlySet<string> = new Set([
+  // Shown only by a build that has an account service.
+  ...(hasAccountPublicConfig() ? [] : ["/settings/account"]),
   "/settings/scheduled-tasks",
   "/settings/source-control",
   "/settings/worktrees",
@@ -300,7 +305,12 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
   },
   {
     heading: msg("Your devices"),
-    paths: ["/settings/phone", "/settings/always-on"],
+    paths: [
+      "/settings/phone",
+      "/settings/always-on",
+      // Only in a build that has an account service.
+      ...(hasAccountPublicConfig() ? (["/settings/account"] as const) : []),
+    ],
   },
   {
     heading: msg("This app"),
@@ -1289,6 +1299,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "majordome-account",
+    title: msg("Your account"),
+    to: "/settings/account",
+    majordomeOnly: true,
+    searchTerms: ["sign in log in login account email google servers devices find my server"],
+  },
+  {
     id: "majordome-always-on",
     title: msg("Your server"),
     to: "/settings/always-on",
@@ -1729,6 +1746,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/private-documents": null,
   "/settings/skills": null,
   "/settings/phone": null,
+  "/settings/account": null,
   "/settings/always-on": null,
 };
 

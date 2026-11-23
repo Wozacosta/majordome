@@ -37,6 +37,7 @@ import {
   Settings2Icon,
   ShieldCheckIcon,
   SmartphoneIcon,
+  CircleUserRoundIcon,
   WrenchIcon,
   XIcon,
 } from "lucide-react";
@@ -129,6 +130,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/private-documents": FileLockIcon,
   "/settings/skills": GraduationCapIcon,
   "/settings/phone": SmartphoneIcon,
+  "/settings/account": CircleUserRoundIcon,
   "/settings/always-on": ServerIcon,
 };
 

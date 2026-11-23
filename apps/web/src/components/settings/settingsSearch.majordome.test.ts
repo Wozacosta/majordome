@@ -14,6 +14,9 @@ vi.mock("~/env", async (importOriginal) => ({
   isSecretsFeatureEnabled: false,
 }));
 
+// Accounts show only in a build with an account service, which a developer's `.env` may name.
+vi.mock("../../cloud/publicConfig", () => ({ hasAccountPublicConfig: () => false }));
+
 it("opens on Status, groups pages by what is being set up, and folds T3's plumbing away", () => {
   expect(
     SETTINGS_NAV_GROUPS.map((group) => ({

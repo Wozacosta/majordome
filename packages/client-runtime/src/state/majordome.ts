@@ -25,6 +25,17 @@ export const phoneSetupRevision = Atom.family((environmentId: EnvironmentId) =>
   ),
 );
 
+/** Bumped after this server's account is linked or removed. */
+const accountRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:account-revision:${environmentId}`),
+  ),
+);
+
+const bumpAccount = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(accountRevision(environmentId), (value) => value + 1));
+
 export function createMajordomeEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | R, E>,
 ) {
@@ -77,6 +88,22 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeDisableAnywhereAddress,
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(phoneSetupRevision(environmentId), (value) => value + 1)),
+    }),
+    /** The Majordome account this server belongs to. */
+    account: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:account",
+      tag: WS_METHODS.majordomeGetAccount,
+      refreshTrigger: ({ environmentId }) => accountRevision(environmentId),
+    }),
+    linkAccount: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:link-account",
+      tag: WS_METHODS.majordomeLinkAccount,
+      onSettled: ({ environmentId }, registry) => bumpAccount(environmentId, registry),
+    }),
+    unlinkAccount: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:unlink-account",
+      tag: WS_METHODS.majordomeUnlinkAccount,
+      onSettled: ({ environmentId }, registry) => bumpAccount(environmentId, registry),
     }),
     /** "Set up a server for me": the server's own account of each step, as it happens. */
     serverMove: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
