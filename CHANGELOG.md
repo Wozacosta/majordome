@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.22
+
 **Changed**
 
 - **Chats open in place in the sidebar.** The Chats row has an arrow that lists the chats still
