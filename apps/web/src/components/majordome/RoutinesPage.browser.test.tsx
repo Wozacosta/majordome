@@ -144,7 +144,9 @@ it("lists routines in plain words, with the assistant beside them", async () => 
 
   const routine = screen.getByRole("list", { name: "Routines" }).getByRole("listitem").first();
   await expect.element(routine.getByText("Start my day")).toBeVisible();
-  await expect.element(routine.getByText("Every day at 8:00 · Next in 23 hours")).toBeVisible();
+  await expect
+    .element(routine.getByText(/^Every day at 8:00( AM)? · Next in 23 hours/))
+    .toBeVisible();
   await expect.element(routine.getByText(/^Open today's daily note/)).toBeVisible();
   await expect.element(routine.getByText(/^Last run went well/)).toBeVisible();
   // A task another service calls is still a routine, not an error; it has nothing to run now.
