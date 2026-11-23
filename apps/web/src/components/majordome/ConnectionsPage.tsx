@@ -23,8 +23,9 @@ import {
   connectorsView,
   isUnknownRequest,
 } from "./connections.logic";
+import { ComputerSwitch, useShownComputer } from "./ComputerSwitch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
-import { Entry, EntryList, Muted, Section, SectionTitle, StatusLine, Step, Steps } from "./paper";
+import { Entry, EntryList, Muted, Section, StatusLine, Step, Steps } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 /** What the assistant can reach on each computer: its AI accounts, connectors and backups. */
@@ -73,8 +74,16 @@ export function ConnectionsPage() {
     setChecking(false);
   };
 
+  const choices = machines.map((machine) => ({
+    id: machine.environmentId,
+    label: machineOf(machine.environmentId),
+    machine,
+  }));
+  const [shown, showComputer] = useShownComputer(choices);
+
   return (
     <MajordomeSettingsPage
+      outline={false}
       searchId="majordome-connections"
       intro="What your assistant can reach. Each computer has its own sign-ins, so a routine can only use what is connected on the computer it runs on."
       action={
@@ -94,28 +103,23 @@ export function ConnectionsPage() {
           <Skeleton className="h-40 w-full" />
         </Section>
       ) : null}
-      {machines.map((machine) => {
-        const name = machines.length > 1 ? machineOf(machine.environmentId) : null;
-        return (
-          <div
-            key={machine.environmentId}
-            className={name === null ? undefined : "mt-10"}
-            data-connections-machine={machine.environmentId}
-          >
-            {name !== null ? <SectionTitle>{name}</SectionTitle> : null}
-            {machine.connection.phase === "connected" ? (
-              <Machine
-                environmentId={machine.environmentId}
-                name={name}
-                backups={backupsOf(machine.environmentId)}
-                elsewhere={isElsewhere(machine.environmentId)}
-              />
-            ) : (
-              <Muted className="mt-2">Majordome isn't connected to this computer right now.</Muted>
-            )}
-          </div>
-        );
-      })}
+      <ComputerSwitch choices={choices} shownId={shown?.id ?? null} onShow={showComputer} />
+      {shown === null ? null : (
+        <div data-connections-machine={shown.id}>
+          {shown.machine.connection.phase === "connected" ? (
+            <Machine
+              environmentId={shown.id}
+              name={machines.length > 1 ? shown.label : null}
+              backups={backupsOf(shown.id)}
+              elsewhere={isElsewhere(shown.id)}
+            />
+          ) : (
+            <Section>
+              <Muted>Majordome isn't connected to this computer right now.</Muted>
+            </Section>
+          )}
+        </div>
+      )}
     </MajordomeSettingsPage>
   );
 }
@@ -135,8 +139,8 @@ function Machine({
   const providers = useEnvironmentProviders().get(environmentId) ?? null;
   const ai = providers === null ? null : aiRows(providers);
   // Under a machine's name the labels are one level down; a lone machine has no name above them.
-  const labelAs = name === null ? "h2" : "h3";
-  const sectionClassName = name === null ? undefined : "mt-5";
+  const labelAs = "h2";
+  const sectionClassName = undefined;
   return (
     <>
       <Section

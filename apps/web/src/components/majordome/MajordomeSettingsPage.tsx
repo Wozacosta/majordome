@@ -12,6 +12,7 @@ export function MajordomeSettingsPage({
   width,
   intro,
   action,
+  outline = true,
   children,
 }: {
   readonly searchId: SettingsSearchItemId;
@@ -19,6 +20,8 @@ export function MajordomeSettingsPage({
   /** One sentence under the title, only where it helps a decision. */
   readonly intro?: ReactNode;
   readonly action?: ReactNode;
+  /** False where the page shows one computer at a time, which already keeps it short. */
+  readonly outline?: boolean;
   readonly children: ReactNode;
 }) {
   const target = useSearchableSetting()(searchId);
@@ -29,7 +32,7 @@ export function MajordomeSettingsPage({
         {/* Without it, a search jump would center the whole page instead of its top. */}
         <span data-settings-scroll-target aria-hidden className="block" />
         <PageHeader title={target.title} intro={intro} action={action} />
-        <PageOutline className="mt-4" />
+        {outline ? <PageOutline className="mt-4" /> : null}
         {children}
       </SettingsSearchTarget>
     </SettingsPageContainer>

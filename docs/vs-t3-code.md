@@ -84,6 +84,9 @@ The landing page and the README show a short version of this list.
   what it is for, and messages name pages as the app does.
 - **A jump list on long settings pages.** Under the title, the page's sections are listed on one
   line that stays in view; click one to go there.
+- **One computer at a time.** Pages that say the same things about each computer (Connections,
+  Back up my brain, Private documents) have a switch under the title instead of repeating
+  themselves.
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
 

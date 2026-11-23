@@ -39,17 +39,9 @@ import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { machineInSentence } from "./brains.logic";
 import { isUnknownRequest } from "./connections.logic";
+import { ComputerSwitch, useShownComputer } from "./ComputerSwitch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
-import {
-  Disclosure,
-  Entry,
-  EntryList,
-  Muted,
-  Section,
-  SectionTitle,
-  StatusLine,
-  Surface,
-} from "./paper";
+import { Disclosure, Entry, EntryList, Muted, Section, StatusLine, Surface } from "./paper";
 import {
   defaultDocumentName,
   describeAccess,
@@ -69,8 +61,16 @@ export function PrivateDocumentsPage() {
     ...environments.filter((environment) => environment.environmentId !== primaryEnvironmentId),
   ];
 
+  const choices = machines.map((machine) => ({
+    id: machine.environmentId,
+    label: machineOf(machine.environmentId),
+    machine,
+  }));
+  const [shown, showComputer] = useShownComputer(choices);
+
   return (
     <MajordomeSettingsPage
+      outline={false}
       searchId="majordome-private-documents"
       intro="For a passport scan, a tax return, a contract: files your assistant can use only after you say yes, each time. They are kept encrypted on one computer, outside your notes and their backups."
     >
@@ -79,23 +79,18 @@ export function PrivateDocumentsPage() {
           <Skeleton className="h-40 w-full" />
         </Section>
       ) : null}
-      {machines.map((machine) => {
-        const name = machines.length > 1 ? machineOf(machine.environmentId) : null;
-        return (
-          <div
-            key={machine.environmentId}
-            className={name === null ? undefined : "mt-10"}
-            data-private-documents-machine={machine.environmentId}
-          >
-            {name !== null ? <SectionTitle>{name}</SectionTitle> : null}
-            {machine.connection.phase === "connected" ? (
-              <Machine environmentId={machine.environmentId} name={name} />
-            ) : (
-              <Muted className="mt-2">Majordome isn't connected to this computer right now.</Muted>
-            )}
-          </div>
-        );
-      })}
+      <ComputerSwitch choices={choices} shownId={shown?.id ?? null} onShow={showComputer} />
+      {shown === null ? null : (
+        <div data-private-documents-machine={shown.id}>
+          {shown.machine.connection.phase === "connected" ? (
+            <Machine environmentId={shown.id} name={machines.length > 1 ? shown.label : null} />
+          ) : (
+            <Section>
+              <Muted>Majordome isn't connected to this computer right now.</Muted>
+            </Section>
+          )}
+        </div>
+      )}
       <Section>
         <Disclosure summary="How private is this?">
           <p>
@@ -131,8 +126,8 @@ function Machine({
     majordomeEnvironment.addPrivateDocument.permissionAtom(environmentId),
   );
   const [removing, setRemoving] = useState<MajordomePrivateDocument | null>(null);
-  const labelAs = name === null ? "h2" : "h3";
-  const sectionClassName = name === null ? undefined : "mt-5";
+  const labelAs = "h2";
+  const sectionClassName = undefined;
   const data = AsyncResult.getOrElse(result, () => null);
 
   if (data === null) {

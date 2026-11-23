@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Connections, Back up my brain and Private documents show one computer at a time.** With more
+  than one computer, a switch under the title picks which one you see, instead of every computer
+  stacked down the page. On Back up my brain, a dot marks a computer whose backup needs you. The
+  section line is gone from these pages; the other settings pages keep it.
+
 ## 0.10.26
 
 **Changed**

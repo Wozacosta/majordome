@@ -58,6 +58,7 @@ import {
 } from "./backup.logic";
 import { brainKey, groupBrains, labelCopies } from "./brains.logic";
 import { ChooseFolder } from "./FolderBrowser";
+import { ComputerSwitch, useShownComputer } from "./ComputerSwitch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   Disclosure,
@@ -67,7 +68,6 @@ import {
   READING_MEASURE_CLASS,
   ROW_ACTION_CLASS,
   Section,
-  SectionTitle,
   HEADING_CLASS,
   StatusLine,
   Surface,
@@ -143,8 +143,17 @@ export function BackupPage() {
   // Offered by hand too: for a pair the owner turned off, or one the app could not link itself.
   const offers = peerLinkPlans({ brains, localEnvironmentId, declined: new Set() });
 
+  // One copy shown at a time, named by its computer; a lone copy has no name and no switch.
+  const choices = vaults.map(({ copy, label }) => ({
+    id: `${copy.environmentId}:${copy.projectId}`,
+    label: label ?? "",
+    needsYou: backupAttention(copy.status) !== null,
+    copy,
+  }));
+  const [shown, showCopy] = useShownComputer(choices);
+
   return (
-    <MajordomeSettingsPage searchId="majordome-backup">
+    <MajordomeSettingsPage searchId="majordome-backup" outline={false}>
       {errors.length > 0 ? (
         <Section>
           {errors.map((error) => (
@@ -153,18 +162,20 @@ export function BackupPage() {
         </Section>
       ) : null}
       {vaults.length > 0 ? (
-        vaults.map(({ copy, label }) => (
-          <VaultBackup
-            key={`${copy.environmentId}:${copy.projectId}`}
-            vault={copy}
-            status={copy.status}
-            label={label}
-            elsewhere={isElsewhere(copy.environmentId)}
-            onThisComputer={copy.environmentId === localEnvironmentId}
-            offer={offers.find((offer) => offer.local === copy)}
-            nowMs={nowMs}
-          />
-        ))
+        <>
+          <ComputerSwitch choices={choices} shownId={shown?.id ?? null} onShow={showCopy} />
+          {shown === null ? null : (
+            <VaultBackup
+              key={shown.id}
+              vault={shown.copy}
+              status={shown.copy.status}
+              elsewhere={isElsewhere(shown.copy.environmentId)}
+              onThisComputer={shown.copy.environmentId === localEnvironmentId}
+              offer={offers.find((offer) => offer.local === shown.copy)}
+              nowMs={nowMs}
+            />
+          )}
+        </>
       ) : (
         <Section>
           {loading ? (
@@ -292,7 +303,6 @@ function ErrorLine({ children }: { readonly children: ReactNode }) {
 function VaultBackup({
   vault,
   status,
-  label,
   elsewhere,
   onThisComputer,
   offer,
@@ -301,7 +311,6 @@ function VaultBackup({
   readonly vault: BackupVault;
   readonly status: MajordomeBackupStatus;
   /** The brain or machine this is, when several are listed. */
-  readonly label: string | null;
   readonly elsewhere: boolean;
   /** The notes are on the computer this app runs on, so its owner can change things on it. */
   readonly onThisComputer: boolean;
@@ -338,8 +347,7 @@ function VaultBackup({
   const remote = status.remote;
 
   return (
-    <div className={label === null ? "mt-8" : "mt-10"} data-backup-vault={vault.projectId}>
-      {label !== null ? <SectionTitle className="mb-3">{label}</SectionTitle> : null}
+    <div className="mt-8" data-backup-vault={vault.projectId}>
       <div
         className="flex flex-wrap items-start gap-x-3 gap-y-3"
         data-backup-tone={headline.tone}
@@ -444,14 +452,14 @@ function VaultBackup({
         vault={vault}
         offer={offer}
         canConfigure={canConfigure}
-        labelAs={label === null ? "h2" : "h3"}
+        labelAs="h2"
         nowMs={nowMs}
       />
-      <Section label="Backups" labelAs={label === null ? "h2" : "h3"}>
+      <Section label="Backups" labelAs="h2">
         <EntryList>
           <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
           {remote !== null && !remote.isGitHub ? (
-            <Entry title={remote.host ?? "Another copy"} outlined data-backup-destination="remote">
+            <Entry title={remote.host ?? "Another copy"} data-backup-destination="remote">
               <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
             </Entry>
           ) : null}
@@ -723,7 +731,7 @@ function GitHubOption({
   );
 
   return (
-    <Entry title="GitHub" outlined data-backup-destination="github">
+    <Entry title="GitHub" data-backup-destination="github">
       {remote === null ? (
         <StatusLine tone="neutral">Not connected</StatusLine>
       ) : needsSignIn ? (
@@ -1047,7 +1055,7 @@ function GoogleDriveOption({
   );
 
   return (
-    <Entry title="Google Drive" outlined data-backup-destination="google-drive">
+    <Entry title="Google Drive" data-backup-destination="google-drive">
       {drive !== null ? (
         <div className="flex flex-col gap-2" data-google-drive="connected">
           <CopyStatus copy={drive} nowMs={nowMs} />
@@ -1192,7 +1200,7 @@ function FolderOption({
   );
 
   return (
-    <Entry title="Backup folder" outlined data-backup-destination="folder">
+    <Entry title="Backup folder" data-backup-destination="folder">
       {folder !== null && !editing ? (
         <>
           <p className="flex min-w-0 items-center gap-2 text-foreground">

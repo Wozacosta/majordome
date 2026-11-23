@@ -118,7 +118,6 @@ export function EntryTitle({ className, ...props }: ComponentPropsWithoutRef<"p"
 export function Entry({
   as: Tag = "li",
   title,
-  outlined = false,
   aside,
   meta,
   actions,
@@ -129,8 +128,6 @@ export function Entry({
   /** "div" where the entries around it are not a list's items. */
   readonly as?: "li" | "div";
   readonly title?: ReactNode;
-  /** A place worth a line in the page's outline, such as one of a few big options. */
-  readonly outlined?: boolean;
   /** A badge or mark beside the title. */
   readonly aside?: ReactNode;
   readonly meta?: ReactNode;
@@ -144,7 +141,7 @@ export function Entry({
           <div className="min-w-0 flex-1 basis-40">
             {title !== undefined ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <EntryTitle data-page-outline={outlined ? "entry" : undefined}>{title}</EntryTitle>
+                <EntryTitle>{title}</EntryTitle>
                 {aside}
               </div>
             ) : null}
