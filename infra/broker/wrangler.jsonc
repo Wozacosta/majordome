@@ -6,7 +6,8 @@
   "account_id": "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID",
   "workers_dev": false,
   "routes": [{ "pattern": "broker.majord.link", "custom_domain": true }],
-  "triggers": { "crons": ["17 * * * *"] },
+  // Hourly: reclaim idle addresses. Nightly: bring hosted servers to the latest release.
+  "triggers": { "crons": ["17 * * * *", "43 3 * * *"] },
   "d1_databases": [
     {
       "binding": "DB",

@@ -10,6 +10,8 @@ export interface HostClient {
   readonly deleteServer: (name: string) => Promise<void>;
   /** Where a server of that name answers. */
   readonly urlFor: (name: string) => string;
+  /** Restarts the server on the newest released image. Its notes and sign-ins are kept. */
+  readonly updateServer: (name: string) => Promise<void>;
 }
 
 export class HostError extends Error {
@@ -33,6 +35,7 @@ export interface InviteStore {
   readonly release: (code: string) => Promise<void>;
   /** Servers made and not removed. */
   readonly live: () => Promise<number>;
+  readonly liveNames: () => Promise<ReadonlyArray<string>>;
 }
 
 export interface HostedServer {
@@ -113,6 +116,47 @@ export function makeHosting(deps: {
       }
     },
   };
+}
+
+/** "0.10.30" from a release address such as `.../releases/tag/v0.10.30`; null for anything else. */
+export const releaseVersion = (location: string | null) =>
+  /\/releases\/tag\/v(\d+\.\d+\.\d+)$/u.exec(location ?? "")?.[1] ?? null;
+
+export interface UpdateReport {
+  readonly updated: ReadonlyArray<string>;
+  readonly current: number;
+  /** Servers that did not answer, or that the host refused to update. Tried again next time. */
+  readonly skipped: ReadonlyArray<string>;
+}
+
+/**
+ * Brings every hosted server to the latest release. A server is restarted only when it reports
+ * another version, so a day with no release restarts nothing.
+ */
+export async function updateServers(deps: {
+  readonly names: ReadonlyArray<string>;
+  readonly host: Pick<HostClient, "updateServer">;
+  readonly latestVersion: string;
+  /** The version a server reports, or null while it does not answer. */
+  readonly versionOf: (name: string) => Promise<string | null>;
+}): Promise<UpdateReport> {
+  const updated: Array<string> = [];
+  const skipped: Array<string> = [];
+  let current = 0;
+  for (const name of deps.names) {
+    const version = await deps.versionOf(name);
+    if (version === deps.latestVersion) {
+      current += 1;
+    } else if (version === null) {
+      skipped.push(name);
+    } else {
+      await deps.host.updateServer(name).then(
+        () => updated.push(name),
+        () => skipped.push(name),
+      );
+    }
+  }
+  return { updated, current, skipped };
 }
 
 export type Hosting = ReturnType<typeof makeHosting>;

@@ -121,5 +121,13 @@ export function makeD1InviteStore(db: D1Database): InviteStore {
         .first<{ live: number }>();
       return row?.live ?? 0;
     },
+    liveNames: async () => {
+      const { results } = await db
+        .prepare(
+          "SELECT app_name FROM hosted_invites WHERE app_name IS NOT NULL AND removed_at IS NULL",
+        )
+        .all<{ app_name: string }>();
+      return results.map((row) => row.app_name);
+    },
   };
 }

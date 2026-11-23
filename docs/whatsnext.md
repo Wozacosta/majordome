@@ -319,9 +319,10 @@ commands in `infra/broker/README.md`.
 
 What that first version does not do, in the order I would take them:
 
-- **Updates.** A hosted server keeps the image it was made with. Nothing updates it: there is
-  no timer on Fly as there is on a plain server. Until something does, each release is one
-  `fly machine update` per server.
+- **Updates: done.** Every night the broker reads the latest release and restarts each hosted
+  server that reports another version. Run for real: a server went from 0.10.29 to 0.10.30 in
+  36 seconds, and a second run restarted nothing. It does not yet wait for a run in progress to
+  finish, and servers made by hand (not through an invite) are not in its list.
 - **Backups.** A Fly volume is one disk on one machine. A hosted customer has no backup unless
   they turn on Google Drive themselves; it should be on from the start.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a

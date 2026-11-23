@@ -2,7 +2,15 @@ import { type AddressRequest, type Broker, CloudflareError, makeBroker } from ".
 import { makeCloudflareClient } from "./cloudflare.ts";
 import { BrokerError, type BrokerErrorCode, ERROR_STATUS } from "./errors.ts";
 import { makeFlyHost } from "./fly.ts";
-import { type HostClient, HostError, type Hosting, isServerName, makeHosting } from "./hosting.ts";
+import {
+  type HostClient,
+  HostError,
+  type Hosting,
+  isServerName,
+  makeHosting,
+  releaseVersion,
+  updateServers,
+} from "./hosting.ts";
 import { START_PAGE } from "./startPage.ts";
 import { makeD1InviteStore, makeD1Store } from "./store.ts";
 
@@ -71,6 +79,48 @@ const hostingFor = (env: Env, host: HostClient): Hosting =>
     randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
     config: { namePrefix: HOSTED_NAME_PREFIX, maxServers: limit(env.MAX_HOSTED_SERVERS, 5) },
   });
+
+const RELEASES_LATEST_URL = "https://github.com/Wozacosta/majordome/releases/latest";
+/** Must match the second entry of `triggers.crons`. */
+const UPDATE_CRON = "43 3 * * *";
+
+/** The version a hosted server reports, or null while it does not answer. */
+async function serverVersion(host: HostClient, name: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    const body = response.ok ? ((await response.json()) as { serverVersion?: unknown }) : {};
+    return typeof body.serverVersion === "string" ? body.serverVersion : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The newest release, read from where its page redirects: no API, so no API limit. */
+async function latestRelease(): Promise<string | null> {
+  const response = await fetch(RELEASES_LATEST_URL, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(8000),
+  });
+  return releaseVersion(response.headers.get("location"));
+}
+
+async function updateHosted(env: Env) {
+  const host = hostFor(env);
+  if (host === null) return null;
+  const latestVersion = await latestRelease();
+  if (latestVersion === null) return { error: "no latest release found" };
+  return {
+    latestVersion,
+    ...(await updateServers({
+      names: await makeD1InviteStore(env.DB).liveNames(),
+      host,
+      latestVersion,
+      versionOf: (name) => serverVersion(host, name),
+    })),
+  };
+}
 
 /** Whether a new server answers yet. The page cannot ask it directly from another origin. */
 async function serverReady(host: HostClient, name: string): Promise<boolean> {
@@ -183,7 +233,12 @@ export default {
       );
     }
   },
-  async scheduled(_controller, env) {
+  async scheduled(controller, env) {
+    // Each run has its own budget of requests, so the two jobs never share one.
+    if (controller.cron === UPDATE_CRON) {
+      console.log("Updated hosted servers", await updateHosted(env));
+      return;
+    }
     console.log("Reaped addresses", await brokerFor(env).reap());
   },
 } satisfies ExportedHandler<Env>;

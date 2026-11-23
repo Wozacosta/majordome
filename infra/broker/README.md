@@ -62,6 +62,11 @@ Machine (2 shared CPUs, 2 GB) that runs the released image with `MAJORDOME_HOSTE
 address is the app's `fly.dev` address. An invite makes one server; if Fly refuses, what was
 made is removed and the invite is given back.
 
+Every night (the second cron, 03:43 UTC) the Worker reads the latest release from GitHub and
+restarts each hosted server that reports another version, on the newest image. A server on the
+latest version, or one that does not answer, is left alone. Its volume, and so its notes and
+sign-ins, is kept across the restart.
+
 Set it up once:
 
 ```sh

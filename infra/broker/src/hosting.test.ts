@@ -7,6 +7,8 @@ import {
   type InviteStore,
   isServerName,
   makeHosting,
+  releaseVersion,
+  updateServers,
 } from "./hosting.ts";
 
 const START = 1_800_000_000_000;
@@ -27,6 +29,7 @@ function setup(options: { readonly maxServers?: number; readonly failCreate?: bo
       if (invite !== undefined) invite.app = null;
     },
     live: async () => [...invites.values()].filter((invite) => invite.app !== null).length,
+    liveNames: async () => [...invites.values()].flatMap((invite) => invite.app ?? []),
   };
   const host: HostClient = {
     createServer: async ({ name, env }) => {
@@ -38,6 +41,7 @@ function setup(options: { readonly maxServers?: number; readonly failCreate?: bo
       deleted.push(name);
     },
     urlFor: (name) => `https://${name}.example`,
+    updateServer: async () => undefined,
   };
   let seed = 0;
   const hosting = makeHosting({
@@ -109,5 +113,40 @@ describe("hosted servers", () => {
     await expect(create(hosting, "welcome-1")).rejects.toMatchObject({ code: "full" });
 
     expect(invites.get("welcome-1")).toEqual({ app: null });
+  });
+});
+
+describe("updating hosted servers", () => {
+  it("restarts only the servers on another version, and leaves silent ones for next time", async () => {
+    const versions: Record<string, string | null> = {
+      old: "0.10.29",
+      current: "0.10.30",
+      asleep: null,
+      refused: "0.10.28",
+    };
+    const restarted: Array<string> = [];
+
+    const report = await updateServers({
+      names: Object.keys(versions),
+      latestVersion: "0.10.30",
+      versionOf: async (name) => versions[name] ?? null,
+      host: {
+        updateServer: async (name) => {
+          if (name === "refused") throw new HostError(422, "no capacity");
+          restarted.push(name);
+        },
+      },
+    });
+
+    expect(restarted).toEqual(["old"]);
+    expect(report).toEqual({ updated: ["old"], current: 1, skipped: ["asleep", "refused"] });
+  });
+
+  it("reads the latest version from where the releases page redirects", () => {
+    expect(releaseVersion("https://github.com/Wozacosta/majordome/releases/tag/v0.10.30")).toBe(
+      "0.10.30",
+    );
+    expect(releaseVersion("https://github.com/Wozacosta/majordome/releases")).toBeNull();
+    expect(releaseVersion(null)).toBeNull();
   });
 });
