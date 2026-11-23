@@ -160,6 +160,30 @@ so it is not looked up twice:
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
   payment provider, and an hour with someone who does this for French small businesses.
 
+**Anthropic's terms come before any of this.** Read on 2026-11-23 at
+https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):
+
+- Running Claude Code in a product, "e.g. in hosted sandboxes or other agent infrastructure",
+  "requires agreeing to our Commercial Terms of Service", and the program must be unmodified.
+- "Customers may not pay for, resell, or intermediate Claude usage on their end users' behalf.
+  Each end user must authenticate with their own Anthropic API key, Claude subscription plan
+  credentials, or 3P inference provider credential". The chosen shape (Majordome holds the
+  credential, AI in the price) is that, when the assistant runs through Claude Code or the
+  Agent SDK, which is what the Claude adapter uses. This bears directly on the capped
+  credential per customer described below.
+- An end user may sign in "to the unmodified Claude Code binary with their own Claude
+  subscription, including where a platform hosts Claude Code". But developers "may not collect,
+  store, or intermediate Claude.ai credentials or session tokens": the sign-in from the app
+  relays a code, and a hosted server keeps the session for routines. The consumer terms also
+  bar automated access outside the API and commercial use.
+- So neither shape is clearly allowed for a hosted server that runs routines unattended. Ways
+  out, to put to Anthropic before building: an explicit approval; the customer's own API key;
+  calling the model API directly with Majordome's key and Majordome's own tools, not Claude
+  Code; or another provider for hosted customers.
+- OpenBot (openbot.run, hosted servers from €30 a month without AI) lets customers sign a
+  Claude plan in on its servers, and its own `docs/provider-terms.md` says Anthropic has not
+  confirmed that this is permitted.
+
 No customers set up by hand (2026-11-23): a customer's server is created when they ask for it.
 "Set up a server for me" cannot do that as it is. It runs on the owner's computer with the
 owner's own Hetzner key and puts the server on the owner's Tailscale network; a customer has

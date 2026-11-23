@@ -84,12 +84,18 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   choice at install beside "this computer" and "your own server". The assistant there runs on an
   API key Majordome holds, one per customer with a monthly spend cap, and the customer pays one
   flat price: the server, a small margin and about $20 of AI (2026-11-23). A customer's Claude
-  plan is not signed in on our machines, which Anthropic's terms restrict, and they are not asked
-  for their own API key: getting one is a step people who are not technical will not do. One good
+  plan is not signed in on our machines, and they are not asked for their own API key: getting one is a step people who are not technical will not do. One good
   default is enough to start, with no model picker: Claude Sonnet 5.5 for chat and routines,
   Claude Haiku 5.5 for small jobs such as sorting the reading list and summarising notes. Opus
   5.5, measured on a week of real use, came to about $108 a month against about $54 for Sonnet;
-  see "What the AI costs" in `docs/whatsnext.md`.
+  see "What the AI costs" in `docs/whatsnext.md`. **Open before building
+  (read 2026-11-23):** Anthropic's Claude Code legal page says a platform that hosts Claude Code
+  "may not pay for, resell, or intermediate Claude usage on their end users' behalf", which may
+  rule this shape out when the assistant runs through Claude Code or its Agent SDK; the same
+  page allows an end user to sign in with their own plan where a platform hosts the unmodified
+  program, but forbids the platform from storing or relaying the sign-in. Neither shape is
+  clearly allowed for a hosted server that keeps a session for unattended routines. Ask
+  Anthropic before building either. See `docs/whatsnext.md`.
 - **No forge.** The server's vault already is the git repo. For people who edit in Obsidian on a
   laptop, the server can expose it as a git remote (advanced).
 - **History is a local git repo, created silently.** No remote and no account by default. "Undo
