@@ -7,11 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.20
+
 **Fixed**
 
 - **A new chat in a topic no longer flashes.** Starting one from the + or with Cmd+T made the
   topic's tabs vanish for a moment and the header offer "Make this a topic", until the server
   confirmed where the chat belonged. The new chat now joins its topic's tabs straight away.
+
+**Try this**
+
+- In a topic, press Cmd+T a few times: each new chat should appear in the tabs without the row
+  of tabs disappearing first.
 
 ## 0.10.19
 
