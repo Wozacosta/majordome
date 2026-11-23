@@ -7,8 +7,10 @@ import {
   ChevronRightIcon,
   ChevronUpIcon,
   CircleAlertIcon,
+  HistoryIcon,
   HouseIcon,
   ListTodoIcon,
+  NotebookTextIcon,
   SearchIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +22,7 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { cn } from "../../lib/utils";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { FEED_NAME } from "./feed.logic";
 import { NewChatRow } from "./NewChatRow";
 import { useAttention } from "./useAttention";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -29,6 +32,7 @@ type SidebarItem = { readonly to: string; readonly label: string; readonly icon:
 /** The screens Majordome is used through day to day; its setup lives in Settings. */
 const DAILY_ITEMS = [
   { to: "/", label: "Today", icon: HouseIcon },
+  { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/todos", label: "To-dos", icon: ListTodoIcon },
   { to: "/reading", label: "Reading list", icon: BookOpenIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
@@ -37,6 +41,7 @@ const DAILY_ITEMS = [
 const ON_ITS_OWN_ITEMS = [
   { to: "/routines", label: "Routines", icon: CalendarClockIcon },
   { to: "/reminders", label: "Reminders", icon: BellIcon },
+  { to: "/feed", label: FEED_NAME, icon: HistoryIcon },
 ] as const satisfies ReadonlyArray<SidebarItem>;
 
 const CompactChoice = Schema.NullOr(Schema.Boolean);

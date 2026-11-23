@@ -30,13 +30,13 @@ On a night when no note changed, it does not run, and does not count towards you
 ## Keeping memory short
 
 The memory note is loaded up to 8,000 characters. Past that, the end of it is left out of
-conversations, and the Feed says so. The nightly run then shortens the note before adding to it: it
+conversations, and **What it did** says so. The nightly run then shortens the note before adding to it: it
 merges lines that say the same thing, drops what a newer line replaced, and moves lines about one
 topic into that topic's notes. Its summary lists everything it merged, moved or dropped.
 
 ## See, undo, or turn it off
 
-Each run that changed something is in the **Feed** with a summary: what it remembered, what it
+Each run that changed something is in **What it did** with a summary: what it remembered, what it
 merged or moved, and anything it was not sure about, as a question you can answer when you like.
 **Undo this** on that entry takes the whole night back. A run that found nothing to keep changes
 nothing and leaves no entry.

@@ -66,6 +66,7 @@ import { toastManager } from "../ui/toast";
 import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
+  FEED_NAME,
   buildFeedItems,
   buildFeedRunItems,
   classifyFeedEntry,
@@ -241,7 +242,7 @@ export function FeedPage() {
 
           <ScrollArea className="min-h-0 flex-1">
             <WorkspacePageContainer className="gap-0">
-              <PageTitle>Feed</PageTitle>
+              <PageTitle>{FEED_NAME}</PageTitle>
               {errors.map((error) => (
                 <p key={error} className="mt-3 text-sm text-destructive-foreground">
                   {error}
@@ -305,7 +306,7 @@ export function FeedPage() {
                 </Section>
               ) : null}
               {itemCount > 0 ? (
-                <EntryList aria-label="Feed">
+                <EntryList aria-label={FEED_NAME}>
                   {timeline?.map(({ row, day }) => (
                     <Fragment key={row.key}>
                       {day === null ? null : <FeedDayHeading day={day} />}

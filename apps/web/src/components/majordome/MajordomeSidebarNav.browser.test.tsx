@@ -36,20 +36,24 @@ it("lists only Majordome's own screens", async () => {
   );
   expect(navLinks(screen.container)).toEqual([
     ["Today", "/"],
+    ["Notes", "/notes"],
     ["To-dos", "/todos"],
     ["Reading list", "/reading"],
     ["Routines", "/routines"],
     ["Reminders", "/reminders"],
+    ["What it did", "/feed"],
   ]);
 
   await screen.getByRole("button", { name: "Show the menu as icons" }).click();
-  await expect.element(screen.getByRole("link", { name: "Reminders" })).toBeVisible();
+  await expect.element(screen.getByRole("link", { name: "What it did" })).toBeVisible();
   expect(navLinks(screen.container)).toEqual([
     ["", "/"],
+    ["", "/notes"],
     ["", "/todos"],
     ["", "/reading"],
     ["", "/routines"],
     ["", "/reminders"],
+    ["", "/feed"],
   ]);
 });
 

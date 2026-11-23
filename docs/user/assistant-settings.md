@@ -24,7 +24,7 @@ document, and moving routines to this computer.
 
 A card appears in the conversation: **Majordome wants to: …**, with what it means for you. Nothing
 changes until you press **Allow**. **Don't allow** closes it, and the assistant does not ask again.
-You also get a notification, and the question shows under **Needs you** in the feed. A question
+You also get a notification, and the question shows under **Needs you** in **What it did**. A question
 nobody answers closes by itself after 24 hours, with nothing changed.
 
 ## What stays with you

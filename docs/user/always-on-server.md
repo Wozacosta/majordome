@@ -186,7 +186,7 @@ For any other provider, or if you prefer a terminal.
      GitHub backup too. Without it, your computer sends them whenever it is on.
    - **Settings > Providers > Claude > Sign in to Claude**, or **Codex > Continue with ChatGPT**
      (below).
-   - **Feed > Move routines here.** Your computer stops running them once it gets your latest notes.
+   - **What it did > Move routines here.** Your computer stops running them once it gets your latest notes.
 
 Your computer keeps its own copy of the notes. Once the Majordome app on your computer is connected
 to the server, it links the two by itself, and they [stay in step](#your-computer-and-the-server-stay-in-step)

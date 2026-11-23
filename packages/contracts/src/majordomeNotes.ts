@@ -14,11 +14,16 @@ export const MajordomeSaveNoteInput = Schema.Struct({
 });
 export type MajordomeSaveNoteInput = typeof MajordomeSaveNoteInput.Type;
 
+/** Why a save was refused, when the editor offers different ways out of it. */
+export const MajordomeNoteSaveRefusal = Schema.Literals(["changed"]);
+
 /** `message` is written for the owner. */
 export class MajordomeNoteError extends Schema.TaggedError<MajordomeNoteError>()(
   "MajordomeNoteError",
   {
     message: Schema.String,
+    /** "changed": the note no longer reads as the editor loaded it, so nothing was written. */
+    reason: Schema.optional(MajordomeNoteSaveRefusal),
     cause: Schema.optional(Schema.Defect()),
   },
 ) {}

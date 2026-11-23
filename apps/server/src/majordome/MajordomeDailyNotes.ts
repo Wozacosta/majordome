@@ -97,7 +97,7 @@ const make = Effect.gen(function* () {
             Effect.provideService(Path.Path, path),
           );
           if (!saved) {
-            return yield* new MajordomeDailyNoteError({ message: NOTE_CHANGED_WHILE_WRITING });
+            return yield* new MajordomeDailyNoteError(NOTE_CHANGED_WHILE_WRITING);
           }
         }),
       );

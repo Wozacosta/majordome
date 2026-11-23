@@ -26,7 +26,7 @@ only conversations and routines that run there can ask for it.
 ## When your assistant asks for one
 
 When a task needs what a document says, your assistant asks. You get a notification, and a card in
-the conversation says which document, and why. The same question is in the feed under **Needs
+the conversation says which document, and why. The same question is in **What it did** under **Needs
 you**.
 
 - **Allow once** opens that one document for that conversation or routine run. Majordome makes a

@@ -11,7 +11,7 @@ with the assistant**. Say what you would like done and when:
 > Every Friday evening, list what I spent this week.
 
 The assistant asks what it still needs to know, one question at a time: what exactly to do, when,
-and what you want back (a note, a line in your feed, a notification). It then says the routine back
+and what you want back (a note, a line in **What it did**, a notification). It then says the routine back
 to you in one sentence and waits for your yes before it creates it. The new routine appears in the
 list at once.
 
@@ -38,7 +38,7 @@ Each routine shows what it does, when it runs next and how its last run went.
   and waits for your yes.
 - The bin deletes it, after asking. A default routine you delete does not come back.
 
-What a routine did is in the **Feed**, where **Undo this** takes a run back.
+What a routine did is in **What it did**, where **Undo this** takes a run back.
 
 ## Reminders
 

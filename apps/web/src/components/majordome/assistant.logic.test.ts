@@ -11,7 +11,7 @@ import {
 describe("assistantScreenName", () => {
   it.each([
     ["/", undefined, "Today"],
-    ["/feed", undefined, "Feed"],
+    ["/feed", undefined, "What it did"],
     ["/reminders", undefined, "Reminders"],
     ["/todos", undefined, "To-dos"],
     ["/reading", undefined, "Reading list"],
