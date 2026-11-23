@@ -7,6 +7,14 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **The phone code can open the Majordome app.** In Settings > Phone & notifications, the code
+  now has two choices: "In the browser", as before, and "In the Majordome app", which opens the
+  iPhone app on its add-a-computer screen with the address and code filled in. Opened on a
+  phone, the page also has an "Open in the Majordome app" button. (The iPhone app is not in the
+  App Store yet.)
+
 ## 0.10.33
 
 **Fixed**

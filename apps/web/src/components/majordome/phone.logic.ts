@@ -188,6 +188,13 @@ export function phoneWithNotifications(
 /** What a phone's code is labelled with; the phone's access keeps the label. */
 export const PHONE_PAIRING_LABEL = "Phone";
 
+/**
+ * The link that opens Majordome's phone app on its add-a-computer screen with `pairingUrl` filled
+ * in. The scheme is the one the released app registers (`apps/mobile/majordome/identity.ts`).
+ */
+export const phoneAppPairingLink = (pairingUrl: string) =>
+  `majordome://connections/new?${new URLSearchParams([["pairingUrl", pairingUrl]])}`;
+
 export interface PairedPhone {
   readonly sessionId: AuthClientSession["sessionId"];
   readonly name: string;

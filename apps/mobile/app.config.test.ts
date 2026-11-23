@@ -30,9 +30,11 @@ it.each([
   const config = await loadConfig(value);
   expect(config.ios?.bundleIdentifier).toBe(`io.github.wozacosta.majordome.ios${suffix}`);
   expect(config.ios?.appleTeamId).toBe("5RDKJ8PDGZ");
+  // Its own link scheme, so a link never opens upstream's app on a phone that has both.
+  expect(config.scheme).toBe(`majordome${suffix.replace(".", "-")}`);
   expect(config.ios?.icon).toBe("../../assets/prod/black-ios-1024.png");
   // Upstream's domains and update server only know upstream's app.
-  expect(config.ios?.associatedDomains).toEqual([]);
+  expect(config.ios?.associatedDomains).toEqual(["applinks:*.majord.link"]);
   expect(config.updates).toEqual({ enabled: false });
   expect(config.android?.package).toBe(`com.t3tools.t3code${suffix}`);
   const { android: _android, ...shown } = config;

@@ -95,6 +95,16 @@ tried yet.
 Removing the Fly app deletes the customer's notes with it, so it is done by hand. `removed_at`
 frees the server's place under `MAX_HOSTED_SERVERS`.
 
+## Phone app links
+
+The Worker also answers on the zone's root, `majord.link`, with one file:
+`/.well-known/apple-app-site-association`. It names Majordome's iPhone app as the one that opens
+`https://<anything>.majord.link/pair`, so scanning a server's ordinary phone code opens the app
+when it is installed and the browser when it is not. The app is built to trust `*.majord.link`
+(`apps/mobile/majordome/identity.ts`); an iPhone reads the file once per app install, from the
+root only, so a new address needs nothing. Addresses under another domain (Tailscale, Wi-Fi,
+`fly.dev`) cannot work this way and use the "In the Majordome app" code instead.
+
 ## Block an address
 
 ```sh

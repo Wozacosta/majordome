@@ -220,7 +220,7 @@ async function main() {
         "start",
         "--dev-client",
         "--scheme",
-        "t3code-dev",
+        "majordome-dev",
         "--lan",
         "--port",
         String(metroPort),

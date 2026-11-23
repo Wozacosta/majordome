@@ -34,6 +34,24 @@ interface Env {
 
 const MAX_BODY_CHARS = 4096;
 
+/**
+ * Names Majordome's iPhone app (released, preview and development builds) as the one that opens
+ * a server's pairing address, for every address under the zone: the app trusts `*.<zone>`
+ * (`apps/mobile/majordome/identity.ts`) and iPhones read this file from the zone's root.
+ */
+export const APP_SITE_ASSOCIATION = {
+  applinks: {
+    details: [
+      {
+        appIDs: ["", ".preview", ".dev"].map(
+          (suffix) => `5RDKJ8PDGZ.io.github.wozacosta.majordome.ios${suffix}`,
+        ),
+        components: [{ "/": "/pair" }],
+      },
+    ],
+  },
+};
+
 const limit = (value: string | undefined, fallback: number) => {
   const parsed = Number(value);
   return value !== undefined && Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
@@ -178,7 +196,13 @@ async function readAddressRequest(request: Request): Promise<AddressRequest> {
 }
 
 async function handle(request: Request, env: Env): Promise<Response> {
-  const { pathname } = new URL(request.url);
+  const { pathname, hostname } = new URL(request.url);
+  // The zone's root only says which phone app its addresses open in; iPhones read it from there.
+  if (hostname === env.ZONE_NAME) {
+    return pathname === "/.well-known/apple-app-site-association" && request.method === "GET"
+      ? Response.json(APP_SITE_ASSOCIATION, { headers: { "cache-control": "max-age=3600" } })
+      : new Response("Nothing is served here.\n", { status: 404 });
+  }
   if (pathname === "/" && request.method === "GET") {
     return new Response(
       `Majordome address broker: gives a Majordome computer a public address under ${env.ZONE_NAME}. Report abuse to ${env.ABUSE_CONTACT}.\n`,

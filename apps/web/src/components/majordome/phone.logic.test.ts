@@ -13,6 +13,7 @@ import {
   notificationsProblem,
   pairedPhones,
   phoneAddress,
+  phoneAppPairingLink,
   phoneComputerWords,
   phoneEnvironmentId,
   phoneStepStates,
@@ -305,4 +306,11 @@ describe("subscriptionUsesKey", () => {
     expect(subscriptionUsesKey(base64UrlToBytes("BAECAwU").buffer, key)).toBe(false);
     expect(subscriptionUsesKey(null, key)).toBe(false);
   });
+});
+
+it("wraps the pairing address, its code included, in the link that opens the phone app", () => {
+  const link = new URL(phoneAppPairingLink("https://x.majord.link/pair#token=AB12"));
+  expect(link.protocol).toBe("majordome:");
+  expect(link.host + link.pathname).toBe("connections/new");
+  expect(link.searchParams.get("pairingUrl")).toBe("https://x.majord.link/pair#token=AB12");
 });

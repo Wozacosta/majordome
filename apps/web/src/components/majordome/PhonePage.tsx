@@ -45,6 +45,7 @@ import { QRCodeSvg } from "../ui/qr-code";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
+import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { NotificationsSections } from "./NotificationsSections";
 import {
@@ -72,6 +73,7 @@ import {
   phoneStepStates,
   phoneWays,
   phoneWithNotifications,
+  phoneAppPairingLink,
 } from "./phone.logic";
 import { isHostedServer } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
@@ -911,6 +913,8 @@ function PairingCode({
     readonly expiresAt: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  // What the code opens on the phone that scans it: Majordome in its browser, or the app.
+  const [opens, setOpens] = useState<"browser" | "app">("browser");
 
   if (!readEnvironmentScope(environmentId, AuthAccessWriteScope)) {
     return elsewhere === null ? (
@@ -960,18 +964,36 @@ function PairingCode({
       </div>
     );
   }
+  const appLink = phoneAppPairingLink(code.url);
   return (
     <div className="mt-2 flex flex-col gap-2">
+      <ToggleGroup
+        aria-label="Where the code opens Majordome"
+        value={[opens]}
+        onValueChange={(next) => {
+          if (next[0] === "browser" || next[0] === "app") setOpens(next[0]);
+        }}
+      >
+        <Toggle value="browser">In the browser</Toggle>
+        <Toggle value="app">In the Majordome app</Toggle>
+      </ToggleGroup>
       {/* White in both themes: a phone's camera reads dark squares on white. */}
       <Surface className="w-fit bg-white p-3">
         <QRCodeSvg
-          value={code.url}
+          value={opens === "app" ? appLink : code.url}
           size={168}
           level="M"
           marginSize={1}
           title="Code to open Majordome on your phone"
         />
       </Surface>
+      {readIsOnPhone() ? (
+        <div>
+          <Button size="xs" variant="outline" render={<a href={appLink} />}>
+            Open in the Majordome app
+          </Button>
+        </div>
+      ) : null}
       <Muted className="text-xs">
         To type it instead: <span className="font-mono text-foreground">{code.typed}</span>
       </Muted>

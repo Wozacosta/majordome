@@ -110,6 +110,9 @@ import { pruneNewTaskFlowStates } from "./features/threads/new-task-flow-state";
 import { pruneNewTaskBranchCheckouts } from "./features/threads/NewTaskDraftRouteScreen";
 import { installAppUpdateChecks } from "./features/updates/app-updates";
 
+import { isMajordome } from "./majordome/env";
+import { pairLinkAsAppLink } from "./majordome/pairLink";
+
 import "../global.css";
 
 if (process.env.EXPO_PUBLIC_SHOWCASE === "1") {
@@ -137,6 +140,9 @@ function getAppStateFromPath(path: string, options: Parameters<typeof getStateFr
   );
 }
 
+const majordomeLink = (url: string) =>
+  isMajordome ? pairLinkAsAppLink(url, Linking.createURL("/")) : url;
+
 const appLinking = {
   prefixes: [
     Linking.createURL("/"),
@@ -147,7 +153,21 @@ const appLinking = {
   ],
   config: { initialRouteName: "Home" },
   filter: (url: string) => shouldHandleAppLink(url, hasCloudPublicConfig()),
-  getInitialURL: async () => (await Linking.getInitialURL()) ?? (await launchWorkspaceURL()),
+  getInitialURL: async () => {
+    const initial = await Linking.getInitialURL();
+    return initial === null ? await launchWorkspaceURL() : majordomeLink(initial);
+  },
+  // A server's pairing address, opened by the phone in the app, becomes the app's own link.
+  ...(isMajordome
+    ? {
+        subscribe: (listener: (url: string) => void) => {
+          const subscription = Linking.addEventListener("url", ({ url }) =>
+            listener(majordomeLink(url)),
+          );
+          return () => subscription.remove();
+        },
+      }
+    : {}),
   getActionFromState: (
     state: Parameters<typeof getActionFromState>[0],
     options: Parameters<typeof getActionFromState>[1],

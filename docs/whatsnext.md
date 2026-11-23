@@ -404,6 +404,14 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   bottom; that choice is kept on the phone only. Which chats are a routine's is worked out as
   on the desktop (`routineThreadKeys`): the chat the routine keeps, plus chats that carry its
   name and were not started by the owner.
+- **Links into the app.** The app has its own scheme (`majordome`, `majordome-dev`,
+  `majordome-preview`; `majordome/identity.ts`), so a link never opens T3 Code's app on a phone
+  with both. `majordome://connections/new?pairingUrl=…` opens the add-a-computer screen filled
+  in; the server's Phone page offers it as "In the Majordome app". A server's ordinary pairing
+  address under `majord.link` opens the app too (`applinks:*.majord.link`, the file the broker
+  serves at the zone's root, and `src/majordome/pairLink.ts`). A link never pairs by itself in
+  a released build: the owner presses Connect. Hosted servers are on `fly.dev`, which no app
+  can claim, so they only get the app code until they have an address under a domain of ours.
 - **Today can show another day** (arrows beside the date); only today's note is kept on the
   phone, and the add box shows on today only, as on the desktop.
 - **A literal the code looks things up by must not be swapped.** They are listed in

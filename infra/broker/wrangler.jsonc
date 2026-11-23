@@ -5,7 +5,11 @@
   // PLACEHOLDER: the Cloudflare account that owns the majord.link zone.
   "account_id": "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID",
   "workers_dev": false,
-  "routes": [{ "pattern": "broker.majord.link", "custom_domain": true }],
+  // The zone's root serves only the file that names the phone app (README, "Phone app links").
+  "routes": [
+    { "pattern": "broker.majord.link", "custom_domain": true },
+    { "pattern": "majord.link", "custom_domain": true },
+  ],
   // Hourly: reclaim idle addresses. Nightly: bring hosted servers to the latest release.
   "triggers": { "crons": ["17 * * * *", "43 3 * * *"] },
   "d1_databases": [
