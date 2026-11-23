@@ -112,11 +112,11 @@ it("finds a page by the everyday word for it", () => {
   }
 });
 
-it("says Earlier for the shelf, and still finds it for people who search T3's word", () => {
+it("says Done for the shelf, and still finds it for people who search T3's word", () => {
   const titles = (query: string) => searchSettings(query).map((item) => item.title);
-  expect(titles("move chats to earlier")).toContain("Move inactive chats to Earlier");
+  expect(titles("move chats to earlier")).toContain("Move inactive chats to Done");
   expect(titles("auto-settle")).toEqual(
-    expect.arrayContaining(["Move inactive chats to Earlier", "Days before chats move to Earlier"]),
+    expect.arrayContaining(["Move inactive chats to Done", "Days before chats move to Done"]),
   );
   expect(titles("settle")).toContain("Chat: Mark as done");
   expect(titles("settle").some((title) => /settle/i.test(title))).toBe(false);

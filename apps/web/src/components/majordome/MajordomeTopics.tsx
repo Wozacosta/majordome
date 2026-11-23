@@ -17,18 +17,14 @@ import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/th
 import { Link, useLocation } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   EllipsisIcon,
   FolderSearchIcon,
   MessageCircleIcon,
   MessagesSquareIcon,
-  MessageCirclePlusIcon,
   PlusIcon,
   RepeatIcon,
-  TrashIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -48,18 +44,18 @@ import { formatRelativeTimeLabel } from "../../timestampFormat";
 import type { SidebarThreadSummary } from "../../types";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
-import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
+import { chatStatusWords, chatTitle } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import {
   reportTopicFailure as reportFailure,
   type TopicActions,
-  TopicEditMenuItems,
-  TopicFinishMenuItem,
+  TopicMenuItems,
   useTopicActions,
 } from "./TopicHeaderActions";
 import { TopicIconBadge, topicRowTint } from "./TopicIcon";
@@ -460,16 +456,17 @@ function VaultTopics({
             onClick={() => setShowFinished((shown) => !shown)}
             className={QUIET_ROW_CLASS}
           >
-            {showFinished ? "Hide finished" : `Show ${finished.length} finished`}
+            {showFinished ? "Hide done" : `Show ${finished.length} done`}
           </button>
           {showFinished ? (
-            <ul aria-label="Finished topics" className="flex flex-col gap-px">
+            <ul aria-label="Topics marked as done" className="flex flex-col gap-px">
               {finished.map((topic) => (
                 <FinishedTopicRow
                   key={topic.id}
                   topic={topic}
                   isActive={threadKeyOf(topic) !== null && threadKeyOf(topic) === routeThreadKey}
                   onOpen={() => void open(topic)}
+                  onNewChat={() => void openTopic(topic, { sideChat: true })}
                   actions={actions}
                 />
               ))}
@@ -581,7 +578,9 @@ function TopicRow(props: {
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
             <span className="min-w-0 flex-1 truncate font-medium">{topic.title}</span>
-            {status !== null ? <span className="sr-only">{status.label}</span> : null}
+            {status !== null ? (
+              <span className="sr-only">{chatStatusWords(status.label)}</span>
+            ) : null}
             {activity !== null ? <ActivityLabel timestamp={activity} /> : null}
           </span>
           <span className="truncate text-xs text-sidebar-muted-foreground">
@@ -599,31 +598,12 @@ function TopicRow(props: {
             <EllipsisIcon />
           </MenuTrigger>
           <MenuPopup align="end">
-            <MenuItem onClick={props.onNewChat}>
-              <MessageCirclePlusIcon />
-              New chat about this
-            </MenuItem>
-            <MenuSeparator />
-            <TopicEditMenuItems topic={topic} actions={actions} />
-            {props.onMove === null ? null : (
-              <>
-                <MenuSeparator />
-                <MenuItem disabled={!props.onMove.up} onClick={() => props.onMove?.by(-1)}>
-                  <ArrowUpIcon />
-                  Move up
-                </MenuItem>
-                <MenuItem disabled={!props.onMove.down} onClick={() => props.onMove?.by(1)}>
-                  <ArrowDownIcon />
-                  Move down
-                </MenuItem>
-              </>
-            )}
-            <MenuSeparator />
-            <TopicFinishMenuItem topic={topic} actions={actions} />
-            <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
-              <TrashIcon />
-              Remove topic
-            </MenuItem>
+            <TopicMenuItems
+              topic={topic}
+              actions={actions}
+              onNewChat={props.onNewChat}
+              onMove={props.onMove}
+            />
           </MenuPopup>
         </Menu>
         {hasNested ? (
@@ -700,9 +680,7 @@ function TopicRow(props: {
                     aria-hidden
                   />
                 )}
-                <span className="truncate">
-                  {chat.title === "New thread" ? "New chat" : chat.title}
-                </span>
+                <span className="truncate">{chatTitle(chat.title)}</span>
               </Link>
             </li>
           ))}
@@ -714,9 +692,7 @@ function TopicRow(props: {
                 onClick={() => setShowDone((shown) => !shown)}
                 className={QUIET_ROW_CLASS}
               >
-                {showDone
-                  ? "Hide chats marked as done"
-                  : `Show ${doneCount} earlier ${doneCount === 1 ? "chat" : "chats"}`}
+                {showDone ? "Hide done" : `Show ${doneCount} done`}
               </button>
             </li>
           ) : null}
@@ -746,11 +722,12 @@ function TopicRow(props: {
   );
 }
 
-/** A finished topic, dimmed: its chat still opens, and its menu brings it back. */
+/** A topic marked as done, dimmed: its chat still opens, and its menu brings it back. */
 function FinishedTopicRow(props: {
   readonly topic: VaultTopic;
   readonly isActive: boolean;
   readonly onOpen: () => void;
+  readonly onNewChat: () => void;
   readonly actions: TopicActions;
 }) {
   const { topic, actions } = props;
@@ -783,14 +760,7 @@ function FinishedTopicRow(props: {
             <EllipsisIcon />
           </MenuTrigger>
           <MenuPopup align="end">
-            <TopicFinishMenuItem topic={topic} actions={actions} />
-            <MenuSeparator />
-            <TopicEditMenuItems topic={topic} actions={actions} />
-            <MenuSeparator />
-            <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
-              <TrashIcon />
-              Remove topic
-            </MenuItem>
+            <TopicMenuItems topic={topic} actions={actions} onNewChat={props.onNewChat} />
           </MenuPopup>
         </Menu>
       </span>

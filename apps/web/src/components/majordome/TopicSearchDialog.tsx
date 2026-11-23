@@ -56,7 +56,7 @@ function TopicSearch(props: {
               <TopicIconBadge topic={topic} statusDotClass={null} />
               <span className="min-w-0 flex-1 truncate">{topic.title}</span>
               {topic.finishedAt === undefined ? null : (
-                <span className="text-xs text-muted-foreground">Finished</span>
+                <span className="text-xs text-muted-foreground">Done</span>
               )}
             </CommandItem>
           ))
