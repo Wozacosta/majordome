@@ -80,18 +80,27 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   most people never need sync. It runs on "this computer" by default (background service), with
   "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
-  cloud machine. **Hosted Majordome** is a later milestone, built only when people ask: one
-  isolated machine per user, paid, after checking that running people's provider subscriptions on
-  our machines is allowed (their own API keys otherwise).
+  cloud machine. **Hosted Majordome** is a later milestone: one isolated machine per user, paid, offered as a
+  choice at install beside "this computer" and "your own server". The assistant there runs on an
+  API key Majordome holds, one per customer with a monthly spend cap, and the customer pays one
+  flat price: the server, a small margin and about $20 of AI (2026-11-23). A customer's Claude
+  plan is not signed in on our machines, which Anthropic's terms restrict, and they are not asked
+  for their own API key: getting one is a step people who are not technical will not do. One good
+  default is enough to start, with no model picker: Claude Sonnet 5.5 for chat and routines,
+  Claude Haiku 5.5 for small jobs such as sorting the reading list and summarising notes. Opus
+  5.5, measured on a week of real use, came to about $108 a month against about $54 for Sonnet;
+  see "What the AI costs" in `docs/whatsnext.md`.
 - **No forge.** The server's vault already is the git repo. For people who edit in Obsidian on a
   laptop, the server can expose it as a git remote (advanced).
 - **History is a local git repo, created silently.** No remote and no account by default. "Undo
   what the agent did" is a button.
 - **Back up my brain** offers two choices: connect GitHub (device sign-in, Majordome creates a private
   repo) or choose a folder (iCloud Drive, Dropbox, USB), which gets a nightly `age`-encrypted
-  `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit. Google
-  Drive comes after GitHub and folder: the same encrypted bundle, with the limited `drive.file`
-  permission (needs a Google OAuth app registration).
+  `git bundle`. A secret scan (gitleaks) runs before every backup and pauses it on a hit. iCloud
+  Drive comes next (2026-11-23) as a named choice that fills in the folder, offered only when the
+  backup runs on a Mac: Apple gives a server no way to write to it. Google Drive comes after, for
+  notes that live on a server: the same encrypted bundle, with the limited `drive.file` permission
+  (needs a Google OAuth app registration).
 - **Two machines stay in step directly, with no forge between them.** One server (the owner's
   computer) holds a link to the other: its address and an owner session there, kept in the secret
   store. Every 5 minutes it asks the other for what is new since the last commit it knows, rebases
@@ -243,7 +252,7 @@ takes over.
 2. **M2.** Explicit runner on top of scheduled tasks, default routines, inbox watcher, feed, History
    with "Undo this". _Done._
 3. **M3.** Phone (PWA, web push, QR pairing, guided Tailscale) and "Back up my brain" (autosave,
-   GitHub, folder), then Google Drive.
+   GitHub, folder), then iCloud Drive as a named choice, then Google Drive.
 4. **M4.** One server by default: container image, "Move to an always-on server" guide, provider
    sign-in from the phone or desktop, big files and sensitive documents served by the server.
    _Done:_ the signed macOS app on GitHub Releases, `majord` as a login service
@@ -301,6 +310,8 @@ takes over.
    - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
      relay, since a public app can't ship an Apple push key, and the relay waits until people ask
      for it. The PWA stays the phone for everyone else.
-10. **Later.** Hosted Majordome on AWS, when people ask for it: the same image, one container and
+10. **Later.** Hosted Majordome, a paid choice at install, on an API key Majordome holds (see
+    Servers and sync). Hetzner first, since the one-button move already creates servers there.
+    The AWS shape, if the price needs it: the same image, one container and
     encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
     and wake for routines and when the owner opens the app, to keep the price low.

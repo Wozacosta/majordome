@@ -86,6 +86,38 @@ folders can no longer preview Office files.
 - **The tool-list budget** in `agentContextBudget.json` counts every registered tool, including
   the hidden coding ones, so it overstates what a chat is told by about 13 KB.
 
+## What the AI costs: measure, then improve
+
+Hosted Majordome sells about $20 of AI a month (see `docs/decisions.md`), so what a chat message
+and a routine run cost decides whether that price holds. It waits for the hosted work, but the
+saving applies to anyone on an API key.
+
+Measured on 2026-11-23 from one week of the owner's use, all on Opus 5.5 (66 chat turns on the
+Mac, 29 chat turns and 14 routine runs on the server), priced at list API rates:
+
+| Per          | Opus 5.5       | Sonnet 5.5     | Haiku 5.5   |
+| ------------ | -------------- | -------------- | ----------- |
+| Chat message | $0.21 to $0.34 | $0.10 to $0.17 | about $0.01 |
+| Routine run  | $0.39          | $0.19          | about $0.01 |
+
+About 80% of that is not the conversation. It is writing the instructions, tools and memory to
+the provider's cache again: 20,000 to 37,000 tokens a turn, at twice the input price because
+they are cached for an hour.
+
+- **Measure first.** The numbers come from `turnTokenUsage` on provider turns in
+  `statev2.sqlite` and from Claude Code's transcripts. Not priced: the side requests (key facts,
+  "In short", titles), which show up as `otherUsage` with no split between cached and uncached
+  tokens, and were as large again as the chats on the server. Run one week on a real API key and
+  read the bill, then show cost per run on Overview.
+- **Then cut what is loaded.** Find what fills the first request (tool descriptions, the memory
+  layers, skills) and why a turn in an open conversation writes so much again; something is
+  probably changing early in the prompt and throwing the cache away. The tool-list budget above
+  is one known overcount.
+- **Then the cache time.** Routines start a fresh session and finish in minutes, so a five-minute
+  cache (1.25 times the input price, not 2) should be enough for them.
+- **Then the model per job.** Sonnet 5.5 for chat and routines, Haiku 5.5 for sorting the
+  reading list and summarising notes. Check each on a copy of real notes before switching.
+
 ## Phone
 
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the
