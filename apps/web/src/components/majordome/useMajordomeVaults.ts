@@ -10,7 +10,13 @@ import { usePrimaryEnvironmentId } from "../../state/environments";
 import { vaultBackupStatusesAtom, vaultTopicsAtom } from "../../state/majordome";
 import { statusBrainId } from "./brains.logic";
 import { conversationHomesAtom } from "./conversationHome";
-import { collectVaults, mergeVaultCopies, pickActiveVault } from "./topics.logic";
+import { usePendingSideChats } from "./pendingSideChats";
+import {
+  collectVaults,
+  mergeVaultCopies,
+  pickActiveVault,
+  withPendingSideChats,
+} from "./topics.logic";
 
 const ACTIVE_VAULT_STORAGE_KEY = "majordome.activeVault";
 const ActiveVaultKey = Schema.NullOr(Schema.String);
@@ -39,12 +45,24 @@ export function useMajordomeVaults() {
   // The backup status says which brain each copy is.
   const statuses = useAtomValue(vaultBackupStatusesAtom(key));
   const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const pendingSideChats = usePendingSideChats();
   const { vaults: copies, loading } = collectVaults(
     projects,
     // A server that cannot list topics has no vault Majordome can show.
-    results.map((result) =>
-      result._tag === "Failure" ? NOT_A_VAULT : AsyncResult.getOrElse(result, () => null),
-    ),
+    results.map((result, index) => {
+      if (result._tag === "Failure") return NOT_A_VAULT;
+      const topics = AsyncResult.getOrElse(result, () => null);
+      const project = projects[index];
+      return topics === null || project === undefined
+        ? topics
+        : withPendingSideChats(
+            topics,
+            pendingSideChats.filter(
+              (chat) =>
+                chat.environmentId === project.environmentId && chat.projectId === project.id,
+            ),
+          );
+    }),
     statuses.map(statusBrainId),
   );
   const vaults = mergeVaultCopies(

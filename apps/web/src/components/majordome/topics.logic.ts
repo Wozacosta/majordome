@@ -69,6 +69,30 @@ interface ListedProject {
   readonly title: string;
 }
 
+/** A chat this window started under a topic, before the server's topic list names it. */
+export interface PendingSideChat {
+  readonly topicId: string;
+  readonly threadId: ThreadId;
+}
+
+/** A server's topic list with the chats just started under its topics added to them. */
+export function withPendingSideChats(
+  result: MajordomeTopicsResult,
+  pending: ReadonlyArray<PendingSideChat>,
+): MajordomeTopicsResult {
+  if (pending.length === 0) return result;
+  return {
+    ...result,
+    topics: result.topics.map((topic) => {
+      const known = topic.sideThreadIds ?? [];
+      const added = pending.flatMap((chat) =>
+        chat.topicId === topic.id && !known.includes(chat.threadId) ? [chat.threadId] : [],
+      );
+      return added.length === 0 ? topic : { ...topic, sideThreadIds: [...known, ...added] };
+    }),
+  };
+}
+
 /**
  * Each server's copy of a vault among the projects, from each project's topic list (null while it
  * loads) and brain id (undefined while it loads; left out, none is known). Projects that are not

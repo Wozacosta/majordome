@@ -12,6 +12,7 @@ import { buildThreadRouteParams } from "../../threadRoutes";
 import { useSidebar } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { conversationHomeRef } from "./conversationHome";
+import { notePendingSideChat } from "./pendingSideChats";
 import type { MajordomeVault, VaultTopic } from "./topics.logic";
 
 /**
@@ -75,6 +76,9 @@ export function useOpenTopic(vault: Pick<MajordomeVault, "environmentId" | "proj
         });
       }
       return false;
+    }
+    if (sideChat) {
+      notePendingSideChat({ ...home, topicId: topic.id, threadId: result.value.threadId });
     }
     goToThread(home.environmentId, result.value.threadId);
     return true;

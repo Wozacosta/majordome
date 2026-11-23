@@ -19,6 +19,7 @@ import {
   filterTopicFolders,
   topicFolderFields,
   topicFolderRow,
+  withPendingSideChats,
 } from "./topics.logic";
 
 const env = EnvironmentId.make("env-1");
@@ -68,6 +69,26 @@ describe("collectVaults", () => {
     expect(pickActiveVault(vaults, vaults[1]!.key)?.title).toBe("work");
     expect(pickActiveVault(vaults, "env-1:gone")?.title).toBe("brain");
     expect(pickActiveVault([], null)).toBeNull();
+  });
+
+  it("lists a chat just started under a topic before the server names it, once", () => {
+    const fresh = ThreadId.make("fresh");
+    const listed = vaultResult([
+      { id: "house", threadId: "house-main" },
+      { id: "taxes", threadId: null },
+    ]);
+    const patched = withPendingSideChats(listed, [{ topicId: "house", threadId: fresh }]);
+    const { vaults } = collectVaults([brain], [patched]);
+    expect(vaults[0]?.topics.map((topic) => topic.sideChats)).toEqual([
+      [{ environmentId: env, threadId: fresh }],
+      [],
+    ]);
+    // Once the server lists it too, it is not added a second time.
+    expect(
+      withPendingSideChats(patched, [{ topicId: "house", threadId: fresh }]).topics[0]
+        ?.sideThreadIds,
+    ).toEqual([fresh]);
+    expect(withPendingSideChats(listed, [])).toBe(listed);
   });
 });
 
