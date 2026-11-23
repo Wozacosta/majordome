@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { T, useGT } from "gt-react";
-import { memo } from "react";
+import { lazy, memo, Suspense } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -49,6 +49,7 @@ import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUp
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { PHONE_SHORTCUT_LABEL } from "~/components/majordome/phone.logic";
 import { isMajordome } from "~/env";
+import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { MajordomeSidebarAlert } from "../majordome/MajordomeSidebarNav";
 import { MajordomeCloche } from "~/components/MajordomeCloche";
 import { observeResize } from "~/lib/observeResize";
@@ -224,6 +225,9 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
   );
 }
 
+// Split off: it brings the account service's hooks, which a start without accounts never needs.
+const AccountSidebarItem = lazy(() => import("../majordome/AccountSidebarItem"));
+
 function SidebarUtilityItem({
   icon,
   label,
@@ -316,6 +320,11 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               label={PHONE_SHORTCUT_LABEL}
               onClick={() => void navigate({ to: "/settings/phone" })}
             />
+          ) : null}
+          {isMajordome && hasAccountPublicConfig() ? (
+            <Suspense fallback={null}>
+              <AccountSidebarItem />
+            </Suspense>
           ) : null}
           {pullRequestsSupported && !isMajordome ? (
             <SidebarUtilityItem
