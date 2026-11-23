@@ -26,6 +26,9 @@ ARG MAJORDOME_VERSION=
 RUN if [ -n "$MAJORDOME_VERSION" ]; then \
     node scripts/update-release-package-versions.ts "$MAJORDOME_VERSION"; \
   fi
+# Majordome's account service, which a release names; without it the server has no accounts.
+ARG T3CODE_CLERK_PUBLISHABLE_KEY=
+ENV T3CODE_CLERK_PUBLISHABLE_KEY=$T3CODE_CLERK_PUBLISHABLE_KEY
 RUN vp run --filter t3 build
 RUN --mount=type=cache,id=majordome-pnpm-store,target=/root/.local/share/pnpm/store \
   node scripts/build-cli-archive.ts stage-runtime \

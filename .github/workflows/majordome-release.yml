@@ -132,6 +132,8 @@ jobs:
           VERSION: ${{ needs.preflight.outputs.version }}
           SIGNED: ${{ needs.preflight.outputs.signed }}
           T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
+          # Majordome's account service (docs/user/account.md). A public value.
+          T3CODE_CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsubWFqb3JkLm1lJA
           MAJORDOME_GOOGLE_CLIENT_ID: ${{ secrets.MAJORDOME_GOOGLE_CLIENT_ID }}
           MAJORDOME_GOOGLE_CLIENT_SECRET: ${{ secrets.MAJORDOME_GOOGLE_CLIENT_SECRET }}
           CSC_LINK: ${{ secrets.CSC_LINK }}

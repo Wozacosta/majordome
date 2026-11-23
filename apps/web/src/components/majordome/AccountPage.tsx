@@ -11,7 +11,7 @@ import {
 } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { environmentCatalog } from "../../connection/catalog";
@@ -58,6 +58,10 @@ function SignedInOrOut() {
   const clerk = useClerk();
   const { user } = useUser();
   const { primaryEnvironmentId } = useMachineNames();
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the sign-in window belongs to the account service, which leaves it open after a sign-in that returns from the browser
+  useEffect(() => {
+    if (isSignedIn) clerk.closeSignIn();
+  }, [isSignedIn, clerk]);
 
   if (!isLoaded) return <Muted className="mt-6">Checking your account…</Muted>;
 

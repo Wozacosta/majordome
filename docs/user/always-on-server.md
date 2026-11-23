@@ -207,7 +207,8 @@ directly. If **Back up my brain** on your computer shows the server as **Not kep
 By invitation for now. With an invite code you need no server of your own, no terminal and no
 Tailscale:
 
-1. Open <https://broker.majord.link/start> and enter your code.
+1. Open <https://majord.me/start>, sign in, and enter your code. The server belongs to the
+   account you sign in with ([Your account](./account.md)).
 2. Wait about half a minute. The page then opens your server, already yours.
 3. Press **Sign in** on Claude, open the link, and paste the code Claude gives you. Your own
    Claude plan is used; Anthropic has not confirmed that it allows this on a server someone

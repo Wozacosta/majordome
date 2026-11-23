@@ -82,8 +82,9 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **How a hosted server is made (2026-11-23).** The address broker makes it, since it is the one
   service Majordome runs and already holds secrets: a person opens a page with an invite code
   and lands on their server, paired as its owner with the same one-time setup secret "Set up a
-  server for me" uses. No account with Majordome: the code is the whole of it for now. Making a
-  server sits behind a small interface (create, delete, address) with Fly.io as the first host.
+  server for me" uses. The page (`majord.me/start`) asks for a Majordome account first, and the
+  server starts with that account as its owner, so a customer who loses every paired device
+  signs in again. Making a server sits behind a small interface (create, delete, address) with Fly.io as the first host.
 - **What a server is called (2026-11-23).** One the owner runs is "Your server" ("your server"
   in a sentence), not "Always-on server". One Majordome hosts is "Majordome server" ("your
   Majordome server"), drawn with a cloud. The host's name (Fly, or any other) is never shown, and
@@ -141,10 +142,19 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **Phone access:** a home-screen web app over HTTPS, which iPhone web push needs. The main way
   (2026-11-22) is a public `*.majord.link` address: installing Tailscale on the phone was the step
   people would not do. Majordome runs one small hosted piece for it, the address broker in
-  `infra/broker`, which hands each computer a Cloudflare Tunnel; it has no accounts and is not in
+  `infra/broker`, which hands each computer a Cloudflare Tunnel; it keeps nothing about accounts and is not in
   the path of the traffic, but Cloudflare is, and the server is then reachable from the internet
   behind its own pairing and sessions. Tailscale (`*.ts.net`) stays as the private way, and
   same-Wi-Fi pairing as a fallback without notifications. T3 Connect belongs to T3 and stays off.
+- **Accounts are identity only (2026-11-23).** A Majordome account (Clerk, on `majord.me`) is
+  optional on the owner's own computer and required for a hosted server. A server remembers one
+  account as its owner; a device signed in to it shows a 60-second token, the server checks it
+  against the account service's public keys, and hands back the one-time credential a pairing
+  link carries, so nothing downstream knows about accounts. The list of an account's servers
+  lives in the account's own metadata, which only its holder can write: no service of ours
+  keeps who owns which server, and the account service never holds a key to a server. A
+  browser signs in at `majord.me/open`, because the account service only signs in on its own
+  domain and every `*.majord.link` address is another person's server.
 - **Push notifications, only four kinds:** a run is waiting for you, "Start my day" finished (its
   first line), a run couldn't finish, and an agent's `notify_me` when you asked it to tell you
   (one per thread every 30 seconds). "Notifications" lists the devices that get them; "Your

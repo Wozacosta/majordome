@@ -7,6 +7,17 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Sign in to find your servers.** A Majordome account is optional and does one thing: a
+  device you sign in on finds your servers by itself, with no code to scan. In Settings > Your
+  account, sign in with Google or your email and add this computer. Then, on a phone or any
+  browser, open majord.me/open, sign in and press Open. Pairing with a code works as before.
+  (The iPhone app does not have sign-in yet.)
+- **A server Majordome hosts belongs to your account.** The invite page is now
+  majord.me/start: sign in, enter your code, and the server is yours from its first start. If
+  you ever lose every device, signing in gets you back in.
+
 ## 0.10.34
 
 **New**
