@@ -9,14 +9,20 @@ phone and your computer show the same ones. Conversations you had before stay on
 they are listed under their topic as "Chat on this Mac". While the server can't be reached, new
 conversations wait until it is back.
 
-**Settings > Always-on server** sets one up for you. You need a Tailscale account (the one **Phone &
-notifications** set up) with HTTPS turned on, and an account at [Hetzner](https://www.hetzner.com/cloud),
-the company the server is rented from.
+**Settings > Always-on server** sets one up for you. You need:
+
+- an account at [Hetzner](https://www.hetzner.com/cloud), the company the server is rented from,
+  with a payment card. The account is free; the server is not ([below](#what-it-costs)).
+- a free [Tailscale](https://tailscale.com) account, with HTTPS turned on. Tailscale keeps the
+  server private to your own devices.
 
 ## Set up a server for me
 
-You paste two keys once, press one button, and sign in to Claude on the new server. It takes about
-ten minutes.
+You copy one key from each account and paste it in Majordome, press one button, and sign in to
+Claude on the new server. It takes about ten minutes.
+
+The screen shows one key at a time: the steps for the Hetzner key first, then, once it is saved,
+the steps for the Tailscale one. **Change** beside a saved key lets you paste another.
 
 ### What it costs
 
@@ -57,8 +63,10 @@ If you changed Tailscale's access rules from the default, add a rule that lets y
 
 ### Start
 
-**Check** confirms both keys work and says exactly what is missing if one doesn't. Choose where the
-server should be (the nearest place is preselected) and press **Set up a server for me**.
+Once both keys are saved, **Check my keys** confirms they work, reads the price from Hetzner, and
+says exactly what is missing if one doesn't. Nothing is rented yet. When the check passes, the same
+button becomes **Set up a server for me**: choose where the server should be (the nearest place is
+preselected) and press it.
 
 Majordome then creates the server, adds it to your Tailscale network, connects to it and copies
 your notes with their whole history. Each step shows as it happens. If one fails, it says why and
@@ -70,11 +78,12 @@ drops every incoming connection, and Majordome answers only on your Tailscale ne
 ### Finish
 
 - **Sign in to Claude on the server.** Sign-ins are not copied from your computer: each machine has
-  its own. The screen links to the server's Providers page ([below](#sign-in-to-claude-and-chatgpt-on-the-server)).
+  its own. The screen links to the server's AI accounts page ([below](#sign-in-to-claude-and-chatgpt-on-the-server)).
 - **Move routines now.** Routines stay on your computer until the server is signed in and can run
   them. Routines you set up by talking to the assistant do not move by themselves: ask the
   assistant on the server to set them up again. The check names them before you start.
-- **Add it to your phone** with the code the screen shows.
+- **Set up your phone.** Once routines run on the server, the screen links to **Phone &
+  notifications**, which sets your phone up on the server with nothing to install on it.
 
 ### Your computer and the server stay in step
 
@@ -100,7 +109,7 @@ says "Two versions of a note" until you delete or rename the other version; **Ba
 lists them. You can also ask the assistant to combine the two.
 
 Majordome keeps the two keys on your computer, never in your notes. **Forget these keys** deletes
-them; removing the server later asks for them again.
+them, after asking you to confirm; removing the server later asks for them again.
 
 ### Remove this server
 
@@ -175,7 +184,7 @@ For any other provider, or if you prefer a terminal.
    not your password.
 
 6. **Connect.** Get a one-time code with `docker compose exec majordome majord pair`.
-   - On your computer, open **Settings > Advanced > Environments**, add an environment, and enter
+   - On your computer, open **Settings > Advanced > Computers**, add one, and enter
      `majordome.<your-tailnet>.ts.net` and the code. Your Tailscale address is on
      [Tailscale's machines page](https://login.tailscale.com/admin/machines).
    - On your phone, open `https://majordome.<your-tailnet>.ts.net`, enter a new code, and add it to
@@ -184,9 +193,9 @@ For any other provider, or if you prefer a terminal.
 7. **Finish on the server's Majordome:**
    - Optional: **Back up my brain > Sign in to GitHub**, so the server sends its notes to the
      GitHub backup too. Without it, your computer sends them whenever it is on.
-   - **Settings > Providers > Claude > Sign in to Claude**, or **Codex > Continue with ChatGPT**
+   - **Settings > AI accounts > Claude > Sign in to Claude**, or **Codex > Continue with ChatGPT**
      (below).
-   - **Feed > Move routines here.** Your computer stops running them once it gets your latest notes.
+   - **Move routines here**, on the page that lists what Majordome did. Your computer stops running them once it gets your latest notes.
 
 Your computer keeps its own copy of the notes. Once the Majordome app on your computer is connected
 to the server, it links the two by itself, and they [stay in step](#your-computer-and-the-server-stay-in-step)
@@ -198,11 +207,11 @@ directly. If **Back up my brain** on your computer shows the server as **Not kep
 The server has no browser, so sign-in happens from your phone or computer, in the server's
 Majordome:
 
-- **Claude:** in **Settings > Providers > Claude**, choose **Sign in to Claude**. Open the link it
+- **Claude:** in **Settings > AI accounts > Claude**, choose **Sign in to Claude**. Open the link it
   shows, approve, and paste the code Claude gives you back into Majordome. The code only works for a
   few minutes; if it is refused, choose **Start over** for a new link. This full sign-in brings your
   Claude account's connectors (Gmail, Calendar, Drive), so routines can use them.
-- **ChatGPT (Codex):** in **Settings > Providers > Codex**, choose **Continue with ChatGPT**. After
+- **ChatGPT (Codex):** in **Settings > AI accounts > Codex**, choose **Continue with ChatGPT**. After
   you sign in, the page fails to load: copy its address and paste it in the field Majordome shows.
 
 Two other ways to sign in to Claude:
@@ -210,7 +219,7 @@ Two other ways to sign in to Claude:
 - **From a terminal:** on the server, run `docker compose exec -it majordome claude auth login`,
   open the link it prints, approve, and paste the code back. It is the same sign-in as above.
 - **With a token, without connectors:** on a computer where you use Claude, run
-  `claude setup-token` and paste the token in **Settings > Providers > Claude > Claude sign-in
+  `claude setup-token` and paste the token in **Settings > AI accounts > Claude > Claude sign-in
   token**. Conversations work, but the server can't reach your email, calendar or files.
 
 A token wins over a full sign-in for as long as Claude sees it. **Sign in to Claude** removes a

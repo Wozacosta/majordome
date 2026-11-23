@@ -135,21 +135,33 @@ export function problemsFor(
     .map((problem) => problem.message);
 }
 
-/** The one button is live only after a check that found nothing wrong, for a chosen location. */
-export function canStartServerMove(input: {
+export type ServerKey = "hetzner" | "tailscale";
+
+/** The key whose steps are open: the one being changed, else the first one not saved yet. */
+export function openServerKey(
+  keys: MajordomeServerMoveStatus["keys"],
+  changing: ServerKey | null,
+): ServerKey | null {
+  if (changing !== null) return changing;
+  if (!keys.hetzner) return "hetzner";
+  return keys.tailscale ? null : "tailscale";
+}
+
+/**
+ * What the one main button does: nothing until both keys are saved, then a check, and the setup
+ * itself only after a check that found nothing wrong and offered somewhere to put the server.
+ */
+export function serverSetupAction(input: {
   readonly status: MajordomeServerMoveStatus;
   readonly check: MajordomeServerMoveCheck | null;
   readonly projectId: string | null;
-}): boolean {
-  return (
-    input.projectId !== null &&
-    input.status.move === null &&
-    input.status.keys.hetzner &&
-    input.status.keys.tailscale &&
-    input.check !== null &&
-    input.check.problems.length === 0 &&
-    chosenLocation(input.check, null) !== null
-  );
+}): "check" | "start" | null {
+  const { status, check } = input;
+  if (input.projectId === null || status.move !== null) return null;
+  if (!status.keys.hetzner || !status.keys.tailscale) return null;
+  return check !== null && check.problems.length === 0 && chosenLocation(check, null) !== null
+    ? "start"
+    : "check";
 }
 
 /** A provider the new server can run conversations and routines with. */

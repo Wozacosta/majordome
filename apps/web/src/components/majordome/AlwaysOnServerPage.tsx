@@ -14,6 +14,7 @@ import type {
 } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
+import { useMessages } from "gt-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { environmentCatalog } from "../../connection/catalog";
@@ -23,7 +24,6 @@ import { majordomeEnvironment } from "../../state/majordome";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { formatExpiresInLabel } from "../../timestampFormat";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -36,11 +36,11 @@ import {
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { QRCodeSvg } from "../ui/qr-code";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { AlwaysOnManualGuide } from "./AlwaysOnManualGuide";
+import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
   Disclosure,
@@ -52,18 +52,20 @@ import {
   StatusLine,
   Step,
   Steps,
-  Surface,
   ToneDot,
 } from "./paper";
 import {
-  canStartServerMove,
   chosenLocation,
   hasReadyProvider,
   locationLabel,
+  openServerKey,
   problemsFor,
+  type ServerKey,
+  type ServerMoveView,
   serverMoveNextStep,
   serverMoveStepRows,
   serverMoveView,
+  serverSetupAction,
   serverSummary,
 } from "./serverMove.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -102,51 +104,77 @@ function Problems({ messages }: { readonly messages: ReadonlyArray<string> }) {
   ));
 }
 
+const INTRO: Record<ServerMoveView, string> = {
+  setup:
+    "Majordome runs on this computer, so your routines only run while it is awake. An always-on server is a small computer you rent that never sleeps, so your routines run on time and your phone can always reach Majordome.",
+  progress:
+    "Majordome is setting up your always-on server: a small rented computer that never sleeps, so your routines run even while this computer is off.",
+  ready:
+    "You have an always-on server: a small rented computer that never sleeps, with a copy of your notes. This page shows what is left to do on it, and how to remove it.",
+  removing:
+    "Majordome is removing your always-on server. Your notes and routines come back to this computer.",
+};
+
 /** Set up a rented server that never sleeps from here, or follow the guide to do it by hand. */
 export function AlwaysOnServerPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
-  return (
-    <MajordomeSettingsPage
-      searchId="majordome-always-on"
-      intro="Majordome runs on this computer, so your routines only run while it is awake. An always-on server is a small computer you rent that never sleeps. Majordome can set one up for you in about ten minutes."
-    >
-      {environmentId === null ? null : <ServerMove environmentId={environmentId} />}
-      <Section>
-        <Disclosure summary="Do it by hand">
-          <AlwaysOnManualGuide />
-        </Disclosure>
-      </Section>
+  return environmentId === null ? (
+    <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
+      <ManualGuide />
     </MajordomeSettingsPage>
+  ) : (
+    <ServerMovePage environmentId={environmentId} />
   );
 }
 
-function ServerMove({ environmentId }: { readonly environmentId: EnvironmentId }) {
+function ManualGuide() {
+  return (
+    <Section>
+      <Disclosure summary="Do it by hand">
+        <AlwaysOnManualGuide />
+      </Disclosure>
+    </Section>
+  );
+}
+
+function ServerMovePage({ environmentId }: { readonly environmentId: EnvironmentId }) {
   const result = useAtomValue(majordomeEnvironment.serverMove({ environmentId, input: {} }));
   const canManage = useAtomValue(
     majordomeEnvironment.serverMoveStart.permissionAtom(environmentId),
   );
   const status = AsyncResult.getOrElse(result, () => null);
+  const view = status === null ? "setup" : serverMoveView(status);
+  return (
+    <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO[view]}>
+      {!canManage ? (
+        <Section>
+          <Muted>Open this screen on the computer where Majordome runs to set up a server.</Muted>
+        </Section>
+      ) : status === null ? (
+        <Section>
+          {result._tag === "Failure" ? (
+            <p className="text-sm text-destructive-foreground">
+              {formatEnvironmentQueryError(result.cause)}
+            </p>
+          ) : (
+            <Skeleton className="h-24 w-full" />
+          )}
+        </Section>
+      ) : (
+        <ServerMove environmentId={environmentId} status={status} />
+      )}
+      {view === "setup" ? <ManualGuide /> : null}
+    </MajordomeSettingsPage>
+  );
+}
 
-  if (!canManage) {
-    return (
-      <Section>
-        <Muted>Open this screen on the computer where Majordome runs to set up a server.</Muted>
-      </Section>
-    );
-  }
-  if (status === null) {
-    return (
-      <Section>
-        {result._tag === "Failure" ? (
-          <p className="text-sm text-destructive-foreground">
-            {formatEnvironmentQueryError(result.cause)}
-          </p>
-        ) : (
-          <Skeleton className="h-24 w-full" />
-        )}
-      </Section>
-    );
-  }
+function ServerMove({
+  environmentId,
+  status,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly status: MajordomeServerMoveStatus;
+}) {
   switch (serverMoveView(status)) {
     case "setup":
       return <SetupPanel environmentId={environmentId} status={status} />;
@@ -192,26 +220,32 @@ function RemovalSummary({ removal }: { readonly removal: MajordomeServerMoveRemo
   );
 }
 
+/** One key: its steps and a field while open, one line once saved or while it waits its turn. */
 function KeyField({
   label,
   saved,
+  open,
   placeholder,
   problems,
   onSave,
+  onChange,
+  onCancel,
   children,
 }: {
   readonly label: string;
   readonly saved: boolean;
+  readonly open: boolean;
   readonly placeholder: string;
   readonly problems: ReadonlyArray<string>;
   readonly onSave: (value: string) => Promise<string | null>;
+  readonly onChange: () => void;
+  readonly onCancel: () => void;
   /** How to get the key, step by step. */
   readonly children: ReactNode;
 }) {
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [replacing, setReplacing] = useState(false);
   const inputId = `always-on-${label.toLowerCase().replaceAll(" ", "-")}`;
 
   const save = async () => {
@@ -219,50 +253,139 @@ function KeyField({
     const problem = await onSave(value.trim());
     setBusy(false);
     setError(problem);
-    if (problem === null) {
-      setValue("");
-      setReplacing(false);
+    if (problem === null) setValue("");
+  };
+
+  if (!open) {
+    return (
+      <Entry as="div" title={label}>
+        {saved ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <StatusLine tone="ok">Saved on this computer.</StatusLine>
+            <Button size="xs" variant="ghost-muted" onClick={onChange}>
+              Change
+            </Button>
+          </div>
+        ) : (
+          <Muted>Next, once the key above is saved.</Muted>
+        )}
+        <Problems messages={problems} />
+      </Entry>
+    );
+  }
+  return (
+    <Entry as="div" title={<Label htmlFor={inputId}>{label}</Label>}>
+      {children}
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
+        <div className="min-w-0 flex-1 basis-56">
+          <Input
+            id={inputId}
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={placeholder}
+            value={value}
+            onChange={(event) => setValue(event.currentTarget.value)}
+          />
+        </div>
+        <Button type="submit" size="sm" disabled={busy || value.trim() === ""}>
+          {busy ? <Spinner size="sm" /> : null}
+          Save
+        </Button>
+        {saved ? (
+          <Button type="button" size="sm" variant="ghost-muted" disabled={busy} onClick={onCancel}>
+            Keep the saved one
+          </Button>
+        ) : null}
+      </form>
+      {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}
+      <Problems messages={problems} />
+    </Entry>
+  );
+}
+
+/** Asks before deleting the saved keys, and says so when deleting them fails. */
+function ForgetKeys({
+  environmentId,
+  disabled,
+  consequence,
+  onForgotten,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly disabled: boolean;
+  /** What forgetting costs on the screen that offers it. */
+  readonly consequence: string;
+  readonly onForgotten?: () => void;
+}) {
+  const forgetKeys = useAtomCommand(majordomeEnvironment.serverMoveForgetKeys, {
+    reportFailure: false,
+  });
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const forget = async () => {
+    setBusy(true);
+    setError(null);
+    const result = await forgetKeys({ environmentId, input: {} });
+    setBusy(false);
+    if (result._tag === "Success") {
+      setAsking(false);
+      onForgotten?.();
+      return;
+    }
+    const failure = failureOf(result);
+    if (failure !== null) {
+      setError(`The keys could not be forgotten, so they are still saved. ${failure.message}`);
     }
   };
 
   return (
-    <Entry as="div" title={<Label htmlFor={inputId}>{label}</Label>}>
-      {saved && !replacing ? null : children}
-      {saved && !replacing ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <StatusLine tone="ok">Saved on this computer.</StatusLine>
-          <Button size="xs" variant="ghost-muted" onClick={() => setReplacing(true)}>
-            Replace
-          </Button>
-        </div>
-      ) : (
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void save();
-          }}
-        >
-          <div className="min-w-0 flex-1 basis-56">
-            <Input
-              id={inputId}
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={placeholder}
-              value={value}
-              onChange={(event) => setValue(event.currentTarget.value)}
-            />
-          </div>
-          <Button type="submit" size="sm" disabled={busy || value.trim() === ""}>
-            {busy ? <Spinner size="sm" /> : null}
-            Save
-          </Button>
-        </form>
-      )}
-      {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}
-      <Problems messages={problems} />
-    </Entry>
+    <>
+      <Button
+        size="sm"
+        variant="ghost-muted"
+        disabled={disabled}
+        onClick={() => {
+          setError(null);
+          setAsking(true);
+        }}
+      >
+        Forget these keys
+      </Button>
+      <AlertDialog
+        open={asking}
+        onOpenChange={(open) => {
+          if (!busy) setAsking(open);
+        }}
+      >
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Forget these keys?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Majordome deletes the Hetzner key and the Tailscale secret from this computer.{" "}
+              {consequence}
+            </AlertDialogDescription>
+            {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose disabled={busy} render={<Button variant="outline" disabled={busy} />}>
+              Keep the keys
+            </AlertDialogClose>
+            <Button variant="destructive" disabled={busy} onClick={() => void forget()}>
+              {busy ? <Spinner size="sm" /> : null}
+              Forget the keys
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -279,22 +402,24 @@ function SetupPanel({
   const saveKeys = useAtomCommand(majordomeEnvironment.serverMoveSaveKeys, {
     reportFailure: false,
   });
-  const forgetKeys = useAtomCommand(majordomeEnvironment.serverMoveForgetKeys, {
-    reportFailure: false,
-  });
   const runCheck = useAtomCommand(majordomeEnvironment.serverMoveCheck, { reportFailure: false });
   const start = useAtomCommand(majordomeEnvironment.serverMoveStart, { reportFailure: false });
   const [check, setCheck] = useState<MajordomeServerMoveCheck | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [changing, setChanging] = useState<ServerKey | null>(null);
   const [busy, setBusy] = useState<"check" | "start" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const location = chosenLocation(check, picked);
-  const hasKeys = status.keys.hetzner && status.keys.tailscale;
+  const openKey = openServerKey(status.keys, changing);
+  const action = serverSetupAction({ status, check, projectId });
 
   const save = async (input: { hetznerToken?: string; tailscaleSecret?: string }) => {
     const result = await saveKeys({ environmentId, input });
-    // A new key makes the last check's verdict about the old one.
-    if (result._tag === "Success") setCheck(null);
+    if (result._tag === "Success") {
+      // A new key makes the last check's verdict about the old one.
+      setCheck(null);
+      setChanging(null);
+    }
     return failureOf(result)?.message ?? null;
   };
 
@@ -320,67 +445,85 @@ function SetupPanel({
   return (
     <>
       {status.removal === null ? null : <RemovalSummary removal={status.removal} />}
+      <Section label="What you need">
+        <EntryList>
+          <Entry title="A Hetzner account, with a payment card">
+            Hetzner is the company that rents you the server. The account is free; the server costs
+            about €5 a month, billed by Hetzner to your card. Majordome charges nothing, and shows
+            the exact price before anything is rented.
+          </Entry>
+          <Entry title="A Tailscale account">
+            Tailscale is a free service that keeps the server private, so only your own devices can
+            reach it.
+          </Entry>
+          <Entry title="About ten minutes">
+            You copy one key from each account and paste it here. Majordome then rents the server,
+            copies your notes to it and shows each step. You can remove the server from this screen
+            at any time.
+          </Entry>
+        </EntryList>
+      </Section>
       <Section label="Set up a server for me">
-        <Muted className={READING_MEASURE_CLASS}>
-          Majordome rents a small server from Hetzner in your name, keeps it private on your
-          Tailscale network so only your devices can reach it, and copies your notes to it. Hetzner
-          bills you for it each month; Majordome charges nothing. You paste two keys once, press one
-          button, then sign in to Claude on the server. You can remove the server from this screen
-          at any time.
-        </Muted>
         {projectId === null ? (
-          <StatusLine tone="warning" className="mt-3">
+          <StatusLine tone="warning" className="mb-3">
             Open a notes folder on this computer first.
           </StatusLine>
         ) : null}
-        <div className="mt-3">
-          <KeyField
-            label="Hetzner key"
-            saved={status.keys.hetzner}
-            placeholder="Paste the API token"
-            problems={problemsFor(check, "hetzner")}
-            onSave={(hetznerToken) => save({ hetznerToken })}
-          >
-            <Steps>
-              <Step>
-                Open the <ExternalLink href={HETZNER_CONSOLE_URL}>Hetzner Console</ExternalLink> and
-                sign in, or create an account. Hetzner asks for a way to pay.
-              </Step>
-              <Step>Create a project, with any name, and open it.</Step>
-              <Step>
-                In the left menu choose Security, then API tokens, then Generate API token.
-              </Step>
-              <Step>Name it Majordome, choose Read &amp; Write, and generate it.</Step>
-              <Step>Copy the token and paste it below. Hetzner shows it only once.</Step>
-            </Steps>
-          </KeyField>
-          <KeyField
-            label="Tailscale secret"
-            saved={status.keys.tailscale}
-            placeholder="tskey-client-…"
-            problems={problemsFor(check, "tailscale")}
-            onSave={(tailscaleSecret) => save({ tailscaleSecret })}
-          >
-            <Steps>
-              <Step>
-                Open <ExternalLink href={TAILSCALE_TAGS_URL}>Access controls</ExternalLink> in
-                Tailscale, choose Tags, then Create tag. Name it majordome and save.
-              </Step>
-              <Step>
-                Open <ExternalLink href={TAILSCALE_CREDENTIALS_URL}>Trust credentials</ExternalLink>
-                , choose Credential, then OAuth.
-              </Step>
-              <Step>
-                Set Auth Keys to Write and Devices &gt; Core to Write, and for each choose the tag
-                tag:majordome. Leave everything else off.
-              </Step>
-              <Step>
-                Generate the credential, copy its secret (it starts with tskey-client-) and paste it
-                below. Tailscale shows it only once.
-              </Step>
-            </Steps>
-          </KeyField>
-        </div>
+        <KeyField
+          label="1. Hetzner key"
+          saved={status.keys.hetzner}
+          open={openKey === "hetzner"}
+          placeholder="Paste the API token"
+          problems={problemsFor(check, "hetzner")}
+          onSave={(hetznerToken) => save({ hetznerToken })}
+          onChange={() => setChanging("hetzner")}
+          onCancel={() => setChanging(null)}
+        >
+          <Steps>
+            <Step>
+              Open the <ExternalLink href={HETZNER_CONSOLE_URL}>Hetzner Console</ExternalLink> and
+              sign in, or create an account. Hetzner asks for a payment card.
+            </Step>
+            <Step>Create a project, with any name, and open it.</Step>
+            <Step>In the left menu choose Security, then API tokens, then Generate API token.</Step>
+            <Step>Name it Majordome, choose Read &amp; Write, and generate it.</Step>
+            <Step>Copy the token and paste it below. Hetzner shows it only once.</Step>
+          </Steps>
+        </KeyField>
+        <KeyField
+          label="2. Tailscale secret"
+          saved={status.keys.tailscale}
+          open={openKey === "tailscale"}
+          placeholder="tskey-client-…"
+          problems={problemsFor(check, "tailscale")}
+          onSave={(tailscaleSecret) => save({ tailscaleSecret })}
+          onChange={() => setChanging("tailscale")}
+          onCancel={() => setChanging(null)}
+        >
+          <Muted>
+            Tailscale calls its key a secret. These steps give Majordome the right to add one server
+            to your Tailscale account, and nothing else.
+          </Muted>
+          <Steps>
+            <Step>
+              Open <ExternalLink href={TAILSCALE_TAGS_URL}>Access controls</ExternalLink> in
+              Tailscale and sign in, or create an account. Choose Tags, then Create tag. Name it
+              majordome and save.
+            </Step>
+            <Step>
+              Open <ExternalLink href={TAILSCALE_CREDENTIALS_URL}>Trust credentials</ExternalLink>,
+              choose Credential, then OAuth.
+            </Step>
+            <Step>
+              In the list, find Auth Keys and set it to Write, then find Core under Devices and set
+              it to Write. Each asks for a tag: choose tag:majordome. Leave everything else off.
+            </Step>
+            <Step>
+              Generate the credential, copy its secret (it starts with tskey-client-) and paste it
+              below. Tailscale shows it only once.
+            </Step>
+          </Steps>
+        </KeyField>
         <div className="mt-3 flex flex-col gap-2">
           <Problems messages={problemsFor(check, "other")} />
           {check?.notices.map((notice) => (
@@ -388,8 +531,8 @@ function SetupPanel({
               {notice}
             </StatusLine>
           ))}
-          {check !== null && check.problems.length === 0 ? (
-            <StatusLine tone="ok">Everything is ready.</StatusLine>
+          {action === "start" ? (
+            <StatusLine tone="ok">Both keys work. Everything is ready.</StatusLine>
           ) : null}
           {check !== null && location !== null ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -414,43 +557,47 @@ function SetupPanel({
             </div>
           ) : null}
           {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}
+          {action === "check" && check === null ? (
+            <Muted className={READING_MEASURE_CLASS}>
+              Majordome checks that both keys work and reads the price from Hetzner. Nothing is
+              rented yet.
+            </Muted>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              disabled={busy !== null || !canStartServerMove({ status, check, projectId })}
-              onClick={() => void doStart()}
-            >
-              {busy === "start" ? <Spinner size="sm" /> : null}
-              Set up a server for me
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy !== null || !hasKeys || projectId === null}
-              onClick={() => void doCheck()}
-            >
-              {busy === "check" ? <Spinner size="sm" /> : null}
-              {check === null ? "Check" : "Check again"}
-            </Button>
-            {status.keys.hetzner || status.keys.tailscale ? (
+            {action === "start" ? (
+              <Button size="sm" disabled={busy !== null} onClick={() => void doStart()}>
+                {busy === "start" ? <Spinner size="sm" /> : null}
+                Set up a server for me
+              </Button>
+            ) : action === "check" ? (
+              <Button size="sm" disabled={busy !== null} onClick={() => void doCheck()}>
+                {busy === "check" ? <Spinner size="sm" /> : null}
+                {check === null ? "Check my keys" : "Check again"}
+              </Button>
+            ) : null}
+            {action === "start" ? (
               <Button
                 size="sm"
                 variant="ghost-muted"
                 disabled={busy !== null}
-                onClick={() => {
-                  setCheck(null);
-                  void forgetKeys({ environmentId, input: {} });
-                }}
+                onClick={() => void doCheck()}
               >
-                Forget these keys
+                {busy === "check" ? <Spinner size="sm" /> : null}
+                Check again
               </Button>
             ) : null}
+            {status.keys.hetzner || status.keys.tailscale ? (
+              <ForgetKeys
+                environmentId={environmentId}
+                disabled={busy !== null}
+                consequence="To set up a server, you will have to make and paste them again."
+                onForgotten={() => {
+                  setCheck(null);
+                  setChanging(null);
+                }}
+              />
+            ) : null}
           </div>
-          {check === null && hasKeys ? (
-            <Muted>
-              Check first: Majordome confirms both keys work and reads the price from Hetzner.
-            </Muted>
-          ) : null}
         </div>
       </Section>
     </>
@@ -560,62 +707,6 @@ function ProgressPanel({
   );
 }
 
-/** A one-time link to add the server to a phone, as a QR code. It lives only in this component. */
-function PhoneCode({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const issue = useAtomCommand(majordomeEnvironment.serverMoveIssuePairingLink, {
-    reportFailure: false,
-  });
-  const [code, setCode] = useState<{ readonly url: string; readonly expiresAt: string } | null>(
-    null,
-  );
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const show = async () => {
-    setBusy(true);
-    const result = await issue({ environmentId, input: {} });
-    setBusy(false);
-    setError(failureOf(result)?.message ?? null);
-    if (result._tag === "Success") {
-      setCode({ url: result.value.pairingUrl, expiresAt: result.value.expiresAt });
-    }
-  };
-
-  if (code === null) {
-    return (
-      <div className="flex flex-col gap-2">
-        <div>
-          <Button size="xs" variant="outline" disabled={busy} onClick={() => void show()}>
-            {busy ? <Spinner size="sm" /> : null}
-            Show the code
-          </Button>
-        </div>
-        {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}
-      </div>
-    );
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      {/* White in both themes: a phone's camera reads dark squares on white. */}
-      <Surface className="w-fit bg-white p-3">
-        <QRCodeSvg
-          value={code.url}
-          size={168}
-          level="M"
-          marginSize={1}
-          title="Code to open your server on your phone"
-        />
-      </Surface>
-      <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-        <span>{formatExpiresInLabel(code.expiresAt)}. Works once.</span>
-        <Button size="xs" variant="ghost-muted" onClick={() => setCode(null)}>
-          Hide
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function ReadyPanel({
   environmentId,
   move,
@@ -641,9 +732,8 @@ function ReadyPanel({
   });
   const remove = useAtomCommand(majordomeEnvironment.serverMoveRemove, { reportFailure: false });
   const forget = useAtomCommand(environmentCatalog.remove, { reportFailure: false });
-  const forgetKeys = useAtomCommand(majordomeEnvironment.serverMoveForgetKeys, {
-    reportFailure: false,
-  });
+  const messages = useMessages();
+  const accountsPage = messages(SETTINGS_SECTION_LABELS["/settings/providers"]);
   const [busy, setBusy] = useState<"add" | "routines" | "remove" | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [routinesError, setRoutinesError] = useState<string | null>(null);
@@ -747,8 +837,9 @@ function ReadyPanel({
               <StatusLine tone="ok">Signed in.</StatusLine>
             ) : (
               <>
-                Sign-ins are not copied: each machine has its own. Open the server's Providers,
-                choose Sign in to Claude (or Continue with ChatGPT), and follow the link it shows.
+                Sign-ins are not copied: each computer has its own. Open the server's {accountsPage}{" "}
+                page, choose Sign in to Claude (or Continue with ChatGPT), and follow the link it
+                shows.
                 {saved ? <span className="block">{signInLink}</span> : null}
               </>
             )}
@@ -777,9 +868,17 @@ function ReadyPanel({
               </>
             )}
           </Step>
-          <Step title="Add it to your phone">
-            Open Tailscale on your phone, then scan this code with its camera.
-            <PhoneCode environmentId={environmentId} />
+          <Step title="Set up your phone">
+            {move.routinesOnServer ? (
+              <>
+                Your phone can reach the server from anywhere, with nothing to install on it.{" "}
+                <Link to="/settings/phone" className="underline underline-offset-2">
+                  Set up your phone
+                </Link>
+              </>
+            ) : (
+              "Once routines run on the server, this step links to the page that sets up your phone on it."
+            )}
           </Step>
         </Steps>
       </Section>
@@ -805,14 +904,11 @@ function ReadyPanel({
             Remove this server
           </Button>
           {hasKeys ? (
-            <Button
-              size="sm"
-              variant="ghost-muted"
+            <ForgetKeys
+              environmentId={environmentId}
               disabled={busy !== null}
-              onClick={() => void forgetKeys({ environmentId, input: {} })}
-            >
-              Forget these keys
-            </Button>
+              consequence="Your server keeps running. Removing it later needs both keys, so Majordome will ask you to paste them again."
+            />
           ) : null}
         </div>
         <AlertDialog

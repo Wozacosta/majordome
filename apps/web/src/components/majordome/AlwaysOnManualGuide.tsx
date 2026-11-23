@@ -1,11 +1,13 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
+import { useMessages } from "gt-react";
 import type { ReactNode } from "react";
 
 import { useProjects } from "../../state/entities";
 import { vaultBackupStatusesAtom } from "../../state/majordome";
 import { CommandBlock } from "../CommandBlock";
+import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 import { Step, Steps } from "./paper";
 
 const COMPOSE_URL =
@@ -19,6 +21,7 @@ const GITHUB_ACCESS_KEY_URL =
 /** Moving to a server by hand, on any provider: for owners at ease in a terminal. */
 export function AlwaysOnManualGuide() {
   const repoUrl = useGitHubBackupUrl();
+  const messages = useMessages();
   return (
     <Steps>
       <Step title="Rent a small server">
@@ -69,7 +72,7 @@ export function AlwaysOnManualGuide() {
         <CommandBlock command="docker compose exec majordome majord pair" />
         Here, open{" "}
         <Link to="/settings/connections" className="underline underline-offset-2">
-          Environments
+          {messages(SETTINGS_SECTION_LABELS["/settings/connections"])}
         </Link>{" "}
         and add one with the host majordome.your-tailnet.ts.net (your Tailscale address) and the
         code. On your phone, open https://majordome.your-tailnet.ts.net and enter a new code.
@@ -78,10 +81,11 @@ export function AlwaysOnManualGuide() {
         On the server's Majordome: in Back up my brain, press Sign in to GitHub so it can save your
         notes back; in{" "}
         <Link to="/settings/providers" className="underline underline-offset-2">
-          Providers
+          {messages(SETTINGS_SECTION_LABELS["/settings/providers"])}
         </Link>
         , press Sign in to Claude (it gives you a link to open here and a code to paste back) or
-        continue with ChatGPT; then on the Feed, press Move routines here.
+        continue with ChatGPT; then press Move routines here, on the page that lists what Majordome
+        did.
       </Step>
     </Steps>
   );
