@@ -5,8 +5,9 @@ uses your own AI plan.
 
 ## On a Mac
 
-1. Download the newest `Majordome-…-arm64.dmg` (Apple silicon) or `…-x64.dmg` (Intel) from the
-   [releases page](https://github.com/Wozacosta/majordome/releases/latest).
+1. Download the newest `Majordome-…-arm64.dmg` from the
+   [releases page](https://github.com/Wozacosta/majordome/releases/latest). It needs a Mac with
+   Apple silicon; there is no Intel build for now.
 2. Open it and drag Majordome to Applications.
 3. Open Majordome. The Welcome page sets up your notes folder and your AI account.
 

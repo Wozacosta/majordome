@@ -4,8 +4,9 @@
 
 ## Majordome releases
 
-`.github/workflows/majordome-release.yml` builds the macOS app for Apple silicon and Intel, signs
-and notarizes it, and publishes `Majordome-<version>-<arch>.dmg`, the zips and the update feed
+`.github/workflows/majordome-release.yml` builds the macOS app for Apple silicon (the Intel build
+is switched off for now, see [what's next](../whatsnext.md#before-going-live)), signs and
+notarizes it, and publishes `Majordome-<version>-<arch>.dmg`, the zips and the update feed
 (`latest-mac.yml`) as a GitHub Release of `Wozacosta/majordome`. Installed apps check that
 repository's latest release for updates. The workflow publishes nothing else: no web app, Windows
 or Linux build. The `obrain` npm package is published by hand, see [obrain](#obrain).
@@ -15,6 +16,10 @@ To cut a release, push a tag, or run **Majordome release** from the Actions tab 
 ```sh
 git tag v0.2.0 && git push origin v0.2.0
 ```
+
+Tag the commit that names the version in `CHANGELOG.md`. That commit only changes the changelog,
+so it does not need a CI run of its own: tag it as soon as the commit before it is green on
+`main`.
 
 The tag sets the app's version; nothing is committed back. Installed apps only move to a higher
 version, and a version with a suffix (`0.2.0-beta.1`) becomes a prerelease they never see. For a

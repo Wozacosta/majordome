@@ -94,8 +94,10 @@ jobs:
         include:
           - arch: arm64
             rust_target: aarch64-apple-darwin
-          - arch: x64
-            rust_target: x86_64-apple-darwin
+          # Intel is off while Majordome has one user, to halve the build. Put these two lines
+          # back before going public: docs/whatsnext.md, "Before going live".
+          # - arch: x64
+          #   rust_target: x86_64-apple-darwin
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -202,9 +204,12 @@ jobs:
       - name: Merge the update feed
         run: |
           set -euo pipefail
-          node scripts/merge-update-manifests.ts --platform mac \
-            release-assets/latest-mac.yml release-assets/latest-mac-x64.yml release-assets/latest-mac.yml
-          rm release-assets/latest-mac-x64.yml
+          # Absent while the Intel build is off; the Apple silicon feed is then the whole feed.
+          if [[ -f release-assets/latest-mac-x64.yml ]]; then
+            node scripts/merge-update-manifests.ts --platform mac \
+              release-assets/latest-mac.yml release-assets/latest-mac-x64.yml release-assets/latest-mac.yml
+            rm release-assets/latest-mac-x64.yml
+          fi
           cat release-assets/latest-mac.yml
 
       # The version's own section of CHANGELOG.md leads the release; empty when it has none.

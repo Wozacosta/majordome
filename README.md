@@ -20,7 +20,7 @@
 <p align="center">
   <a href="https://github.com/Wozacosta/majordome/releases/latest"><img src="https://img.shields.io/github/v/release/Wozacosta/majordome?label=release&color=17804a" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-14161c" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/macOS-Apple%20silicon%20%7C%20Intel-14161c" alt="macOS, Apple silicon and Intel">
+  <img src="https://img.shields.io/badge/macOS-Apple%20silicon-14161c" alt="macOS, Apple silicon">
 </p>
 
 <p align="center">
@@ -86,8 +86,7 @@ And when you want them:
 
 Majordome runs on a Mac.
 
-1. **[Download](https://majord.me/download)** the app
-   ([Intel Mac](https://majord.me/download/intel)).
+1. **[Download](https://majord.me/download)** the app, for Macs with Apple silicon.
 2. **Drag** Majordome to Applications and open it.
 3. **Sign in to Claude or ChatGPT** on the welcome screen. It installs what it needs.
 4. **Choose your notes:** start new ones, or point it at a folder you already have. Majordome adds

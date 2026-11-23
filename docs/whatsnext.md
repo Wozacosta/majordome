@@ -3,6 +3,27 @@
 Things found and left for later. Each says what it is, why it waits, and where to start.
 Remove an entry when it is done.
 
+## Before going live
+
+### Put the Intel Mac build back
+
+Since 0.10.22 a release builds for Apple silicon only, which roughly halves the wait for an
+installer while Majordome has one user. Before anyone else is invited:
+
+- In `.github/workflows/majordome-release.yml`, uncomment the `x64` entry of the build matrix.
+  The step that merges the two update feeds already handles both cases.
+- On the site (`site/index.html`), put the "Intel Mac?" link to `/download/intel` back under the
+  download button. The route itself (`site/vercel.json`, `site/api/download.mjs`) was left in
+  place.
+- In `README.md`, restore "Apple silicon | Intel" in the badge and the Intel link in the install
+  steps; in `docs/user/install.md`, name the `x64` installer again; in
+  `docs/operations/release.md`, drop the note that Intel is off.
+- Cut a release and check that `latest-mac.yml` lists both architectures and that both installers
+  open.
+
+An Intel Mac that installed 0.10.21 or earlier stays on that version until then: the update feed
+no longer offers it anything.
+
 ## Dropping T3 Code weight (audit of 2026-11-22)
 
 Rules that came out of the audit: keep every AI adapter, never delete upstream source, cut only
