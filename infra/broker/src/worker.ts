@@ -122,17 +122,23 @@ async function updateHosted(env: Env) {
   };
 }
 
-/** Whether a new server answers yet. The page cannot ask it directly from another origin. */
-async function serverReady(host: HostClient, name: string): Promise<boolean> {
-  if (!isServerName(HOSTED_NAME_PREFIX, name)) return false;
-  try {
-    const response = await fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+/**
+ * How far a new server has come: switched on, then answering. The page cannot ask the server
+ * directly from another origin, and shows each step as it is reached.
+ */
+async function serverProgress(
+  host: HostClient,
+  name: string,
+): Promise<{ readonly switchedOn: boolean; readonly ready: boolean }> {
+  if (!isServerName(HOSTED_NAME_PREFIX, name)) return { switchedOn: false, ready: false };
+  const ready = await fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
+    signal: AbortSignal.timeout(8000),
+  }).then(
+    (response) => response.ok,
+    () => false,
+  );
+  if (ready) return { switchedOn: true, ready };
+  return { switchedOn: await host.isSwitchedOn(name).catch(() => false), ready };
 }
 
 async function readInvite(request: Request): Promise<string> {
@@ -186,10 +192,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   if (host !== null && pathname === "/v1/hosted/ready" && request.method === "GET") {
     const name = new URL(request.url).searchParams.get("name") ?? "";
-    return Response.json(
-      { ready: await serverReady(host, name) },
-      { headers: { "cache-control": "no-store" } },
-    );
+    return Response.json(await serverProgress(host, name), {
+      headers: { "cache-control": "no-store" },
+    });
   }
   if (host !== null && pathname === "/v1/hosted" && request.method === "POST") {
     return Response.json(

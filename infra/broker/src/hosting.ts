@@ -10,6 +10,8 @@ export interface HostClient {
   readonly deleteServer: (name: string) => Promise<void>;
   /** Where a server of that name answers. */
   readonly urlFor: (name: string) => string;
+  /** Whether the machine itself runs yet, which comes before Majordome answers on it. */
+  readonly isSwitchedOn: (name: string) => Promise<boolean>;
   /** Restarts the server on the newest released image. Its notes and sign-ins are kept. */
   readonly updateServer: (name: string) => Promise<void>;
 }

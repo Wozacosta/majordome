@@ -55,7 +55,8 @@ The same Worker makes a server for someone who has an invite code. It is switche
   answers, and sends them to it already paired as its owner.
 - `POST /v1/hosted` with `{ "invite": "..." }`: spends the invite and returns the server's
   `name`, `url` and a `pairingUrl` that works once, for a day.
-- `GET /v1/hosted/ready?name=...`: whether that server answers yet.
+- `GET /v1/hosted/ready?name=...`: how far that server has come, as `switchedOn` and `ready`.
+  The page shows its steps from these, so each one is something that really happened.
 
 A server is one Fly.io app named `majordome-<10 characters>`, holding a 3 GB volume and one
 Machine (2 shared CPUs, 2 GB) that runs the released image with `MAJORDOME_HOSTED=1`. Its

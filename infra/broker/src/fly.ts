@@ -90,6 +90,12 @@ export function makeFlyHost(config: {
       });
       return { url };
     },
+    isSwitchedOn: async (name) => {
+      const machines = (await call("GET", `/apps/${name}/machines`)) as
+        | ReadonlyArray<{ readonly state?: string }>
+        | undefined;
+      return (machines ?? []).some((machine) => machine.state === "started");
+    },
     updateServer: async (name) => {
       const machines = (await call("GET", `/apps/${name}/machines`)) as
         | ReadonlyArray<{ readonly id?: string; readonly config?: Record<string, unknown> }>

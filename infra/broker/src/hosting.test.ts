@@ -42,6 +42,7 @@ function setup(options: { readonly maxServers?: number; readonly failCreate?: bo
     },
     urlFor: (name) => `https://${name}.example`,
     updateServer: async () => undefined,
+    isSwitchedOn: async () => true,
   };
   let seed = 0;
   const hosting = makeHosting({
