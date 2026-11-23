@@ -71,6 +71,7 @@ The landing page and the README show a short version of this list.
   [Phone and notifications](./user/phone-and-notifications.md)
 - **Two kinds of server, told apart by name and icon:** "Your server" for one you run and
   "Majordome server", with a cloud, for one Majordome hosts for you.
+- **A server Majordome hosts for you, by invitation:** one code, half a minute, no terminal.
 - **A server of your own, set up for you:** a small rented computer that keeps your conversations
   and runs routines while your Mac sleeps, and updates itself every night.
   [Your server](./user/always-on-server.md)

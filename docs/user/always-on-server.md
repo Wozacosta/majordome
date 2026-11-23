@@ -202,6 +202,25 @@ to the server, it links the two by itself, and they [stay in step](#your-compute
 directly. If **Back up my brain** on your computer shows the server as **Not kept in step**, choose
 **Keep in step** there.
 
+## Let Majordome host it
+
+By invitation for now. With an invite code you need no server of your own, no terminal and no
+Tailscale:
+
+1. Open <https://broker.majord.link/start> and enter your code.
+2. Wait about half a minute. The page then opens your server, already yours.
+3. Press **Sign in** on Claude, open the link, and paste the code Claude gives you. Your own
+   Claude plan is used; Anthropic has not confirmed that it allows this on a server someone
+   else runs, and a plan's limits are meant for ordinary individual use.
+4. Press **Start new notes**.
+
+The app calls it your **Majordome server**. It starts with new notes; to bring in notes you
+already have, restore a Google Drive backup on its first page. To use it from the Mac app or
+your phone, open **Settings > Connections** or **Phone & notifications** on the server and
+follow the steps there.
+
+The address is the one the page sent you to, so keep it. A code makes one server.
+
 ## Sign in to Claude and ChatGPT on the server
 
 The server has no browser, so sign-in happens from your phone or computer, in the server's

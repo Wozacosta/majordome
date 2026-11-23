@@ -15,6 +15,19 @@ Not released yet.
 - **On a Majordome server, Settings > Your server says the server is looked after**, and no
   longer offers to set one up.
 
+**New**
+
+- **Majordome can host your server, by invitation.** With an invite code,
+  <https://broker.majord.link/start> makes a server for you in about half a minute and opens it,
+  already yours: nothing to rent, no terminal, no Tailscale. You sign in to Claude there with
+  your own account and start new notes. Settings > Your server points to it under "Let
+  Majordome host it".
+
+**Try this**
+
+- Open <https://broker.majord.link/start> with an invite code, wait for your server, press
+  "Sign in" on Claude, then "Start new notes".
+
 ## 0.10.29
 
 **Changed**

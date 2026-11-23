@@ -141,11 +141,22 @@ export function AlwaysOnServerPage() {
   );
 }
 
+const HOSTED_START_URL = "https://broker.majord.link/start";
+
 function ManualGuide() {
   return (
     <Section>
       <Disclosure summary="Do it by hand">
         <AlwaysOnManualGuide />
+      </Disclosure>
+      <Disclosure summary="Let Majordome host it">
+        <Muted>
+          With an invite code, Majordome makes a server for you and looks after it: nothing to rent
+          and nothing to install. It starts with new notes, and you sign in to Claude there with
+          your own account. Open{" "}
+          <ExternalLink href={HOSTED_START_URL}>broker.majord.link/start</ExternalLink> and enter
+          your code.
+        </Muted>
       </Disclosure>
     </Section>
   );

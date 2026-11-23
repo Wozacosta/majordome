@@ -308,8 +308,31 @@ So Fly is the host. What the welcome page got wrong on a server, seen in that ru
   set up.
 - The start-up log warns that the address "uses plain HTTP" although Fly serves it over HTTPS.
 
-If 1 and 2 pass, build on Fly: the service that creates a machine on request (in the address
-broker, behind an invite code), and the "Majordome hosts it" choice in the app.
+**Built on 2026-11-23: an invite code makes a server.** The address broker (`infra/broker`,
+live at broker.majord.link) has `GET /start`, the page a person with a code opens, and `POST
+/v1/hosted`, which spends the code on one Fly app with a 3 GB volume and a 2 GB Machine running
+the released image, marked `MAJORDOME_HOSTED=1` and carrying a one-time setup secret. The page
+waits until the server answers and opens it paired as its owner. Run for real through the page:
+a new server about half a minute after the code, with the welcome page of a Majordome server,
+Claude's link-and-code sign-in, and new notes made. Making invites and removing a server are
+commands in `infra/broker/README.md`.
+
+What that first version does not do, in the order I would take them:
+
+- **Updates.** A hosted server keeps the image it was made with. Nothing updates it: there is
+  no timer on Fly as there is on a plain server. Until something does, each release is one
+  `fly machine update` per server.
+- **Backups.** A Fly volume is one disk on one machine. A hosted customer has no backup unless
+  they turn on Google Drive themselves; it should be on from the start.
+- **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
+  domain of ours needs a certificate per server on Fly.
+- **Coming from the Mac app.** The page starts with new notes. Someone who already has notes on
+  their Mac has to restore a Google Drive backup or link the server by hand; there is no "move
+  my notes to a Majordome server" as there is for a server of your own.
+- **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (5) bounds the bill.
+- **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
+  limit on tries, so codes must be long and random.
+- **Before anyone pays:** the privacy policy and agreements above, and Anthropic's answer.
 
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
 OpenBot's does), a second host behind one interface, a pool of ready servers.

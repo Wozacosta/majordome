@@ -79,6 +79,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   documents live on one Majordome server; the desktop app and the phone are windows onto it, so
   most people never need sync. It runs on "this computer" by default (background service), with
   "Set up a server for me" (one button, Hetzner) or a terminal guide for 24/7 routines.
+- **How a hosted server is made (2026-11-23).** The address broker makes it, since it is the one
+  service Majordome runs and already holds secrets: a person opens a page with an invite code
+  and lands on their server, paired as its owner with the same one-time setup secret "Set up a
+  server for me" uses. No account with Majordome: the code is the whole of it for now. Making a
+  server sits behind a small interface (create, delete, address) with Fly.io as the first host.
 - **What a server is called (2026-11-23).** One the owner runs is "Your server" ("your server"
   in a sentence), not "Always-on server". One Majordome hosts is "Majordome server" ("your
   Majordome server"), drawn with a cloud. The host's name (Fly, or any other) is never shown, and
