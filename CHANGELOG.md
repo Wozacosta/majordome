@@ -7,16 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.22
+
 **Changed**
 
 - **The backup passphrase is no longer shown on screen.** Setting one up asked you to type it
   twice and then displayed it in clear with an "I wrote it down" box. It now only asks twice, with
   a yellow reminder to write it down on paper.
-
-## 0.10.22
-
-**Changed**
-
 - **Chats open in place in the sidebar.** The Chats row has an arrow that lists the chats still
   going right under it, like a topic does. The row itself still opens the page with all of them.
 
