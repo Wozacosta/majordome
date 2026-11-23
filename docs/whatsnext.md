@@ -136,6 +136,25 @@ so it is not looked up twice:
   an idle customer to a dollar or two. Open questions: time from asleep to usable on a small
   machine, what keeps a server awake (an open app, the 5-minute notes exchange), who wakes it
   for routines, and that Fly is a US company.
+- **Fly, Railway and UpCloud compared (2026-11-23, from their docs; nothing was run).**
+  - _Fly Machines._ Always on it is the dearest: a 2 GB machine is $13.39 a month in the US
+    and about 15% more in Frankfurt. Stopped or suspended it costs storage only, $0.15 per GB,
+    so a customer whose server runs two hours a day comes to about $3. It starts from the
+    image in seconds with no start-up script, and gives each app an HTTPS address, so no
+    tunnel and no address from the broker. What sleeping needs: traffic must come through
+    Fly's proxy to wake it (a tunnel dials out and cannot), the server must stop itself when
+    idle (Fly's own idle stop looks only at traffic and would cut a routine short), and
+    something must start it for routines (`POST .../machines/{id}/start`). Suspend is limited
+    to 2 GB of memory. A volume lives on one physical disk with daily snapshots kept 5 days.
+    Not checked: that the built-in browser's sandbox runs there.
+  - _Railway._ Not a fit. Its rules forbid "reselling compute resources" and say to ask
+    first; Pro stops at 100 services; a service sleeps only after 5 to 10 minutes with no
+    outbound packet, which the notes exchange never allows; services are containers, not
+    machines; one European region. Always on at the server's 425 MB it would be about $6.
+  - _UpCloud._ A plain server like Hetzner's, so the same code shape: `POST /1.3/server` with
+    `user_data` and `metadata: yes`, labels to find it again, a firewall per server. About €6
+    for 2 GB by the price index above; its own price page refused to load. Not found: what a
+    stopped server costs, and the default limit on servers per account.
 - **GDPR.** Storing in Europe is not required, but it is the simplest position. The larger
   transfer is the AI: notes go to the model provider. Before a paying customer: a privacy
   policy, a data processing agreement with the host, the model provider, Cloudflare and the
