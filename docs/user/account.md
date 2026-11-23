@@ -5,14 +5,15 @@ by itself, with no code to scan or type. Pairing with a code keeps working, and 
 Majordome needs an account. A server Majordome hosts for you is the exception: it belongs to
 the account you made it with.
 
-## Sign in and add a computer
+## Sign in
 
-1. Open **Settings > Your account** and press **Sign in**. Use Google or your email.
-2. Press **Add to my account** next to the computer.
+Press **Sign in** at the bottom of the sidebar, or in **Settings > Your account**, and use
+Google or your email. Every computer and server the app is connected to joins your account.
 
 A computer can only be found by your other devices once it has an address outside your home.
-If the page says other devices cannot reach it, give it one in **Settings > Phone &
-notifications**, then come back and press **List it**.
+A server Majordome hosts already has one. For your own computer, **Settings > Your account**
+says so and has a **Give it an address** button: it puts the computer on a public address that
+only devices signed in to your account, or paired with a code, can open.
 
 ## Open Majordome on another device
 

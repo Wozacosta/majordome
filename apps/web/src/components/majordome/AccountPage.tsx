@@ -14,12 +14,10 @@ import {
   type AccountServer,
   readAccountServers,
   signInToAccountServer,
-  withAccountServer,
   withoutAccountServer,
 } from "@t3tools/shared/majordomeAccount";
-import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { environmentCatalog } from "../../connection/catalog";
@@ -29,11 +27,13 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { resolveDesktopPairingUrl } from "../settings/pairingUrls";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { listAccountServer } from "./accountLink";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { Entry, EntryList, Muted, Section, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 const SIGN_IN_AGAIN = "Sign in again, then try once more.";
+const ADDRESS_FAILED = "This computer could not get an address.";
 
 const failureMessage = (failure: unknown) =>
   failure instanceof Error ? failure.message : String(failure);
@@ -117,25 +117,42 @@ function useAccountToken() {
   return async () => (await clerk.session?.getToken(ACCOUNT_TOKEN_OPTIONS)) ?? null;
 }
 
-function ThisServer({
+function ThisServer(props: { readonly environmentId: EnvironmentId; readonly signedIn: boolean }) {
+  const result = useAtomValue(
+    majordomeEnvironment.account({ environmentId: props.environmentId, input: {} }),
+  );
+  const account = AsyncResult.getOrElse(result, () => null);
+  // A server too old for accounts, or one with no account service, has nothing to show.
+  if (account === null || !account.available) return null;
+  return <ServerAccount {...props} account={account} />;
+}
+
+function ServerAccount({
   environmentId,
   signedIn,
+  account,
 }: {
   readonly environmentId: EnvironmentId;
   readonly signedIn: boolean;
+  readonly account: MajordomeAccount;
 }) {
   const { user } = useUser();
   const { machineOf } = useMachineNames();
   const readToken = useAccountToken();
-  const result = useAtomValue(majordomeEnvironment.account({ environmentId, input: {} }));
   const canChange = useAtomValue(majordomeEnvironment.linkAccount.permissionAtom(environmentId));
   const link = useAtomCommand(majordomeEnvironment.linkAccount, { reportFailure: false });
   const unlink = useAtomCommand(majordomeEnvironment.unlinkAccount, { reportFailure: false });
+  const canOpenAddress = useAtomValue(
+    majordomeEnvironment.enableAnywhereAddress.permissionAtom(environmentId),
+  );
+  const enableAddress = useAtomCommand(majordomeEnvironment.enableAnywhereAddress, {
+    reportFailure: false,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One listing at a time: the account service is slower than a render.
+  const listing = useRef(false);
 
-  const account = AsyncResult.getOrElse(result, () => null);
-  if (account === null || !account.available) return null;
   const name = machineOf(environmentId);
   const mine = account.owner !== null && account.owner.accountId === user?.id;
 
@@ -172,21 +189,46 @@ function ThisServer({
     return null;
   };
 
-  // The account lists a server only once other devices have an address to reach it at.
-  const listServer = async (linked: MajordomeAccount) => {
-    if (linked.address === null || user == null) return;
-    await user.update({
-      unsafeMetadata: withAccountServer(user.unsafeMetadata, {
-        environmentId,
-        url: linked.address,
-        name,
-      }),
-    });
-  };
+  const listServer = (linked: MajordomeAccount) =>
+    listAccountServer({ user }, { environmentId, name }, linked);
 
   const listed = readAccountServers(user?.unsafeMetadata).some(
     (server) => server.environmentId === environmentId && server.url === account.address,
   );
+
+  const needsListing = mine && account.address !== null && !listed;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the list lives in the account service: a server that got its address after it was added is listed there as soon as this page sees it
+  useEffect(() => {
+    if (!needsListing || listing.current) return;
+    listing.current = true;
+    void listAccountServer({ user }, { environmentId, name }, account).finally(() => {
+      listing.current = false;
+    });
+  }, [needsListing, user, environmentId, name, account]);
+
+  // Opens the public address, then reads the account again so the new address is listed.
+  const giveAddress = async (): Promise<string | null> => {
+    const opened = await enableAddress({ environmentId, input: {} });
+    if (opened._tag !== "Success") {
+      return isAtomCommandInterrupted(opened)
+        ? null
+        : failureMessage(squashAtomCommandFailure(opened));
+    }
+    const { anywhere } = opened.value;
+    if (anywhere.state === "unavailable") return anywhere.reason ?? ADDRESS_FAILED;
+    const token = await readToken();
+    if (token === null) return SIGN_IN_AGAIN;
+    const linked = await link({ environmentId, input: { token } });
+    if (linked._tag === "Success") await listServer(linked.value);
+    return null;
+  };
+  const runGiveAddress = async () => {
+    setBusy(true);
+    setError(null);
+    const answer = await giveAddress();
+    setBusy(false);
+    if (answer !== null) setError(answer);
+  };
 
   return (
     <Section label={name}>
@@ -230,21 +272,17 @@ function ThisServer({
         />
       )}
       {mine && account.address === null ? (
-        <StatusLine tone="warning" className="mt-3">
-          Other devices cannot reach {name} yet. Give it an address in{" "}
-          <Link to="/settings/phone" className="underline">
-            Phone & notifications
-          </Link>
-          , then come back.
-        </StatusLine>
-      ) : null}
-      {mine && account.address !== null && !listed ? (
-        <StatusLine tone="warning" className="mt-3">
-          Your account does not list this address yet.{" "}
-          <Button variant="link" size="sm" disabled={busy} onClick={() => void listServer(account)}>
-            List it
-          </Button>
-        </StatusLine>
+        <div className="mt-3 flex flex-wrap items-start gap-x-3 gap-y-2">
+          <StatusLine tone="warning" className="min-w-0 flex-1 basis-60">
+            Your phone cannot reach {name} yet. It needs an address on the internet, which only
+            devices signed in to your account or paired with a code can open.
+          </StatusLine>
+          {canOpenAddress ? (
+            <Button size="sm" disabled={busy} onClick={() => void runGiveAddress()}>
+              {busy ? "Getting an address…" : "Give it an address"}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {error === null ? null : <p className="mt-3 text-sm text-destructive-foreground">{error}</p>}
     </Section>

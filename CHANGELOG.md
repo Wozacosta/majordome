@@ -7,6 +7,16 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Improved**
+
+- **Signing in adds your computers by itself.** Press Sign in and every computer and server
+  the app is connected to joins your account, and the ones your phone can reach are listed
+  there. No more "Add to my account" for each. A computer you later remove from the account
+  stays removed until you sign in again.
+- **One button gives this Mac an address.** When your phone cannot reach a computer yet,
+  Settings > Your account now has "Give it an address" right there, and lists the computer as
+  soon as it has one.
+
 ## 0.10.37
 
 **Improved**
