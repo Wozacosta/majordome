@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Long settings pages list their sections under the title.** The line stays at the top while
+  you scroll, shows where you are, and takes you to a section when you click it. Try it on Back
+  up my brain, AI accounts, Connections or Phone & notifications.
+
 **Changed**
 
 - **Restoring notes: the destination can be typed.** "Where your notes go" has a "Type a path

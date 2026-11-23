@@ -451,7 +451,7 @@ function VaultBackup({
         <EntryList>
           <GitHubOption vault={vault} status={status} canConfigure={canConfigure} nowMs={nowMs} />
           {remote !== null && !remote.isGitHub ? (
-            <Entry title={remote.host ?? "Another copy"} data-backup-destination="remote">
+            <Entry title={remote.host ?? "Another copy"} outlined data-backup-destination="remote">
               <RemoteSync vault={vault} remote={remote} canConfigure={canConfigure} />
             </Entry>
           ) : null}
@@ -723,7 +723,7 @@ function GitHubOption({
   );
 
   return (
-    <Entry title="GitHub" data-backup-destination="github">
+    <Entry title="GitHub" outlined data-backup-destination="github">
       {remote === null ? (
         <StatusLine tone="neutral">Not connected</StatusLine>
       ) : needsSignIn ? (
@@ -1047,7 +1047,7 @@ function GoogleDriveOption({
   );
 
   return (
-    <Entry title="Google Drive" data-backup-destination="google-drive">
+    <Entry title="Google Drive" outlined data-backup-destination="google-drive">
       {drive !== null ? (
         <div className="flex flex-col gap-2" data-google-drive="connected">
           <CopyStatus copy={drive} nowMs={nowMs} />
@@ -1192,7 +1192,7 @@ function FolderOption({
   );
 
   return (
-    <Entry title="Backup folder" data-backup-destination="folder">
+    <Entry title="Backup folder" outlined data-backup-destination="folder">
       {folder !== null && !editing ? (
         <>
           <p className="flex min-w-0 items-center gap-2 text-foreground">

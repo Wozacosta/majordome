@@ -1,5 +1,6 @@
 import { msg, useMessages } from "gt-react";
 
+import { PageOutline } from "../majordome/PageOutline";
 import { PageHeader } from "../majordome/paper";
 import { SETTINGS_SECTION_LABELS, type SettingsPath } from "./settingsSearch";
 
@@ -53,5 +54,10 @@ export function MajordomeSettingsPageIntro({ pathname }: { readonly pathname: st
     return <PageHeader title={m(LICENSES_TITLE)} intro={LICENSES_INTRO} />;
   }
   if (!isUpstreamPage(path)) return null;
-  return <PageHeader title={m(SETTINGS_SECTION_LABELS[path])} intro={UPSTREAM_PAGE_INTROS[path]} />;
+  return (
+    <>
+      <PageHeader title={m(SETTINGS_SECTION_LABELS[path])} intro={UPSTREAM_PAGE_INTROS[path]} />
+      <PageOutline />
+    </>
+  );
 }

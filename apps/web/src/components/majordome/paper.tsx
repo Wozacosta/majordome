@@ -49,7 +49,9 @@ export function PageHeader({
 
 /** A machine's or a brain's name over its own sections. */
 export function SectionTitle({ className, ...props }: ComponentPropsWithoutRef<"h2">) {
-  return <h2 className={cn(HEADING_CLASS, "text-xl", className)} {...props} />;
+  return (
+    <h2 data-page-outline="title" className={cn(HEADING_CLASS, "text-xl", className)} {...props} />
+  );
 }
 
 export function SectionLabel({
@@ -59,6 +61,7 @@ export function SectionLabel({
 }: ComponentPropsWithoutRef<"h2"> & { readonly as?: "h2" | "h3" }) {
   return (
     <Heading
+      data-page-outline="section"
       className={cn(
         "min-w-0 flex-1 text-2xs font-semibold tracking-widest text-primary uppercase",
         className,
@@ -115,6 +118,7 @@ export function EntryTitle({ className, ...props }: ComponentPropsWithoutRef<"p"
 export function Entry({
   as: Tag = "li",
   title,
+  outlined = false,
   aside,
   meta,
   actions,
@@ -125,6 +129,8 @@ export function Entry({
   /** "div" where the entries around it are not a list's items. */
   readonly as?: "li" | "div";
   readonly title?: ReactNode;
+  /** A place worth a line in the page's outline, such as one of a few big options. */
+  readonly outlined?: boolean;
   /** A badge or mark beside the title. */
   readonly aside?: ReactNode;
   readonly meta?: ReactNode;
@@ -138,7 +144,7 @@ export function Entry({
           <div className="min-w-0 flex-1 basis-40">
             {title !== undefined ? (
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <EntryTitle>{title}</EntryTitle>
+                <EntryTitle data-page-outline={outlined ? "entry" : undefined}>{title}</EntryTitle>
                 {aside}
               </div>
             ) : null}

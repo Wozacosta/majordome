@@ -82,6 +82,8 @@ The landing page and the README show a short version of this list.
   first, each line leading to where you fix it. [Status](./user/overview.md)
 - **Plain words everywhere.** Settings open on Status, each page starts with one sentence saying
   what it is for, and messages name pages as the app does.
+- **A jump list on long settings pages.** Under the title, the page's sections are listed on one
+  line that stays in view; click one to go there.
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
 
