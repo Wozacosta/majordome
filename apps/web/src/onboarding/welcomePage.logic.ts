@@ -158,6 +158,25 @@ export function welcomeOffersPhone(input: {
 }
 
 /**
+ * Whether Claude signs in with a link and a pasted code instead of the CLI in a terminal. The
+ * CLI opens a browser on the machine it runs on, which reaches the owner only when that machine
+ * is the desktop app's own computer.
+ */
+export function claudeSignsInByLink(input: {
+  readonly majordome: boolean;
+  readonly desktop: boolean;
+  readonly isPrimary: boolean;
+  readonly provider: Pick<ServerProvider, "driver" | "installed">;
+}) {
+  return (
+    input.majordome &&
+    input.provider.driver === "claudeAgent" &&
+    input.provider.installed &&
+    !(input.desktop && input.isPrimary)
+  );
+}
+
+/**
  * The Codex instance the setup card shows, or null when the card is closed. A rebuild briefly
  * drops an instance from the list, so the card keeps its last status meanwhile instead of
  * unmounting and losing a sign-in in progress.

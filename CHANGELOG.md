@@ -7,6 +7,19 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Signing in to Claude on a server is a link and a code.** On the welcome page of a server you
+  reach from a browser, or of another computer added to the app, "Sign in" on Claude now shows a
+  button that opens Claude's sign-in page and a box for the code that page gives you. Before, it
+  ran in a hidden terminal and said a page had opened in your browser, which a server cannot do.
+  On your own computer in the desktop app nothing changes: the page still opens by itself.
+
+**Try this**
+
+- Open a server in a browser before Claude is signed in there, press "Sign in" on Claude, open
+  the link, and paste the code. Claude should say Ready a moment later.
+
 ## 0.10.27
 
 **Changed**

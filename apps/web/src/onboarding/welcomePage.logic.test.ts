@@ -10,6 +10,7 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  claudeSignsInByLink,
   cliTerminalStep,
   codexCardProvider,
   codexNeedsSetup,
@@ -235,6 +236,31 @@ describe("codexCardProvider", () => {
         settings: undefined,
       }),
     ).toBeNull();
+  });
+});
+
+describe("claudeSignsInByLink", () => {
+  it("uses the link and code wherever the CLI's own browser would open out of the owner's sight", () => {
+    const claude = provider("Claude", { driver: ProviderDriverKind.make("claudeAgent") });
+    const byLink = (input: Partial<Parameters<typeof claudeSignsInByLink>[0]>) =>
+      claudeSignsInByLink({
+        majordome: true,
+        desktop: false,
+        isPrimary: true,
+        provider: claude,
+        ...input,
+      });
+
+    // A server reached from a browser, such as a hosted one.
+    expect(byLink({})).toBe(true);
+    // Another computer added to the desktop app.
+    expect(byLink({ desktop: true, isPrimary: false })).toBe(true);
+    // The desktop app's own computer, where the CLI opens the owner's browser.
+    expect(byLink({ desktop: true })).toBe(false);
+    // Not installed yet: the terminal installs it first.
+    expect(byLink({ provider: { ...claude, installed: false } })).toBe(false);
+    expect(byLink({ provider: provider("codex") })).toBe(false);
+    expect(byLink({ majordome: false })).toBe(false);
   });
 });
 

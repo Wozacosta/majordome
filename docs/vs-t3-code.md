@@ -78,6 +78,7 @@ The landing page and the README show a short version of this list.
 ### First run and wording
 
 - **A welcome screen with two questions:** sign in to Claude or ChatGPT, and choose your notes.
+  On a server, signing in to Claude is a link to open and a code to paste, with no terminal.
 - **A Status page** that answers one question: is your assistant OK? What needs you is listed
   first, each line leading to where you fix it. [Status](./user/overview.md)
 - **Plain words everywhere.** Settings open on Status, each page starts with one sentence saying

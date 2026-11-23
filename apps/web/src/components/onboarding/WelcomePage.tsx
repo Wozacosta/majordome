@@ -67,6 +67,7 @@ import {
   resolveOnboardingProviderLoginCommand,
 } from "../../onboarding/providerReadiness.logic";
 import {
+  claudeSignsInByLink,
   cliTerminalStep,
   codexCardProvider,
   codexNeedsSetup,
@@ -102,6 +103,8 @@ import { AddProviderInstanceDialog } from "../settings/AddProviderInstanceDialog
 import { useDesktopCliCommand } from "../settings/CliCommandSettingsRow";
 import { CodexSetupSection } from "../settings/CodexSetupSection";
 import { readCodexSetupMode } from "../settings/CodexSetupSection.logic";
+import { ClaudeLinkSignIn } from "../majordome/ClaudeLinkSignIn";
+import { useClaudeSignIn } from "../settings/ClaudeSignInSection.flow";
 import { TerminalViewport } from "../ThreadTerminalDrawer";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { ACPRegistryIcon } from "../Icons";
@@ -480,6 +483,12 @@ export function AgentsSection({
   const [addingProvider, setAddingProvider] = useState(false);
   const [codexSetupId, setCodexSetupId] = useState<ProviderInstanceId | null>(null);
   const [cliTerminalFor, setCliTerminalFor] = useState<ProviderInstanceId | null>(null);
+  const [linkSignInFor, setLinkSignInFor] = useState<ProviderInstanceId | null>(null);
+  const linkSignIn = useClaudeSignIn({
+    environmentId,
+    environmentLabel: label,
+    onSignedIn: (instanceId) => void refreshProviders({ environmentId, input: { instanceId } }),
+  });
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- asks the environment to refresh its provider list when the environment changes
   useEffect(() => {
@@ -632,6 +641,25 @@ export function AgentsSection({
         </Button>
       );
     }
+    if (
+      needsInstallOrSignIn(provider) &&
+      claudeSignsInByLink({ majordome: isMajordome, desktop: isElectron, isPrimary, provider })
+    ) {
+      return (
+        <Button
+          size="xs"
+          variant="outline"
+          aria-label={gt("{action}: {agent}", { action: gt("Sign in"), agent: name })}
+          disabled={linkSignInFor === provider.instanceId}
+          onClick={() => {
+            setLinkSignInFor(provider.instanceId);
+            void linkSignIn.begin(provider.instanceId);
+          }}
+        >
+          <T>Sign in</T>
+        </Button>
+      );
+    }
     if (needsInstallOrSignIn(provider)) {
       return (
         <TerminalAction
@@ -701,6 +729,13 @@ export function AgentsSection({
       ))}
       {/* Majordome hides the terminal, so its status line sits right under the row it is about. */}
       {isMajordome ? installTerminal : null}
+      {linkSignInFor !== null ? (
+        <ClaudeLinkSignIn
+          signIn={linkSignIn}
+          instanceId={linkSignInFor}
+          onClose={() => setLinkSignInFor(null)}
+        />
+      ) : null}
       {checking && found.length === 0 ? (
         <p className="text-sm leading-10 text-muted-foreground">
           <T>
