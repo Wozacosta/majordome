@@ -118,6 +118,33 @@ they are cached for an hour.
 - **Then the model per job.** Sonnet 5.5 for chat and routines, Haiku 5.5 for sorting the
   reading list and summarising notes. Check each on a copy of real notes before switching.
 
+## Hosted Majordome: where the servers come from
+
+Deferred, like the hosted tier itself (see `docs/decisions.md`). What was learned on 2026-11-23,
+so it is not looked up twice:
+
+- **Size.** The owner's server uses about 425 MB of memory at rest and 1.5 GB of disk, and is
+  listening 3 seconds after it starts. A 2 GB server is enough.
+- **Prices moved a lot in 2026** as memory got dearer. https://www.eucloudcost.com/price-index/
+  tracks European list prices weekly from an open dataset; it has no stock, no US hosts, and
+  does not say which hosts can create a server by API with a start-up script.
+- **Candidates for a plain server, European-owned:** Hetzner (CX23, 4 GB, €5.49; built, but new
+  servers have been rationed since June 2026), UpCloud (Starter 2 GB, €6.00, hourly, disk
+  included), Scaleway (DEV1-S, €6.55 without a disk). OVH's VPS-1 is the cheapest at €4.49 but
+  has no hourly price, and creating one by API with a start-up script is unconfirmed.
+- **Machines that sleep** (Fly.io Machines, about $0.15 per GB a month while stopped) would cut
+  an idle customer to a dollar or two. Open questions: time from asleep to usable on a small
+  machine, what keeps a server awake (an open app, the 5-minute notes exchange), who wakes it
+  for routines, and that Fly is a US company.
+- **GDPR.** Storing in Europe is not required, but it is the simplest position. The larger
+  transfer is the AI: notes go to the model provider. Before a paying customer: a privacy
+  policy, a data processing agreement with the host, the model provider, Cloudflare and the
+  payment provider, and an hour with someone who does this for French small businesses.
+
+Order when the work starts: the first few customers by hand on one European host, each with
+their own capped API key; then creating servers behind one interface with a second host; then a
+one-day trial of sleeping machines if idle servers have become a real cost.
+
 ## Phone
 
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the
