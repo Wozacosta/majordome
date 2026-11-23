@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.27
+
 **Changed**
 
 - **Connections, Back up my brain and Private documents show one computer at a time.** With more
