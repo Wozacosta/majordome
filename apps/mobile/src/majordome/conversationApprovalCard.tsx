@@ -2,17 +2,29 @@ import {
   FULL_ACCESS_OVERRIDE_QUESTION,
   fullAccessOverrideExplanation,
 } from "@t3tools/client-runtime/state/thread-requests";
+import type { ProviderApprovalDecision, RuntimeRequestId } from "@t3tools/contracts";
 import { useMessages } from "gt-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
-import type { PendingApprovalCardProps } from "../features/threads/PendingApprovalCard";
+import type { PendingApproval } from "../lib/threadActivity";
 import { approvalChoices, approvalQuestion } from "./conversation.logic";
 
 /** An approval as a question anyone can answer, with what exactly was asked kept underneath. */
-export function MajordomeApprovalCard(props: PendingApprovalCardProps) {
+// The same props as upstream's card, spelled out here: importing its type would be a circular import.
+interface ApprovalCardProps {
+  readonly canOperateThread: boolean;
+  readonly approval: PendingApproval;
+  readonly respondingApprovalId: RuntimeRequestId | null;
+  readonly onRespond: (
+    requestId: RuntimeRequestId,
+    decision: ProviderApprovalDecision,
+  ) => Promise<unknown>;
+}
+
+export function MajordomeApprovalCard(props: ApprovalCardProps) {
   const m = useMessages();
   const { approval } = props;
   const choices = approvalChoices(approval.options, "decline");
