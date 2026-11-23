@@ -14,6 +14,9 @@ Not released yet.
   server. The app now remembers that you pressed Sign in, waits for its connections to come
   back, adds each computer and opens Settings > Your account.
 
+- **Usage "by other requests" is counted correctly after a restart.** The first message in a
+  conversation after Majordome restarted was charged with everything said before it.
+
 **Improved**
 
 - **Set up your phone by signing in.** Settings > Phone & notifications now starts with

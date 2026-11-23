@@ -28,6 +28,7 @@ import {
 import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
 import {
   addClaudeLedgerUsage,
+  claudeLedgerBaseline,
   claudeLedgerDelta,
   claudeModelLedger,
   claudeReportedContextWindows,
@@ -13204,7 +13205,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                 (subagent) => subagent.task.status === "running",
               ),
             ),
-            modelLedger: new Map(),
+            modelLedger: claudeLedgerBaseline(shouldResume),
             taskOutputRoot: claudeTaskOutputRoot(
               adapterOptions.environment,
               path,

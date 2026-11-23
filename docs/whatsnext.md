@@ -101,22 +101,40 @@ Mac, 29 chat turns and 14 routine runs on the server), priced at list API rates:
 | Routine run  | $0.39          | $0.19          | about $0.01 |
 
 About 80% of that is not the conversation. It is writing the instructions, tools and memory to
-the provider's cache again: 20,000 to 37,000 tokens a turn, at twice the input price because
-they are cached for an hour.
+the provider's cache: 20,000 to 37,000 tokens, at twice the input price because they are cached
+for an hour.
 
-- **Measure first.** The numbers come from `turnTokenUsage` on provider turns in
-  `statev2.sqlite` and from Claude Code's transcripts. Not priced: the side requests (key facts,
-  "In short", titles), which show up as `otherUsage` with no split between cached and uncached
-  tokens, and were as large again as the chats on the server. Run one week on a real API key and
-  read the bill, then show cost per run on Overview.
-- **Then cut what is loaded.** Find what fills the first request (tool descriptions, the memory
-  layers, skills) and why a turn in an open conversation writes so much again; something is
-  probably changing early in the prompt and throwing the cache away. The tool-list budget above
-  is one known overcount.
-- **Then the cache time.** Routines start a fresh session and finish in minutes, so a five-minute
-  cache (1.25 times the input price, not 2) should be enough for them.
-- **Then the model per job.** Sonnet 5.5 for chat and routines, Haiku 5.5 for sorting the
-  reading list and summarising notes. Check each on a copy of real notes before switching.
+Looked into on 2026-11-23 (four read-only passes over the code, the transcripts and the usage
+rows; nothing was changed in how a turn is sent):
+
+- **The cache is not thrown away each turn.** Turns that follow each other within the hour read
+  it. The large writes come from two places: the first turn of a session, and coming back to a
+  conversation after the hour has passed, which was 52% of all cache writes that week. An
+  earlier note here guessed something early in the prompt was changing; that was wrong.
+- **What fills the first request, about 45,000 to 55,000 tokens.** Roughly 65% is Claude Code's
+  own tools and listings, including its Artifact tools (8,000 to 13,000 tokens) that Majordome
+  never uses. About 16% on the owner's Mac is his personal Claude plugins and settings, loaded
+  because the session reads `~/.claude`. About 18% is Majordome's own text.
+- **"Other requests as large again as the chats" was a counting bug**, fixed the same day. A
+  process that resumed a conversation counted from zero, so the first turn after a restart was
+  charged with every turn before it.
+- **The small jobs already run on Haiku** (key facts, "In short", titles), through the
+  provider's fallback. Only chat and routines are on Opus.
+
+Proposals, largest saving first. None is applied: each changes what the model is given or which
+model answers, so each wants a look on a copy of real notes first.
+
+1. **Sonnet 5.5 for chat and routines by default**, Opus on request. About half the cost.
+2. **Stop offering the Artifact tools.** 8,000 to 13,000 tokens off every first request.
+3. **Do not load the owner's personal Claude settings and plugins** in Majordome sessions.
+   About 8,300 tokens on the Mac; nothing on a hosted server, which has none.
+4. **Name the built-in tools a session may use** instead of taking Claude Code's whole list.
+   About 5,300 tokens.
+5. **A five-minute cache for routines** (`CLAUDE_CODE_PROMPT_CACHE_TTL=5m` in the routine's
+   environment). They start a fresh session and finish in minutes, so the write costs 1.25
+   times the input price, not 2. Chats keep the hour.
+6. **Show cost per run on Overview**, now that the count is right, and run one week on a real
+   API key to check these figures against the bill.
 
 ## Hosted Majordome: where the servers come from
 

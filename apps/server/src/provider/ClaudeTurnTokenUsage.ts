@@ -90,6 +90,15 @@ export function claudeReportedContextWindows(modelUsage: unknown): ReadonlyMap<s
   return windows;
 }
 
+/**
+ * Where a new process's ledger starts. One that resumes a conversation reports that
+ * conversation's earlier usage in its first ledger, so its start is unknown, not zero: counting
+ * from zero charged every turn after a restart with all the turns before it.
+ */
+export function claudeLedgerBaseline(resumes: boolean): ClaudeModelLedger | undefined {
+  return resumes ? undefined : new Map();
+}
+
 /** Ledger growth since `previous`. Unknown without a baseline or when a counter goes backwards. */
 export function claudeLedgerDelta(
   previous: ClaudeModelLedger | undefined,
