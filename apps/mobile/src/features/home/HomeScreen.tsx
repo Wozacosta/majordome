@@ -113,9 +113,11 @@ import {
 } from "../../majordome/chat.logic";
 import {
   MajordomeDoneTopics,
+  MajordomeHiddenRoutines,
   MajordomeTopicsSection,
   useChatListTopics,
 } from "../../majordome/TopicsSection";
+import { gatherRoutineChats } from "../../majordome/routine.logic";
 import { foldSideChats } from "../../majordome/topic.logic";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
@@ -466,18 +468,30 @@ export function HomeScreen(props: HomeScreenProps) {
   // Majordome's topics are rows of this list too, so it is not empty with topics and no chat.
   const chatTopics = useChatListTopics(props.threads, props.searchQuery);
   // A topic's other chats are folded under its row; a search lists every chat it finds.
-  const sideChats =
+  const foldableThreadId = (item: ThreadListV2ListItem) =>
+    item.type === "v2-thread" && item.item.variant === "card" ? String(item.item.thread.id) : null;
+  // A routine's runs are one row, its latest; a routine can also be taken out of the list.
+  const routineRows =
     isMajordome && !hasSearchQuery
-      ? foldSideChats(
+      ? gatherRoutineChats(
           chatsByActivity,
-          (item) =>
-            item.type === "v2-thread" && item.item.variant === "card"
-              ? String(item.item.thread.id)
-              : null,
-          chatTopics.byThread,
-          chatTopics.unfolded,
+          foldableThreadId,
+          chatTopics.routineOf,
+          new Set(chatTopics.hiddenRoutines),
         )
       : null;
+  const sideChats =
+    routineRows === null
+      ? null
+      : foldSideChats(
+          routineRows.items,
+          foldableThreadId,
+          new Map<string, { readonly id: string; readonly sideThreadIds?: ReadonlyArray<string> }>([
+            ...chatTopics.byThread,
+            ...routineRows.byThread,
+          ]),
+          chatTopics.unfolded,
+        );
   const threadListV2Items = sideChats?.items ?? chatsByActivity;
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
@@ -568,6 +582,7 @@ export function HomeScreen(props: HomeScreenProps) {
     }
     const thread = item.item.thread;
     const rowTopic = chatTopics.byThread.get(thread.id);
+    const rowFold = rowTopic ?? routineRows?.byThread.get(String(thread.id));
     return (
       <ThreadListV2Row
         pane={sidebarSurface ? "sidebar" : "screen"}
@@ -637,14 +652,17 @@ export function HomeScreen(props: HomeScreenProps) {
         activationKey={item.key}
         topic={isMajordome ? rowTopic : undefined}
         topicSideChats={
-          rowTopic === undefined
+          rowFold === undefined
             ? undefined
             : {
                 count: sideChats?.counts.get(String(thread.id)) ?? 0,
-                unfolded: chatTopics.unfolded.has(rowTopic.id),
-                onToggle: () => chatTopics.toggleSideChats(rowTopic.id),
+                unfolded: chatTopics.unfolded.has(rowFold.id),
+                onToggle: () => chatTopics.toggleSideChats(rowFold.id),
+                runs: rowTopic === undefined,
               }
         }
+        routineTitle={isMajordome ? chatTopics.routineOf.get(String(thread.id)) : undefined}
+        onHideRoutine={(title) => chatTopics.setRoutineHidden(title, true)}
         nestedUnderTopic={sideChats?.nested.has(String(thread.id)) === true}
         onStartTopicSideChat={chatTopics.startSideChat}
         onSetTopicFinished={chatTopics.setFinished}
@@ -666,6 +684,7 @@ export function HomeScreen(props: HomeScreenProps) {
     workingShelfEnabled,
     topicsByThread: chatTopics.byThread,
     unfoldedTopics: chatTopics.unfolded,
+    routineOf: chatTopics.routineOf,
   };
 
   const hasTopics = isMajordome && chatTopics.total > 0;
@@ -900,7 +919,10 @@ export function HomeScreen(props: HomeScreenProps) {
                       />
                     ) : null}
                     {isMajordome && !hasSearchQuery ? (
-                      <MajordomeDoneTopics topics={chatTopics} />
+                      <>
+                        <MajordomeDoneTopics topics={chatTopics} />
+                        <MajordomeHiddenRoutines topics={chatTopics} />
+                      </>
                     ) : null}
                   </>
                 }

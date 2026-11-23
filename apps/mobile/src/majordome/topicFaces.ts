@@ -58,6 +58,10 @@ export interface ChatTopics {
   /** The topics whose other chats are shown under them; folded until asked. */
   readonly unfolded: ReadonlySet<string>;
   readonly toggleSideChats: (topicId: string) => void;
+  /** The chats that are a routine's, by thread id, with the routine's name. */
+  readonly routineOf: ReadonlyMap<string, string>;
+  readonly hiddenRoutines: ReadonlyArray<string>;
+  readonly setRoutineHidden: (title: string, hidden: boolean) => void;
   readonly open: (topic: { readonly id: string; readonly threadId: string | null }) => void;
   readonly startSideChat: (topic: { readonly id: string }) => void;
   readonly setFinished: (

@@ -153,6 +153,16 @@ export function topicMenuActions<T extends { readonly id?: string }>(
   ];
 }
 
+/** A routine's long-press menu: a chat's, with the way to take the routine out of the list. */
+export function routineMenuActions<T extends { readonly id?: string }>(
+  chatActions: ReadonlyArray<T>,
+): Array<T | { readonly id: string; readonly title: string; readonly image: string }> {
+  return [
+    ...chatActions,
+    { id: "routine-hide", title: "Hide this routine from Chats", image: "eye.slash" },
+  ];
+}
+
 /** True when a row's title or line contains what was typed in the search box. */
 export function chatMatchesSearch(
   query: string,

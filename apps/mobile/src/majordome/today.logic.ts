@@ -22,6 +22,8 @@ export interface TodayStore {
   readonly captures: ReadonlyArray<NoteCapture>;
   /** The topics as the server last listed them. */
   readonly topics: ReadonlyArray<TopicRow>;
+  /** The routines, by name, whose chats the owner took out of the Chats list. */
+  readonly hiddenRoutines?: ReadonlyArray<string>;
 }
 
 /** One topic as the phone lists it: a conversation with its latest message. */

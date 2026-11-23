@@ -12,12 +12,15 @@ import { RowPressable } from "../components/ui/RowPressable";
 import { useSelectWorkspaceDetail } from "../features/layout/workspace/useSelectWorkspaceDetail";
 import { THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME } from "../features/threads/thread-list-v2-row-appearance";
 import { cn } from "../lib/cn";
+import { useEnvironmentQuery } from "../state/query";
+import { serverEnvironment } from "../state/server";
 import { useAtomCommand } from "../state/use-atom-command";
 import { chatRowLabel, topicLine, topicMenuActions } from "./chat.logic";
 import { ChatListLabel, ChatRowContent } from "./ChatRow";
 import { majordomeEnvironment } from "./state";
 import type { TopicRow } from "./today.logic";
-import { todayStoreAtom } from "./todayStore";
+import { routineChats } from "./routine.logic";
+import { todayStoreAtom, updateTodayStore } from "./todayStore";
 import { placeTopics, type FinishedTopic } from "./topic.logic";
 import { TONE_COLORS, TOPIC_SYMBOLS, type ChatTopics } from "./topicFaces";
 import { useVault } from "./useVault";
@@ -28,6 +31,8 @@ export function useDoneTopicThreadIds(): ReadonlySet<string> {
   return new Set(finished.flatMap((topic) => (topic.threadId === null ? [] : [topic.threadId])));
 }
 
+const NO_ROUTINES: ReadonlyArray<string> = [];
+
 /**
  * The topics for the Chats list: which ride on a chat's row, which are listed apart, which are
  * done, and how to open one or change it.
@@ -36,7 +41,28 @@ export function useChatListTopics(
   threads: ReadonlyArray<EnvironmentThreadShell>,
   searchQuery: string,
 ): ChatTopics {
-  const { vault, topics, finished } = useVault(useAtomValue(todayStoreAtom));
+  const store = useAtomValue(todayStoreAtom);
+  const { vault, topics, finished } = useVault(store);
+  const tasks = useEnvironmentQuery(
+    vault === null
+      ? null
+      : serverEnvironment.scheduledTasksLive({ environmentId: vault.environmentId, input: {} }),
+  );
+  const routineOf = routineChats(
+    tasks.data?.tasks ?? [],
+    threads.flatMap((thread) =>
+      thread.environmentId === vault?.environmentId
+        ? [{ id: String(thread.id), title: thread.title, createdBy: thread.source.createdBy }]
+        : [],
+    ),
+  );
+  // The rows only redraw when which chats are a routine's changes.
+  const routineKey = JSON.stringify([...routineOf]);
+  const routineOfStable = useMemo(
+    () => new Map(JSON.parse(routineKey) as ReadonlyArray<readonly [string, string]>),
+    [routineKey],
+  );
+  const hiddenRoutines = store?.hiddenRoutines ?? NO_ROUTINES;
   const selectDetail = useSelectWorkspaceDetail();
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic);
   const updateTopic = useAtomCommand(majordomeEnvironment.updateTopic, { reportFailure: false });
@@ -120,6 +146,13 @@ export function useChatListTopics(
     busy,
     unfolded,
     toggleSideChats,
+    routineOf: routineOfStable,
+    hiddenRoutines,
+    setRoutineHidden: (title, hidden) =>
+      updateTodayStore((current) => {
+        const others = (current.hiddenRoutines ?? []).filter((name) => name !== title);
+        return { ...current, hiddenRoutines: hidden ? [...others, title] : others };
+      }),
     open: (topic) => (topic.threadId === null ? void start(topic.id, false) : show(topic.threadId)),
     startSideChat: (topic) => void start(topic.id, true),
     setFinished: (topic, done) => void setFinished(topic, done),
@@ -233,6 +266,49 @@ export function MajordomeDoneTopics(props: { readonly topics: ChatTopics }) {
       {expanded
         ? topics.finished.map((topic) => (
             <DoneTopicRow key={topic.id} topic={topic} topics={topics} />
+          ))
+        : null}
+    </View>
+  );
+}
+
+/** The routines taken out of the Chats list, folded at its bottom with the way back. */
+export function MajordomeHiddenRoutines(props: { readonly topics: ChatTopics }) {
+  const { topics } = props;
+  const [expanded, setExpanded] = useState(false);
+  const count = topics.hiddenRoutines.length;
+  if (count === 0) return null;
+  return (
+    <View>
+      <RowPressable
+        accessibilityRole="button"
+        accessibilityLabel={`Hidden routines, ${count}`}
+        accessibilityState={{ expanded }}
+        className="bg-screen"
+        onPress={() => setExpanded((value) => !value)}
+      >
+        <View className="min-h-[44px] flex-row items-center gap-2.5 px-5">
+          <Text className="text-xs font-t3-medium text-foreground-tertiary">
+            {`Hidden routines · ${count}`}
+          </Text>
+          <View className="h-px flex-1 bg-border" />
+          <Text className="text-xs font-t3-medium text-foreground-tertiary">
+            {expanded ? "Hide" : "Show"}
+          </Text>
+        </View>
+      </RowPressable>
+      {expanded
+        ? topics.hiddenRoutines.map((title) => (
+            <View key={title} className="min-h-[44px] flex-row items-center gap-3 px-5 py-1.5">
+              <Text numberOfLines={1} className="flex-1 text-base text-foreground-muted">
+                {title}
+              </Text>
+              <Button
+                label="Show in Chats"
+                accessibilityLabel={`Show ${title} in Chats`}
+                onPress={() => topics.setRoutineHidden(title, false)}
+              />
+            </View>
           ))
         : null}
     </View>

@@ -18,6 +18,11 @@ const LINE_TONES: Record<ChatLineTone, string> = {
   new: "text-foreground",
 };
 
+const foldWords = (fold: { readonly count: number; readonly runs?: boolean }) =>
+  fold.runs === true
+    ? `${fold.count} earlier ${fold.count === 1 ? "run" : "runs"}`
+    : `${fold.count} more ${fold.count === 1 ? "chat" : "chats"}`;
+
 /** The section labels of the Chats list, drawn like upstream's "Done" shelf label. */
 export function ChatListLabel(props: { readonly children: string }) {
   return (
@@ -47,7 +52,13 @@ export function ChatRowContent(props: {
   readonly faded?: boolean;
   /** A topic's other chats, folded under it until its count is pressed. */
   readonly sideChats?:
-    | { readonly count: number; readonly unfolded: boolean; readonly onToggle: () => void }
+    | {
+        readonly count: number;
+        readonly unfolded: boolean;
+        readonly onToggle: () => void;
+        /** A routine's fold holds its earlier runs rather than other chats. */
+        readonly runs?: boolean;
+      }
     | undefined;
   /** One of a topic's other chats, drawn smaller under the topic. */
   readonly nested?: boolean;
@@ -130,13 +141,13 @@ export function ChatRowContent(props: {
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: sideChats.unfolded }}
-            accessibilityLabel={`${sideChats.count} more ${sideChats.count === 1 ? "chat" : "chats"} about ${props.title}`}
+            accessibilityLabel={`${foldWords(sideChats)} of ${props.title}`}
             hitSlop={10}
             onPress={sideChats.onToggle}
             className="mt-1 flex-row items-center gap-1 self-start rounded-full bg-subtle px-2.5 py-1"
           >
             <Text className="text-xs font-t3-medium text-foreground-muted">
-              {sideChats.count === 1 ? "1 more chat" : `${sideChats.count} more chats`}
+              {foldWords(sideChats)}
             </Text>
             <SymbolView
               name={sideChats.unfolded ? "chevron.up" : "chevron.down"}

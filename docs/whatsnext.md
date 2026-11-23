@@ -398,6 +398,12 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   message) and moves with it, most recent first; topics not opened yet sit above, under no
   heading. Topics marked done fold into "Done topics" at the bottom, with "Bring back". Plain
   chats have no message preview: the server sends none (`latestVisibleMessage` is always null).
+- **Chats folds what repeats.** A topic's other chats sit behind a pill on the topic's row, and
+  a routine's runs are one row (its latest run, earlier ones behind the pill). A routine can be
+  taken out of the list from its long-press menu and brought back from "Hidden routines" at the
+  bottom; that choice is kept on the phone only. Which chats are a routine's is worked out as
+  on the desktop (`routineThreadKeys`): the chat the routine keeps, plus chats that carry its
+  name and were not started by the owner.
 - **Today can show another day** (arrows beside the date); only today's note is kept on the
   phone, and the add box shows on today only, as on the desktop.
 - **A literal the code looks things up by must not be swapped.** They are listed in

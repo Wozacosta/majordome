@@ -103,6 +103,7 @@ import {
   chatStatusLine,
   chatTitle,
   topicLine,
+  routineMenuActions,
   topicMenuActions,
 } from "../../majordome/chat.logic";
 import { ChatRowContent } from "../../majordome/ChatRow";
@@ -835,9 +836,17 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   readonly topic?: TopicRow | undefined;
   /** Majordome: the topic's other chats folded under this row, and whether this row is one. */
   readonly topicSideChats?:
-    | { readonly count: number; readonly unfolded: boolean; readonly onToggle: () => void }
+    | {
+        readonly count: number;
+        readonly unfolded: boolean;
+        readonly onToggle: () => void;
+        readonly runs?: boolean;
+      }
     | undefined;
   readonly nestedUnderTopic?: boolean;
+  /** Majordome: the routine this chat is a run of. */
+  readonly routineTitle?: string | undefined;
+  readonly onHideRoutine?: (title: string) => void;
   readonly onStartTopicSideChat?: (topic: TopicRow) => void;
   readonly onSetTopicFinished?: (topic: TopicRow, finished: boolean) => void;
 }) {
@@ -1708,7 +1717,13 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const shownCardContent = isMajordome ? (
     <ChatRowContent
       title={shownTitle}
-      symbol={topic ? TOPIC_SYMBOLS[topic.icon ?? "hash"] : "bubble.left.fill"}
+      symbol={
+        topic
+          ? TOPIC_SYMBOLS[topic.icon ?? "hash"]
+          : props.routineTitle !== undefined
+            ? "arrow.triangle.2.circlepath"
+            : "bubble.left.fill"
+      }
       color={topic ? TONE_COLORS[topic.tone ?? "amber"] : undefined}
       line={majordomeLine}
       time={majordomeTime}
@@ -1872,7 +1887,9 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     ? menuActions
     : topic
       ? topicMenuActions(chatMenuActions(menuActions), topic.title)
-      : chatMenuActions(menuActions);
+      : props.routineTitle !== undefined
+        ? routineMenuActions(chatMenuActions(menuActions))
+        : chatMenuActions(menuActions);
 
   return (
     <View collapsable={false}>
@@ -1909,6 +1926,11 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
                 props.onStartTopicSideChat?.(topic);
               } else if (topic && event.nativeEvent.event === "topic-finish") {
                 props.onSetTopicFinished?.(topic, true);
+              } else if (
+                props.routineTitle !== undefined &&
+                event.nativeEvent.event === "routine-hide"
+              ) {
+                props.onHideRoutine?.(props.routineTitle);
               } else {
                 handleMenuAction(event);
               }
