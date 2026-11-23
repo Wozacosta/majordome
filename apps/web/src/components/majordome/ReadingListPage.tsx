@@ -1010,8 +1010,8 @@ function FocusLine({
   // One change at a time: a second sent before the first is read back would undo it.
   const [saving, setSaving] = useState(false);
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-      <Muted className="text-xs">{words}</Muted>
+    // The button comes first so it stays put while ticking changes the words beside it.
+    <div className="mt-3 flex items-start gap-2">
       {canChange ? (
         <Menu>
           <MenuTrigger render={<Button size="xs" variant="outline" />}>
@@ -1042,6 +1042,7 @@ function FocusLine({
           </MenuPopup>
         </Menu>
       ) : null}
+      <Muted className="min-w-0 flex-1 pt-0.5 text-xs">{words}</Muted>
     </div>
   );
 }
@@ -1507,7 +1508,7 @@ function ReadingRow({
           </Tip>
         </span>
       ) : handleGap ? (
-        <span aria-hidden className="-mx-1.5 hidden w-6 shrink-0 sm:block" />
+        <span aria-hidden className="-mx-1.5 w-6 shrink-0" />
       ) : null}
       <ItemTile item={item} dimmed={done || snoozed} />
       <ItemText

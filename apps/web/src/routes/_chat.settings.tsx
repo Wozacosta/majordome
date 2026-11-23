@@ -141,7 +141,10 @@ function SettingsContentLayout() {
 
   const returnTarget = getAppModalReturnThreadTarget();
   const page = (
-    <div key={`${contentScopeKey}:${restoreSignal}`} className="min-h-0 flex flex-1 flex-col">
+    <div
+      key={`${contentScopeKey}:${restoreSignal}`}
+      className="flex min-h-0 min-w-0 flex-1 flex-col"
+    >
       <SettingsScopeBoundary pathname={location.pathname}>
         <Outlet />
       </SettingsScopeBoundary>

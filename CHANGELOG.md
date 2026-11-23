@@ -94,6 +94,10 @@ Not released yet.
   filed reports with T3 Code, and `majord triage` points to Majordome's own issue page.
 - **Adding a computer no longer offers SSH.** That way of connecting needs a download Majordome
   does not publish, so it could never finish.
+- **Phone-width fixes.** In Back up my brain, choosing a folder no longer pushes the page off the
+  screen, and neither does "Do it by hand" on the always-on server page. The Journal's week fits
+  on one line, finished rows in the reading list line up with the others, and the list of
+  subjects in focus stays put while you tick.
 
 **Try this**
 

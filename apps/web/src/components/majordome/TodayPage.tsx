@@ -187,41 +187,53 @@ function WeekStrip({
   readonly onShow: (day: string) => void;
 }) {
   const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+  const weekdayLetter = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
   return (
     <div className="mt-4 flex flex-wrap items-center gap-1">
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        aria-label="Previous week"
-        onClick={() => onShow(shiftDay(day, -7))}
-      >
-        <ChevronLeftIcon />
-      </Button>
-      {weekOf(day).map((key) => (
+      <div className="flex w-full items-center gap-1 sm:w-auto">
         <Button
-          key={key}
           type="button"
-          size="sm"
-          variant={key === day ? "secondary" : "ghost"}
-          aria-pressed={key === day}
-          aria-label={todayTitle(dateOfDay(key))}
-          onClick={() => onShow(key)}
+          size="icon"
+          variant="ghost"
+          aria-label="Previous week"
+          onClick={() => onShow(shiftDay(day, -7))}
         >
-          <span className={cn(key === today && "font-semibold text-primary")}>
-            {weekday.format(dateOfDay(key))} {dateOfDay(key).getDate()}
-          </span>
+          <ChevronLeftIcon />
         </Button>
-      ))}
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        aria-label="Next week"
-        onClick={() => onShow(shiftDay(day, 7))}
-      >
-        <ChevronRightIcon />
-      </Button>
+        <div className="flex min-w-0 flex-1 items-center justify-between sm:gap-1">
+          {weekOf(day).map((key) => (
+            <Button
+              key={key}
+              type="button"
+              size="sm"
+              variant={key === day ? "secondary" : "ghost"}
+              aria-pressed={key === day}
+              aria-label={todayTitle(dateOfDay(key))}
+              onClick={() => onShow(key)}
+            >
+              <span
+                className={cn(
+                  "flex flex-col items-center leading-tight sm:flex-row sm:gap-1",
+                  key === today && "font-semibold text-primary",
+                )}
+              >
+                <span className="sm:hidden">{weekdayLetter.format(dateOfDay(key))}</span>
+                <span className="max-sm:hidden">{weekday.format(dateOfDay(key))}</span>
+                <span>{dateOfDay(key).getDate()}</span>
+              </span>
+            </Button>
+          ))}
+        </div>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-label="Next week"
+          onClick={() => onShow(shiftDay(day, 7))}
+        >
+          <ChevronRightIcon />
+        </Button>
+      </div>
       <div className="ms-auto flex items-center gap-1">
         {day === today ? null : (
           <Button type="button" size="sm" variant="outline" onClick={() => onShow(today)}>
