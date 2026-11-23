@@ -59,6 +59,11 @@ function SignedInOrOut() {
   const clerk = useClerk();
   const { user } = useUser();
   const { primaryEnvironmentId } = useMachineNames();
+  const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
+  const environmentIds = [
+    ...(primaryEnvironmentId === null ? [] : [primaryEnvironmentId]),
+    ...Array.from(catalog.entries.keys()).filter((id) => id !== primaryEnvironmentId),
+  ];
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the sign-in window belongs to the account service, which leaves it open after a sign-in that returns from the browser
   useEffect(() => {
     if (isSignedIn) clerk.closeSignIn();
@@ -92,9 +97,15 @@ function SignedInOrOut() {
           />
         )}
       </Section>
-      {primaryEnvironmentId === null ? null : (
-        <ThisServer environmentId={primaryEnvironmentId} signedIn={isSignedIn === true} />
-      )}
+      {/* Every connected server, this computer first: an always-on server is the one a phone
+          can reach, and it can only be added from a device already connected to it. */}
+      {environmentIds.map((environmentId) => (
+        <ThisServer
+          key={environmentId}
+          environmentId={environmentId}
+          signedIn={isSignedIn === true}
+        />
+      ))}
       {isSignedIn ? <AccountServers /> : null}
     </>
   );

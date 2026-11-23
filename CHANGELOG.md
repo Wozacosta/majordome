@@ -9,6 +9,11 @@ Not released yet.
 
 **Improved**
 
+- **Add your always-on server to your account from the Mac.** Settings > Your account now
+  lists every computer and server the app is connected to, each with "Add to my account".
+  Before, it listed only this Mac, so a server Majordome hosts, the one a phone can reach
+  from anywhere, could not be added.
+
 - **Sign in is the first thing the iPhone app offers.** With no computer added yet, Today now
   opens on a Sign in button, above "Add a computer with a code" and the invite code.
 
