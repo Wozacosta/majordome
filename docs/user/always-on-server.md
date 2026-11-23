@@ -237,6 +237,11 @@ Routines run on the server, so they can only use what is connected there. A conn
 your computer can be missing on the server, and the page says so. Majordome lists Claude's
 connectors; it can't see those of other providers. **Check again** asks each machine afresh.
 
+Connectors are added in your Claude account on the web, under **Customize > Connectors**
+(<https://claude.ai/customize/connectors>), not in Majordome. A machine signed in to that account
+gets them; when one has none, the page shows these steps and a button to that page. A connector
+marked **Needs sign-in** has a link to the same place. Choose **Check again** afterwards.
+
 ## Update
 
 The server updates itself every night at 05:00, by the clock your routines follow, and clears out

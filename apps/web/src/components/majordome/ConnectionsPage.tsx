@@ -17,13 +17,14 @@ import { Spinner } from "../ui/spinner";
 import {
   aiRows,
   backupRows,
+  CLAUDE_CONNECTORS_URL,
   claudeSignInTargets,
   type ConnectionState,
   connectorsView,
   isUnknownRequest,
 } from "./connections.logic";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
-import { Entry, EntryList, Muted, Section, SectionTitle, StatusLine } from "./paper";
+import { Entry, EntryList, Muted, Section, SectionTitle, StatusLine, Step, Steps } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 /** What the assistant can reach on each computer: its AI accounts, connectors and backups. */
@@ -210,10 +211,15 @@ function Connectors({
     );
   }
   const view = connectorsView({ result: connectors, snapshots, machine: name });
-  const signIns = claudeSignInTargets({ result: connectors, snapshots });
+  const targets = claudeSignInTargets({ result: connectors, snapshots });
+  const signIns = targets.filter((target) => target.reason === "signed-out");
+  const unconnected = targets.filter((target) => target.reason === "no-connectors");
   return (
     <>
       {view.rows.length > 0 ? <Rows rows={view.rows} /> : null}
+      {view.rows.some((row) => row.signInUrl !== null) ? (
+        <Muted className="mt-2">After you sign in, come back here and press “Check again”.</Muted>
+      ) : null}
       {view.warnings.length + view.notes.length + signIns.length > 0 ? (
         <EntryList>
           {view.warnings.map((warning) => (
@@ -234,7 +240,7 @@ function Connectors({
                   search={{ environmentId, instanceId: target.instanceId }}
                   className="text-foreground underline underline-offset-2"
                 >
-                  {signIns.length > 1 ? `Sign in to ${target.name}` : "Sign in to Claude"}
+                  {targets.length > 1 ? `Sign in to ${target.name}` : "Sign in to Claude"}
                 </Link>{" "}
                 with your own account so the assistant can reach Gmail, Calendar and Drive.
               </Muted>
@@ -242,7 +248,71 @@ function Connectors({
           ))}
         </EntryList>
       ) : null}
+      {unconnected.map((target) => (
+        <HowToConnect
+          key={target.instanceId}
+          environmentId={environmentId}
+          instanceId={target.instanceId}
+          account={targets.length > 1 ? target.name : null}
+        />
+      ))}
     </>
+  );
+}
+
+/** For a Claude account that is signed in and brings no connector: where they are added. */
+function HowToConnect({
+  environmentId,
+  instanceId,
+  account,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly instanceId: ProviderInstanceId;
+  /** The account's name, where several are shown. */
+  readonly account: string | null;
+}) {
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      <p className="text-sm font-medium text-foreground">
+        How to connect Gmail, Calendar or Drive{account === null ? "" : ` to ${account}`}
+      </p>
+      <Muted>
+        They are connected once, in your Claude account on the web. Majordome then finds them by
+        itself on every computer signed in to that account.
+      </Muted>
+      <Steps>
+        <Step title="Open your Claude account's connectors">
+          <div>
+            <Button
+              size="xs"
+              variant="outline"
+              render={<a href={CLAUDE_CONNECTORS_URL} target="_blank" rel="noreferrer" />}
+            >
+              Open Claude's connectors
+            </Button>
+          </div>
+          <p>Or, in Claude on the web, open Customize, then Connectors.</p>
+        </Step>
+        <Step title="Connect what you want the assistant to reach">
+          <p>Choose Gmail, Google Calendar or Google Drive, and sign in to each with Google.</p>
+        </Step>
+        <Step title="Come back here and press “Check again”">
+          <p>It is at the top of this page. What you connected shows in this list.</p>
+        </Step>
+      </Steps>
+      <Muted>
+        Already connected there and still nothing here? This computer may be signed in to Claude in
+        a way that leaves connectors out.{" "}
+        <Link
+          to="/settings/providers"
+          search={{ environmentId, instanceId }}
+          className="text-foreground underline underline-offset-2"
+        >
+          Sign in to Claude again
+        </Link>
+        , then press “Check again”.
+      </Muted>
+    </div>
   );
 }
 
@@ -251,6 +321,7 @@ interface Row {
   readonly name: string;
   readonly provider?: string | null;
   readonly state: ConnectionState;
+  readonly signInUrl?: string | null;
 }
 
 type SignInTarget =
@@ -285,6 +356,16 @@ function Rows<R extends Row>({
                   Sign in
                 </Link>
               ) : null}
+              {row.signInUrl == null ? null : (
+                <a
+                  href={row.signInUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm underline underline-offset-2"
+                >
+                  Sign in on claude.ai
+                </a>
+              )}
               <Badge
                 variant={
                   row.state.tone === "ok"

@@ -5,12 +5,15 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import {
+  AuthAccessReadScope,
   AuthAccessWriteScope,
+  type AuthSessionId,
   AuthStandardClientScopes,
   type EnvironmentId,
   type MajordomePhoneSetup,
 } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
+import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -19,8 +22,8 @@ import { cn } from "../../lib/utils";
 import { authEnvironment } from "../../state/auth";
 import { majordomeEnvironment } from "../../state/majordome";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
-import { formatEnvironmentQueryError } from "../../state/query";
-import { readEnvironmentScope } from "../../state/session";
+import { formatEnvironmentQueryError, useEnvironmentQuery } from "../../state/query";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { formatExpiresInLabel } from "../../timestampFormat";
 import { resolveDesktopPairingUrl } from "../settings/pairingUrls";
@@ -44,6 +47,8 @@ import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import { NotificationsSections } from "./NotificationsSections";
 import {
   Disclosure,
+  Entry,
+  EntryList,
   Muted,
   READING_MEASURE_CLASS,
   Section,
@@ -57,7 +62,12 @@ import {
   computerSetupProgress,
   currentAnywhere,
   NOTIFICATIONS_ANCHOR,
+  PHONE_PAIRING_LABEL,
+  type PairedPhone,
+  pairedPhones,
   phoneComputerWords,
+  type PhoneStepState,
+  phoneStepStates,
   phoneWays,
   phoneWithNotifications,
 } from "./phone.logic";
@@ -135,6 +145,13 @@ function PhoneSetupSection({
   const setup = AsyncResult.getOrElse(result, () => null);
   const devices = useAtomValue(majordomeEnvironment.pushDevices({ environmentId, input: {} }));
   const phone = phoneWithNotifications(AsyncResult.getOrElse(devices, () => null)?.devices ?? []);
+  const canSeeAccess = useEnvironmentScope(environmentId, AuthAccessReadScope);
+  const access = useEnvironmentQuery(
+    canSeeAccess ? authEnvironment.accessChanges({ environmentId, input: null }) : null,
+  );
+  const phones =
+    access.data?.type === "snapshot" ? pairedPhones(access.data.payload.clientSessions) : null;
+  const steps = phoneStepStates({ paired: phones?.length ?? null, notified: phone });
 
   const connecting = setup?.anywhere.state === "starting";
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- A real timer: while the computer is still connecting its address, only asking it again shows when the address is ready.
@@ -145,38 +162,133 @@ function PhoneSetupSection({
   }, [connecting, bumpRevision]);
 
   return (
-    <Section label="Set up your phone">
-      {elsewhere === null ? null : (
-        <Muted className={cn(READING_MEASURE_CLASS, "mb-3")}>
-          Your phone connects to {phoneComputerWords(elsewhere).inSentence}, which is always on and
-          runs your routines.
-        </Muted>
-      )}
-      {phone === null ? null : (
-        <StatusLine tone="ok" className={cn(READING_MEASURE_CLASS, "mb-3")}>
-          Your phone is set up: {phone} gets notifications. Follow the steps again to add another
-          phone.
-        </StatusLine>
-      )}
-      {setup === null ? (
-        result._tag === "Failure" ? (
-          <p className="text-sm text-destructive-foreground">
-            {formatEnvironmentQueryError(result.cause)}
-          </p>
+    <>
+      <Section label="Set up your phone">
+        {elsewhere === null ? null : (
+          <Muted className={cn(READING_MEASURE_CLASS, "mb-3")}>
+            Your phone connects to {phoneComputerWords(elsewhere).inSentence}, which is always on
+            and runs your routines.
+          </Muted>
+        )}
+        {phone === null ? null : (
+          <StatusLine tone="ok" className={cn(READING_MEASURE_CLASS, "mb-3")}>
+            Your phone is set up: {phone} gets notifications. Follow the steps again to add another
+            phone.
+          </StatusLine>
+        )}
+        {setup === null ? (
+          result._tag === "Failure" ? (
+            <p className="text-sm text-destructive-foreground">
+              {formatEnvironmentQueryError(result.cause)}
+            </p>
+          ) : (
+            <Skeleton className="h-24 w-full" />
+          )
         ) : (
-          <Skeleton className="h-24 w-full" />
-        )
-      ) : (
-        <PhoneWays
-          environmentId={environmentId}
-          elsewhere={elsewhere}
-          setup={setup}
-          phoneDone={phone !== null}
-          onCheckAgain={checkAgain}
-          checking={result.waiting}
-        />
+          <PhoneWays
+            environmentId={environmentId}
+            elsewhere={elsewhere}
+            setup={setup}
+            steps={steps}
+            onCheckAgain={checkAgain}
+            checking={result.waiting}
+          />
+        )}
+        {ownEnvironmentId === null ? null : <OwnAddress environmentId={ownEnvironmentId} />}
+      </Section>
+      {phones === null || phones.length === 0 ? null : (
+        <PairedPhones environmentId={environmentId} phones={phones} />
       )}
-      {ownEnvironmentId === null ? null : <OwnAddress environmentId={ownEnvironmentId} />}
+    </>
+  );
+}
+
+type PhoneSteps = ReturnType<typeof phoneStepStates>;
+
+/** The phones that can open Majordome on a computer, each with a way to take that away. */
+function PairedPhones({
+  environmentId,
+  phones,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly phones: ReadonlyArray<PairedPhone>;
+}) {
+  const canRemove = useEnvironmentScope(environmentId, AuthAccessWriteScope);
+  const revoke = useAtomCommand(authEnvironment.revokeClient, { reportFailure: false });
+  // The dialog keeps the phone's name while it closes.
+  const [asking, setAsking] = useState<PairedPhone | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [removing, setRemoving] = useState<AuthSessionId | null>(null);
+
+  const remove = async (sessionId: AuthSessionId) => {
+    setDialogOpen(false);
+    setRemoving(sessionId);
+    const result = await revoke({ environmentId, input: { sessionId } });
+    setRemoving(null);
+    if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+      const error = squashAtomCommandFailure(result);
+      toastManager.add({
+        type: "error",
+        title: "Could not remove this phone",
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  return (
+    <Section label="Phones that can open Majordome">
+      <EntryList>
+        {phones.map((phone) => (
+          <Entry
+            key={phone.sessionId}
+            title={phone.name}
+            aside={phone.connected ? <Badge variant="secondary">Open now</Badge> : null}
+            actions={
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={!canRemove || removing !== null}
+                onClick={() => {
+                  setAsking(phone);
+                  setDialogOpen(true);
+                }}
+              >
+                {removing === phone.sessionId ? <Spinner size="sm" /> : null}
+                Remove this phone
+              </Button>
+            }
+          />
+        ))}
+      </EntryList>
+      <Muted className={cn(READING_MEASURE_CLASS, "mt-2 text-xs")}>
+        Lost a phone? Remove it here. Every other device that can open Majordome is in{" "}
+        <Link to="/settings/access" className="underline underline-offset-2">
+          Sharing & access
+        </Link>
+        .
+      </Muted>
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {asking?.name ?? "this phone"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It can no longer open Majordome. To use it again, scan a new code from this screen. If
+              it also gets notifications, remove it from the list of devices below too.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              Keep this phone
+            </AlertDialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => (asking === null ? undefined : void remove(asking.sessionId))}
+            >
+              Remove this phone
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </Section>
   );
 }
@@ -185,14 +297,14 @@ function PhoneWays({
   environmentId,
   elsewhere,
   setup,
-  phoneDone,
+  steps,
   onCheckAgain,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
   readonly elsewhere: string | null;
   readonly setup: MajordomePhoneSetup;
-  readonly phoneDone: boolean;
+  readonly steps: PhoneSteps;
   readonly onCheckAgain: () => void;
   readonly checking: boolean;
 }) {
@@ -203,7 +315,7 @@ function PhoneWays({
       elsewhere={elsewhere}
       anywhere={setup.anywhere}
       tailscaleOnly={ways.tailscaleOnly}
-      phoneDone={phoneDone}
+      steps={steps}
       checking={checking}
     />
   );
@@ -231,7 +343,7 @@ function PhoneWays({
         <SetupChecklist
           environmentId={environmentId}
           setup={setup}
-          phoneDone={phoneDone}
+          steps={steps}
           onCheckAgain={onCheckAgain}
           checking={checking}
         />
@@ -269,7 +381,7 @@ function AnywhereAddress({
   elsewhere,
   anywhere: read,
   tailscaleOnly,
-  phoneDone,
+  steps,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
@@ -277,7 +389,7 @@ function AnywhereAddress({
   readonly anywhere: Anywhere;
   /** A phone may already work through Tailscale, so the offer says it keeps working. */
   readonly tailscaleOnly: boolean;
-  readonly phoneDone: boolean;
+  readonly steps: PhoneSteps;
   readonly checking: boolean;
 }) {
   const canChange = useAtomValue(
@@ -379,7 +491,7 @@ function AnywhereAddress({
               environmentId={environmentId}
               elsewhere={elsewhere}
               baseUrl={view.address}
-              phoneDone={phoneDone}
+              steps={steps}
             />
           </Steps>
           <Muted className={cn(READING_MEASURE_CLASS, "text-xs")}>
@@ -422,7 +534,10 @@ function NotAllowed({ name }: { readonly name: string }) {
   const { inSentence } = phoneComputerWords(name);
   return (
     <Muted className={READING_MEASURE_CLASS}>
-      This app is not allowed to change this on {inSentence}. Add {inSentence} again in Connections
+      This app is not allowed to change this on {inSentence}. Add {inSentence} again in{" "}
+      <Link to="/settings/connections" className="underline underline-offset-2">
+        Computers
+      </Link>{" "}
       with a new code, then try again.
     </Muted>
   );
@@ -526,7 +641,7 @@ function SetupStep({
   children,
 }: {
   readonly title: string;
-  readonly done: boolean;
+  readonly done: boolean | PhoneStepState;
   readonly children: ReactNode;
 }) {
   return (
@@ -534,7 +649,11 @@ function SetupStep({
       title={
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {title}
-          {done ? <Badge variant="success">Done</Badge> : null}
+          {done === true || done === "done" ? (
+            <Badge variant="success">Done</Badge>
+          ) : done === "unseen" ? (
+            <Badge variant="outline">Majordome can't check this step</Badge>
+          ) : null}
         </span>
       }
     >
@@ -546,13 +665,13 @@ function SetupStep({
 function SetupChecklist({
   environmentId,
   setup,
-  phoneDone,
+  steps,
   onCheckAgain,
   checking,
 }: {
   readonly environmentId: EnvironmentId;
   readonly setup: MajordomePhoneSetup;
-  readonly phoneDone: boolean;
+  readonly steps: PhoneSteps;
   readonly onCheckAgain: () => void;
   readonly checking: boolean;
 }) {
@@ -621,7 +740,7 @@ function SetupChecklist({
           <p>You turn it on here, with one button, once the steps above are done.</p>
         )}
       </SetupStep>
-      <SetupStep title="Tailscale on your phone" done={phoneDone}>
+      <SetupStep title="Tailscale on your phone" done="unseen">
         <p>
           Install Tailscale on your phone from the App Store or Google Play, sign in with the same
           account and make sure it is connected.
@@ -631,7 +750,7 @@ function SetupChecklist({
         environmentId={environmentId}
         elsewhere={null}
         baseUrl={majordomeReachable ? setup.secureUrl : null}
-        phoneDone={phoneDone}
+        steps={steps}
       />
     </Steps>
   );
@@ -642,17 +761,17 @@ function OnPhoneSteps({
   environmentId,
   elsewhere,
   baseUrl,
-  phoneDone,
+  steps,
 }: {
   readonly environmentId: EnvironmentId;
   readonly elsewhere: string | null;
   /** Null until the computer's side is done. */
   readonly baseUrl: string | null;
-  readonly phoneDone: boolean;
+  readonly steps: PhoneSteps;
 }) {
   return (
     <>
-      <SetupStep title="Open Majordome on your phone" done={phoneDone}>
+      <SetupStep title="Open Majordome on your phone" done={steps.open}>
         {baseUrl === null ? (
           <p>The code to scan with your phone's camera shows here once the steps above are done.</p>
         ) : (
@@ -662,7 +781,7 @@ function OnPhoneSteps({
           </>
         )}
       </SetupStep>
-      <SetupStep title="Add Majordome to your Home Screen" done={phoneDone}>
+      <SetupStep title="Add Majordome to your Home Screen" done={steps.homeScreen}>
         <p>
           On iPhone, tap Share, then “Add to Home Screen”. On Android, open Chrome's menu and tap
           “Add to Home screen” or “Install app”.
@@ -672,7 +791,7 @@ function OnPhoneSteps({
           here again and type the letters under the new one.
         </p>
       </SetupStep>
-      <SetupStep title="Notifications on your phone" done={phoneDone}>
+      <SetupStep title="Notifications on your phone" done={steps.notifications}>
         <p>
           In Majordome on your phone, open Settings, then “Phone & notifications”, and turn on
           “Notifications on this device”.
@@ -772,7 +891,7 @@ function PairingCode({
     const result = await createPairingCredential({
       environmentId,
       input: {
-        label: "Phone",
+        label: PHONE_PAIRING_LABEL,
         scopes: AuthStandardClientScopes.filter((scope) =>
           readEnvironmentScope(environmentId, scope),
         ),

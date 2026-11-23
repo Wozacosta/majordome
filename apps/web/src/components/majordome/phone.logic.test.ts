@@ -10,9 +10,12 @@ import {
   devicePushSupport,
   isAppleMobileDevice,
   isOnPhone,
+  notificationsProblem,
+  pairedPhones,
   phoneAddress,
   phoneComputerWords,
   phoneEnvironmentId,
+  phoneStepStates,
   phoneWays,
   phoneWithNotifications,
   subscriptionUsesKey,
@@ -126,6 +129,60 @@ describe("phone setup checklist", () => {
     expect(phoneWithNotifications([{ label: deviceLabel(MAC_SAFARI, 5) ?? null }])).toBe(
       "iPad · Safari",
     );
+  });
+
+  it.each([
+    ["nothing done", { paired: 0, notified: null }, ["todo", "unseen", "todo"]],
+    ["access can't be seen", { paired: null, notified: null }, ["todo", "unseen", "todo"]],
+    ["a phone scanned the code", { paired: 1, notified: null }, ["done", "unseen", "todo"]],
+    [
+      "an Android phone gets notifications",
+      { paired: 1, notified: "Android · Chrome" },
+      ["done", "unseen", "done"],
+    ],
+    [
+      "an iPhone gets notifications, which needs the Home Screen",
+      { paired: null, notified: "iPhone · Safari" },
+      ["done", "done", "done"],
+    ],
+  ] as const)("marks each phone step on its own evidence: %s", (_name, input, expected) => {
+    const steps = phoneStepStates(input);
+    expect([steps.open, steps.homeScreen, steps.notifications]).toEqual(expected);
+  });
+
+  it("lists the phones that can open Majordome, never the device asking", () => {
+    const session = (
+      sessionId: string,
+      client: Parameters<typeof pairedPhones>[0][number]["client"],
+      current = false,
+    ) => ({ sessionId: sessionId as never, client, connected: sessionId === "a", current });
+    expect(
+      pairedPhones([
+        session("a", { label: "Phone", deviceType: "mobile", os: "iOS", browser: "Safari" }),
+        session("b", { label: "Phone", deviceType: "unknown" }),
+        session("c", { deviceType: "tablet", os: "Android" }),
+        session("d", { deviceType: "desktop", os: "macOS" }),
+        session("e", { label: "Phone", deviceType: "mobile" }, true),
+      ]),
+    ).toEqual([
+      { sessionId: "a", name: "iOS · Safari", connected: true },
+      { sessionId: "b", name: "A phone", connected: false },
+      { sessionId: "c", name: "Android", connected: false },
+    ]);
+  });
+});
+
+describe("why notifications can't be turned on", () => {
+  const ok = { canSave: true, key: "ready", permission: "default", on: false } as const;
+  it.each([
+    ["nothing is wrong", ok, null],
+    ["the key is still loading", { ...ok, key: "loading" }, null],
+    ["Majordome did not answer", { ...ok, key: "failed" }, "unreachable"],
+    ["the device blocked them", { ...ok, key: "failed", permission: "denied" }, "blocked"],
+    ["the device can only read", { ...ok, canSave: false, permission: "denied" }, "read-only"],
+    ["they are already on", { ...ok, on: true, canSave: false, key: "failed" }, null],
+  ] as const)("%s", (_name, input, expected) => {
+    expect(notificationsProblem(input)).toBe(expected);
   });
 });
 

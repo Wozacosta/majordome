@@ -9,6 +9,7 @@ import {
 import { expect, it } from "vite-plus/test";
 
 import {
+  CLAUDE_CONNECTORS_URL,
   aiRows,
   backupRows,
   connectorName,
@@ -87,15 +88,17 @@ it("lists a machine's connectors under their friendly names", () => {
         connectors: [
           { name: "claude.ai Gmail", status: "connected" },
           { name: "plugin:vercel:vercel", status: "needs-auth" },
+          { name: "claude.ai Google Calendar", status: "needs-auth" },
         ],
       }),
     ),
     snapshots: [snapshot("claudeAgent")],
     machine: null,
   });
-  expect(view.rows.map((row) => [row.name, row.provider, row.state.label])).toEqual([
-    ["Gmail", null, "Connected"],
-    ["vercel", null, "Needs sign-in"],
+  expect(view.rows.map((row) => [row.name, row.provider, row.state.label, row.signInUrl])).toEqual([
+    ["Gmail", null, "Connected", null],
+    ["vercel", null, "Needs sign-in", null],
+    ["Google Calendar", null, "Needs sign-in", CLAUDE_CONNECTORS_URL],
   ]);
   expect(view.warnings).toEqual([]);
   expect(view.notes).toEqual([]);
@@ -124,12 +127,17 @@ it("leaves the missing connectors unsaid for a provider that is signed out", () 
 });
 
 it.each([
-  ["signed in with no connectors, as a sign-in token leaves it", {}, entry("claudeAgent"), true],
+  [
+    "signed in with no connectors, as a new account or a sign-in token leaves it",
+    {},
+    entry("claudeAgent"),
+    "no-connectors",
+  ],
   [
     "signed out",
     { auth: { status: "unauthenticated" } },
     entry("claudeAgent", { reported: false }),
-    true,
+    "signed-out",
   ],
   [
     "signed in with connectors",
@@ -150,16 +158,21 @@ it.each([
     false,
   ],
   ["turned off", { enabled: false }, entry("claudeAgent"), false],
-] as const)("offers a full sign-in for a Claude %s: %s", (_name, overrides, listed, offered) => {
-  const targets = claudeSignInTargets({
-    result: result(listed, entry("codex")),
-    snapshots: [
-      snapshot("claudeAgent", overrides as Partial<ServerProvider>),
-      snapshot("codex", { auth: { status: "unauthenticated" } }),
-    ],
-  });
-  expect(targets.map((target) => target.instanceId)).toEqual(offered ? ["claudeAgent"] : []);
-});
+] as const)(
+  "says what a Claude %s needs to get connectors",
+  (_name, overrides, listed, offered) => {
+    const targets = claudeSignInTargets({
+      result: result(listed, entry("codex")),
+      snapshots: [
+        snapshot("claudeAgent", overrides as Partial<ServerProvider>),
+        snapshot("codex", { auth: { status: "unauthenticated" } }),
+      ],
+    });
+    expect(targets.map((target) => [target.instanceId, target.reason])).toEqual(
+      offered === false ? [] : [["claudeAgent", offered]],
+    );
+  },
+);
 
 it("names the provider on each row and warning when several list connectors", () => {
   const view = connectorsView({
