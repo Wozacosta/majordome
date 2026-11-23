@@ -2412,7 +2412,7 @@ export const layerWsRpc = (
           ),
         [WS_METHODS.majordomeGetPushConfig]: (_input) => majordomePush.getConfig(),
         [WS_METHODS.majordomeSavePushSubscription]: (input) =>
-          majordomePush.saveSubscription(input.subscription, input.label),
+          majordomePush.saveSubscription(input.subscription, input.label, currentSessionId),
         [WS_METHODS.majordomeRemovePushSubscription]: (input) =>
           majordomePush.removeSubscription(input.endpoint),
         [WS_METHODS.majordomeSendTestPush]: (input) => majordomePush.sendTest(input.endpoint),

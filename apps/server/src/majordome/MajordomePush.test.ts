@@ -122,6 +122,7 @@ it.layer(storeLayer)("MajordomePush", (it) => {
       yield* push.saveSubscription(
         browserSubscription("https://push.example/labelled"),
         "iPhone · Safari",
+        "session-phone",
       );
       const { devices } = yield* push.listDevices();
       assert.deepEqual(
@@ -135,7 +136,7 @@ it.layer(storeLayer)("MajordomePush", (it) => {
       const addedAt = devices[1]?.addedAt ?? null;
       assert.isString(addedAt);
 
-      // Renewed keys keep the device's name and the time it was added.
+      // Renewed keys keep the device's name, the time it was added and the access it used.
       yield* push.saveSubscription(browserSubscription("https://push.example/labelled"));
       const renewed = (yield* push.listDevices()).devices.find(
         (device) => device.endpoint === "https://push.example/labelled",
@@ -144,6 +145,7 @@ it.layer(storeLayer)("MajordomePush", (it) => {
         endpoint: "https://push.example/labelled",
         label: "iPhone · Safari",
         addedAt,
+        sessionId: "session-phone",
       });
     }),
   );

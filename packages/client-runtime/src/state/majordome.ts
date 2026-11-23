@@ -46,6 +46,9 @@ export function createMajordomeEnvironmentAtoms<R, E>(
     pushDevices: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:push-devices",
       tag: WS_METHODS.majordomeListPushDevices,
+      // Another device turning notifications on is not announced here, so the list is read again
+      // while it is on screen.
+      refreshIntervalMs: 15_000,
       refreshTrigger: ({ environmentId }) => pushDevicesRevision(environmentId),
     }),
     sendTestPush: createEnvironmentRpcCommand(runtime, {

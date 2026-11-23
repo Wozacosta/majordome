@@ -38,6 +38,8 @@ export const MajordomePushDevice = Schema.Struct({
   label: Schema.NullOr(Schema.String),
   /** ISO time the device turned notifications on. */
   addedAt: Schema.NullOr(Schema.String),
+  /** The access the device had when it turned notifications on; older servers do not say. */
+  sessionId: Schema.optionalKey(Schema.NullOr(Schema.String)),
 });
 export type MajordomePushDevice = typeof MajordomePushDevice.Type;
 

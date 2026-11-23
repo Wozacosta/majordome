@@ -39,6 +39,7 @@ const StoredSubscription = Schema.Struct({
   keys: Schema.Struct({ p256dh: Schema.String, auth: Schema.String }),
   label: Schema.optionalKey(Schema.String),
   addedAt: Schema.optionalKey(Schema.String),
+  sessionId: Schema.optionalKey(Schema.String),
 });
 const StoredSubscriptionsJson = Schema.fromJsonString(Schema.Array(StoredSubscription));
 type StoredSubscription = typeof StoredSubscription.Type;
@@ -69,6 +70,7 @@ function upsertSubscription(
   const previous = subscriptions.find((existing) => existing.endpoint === subscription.endpoint);
   const label = subscription.label ?? previous?.label;
   const addedAt = previous?.addedAt ?? subscription.addedAt;
+  const sessionId = subscription.sessionId ?? previous?.sessionId;
   return [
     ...subscriptions.filter((existing) => existing.endpoint !== subscription.endpoint),
     {
@@ -76,6 +78,7 @@ function upsertSubscription(
       keys: subscription.keys,
       ...(label === undefined ? {} : { label }),
       ...(addedAt === undefined ? {} : { addedAt }),
+      ...(sessionId === undefined ? {} : { sessionId }),
     },
   ];
 }
@@ -103,6 +106,8 @@ export class MajordomePush extends Context.Service<
     readonly saveSubscription: (
       subscription: MajordomePushSubscription,
       label?: string,
+      /** The access the device is using, so removing that access can stop its notifications. */
+      sessionId?: string,
     ) => Effect.Effect<void, MajordomePhoneError>;
     readonly removeSubscription: (endpoint: string) => Effect.Effect<void, MajordomePhoneError>;
     readonly listDevices: () => Effect.Effect<MajordomePushDevices, MajordomePhoneError>;
@@ -281,21 +286,24 @@ export const make = Effect.gen(function* () {
     getConfig: Effect.fn("MajordomePush.getConfig")(function* () {
       return { publicKey: (yield* vapidKeys).publicKey };
     }),
-    saveSubscription: Effect.fn("MajordomePush.saveSubscription")(function* (subscription, label) {
-      if (!isPushEndpoint(subscription.endpoint)) {
-        return yield* new MajordomePhoneError({
-          message: "This browser gave a notification address Majordome can't use.",
-        });
-      }
-      const addedAt = DateTime.formatIso(yield* DateTime.now);
-      yield* updateSubscriptions((current) =>
-        upsertSubscription(current, {
-          ...subscription,
-          ...(label === undefined ? {} : { label }),
-          addedAt,
-        }),
-      );
-    }),
+    saveSubscription: Effect.fn("MajordomePush.saveSubscription")(
+      function* (subscription, label, sessionId) {
+        if (!isPushEndpoint(subscription.endpoint)) {
+          return yield* new MajordomePhoneError({
+            message: "This browser gave a notification address Majordome can't use.",
+          });
+        }
+        const addedAt = DateTime.formatIso(yield* DateTime.now);
+        yield* updateSubscriptions((current) =>
+          upsertSubscription(current, {
+            ...subscription,
+            ...(label === undefined ? {} : { label }),
+            ...(sessionId === undefined ? {} : { sessionId }),
+            addedAt,
+          }),
+        );
+      },
+    ),
     removeSubscription,
     listDevices: Effect.fn("MajordomePush.listDevices")(function* () {
       return {
@@ -303,6 +311,7 @@ export const make = Effect.gen(function* () {
           endpoint: subscription.endpoint,
           label: subscription.label ?? null,
           addedAt: subscription.addedAt ?? null,
+          sessionId: subscription.sessionId ?? null,
         })),
       };
     }),

@@ -11,6 +11,7 @@ import {
   AuthStandardClientScopes,
   type EnvironmentId,
   type MajordomePhoneSetup,
+  type MajordomePushDevice,
 } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import { Link } from "@tanstack/react-router";
@@ -197,7 +198,11 @@ function PhoneSetupSection({
         {ownEnvironmentId === null ? null : <OwnAddress environmentId={ownEnvironmentId} />}
       </Section>
       {phones === null || phones.length === 0 ? null : (
-        <PairedPhones environmentId={environmentId} phones={phones} />
+        <PairedPhones
+          environmentId={environmentId}
+          phones={phones}
+          devices={AsyncResult.getOrElse(devices, () => null)?.devices ?? []}
+        />
       )}
     </>
   );
@@ -209,12 +214,18 @@ type PhoneSteps = ReturnType<typeof phoneStepStates>;
 function PairedPhones({
   environmentId,
   phones,
+  devices,
 }: {
   readonly environmentId: EnvironmentId;
   readonly phones: ReadonlyArray<PairedPhone>;
+  /** The devices that get notifications from this computer. */
+  readonly devices: ReadonlyArray<MajordomePushDevice>;
 }) {
   const canRemove = useEnvironmentScope(environmentId, AuthAccessWriteScope);
   const revoke = useAtomCommand(authEnvironment.revokeClient, { reportFailure: false });
+  const stopNotifying = useAtomCommand(majordomeEnvironment.removePushSubscription, {
+    reportFailure: false,
+  });
   // The dialog keeps the phone's name while it closes.
   const [asking, setAsking] = useState<PairedPhone | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -224,6 +235,14 @@ function PairedPhones({
     setDialogOpen(false);
     setRemoving(sessionId);
     const result = await revoke({ environmentId, input: { sessionId } });
+    if (result._tag !== "Failure") {
+      // A phone that can no longer open Majordome is not sent what happens in it either.
+      await Promise.all(
+        devices
+          .filter((device) => device.sessionId === sessionId)
+          .map((device) => stopNotifying({ environmentId, input: { endpoint: device.endpoint } })),
+      );
+    }
     setRemoving(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
       const error = squashAtomCommandFailure(result);
@@ -272,8 +291,9 @@ function PairedPhones({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {asking?.name ?? "this phone"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              It can no longer open Majordome. To use it again, scan a new code from this screen. If
-              it also gets notifications, remove it from the list of devices below too.
+              It can no longer open Majordome, and it stops getting notifications. To use it again,
+              scan a new code from this screen. If it still shows under the devices that get
+              notifications, remove it there too.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
