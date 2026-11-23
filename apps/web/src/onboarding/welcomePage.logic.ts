@@ -1,3 +1,4 @@
+import { isLocalLoopbackHost } from "@t3tools/shared/hostClassification";
 import {
   isProviderAvailable,
   managedCapabilityDenial,
@@ -159,20 +160,23 @@ export function welcomeOffersPhone(input: {
 
 /**
  * Whether Claude signs in with a link and a pasted code instead of the CLI in a terminal. The
- * CLI opens a browser on the machine it runs on, which reaches the owner only when that machine
- * is the desktop app's own computer.
+ * CLI opens a browser on the machine it runs on, which reaches the owner only on their own
+ * computer: the desktop app's own server, or a page served from a loopback address.
  */
 export function claudeSignsInByLink(input: {
   readonly majordome: boolean;
   readonly desktop: boolean;
   readonly isPrimary: boolean;
+  /** The host of the page, as in `location.hostname`. */
+  readonly pageHost: string;
   readonly provider: Pick<ServerProvider, "driver" | "installed">;
 }) {
+  const ownComputer = input.isPrimary && (input.desktop || isLocalLoopbackHost(input.pageHost));
   return (
     input.majordome &&
     input.provider.driver === "claudeAgent" &&
     input.provider.installed &&
-    !(input.desktop && input.isPrimary)
+    !ownComputer
   );
 }
 

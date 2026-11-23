@@ -247,6 +247,7 @@ describe("claudeSignsInByLink", () => {
         majordome: true,
         desktop: false,
         isPrimary: true,
+        pageHost: "notes.example.com",
         provider: claude,
         ...input,
       });
@@ -255,8 +256,10 @@ describe("claudeSignsInByLink", () => {
     expect(byLink({})).toBe(true);
     // Another computer added to the desktop app.
     expect(byLink({ desktop: true, isPrimary: false })).toBe(true);
-    // The desktop app's own computer, where the CLI opens the owner's browser.
+    // The owner's own computer, where the CLI opens their browser: the desktop app, or its page.
     expect(byLink({ desktop: true })).toBe(false);
+    expect(byLink({ pageHost: "127.0.0.1" })).toBe(false);
+    expect(byLink({ pageHost: "localhost" })).toBe(false);
     // Not installed yet: the terminal installs it first.
     expect(byLink({ provider: { ...claude, installed: false } })).toBe(false);
     expect(byLink({ provider: provider("codex") })).toBe(false);

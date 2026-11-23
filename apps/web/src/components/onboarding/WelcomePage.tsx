@@ -643,7 +643,13 @@ export function AgentsSection({
     }
     if (
       needsInstallOrSignIn(provider) &&
-      claudeSignsInByLink({ majordome: isMajordome, desktop: isElectron, isPrimary, provider })
+      claudeSignsInByLink({
+        majordome: isMajordome,
+        desktop: isElectron,
+        isPrimary,
+        pageHost: window.location.hostname,
+        provider,
+      })
     ) {
       return (
         <Button

@@ -13,7 +13,7 @@ Not released yet.
   reach from a browser, or of another computer added to the app, "Sign in" on Claude now shows a
   button that opens Claude's sign-in page and a box for the code that page gives you. Before, it
   ran in a hidden terminal and said a page had opened in your browser, which a server cannot do.
-  On your own computer in the desktop app nothing changes: the page still opens by itself.
+  On your own computer nothing changes: the page still opens by itself.
 
 **Try this**
 
