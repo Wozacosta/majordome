@@ -95,22 +95,30 @@ export function PageOutline({ className }: { readonly className?: string }) {
   };
 
   const groups = outlineGroups(headings);
-  const link = (item: OutlineItem, isTitle: boolean) => (
+  const currentGroup = groups.find(
+    (group) =>
+      group.title?.index === current || group.sections.some((item) => item.index === current),
+  );
+  const link = (item: OutlineItem, isCurrent: boolean, isTitle: boolean) => (
     <button
       key={item.index}
       type="button"
       // Named apart from the page's own controls, which often carry a section's exact words.
       aria-label={`Go to ${item.label}`}
-      aria-current={item.index === current ? "location" : undefined}
+      aria-current={isCurrent ? "location" : undefined}
       onClick={() => jumpTo(item.index)}
       className={cn(
-        "rounded-md px-2 py-1 text-xs outline-none hover:bg-accent/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-[current]:bg-accent aria-[current]:text-foreground",
-        isTitle ? "font-semibold text-foreground" : "text-muted-foreground",
+        "-mb-px border-b-2 border-transparent py-2 text-xs outline-none hover:text-foreground focus-visible:text-foreground focus-visible:underline aria-[current]:text-foreground",
+        isTitle
+          ? "font-semibold text-muted-foreground"
+          : "text-muted-foreground aria-[current]:border-primary",
       )}
     >
       {item.label}
     </button>
   );
+  // One line: the computers, then only the places of the one being read.
+  const nested = currentGroup?.title ? currentGroup.sections : [];
 
   return (
     <nav
@@ -118,20 +126,18 @@ export function PageOutline({ className }: { readonly className?: string }) {
       aria-label="On this page"
       data-page-outline-nav
       className={cn(
-        "sticky top-0 z-10 -mx-2 flex flex-col gap-0.5 border-b border-border bg-background py-1.5",
+        "sticky top-0 z-10 flex flex-wrap items-center gap-x-4 border-b border-border bg-background",
         groups.length === 0 && "hidden",
         className,
       )}
     >
-      {groups.map((group) => (
-        <div
-          key={group.title?.index ?? group.sections[0]?.index}
-          className="flex flex-wrap items-center gap-x-0.5"
-        >
-          {group.title ? link(group.title, true) : null}
-          {group.sections.map((item) => link(item, false))}
-        </div>
-      ))}
+      {groups.flatMap((group) =>
+        group.title
+          ? [link(group.title, group === currentGroup, true)]
+          : group.sections.map((item) => link(item, item.index === current, false)),
+      )}
+      {nested.length > 0 ? <span aria-hidden className="h-3 w-px bg-border" /> : null}
+      {nested.map((item) => link(item, item.index === current, false))}
     </nav>
   );
 }

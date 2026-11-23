@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **The section line on settings pages is one quiet line.** With several computers on a page, it
+  names the computers and shows only the sections of the one you are reading, instead of
+  repeating every section per computer. The current section is underlined, not boxed.
+
 ## 0.10.25
 
 **New**
