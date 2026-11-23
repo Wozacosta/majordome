@@ -7,6 +7,20 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.25
+
+**New**
+
+- **The sign-in copy is in the side browser's menu too.** The three-dot menu now has "Use my
+  sign-in for …", with your browsers under it, and "Sign out of … here".
+- **The key stands out on a sign-in page.** When the page's address looks like a login page, the
+  key button in the side browser's bar is outlined and coloured, so you know it can help.
+
+**Try this**
+
+- Open github.com/login in the side browser: the key button should be outlined. Open the
+  three-dot menu and find "Use my sign-in for github.com".
+
 ## 0.10.24
 
 **New**
