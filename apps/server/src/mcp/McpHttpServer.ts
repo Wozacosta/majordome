@@ -77,6 +77,7 @@ import {
   PreviewSnapshotToolkit,
   PreviewStandardToolkit,
 } from "./toolkits/preview/tools.ts";
+import * as MajordomeHiddenTools from "../majordome/hiddenTools.ts";
 import * as WorktreeHandlers from "./toolkits/worktree/handlers.ts";
 import { WorktreeToolkit } from "./toolkits/worktree/tools.ts";
 import * as WorktreeMcpService from "./WorktreeMcpService.ts";
@@ -1440,6 +1441,11 @@ export const layerMcpTransport = <RA, RE, RR>(registrations: Layer.Layer<RA, RE,
     registrations,
   }).pipe(Layer.provide(layerMcpAuthMiddleware));
 
+export const layerMajordomeHiddenTools = McpServer.visibility(
+  ({ method, target }) => Effect.succeed(MajordomeHiddenTools.isListed(method, target)),
+  { global: true },
+);
+
 /** Every tool the T3 MCP server advertises. AgentContextBudget.test.ts measures this set. */
 export const layerTools = Layer.mergeAll(
   layerPreviewToolkit,
@@ -1461,6 +1467,7 @@ export const layerTools = Layer.mergeAll(
   layerNotesSearchToolkit,
   layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
+  layerMajordomeHiddenTools,
 );
 
 const layerToolExposure = Layer.effect(

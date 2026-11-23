@@ -22,6 +22,17 @@ Not released yet.
   the exact steps to read, and Keep or Delete. "Stop using" on a skill moves it back to the
   waiting list. A reply that wrote a skill says so under it, with a Review button.
 
+**Changed**
+
+- **Chats no longer carry coding tools.** Your assistant is not told about pull requests, issue
+  trackers or code worktrees any more: about a fifth less to read before each answer.
+
+**Fixed**
+
+- **`majord update` can no longer fetch another app.** It looked for new versions in T3 Code's
+  releases. It now says how Majordome updates: the app offers each new version itself, and a
+  Docker server updates with `docker compose pull && docker compose up -d`.
+
 **Try this**
 
 - In a chat, say: "From now on, when I send you a receipt, rename it with the date and the shop,

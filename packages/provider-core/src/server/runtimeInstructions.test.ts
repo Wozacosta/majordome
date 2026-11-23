@@ -1,6 +1,13 @@
 import { assert, describe, it } from "@effect/vitest";
+import { vi } from "vite-plus/test";
 
 import { buildRuntimeInstructions } from "./runtimeInstructions.ts";
+
+// Majordome leaves these instructions out; this covers upstream's text.
+vi.mock(import("@t3tools/shared/majordome"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  hidesCodingTools: false,
+}));
 
 describe("buildRuntimeInstructions", () => {
   it("leaves PR linking to a session that already carries it, and keeps runtime identity", () => {
