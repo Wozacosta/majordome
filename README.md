@@ -38,7 +38,8 @@
 
 Your memory is a folder of plain markdown (an Obsidian vault works). The assistant reads it before
 you type, files what you drop in, runs routines on a schedule, and asks before it touches anything
-sensitive. There is no Majordome account and no Majordome server: it runs on your machines.
+sensitive. It runs on your machines and needs no account; an optional one lets a new device find your
+servers when you sign in.
 
 ## What it does
 
