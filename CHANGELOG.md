@@ -7,6 +7,17 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **Chats open in place in the sidebar.** The Chats row has an arrow that lists the chats still
+  going right under it, like a topic does. The row itself still opens the page with all of them.
+
+**Fixed**
+
+- **Unsaved writing comes back when the note's computer can't be reached.** Going back to a note
+  whose save failed showed "Environment … is offline" instead of what you wrote. It now shows your
+  text with the "Not saved" line and Try again. A note that can't be read says so in plain words.
+
 ## 0.10.21
 
 **Changed**

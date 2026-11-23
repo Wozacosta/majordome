@@ -7,6 +7,7 @@ import { lazy, type MouseEvent, type ReactNode, Suspense, useState } from "react
 
 import { useAssetUrlState } from "../../assets/assetUrls";
 import { useOpenLink } from "../../browser/useOpenLink";
+import { useEnvironment } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
 import { projectEnvironment } from "../../state/projects";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -29,6 +30,7 @@ import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   hasKeptNoteDraft,
+  keptNoteDraftBase,
   noteDraftKey,
   NoteSaveProblem,
   NoteSaveStatus,
@@ -151,6 +153,32 @@ export function NotePreview({
   );
 }
 
+/** Why a note is not shown, in the owner's words, with a way to try again. */
+function NoteUnread({
+  environmentId,
+  error,
+  onRetry,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly error: string;
+  readonly onRetry: () => void;
+}) {
+  // Not connected: the read never got an answer, rather than the file being refused.
+  const unreachable = useEnvironment(environmentId)?.connection.phase !== "connected";
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <p>
+        {unreachable
+          ? "This note can't be shown right now: the computer that keeps it can't be reached."
+          : error}
+      </p>
+      <Button size="sm" variant="outline" onClick={onRetry}>
+        Try again
+      </Button>
+    </div>
+  );
+}
+
 function Centered({ children }: { readonly children: ReactNode }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
@@ -200,8 +228,25 @@ function MarkdownNote({
   // Writing a save could not keep opens the note where it was left, with what went wrong.
   const [writing, setWriting] = useState(() => hasKeptNoteDraft(draftKey));
   if (file.data === null) {
+    // Writing that could not be saved outlives the note being unreadable, as when its computer
+    // can't be reached: it is shown again, with what went wrong, until it is saved or discarded.
+    if (file.error && editable && isEditableNotePath(path) && hasKeptNoteDraft(draftKey)) {
+      return (
+        <EditableNote
+          vault={vault}
+          path={path}
+          draftKey={draftKey}
+          disk={keptNoteDraftBase(draftKey) ?? ""}
+          onSaved={file.refresh}
+          onDone={() => setWriting(false)}
+          noteLink={noteLink}
+        />
+      );
+    }
     return file.error ? (
-      <Centered>{file.error}</Centered>
+      <Centered>
+        <NoteUnread environmentId={vault.environmentId} error={file.error} onRetry={file.refresh} />
+      </Centered>
     ) : (
       <Centered>
         <Spinner size="lg" />
@@ -464,7 +509,9 @@ function OtherFile({
   }
   if (file.data === null) {
     return file.error ? (
-      <Centered>{file.error}</Centered>
+      <Centered>
+        <NoteUnread environmentId={vault.environmentId} error={file.error} onRetry={file.refresh} />
+      </Centered>
     ) : (
       <Centered>
         <Spinner size="lg" />

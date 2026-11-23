@@ -49,7 +49,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
-import { chatStatusWords, chatTitle, isEmptyChat } from "./chats.logic";
+import { chatStatusWords, chatTitle, isEmptyChat, splitChats } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
 import {
@@ -90,34 +90,108 @@ const QUIET_ROW_CLASS =
 const HEADING_CLASS =
   "flex h-7 items-center gap-1 px-2 text-xs font-medium text-sidebar-muted-foreground";
 
-/** The one way into the chats that belong to no topic, with how many are still going. */
+/** How many chats the sidebar lists under Chats before it leaves the rest to the page. */
+const CHATS_SHOWN = 8;
+
+/**
+ * The chats that belong to no topic: the row opens their page, and its arrow lists the ones still
+ * going right here.
+ */
 function ChatsRow() {
-  const active = useLocation({ select: (location) => location.pathname === "/chats" });
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const active = pathname === "/chats";
   const { isMobile, setOpenMobile } = useSidebar();
-  const open = useRecentChats().filter((thread) => thread.settledOverride !== "settled").length;
+  const { current } = splitChats(useRecentChats(), {
+    query: "",
+    isDone: (thread) => thread.settledOverride === "settled",
+    activityOf: (thread) => resolveThreadActivityTimestamp(thread),
+  });
+  const [listed, setListed] = useLocalStorage(
+    "majordome:sidebar-chats-listed",
+    false,
+    Schema.Boolean,
+  );
+  const leave = () => {
+    if (isMobile) setOpenMobile(false);
+  };
   return (
-    <Link
-      to="/chats"
-      aria-current={active ? "page" : undefined}
-      onClick={() => {
-        if (isMobile) setOpenMobile(false);
-      }}
-      className={cn(
-        "mt-2 flex items-center gap-2.5 rounded-lg py-1.5 pr-2 pl-1.5 text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-        active && "bg-sidebar-row-selected",
-      )}
-    >
+    <div className="mt-2">
       <span
-        aria-hidden
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-row-hover text-sidebar-muted-foreground"
+        className={cn(
+          "flex items-center gap-1 rounded-lg pr-1 hover:bg-sidebar-row-hover",
+          active && "bg-sidebar-row-selected",
+        )}
       >
-        <MessagesSquareIcon className="size-4" />
+        <Link
+          to="/chats"
+          aria-current={active ? "page" : undefined}
+          onClick={leave}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1.5 pr-1 pl-1.5 text-sm text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          <span
+            aria-hidden
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-row-hover text-sidebar-muted-foreground"
+          >
+            <MessagesSquareIcon className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1 truncate font-medium">Chats</span>
+          {current.length > 0 ? (
+            <span className="shrink-0 text-xs text-sidebar-muted-foreground tabular-nums">
+              {current.length}
+            </span>
+          ) : null}
+        </Link>
+        {current.length > 0 ? (
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-expanded={listed}
+            aria-label={listed ? "Hide chats" : "Show chats"}
+            onClick={() => setListed((shown) => !shown)}
+          >
+            {listed ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </Button>
+        ) : null}
       </span>
-      <span className="min-w-0 flex-1 truncate font-medium">Chats</span>
-      {open > 0 ? (
-        <span className="shrink-0 text-xs text-sidebar-muted-foreground tabular-nums">{open}</span>
+      {listed && current.length > 0 ? (
+        <ul
+          aria-label="Chats"
+          className="mt-px mb-1 ml-5 flex flex-col gap-px border-l border-sidebar-border pl-2"
+        >
+          {current.slice(0, CHATS_SHOWN).map(({ thread }) => {
+            const params = buildThreadRouteParams(scopeThreadRef(thread.environmentId, thread.id));
+            const open = pathname === `/${params.environmentId}/${params.threadId}`;
+            return (
+              <li key={`${thread.environmentId}:${thread.id}`}>
+                <Link
+                  to="/$environmentId/$threadId"
+                  params={params}
+                  onClick={leave}
+                  aria-current={open ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1 text-xs text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    open && "bg-sidebar-row-selected font-medium",
+                  )}
+                >
+                  <MessageCircleIcon
+                    className="size-3.5 shrink-0 text-sidebar-muted-foreground"
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1 truncate">{chatTitle(thread.title)}</span>
+                </Link>
+              </li>
+            );
+          })}
+          {current.length > CHATS_SHOWN ? (
+            <li>
+              <Link to="/chats" onClick={leave} className={cn(QUIET_ROW_CLASS, "block")}>
+                See all {current.length} chats
+              </Link>
+            </li>
+          ) : null}
+        </ul>
       ) : null}
-    </Link>
+    </div>
   );
 }
 

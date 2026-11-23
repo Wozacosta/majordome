@@ -38,6 +38,11 @@ export function hasKeptNoteDraft(draftKey: string): boolean {
   return keptDrafts.has(draftKey);
 }
 
+/** The file content the kept writing started from: what to show under it when the note can't be read. */
+export function keptNoteDraftBase(draftKey: string): string | null {
+  return keptDrafts.get(draftKey)?.base ?? null;
+}
+
 const isNoteError = Schema.is(Schema.Union([MajordomeNoteError, MajordomeDailyNoteError]));
 
 function saveProblem(error: unknown): Exclude<NoteSaveOutcome, string> {
