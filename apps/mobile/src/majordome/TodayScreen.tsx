@@ -14,6 +14,7 @@ import { IconButton } from "../components/ui/IconButton";
 import { ListSection } from "../components/ui/ListSection";
 import { RefreshControl } from "../components/ui/RefreshControl";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
+import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { useAdaptiveWorkspaceLayout } from "../features/layout/adaptive-workspace-context";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
@@ -36,6 +37,8 @@ import { useTodaySetup } from "./todaySetup";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
 import { dayFromToday, dayTitle, noteStatus, shiftDay, todoProgress } from "./todayView.logic";
 
+// Fixed for a build: whether it has Majordome accounts to sign in to.
+const hasAccounts = hasAccountPublicConfig();
 const INDENT = 22;
 const MAX_DEPTH = 4;
 
@@ -368,12 +371,24 @@ export function MajordomeTodayScreen() {
         {setup === "starting" ? null : setup === "noComputer" ? (
           <EmptyState
             title="Add your computer"
-            detail="Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can host it for you."
+            detail={
+              hasAccounts
+                ? "Your notes live on your computer. Sign in to your Majordome account and this phone finds it, or add it with the code it shows. No computer to leave on? Majordome can host it for you."
+                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can host it for you."
+            }
             action={
               <View className="gap-2">
+                {hasAccounts ? (
+                  <Button
+                    label="Sign in"
+                    tone="primary"
+                    icon="person.crop.circle"
+                    onPress={() => openSettings(navigation, "SettingsAccount")}
+                  />
+                ) : null}
                 <Button
-                  label="Add a computer"
-                  tone="primary"
+                  label={hasAccounts ? "Add a computer with a code" : "Add a computer"}
+                  tone={hasAccounts ? "secondary" : "primary"}
                   onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
                 />
                 <Button

@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Improved**
+
+- **Sign in is the first thing the iPhone app offers.** With no computer added yet, Today now
+  opens on a Sign in button, above "Add a computer with a code" and the invite code.
+
 ## 0.10.36
 
 **New**
