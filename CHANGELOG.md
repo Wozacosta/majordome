@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.31
+
 **Fixed**
 
 - **Phone setup on a Majordome server uses the server's own address.** The Phone page offered to
