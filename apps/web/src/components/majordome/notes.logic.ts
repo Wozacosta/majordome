@@ -2,6 +2,7 @@ import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { isWorkspaceImagePreviewPath } from "@t3tools/shared/mediaPreview";
 
 import { isMarkdownPreviewFile } from "../files/filePreviewMode";
+import { FEED_NAME } from "./feed.logic";
 
 /**
  * Plumbing a person never opens: dotfiles and dotfolders (`.git`, `.majordome`, `.obsidian`,
@@ -39,7 +40,8 @@ export function selectNotesVault(
 
 /** Screens that open a note and get a way back from Notes. */
 export const NOTES_RETURN_SCREENS = {
-  feed: { to: "/feed", label: "Feed" },
+  feed: { to: "/feed", label: FEED_NAME },
+  today: { to: "/", label: "Today" },
   overview: { to: "/settings/overview", label: "Status" },
   todos: { to: "/todos", label: "To-dos" },
 } as const;

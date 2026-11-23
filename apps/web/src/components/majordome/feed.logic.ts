@@ -12,6 +12,9 @@ import {
 import { resolveSidebarRowStatus } from "../Sidebar.logic";
 import { machineInSentence } from "./brains.logic";
 
+/** The one name of the screen that lists what the assistant did. */
+export const FEED_NAME = "What it did";
+
 export interface FeedVault {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;

@@ -5,11 +5,12 @@ import {
   toComposerContextId,
 } from "@t3tools/shared/composerContextReferences";
 
+import { FEED_NAME } from "./feed.logic";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 
 const SCREENS: Readonly<Record<string, string>> = {
   "/": "Today",
-  "/feed": "Feed",
+  "/feed": FEED_NAME,
   "/reading": "Reading list",
   "/chats": "Chats",
   "/reminders": "Reminders",

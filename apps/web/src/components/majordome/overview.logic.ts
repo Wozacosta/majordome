@@ -18,7 +18,12 @@ import { scheduleLabel } from "../settings/scheduledTasksSettings.logic";
 import { backupAttention, backupHeadline } from "./backup.logic";
 import { machineInSentence } from "./brains.logic";
 import { aiRows } from "./connections.logic";
-import { type FeedRunStatus, memoryOverLimitLine, routinesBlockedLine } from "./feed.logic";
+import {
+  FEED_NAME,
+  type FeedRunStatus,
+  memoryOverLimitLine,
+  routinesBlockedLine,
+} from "./feed.logic";
 import {
   type DevicePushSupport,
   NOTIFICATIONS_ANCHOR,
@@ -326,7 +331,7 @@ const RUNNER_LINE: Record<MajordomeRoutinesRunner, Omit<OverviewLine, "key">> = 
   },
   none: {
     text: "Routines don't run anywhere yet",
-    detail: "Choose a computer to run them on the Feed.",
+    detail: `Choose a computer to run them under "${FEED_NAME}".`,
     tone: "warning",
     link: { to: "/feed" },
   },

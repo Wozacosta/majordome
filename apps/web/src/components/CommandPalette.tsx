@@ -1781,8 +1781,8 @@ function OpenCommandPaletteDialog(props: {
     actionItems.push({
       kind: "action",
       value: "action:feed",
-      searchTerms: ["feed", "history", "undo", "notes", "runs", "activity"],
-      title: gt("Open feed"),
+      searchTerms: ["feed", "what it did", "history", "undo", "notes", "runs", "activity"],
+      title: gt("Open What it did"),
       icon: <NewspaperIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/feed" });

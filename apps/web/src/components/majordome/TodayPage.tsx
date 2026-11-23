@@ -35,6 +35,7 @@ import { Toggle } from "../ui/toggle";
 import { ToggleGroup } from "../ui/toggle-group";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
+  FEED_NAME,
   buildFeedItems,
   buildFeedRunItems,
   FEED_RUN_STATUS_LABELS,
@@ -702,11 +703,11 @@ function TodayRoutines({
       title="Lately in your notes"
       action={
         <>
-          <Link to="/notes" className={INLINE_LINK_CLASS}>
+          <Link to="/notes" search={{ from: "today" }} className={INLINE_LINK_CLASS}>
             All notes
           </Link>
           <Link to="/feed" className={INLINE_LINK_CLASS}>
-            Everything it did
+            {FEED_NAME}
           </Link>
         </>
       }
