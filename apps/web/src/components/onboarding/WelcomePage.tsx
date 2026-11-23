@@ -452,11 +452,14 @@ export function AgentsSection({
   environmentId,
   label,
   isPrimary,
+  claudeOnly = false,
   onImportSourceEnabled,
 }: {
   readonly environmentId: EnvironmentId;
   readonly label: string;
   readonly isPrimary: boolean;
+  /** A server Majordome hosts starts with Claude alone; other AIs are added in Settings. */
+  readonly claudeOnly?: boolean;
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
@@ -467,7 +470,10 @@ export function AgentsSection({
   const leading = isMajordome
     ? agents.available.find((provider) => provider.driver === "claudeAgent")
     : undefined;
-  const found = leading === undefined ? agents.found : [leading, ...agents.found];
+  const listed = leading === undefined ? agents.found : [leading, ...agents.found];
+  const found = claudeOnly
+    ? listed.filter((provider) => provider.driver === "claudeAgent")
+    : listed;
   const available =
     leading === undefined
       ? agents.available
@@ -754,7 +760,7 @@ export function AgentsSection({
           {note}
         </p>
       ))}
-      <Collapsible open={showMore} onOpenChange={setMoreOpen}>
+      <Collapsible open={showMore} onOpenChange={setMoreOpen} hidden={claudeOnly}>
         <CollapsibleTrigger className="group flex min-h-10 w-full items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <RowIcon>
             <PlusIcon className="size-4" />

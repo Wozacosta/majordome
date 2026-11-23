@@ -71,6 +71,7 @@ export function MajordomeWelcomePage({
                 environmentId={environmentId}
                 label={label}
                 isPrimary
+                claudeOnly={isHostedServer(label)}
                 onImportSourceEnabled={() => undefined}
               />
               <WelcomeSection title="Notes">
@@ -201,29 +202,35 @@ function NotesFolderSetup({
           </Button>
         }
       />
-      <NotesChoice
-        title="Use notes I already have"
-        description="A folder of notes, such as an Obsidian vault. Majordome adds a few files of its own and changes nothing that is there."
-        action={
-          canPickFolder ? (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => void pick()}>
-              Choose folder
-            </Button>
-          ) : null
-        }
-      >
-        {canPickFolder ? null : (
-          <FolderBrowser
-            environmentId={environmentId}
-            disabled={busy}
-            forNotes
-            onUse={(folder) => void start(folder)}
-          />
-        )}
-      </NotesChoice>
+      {hosted ? null : (
+        <NotesChoice
+          title="Use notes I already have"
+          description="A folder of notes, such as an Obsidian vault. Majordome adds a few files of its own and changes nothing that is there."
+          action={
+            canPickFolder ? (
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => void pick()}>
+                Choose folder
+              </Button>
+            ) : null
+          }
+        >
+          {canPickFolder ? null : (
+            <FolderBrowser
+              environmentId={environmentId}
+              disabled={busy}
+              forNotes
+              onUse={(folder) => void start(folder)}
+            />
+          )}
+        </NotesChoice>
+      )}
       <NotesChoice
         title="Restore from a backup"
-        description="Bring back notes from an encrypted copy Majordome made, in a folder or in Google Drive. You need the passphrase you wrote down."
+        description={
+          hosted
+            ? "Bring back notes from an encrypted copy Majordome made in Google Drive. You need the passphrase you wrote down."
+            : "Bring back notes from an encrypted copy Majordome made, in a folder or in Google Drive. You need the passphrase you wrote down."
+        }
         action={
           restoring ? null : (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => setRestoring(true)}>

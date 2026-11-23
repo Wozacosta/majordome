@@ -40,6 +40,8 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { AlwaysOnManualGuide } from "./AlwaysOnManualGuide";
+import { isHostedServer } from "./brains.logic";
+import { useMachineNames } from "./useMachineNames";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
@@ -118,6 +120,18 @@ const INTRO: Record<ServerMoveView, string> = {
 /** Set up a rented server that never sleeps from here, or follow the guide to do it by hand. */
 export function AlwaysOnServerPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
+  const { machineOf } = useMachineNames();
+  // Someone on a server Majordome hosts already has what this page sets up.
+  if (environmentId !== null && isHostedServer(machineOf(environmentId))) {
+    return (
+      <MajordomeSettingsPage
+        searchId="majordome-always-on"
+        intro="Majordome hosts your server. It never sleeps, so your routines run on time and your phone can always reach it. There is nothing to set up here."
+      >
+        {null}
+      </MajordomeSettingsPage>
+    );
+  }
   return environmentId === null ? (
     <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
       <ManualGuide />

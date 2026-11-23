@@ -7,6 +7,14 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **A Majordome server's welcome page is two choices.** It shows Claude alone as the assistant,
+  and for notes "Start new notes" or restoring a backup from Google Drive. Codex, other AIs and
+  using a folder already on the computer are left out there; other AIs are still in Settings.
+- **On a Majordome server, Settings > Your server says the server is looked after**, and no
+  longer offers to set one up.
+
 ## 0.10.29
 
 **Changed**

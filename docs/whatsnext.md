@@ -303,7 +303,9 @@ So Fly is the host. What the welcome page got wrong on a server, seen in that ru
   welcome page says the notes folder is on it. Whatever creates a hosted server must set that
   variable.
 - Codex, "Use a different AI", "Choose folder" and restoring from a folder all assume the
-  owner's own computer. A first hosted version shows Claude and "Start new notes" only.
+  owner's own computer. Fixed: a Majordome server's welcome page shows Claude, "Start new
+  notes" and restoring from Google Drive, and its "Your server" settings page offers nothing to
+  set up.
 - The start-up log warns that the address "uses plain HTTP" although Fly serves it over HTTPS.
 
 If 1 and 2 pass, build on Fly: the service that creates a machine on request (in the address
