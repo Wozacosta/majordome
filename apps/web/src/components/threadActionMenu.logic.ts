@@ -50,6 +50,10 @@ const MAJORDOME_HIDDEN_ACTIONS: ReadonlySet<string> = new Set([
   "copy-path",
   "copy-branch",
   "copy-thread-id",
+  // Majordome has no pinned or snoozed list. "Wake chat" stays for a chat that is already snoozed.
+  "pin",
+  "unpin",
+  "snooze",
 ]);
 
 /** Majordome's menus leave out what only a developer would use; a submenu left empty goes too. */

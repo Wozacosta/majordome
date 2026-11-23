@@ -847,7 +847,6 @@ const MAJORDOME_ACTIONS: ReadonlyArray<readonly [value: string, title: string | 
   ["action:backup", null],
   ["action:change-theme", null],
   ["action:change-appearance", null],
-  ["action:usage", null],
   ["action:settings", null],
   ["find-in-browser-page", null],
   ["action:workspace-focus:1", "Move to the next area"],

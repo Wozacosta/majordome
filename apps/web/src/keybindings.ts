@@ -181,9 +181,10 @@ const MAJORDOME_HIDDEN_COMMANDS: ReadonlySet<string> = new Set([
   "composer.previousWorktree",
   "composer.branch",
   "editor.openFavorite",
+  "usage.open",
 ]);
 
-/** Majordome has no terminal, pull requests, worktrees, editor or project scripts to reach. */
+/** Majordome has no terminal, pull requests, worktrees, editor, usage page or project scripts to reach. */
 function isHiddenInMajordome(command: KeybindingCommand): boolean {
   return (
     isMajordome &&
