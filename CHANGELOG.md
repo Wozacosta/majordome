@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.26
+
 **Changed**
 
 - **The section line on settings pages is one quiet line.** With several computers on a page, it
