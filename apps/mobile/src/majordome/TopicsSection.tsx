@@ -41,6 +41,13 @@ export function useChatListTopics(
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic);
   const updateTopic = useAtomCommand(majordomeEnvironment.updateTopic, { reportFailure: false });
   const [busy, setBusy] = useState<string | null>(null);
+  const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(new Set());
+  const toggleSideChats = (topicId: string) =>
+    setUnfolded((current) => {
+      const next = new Set(current);
+      if (!next.delete(topicId)) next.add(topicId);
+      return next;
+    });
   const environmentId = vault?.environmentId;
   const listedThreadIds = new Set(
     threads.flatMap((thread) =>
@@ -111,6 +118,8 @@ export function useChatListTopics(
     finished,
     total: topics.length + finished.length,
     busy,
+    unfolded,
+    toggleSideChats,
     open: (topic) => (topic.threadId === null ? void start(topic.id, false) : show(topic.threadId)),
     startSideChat: (topic) => void start(topic.id, true),
     setFinished: (topic, done) => void setFinished(topic, done),

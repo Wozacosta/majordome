@@ -833,6 +833,11 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   readonly simultaneousSwipeGesture?: ComponentProps<typeof ThreadSwipeable>["simultaneousWith"];
   /** Majordome: the topic this chat is the conversation of, which the row then shows. */
   readonly topic?: TopicRow | undefined;
+  /** Majordome: the topic's other chats folded under this row, and whether this row is one. */
+  readonly topicSideChats?:
+    | { readonly count: number; readonly unfolded: boolean; readonly onToggle: () => void }
+    | undefined;
+  readonly nestedUnderTopic?: boolean;
   readonly onStartTopicSideChat?: (topic: TopicRow) => void;
   readonly onSetTopicFinished?: (topic: TopicRow, finished: boolean) => void;
 }) {
@@ -1709,6 +1714,8 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       time={majordomeTime}
       selected={selected}
       faded={variant === "slim"}
+      sideChats={props.topicSideChats}
+      nested={props.nestedUnderTopic === true}
       marks={
         <>
           {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}

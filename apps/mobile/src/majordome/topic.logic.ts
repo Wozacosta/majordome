@@ -58,3 +58,53 @@ export function placeTopics(
   }
   return { byThread, apart };
 }
+
+/**
+ * The Chats list with each topic's other chats folded under the topic's row: taken out of their
+ * own places, and put back right under the topic only while it is unfolded. `threadIdOf` answers
+ * null for a row that stays where it is (a label, a shelf, a chat marked as done).
+ */
+export function foldSideChats<T>(
+  items: ReadonlyArray<T>,
+  threadIdOf: (item: T) => string | null,
+  topicsByThread: ReadonlyMap<string, Pick<TopicRow, "id" | "sideThreadIds">>,
+  unfolded: ReadonlySet<string>,
+): {
+  readonly items: Array<T>;
+  /** How many chats are folded under each topic's row, by the topic's thread id. */
+  readonly counts: ReadonlyMap<string, number>;
+  /** The chats drawn under a topic, by thread id. */
+  readonly nested: ReadonlySet<string>;
+} {
+  const listed = new Set(items.flatMap((item) => threadIdOf(item) ?? []));
+  const ownerOf = new Map<string, string>();
+  for (const [threadId, topic] of topicsByThread) {
+    if (!listed.has(threadId)) continue;
+    for (const side of topic.sideThreadIds ?? []) ownerOf.set(side, threadId);
+  }
+  const sides = new Map<string, Array<T>>();
+  const kept: Array<T> = [];
+  for (const item of items) {
+    const id = threadIdOf(item);
+    const owner = id === null ? undefined : ownerOf.get(id);
+    if (owner === undefined) kept.push(item);
+    else sides.set(owner, [...(sides.get(owner) ?? []), item]);
+  }
+  const folded: Array<T> = [];
+  const nested = new Set<string>();
+  for (const item of kept) {
+    folded.push(item);
+    const id = threadIdOf(item);
+    const topic = id === null ? undefined : topicsByThread.get(id);
+    if (id === null || topic === undefined || !unfolded.has(topic.id)) continue;
+    for (const side of sides.get(id) ?? []) {
+      folded.push(side);
+      nested.add(threadIdOf(side)!);
+    }
+  }
+  return {
+    items: folded,
+    counts: new Map([...sides].map(([owner, chats]) => [owner, chats.length])),
+    nested,
+  };
+}

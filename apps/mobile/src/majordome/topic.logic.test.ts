@@ -1,7 +1,7 @@
 import { expect, it } from "vite-plus/test";
 
 import type { TopicRow } from "./today.logic";
-import { finishedTopics, placeTopics } from "./topic.logic";
+import { finishedTopics, foldSideChats, placeTopics } from "./topic.logic";
 
 const topic = (id: string, threadId: string | null, preview: string | null = null): TopicRow => ({
   id,
@@ -58,4 +58,23 @@ it("lists the topics marked as done, the latest first, with the way back to each
     ["c", null],
     ["a", "t-a"],
   ]);
+});
+
+it("folds a topic's other chats under its row, and shows them there once unfolded", () => {
+  // "label" stands for a row that is not a chat; "s-old" is a side chat of a topic not listed.
+  const items = ["s-2", "chat", "t-1", "label", "s-1", "s-old"];
+  const idOf = (item: string) => (item === "label" ? null : item);
+  const topics = new Map([
+    ["t-1", { id: "Fitness", sideThreadIds: ["s-1", "s-2"] }],
+    ["t-gone", { id: "Garden", sideThreadIds: ["s-old"] }],
+  ]);
+
+  const folded = foldSideChats(items, idOf, topics, new Set());
+  expect(folded.items).toEqual(["chat", "t-1", "label", "s-old"]);
+  expect([...folded.counts]).toEqual([["t-1", 2]]);
+  expect(folded.nested.size).toBe(0);
+
+  const unfolded = foldSideChats(items, idOf, topics, new Set(["Fitness"]));
+  expect(unfolded.items).toEqual(["chat", "t-1", "s-2", "s-1", "label", "s-old"]);
+  expect([...unfolded.nested]).toEqual(["s-2", "s-1"]);
 });

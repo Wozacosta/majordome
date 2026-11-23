@@ -1,6 +1,6 @@
 import { SymbolView as ExpoSymbolView, type SFSymbol } from "expo-symbols";
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { AppText as Text } from "../components/ui/AppText";
@@ -45,6 +45,12 @@ export function ChatRowContent(props: {
   readonly selected?: boolean;
   /** A chat marked as done. */
   readonly faded?: boolean;
+  /** A topic's other chats, folded under it until its count is pressed. */
+  readonly sideChats?:
+    | { readonly count: number; readonly unfolded: boolean; readonly onToggle: () => void }
+    | undefined;
+  /** One of a topic's other chats, drawn smaller under the topic. */
+  readonly nested?: boolean;
   /** Small marks before the time, such as a pin. */
   readonly marks?: ReactNode;
   /** Drawn under the title in place of the line, such as what a search found. */
@@ -52,17 +58,26 @@ export function ChatRowContent(props: {
 }) {
   const selected = props.selected === true;
   const attention = chatWantsAttention(props.line);
+  const nested = props.nested === true;
+  const sideChats = props.sideChats;
   return (
-    <View className={cn("flex-row items-center gap-3", props.faded && "opacity-55")}>
+    <View
+      className={cn("flex-row items-center gap-3", props.faded && "opacity-55", nested && "pl-14")}
+    >
       <View
         className={cn(
-          "size-11 items-center justify-center rounded-full",
+          "items-center justify-center rounded-full",
+          nested ? "size-7" : "size-11",
           props.color === undefined && "bg-subtle",
         )}
         style={props.color === undefined ? undefined : { backgroundColor: `${props.color}26` }}
       >
         {props.color === undefined ? (
-          <SymbolView name={props.symbol} size={20} tintColorClassName="accent-icon-muted" />
+          <SymbolView
+            name={props.symbol}
+            size={nested ? 13 : 20}
+            tintColorClassName="accent-icon-muted"
+          />
         ) : (
           <SymbolView name={props.symbol} size={22} tintColor={props.color} />
         )}
@@ -72,7 +87,8 @@ export function ChatRowContent(props: {
           <Text
             numberOfLines={1}
             className={cn(
-              "flex-1 text-base",
+              "flex-1",
+              nested ? "text-sm" : "text-base",
               attention ? "font-t3-bold" : "font-t3-medium",
               selected ? "text-thread-selected-foreground" : "text-foreground",
             )}
@@ -110,6 +126,25 @@ export function ChatRowContent(props: {
               {attention ? <View className="size-2.5 rounded-full bg-primary" /> : null}
             </View>
           ) : null)}
+        {sideChats !== undefined && sideChats.count > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: sideChats.unfolded }}
+            accessibilityLabel={`${sideChats.count} more ${sideChats.count === 1 ? "chat" : "chats"} about ${props.title}`}
+            hitSlop={10}
+            onPress={sideChats.onToggle}
+            className="mt-1 flex-row items-center gap-1 self-start rounded-full bg-subtle px-2.5 py-1"
+          >
+            <Text className="text-xs font-t3-medium text-foreground-muted">
+              {sideChats.count === 1 ? "1 more chat" : `${sideChats.count} more chats`}
+            </Text>
+            <SymbolView
+              name={sideChats.unfolded ? "chevron.up" : "chevron.down"}
+              size={9}
+              tintColorClassName="accent-icon-muted"
+            />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

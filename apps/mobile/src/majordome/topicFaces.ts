@@ -55,6 +55,9 @@ export interface ChatTopics {
   readonly total: number;
   /** The topic being opened or changed, which waits for the server. */
   readonly busy: string | null;
+  /** The topics whose other chats are shown under them; folded until asked. */
+  readonly unfolded: ReadonlySet<string>;
+  readonly toggleSideChats: (topicId: string) => void;
   readonly open: (topic: { readonly id: string; readonly threadId: string | null }) => void;
   readonly startSideChat: (topic: { readonly id: string }) => void;
   readonly setFinished: (

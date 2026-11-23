@@ -116,6 +116,7 @@ import {
   MajordomeTopicsSection,
   useChatListTopics,
 } from "../../majordome/TopicsSection";
+import { foldSideChats } from "../../majordome/topic.logic";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -454,7 +455,7 @@ export function HomeScreen(props: HomeScreenProps) {
     selectedThreadKey,
   });
   // Majordome orders its open chats like a messaging app; a search keeps its ranking.
-  const threadListV2Items =
+  const chatsByActivity =
     isMajordome && !hasSearchQuery
       ? orderChatsByActivity(upstreamListItems, (item) =>
           item.type === "v2-thread"
@@ -464,6 +465,20 @@ export function HomeScreen(props: HomeScreenProps) {
       : upstreamListItems;
   // Majordome's topics are rows of this list too, so it is not empty with topics and no chat.
   const chatTopics = useChatListTopics(props.threads, props.searchQuery);
+  // A topic's other chats are folded under its row; a search lists every chat it finds.
+  const sideChats =
+    isMajordome && !hasSearchQuery
+      ? foldSideChats(
+          chatsByActivity,
+          (item) =>
+            item.type === "v2-thread" && item.item.variant === "card"
+              ? String(item.item.thread.id)
+              : null,
+          chatTopics.byThread,
+          chatTopics.unfolded,
+        )
+      : null;
+  const threadListV2Items = sideChats?.items ?? chatsByActivity;
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
   const { onSelectThread } = props;
@@ -552,6 +567,7 @@ export function HomeScreen(props: HomeScreenProps) {
       );
     }
     const thread = item.item.thread;
+    const rowTopic = chatTopics.byThread.get(thread.id);
     return (
       <ThreadListV2Row
         pane={sidebarSurface ? "sidebar" : "screen"}
@@ -619,7 +635,17 @@ export function HomeScreen(props: HomeScreenProps) {
         onSwipeableWillOpen={handleSwipeableWillOpen}
         simultaneousSwipeGesture={homeScrollGesture}
         activationKey={item.key}
-        topic={isMajordome ? chatTopics.byThread.get(thread.id) : undefined}
+        topic={isMajordome ? rowTopic : undefined}
+        topicSideChats={
+          rowTopic === undefined
+            ? undefined
+            : {
+                count: sideChats?.counts.get(String(thread.id)) ?? 0,
+                unfolded: chatTopics.unfolded.has(rowTopic.id),
+                onToggle: () => chatTopics.toggleSideChats(rowTopic.id),
+              }
+        }
+        nestedUnderTopic={sideChats?.nested.has(String(thread.id)) === true}
         onStartTopicSideChat={chatTopics.startSideChat}
         onSetTopicFinished={chatTopics.setFinished}
       />
@@ -639,6 +665,7 @@ export function HomeScreen(props: HomeScreenProps) {
     threadSearchMatchByKey,
     workingShelfEnabled,
     topicsByThread: chatTopics.byThread,
+    unfoldedTopics: chatTopics.unfolded,
   };
 
   const hasTopics = isMajordome && chatTopics.total > 0;

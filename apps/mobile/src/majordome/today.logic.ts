@@ -36,6 +36,8 @@ export interface TopicRow {
   readonly tone?: TopicTone;
   /** How many notes its folder holds, when the server says. */
   readonly notes?: number;
+  /** The other chats about the topic, which the Chats list folds under it. */
+  readonly sideThreadIds?: ReadonlyArray<string>;
 }
 
 export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [], topics: [] };
@@ -55,6 +57,7 @@ export function topicRows(
       | undefined;
     readonly standing?: { readonly text: string } | null | undefined;
     readonly notesCount?: number | undefined;
+    readonly sideThreadIds?: ReadonlyArray<string> | undefined;
   }>,
 ): ReadonlyArray<TopicRow> {
   return topics
@@ -72,6 +75,9 @@ export function topicRows(
         icon: topicIcon(topic),
         tone: topicTone(topic),
         ...(topic.notesCount === undefined ? {} : { notes: topic.notesCount }),
+        ...(topic.sideThreadIds === undefined || topic.sideThreadIds.length === 0
+          ? {}
+          : { sideThreadIds: topic.sideThreadIds.map(String) }),
       };
     });
 }
