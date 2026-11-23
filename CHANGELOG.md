@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.38
+
 **Improved**
 
 - **Signing in adds your computers by itself.** Press Sign in and every computer and server
@@ -16,6 +18,13 @@ Not released yet.
 - **One button gives this Mac an address.** When your phone cannot reach a computer yet,
   Settings > Your account now has "Give it an address" right there, and lists the computer as
   soon as it has one.
+
+**Try this**
+
+- Sign out in Settings > Your account, then press Sign in at the bottom of the sidebar. Your
+  Mac and your servers should show your email without pressing anything else.
+- If the page says your phone cannot reach this Mac, press "Give it an address".
+- Open the iPhone app and sign in: your servers should be listed with a Connect button.
 
 ## 0.10.37
 
