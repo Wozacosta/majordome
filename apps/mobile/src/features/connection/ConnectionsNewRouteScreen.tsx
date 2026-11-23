@@ -49,7 +49,9 @@ export function ConnectionsNewRouteScreen({
 }: StaticScreenProps<ConnectionsNewRouteParams | undefined>) {
   const params = route.params ?? {};
   // Dev-only prefill prevents production links from supplying an attacker-chosen host and token.
-  const routePairingUrl = __DEV__ ? (params.pairingUrl?.trim() ?? "") : "";
+  // Majordome fills the form from a link in released builds too: its phone code is such a link.
+  // The owner still reads the address and presses Connect; only dev builds pair from a link.
+  const routePairingUrl = __DEV__ || isMajordome ? (params.pairingUrl?.trim() ?? "") : "";
   // A new prefill link replaces whatever the form held.
   return (
     <PairingForm
@@ -290,7 +292,9 @@ function PairingForm({
             >
               {pairingConnectionError ??
                 (isMajordome
-                  ? MAJORDOME_CONNECT.typeItHelp
+                  ? routePairingUrl !== ""
+                    ? MAJORDOME_CONNECT.fromLinkHelp
+                    : MAJORDOME_CONNECT.typeItHelp
                   : gt(
                       "For machines on your local network or tailnet. The machine keeps its own provider credentials.",
                     ))}
