@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.37
+
 **Improved**
 
 - **Add your always-on server to your account from the Mac.** Settings > Your account now
@@ -16,6 +18,12 @@ Not released yet.
 
 - **Sign in is the first thing the iPhone app offers.** With no computer added yet, Today now
   opens on a Sign in button, above "Add a computer with a code" and the invite code.
+
+**Try this**
+
+- Open Settings > Your account. Each computer and server you are connected to has its own
+  section. Press "Add to my account" on your Majordome server, then open the iPhone app and
+  sign in: the server should be listed with a Connect button.
 
 ## 0.10.36
 
