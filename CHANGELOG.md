@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.35
+
 **New**
 
 - **Sign in to find your servers.** A Majordome account is optional and does one thing: a
@@ -17,6 +19,14 @@ Not released yet.
 - **A server Majordome hosts belongs to your account.** The invite page is now
   majord.me/start: sign in, enter your code, and the server is yours from its first start. If
   you ever lose every device, signing in gets you back in.
+
+**Try this**
+
+- Open Settings > Your account, press Sign in, and use Google or your email. Your email should
+  show under Account.
+- Press "Add to my account" next to this Mac. If it says other devices cannot reach it, turn
+  the address on in Settings > Phone & notifications, come back and press "List it".
+- On your phone's browser, open majord.me/open, sign in, and press Open next to your Mac.
 
 ## 0.10.34
 
