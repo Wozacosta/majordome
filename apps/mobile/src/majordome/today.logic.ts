@@ -1,4 +1,5 @@
-import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeTopicIcon, ProjectId } from "@t3tools/contracts";
+import { topicIcon, topicTone, type TopicTone } from "@t3tools/shared/majordomeTopicIcons";
 
 /** A line typed on the phone for a day's note, kept until the server has it. */
 export interface NoteCapture {
@@ -30,6 +31,9 @@ export interface TopicRow {
   /** Null until the topic's conversation has been opened on that server. */
   readonly threadId: string | null;
   readonly preview: string | null;
+  /** The same icon and colour the desktop shows; absent from a list an older build stored. */
+  readonly icon?: MajordomeTopicIcon;
+  readonly tone?: TopicTone;
 }
 
 export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [], topics: [] };
@@ -39,6 +43,8 @@ export function topicRows(
   topics: ReadonlyArray<{
     readonly id: string;
     readonly title: string;
+    readonly folder: string;
+    readonly icon?: MajordomeTopicIcon | undefined;
     readonly finishedAt?: string | undefined;
     readonly threadId: string | null;
     readonly lastMessagePreview?:
@@ -55,7 +61,14 @@ export function topicRows(
       const preview = last
         ? `${last.author === "you" ? "You: " : ""}${last.text}`
         : (topic.standing?.text.split("\n")[0] ?? null);
-      return { id: topic.id, title: topic.title, threadId: topic.threadId, preview };
+      return {
+        id: topic.id,
+        title: topic.title,
+        threadId: topic.threadId,
+        preview,
+        icon: topicIcon(topic),
+        tone: topicTone(topic),
+      };
     });
 }
 

@@ -38,19 +38,36 @@ it("lists the topics still going with their latest message, else where they stan
       {
         id: "a",
         title: "Fitness",
+        folder: "projects/fitness",
         threadId: "t1",
         lastMessagePreview: { author: "you", text: "ran 5k" },
       },
       {
         id: "b",
-        title: "Taxes",
+        title: "Paperwork",
+        folder: "admin",
+        icon: "receipt",
         threadId: null,
         standing: { text: "Waiting on the form\nThen file" },
       },
-      { id: "c", title: "Old", threadId: "t3", finishedAt: "2026-01-01" },
+      { id: "c", title: "Old", folder: "old", threadId: "t3", finishedAt: "2026-01-01" },
     ]),
   ).toEqual([
-    { id: "a", title: "Fitness", threadId: "t1", preview: "You: ran 5k" },
-    { id: "b", title: "Taxes", threadId: null, preview: "Waiting on the form" },
+    {
+      id: "a",
+      title: "Fitness",
+      threadId: "t1",
+      preview: "You: ran 5k",
+      icon: "dumbbell",
+      tone: "orange",
+    },
+    {
+      id: "b",
+      title: "Paperwork",
+      threadId: null,
+      preview: "Waiting on the form",
+      icon: "receipt",
+      tone: "teal",
+    },
   ]);
 });

@@ -4,6 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
+const { majordomeWords } = require("./words.cjs");
+
 const repoRoot = path.resolve(__dirname, "../../..");
 const SOURCE = /\/(?:apps\/mobile\/src|packages\/(?:client-runtime|shared)\/src)\/.*\.tsx?$/;
 const CATALOG = /\/apps\/mobile\/src\/i18n\/translations\/[^/]+\.json$/;
@@ -19,10 +21,18 @@ function load() {
   loading ??= (async () => {
     const load = (file) => import(pathToFileURL(file).href);
     const [reword, mobile] = await Promise.all([load(rewordModule), load(mobileWording)]);
-    // Only the phone's own table: the web tables hold words like "Thread" that are also route
-    // names here, and a swapped route name stops navigation.
-    const wording = new Map(mobile.MOBILE_WORDING);
+    // Never the web tables: they hold words like "Thread" that are route names here, and a
+    // swapped route name stops navigation.
     const english = JSON.parse(fs.readFileSync(englishCatalog, "utf8"));
+    const wording = new Map();
+    // Every sentence takes Majordome's words. One word alone is left out here, as it may also
+    // be a route name; the table lists the safe ones.
+    for (const text of Object.values(english)) {
+      if (typeof text !== "string" || !text.includes(" ")) continue;
+      const next = majordomeWords(text);
+      if (next !== text) wording.set(text, next);
+    }
+    for (const [upstream, majordome] of mobile.MOBILE_WORDING) wording.set(upstream, majordome);
     return { reword, wording, keys: reword.renamedKeys(english, wording) };
   })();
   return loading;

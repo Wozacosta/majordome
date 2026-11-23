@@ -3,6 +3,11 @@
 // A text is swapped wherever source spells it out, so never list one that is also a route or
 // screen name ("Thread", "Home", "Settings"): navigation would stop finding it.
 export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome: string]> = [
+  // Single words, checked to be display text only (never a route or screen name).
+  ["Settle", "Mark as done"],
+  ["Un-settle", "Bring back"],
+  ["Unsettle", "Bring back"],
+  ["Settled", "Done"],
   ["Add environment", "Add a computer"],
   ["All environments", "All computers"],
   ["All projects", "All notes folders"],

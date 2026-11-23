@@ -45,6 +45,8 @@ function withMajordomeWording(metroConfig) {
   for (const file of [
     path.join(__dirname, "majordome/metroTransformer.cjs"),
     path.join(__dirname, "majordome/wording.mts"),
+    path.join(__dirname, "majordome/words.cjs"),
+    path.join(__dirname, "src/i18n/translations/en.json"),
     path.join(workspaceRoot, "apps/web/vite/majordomeReword.ts"),
   ]) {
     wording.update(fs.readFileSync(file));

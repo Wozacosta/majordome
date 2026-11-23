@@ -1,6 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
-import { ProjectId } from "@t3tools/contracts";
+import { type MajordomeTopicIcon, ProjectId } from "@t3tools/contracts";
+import type { TopicTone } from "@t3tools/shared/majordomeTopicIcons";
+import { SymbolView, type SFSymbol } from "expo-symbols";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -13,6 +15,45 @@ import { majordomeEnvironment } from "./state";
 import type { TopicRow } from "./today.logic";
 import { todayStoreAtom } from "./todayStore";
 import { useVault } from "./useVault";
+
+/** The desktop's topic icons as the iPhone's own symbols. */
+const TOPIC_SYMBOLS: Record<MajordomeTopicIcon, SFSymbol> = {
+  hash: "number",
+  dumbbell: "dumbbell.fill",
+  footprints: "figure.walk",
+  wallet: "creditcard.fill",
+  receipt: "doc.text.fill",
+  bitcoin: "bitcoinsign.circle.fill",
+  plane: "airplane",
+  "heart-pulse": "heart.fill",
+  "book-open": "book.fill",
+  languages: "character.bubble.fill",
+  briefcase: "briefcase.fill",
+  home: "house.fill",
+  utensils: "fork.knife",
+  music: "music.note",
+  code: "chevron.left.forwardslash.chevron.right",
+  "pen-line": "pencil.line",
+  users: "person.2.fill",
+  leaf: "leaf.fill",
+  car: "car.fill",
+  lightbulb: "lightbulb.fill",
+};
+
+const TONE_COLORS: Record<TopicTone, string> = {
+  amber: "#f59e0b",
+  orange: "#f97316",
+  rose: "#f43f5e",
+  pink: "#ec4899",
+  fuchsia: "#d946ef",
+  violet: "#8b5cf6",
+  indigo: "#6366f1",
+  sky: "#0ea5e9",
+  cyan: "#06b6d4",
+  teal: "#14b8a6",
+  emerald: "#10b981",
+  lime: "#84cc16",
+};
 
 /** The ids of the topics' own conversations, which the chat list below leaves out. */
 export function useTopicThreadIds(): ReadonlySet<string> {
@@ -63,10 +104,15 @@ export function MajordomeTopicsSection(props: { readonly hasOtherChats: boolean 
             className="flex-row items-center gap-3 px-5 py-2.5 active:bg-subtle"
             onPress={() => void open(topic)}
           >
-            <View className="size-11 items-center justify-center rounded-full bg-subtle">
-              <Text textRole="headline" className="font-t3-medium text-foreground">
-                {topic.title.slice(0, 1).toUpperCase()}
-              </Text>
+            <View
+              className="size-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: `${TONE_COLORS[topic.tone ?? "amber"]}26` }}
+            >
+              <SymbolView
+                name={TOPIC_SYMBOLS[topic.icon ?? "hash"]}
+                size={22}
+                tintColor={TONE_COLORS[topic.tone ?? "amber"]}
+              />
             </View>
             <View className="min-w-0 flex-1">
               <View className="flex-row items-baseline justify-between gap-2">

@@ -334,8 +334,10 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   stay `t3code*`: pairing codes and link handling key on them, and they are never shown. If T3
   Code's own app is on the same phone, a `t3code://` link opened from outside may go to either.
 - **The name and wording are swapped as Metro bundles**, like the web build:
-  `apps/mobile/majordome/metroTransformer.cjs` applies the phone's own table,
-  `apps/mobile/majordome/wording.mts`, and the name. It does not apply the web tables: they hold
+  `apps/mobile/majordome/metroTransformer.cjs` applies word rules (`majordome/words.cjs`:
+  thread to chat, environment to computer, settle to mark as done) to every English sentence of
+  two words or more, then the phone's own table, `apps/mobile/majordome/wording.mts`, which
+  wins and also lists the single words checked to be display text only, and the name. It does not apply the web tables: they hold
   words like "Thread" that are route names in the phone app, and a swapped route name stopped
   chats from opening (2026-11-23). The shared pure code is `apps/web/vite/majordomeReword.ts`.
   The wording files are part of Metro's cache version, so an edited table is never served stale.
@@ -358,5 +360,6 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   and add a throwaway folder holding `.majordome/config.json`.
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
   in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
-  about coding agents; decide whether to ship them), the remaining coding words ("New thread",
-  "Settled"), and the terminal, git and files buttons on a chat's header.
+  about coding agents; decide whether to ship them), and the stored title "New thread" on a
+  chat not named yet (code compares it, so it needs a display-only mapping like the web's
+  `chats.logic.ts`).
