@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.36
+
 **New**
 
 - **A Sign in button in the sidebar.** At the bottom, beside Settings and the phone. Signed
@@ -15,6 +17,11 @@ Not released yet.
 - **Sign in on the iPhone app.** "Add a computer" has a third way in: "Have a Majordome
   account?" Sign in with Google or your email and the phone lists your servers; press Connect
   and it is in, with no code to scan. (In the next iPhone build.)
+
+**Try this**
+
+- Look at the bottom of the sidebar: press Sign in, or, once signed in, the person icon, which
+  opens Settings > Your account.
 
 ## 0.10.35
 
