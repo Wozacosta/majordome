@@ -319,6 +319,7 @@ it.effect("keeps one queued occurrence of a recurring task while its bound threa
       expect(blocked?.lastRunError).toBe(
         "A previous occurrence is held in the thread queue. Resume or remove it to run this task again.",
       );
+      expect(blocked?.lastRunErrorCode).toBe("held");
       expect(yield* queuedOccurrences).toBe(1);
 
       // The prior run can finish while the poll is looking up its held occurrence.
@@ -508,6 +509,7 @@ it.effect("a fixed-time slot missed while the server was off shows on the task",
       status: "succeeded",
       error: null,
     });
+    expect(listed?.lastRunErrorCode).toBe("missed");
   }).pipe(Effect.provide(SqlitePersistence.layerMemory)),
 );
 
