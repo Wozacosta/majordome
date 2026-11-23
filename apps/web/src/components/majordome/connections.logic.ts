@@ -25,6 +25,9 @@ const NEEDS_SIGN_IN: ConnectionState = {
 };
 const NOT_SET_UP: ConnectionState = { label: "Not set up", tone: "neutral" };
 
+/** Where a Claude account's connectors are added and signed in to; a computer signed in to it gets them. */
+export const CLAUDE_CONNECTORS_URL = "https://claude.ai/customize/connectors";
+
 /** A connector as a person names it: "claude.ai Gmail" is Gmail, "plugin:vercel:vercel" is vercel. */
 export function connectorName(raw: string): string {
   const name = raw.trim();
@@ -93,6 +96,8 @@ export interface ConnectorRow {
   /** Set when connectors from several providers are listed together. */
   readonly provider: string | null;
   readonly state: ConnectionState;
+  /** The web page where this connector is signed in to, when it needs that and has one. */
+  readonly signInUrl: string | null;
 }
 
 export interface ConnectorsView {
@@ -135,6 +140,11 @@ export function connectorsView(input: {
       name: connectorName(connector.name),
       provider: several ? provider.name : null,
       state: connectorState(connector.status),
+      // Only the connectors of a Claude account are signed in to on the web.
+      signInUrl:
+        connector.status === "needs-auth" && /^claude\.ai\s/i.test(connector.name)
+          ? CLAUDE_CONNECTORS_URL
+          : null,
     })),
   );
 
@@ -171,34 +181,38 @@ export function connectorsView(input: {
 const KEYED_CLAUDE_SIGN_INS = new Set(["apiKey", "bedrock", "customEndpoint"]);
 
 /**
- * The Claude providers on a machine that a full sign-in would help: signed out, or signed in
- * with no connectors, which is what a sign-in token gives.
+ * The Claude providers on a machine with no connectors to show. `signed-out` needs a sign-in.
+ * `no-connectors` is signed in: either the account has none yet, or it is signed in with a
+ * token, which never brings them. Nothing here tells those two apart.
  */
 export function claudeSignInTargets(input: {
   readonly result: MajordomeConnectorsResult;
   readonly snapshots: ReadonlyArray<ServerProvider> | null;
-}): ReadonlyArray<{ readonly instanceId: ServerProvider["instanceId"]; readonly name: string }> {
-  return (input.snapshots ?? [])
-    .filter((snapshot) => {
-      if (snapshot.driver !== "claudeAgent" || !snapshot.enabled || !snapshot.installed) {
-        return false;
-      }
-      if (signedOut(snapshot)) return true;
-      const listed = input.result.providers.find(
-        (provider) => provider.instanceId === snapshot.instanceId,
-      );
-      return (
-        snapshot.auth.status === "authenticated" &&
-        !KEYED_CLAUDE_SIGN_INS.has(snapshot.auth.type ?? "") &&
-        listed?.reported === true &&
-        listed.error === undefined &&
-        listed.connectors.length === 0
-      );
-    })
-    .map((snapshot) => ({
-      instanceId: snapshot.instanceId,
-      name: resolveProviderInstanceDisplayName(snapshot),
-    }));
+}): ReadonlyArray<{
+  readonly instanceId: ServerProvider["instanceId"];
+  readonly name: string;
+  readonly reason: "signed-out" | "no-connectors";
+}> {
+  return (input.snapshots ?? []).flatMap((snapshot) => {
+    if (snapshot.driver !== "claudeAgent" || !snapshot.enabled || !snapshot.installed) return [];
+    const listed = input.result.providers.find(
+      (provider) => provider.instanceId === snapshot.instanceId,
+    );
+    const noConnectors =
+      snapshot.auth.status === "authenticated" &&
+      !KEYED_CLAUDE_SIGN_INS.has(snapshot.auth.type ?? "") &&
+      listed?.reported === true &&
+      listed.error === undefined &&
+      listed.connectors.length === 0;
+    if (!signedOut(snapshot) && !noConnectors) return [];
+    return [
+      {
+        instanceId: snapshot.instanceId,
+        name: resolveProviderInstanceDisplayName(snapshot),
+        reason: signedOut(snapshot) ? ("signed-out" as const) : ("no-connectors" as const),
+      },
+    ];
+  });
 }
 
 /** Where one machine's notes are backed up to, across its notes folders. */
