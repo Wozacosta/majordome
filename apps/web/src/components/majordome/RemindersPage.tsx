@@ -1,5 +1,11 @@
+import { useAtomValue } from "@effect/atom-react";
+import type { EnvironmentId } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
+import { AsyncResult } from "effect/reactivity";
+
 import { isElectron } from "../../env";
 import { useNowMinute } from "../../hooks/useNowMinute";
+import { majordomeEnvironment } from "../../state/majordome";
 import { ScrollArea } from "../ui/scroll-area";
 import { SidebarInset } from "../ui/sidebar";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
@@ -12,8 +18,11 @@ import {
   Section,
   StatusLine,
 } from "./paper";
+import { machineInSentence } from "./brains.logic";
+import { NOTIFICATIONS_ANCHOR } from "./phone.logic";
 import { ReminderRow } from "./RoutinesPage";
 import type { MajordomeVault } from "./topics.logic";
+import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useVaultRoutines } from "./useVaultRoutines";
 
@@ -48,8 +57,18 @@ function VaultReminders({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { reminders, runnerUnreachable, loading, remindersFailed, retry } = useVaultRoutines(vault);
+  const { machineOf } = useMachineNames();
+  // A reminder is announced by the computer it was asked on, so each one's devices count.
+  const computers = [...new Set(reminders.map((item) => item.environmentId))];
   return (
     <>
+      {computers.map((environmentId) => (
+        <NoNotificationsLine
+          key={environmentId}
+          environmentId={environmentId}
+          machine={computers.length > 1 ? machineOf(environmentId) : null}
+        />
+      ))}
       {runnerUnreachable ? (
         <StatusLine tone="warning" className="mt-3 py-2.5">
           Another of your computers can't be reached from this window right now. Reminders you asked
@@ -72,5 +91,33 @@ function VaultReminders({ vault }: { readonly vault: MajordomeVault }) {
         )}
       </Section>
     </>
+  );
+}
+
+/** Said while a computer has reminders coming and no device to announce them on. */
+function NoNotificationsLine({
+  environmentId,
+  machine,
+}: {
+  readonly environmentId: EnvironmentId;
+  /** The computer's name, when reminders wait on several. */
+  readonly machine: string | null;
+}) {
+  const result = useAtomValue(majordomeEnvironment.pushDevices({ environmentId, input: {} }));
+  const devices = AsyncResult.getOrElse(result, () => null)?.devices;
+  if (devices === undefined || devices.length > 0) return null;
+  return (
+    <StatusLine tone="warning" className="mt-3 py-2.5" data-reminders-unannounced>
+      No phone or computer gets notifications
+      {machine === null ? "" : ` from ${machineInSentence(machine)}`} yet, so reminders only appear
+      in the chat.{" "}
+      <Link
+        to="/settings/phone"
+        hash={NOTIFICATIONS_ANCHOR}
+        className="rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        Turn on notifications
+      </Link>
+    </StatusLine>
   );
 }

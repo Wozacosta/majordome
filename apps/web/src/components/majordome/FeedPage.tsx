@@ -98,6 +98,7 @@ import {
   statusBrainId,
 } from "./brains.logic";
 import { notesLink } from "./notes.logic";
+import { ROUTINES_NOWHERE_TEXT, routinesPausedText } from "./routines.logic";
 import { ApprovalFeedRequest } from "./ApprovalRequestCard";
 import { PrivateDocumentFeedRequest } from "./PrivateDocumentRequestCard";
 import {
@@ -821,7 +822,7 @@ function FeedRunRow({
 const RUNNER_COPY: Record<MajordomeRoutinesRunner, string> = {
   "this-server": "Routines run on this computer",
   "another-server": "Routines run on another computer",
-  none: "Routines don't run on any computer yet",
+  none: ROUTINES_NOWHERE_TEXT,
 };
 
 /**
@@ -854,7 +855,7 @@ function RoutinesRunnerLine({
       <span className="min-w-0 flex-1 basis-48">
         {title === null ? "" : `${title}: `}
         {runner.pausedRunsPerDay !== null
-          ? `Routines are paused until tomorrow: they used today's ${runner.pausedRunsPerDay} runs`
+          ? routinesPausedText(runner.pausedRunsPerDay)
           : runsOn !== null
             ? `Routines run on ${machineInSentence(runsOn)}`
             : RUNNER_COPY[runner.routinesRunner]}

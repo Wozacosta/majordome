@@ -5,8 +5,8 @@ morning. A reminder happens once. You set both up by telling the assistant what 
 
 ## Add a routine
 
-Open **Routines**. The list is on one side and the assistant on the other; on a phone, tap **Set up
-with the assistant**. Say what you would like done and when:
+Open **Routines** and press **Set up a routine**. The list is on one side and the assistant on the
+other; on a phone the assistant opens over the list. Say what you would like done and when:
 
 > Every Friday evening, list what I spent this week.
 
@@ -30,10 +30,12 @@ are. Removing the topic or the routine later works like any other.
 
 ## Change, pause, try or delete one
 
-Each routine shows what it does, when it runs next and how its last run went.
+Each routine shows what it does, when it runs next and how its last run went. When none of them
+will run for now, the top of the page says why and what to do about it.
 
 - The switch turns it off and on again.
-- **Run now** tries it right away. This works even when it is off.
+- **Run now** tries it right away. This works even when it is off. A routine whose time passed
+  while the computer was asleep says so; **Run now** catches it up.
 - **Edit** hands it to the assistant: say what should be different. It tells you what will change
   and waits for your yes.
 - The bin deletes it, after asking. A default routine you delete does not come back.
@@ -47,8 +49,10 @@ Ask in any conversation, not only on the Routines screen:
 > Remind me on Friday at 9 to call the bank.
 
 When the time comes, Majordome sends a notification and posts in the conversation where you asked.
-Upcoming reminders are listed under **Reminders** on the Routines screen, and the next few under
-**Coming up** on **Today**. **Cancel** removes one. To move a reminder, cancel it and ask again.
+Upcoming reminders are listed on the **Reminders** screen, and the next few under **Coming up** on
+**Today**. **Cancel** removes one. To move a reminder, cancel it and ask again. If no phone or
+computer has notifications turned on, the Reminders screen says so: the reminder is then only
+posted in the conversation.
 
 ## To-dos
 
