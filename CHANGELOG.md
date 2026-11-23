@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.21
+
 **Changed**
 
 - **Done chats leave the sidebar.** A topic's list in the sidebar shows only the chats still
@@ -23,6 +25,15 @@ Not released yet.
   an error naming the chat by a code. It now asks "Stop it and mark it as done?" and does both.
   Elsewhere, a chat that cannot be marked as done says why in plain words: it is still working,
   it is waiting for your answer, or it has a message waiting to be sent.
+
+**Try this**
+
+- In a topic, send a chat a long question and press the X on its tab while it answers: it should
+  ask before stopping it.
+- Mark a chat under a topic as done: it leaves the sidebar. Open the topic's side panel, press
+  "Done" at the bottom of "Other chats", then "Bring back".
+- Press Cmd+T twice in a topic without writing anything: you should land in the same empty chat
+  both times.
 
 ## 0.10.20
 
