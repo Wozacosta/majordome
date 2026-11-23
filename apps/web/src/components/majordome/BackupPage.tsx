@@ -20,6 +20,7 @@ import {
   FolderIcon,
   GithubIcon,
   ShieldIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -42,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { Input } from "../ui/input";
 import { Skeleton } from "../ui/skeleton";
@@ -62,7 +63,6 @@ import {
   Disclosure,
   Entry,
   EntryList,
-  EntryTitle,
   Muted,
   READING_MEASURE_CLASS,
   ROW_ACTION_CLASS,
@@ -1274,8 +1274,6 @@ function FolderForm({
   const [path, setPath] = useState(initialPath);
   const [passphrase, setPassphrase] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [step, setStep] = useState<"form" | "write-down">("form");
-  const [wroteItDown, setWroteItDown] = useState(false);
   const [busy, setBusy] = useState(false);
   const problem = folderFormProblem({
     path: mode === "folder" ? path : null,
@@ -1301,7 +1299,6 @@ function FolderForm({
         mode === "folder" ? "Could not use this folder" : "Could not save the passphrase",
         result,
       );
-      setStep("form");
       return;
     }
     if (mode === "passphrase") {
@@ -1321,47 +1318,13 @@ function FolderForm({
     onDone();
   };
 
-  if (step === "write-down") {
-    return (
-      <Surface className="flex max-w-xl flex-col gap-3" data-recovery-phrase>
-        <EntryTitle>Write down your passphrase</EntryTitle>
-        <Muted>
-          It's the only way to open these backups. Majordome keeps it in this computer's keychain,
-          but if this computer is lost you'll need it from paper. It won't be shown again.
-        </Muted>
-        <p className="rounded-md bg-muted px-3 py-2 font-mono text-base break-all text-foreground">
-          {passphrase}
-        </p>
-        <SwitchLabel>
-          <Checkbox
-            checked={wroteItDown}
-            onCheckedChange={(checked) => setWroteItDown(checked === true)}
-          />
-          I wrote it down
-        </SwitchLabel>
-        <div className="flex flex-wrap gap-2">
-          <Button size="xs" variant="outline" disabled={busy} onClick={() => setStep("form")}>
-            Back
-          </Button>
-          <Button size="xs" disabled={!wroteItDown || busy} onClick={() => void save()}>
-            {busy ? <Spinner size="sm" /> : null}
-            {mode === "folder" ? "Back up to this folder" : "Continue to Google"}
-          </Button>
-        </div>
-      </Surface>
-    );
-  }
-
   return (
     <Surface className="max-w-xl">
       <form
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          if (problem === null) {
-            setWroteItDown(false);
-            setStep("write-down");
-          }
+          if (problem === null && !busy) void save();
         }}
       >
         {mode === "folder" ? (
@@ -1427,22 +1390,24 @@ function FolderForm({
             aria-label="Passphrase again"
           />
         </label>
-        <p
-          className={cn(
-            "text-xs",
-            problem === null ? "text-muted-foreground" : "text-warning-foreground",
-          )}
-        >
-          {problem ?? "Next, you'll write the passphrase down."}
-        </p>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertTitle>Write this passphrase down on paper</AlertTitle>
+          <AlertDescription>
+            It's the only way to open these backups if this computer is lost. Majordome keeps it in
+            this computer's keychain and can't show it to you again.
+          </AlertDescription>
+        </Alert>
+        {problem === null ? null : <p className="text-xs text-warning-foreground">{problem}</p>}
         <div className="flex flex-wrap gap-2">
           {onCancel ? (
             <Button size="xs" variant="outline" type="button" onClick={onCancel}>
               Cancel
             </Button>
           ) : null}
-          <Button size="xs" type="submit" disabled={problem !== null}>
-            Continue
+          <Button size="xs" type="submit" disabled={problem !== null || busy}>
+            {busy ? <Spinner size="sm" /> : null}
+            {mode === "folder" ? "Back up to this folder" : "Continue to Google"}
           </Button>
         </div>
       </form>

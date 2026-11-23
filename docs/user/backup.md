@@ -11,8 +11,8 @@ brain** keeps copies somewhere else, and brings them back when you need them.
   and Google Drive get a button of their own when they are on the computer.
 - **Google Drive**: the same encrypted copy, sent to a "Majordome backups" folder in your Drive.
 
-The folder and Google Drive copies are locked with a passphrase you choose. Majordome shows it once
-so you can write it down. Without it, nobody can open the copies, including you.
+The folder and Google Drive copies are locked with a passphrase you choose. You type it twice,
+and Majordome never shows it: write it down on paper. Without it, nobody can open the copies, including you.
 
 Stopping a backup never deletes the copies that were already made.
 
