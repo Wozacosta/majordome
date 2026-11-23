@@ -1,6 +1,16 @@
 // The phone app's own texts, said the way Majordome says them. Same rules as the web tables in
 // apps/web/vite/wording: upstream's exact whole English text, then the text Majordome shows.
+// A text is swapped wherever source spells it out, so never list one that is also a route or
+// screen name ("Thread", "Home", "Settings"): navigation would stop finding it.
 export const MOBILE_WORDING: ReadonlyArray<readonly [upstream: string, majordome: string]> = [
+  ["Add environment", "Add a computer"],
+  ["All environments", "All computers"],
+  ["All projects", "All notes folders"],
+  ["No conversation yet", "Nothing here yet"],
+  [
+    "Ask the agent to inspect the repo, run a command, or continue the active thread.",
+    "Ask Majordome anything.",
+  ],
   // Home, before anything is listed.
   ["Loading environments", "Looking for your computer"],
   ["Checking saved environments on this device.", "Checking the computers saved on this phone."],

@@ -12,11 +12,6 @@ const MAJORDOME_APPLE_TEAM_ID = "5RDKJ8PDGZ";
 const ICONS = [
   [BRAND_ASSET_PATHS.developmentIosIconPng, BRAND_ASSET_PATHS.productionIosIconPng],
   [BRAND_ASSET_PATHS.nightlyIosIconPng, BRAND_ASSET_PATHS.productionIosIconPng],
-  [
-    BRAND_ASSET_PATHS.developmentIconComposerProject,
-    BRAND_ASSET_PATHS.productionIconComposerProject,
-  ],
-  [BRAND_ASSET_PATHS.nightlyIconComposerProject, BRAND_ASSET_PATHS.productionIconComposerProject],
 ] as const;
 
 export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
@@ -37,6 +32,8 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     updates: { enabled: false },
     ios: {
       ...renamed.ios,
+      // Upstream's Icon Composer projects still draw upstream's logo; the PNG is the cloche.
+      icon: renamed.icon,
       appleTeamId: MAJORDOME_APPLE_TEAM_ID,
       // Upstream's domains list upstream's app, not this one.
       associatedDomains: [],

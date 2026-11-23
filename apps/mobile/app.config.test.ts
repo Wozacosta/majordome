@@ -30,6 +30,7 @@ it.each([
   const config = await loadConfig(value);
   expect(config.ios?.bundleIdentifier).toBe(`io.github.wozacosta.majordome.ios${suffix}`);
   expect(config.ios?.appleTeamId).toBe("5RDKJ8PDGZ");
+  expect(config.ios?.icon).toBe("../../assets/prod/black-ios-1024.png");
   // Upstream's domains and update server only know upstream's app.
   expect(config.ios?.associatedDomains).toEqual([]);
   expect(config.updates).toEqual({ enabled: false });

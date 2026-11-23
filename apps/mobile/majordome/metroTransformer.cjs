@@ -13,19 +13,16 @@ const KEEPS_UPSTREAM_NAME = /\/packages\/shared\/src\/majordome\.ts$/;
 
 const englishCatalog = path.join(repoRoot, "apps/mobile/src/i18n/translations/en.json");
 const rewordModule = path.join(repoRoot, "apps/web/vite/majordomeReword.ts");
-const webWordingDirectory = path.join(repoRoot, "apps/web/vite/wording");
 const mobileWording = path.join(__dirname, "wording.mts");
 
 let loading;
 function load() {
   loading ??= (async () => {
     const load = (file) => import(pathToFileURL(file).href);
-    const [reword, web, mobile] = await Promise.all([
-      load(rewordModule),
-      load(path.join(webWordingDirectory, "index.ts")),
-      load(mobileWording),
-    ]);
-    const wording = new Map([...web.WORDING, ...mobile.MOBILE_WORDING]);
+    const [reword, mobile] = await Promise.all([load(rewordModule), load(mobileWording)]);
+    // Only the phone's own table: the web tables hold words like "Thread" that are also route
+    // names here, and a swapped route name stops navigation.
+    const wording = new Map(mobile.MOBILE_WORDING);
     const english = JSON.parse(fs.readFileSync(englishCatalog, "utf8"));
     return { reword, wording, keys: reword.renamedKeys(english, wording) };
   })();
@@ -52,11 +49,7 @@ exports.transform = async (config, projectRoot, filename, data, options) => {
 // Metro hashes this file alone; the tables decide the output too.
 exports.getCacheKey = (config) => {
   const hash = crypto.createHash("sha1");
-  const tables = fs
-    .readdirSync(webWordingDirectory)
-    .sort()
-    .map((name) => path.join(webWordingDirectory, name));
-  for (const file of [rewordModule, mobileWording, ...tables]) hash.update(fs.readFileSync(file));
+  for (const file of [rewordModule, mobileWording]) hash.update(fs.readFileSync(file));
   const base = require(config.majordomeBaseTransformerPath);
   hash.update(base.getCacheKey?.(config) ?? "");
   return hash.digest("hex");
