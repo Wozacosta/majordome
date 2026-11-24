@@ -113,12 +113,13 @@ import {
 } from "../../majordome/chat.logic";
 import {
   MajordomeDoneTopics,
+  MajordomeTopicRows,
   MajordomeHiddenRoutines,
   MajordomeTopicsSection,
   useChatListTopics,
 } from "../../majordome/TopicsSection";
 import { gatherRoutineChats } from "../../majordome/routine.logic";
-import { foldSideChats, pinTopicChats } from "../../majordome/topic.logic";
+import { foldSideChats, pinTopicChats, placeUnopenedTopics } from "../../majordome/topic.logic";
 import { RecentChatsLabel } from "../../majordome/ChatRow";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
@@ -508,6 +509,11 @@ export function HomeScreen(props: HomeScreenProps) {
           return id !== null && !(chatTopics.byThread.has(id) || sideChats?.nested.has(id));
         });
   const firstRecentKey = firstRecent?.key ?? null;
+  // Topics never opened here take their place among the pinned ones, not a block of their own.
+  const unopenedTopics =
+    topicsFirst === null || topicsFirst.pinned === 0
+      ? null
+      : placeUnopenedTopics(chatTopics.order, chatTopics.byThread, chatTopics.apart);
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
   const { onSelectThread } = props;
@@ -683,9 +689,17 @@ export function HomeScreen(props: HomeScreenProps) {
         onSetTopicFinished={chatTopics.setFinished}
       />
     );
-    return item.key === firstRecentKey ? (
+    const topicsBefore = unopenedTopics?.before.get(String(thread.id));
+    const startsRecent = item.key === firstRecentKey;
+    return topicsBefore !== undefined || startsRecent ? (
       <>
-        <RecentChatsLabel />
+        {topicsBefore === undefined ? null : (
+          <MajordomeTopicRows rows={topicsBefore} topics={chatTopics} />
+        )}
+        {startsRecent && unopenedTopics !== null ? (
+          <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
+        ) : null}
+        {startsRecent ? <RecentChatsLabel /> : null}
         {row}
       </>
     ) : (
@@ -707,6 +721,8 @@ export function HomeScreen(props: HomeScreenProps) {
     workingShelfEnabled,
     topicsByThread: chatTopics.byThread,
     firstRecentKey,
+    unopenedTopics,
+    busyTopic: chatTopics.busy,
     unfoldedTopics: chatTopics.unfolded,
     routineOf: chatTopics.routineOf,
   };
@@ -810,6 +826,7 @@ export function HomeScreen(props: HomeScreenProps) {
         <MajordomeTopicsSection
           topics={chatTopics}
           hasChatsBelow={threadListV2Items.length > 0 && (topicsFirst?.pinned ?? 0) === 0}
+          drawnInList={unopenedTopics !== null}
           searching={hasSearchQuery}
         />
       ) : Platform.OS === "ios" && workspace ? (
@@ -944,6 +961,9 @@ export function HomeScreen(props: HomeScreenProps) {
                     ) : null}
                     {isMajordome && !hasSearchQuery ? (
                       <>
+                        {unopenedTopics !== null && firstRecentKey === null ? (
+                          <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
+                        ) : null}
                         <MajordomeDoneTopics topics={chatTopics} />
                         <MajordomeHiddenRoutines topics={chatTopics} />
                       </>

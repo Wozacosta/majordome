@@ -1,7 +1,13 @@
 import { expect, it } from "vite-plus/test";
 
 import type { TopicRow } from "./today.logic";
-import { finishedTopics, foldSideChats, pinTopicChats, placeTopics } from "./topic.logic";
+import {
+  finishedTopics,
+  foldSideChats,
+  pinTopicChats,
+  placeTopics,
+  placeUnopenedTopics,
+} from "./topic.logic";
 
 const topic = (id: string, threadId: string | null, preview: string | null = null): TopicRow => ({
   id,
@@ -88,4 +94,24 @@ it("keeps the topics' conversations first, in the topics' order, whatever they a
     pinned: 2,
   });
   expect(pinTopicChats(items, idOf, [])).toEqual({ items, pinned: 0 });
+});
+
+it("puts topics never opened here at their place among the ones that have a conversation", () => {
+  const byThread = new Map([
+    ["t-fitness", topic("Fitness", "t-fitness")],
+    ["t-money", topic("Money", "t-money")],
+  ]);
+  const apart = [topic("Taxes", null), topic("Garden", null), topic("Trip", null)];
+  const placed = placeUnopenedTopics(
+    ["Taxes", "Fitness", "Garden", "Money", "Trip"],
+    byThread,
+    apart,
+  );
+  expect(
+    [...placed.before].map(([threadId, rows]) => [threadId, rows.map((row) => row.id)]),
+  ).toEqual([
+    ["t-fitness", ["Taxes"]],
+    ["t-money", ["Garden"]],
+  ]);
+  expect(placed.after.map((row) => row.id)).toEqual(["Trip"]);
 });

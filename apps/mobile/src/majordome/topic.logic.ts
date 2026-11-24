@@ -84,6 +84,37 @@ export function pinTopicChats<T>(
 }
 
 /**
+ * Where the topics with no conversation yet go among the pinned ones, so the topics read as one
+ * list in their own order (`order`, by topic id): before the next topic that has a row (`before`,
+ * by that row's thread id), or after the last one (`after`).
+ */
+export function placeUnopenedTopics(
+  order: ReadonlyArray<string>,
+  byThread: ReadonlyMap<string, TopicRow>,
+  apart: ReadonlyArray<TopicRow>,
+): {
+  readonly before: ReadonlyMap<string, ReadonlyArray<TopicRow>>;
+  readonly after: ReadonlyArray<TopicRow>;
+} {
+  const threadOf = new Map([...byThread].map(([threadId, topic]) => [topic.id, threadId]));
+  const unopened = new Map(apart.map((topic) => [topic.id, topic]));
+  const before = new Map<string, ReadonlyArray<TopicRow>>();
+  let waiting: Array<TopicRow> = [];
+  for (const id of order) {
+    const topic = unopened.get(id);
+    if (topic !== undefined) {
+      waiting.push(topic);
+      continue;
+    }
+    const threadId = threadOf.get(id);
+    if (threadId === undefined || waiting.length === 0) continue;
+    before.set(threadId, waiting);
+    waiting = [];
+  }
+  return { before, after: waiting };
+}
+
+/**
  * The Chats list with each topic's other chats folded under the topic's row: taken out of their
  * own places, and put back right under the topic only while it is unfolded. `threadIdOf` answers
  * null for a row that stays where it is (a label, a shelf, a chat marked as done).

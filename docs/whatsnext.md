@@ -115,10 +115,14 @@ rows; nothing was changed in how a turn is sent):
   own tools and listings, including its Artifact tools (8,000 to 13,000 tokens) that Majordome
   never uses. About 16% on the owner's Mac is his personal Claude plugins and settings, loaded
   because the session reads `~/.claude`. About 18% is Majordome's own text.
-- **"Other requests as large again as the chats" is still unexplained.** One pass blamed the
-  count after a restart; a recorded resumed session
-  (`testkit/fixtures/claude_idle_resume`) shows that count starts at zero, as the code assumes.
-  It may simply be the side requests. Not settled.
+- **"Other requests as large again as the chats" was earlier turns counted again**, fixed on
+  2026-11-24. Claude Code restores a resumed conversation's totals into its ledger, so the
+  first turn after a restart was charged with every turn before it. In the owner's data, 13 of
+  the 24 turns with an "other" figure matched the sum of the earlier turns to the token, and
+  97% of the 21.6 million "other" input tokens were that. Upstream's recorded resumed session
+  (`testkit/fixtures/claude_idle_resume`) starts its ledger at zero, which is why a first fix
+  was reverted; the rule now accepts a resumed process's first ledger only when it equals the
+  turn's own usage. About 650,000 tokens of real side requests are left, 4% of the chats.
 - **The small jobs already run on Haiku** (key facts, "In short", titles), through the
   provider's fallback. Only chat and routines are on Opus.
 

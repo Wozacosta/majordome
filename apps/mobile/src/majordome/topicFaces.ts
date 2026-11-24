@@ -50,6 +50,8 @@ export interface ChatTopics {
   readonly byThread: ReadonlyMap<string, TopicRow>;
   /** The topics with no row among the chats yet, listed above them. */
   readonly apart: ReadonlyArray<TopicRow>;
+  /** Every topic's id, in the topics' own order. */
+  readonly order: ReadonlyArray<string>;
   readonly finished: ReadonlyArray<FinishedTopic>;
   /** How many topics there are in all, whatever a search keeps. */
   readonly total: number;
