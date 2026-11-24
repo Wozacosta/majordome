@@ -429,6 +429,38 @@ Connect: the Paid Apps agreement, the subscription at the web price with a one-w
 the billing grace period, the In-App Purchase key, the notice address, a sandbox tester, and a
 demo account for the reviewer.
 
+## Trust and transparency: a hosted server is the customer's
+
+The question a customer asks: how do I know the person running my server is not reading it or
+changing it? Today the honest answer is that nothing technical stops it. The owner of the Fly
+organisation can open a shell on any server, read its disk and its daily copies, and the nightly
+update runs whatever image the latest release names. The customer's Claude sign-in sits on that
+disk too. What exists already: the code is public, the broker holds no notes, and anyone can
+leave with **Settings > Back up my brain** and run Majordome on their own machine.
+
+It cannot be proved away while the server has to read the notes to work, so the aim is to say it
+plainly, make it checkable, and narrow it. In order of what each buys for its cost:
+
+1. **Say it.** A short page, linked from `/start` and the privacy page: what the operator can
+   technically do, what it commits never to do (read notes, open a shell without being asked),
+   who has access (one person), where the machine is and who else could be made to hand it over
+   (Fly.io). Legal wording is for a professional; the facts are above.
+2. **Show what runs.** The server shows the image digest it runs and the release it came from,
+   and the release shows the same digest, built by public CI from the public source. Start at
+   `image-digest.txt` in the release and `imageFor` in `infra/broker/src/worker.ts`. Add build
+   provenance (GitHub's attestations) so the digest can be tied to a commit by anyone.
+3. **Updates the customer can see and hold.** The nightly update is the one way new code
+   reaches a server. Show what changed, and let the owner of a server delay or refuse it.
+4. **A record of access.** Whether Fly records shells opened in an organisation, and whether
+   that record can be shown to the customer, is not checked. A record kept on the server itself
+   proves little: whoever has a shell can edit it.
+5. **Encryption with the customer's key.** Protects the disk copies and a stopped server, not a
+   running one, which holds the key in memory. Real work, and it makes a lost key a lost brain.
+6. **Deletion that can be checked.** What is deleted when, including Fly's disk copies, stated
+   with dates in the account page.
+
+Not checked: what other hosted products of this kind publish, and Fly's own access and logging.
+
 ## Phone
 
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the
