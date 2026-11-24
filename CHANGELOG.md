@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **On the phone, Your account shows how each server's connection really stands.** It said "This
+  phone is connected to it" for any server the phone had saved, even one that no longer
+  recognised the phone, and offered no way back in. It now says what is wrong, and shows
+  **Connect again** when the server has let the phone go.
+
 ## 0.10.43
 
 **New**

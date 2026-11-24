@@ -55,6 +55,8 @@ export const MAJORDOME_ACCOUNT = {
   checkAgain: "Check again",
   codeInstead: "Scan a code instead",
   sessionEnded: "Your sign-in ended. Sign out below, sign in again, then press Connect.",
+  connected: "This phone is connected to it.",
+  connectAgain: "Connect again",
   deleteTitle: "Delete my account",
   deleteDetail:
     "Your Majordome account is removed for good. Your notes are not touched: they stay on your computer, and this phone stays connected to the computers it already has.",
