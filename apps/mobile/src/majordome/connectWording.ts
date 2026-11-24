@@ -23,8 +23,6 @@ export const MAJORDOME_CONNECT = {
   accountLabel: "Sign in to your Majordome account",
   accountDescription:
     "With a Majordome account, this phone finds your computer by itself. No code to scan.",
-  hostedLabel: "No computer to leave on?",
-  hostedDescription: "Majordome can keep one running for you. You need an invite code.",
 } as const;
 
 const REFUSED_CODE =
@@ -53,6 +51,11 @@ export const MAJORDOME_ACCOUNT = {
   checkAgain: "Check again",
   codeInstead: "Scan a code instead",
   sessionEnded: "Your sign-in ended. Sign out below, sign in again, then press Connect.",
+  deleteTitle: "Delete my account",
+  deleteDetail:
+    "Your Majordome account is removed for good. Your notes are not touched: they stay on your computer, and this phone stays connected to the computers it already has.",
+  deleteConfirm: "Delete",
+  deleteFailed: "The account could not be deleted. Sign out, sign in again, then try once more.",
 } as const;
 
 /**

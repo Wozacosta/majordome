@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **On the phone, your account can be deleted** from Settings > Your account. Your notes and the
+  computers already connected are not touched.
+- **The phone no longer offers to make a Majordome server.** That is done on the website; the
+  phone connects to a computer or server you already have.
+
 ## 0.10.42
 
 **Safer**

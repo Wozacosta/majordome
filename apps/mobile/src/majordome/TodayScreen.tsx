@@ -373,8 +373,8 @@ export function MajordomeTodayScreen() {
             title="Add your computer"
             detail={
               hasAccounts
-                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows. No computer to leave on? Majordome can keep one running for you."
-                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can keep one running for you."
+                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows."
+                : "Your notes live on your computer. Add it to this phone to see today's note here."
             }
             action={
               <View className="gap-2">
@@ -390,10 +390,6 @@ export function MajordomeTodayScreen() {
                   label={hasAccounts ? "Scan a code instead" : "Add a computer"}
                   tone={hasAccounts ? "secondary" : "primary"}
                   onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-                />
-                <Button
-                  label="I have an invite code"
-                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
                 />
               </View>
             }

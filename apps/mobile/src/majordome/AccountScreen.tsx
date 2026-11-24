@@ -11,7 +11,7 @@ import {
 } from "@t3tools/shared/majordomeAccount";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../components/ui/AppText";
@@ -60,6 +60,21 @@ function SignedIn() {
     Object.keys(connections).length === 0
       ? () => navigation.dispatch(StackActions.popToTop())
       : undefined;
+
+  const [deleteProblem, setDeleteProblem] = useState<string | null>(null);
+  const confirmDelete = () => {
+    Alert.alert(MAJORDOME_ACCOUNT.deleteTitle, MAJORDOME_ACCOUNT.deleteDetail, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: MAJORDOME_ACCOUNT.deleteConfirm,
+        style: "destructive",
+        onPress: () => {
+          setDeleteProblem(null);
+          user?.delete().catch(() => setDeleteProblem(MAJORDOME_ACCOUNT.deleteFailed));
+        },
+      },
+    ]);
+  };
 
   const checkAgain = async () => {
     setChecking(true);
@@ -111,6 +126,12 @@ function SignedIn() {
           ))
         )}
         <Button label="Sign out" tone="text" onPress={() => void clerk.signOut()} />
+        <Button label={MAJORDOME_ACCOUNT.deleteTitle} tone="text" onPress={confirmDelete} />
+        {deleteProblem === null ? null : (
+          <Text accessibilityRole="alert" className="text-danger">
+            {deleteProblem}
+          </Text>
+        )}
       </ScrollView>
     </SettingsScreen>
   );
