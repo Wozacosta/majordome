@@ -3,7 +3,7 @@ name: Scenarios
 # Majordome only. Runs upstream's web scenarios that pass on Majordome's screens:
 # the real dev stack and a real browser, with the replay agent in place of a model.
 # Nightly, not on a push: one run takes longer than CI. The list of scenarios left
-# out is in scripts/majordome.e2e.config.ts. See docs/operations/scenarios.md.
+# out is in scripts/majordome.e2e.config.ts. See docs/operations/majordome-scenarios.md.
 
 on:
   schedule:

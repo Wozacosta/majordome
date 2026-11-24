@@ -23,7 +23,7 @@ so it does not need a CI run of its own: tag it as soon as the commit before it 
 
 The tag sets the app's version; nothing is committed back. Installed apps only move to a higher
 version, and a version with a suffix (`0.2.0-beta.1`) becomes a prerelease they never see. For a
-build on your own Mac, see [Desktop artifacts](./development.md#desktop-artifacts).
+build on your own Mac, see [Desktop artifacts](./00_development.md#desktop-artifacts).
 
 Repository secrets (Settings → Secrets and variables → Actions):
 

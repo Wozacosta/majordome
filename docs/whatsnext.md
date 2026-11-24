@@ -17,7 +17,7 @@ installer while Majordome has one user. Before anyone else is invited:
   place.
 - In `README.md`, restore "Apple silicon | Intel" in the badge and the Intel link in the install
   steps; in `docs/user/install.md`, name the `x64` installer again; in
-  `docs/operations/release.md`, drop the note that Intel is off.
+  `docs/operations/03_release.md`, drop the note that Intel is off.
 - Cut a release and check that `latest-mac.yml` lists both architectures and that both installers
   open.
 

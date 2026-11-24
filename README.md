@@ -134,7 +134,7 @@ vp run dev:desktop
 ```
 
 You need [Vite+](https://viteplus.dev/guide/) for the `vp` command.
-[Development guide](docs/operations/development.md) ·
+[Development guide](docs/operations/00_development.md) ·
 [Design decisions](docs/decisions.md). `servo` is the repository's codename.
 
 ## Credits

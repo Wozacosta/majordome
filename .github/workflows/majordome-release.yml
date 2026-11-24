@@ -4,7 +4,7 @@ name: Majordome release
 # it, and publishes the DMGs with their update feed (latest-mac.yml) as a GitHub
 # Release of this repository, which the installed app checks for updates.
 # T3 Code's release.yml skips itself outside pingdotgg/t3code.
-# See docs/operations/release.md.
+# See docs/operations/03_release.md.
 
 on:
   push:

@@ -2,7 +2,7 @@ name: Majordome scenarios
 
 # Majordome only. Runs the scenarios written for Majordome's own screens (notes, chats, backup)
 # on every push to main: the real dev stack and a real browser, with the replay agent in place of
-# a model. A release is tagged only once this is green. See docs/operations/scenarios.md.
+# a model. A release is tagged only once this is green. See docs/operations/majordome-scenarios.md.
 
 on:
   push:

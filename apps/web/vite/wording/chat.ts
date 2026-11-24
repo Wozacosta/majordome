@@ -470,7 +470,7 @@ export const CHAT_WORDING: Wording = [
   ["Side chats", "Quick questions"],
   ["Side chats · {runningSideChats} running", "Quick questions · {runningSideChats} running"],
   ["Side chat waiting", "A quick question is waiting for you"],
-  ["Open side chat in this chat", "Open the quick question beside this chat"],
+  ["Open side chat", "Open the quick question"],
   ["Ask a side question in a new side chat", "Ask a quick question on the side"],
   [
     "Side chats start after the first message.",

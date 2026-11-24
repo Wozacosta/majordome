@@ -1,5 +1,5 @@
 // Majordome only. Upstream's scenarios, less the ones that cannot pass on Majordome's screens.
-// scenarios.yml runs this every night. See docs/operations/scenarios.md.
+// scenarios.yml runs this every night. See docs/operations/majordome-scenarios.md.
 import type { E2EConfig } from "e2e";
 
 import upstream from "./e2e.config.ts";
