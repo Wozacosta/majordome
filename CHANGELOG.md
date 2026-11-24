@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.41
+
 **Fixed**
 
 - **Usage "by other requests" no longer counts a conversation twice.** The first message after
