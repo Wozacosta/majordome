@@ -13,6 +13,11 @@ Not released yet.
   Majordome restarted was charged with everything said before it in that conversation, which
   made other requests look as large as the chats themselves.
 
+**Improved**
+
+- **On the phone, every topic is in one list.** A topic you have not talked in yet now sits at
+  its own place among the others, in your order, not in a block above them.
+
 ## 0.10.40
 
 **Improved**

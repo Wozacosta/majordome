@@ -83,6 +83,7 @@ export function useChatListTopics(
     ),
   );
   const placed = placeTopics(topics, listedThreadIds, searchQuery);
+  const orderKey = topics.map((topic) => topic.id).join("\n");
   // Chats change far more often than where the topics go; the rows only redraw when that does.
   const placedKey = JSON.stringify({ byThread: [...placed.byThread], apart: placed.apart });
   const { byThread, apart } = useMemo(() => {
@@ -141,6 +142,7 @@ export function useChatListTopics(
   return {
     byThread,
     apart,
+    order: orderKey === "" ? NO_ROUTINES : orderKey.split("\n"),
     finished,
     total: topics.length + finished.length,
     busy,
@@ -198,14 +200,26 @@ function TopicRowView(props: { readonly topic: TopicRow; readonly topics: ChatTo
   );
 }
 
+/** Topics with no conversation yet, drawn among the pinned ones at their place in the order. */
+export function MajordomeTopicRows(props: {
+  readonly rows: ReadonlyArray<TopicRow>;
+  readonly topics: ChatTopics;
+}) {
+  return props.rows.map((topic) => (
+    <TopicRowView key={topic.id} topic={topic} topics={props.topics} />
+  ));
+}
+
 /** Above the chats: the topics that have no row among them yet. */
 export function MajordomeTopicsSection(props: {
   readonly topics: ChatTopics;
   readonly hasChatsBelow: boolean;
   readonly searching: boolean;
+  /** The list draws these topics itself, among the ones that have a conversation. */
+  readonly drawnInList: boolean;
 }) {
   const { topics } = props;
-  if (topics.apart.length === 0) return null;
+  if (topics.apart.length === 0 || props.drawnInList) return null;
   return (
     <View>
       {topics.apart.map((topic) => (
