@@ -52,7 +52,7 @@ echo "Archiving (about ten minutes)..."
 (cd "$MOBILE/ios" && xcodebuild -workspace Majordome.xcworkspace -scheme Majordome \
   -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$WORK/Majordome.xcarchive" archive -allowProvisioningUpdates "${AUTH[@]}" \
-  CURRENT_PROJECT_VERSION="$NEXT_BUILD" >"$WORK/archive.log" 2>&1) ||
+  DEVELOPMENT_TEAM="$TEAM_ID" CURRENT_PROJECT_VERSION="$NEXT_BUILD" >"$WORK/archive.log" 2>&1) ||
   { grep -E 'error:' "$WORK/archive.log" | tail -20 >&2; exit 1; }
 
 cat >"$WORK/ExportOptions.plist" <<PLIST
