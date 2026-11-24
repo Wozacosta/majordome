@@ -25,6 +25,7 @@ const RIGHT_PANEL_KINDS = [
   "pull-requests",
   "issue",
   "side-chat",
+  "key-facts",
 ] as const;
 export type RightPanelKind = (typeof RIGHT_PANEL_KINDS)[number];
 
@@ -50,6 +51,8 @@ export type RightPanelSurface =
       splitDirection?: "horizontal" | "vertical";
     }
   | { id: "diff"; kind: "diff" }
+  /** Majordome: the conversation's key facts, in full. */
+  | { id: "key-facts"; kind: "key-facts" }
   | {
       id: "files";
       kind: "files";
@@ -252,6 +255,8 @@ const singletonSurface = (
   switch (kind) {
     case "diff":
       return { id: "diff", kind };
+    case "key-facts":
+      return { id: "key-facts", kind };
     case "files":
       return { id: "files", kind };
     case "pull-requests":

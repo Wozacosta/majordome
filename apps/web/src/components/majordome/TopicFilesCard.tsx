@@ -6,13 +6,15 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import { useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { DownloadIcon, FileIcon, LockIcon, XIcon } from "lucide-react";
 import { type DragEvent, useRef, useState } from "react";
 
+import { useRightPanelStore } from "../../rightPanelStore";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
 import { assetEnvironment } from "../../state/assets";
@@ -81,11 +83,14 @@ export function TopicFiles({
   environmentId,
   projectId,
   topic,
+  threadId,
   workspaceRoot,
 }: {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly topic: VaultTopic;
+  /** The chat this panel sits beside: its folder list opens next to it. */
+  readonly threadId: ThreadId;
   readonly workspaceRoot: string | null;
 }) {
   const navigate = useNavigate();
@@ -434,13 +439,18 @@ export function TopicFiles({
             Bills, scans and contracts you want kept with this topic.
           </p>
         )}
-        {more !== null ? (
-          <Link
-            {...notesLink({ projectId, environmentId, path: topic.keyNote ?? undefined })}
+        {rows.length > 0 && workspaceRoot !== null ? (
+          <button
+            type="button"
+            onClick={() =>
+              useRightPanelStore
+                .getState()
+                .openFile(scopeThreadRef(environmentId, threadId), topic.folder)
+            }
             className="mx-2.5 mt-1 self-start rounded-sm text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
-            {more}
-          </Link>
+            {more ?? "Browse and search the folder"}
+          </button>
         ) : null}
         {dragging ? (
           <p className="px-2.5 pt-1 text-xs text-muted-foreground">

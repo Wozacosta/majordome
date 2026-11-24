@@ -1,13 +1,14 @@
 # Key facts
 
 Every conversation keeps a short list of what you mentioned that is worth finding again: links,
-places, dates and names. It sits at the top of the panel on the right of the conversation, under
-**Key facts**.
+places, dates and names. The panel on the right of the conversation shows three of them under
+**Key facts**: what is coming first, then the latest of the rest. **All** opens the full list
+beside the chat, where you can search it; **Key facts** in the side panel opens the same list.
 
 - Click a link to open it. Click a place, a date or a name to copy it.
 - A date said in passing ("next Thursday at 10") is written out as the day it means.
-- Dates run soonest first, and a day that is over leaves the list.
-- Each kind shows its first two; **Show more** gives the rest.
+- Dates run soonest first. A day that is over leaves the panel and moves to **Earlier**, at the
+  end of the full list.
 - The list is brought up to date after each reply, while you have the conversation open.
 
 ## In short, and a drawing

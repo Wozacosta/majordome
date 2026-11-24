@@ -23,12 +23,17 @@ Not released yet.
 
 **Changed**
 
-- **Key facts are shorter.** A day that is over is no longer listed, dates run soonest first, and
-  each kind shows its first two with **Show more** for the rest, so "In short" and your notes
-  stay in view.
+- **Key facts are short, and the full list opens beside the chat.** The chat's panel now shows
+  three: what is coming first, soonest on top, then the latest links, places and names. **All**
+  opens every key fact in the side panel, with a search field, grouped by kind, the days that are
+  over last under "Earlier". **Key facts** is also a new entry in that side panel (press K).
+- **A topic's files have a folder tree with search.** The side panel's **Notes** entry is now
+  called **Files** and, in a topic's chat, opens on the topic's own folder. Under the topic's
+  Files list, the line at the bottom opens the same tree. Majordome's own hidden folders no
+  longer show in it.
 
-  **Try this:** open a long conversation with many dates and names: the list on the right should
-  be a few rows, with no date before today.
+  **Try this:** open a topic with a few files, click **Browse and search the folder** under
+  Files on the right, and type part of a file name. Then click **All** next to Key facts.
 
 **Fixed**
 

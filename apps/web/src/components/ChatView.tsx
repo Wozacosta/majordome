@@ -33,6 +33,7 @@ import {
 } from "./chat/optimisticUserMessages";
 import { useTimelineRewind } from "./chat/useTimelineRewind";
 import { useThreadLifecycle } from "./chat/useThreadLifecycle";
+import { useTopicFolderOfThread } from "./majordome/useTopicFolderOfThread";
 import { useRightPanelActions } from "./chat/useRightPanelActions";
 import { type TerminalLaunchContext, useChatTerminalActions } from "./chat/useChatTerminalActions";
 import { useComposerSend } from "./chat/useComposerSend";
@@ -2417,6 +2418,7 @@ export default function ChatView(props: ChatViewProps) {
     if (activeThreadReferenceCopyTarget === null) return;
     void copyThreadReference(activeThreadReferenceCopyTarget);
   };
+  const filesStartFolder = useTopicFolderOfThread(activeThreadRef);
   const pullRequestPanelTarget = activeThread
     ? threadPullRequestPanelTarget({
         projectId: activeThread.projectId,
@@ -2430,6 +2432,7 @@ export default function ChatView(props: ChatViewProps) {
     addDeviceSurfaceStable,
     addDiffSurfaceStable,
     addFilesSurfaceStable,
+    addKeyFactsSurfaceStable,
     addPullRequestSurfaceStable,
     addPullRequestsSurfaceStable,
     closePreviewPanelStable,
@@ -2448,6 +2451,7 @@ export default function ChatView(props: ChatViewProps) {
   } = useRightPanelActions({
     activeThreadRef,
     activeProject,
+    filesStartFolder,
     activeRightPanelSurface,
     activePreviewState,
     deviceState,
@@ -4157,6 +4161,7 @@ export default function ChatView(props: ChatViewProps) {
           onAddTerminal={addTerminalSurfaceStable}
           onAddDiff={addDiffSurfaceStable}
           onAddFiles={addFilesSurfaceStable}
+          onAddKeyFacts={isMajordome && isServerThread ? addKeyFactsSurfaceStable : undefined}
           onAddPullRequest={addPullRequestSurfaceStable}
           onAddPullRequests={addPullRequestsSurfaceStable}
           onAddDevice={addDeviceSurfaceStable}
