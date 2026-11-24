@@ -112,6 +112,36 @@ export function claudeLedgerDelta(
   return { inputTokens, outputTokens };
 }
 
+/**
+ * What one result added to the ledger. A process that resumed a conversation has no baseline:
+ * Claude Code restores that conversation's earlier totals into its ledger, so its first ledger
+ * is this result's growth only when it holds exactly what the result itself reports.
+ */
+export function claudeResultLedgerGrowth(
+  previous: ClaudeModelLedger | undefined,
+  current: ClaudeModelLedger | undefined,
+  resultUsage: unknown,
+): ClaudeLedgerUsage | undefined {
+  if (previous !== undefined || current === undefined) return claudeLedgerDelta(previous, current);
+  const usage = (resultUsage ?? {}) as Record<string, unknown>;
+  const count = (field: (typeof BILLED_USAGE_FIELDS)[number]) =>
+    finiteNonNegativeInteger(usage[field]) ?? 0;
+  const own = {
+    inputTokens:
+      count("input_tokens") +
+      count("cache_read_input_tokens") +
+      count("cache_creation_input_tokens"),
+    outputTokens: count("output_tokens"),
+  };
+  let inputTokens = 0;
+  let outputTokens = 0;
+  for (const totals of current.values()) {
+    inputTokens += totals.input;
+    outputTokens += totals.output;
+  }
+  return inputTokens === own.inputTokens && outputTokens === own.outputTokens ? own : undefined;
+}
+
 export function addClaudeLedgerUsage(
   left: ClaudeLedgerUsage | undefined,
   right: ClaudeLedgerUsage | undefined,

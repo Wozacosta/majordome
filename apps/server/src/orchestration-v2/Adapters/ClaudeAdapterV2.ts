@@ -28,7 +28,7 @@ import {
 import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
 import {
   addClaudeLedgerUsage,
-  claudeLedgerDelta,
+  claudeResultLedgerGrowth,
   claudeModelLedger,
   claudeReportedContextWindows,
   normalizeClaudeTurnTokenUsage,
@@ -13211,7 +13211,8 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                 (subagent) => subagent.task.status === "running",
               ),
             ),
-            modelLedger: new Map(),
+            // A resumed conversation has no known start: see claudeResultLedgerGrowth.
+            modelLedger: shouldResume ? undefined : new Map(),
             taskOutputRoot: claudeTaskOutputRoot(
               adapterOptions.environment,
               path,
@@ -13264,7 +13265,11 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                   }
                   if (message.type === "result") {
                     const ledger = claudeModelLedger(message.modelUsage);
-                    const growth = claudeLedgerDelta(context.modelLedger, ledger);
+                    const growth = claudeResultLedgerGrowth(
+                      context.modelLedger,
+                      ledger,
+                      message.usage,
+                    );
                     if (growth !== undefined) resultLedgerUsage.set(message, growth);
                     // A ledger that went backwards cannot anchor the next turn's growth.
                     context.modelLedger =

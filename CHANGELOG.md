@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **Usage "by other requests" no longer counts a conversation twice.** The first message after
+  Majordome restarted was charged with everything said before it in that conversation, which
+  made other requests look as large as the chats themselves.
+
 ## 0.10.40
 
 **Improved**

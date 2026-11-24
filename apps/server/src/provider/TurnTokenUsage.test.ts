@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   claudeLedgerDelta,
+  claudeResultLedgerGrowth,
   claudeModelLedger,
   normalizeClaudeTurnTokenUsage,
 } from "./ClaudeTurnTokenUsage.ts";
@@ -220,6 +221,26 @@ describe("billable native turn usage", () => {
     expect(claudeLedgerDelta(ledger(25), ledger(10))).toBeUndefined();
     expect(claudeLedgerDelta(undefined, ledger(10))).toBeUndefined();
     expect(claudeModelLedger({})).toBeUndefined();
+  });
+
+  it("does not count a resumed conversation's earlier turns as this turn's other requests", () => {
+    const ledger = (input: number, output: number) =>
+      claudeModelLedger({ "claude-opus-5-5": { inputTokens: input, outputTokens: output } });
+    const usage = { input_tokens: 56683, output_tokens: 85 };
+    // Claude Code restores a resumed conversation's totals: the first ledger holds every turn.
+    expect(
+      claudeResultLedgerGrowth(undefined, ledger(56683 + 51788, 85 + 136), usage),
+    ).toBeUndefined();
+    // A resumed process whose ledger started at zero reports this turn alone.
+    expect(claudeResultLedgerGrowth(undefined, ledger(56683, 85), usage)).toEqual({
+      inputTokens: 56683,
+      outputTokens: 85,
+    });
+    // With a baseline, growth is the difference, side requests included.
+    expect(claudeResultLedgerGrowth(ledger(100, 10), ledger(56783 + 900, 95 + 40), usage)).toEqual({
+      inputTokens: 57583,
+      outputTokens: 125,
+    });
   });
 
   it("adds Claude steering segments to the final measured result once", () => {
