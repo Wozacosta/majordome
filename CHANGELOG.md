@@ -12,6 +12,16 @@ The section for a version is also the text of its release on GitHub.
   gives you now sit in one card, and making the server shows its four steps as a progress
   line.
 
+**Fixed**
+
+- **A topic's files open inside Majordome.** Clicking a private picture in a topic's Files list
+  downloaded it through your web browser; it now opens over the chat, read into memory and never
+  written to Downloads. An ordinary file opens in the side panel instead of a browser tab. A
+  private file that is not a picture, such as a PDF, is still downloaded.
+
+  **Try this:** in a topic, click a private picture (the lock icon) under Files: it should show
+  over the chat, with nothing new in Downloads.
+
 ## 0.10.44
 
 **New**

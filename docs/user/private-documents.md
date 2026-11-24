@@ -23,6 +23,9 @@ only conversations and routines that run there can ask for it.
 
 **Download** gives you the file back. **Remove** deletes Majordome's encrypted copy for good.
 
+In a topic's **Files** list, clicking a private picture shows it over the conversation without
+saving it anywhere. Any other private file is downloaded.
+
 ## When your assistant asks for one
 
 When a task needs what a document says, your assistant asks. You get a notification, and a card in

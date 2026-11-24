@@ -6,7 +6,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
@@ -17,11 +17,10 @@ import { type DragEvent, useRef, useState } from "react";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
-import { assetEnvironment } from "../../state/assets";
 import { majordomeEnvironment } from "../../state/majordome";
 import { readPreparedConnection } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
+import { openExpandedImagePreview } from "../chat/ExpandedImageDialog";
 import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
 import { THREAD_DETAILS_PANEL_ICON_CLASS } from "../chat/threadDetailsPanelStyles";
 import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
@@ -75,7 +74,7 @@ const droppedFiles = (event: DragEvent) => event.dataTransfer.types.includes("Fi
 
 /**
  * The documents kept with a topic, in its chat's panel. `workspaceRoot` is the notes folder on
- * the chat's computer, null until it is known; a file is shown in a tab from there.
+ * the chat's computer, null until it is known; a file opens beside the chat from there.
  */
 const NO_NOTES = Atom.make(null).pipe(Atom.withLabel("majordome:topic-files:no-notes"));
 
@@ -121,12 +120,6 @@ export function TopicFiles({
     label: "download private document",
     reportFailure: false,
     reportDefect: false,
-  });
-  const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
-    label: "show topic file",
-    reportFailure: false,
-    reportDefect: false,
-    refresh: true,
   });
   // The same list the Notes section reads, read again after an add: a Markdown file lands there.
   const refreshNotes = useAtomRefresh(
@@ -238,7 +231,8 @@ export function TopicFiles({
     else void addAll(good, false);
   };
 
-  const download = async (row: TopicFileRow) => {
+  /** A minute-long address for the file itself, or null once the owner has been told why not. */
+  const linkTo = async (row: TopicFileRow) => {
     const link =
       row.kind === "private"
         ? await viewPrivateDocument({ environmentId, input: { id: row.document.id } })
@@ -248,8 +242,8 @@ export function TopicFiles({
       link._tag === "Success" && connection !== null
         ? resolveAssetUrl(connection.httpBaseUrl, link.value.relativeUrl)
         : null;
-    if (url !== null) return saveFromUrl(url, row.name);
-    if (link._tag === "Failure" && isAtomCommandInterrupted(link)) return;
+    if (url !== null) return url;
+    if (link._tag === "Failure" && isAtomCommandInterrupted(link)) return null;
     toastManager.add({
       type: "error",
       title: `Could not open ${row.name}`,
@@ -260,36 +254,48 @@ export function TopicFiles({
             ? privateDocumentFailureMessage(squashAtomCommandFailure(link))
             : (failureMessage(link) ?? NOT_CONNECTED),
     });
+    return null;
   };
 
-  /** Whether opening this row shows it in a tab; a private document is only ever downloaded. */
-  const previews = (row: TopicFileRow) =>
-    row.kind === "file" && workspaceRoot !== null && topicFilePreviewable(row.name);
+  const download = async (row: TopicFileRow) => {
+    const url = await linkTo(row);
+    if (url !== null) saveFromUrl(url, row.name);
+  };
 
-  const open = async (row: TopicFileRow) => {
-    if (row.kind !== "file" || workspaceRoot === null || !previews(row)) return download(row);
-    // Opened while the click still counts as the owner's, or the browser blocks the tab.
-    const tab = window.desktopBridge ? null : window.open("", "_blank");
-    if (tab !== null) tab.opener = null;
-    const made = await createAssetUrl({
-      environmentId,
-      input: {
-        resource: {
-          _tag: "draft-workspace-file",
-          cwd: workspaceRoot,
-          path: `${workspaceRoot.replace(/[\\/]+$/, "")}/${row.path}`,
+  /**
+   * Whether opening this row shows it rather than downloading it. A private picture is shown over
+   * the chat, read into memory so it is never written to the Downloads folder.
+   */
+  const previews = (row: TopicFileRow) =>
+    row.kind === "private"
+      ? row.document.mediaType.startsWith("image/")
+      : workspaceRoot !== null && topicFilePreviewable(row.name);
+
+  const showPrivatePicture = async (row: TopicFileRow & { readonly kind: "private" }) => {
+    const url = await linkTo(row);
+    if (url === null) return;
+    // The address lasts a minute; a copy held in memory lasts as long as the picture is open.
+    const blob = await fetch(url)
+      .then((response) => (response.ok ? response.blob() : null))
+      .catch(() => null);
+    openExpandedImagePreview(scopedThreadKey(scopeThreadRef(environmentId, threadId)), {
+      images: [
+        {
+          src: blob === null ? url : URL.createObjectURL(blob),
+          ownsSrc: blob !== null,
+          name: row.name,
+          mimeType: row.document.mediaType,
         },
-      },
+      ],
+      index: 0,
     });
-    const connection = readPreparedConnection(environmentId);
-    const url =
-      made._tag === "Success" && connection !== null
-        ? resolveAssetUrl(connection.httpBaseUrl, made.value.relativeUrl)
-        : null;
-    if (url !== null && tab !== null) return tab.location.replace(url);
-    tab?.close();
-    if (url !== null && (await window.desktopBridge?.openExternal(url))) return;
-    return download(row);
+  };
+
+  const open = (row: TopicFileRow) => {
+    if (row.kind === "private" && previews(row)) return showPrivatePicture(row);
+    if (row.kind !== "file" || !previews(row)) return download(row);
+    // Beside the chat, as any other file of the notes folder opens.
+    useRightPanelStore.getState().openFile(scopeThreadRef(environmentId, threadId), row.path);
   };
 
   const dropTarget = canChange
