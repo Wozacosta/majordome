@@ -35,6 +35,7 @@ import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { stepAround, topicTabs } from "./TopicPanel.logic";
 import type { VaultTopic } from "./topics.logic";
 import { useMachineNames } from "./useMachineNames";
+import { useMoveTopicConversation } from "./moveTopicConversation";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 
@@ -115,61 +116,38 @@ function TopicTabStrip(props: {
     majordomeEnvironment.openTopic.permissionAtom(props.homeEnvironmentId),
   );
   const openTopic = useOpenTopic({ environmentId, projectId });
-  const { settleThread, archiveThread } = useThreadActions();
-  const readConversation = useAtomCommand(majordomeEnvironment.readTopicConversation, {
-    reportFailure: false,
-  });
-  const adoptConversation = useAtomCommand(majordomeEnvironment.adoptTopicConversation, {
-    reportFailure: false,
-  });
+  const { settleThread } = useThreadActions();
+  const moveConversation = useMoveTopicConversation();
   const canMove = useAtomValue(
     majordomeEnvironment.adoptTopicConversation.permissionAtom(props.homeEnvironmentId),
   );
   const [moving, setMoving] = useState(false);
   // This computer's own conversation for the topic, while the topic's home is another computer.
+  // It moves by itself; the button is for one that could not.
   const movable =
     canMove && topic.threadId === threadId && props.homeEnvironmentId !== environmentId;
   const homeName = machineInSentence(machineOf(props.homeEnvironmentId));
   const moveHome = async () => {
     if (moving) return;
-    const question = `Move this conversation to ${homeName}? It becomes the main chat of ${topic.title} there, so your phone and this computer show the same one. A chat already there stays under the topic. The words are moved; pictures and files are not.`;
-    const labels = { confirm: "Move it", cancel: "Not now" };
-    const agreed = (await requestConfirmDialog(question, { labels })) ?? window.confirm(question);
-    if (!agreed) return;
     setMoving(true);
-    const failed = (description: string) => {
-      setMoving(false);
-      toastManager.add({ type: "error", title: "The conversation was not moved", description });
-    };
-    const read = await readConversation({
-      environmentId,
-      input: { projectId, topicId: topic.id },
+    const moved = await moveConversation({
+      from: { environmentId, projectId },
+      to: { environmentId: props.homeEnvironmentId, projectId: props.homeProjectId },
+      topicId: topic.id,
+      threadId,
     });
-    if (read._tag !== "Success" || read.value.threadId === null) {
-      return failed("It could not be read on this computer. Try again.");
-    }
-    const adopted = await adoptConversation({
-      environmentId: props.homeEnvironmentId,
-      input: {
-        projectId: props.homeProjectId,
-        topicId: topic.id,
-        sourceKey: `${environmentId}:${read.value.threadId}`,
-        messages: read.value.messages,
-      },
-    });
-    if (adopted._tag !== "Success") {
-      return failed(
-        `${homeName} did not take it. If it runs an older Majordome, update it, then try again. Nothing was changed.`,
-      );
-    }
-    // The copy here goes to the archive, so the topic shows one conversation.
-    await archiveThread(scopeThreadRef(environmentId, threadId));
     setMoving(false);
+    if (moved === null) {
+      toastManager.add({
+        type: "error",
+        title: "The conversation was not moved",
+        description: `Nothing was changed. If ${homeName} runs an older Majordome, update it, then try again.`,
+      });
+      return;
+    }
     void navigate({
       to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(
-        scopeThreadRef(props.homeEnvironmentId, adopted.value.threadId),
-      ),
+      params: buildThreadRouteParams(scopeThreadRef(props.homeEnvironmentId, moved)),
     });
   };
   const interruptTurn = useAtomCommand(threadEnvironment.interruptTurn, { reportFailure: false });

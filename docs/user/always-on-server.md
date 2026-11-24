@@ -5,12 +5,10 @@ awake. A server of your own is a small computer you rent that never sleeps. Majo
 the same way, and your phone and computer connect to it.
 
 Once the server is set up and signed in to your AI, your conversations are kept there, so your
-phone and your computer show the same ones. Conversations you had before stay on your computer:
-they are listed under their topic as "Chat on this Mac". To carry on one of them everywhere, open
-it on your computer and press **Move to your server** above the messages. It becomes the topic's
-main chat on the server, with everything said so far; pictures and files in it are not moved.
-While the server can't be reached, new
-conversations wait until it is back.
+phone and your computer show the same ones. Each topic's conversation on your computer moves to
+the server by itself the next time you open the app there, with everything said so far; pictures
+and files in it are not moved. The copy left on the computer goes to Settings > Archived chats.
+While the server can't be reached, new conversations wait until it is back.
 
 **Settings > Your server** starts with the way that needs the least: with an invite code,
 [Majordome hosts the server](#let-majordome-host-it), with nothing to rent or install. The rest

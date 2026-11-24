@@ -5,6 +5,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { ConversationHome } from "./home.logic";
 import {
   collectVaults,
+  conversationsToMoveHome,
   type MajordomeVault,
   mergeVaultCopies,
   moveTopic,
@@ -262,6 +263,17 @@ describe("mergeVaultCopies", () => {
       ["reading", vps, "vps-reading", undefined],
       ["new", vps, null, undefined],
     ]);
+    // This computer's own conversations are the ones to move to the server, and only from here.
+    const kept = mergeVaultCopies(spoken, mac, homes(onServer));
+    expect(conversationsToMoveHome(spoken, kept, mac)).toEqual([
+      {
+        from: { environmentId: mac, projectId: onMac.id },
+        to: { environmentId: vps, projectId: onVps.id },
+        topicId: "fitness",
+        threadId: "mac-fitness",
+      },
+    ]);
+    expect(conversationsToMoveHome(spoken, kept, vps)).toEqual([]);
     // Only this computer has one: the topic's chat is still to start on the server.
     const onlyHere = spoken.map((copy) =>
       copy.environmentId === vps
@@ -278,6 +290,7 @@ describe("mergeVaultCopies", () => {
     const alone = spoken.filter((copy) => copy.environmentId === mac);
     const unreachable = mergeVaultCopies(alone, mac, homes({ kind: "unreachable" }));
     expect(unreachable[0]!.home).toEqual({ kind: "unreachable" });
+    expect(conversationsToMoveHome(alone, unreachable, mac)).toEqual([]);
     expect(rows(unreachable)).toEqual([
       ["fitness", mac, null, macChat],
       ["reading", mac, null, undefined],
@@ -288,6 +301,9 @@ describe("mergeVaultCopies", () => {
       { kind: "ready", environmentId: mac, projectId: onMac.id },
       { kind: "loading" },
     ] as const) {
+      expect(
+        conversationsToMoveHome(spoken, mergeVaultCopies(spoken, mac, homes(home)), mac),
+      ).toEqual([]);
       expect(rows(mergeVaultCopies(spoken, mac, homes(home))).slice(0, 2)).toEqual([
         ["fitness", mac, "mac-fitness", [{ environmentId: vps, threadId: "vps-fitness" }]],
         ["reading", vps, "vps-reading", undefined],

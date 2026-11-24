@@ -202,6 +202,46 @@ export function mergeVaultCopies(
   });
 }
 
+/** One topic's conversation, from the computer it is on to the one that keeps the topic's. */
+export interface ConversationMove {
+  readonly from: { readonly environmentId: EnvironmentId; readonly projectId: ProjectId };
+  readonly to: { readonly environmentId: EnvironmentId; readonly projectId: ProjectId };
+  readonly topicId: string;
+  readonly threadId: ThreadId;
+}
+
+/**
+ * This computer's topic conversations that belong on another one: those of each notes folder
+ * whose conversations are kept on a computer that can be reached and is not this one.
+ */
+export function conversationsToMoveHome(
+  copies: ReadonlyArray<MajordomeVault>,
+  vaults: ReadonlyArray<MajordomeVault>,
+  primaryEnvironmentId: EnvironmentId | null,
+): ReadonlyArray<ConversationMove> {
+  return copies.flatMap((copy) => {
+    if (copy.environmentId !== primaryEnvironmentId) return [];
+    const home = vaults.find((vault) =>
+      vault.copies.some(
+        (other) => other.environmentId === copy.environmentId && other.projectId === copy.projectId,
+      ),
+    )?.home;
+    if (home?.kind !== "ready" || home.environmentId === copy.environmentId) return [];
+    return copy.topics.flatMap((topic) =>
+      topic.threadId === null
+        ? []
+        : [
+            {
+              from: { environmentId: copy.environmentId, projectId: copy.projectId },
+              to: { environmentId: home.environmentId, projectId: home.projectId },
+              topicId: topic.id,
+              threadId: topic.threadId,
+            },
+          ],
+    );
+  });
+}
+
 /** The vault the switcher points at, else the first one. */
 export function pickActiveVault(
   vaults: ReadonlyArray<MajordomeVault>,

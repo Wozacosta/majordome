@@ -49,6 +49,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { onMachine } from "./brains.logic";
+import { useMoveTopicConversationsHome } from "./moveTopicConversation";
 import { chatStatusWords, chatTitle, isEmptyChat, splitChats } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { type RoutineItem, routineScheduleWords, routineTopicIds } from "./routines.logic";
@@ -202,6 +203,7 @@ function ChatsRow() {
  */
 export function MajordomeTopicsSection() {
   const { vaults, copies, loading, activeVault, setActiveVaultKey } = useMajordomeVaults();
+  useMoveTopicConversationsHome();
   const onWelcome = useLocation({ select: (location) => location.pathname === "/" });
   if (activeVault === null) {
     return loading ? null : (
