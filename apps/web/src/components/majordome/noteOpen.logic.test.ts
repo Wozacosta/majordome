@@ -79,7 +79,7 @@ describe("noteOpenTargets", () => {
           isResolved: true,
           state: resolveRemoteOpenState({
             target: row.target,
-            sshTarget: null,
+            routes: [],
             remoteOpenTargets: undefined,
             isDesktopRenderer: row.isDesktopRenderer,
             hostEnvironmentId: null,

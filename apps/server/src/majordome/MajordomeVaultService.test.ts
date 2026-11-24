@@ -59,6 +59,7 @@ const projectRow = (projectId: ProjectId, workspaceRoot: string): ProjectStore.P
   title: "Notes",
   hasCustomTitle: false,
   workspaceRoot,
+  trackedFolders: [],
   defaultModelSelection: null,
   defaultThreadEnvMode: null,
   autoPull: false,

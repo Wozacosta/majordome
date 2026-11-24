@@ -65,13 +65,16 @@ import { scrollToSettingsTarget } from "./settingsLayout";
 import {
   searchSettings,
   revealSettingsSearchTarget,
-  SETTINGS_NAV_GROUPS,
+  settingsNavGroups,
   SETTINGS_NAV_LABELS,
   SETTINGS_SECTION_LABELS,
   type SettingsPath,
   type SettingsSearchItem,
 } from "./settingsSearch";
-import { useAvailableSettingsSearchItems } from "./useAvailableSettingsSearchItems";
+import {
+  useAvailableSettingsSearchItems,
+  useHasSecretProvidersEnvironment,
+} from "./useAvailableSettingsSearchItems";
 import { handleSettingsSectionKeyDown } from "./settingsSectionNavigation";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 
@@ -181,6 +184,7 @@ export function SettingsSidebarNav({
       open.includes(heading) ? open.filter((item) => item !== heading) : [...open, heading],
     );
   const searchableItems = useAvailableSettingsSearchItems();
+  const navGroups = settingsNavGroups(useHasSecretProvidersEnvironment());
   const results = searchSettings(query, searchableItems, m);
   const isSearching = query.trim().length > 0;
   const hasResults = results.length > 0;
@@ -422,7 +426,7 @@ export function SettingsSidebarNav({
                   </SidebarMenu>
                 ) : null}
                 <div onKeyDown={handleSettingsSectionKeyDown} className="flex flex-col gap-4">
-                  {SETTINGS_NAV_GROUPS.map((group, index) => {
+                  {navGroups.map((group, index) => {
                     const isPathActive = (to: SettingsPath) =>
                       activePath === to || activePath.startsWith(`${to}/`);
                     const collapsed = group.collapsible && !openGroups.includes(group.heading);

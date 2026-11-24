@@ -34,7 +34,7 @@ import { notePendingAssistantThread } from "./pendingAssistantThreads";
 import type { VaultCopy } from "./topics.logic";
 
 // The panel has no diff panel or terminal of its own; the full conversation does.
-const NO_PARENT_PANEL: SideChatParentPanel = {
+const NO_PARENT_PANEL: Omit<SideChatParentPanel, "hostRef"> = {
   openToolDiff: () => {},
   runShellCommand: () => {},
 };
@@ -200,7 +200,11 @@ export function RoutinesAssistant({
                 environmentId={environmentId}
                 threadId={routinesThreadId}
                 routeKind="server"
-                embedded={NO_PARENT_PANEL}
+                // There is no other conversation behind this panel, so it is its own host.
+                embedded={{
+                  ...NO_PARENT_PANEL,
+                  hostRef: scopeThreadRef(environmentId, routinesThreadId),
+                }}
               />
             </ScreenContextReader>
           </ComposerHandleContext>

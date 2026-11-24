@@ -20,7 +20,7 @@ import type { VaultTopic } from "./topics.logic";
 const USAGE_WARNING_PERCENT_LEFT = 20;
 const USAGE_ERROR_PERCENT_LEFT = 10;
 
-export function usageTone(percentLeft: number): "error" | "warning" | null {
+function usageTone(percentLeft: number): "error" | "warning" | null {
   return percentLeft <= USAGE_ERROR_PERCENT_LEFT
     ? "error"
     : percentLeft <= USAGE_WARNING_PERCENT_LEFT

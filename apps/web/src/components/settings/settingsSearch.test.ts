@@ -15,7 +15,7 @@ import {
   isSettingsSearchScopeAvailable,
   movedSettingsPath,
   searchSettings,
-  SETTINGS_NAV_GROUPS,
+  settingsNavGroups,
   SETTINGS_SEARCH_ITEMS,
   sourceControlHostSearchItems,
   sourceControlHostSettingsSearchId,
@@ -78,20 +78,44 @@ describe("searchSettings", () => {
     }
   });
 
-  it("hides the Secrets page from nav and search while the secrets feature is disabled", () => {
-    expect(SETTINGS_NAV_GROUPS.flatMap((group) => group.paths)).not.toContain("/settings/secrets");
-    expect(searchSettings("1password").map((item) => item.to)).not.toContain("/settings/secrets");
+  it("shows the Secrets page in nav and search only when an environment enables secret providers", () => {
+    const availability = {
+      hasCloudPublicConfig: false,
+      hasEnvironment: true,
+      hasProviderSettingsEnvironment: true,
+      canManageLocalBackend: false,
+      isWslSettingsRowVisible: false,
+      hasThreadAutoSettlement: false,
+    };
+    for (const enabled of [false, true]) {
+      const navPaths = settingsNavGroups(enabled).flatMap((group) => group.paths);
+      const searchPaths = searchSettings(
+        "1password",
+        filterAvailableSettingsSearchItems({
+          ...availability,
+          hasSecretProvidersEnvironment: enabled,
+        }),
+      ).map((item) => item.to);
+      expect(navPaths.includes("/settings/secrets")).toBe(enabled);
+      expect(searchPaths.includes("/settings/secrets")).toBe(enabled);
+    }
+  });
+
+  it("finds where subagents and side chats open by any of its names", () => {
+    for (const query of ["side panel", "subagent", "side chat", "linked thread", "middle click"]) {
+      expect(searchSettings(query).map((item) => item.id)).toContain("side-thread-open-target");
+    }
   });
 
   it("keeps T3 Code's groups and leaves Majordome's own pages out of nav and search", () => {
-    expect(SETTINGS_NAV_GROUPS.map((group) => group.heading)).toEqual([
+    expect(settingsNavGroups(false).map((group) => group.heading)).toEqual([
       "Preferences",
       "Agents",
       "Code",
       "Connections",
       "More",
     ]);
-    expect(SETTINGS_NAV_GROUPS.some((group) => group.collapsible)).toBe(false);
+    expect(settingsNavGroups(false).some((group) => group.collapsible)).toBe(false);
     const majordomePages = [
       "/settings/overview",
       "/settings/backup",
@@ -100,7 +124,9 @@ describe("searchSettings", () => {
       "/settings/phone",
       "/settings/always-on",
     ];
-    const navPaths: ReadonlyArray<string> = SETTINGS_NAV_GROUPS.flatMap((group) => group.paths);
+    const navPaths: ReadonlyArray<string> = settingsNavGroups(false).flatMap(
+      (group) => group.paths,
+    );
     expect(navPaths.filter((path) => majordomePages.includes(path))).toEqual([]);
     for (const query of ["overview", "back up my brain", "notifications", "your phone"]) {
       expect(searchSettings(query).filter((item) => majordomePages.includes(item.to))).toEqual([]);
@@ -175,6 +201,7 @@ describe("searchSettings", () => {
       "auto-settle-merged-threads",
       "days-before-auto-settle",
       "linked-environments",
+      "agent-feedback",
     ]);
     expect(available.map((item) => item.id).filter((id) => gatedIds.has(id))).toEqual([]);
   });

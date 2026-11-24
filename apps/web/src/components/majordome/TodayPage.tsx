@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
-import { setMarkdownTaskChecked } from "@t3tools/shared/markdownTaskList";
+import { setMarkdownTaskChecked } from "@t3tools/shared/markdownTaskEdits";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import {

@@ -14,6 +14,7 @@ import {
   type ContextMenuItem,
   type ScopedThreadRef,
   type ThreadId,
+  type ContextMenuSource,
 } from "@t3tools/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { msg } from "gt-react";
@@ -119,7 +120,7 @@ export function useThreadActionMenu(input: {
     onError: (error) => failureToast(m(msg("Failed to copy thread ID")), error),
   });
 
-  const openMenu = (position: { x: number; y: number }) => {
+  const openMenu = (position: { x: number; y: number }, source?: ContextMenuSource) => {
     if (threadRef === null) return;
     void (async () => {
       const api = readLocalApi();
@@ -155,6 +156,7 @@ export function useThreadActionMenu(input: {
         canSnoozeNow: canSnooze(thread, { now: now.toISOString() }),
         isRegeneratingTitle,
         isRunning: !threadRuntimeCanArchive(thread.runtime),
+        hasCompletedRun: thread.latestRun?.completedAt != null,
         supports,
         snoozePresets,
         canShareWithGuest,
@@ -166,7 +168,7 @@ export function useThreadActionMenu(input: {
         ...(input.extraItems ?? []),
         ...threadItems.slice(extraAt),
       ];
-      const clicked = await settlePromise(() => api.contextMenu.show(items, position));
+      const clicked = await settlePromise(() => api.contextMenu.show(items, position, source));
       if (clicked._tag === "Failure" || clicked.value === null) return;
       const picked = clicked.value;
       if (picked.startsWith("extra:")) {
