@@ -13,7 +13,8 @@ import {
   updateServers,
 } from "./hosting.ts";
 import { START_PAGE } from "./startPage.ts";
-import { makeD1InviteStore, makeD1Store } from "./store.ts";
+import { makeD1InviteStore, makeD1Store, makeD1WaitlistStore } from "./store.ts";
+import { makeWaitlist } from "./waitlist.ts";
 
 interface Env {
   readonly DB: D1Database;
@@ -33,7 +34,7 @@ interface Env {
   readonly MAX_HOSTED_SERVERS?: string;
   /** Majordome's account service. With it, a new server can belong to a signed-in account. */
   readonly ACCOUNT_ISSUER?: string;
-  /** The one other site allowed to ask for a hosted server: where people sign in. */
+  /** The one other site allowed to call from a browser: where people sign in and leave an email. */
   readonly ACCOUNT_PAGE_ORIGIN?: string;
 }
 
@@ -81,6 +82,7 @@ const brokerFor = (env: Env): Broker =>
   });
 
 const HOSTED_NAME_PREFIX = "majordome-";
+const WAITLIST_PATH = "/v1/waitlist";
 
 const hostFor = (env: Env): HostClient | null =>
   env.FLY_API_TOKEN === undefined || env.FLY_ORG_SLUG === undefined
@@ -224,6 +226,21 @@ async function readInvite(
   return { invite, accountToken: typeof accountToken === "string" ? accountToken : null };
 }
 
+async function readWaitlist(
+  request: Request,
+): Promise<{ readonly email: unknown; readonly platforms: unknown }> {
+  const text = await request.text();
+  try {
+    const body: unknown = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : null;
+    if (typeof body === "object" && body !== null) {
+      return body as { readonly email: unknown; readonly platforms: unknown };
+    }
+  } catch {
+    // Answered below, like any other body that is not what was asked for.
+  }
+  throw new BrokerError("invalid_request", "Send a JSON body with email and platforms.");
+}
+
 const errorResponse = (code: BrokerErrorCode, message: string, headers?: HeadersInit) =>
   Response.json(
     { error: code, message },
@@ -257,6 +274,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return new Response(
       `Majordome address broker: gives a Majordome computer a public address under ${env.ZONE_NAME}. Report abuse to ${env.ABUSE_CONTACT}.\n`,
     );
+  }
+  if (pathname === WAITLIST_PATH && request.method === "POST") {
+    const { email, platforms } = await readWaitlist(request);
+    await makeWaitlist({
+      store: makeD1WaitlistStore(env.DB),
+      now: () => Date.now(),
+      maxPerIpPerDay: 6,
+    }).join({ email, platforms, clientIp: request.headers.get("cf-connecting-ip") ?? "unknown" });
+    return new Response(null, { status: 204 });
   }
   const host = hostFor(env);
   if (host !== null && pathname === "/start" && request.method === "GET") {
@@ -300,11 +326,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request, env) {
-    const hosted = new URL(request.url).pathname.startsWith("/v1/hosted");
-    const cors = hosted
+    const { pathname } = new URL(request.url);
+    const fromSite = pathname.startsWith("/v1/hosted") || pathname === WAITLIST_PATH;
+    const cors = fromSite
       ? accountPageCors(request.headers.get("origin"), env.ACCOUNT_PAGE_ORIGIN)
       : {};
-    if (hosted && request.method === "OPTIONS") {
+    if (fromSite && request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
     }
     const answer = await answerFor(request, env);

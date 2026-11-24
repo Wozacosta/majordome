@@ -193,6 +193,77 @@
         font-size: 0.9rem;
         color: var(--muted);
       }
+      .soon {
+        margin: 28px auto 0;
+        max-width: 34rem;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+        font-size: 0.95rem;
+      }
+      .soon p {
+        margin: 0;
+      }
+      .soon .tag {
+        margin-right: 8px;
+        padding: 2px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--live-text);
+        white-space: nowrap;
+      }
+      .soon-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px 16px;
+        margin-top: 14px;
+      }
+      .soon label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .soon input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--ink);
+      }
+      .soon input[type="email"] {
+        flex: 1 1 13rem;
+        min-width: 0;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+      }
+      .soon button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .soon button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .soon-status:empty {
+        display: none;
+      }
+      .soon-status {
+        margin-top: 12px !important;
+        color: var(--muted);
+      }
 
       .made {
         margin: 48px auto 0;
@@ -909,6 +980,30 @@
           </div>
           <p class="fineprint">For Apple silicon. No account needed.</p>
 
+          <form class="soon" id="soon">
+            <p>
+              <span class="tag">Coming soon</span>Linux and Windows. Leave your email and get one
+              message when yours is ready.
+            </p>
+            <div class="soon-row">
+              <label><input type="checkbox" name="platform" value="linux" checked /> Linux</label>
+              <label
+                ><input type="checkbox" name="platform" value="windows" checked /> Windows</label
+              >
+              <input
+                type="email"
+                name="email"
+                required
+                maxlength="254"
+                autocomplete="email"
+                placeholder="you@example.com"
+                aria-label="Your email address"
+              />
+              <button class="button small" type="submit">Tell me</button>
+            </div>
+            <p class="soon-status" role="status"></p>
+          </form>
+
           <div class="shot">
             <video
               autoplay
@@ -1352,6 +1447,48 @@
           { threshold: 0.45 },
         ).observe(merge);
       }
+      const soon = document.getElementById("soon");
+      const soonStatus = soon.querySelector(".soon-status");
+      const soonBoxes = [...soon.querySelectorAll("[name=platform]")];
+      // A visitor on one of the two systems starts with only theirs ticked. Android says Linux too.
+      const visitorOn = /Android/i.test(navigator.userAgent)
+        ? null
+        : /Win/i.test(navigator.userAgent)
+          ? "windows"
+          : /Linux/i.test(navigator.userAgent)
+            ? "linux"
+            : null;
+      if (visitorOn) for (const box of soonBoxes) box.checked = box.value === visitorOn;
+      soon.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const platforms = soonBoxes.filter((box) => box.checked).map((box) => box.value);
+        if (platforms.length === 0) {
+          soonStatus.textContent = "Tick Linux, Windows or both.";
+          return;
+        }
+        const button = soon.querySelector("button");
+        button.disabled = true;
+        soonStatus.textContent = "";
+        try {
+          const answer = await fetch("https://broker.majord.link/v1/waitlist", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email: soon.elements.email.value, platforms }),
+          });
+          if (!answer.ok) {
+            const body = await answer.json().catch(() => ({}));
+            throw new Error(typeof body.message === "string" ? body.message : "");
+          }
+          soon.querySelector(".soon-row").remove();
+          soonStatus.textContent =
+            "Noted. You will get one email when it is ready, and nothing else.";
+        } catch (error) {
+          button.disabled = false;
+          soonStatus.textContent =
+            (error instanceof Error && !(error instanceof TypeError) && error.message) ||
+            "That did not go through. Try again in a moment.";
+        }
+      });
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
         const tour = document.querySelector("video");
         tour.removeAttribute("autoplay");

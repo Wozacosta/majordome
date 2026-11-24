@@ -342,9 +342,12 @@ takes over.
      routines, notes). The share sheet is also how a link reaches the reading list from the
      phone: a home-screen web app cannot appear in the iPhone share sheet, so until then links are
      pasted in the app, and no Apple Shortcut or token endpoint is built as a stopgap.
-   - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
-     relay, since a public app can't ship an Apple push key, and the relay waits until people ask
-     for it. The PWA stays the phone for everyone else.
+   - **Where it ships first (2026-11-24):** Mac, iPhone and Android. Linux and Windows come
+     after; until then the landing page marks them "coming soon" and takes an email, kept by
+     the address broker, for one message when each is ready. This replaces "not planned: the
+     App Store and Android". Still open: push for other people's phones needs a hosted relay,
+     since a public app can't ship an Apple push key. The PWA stays the phone until the apps
+     are out.
 10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, with the customer's own Claude plan (see
     Servers and sync). Fly.io first, always on, with UpCloud as the fallback (2026-11-23; the
     reasons and the deciding test are in `docs/whatsnext.md`). No single host: in 2026 Hetzner rationed new cloud servers

@@ -46,6 +46,20 @@ Set as vars in `wrangler.jsonc`:
 Claims by a computer that already has an address never count. Over the first two the caller
 gets `rate_limited`; at the ceiling it gets `full`.
 
+## Linux and Windows list
+
+`POST /v1/waitlist` with `{ "email": "...", "platforms": ["linux", "windows"] }` keeps an email
+for the day Majordome runs on those systems. The form is on majord.me, the one site allowed to
+call it from a browser. One visitor can add six rows a day. Read the list, or take someone off
+it, from this folder:
+
+```sh
+vp dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
+  --command "SELECT email, platform, datetime(created_at / 1000, 'unixepoch') AS asked FROM platform_waitlist ORDER BY created_at"
+vp dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
+  --command "DELETE FROM platform_waitlist WHERE email = 'someone@example.com'"
+```
+
 ## Hosted servers
 
 The same Worker makes a server for someone who has an invite code. It is switched on by the

@@ -1,5 +1,6 @@
 import type { AddressRow, AddressStore } from "./broker.ts";
 import type { InviteStore } from "./hosting.ts";
+import type { WaitlistStore } from "./waitlist.ts";
 
 const COLUMNS =
   "label, identity, port, tunnel_id, dns_record_id, client_ip, created_at, blocked, reaped_at";
@@ -128,6 +129,28 @@ export function makeD1InviteStore(db: D1Database): InviteStore {
         )
         .all<{ app_name: string }>();
       return results.map((row) => row.app_name);
+    },
+  };
+}
+
+export function makeD1WaitlistStore(db: D1Database): WaitlistStore {
+  return {
+    addedByIp: async ({ clientIp, since }) => {
+      const row = await db
+        .prepare(
+          "SELECT COUNT(*) AS added FROM platform_waitlist WHERE client_ip = ? AND created_at > ?",
+        )
+        .bind(clientIp, since)
+        .first<{ added: number }>();
+      return row?.added ?? 0;
+    },
+    add: async ({ email, platform, clientIp, createdAt }) => {
+      await db
+        .prepare(
+          "INSERT OR IGNORE INTO platform_waitlist (email, platform, client_ip, created_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(email, platform, clientIp, createdAt)
+        .run();
     },
   };
 }
