@@ -60,6 +60,30 @@ export function placeTopics(
 }
 
 /**
+ * The Chats list with the topics' conversations first, in the topics' own order (`topicThreadIds`),
+ * whatever each is doing: a topic keeps its place while it works, waits or sits unread.
+ * `threadIdOf` answers null for a row that stays where it is.
+ */
+export function pinTopicChats<T>(
+  items: ReadonlyArray<T>,
+  threadIdOf: (item: T) => string | null,
+  topicThreadIds: ReadonlyArray<string>,
+): { readonly items: Array<T>; readonly pinned: number } {
+  const place = new Map(topicThreadIds.map((id, index) => [id, index]));
+  const placeOf = (item: T) => {
+    const id = threadIdOf(item);
+    return id === null ? undefined : place.get(id);
+  };
+  const topics = items
+    .filter((item) => placeOf(item) !== undefined)
+    .sort((left, right) => placeOf(left)! - placeOf(right)!);
+  return {
+    items: [...topics, ...items.filter((item) => placeOf(item) === undefined)],
+    pinned: topics.length,
+  };
+}
+
+/**
  * The Chats list with each topic's other chats folded under the topic's row: taken out of their
  * own places, and put back right under the topic only while it is unfolded. `threadIdOf` answers
  * null for a row that stays where it is (a label, a shelf, a chat marked as done).

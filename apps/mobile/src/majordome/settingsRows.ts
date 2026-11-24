@@ -20,11 +20,11 @@ type Labelled = keyof typeof MAJORDOME_SETTINGS_LABELS;
 
 /**
  * Settings as Majordome lists them, grouped by what the owner is setting up. Any page left out
- * (projects, source control, worktrees, labs, tab order, upstream's account) is not shown, and
+ * (projects, source control, worktrees, labs, tab order, T3's account) is not shown, and
  * neither is a page upstream adds later until it is placed here.
  */
 const LAYOUT: ReadonlyArray<{ readonly title?: string; readonly pages: readonly string[] }> = [
-  { pages: ["SettingsEnvironments"] },
+  { pages: ["SettingsAccount", "SettingsEnvironments"] },
   { title: "The assistant", pages: ["SettingsProviderAccounts", "SettingsScheduledTasks"] },
   {
     title: "This app",

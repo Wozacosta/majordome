@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 
+import { isMajordome } from "../../majordome/env";
 import { mobilePreferencesAtom, saveMobilePreferences } from "../../state/preferences";
 import { useAtomCommand } from "../../state/use-atom-command";
 
@@ -12,7 +13,9 @@ export function useThreadListV2ShelfPreferences() {
     loaded && preferencesResult.value.threadListSnoozedShelfExpanded === true;
   const settledShelfExpanded =
     loaded && preferencesResult.value.threadListSettledShelfExpanded === true;
-  const workingShelfEnabled = loaded && preferencesResult.value.workingShelfEnabled !== false;
+  // Majordome keeps a working chat where it is: a topic never leaves the top of the list.
+  const workingShelfEnabled =
+    !isMajordome && loaded && preferencesResult.value.workingShelfEnabled !== false;
   const workingShelfExpanded =
     loaded && preferencesResult.value.threadListWorkingShelfExpanded === true;
 

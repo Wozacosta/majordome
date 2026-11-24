@@ -118,7 +118,8 @@ import {
   useChatListTopics,
 } from "../../majordome/TopicsSection";
 import { gatherRoutineChats } from "../../majordome/routine.logic";
-import { foldSideChats } from "../../majordome/topic.logic";
+import { foldSideChats, pinTopicChats } from "../../majordome/topic.logic";
+import { RecentChatsLabel } from "../../majordome/ChatRow";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -471,10 +472,15 @@ export function HomeScreen(props: HomeScreenProps) {
   const foldableThreadId = (item: ThreadListV2ListItem) =>
     item.type === "v2-thread" && item.item.variant === "card" ? String(item.item.thread.id) : null;
   // A routine's runs are one row, its latest; a routine can also be taken out of the list.
-  const routineRows =
+  // Topics stay at the top in their own order; a search ranks every chat it finds.
+  const topicsFirst =
     isMajordome && !hasSearchQuery
+      ? pinTopicChats(chatsByActivity, foldableThreadId, [...chatTopics.byThread.keys()])
+      : null;
+  const routineRows =
+    topicsFirst !== null
       ? gatherRoutineChats(
-          chatsByActivity,
+          topicsFirst.items,
           foldableThreadId,
           chatTopics.routineOf,
           new Set(chatTopics.hiddenRoutines),
@@ -493,6 +499,15 @@ export function HomeScreen(props: HomeScreenProps) {
           chatTopics.unfolded,
         );
   const threadListV2Items = sideChats?.items ?? chatsByActivity;
+  // The chats under the topics get their "Recent" label on the first of them.
+  const firstRecent =
+    topicsFirst === null || topicsFirst.pinned === 0
+      ? undefined
+      : threadListV2Items.find((item) => {
+          const id = foldableThreadId(item);
+          return id !== null && !(chatTopics.byThread.has(id) || sideChats?.nested.has(id));
+        });
+  const firstRecentKey = firstRecent?.key ?? null;
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
   const { onSelectThread } = props;
@@ -583,7 +598,7 @@ export function HomeScreen(props: HomeScreenProps) {
     const thread = item.item.thread;
     const rowTopic = chatTopics.byThread.get(thread.id);
     const rowFold = rowTopic ?? routineRows?.byThread.get(String(thread.id));
-    return (
+    const row = (
       <ThreadListV2Row
         pane={sidebarSurface ? "sidebar" : "screen"}
         selected={scopedThreadKey(thread.environmentId, thread.id) === selectedThreadKey}
@@ -668,6 +683,14 @@ export function HomeScreen(props: HomeScreenProps) {
         onSetTopicFinished={chatTopics.setFinished}
       />
     );
+    return item.key === firstRecentKey ? (
+      <>
+        <RecentChatsLabel />
+        {row}
+      </>
+    ) : (
+      row
+    );
   };
   const v2KeyExtractor = (item: ThreadListV2ListItem) => item.key;
 
@@ -683,6 +706,7 @@ export function HomeScreen(props: HomeScreenProps) {
     threadSearchMatchByKey,
     workingShelfEnabled,
     topicsByThread: chatTopics.byThread,
+    firstRecentKey,
     unfoldedTopics: chatTopics.unfolded,
     routineOf: chatTopics.routineOf,
   };
@@ -785,7 +809,7 @@ export function HomeScreen(props: HomeScreenProps) {
         // Majordome lists the topics not yet among the chats here; upstream's filters are put away.
         <MajordomeTopicsSection
           topics={chatTopics}
-          hasChatsBelow={threadListV2Items.length > 0}
+          hasChatsBelow={threadListV2Items.length > 0 && (topicsFirst?.pinned ?? 0) === 0}
           searching={hasSearchQuery}
         />
       ) : Platform.OS === "ios" && workspace ? (

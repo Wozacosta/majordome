@@ -35,6 +35,11 @@ export function ChatListLabel(props: { readonly children: string }) {
   );
 }
 
+/** Over the first chat under the topics, which keep the top of the list. */
+export function RecentChatsLabel() {
+  return <ChatListLabel>Recent</ChatListLabel>;
+}
+
 /**
  * One conversation as the Chats list draws it, topic or chat alike: a round picture, the title
  * with when it last moved, and one line saying what is going on in it.

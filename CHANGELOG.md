@@ -16,6 +16,11 @@ Not released yet.
 - **Routines cost less.** What a routine writes to the AI's cache is kept five minutes and not
   an hour, which is cheaper and enough for a run that takes a few minutes.
 - **A privacy address.** Questions and deletion requests go to privacy@majord.me.
+- **On the phone, topics stay at the top of Chats.** They keep their own order whatever they
+  are doing, with your other chats under "Recent". A chat that is working is no longer folded
+  away into a "Working" section.
+- **On the phone, Settings starts with "Your account".** It shows your email, or "Sign in"
+  when you are signed out.
 
 ## 0.10.39
 

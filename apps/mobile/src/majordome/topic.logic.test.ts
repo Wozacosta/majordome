@@ -1,7 +1,7 @@
 import { expect, it } from "vite-plus/test";
 
 import type { TopicRow } from "./today.logic";
-import { finishedTopics, foldSideChats, placeTopics } from "./topic.logic";
+import { finishedTopics, foldSideChats, pinTopicChats, placeTopics } from "./topic.logic";
 
 const topic = (id: string, threadId: string | null, preview: string | null = null): TopicRow => ({
   id,
@@ -77,4 +77,15 @@ it("folds a topic's other chats under its row, and shows them there once unfolde
   const unfolded = foldSideChats(items, idOf, topics, new Set(["Fitness"]));
   expect(unfolded.items).toEqual(["chat", "t-1", "s-2", "s-1", "label", "s-old"]);
   expect([...unfolded.nested]).toEqual(["s-2", "s-1"]);
+});
+
+it("keeps the topics' conversations first, in the topics' order, whatever they are doing", () => {
+  // As the list arrives: a shelf header, a working topic inside it, a chat, an older topic.
+  const items = ["working-shelf", "t-taxes", "t-chat", "t-fitness"];
+  const idOf = (item: string) => (item.startsWith("t-") ? item : null);
+  expect(pinTopicChats(items, idOf, ["t-fitness", "t-taxes"])).toEqual({
+    items: ["t-fitness", "t-taxes", "working-shelf", "t-chat"],
+    pinned: 2,
+  });
+  expect(pinTopicChats(items, idOf, [])).toEqual({ items, pinned: 0 });
 });

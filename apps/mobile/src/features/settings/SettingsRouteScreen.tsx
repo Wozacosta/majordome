@@ -22,7 +22,7 @@ import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics
 import { deriveProjectGroupLabel } from "@t3tools/client-runtime/state/project-grouping";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { hasCloudPublicConfig } from "../cloud/publicConfig";
+import { hasAccountPublicConfig, hasCloudPublicConfig } from "../cloud/publicConfig";
 import { useAdaptiveWorkspaceLayout } from "../layout/adaptive-workspace-context";
 import { useSavedRemoteConnections } from "../../state/use-remote-environment-registry";
 import { SettingsRow } from "./components/SettingsRow";
@@ -35,7 +35,7 @@ import { filterSettingsSections } from "./settings-search";
 import { usePaneRole } from "../../components/ui/Pane";
 import { useGT, useMessages } from "gt-react-native";
 import { isMajordome } from "../../majordome/env";
-import { majordomeSettingsSections } from "../../majordome/settingsRows";
+import { MAJORDOME_SETTINGS_LABELS, majordomeSettingsSections } from "../../majordome/settingsRows";
 
 export function SettingsRouteScreen() {
   const list = useSettingsListPlacement();
@@ -69,7 +69,12 @@ function useSettingsListPlacement() {
 }
 
 function SettingsListContent() {
-  return hasCloudPublicConfig() ? <ConfiguredSettingsRouteScreen /> : <LocalSettingsRouteScreen />;
+  if (hasCloudPublicConfig()) return <ConfiguredSettingsRouteScreen />;
+  return isMajordome && hasAccountPublicConfig() ? (
+    <AccountSettingsRouteScreen />
+  ) : (
+    <LocalSettingsRouteScreen />
+  );
 }
 
 export function SettingsListScreen(props: {
@@ -141,6 +146,34 @@ function ConfiguredSettingsRouteScreen() {
           label: gt("Notifications"),
           target: "SettingsNotifications",
         },
+      ]}
+    />
+  );
+}
+
+/** Majordome with its account service: Settings starts with the account, signed in or not. */
+function AccountSettingsRouteScreen() {
+  const gt = useGT();
+  const navigation = useNavigation();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const { user } = useUser();
+  const { savedConnectionsById } = useSavedRemoteConnections();
+  return (
+    <SettingsList
+      connections={[
+        {
+          id: "SettingsAccount",
+          icon: "person.crop.circle",
+          label: MAJORDOME_SETTINGS_LABELS.SettingsAccount,
+          value: !isLoaded
+            ? ""
+            : isSignedIn
+              ? (user?.primaryEmailAddress?.emailAddress ?? gt("Signed in"))
+              : gt("Sign in"),
+          valuePosition: "trailing",
+          onPress: () => navigation.navigate("SettingsAccount"),
+        },
+        environmentsRow(gt("Environments"), Object.keys(savedConnectionsById).length),
       ]}
     />
   );
