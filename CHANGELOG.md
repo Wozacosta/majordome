@@ -13,6 +13,12 @@ Not released yet.
   Google Drive or another connected service, its logo and name sit under the answer. A service
   that refused is not shown.
 
+**Fixed**
+
+- **A phone signed in with your account stays signed in.** It was let in for one hour only, then
+  the server "no longer recognised this phone". It now stays connected like a phone that scanned
+  a code: for 30 days after it was last used. Sign in once more on the phone after updating.
+
 **Changed**
 
 - **On the phone, your account can be deleted** from Settings > Your account. Your notes and the
