@@ -23,6 +23,10 @@ export const MAJORDOME_CONNECT = {
   accountLabel: "Sign in to your Majordome account",
   accountDescription:
     "With a Majordome account, this phone finds your computer by itself. No code to scan.",
+  // Says the server exists, never how to get one: a call to buy would need In-App Purchase.
+  hostedLabel: "No computer to leave on?",
+  hostedDescription:
+    "Majordome can also run on a Majordome server that is always on. If your account has one, sign in and this phone finds it.",
 } as const;
 
 const REFUSED_CODE =

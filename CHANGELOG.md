@@ -11,8 +11,8 @@ Not released yet.
 
 - **On the phone, your account can be deleted** from Settings > Your account. Your notes and the
   computers already connected are not touched.
-- **The phone no longer offers to make a Majordome server.** That is done on the website; the
-  phone connects to a computer or server you already have.
+- **The phone no longer makes a Majordome server from an invite code.** That is done on the
+  website. The phone still says a Majordome server exists, and finds yours when you sign in.
 
 ## 0.10.42
 

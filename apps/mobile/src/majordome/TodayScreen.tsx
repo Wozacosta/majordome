@@ -373,8 +373,8 @@ export function MajordomeTodayScreen() {
             title="Add your computer"
             detail={
               hasAccounts
-                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows."
-                : "Your notes live on your computer. Add it to this phone to see today's note here."
+                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows. No computer to leave on? Majordome can also run on a Majordome server that is always on: sign in and it is here."
+                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can also run on a Majordome server that is always on."
             }
             action={
               <View className="gap-2">
