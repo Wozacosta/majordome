@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.42
+
 **Safer**
 
 - **The assistant can no longer rewrite its own rules.** What a conversation or routine changes
@@ -30,6 +32,13 @@ Not released yet.
   To get this on a server you set up yourself, run the update command from the guide once more.
 - **Hosted servers answer over HTTPS only and each has its own private network.** This applies to
   servers made from now on.
+
+**Try this**
+
+- Open Majordome on your Mac, wait a minute, then update the iPhone app in TestFlight and open
+  your server from Settings > Your account: it should connect as before.
+- Ask the assistant to add a line to `CLAUDE.md`. When it finishes, the line is not there, and
+  what it wrote is in `.agents/held-back/`.
 
 ## 0.10.41
 
