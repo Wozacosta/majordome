@@ -94,6 +94,9 @@ const PEER_LINK_RENEWAL_STEP = Duration.days(1);
 const RENEWABLE_ACCESS_TOKEN_TTL = Duration.hours(1);
 const RENEWABLE_SESSION_WINDOW = Duration.days(30);
 const PAIRING_LINK_SUBJECT = "one-time-token";
+/** A Majordome account sign-in: a pairing link under its own name, so removing the account ends it. */
+export const MAJORDOME_ACCOUNT_SUBJECT = "majordome-account";
+const RENEWABLE_SUBJECTS: ReadonlyArray<string> = [PAIRING_LINK_SUBJECT, MAJORDOME_ACCOUNT_SUBJECT];
 
 export interface McpClientSession {
   readonly sessionId: AuthSessionId;
@@ -1130,7 +1133,7 @@ export const make = Effect.gen(function* () {
             const renewable =
               input?.proofKeyThumbprint !== undefined &&
               grant.method === "one-time-token" &&
-              grant.subject === PAIRING_LINK_SUBJECT;
+              RENEWABLE_SUBJECTS.includes(grant.subject);
             return yield* sessions
               .issue({
                 method: input?.proofKeyThumbprint ? "dpop-access-token" : "bearer-access-token",

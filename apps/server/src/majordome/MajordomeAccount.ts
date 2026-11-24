@@ -32,8 +32,7 @@ import * as AnywhereAddress from "./AnywhereAddress.ts";
 
 /** Set on a server Majordome hosts, when it is made: the account that owns it from first boot. */
 const OWNER_ACCOUNT_VARIABLE = "MAJORDOME_OWNER_ACCOUNT";
-/** The subject of every session an account sign-in gives, so removing the account ends them. */
-const ACCOUNT_SESSION_SUBJECT = "majordome-account";
+const ACCOUNT_SESSION_SUBJECT = EnvironmentAuth.MAJORDOME_ACCOUNT_SUBJECT;
 const OWNER_SECRET = "majordome-account-owner";
 const SIGN_IN_KEY_SECRET = "majordome-account-sign-in-key";
 const SIGN_IN_KEY_BYTES = 32;

@@ -46,6 +46,7 @@ The landing page and the README show a short version of this list.
   when the assistant ends with an offer.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
   conversation in short, and a drawing of it. [Key facts](./user/key-facts.md)
+- **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
 
 ### An assistant that works without you
 

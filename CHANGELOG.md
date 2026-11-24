@@ -21,12 +21,38 @@ Not released yet.
   the price, the free week, cancelling, refunds, and what happens to your notes. The privacy
   page now says what paying keeps about you.
 
+**Fixed**
+
+- **On the phone, Your account shows how each server's connection really stands.** It said "This
+  phone is connected to it" for any server the phone had saved, even one that no longer
+  recognised the phone, and offered no way back in. It now says what is wrong, and shows
+  **Connect again** when the server has let the phone go.
+
+## 0.10.43
+
+**New**
+
+- **An answer shows which services it used.** When the assistant reached Gmail, Google Calendar,
+  Google Drive or another connected service, its logo and name sit under the answer. A service
+  that refused is not shown.
+
+**Fixed**
+
+- **A phone signed in with your account stays signed in.** It was let in for one hour only, then
+  the server "no longer recognised this phone". It now stays connected like a phone that scanned
+  a code: for 30 days after it was last used. Sign in once more on the phone after updating.
+
 **Changed**
 
 - **On the phone, your account can be deleted** from Settings > Your account. Your notes and the
   computers already connected are not touched.
 - **The phone no longer makes a Majordome server from an invite code.** That is done on the
   website. The phone still says a Majordome server exists, and finds yours when you sign in.
+
+**Try this**
+
+- On the phone, open Settings > Your account and press Connect on your server. Come back to the
+  app after more than an hour: it should still be connected.
 
 ## 0.10.42
 
