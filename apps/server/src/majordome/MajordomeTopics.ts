@@ -70,14 +70,13 @@ import {
 } from "./topicThreads.ts";
 import { folderOfReady, READY_TOPICS, topicOfReady } from "./readyMade.ts";
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
-import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import { normalizeTopicFolder, readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
 import {
   canHoldTopic,
   listVaultFolders,
   newTopicId,
-  normalizeTopicFolder,
   readTopicFolderFacts,
   readVaultTopics,
   reorderVaultTopics,
@@ -810,6 +809,9 @@ const make = Effect.gen(function* () {
       if (input.messages.length === 0) return yield* fail("That conversation has nothing in it.");
       const threadId = ThreadId.make(`moved:${input.sourceKey}`);
       const known = yield* threads.getThreadShell(threadId).pipe(Effect.orElseSucceed(() => null));
+      if (known !== null && known.projectId !== input.projectId) {
+        return yield* fail("That conversation already belongs to other notes.");
+      }
       if (known === null) yield* startThread(project, topic.title, { threadId, kept: true });
       yield* writeMovedHistory(threadId, input.messages);
       const previousId = (yield* projectState(input.projectId)).threads[topic.id];

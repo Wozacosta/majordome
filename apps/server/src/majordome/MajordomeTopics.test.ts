@@ -3,6 +3,9 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import {
   DEFAULT_SERVER_SETTINGS,
+  MAJORDOME_MOVED_MESSAGE_TEXT_MAX,
+  MAJORDOME_MOVED_MESSAGES_MAX,
+  MajordomeAdoptTopicConversationInput,
   type ModelSelection,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ServerCommand,
@@ -15,6 +18,7 @@ import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
 
 import * as ServerConfig from "../config.ts";
 import * as EventSink from "../orchestration-v2/EventSink.ts";
@@ -488,6 +492,25 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
     }),
   );
 
+  it("refuses a moved conversation that is too large or has a time that is not one", () => {
+    const accepts = Schema.is(MajordomeAdoptTopicConversationInput);
+    const input = (messages: ReadonlyArray<unknown>) => ({
+      projectId: vaultProject,
+      topicId: "fitness",
+      sourceKey: "env-mac:thread-1",
+      messages,
+    });
+    const message = { role: "user", text: "Hi", createdAt: "2026-11-01T09:00:00.000Z" };
+    assert.isTrue(accepts(input([message])));
+    assert.isFalse(accepts(input([{ ...message, createdAt: "yesterday-ish" }])));
+    assert.isFalse(
+      accepts(input([{ ...message, text: "x".repeat(MAJORDOME_MOVED_MESSAGE_TEXT_MAX + 1) }])),
+    );
+    assert.isFalse(
+      accepts(input(Array.from({ length: MAJORDOME_MOVED_MESSAGES_MAX + 1 }, () => message))),
+    );
+  });
+
   it.effect("takes in a conversation from another computer as the topic's own", () =>
     Effect.gen(function* () {
       const { service, fake } = yield* setUp();
@@ -526,6 +549,13 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       assert.deepEqual(words(first.threadId), ["Plan my week", "Three runs."]);
       // And it reads back as it came, ready to move on to a third computer.
       assert.deepEqual((yield* service.readConversation(ref)).messages, moved);
+
+      // A conversation already taken in by other notes is not written into from here.
+      fake.threads.get(first.threadId)!.projectId = ProjectId.make("other-vault");
+      assert.equal(
+        errorMessage(yield* Effect.exit(adopt)),
+        "That conversation already belongs to other notes.",
+      );
     }),
   );
 

@@ -240,12 +240,11 @@ describe("the new server's first-boot script", () => {
       "/opt/majordome",
     ]);
     expect(DEPLOY_COMPOSE_FILE).toContain("image: ghcr.io/wozacosta/majordome:latest\n");
-    // Nightly, away from the 03:30 memory routine; only untagged images are removed.
+    // Nightly, away from the 03:30 memory routine; the image is named by the release's digest.
     expect(DEPLOY_UPDATES_SCRIPT).toContain('when="*-*-* 05:00:00"');
     expect(DEPLOY_UPDATES_SCRIPT).toContain("RandomizedDelaySec=10min");
-    expect(DEPLOY_UPDATES_SCRIPT).toMatch(
-      /ExecStart=\$docker compose pull --quiet\nExecStart=\$docker compose up -d\nExecStart=\$docker image prune -f\n/,
-    );
+    expect(DEPLOY_UPDATES_SCRIPT).toContain("releases/latest/download/image-digest.txt");
+    expect(DEPLOY_UPDATES_SCRIPT).toContain("ExecStart=/usr/local/sbin/majordome-update\n");
     // Hetzner refuses user data over 32 KiB.
     expect(new TextEncoder().encode(script).length).toBeLessThan(32 * 1024);
   });

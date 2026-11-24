@@ -2,13 +2,16 @@
 export interface HostedServer {
   readonly name: string;
   readonly url: string;
-  /** Connects one device as the server's owner. Works once, for a day. */
-  readonly pairingUrl: string;
+  /**
+   * Connects one device as the server's owner. Works once, for a day. Null on a phone that no
+   * longer holds it: the link is kept apart from the rest, and only on the phone it was made on.
+   */
+  readonly pairingUrl: string | null;
 }
 
-/** What is kept on the phone between making a server and finishing its setup. */
+/** What the phone's file keeps between making a server and finishing its setup. Never the link. */
 export interface SignupProgress {
-  readonly server: HostedServer;
+  readonly server: Pick<HostedServer, "name" | "url">;
   /** Set once this phone is connected to the server. */
   readonly environmentId: string | null;
 }
@@ -32,7 +35,11 @@ export type SignupEvent =
   | { readonly type: "paired"; readonly environmentId: string }
   | { readonly type: "pairingFailed"; readonly message: string }
   | { readonly type: "finished" }
-  | { readonly type: "resumed"; readonly progress: SignupProgress | null };
+  | {
+      readonly type: "resumed";
+      readonly progress: SignupProgress | null;
+      readonly pairingUrl: string | null;
+    };
 
 export const SIGNUP_IDLE: SignupState = { step: "idle", error: null };
 
@@ -62,7 +69,8 @@ export function signupNext(state: SignupState, event: SignupEvent): SignupState 
     case "resumed": {
       // What is on screen wins over the phone's copy, which a run in progress already wrote.
       if (state.step !== "idle" || event.progress === null) return state;
-      const { server, environmentId } = event.progress;
+      const server = { ...event.progress.server, pairingUrl: event.pairingUrl };
+      const { environmentId } = event.progress;
       return environmentId === null
         ? { step: "made", server, error: null }
         : { step: "finishing", server, environmentId };
@@ -70,15 +78,31 @@ export function signupNext(state: SignupState, event: SignupEvent): SignupState 
   }
 }
 
-/** What to keep on the phone for a state: a made server until its setup is finished. */
+/** What to keep in the phone's file for a state: a made server until its setup is finished. */
 export function signupProgress(state: SignupState): SignupProgress | null {
   switch (state.step) {
     case "waiting":
     case "pairing":
     case "made":
-      return { server: state.server, environmentId: null };
-    case "finishing":
-      return { server: state.server, environmentId: state.environmentId };
+    case "finishing": {
+      const { name, url } = state.server;
+      return {
+        server: { name, url },
+        environmentId: state.step === "finishing" ? state.environmentId : null,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/** The link to keep in the phone's secure storage for a state: only while it is still to be used. */
+export function signupPairingUrl(state: SignupState): string | null {
+  switch (state.step) {
+    case "waiting":
+    case "pairing":
+    case "made":
+      return state.server.pairingUrl;
     default:
       return null;
   }
@@ -90,9 +114,21 @@ const isText = (value: unknown): value is string => typeof value === "string" &&
 export function readSignupProgress(stored: unknown): SignupProgress | null {
   if (typeof stored !== "object" || stored === null) return null;
   const { server, environmentId } = stored as { server?: unknown; environmentId?: unknown };
-  const made = readHostedServer(server);
-  if (made === null) return null;
-  return { server: made, environmentId: isText(environmentId) ? environmentId : null };
+  if (typeof server !== "object" || server === null) return null;
+  const { name, url } = server as Record<string, unknown>;
+  if (!isText(name) || !isText(url)) return null;
+  return { server: { name, url }, environmentId: isText(environmentId) ? environmentId : null };
+}
+
+/** The link an earlier version wrote into the file, to move into secure storage. */
+export function storedPairingUrl(stored: unknown): string | null {
+  const server =
+    typeof stored === "object" && stored !== null ? (stored as { server?: unknown }).server : null;
+  const pairingUrl =
+    typeof server === "object" && server !== null
+      ? (server as { pairingUrl?: unknown }).pairingUrl
+      : null;
+  return isText(pairingUrl) ? pairingUrl : null;
 }
 
 function readHostedServer(body: unknown): HostedServer | null {

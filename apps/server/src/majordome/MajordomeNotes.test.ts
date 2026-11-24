@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { ProjectId } from "@t3tools/contracts";
@@ -6,9 +7,18 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 
+import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeNotes from "./MajordomeNotes.ts";
+import { commitVaultRun } from "./VaultCommitReactor.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { commitAll, gitIn } from "./vaultTestRepos.ts";
+
+const testLayer = GitVcsDriver.layer.pipe(
+  Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-notes-" })),
+  Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+);
 
 const projectId = ProjectId.make("vault-project");
 
@@ -47,7 +57,7 @@ const setUp = Effect.fn("test.setUp")(function* (options?: { readonly vault?: bo
   };
 });
 
-it.layer(NodeServices.layer)("MajordomeNotes", (it) => {
+it.layer(testLayer)("MajordomeNotes", (it) => {
   it.effect("replaces a note that still reads as the editor loaded it", () =>
     Effect.gen(function* () {
       const { save, read, fs, path, vault } = yield* setUp();
@@ -117,6 +127,26 @@ it.layer(NodeServices.layer)("MajordomeNotes", (it) => {
       assert.strictEqual(yield* read(".git/notes.md"), "plumbing");
       assert.strictEqual(yield* read("projects/data.json"), "{}");
       assert.isFalse(yield* fs.exists(path.join(vault, "projects/new.md")));
+    }),
+  );
+
+  it.effect("saves the owner's edit to the instructions at once, so no run's end undoes it", () =>
+    Effect.gen(function* () {
+      const { save, read, write, vault } = yield* setUp();
+      yield* gitIn(vault, ["init", "--quiet", "-b", "main"]);
+      yield* gitIn(vault, ["config", "user.name", "Owner"]);
+      yield* gitIn(vault, ["config", "user.email", "owner@example.com"]);
+      yield* write(vault, "AGENTS.md", "Be kind.\n");
+      yield* commitAll(vault, "init");
+
+      yield* save("AGENTS.md", "Be brief.\n", "Be kind.\n");
+      yield* commitVaultRun({ cwd: vault, message: "majordome: Later" });
+
+      assert.strictEqual(yield* read("AGENTS.md"), "Be brief.\n");
+      assert.strictEqual(
+        yield* gitIn(vault, ["log", "-1", "--format=%s|%an", "--", "AGENTS.md"]),
+        "Your edits|Owner",
+      );
     }),
   );
 

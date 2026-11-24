@@ -13,6 +13,7 @@ import * as Path from "effect/Path";
 
 import { isMemoryPassTask, MEMORY_CHAR_LIMIT, memoryPassSection } from "./memoryPassPrompt.ts";
 import { readMemoryPassBrief } from "./memoryPassState.ts";
+import { resolveInVault } from "./noteFile.ts";
 import { findThreadTopic, readTopicThreadsState, topicThreadsStatePath } from "./topicThreads.ts";
 import { routinesGuide } from "./routinesGuide.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
@@ -47,16 +48,23 @@ function loadedMemory(text: string, memoryPath: string): string {
   return `${trimmed.slice(0, MEMORY_CHAR_LIMIT)}\n[Memory is cut here: ${memoryPath} is ${count(trimmed.length)} characters and only the first ${count(MEMORY_CHAR_LIMIT)} are loaded. Read the file when you need the rest.]`;
 }
 
+/** A note's text, or none when it is missing or not really inside the vault. */
+const readVaultText = Effect.fn("majordome.readVaultText")(function* (
+  vaultRoot: string,
+  relativePath: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const file = yield* resolveInVault(vaultRoot, relativePath);
+  if (Option.isNone(file)) return Option.none<string>();
+  return yield* fileSystem.readFileString(file.value).pipe(Effect.option);
+});
+
 /** The memory note's length as the limit counts it; 0 when there is none. */
 export const readMemoryChars = Effect.fn("majordome.readMemoryChars")(function* (input: {
   readonly vaultRoot: string;
   readonly memoryPath: string;
 }) {
-  const fileSystem = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const text = yield* fileSystem
-    .readFileString(path.join(input.vaultRoot, input.memoryPath))
-    .pipe(Effect.option);
+  const text = yield* readVaultText(input.vaultRoot, input.memoryPath);
   return Option.match(text, { onNone: () => 0, onSome: (value) => value.trim().length });
 });
 
@@ -80,13 +88,10 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
       }
     | undefined;
 }) {
-  const fileSystem = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
   const layout = yield* readVaultLayout(input.vaultRoot);
   if (Option.isNone(layout)) return "";
 
-  const readText = (relativePath: string) =>
-    fileSystem.readFileString(path.join(input.vaultRoot, relativePath)).pipe(Effect.option);
+  const readText = (relativePath: string) => readVaultText(input.vaultRoot, relativePath);
 
   const memoryPath = layout.value.memory;
   const dailyFolder = layout.value.dailyFolder;

@@ -3,11 +3,11 @@ import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
+import { normalizeTopicFolder } from "./vaultConfig.ts";
 import {
   canHoldTopic,
   listVaultFolders,
   newTopicId,
-  normalizeTopicFolder,
   parseVaultTopics,
   readTopicContext,
   readVaultTopics,

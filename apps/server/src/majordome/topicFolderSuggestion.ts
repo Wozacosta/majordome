@@ -3,8 +3,8 @@
  * answers with one path, which is checked here before the owner ever sees it.
  */
 
-import type { VaultLayout } from "./vaultConfig.ts";
-import { canHoldTopic, normalizeTopicFolder } from "./vaultTopics.ts";
+import { normalizeTopicFolder, type VaultLayout } from "./vaultConfig.ts";
+import { canHoldTopic } from "./vaultTopics.ts";
 
 const MAX_DEPTH = 3;
 const MAX_LENGTH = 80;

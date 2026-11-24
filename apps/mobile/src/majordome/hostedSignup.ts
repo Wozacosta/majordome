@@ -20,7 +20,9 @@ import {
   setupPageUrl,
   SIGNUP_IDLE,
   signupNext,
+  signupPairingUrl,
   signupProgress,
+  storedPairingUrl,
   waitUntilReady,
   type HostedServer,
   type SignupEvent,
@@ -30,6 +32,26 @@ import {
 // Spelled out in full: Expo only inlines `process.env.EXPO_PUBLIC_*` written this way.
 const BROKER_URL = brokerUrl(process.env.EXPO_PUBLIC_MAJORDOME_BROKER_URL);
 const FILE_NAME = "majordome-hosted-signup.json";
+// The link makes its holder the server's owner, so it stays out of the file, which backups copy.
+const PAIRING_URL_KEY = "majordome.hosted-signup.pairing-url";
+
+async function keepPairingUrl(pairingUrl: string | null): Promise<void> {
+  const SecureStore = await import("expo-secure-store");
+  const deviceOnly = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+  if (pairingUrl === null) await SecureStore.deleteItemAsync(PAIRING_URL_KEY, deviceOnly);
+  else await SecureStore.setItemAsync(PAIRING_URL_KEY, pairingUrl, deviceOnly);
+}
+
+async function keptPairingUrl(): Promise<string | null> {
+  try {
+    const SecureStore = await import("expo-secure-store");
+    return await SecureStore.getItemAsync(PAIRING_URL_KEY, {
+      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+    });
+  } catch {
+    return null;
+  }
+}
 
 /** Outside React, so a signup under way carries on when its screen is closed. */
 export const hostedSignupAtom = Atom.make<SignupState>(SIGNUP_IDLE).pipe(
@@ -49,6 +71,10 @@ function dispatch(event: SignupEvent): SignupState {
   const next = signupNext(before, event);
   if (next === before) return next;
   appAtomRegistry.set(hostedSignupAtom, next);
+  const pairingUrl = signupPairingUrl(next);
+  if (pairingUrl !== signupPairingUrl(before)) {
+    writing = writing.then(() => keepPairingUrl(pairingUrl)).catch(() => undefined);
+  }
   const kept = JSON.stringify(signupProgress(next));
   if (kept !== JSON.stringify(signupProgress(before))) {
     writing = writing
@@ -70,14 +96,26 @@ export function loadHostedSignup(): Promise<void> {
     } catch {
       // An unreadable copy is the same as none.
     }
-    dispatch({ type: "resumed", progress: readSignupProgress(stored) });
+    // A file from an earlier version holds the link: resuming writes both again, each in its place.
+    const pairingUrl = storedPairingUrl(stored) ?? (await keptPairingUrl());
+    const next = dispatch({ type: "resumed", progress: readSignupProgress(stored), pairingUrl });
+    if (pairingUrl !== null && signupPairingUrl(next) === null) {
+      writing = writing.then(() => keepPairingUrl(null)).catch(() => undefined);
+    }
   })();
   return loading;
 }
 
 const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 
+const LINK_GONE =
+  "This phone no longer has the link that connects it to your server. Ask whoever gave you your invite code for a new one.";
+
 async function pair(server: HostedServer): Promise<void> {
+  if (server.pairingUrl === null) {
+    dispatch({ type: "pairingFailed", message: LINK_GONE });
+    return;
+  }
   // The same spelling a scanned code is connected with.
   const { host, code } = parsePairingUrl(server.pairingUrl);
   const outcome = await pairEnvironment(buildPairingUrl(host, code));

@@ -1,11 +1,17 @@
 import { assert, describe, it } from "@effect/vitest";
+import * as Effect from "effect/Effect";
+import { HttpClient } from "effect/http";
+
+import { fakeHttp, type FakeReply, type SentRequest } from "./fakeHttp.testkit.ts";
 
 import {
   extractPage,
   fallbackLinkDetails,
   isoDurationSeconds,
+  HostAddresses,
   isRefusedHost,
   kindOfLink,
+  lookUpLink,
   minutesOfSeconds,
   normalizeLink,
   parseLink,
@@ -66,6 +72,18 @@ describe("readingLink", () => {
       ["http://[fc00::1]/", true],
       ["http://[fd12:3456::1]/", true],
       ["http://[fe80::1]/", true],
+      // Tailscale's and carriers' shared range, and addresses that only carry a private one.
+      ["http://100.64.0.1/", true],
+      ["http://100.127.255.254/", true],
+      ["http://100.128.0.1/", false],
+      ["http://198.18.0.1/", true],
+      ["http://224.0.0.1/", true],
+      ["http://[::ffff:10.0.0.1]/", true],
+      ["http://[::ffff:100.64.0.1]/", true],
+      ["http://[64:ff9b::10.0.0.1]/", true],
+      ["http://[64:ff9b::8.8.8.8]/", false],
+      ["http://[2002:a00:1::1]/", true],
+      ["http://[ff02::1]/", true],
       ["http://172.15.0.1/", false],
       ["http://172.32.0.1/", false],
       ["http://192.169.1.1/", false],
@@ -227,6 +245,80 @@ describe("readingLink", () => {
         `<head><meta property="og:video:duration" content="600"></head><body>${words(440)}</body>`,
       ),
       { minutes: 2, playMinutes: 10 },
+    );
+  });
+
+  describe("lookUpLink", () => {
+    const PUBLIC = "93.184.215.14";
+    const page = (title: string): FakeReply => ({
+      body: `<html><head><title>${title}</title></head></html>`,
+      headers: { "content-type": "text/html" },
+    });
+    const redirect = (location: string): FakeReply => ({ status: 302, headers: { location } });
+    const lookUp = (
+      address: string,
+      handle: (sent: SentRequest) => FakeReply,
+      addresses: Readonly<Record<string, ReadonlyArray<string>>> = {},
+    ) => {
+      const http = fakeHttp(handle);
+      return lookUpLink(new URL(address)).pipe(
+        Effect.provideService(HttpClient.HttpClient, http.client),
+        Effect.provideService(HostAddresses, (host) => Effect.succeed(addresses[host] ?? [PUBLIC])),
+        Effect.map((details) => ({
+          title: details.title,
+          asked: http.requests.map((sent) => sent.url.href),
+        })),
+      );
+    };
+
+    it.effect("never asks a host whose name leads to this machine or a private network", () =>
+      Effect.gen(function* () {
+        for (const addresses of [["10.0.0.5"], [PUBLIC, "100.64.0.9"], ["::1"], []]) {
+          const found = yield* lookUp("https://intranet.example.com/a", () => page("Secret"), {
+            "intranet.example.com": addresses,
+          });
+          assert.deepEqual(found, { title: "intranet.example.com/a", asked: [] });
+        }
+      }),
+    );
+
+    it.effect("follows a redirect itself, checking each address it is sent to", () =>
+      Effect.gen(function* () {
+        const moved = yield* lookUp("http://example.com/a", (sent) =>
+          sent.url.href === "http://example.com/a"
+            ? redirect("https://www.example.com/a")
+            : page("Moved here"),
+        );
+        assert.deepEqual(moved, {
+          title: "Moved here",
+          asked: ["http://example.com/a", "https://www.example.com/a"],
+        });
+
+        for (const location of [
+          "http://169.254.169.254/latest/meta-data",
+          "http://localhost:3774/api",
+          "https://intranet.example.com/",
+          "file:///etc/passwd",
+        ]) {
+          const refused = yield* lookUp(
+            "https://blog.example.com/a",
+            (sent) =>
+              sent.url.hostname === "blog.example.com" ? redirect(location) : page("Secret"),
+            { "intranet.example.com": ["192.168.1.20"] },
+          );
+          assert.deepEqual(
+            refused,
+            { title: "blog.example.com/a", asked: ["https://blog.example.com/a"] },
+            location,
+          );
+        }
+
+        const endless = yield* lookUp("https://loop.example.com/0", (sent) =>
+          redirect(`https://loop.example.com/${Number(sent.url.pathname.slice(1)) + 1}`),
+        );
+        assert.equal(endless.title, "loop.example.com/0");
+        assert.lengthOf(endless.asked, 6);
+      }),
     );
   });
 });

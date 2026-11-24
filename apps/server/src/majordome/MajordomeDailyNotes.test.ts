@@ -33,7 +33,11 @@ const setUp = Effect.fn("test.setUp")(function* (config: string | null) {
       ),
     ),
   );
-  return { service, read: (relative: string) => fs.readFileString(path.join(vault, relative)) };
+  return {
+    service,
+    path: (relative: string) => path.join(vault, relative),
+    read: (relative: string) => fs.readFileString(path.join(vault, relative)),
+  };
 });
 
 it.layer(NodeServices.layer)("MajordomeDailyNotes", (it) => {
@@ -60,6 +64,27 @@ it.layer(NodeServices.layer)("MajordomeDailyNotes", (it) => {
       // The editor tells this refusal from a passing failure by its reason, not its words.
       assert.strictEqual(error.reason, "changed");
       assert.strictEqual(yield* read("daily/2026-11-19.md"), "- 09:05 From a routine\n");
+    }),
+  );
+
+  it.effect("never reads or writes a day's note outside the notes folder", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const outside = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-outside-" });
+      const outsideName = outside.slice(outside.lastIndexOf("/") + 1);
+
+      const climbing = yield* setUp(`{"folders":{"daily":"../${outsideName}"}}`);
+      yield* climbing.service.add({ ...day, time: "09:05", text: "Stays inside" });
+      assert.strictEqual(yield* climbing.read("daily/2026-11-19.md"), "- 09:05 Stays inside\n");
+
+      const linked = yield* setUp("{}");
+      yield* fs.symlink(outside, linked.path("daily"));
+      const error = yield* linked.service
+        .add({ ...day, time: "09:05", text: "Leaks" })
+        .pipe(Effect.flip);
+      assert.strictEqual(error.message, "That note is not in your notes folder.");
+      assert.strictEqual((yield* linked.service.get(day).pipe(Effect.flip)).message, error.message);
+      assert.deepEqual(yield* fs.readDirectory(outside), []);
     }),
   );
 

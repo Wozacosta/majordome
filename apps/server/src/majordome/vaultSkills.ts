@@ -1,23 +1,48 @@
 /**
  * A vault's skills: instructions the assistant follows by name, one folder each with a `SKILL.md`.
- * The assistant may write new ones for itself, but a skill steers every later run, including the
- * ones nobody watches, so what it writes waits in `PROPOSED_SKILLS_DIR` until the owner keeps it.
- * `holdBackSkillChanges` enforces that at the end of every run, whatever the run was told.
+ * A skill steers every later run, including the ones nobody watches, so one the assistant writes
+ * waits in `PROPOSED_SKILLS_DIR` until the owner keeps it. `holdBackRunChanges` enforces that when
+ * a run ends, and holds back the vault's instructions, config and agent settings the same way.
  */
 
 import type { MajordomeProposedSkill, MajordomeSkill } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { PROPOSED_SKILLS_DIR, SKILLS_DIR } from "./skillsGuide.ts";
 import { identityEnv, ownerIdentity } from "./vaultAutosave.ts";
+import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 
 /** Claude Code's own folder: a link to `SKILLS_DIR` in most vaults, a real folder in older ones. */
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const SKILL_FILE = "SKILL.md";
 const SKILL_TEXT_MAX = 20_000;
+
+/** Flat names with `.txt` added, so nothing in it reads as an instruction file or a settings folder. */
+export const HELD_BACK_DIR = ".agents/held-back";
+const ROOT_FILES_HELD_BACK: ReadonlySet<string> = new Set([
+  "claude.md",
+  "agents.md",
+  `${VAULT_CONFIG_DIRNAME}/config.json`,
+]);
+
+/**
+ * True for a file that steers later runs: the vault's own instructions and config, anything in an
+ * agent's settings folder, and skills. Case is ignored, as the owner's disk may ignore it too.
+ */
+export function steersLaterRuns(relativePath: string): boolean {
+  const segments = relativePath.toLowerCase().split("/");
+  return (
+    ROOT_FILES_HELD_BACK.has(segments.join("/")) ||
+    segments.some(
+      (segment, index) =>
+        segment === ".claude" || (segment === ".agents" && segments[index + 1] === "skills"),
+    )
+  );
+}
 
 const HEADER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -81,8 +106,11 @@ export const readVaultSkills = Effect.fn("majordome.readVaultSkills")(function* 
   return { skills, proposed };
 });
 
-/** Saves the owner's decision about one skill as its own entry in the vault's history. */
-const commitDecision = Effect.fn("majordome.commitSkillDecision")(function* (input: {
+/**
+ * Saves one decision of the owner's as its own entry in the vault's history, at once: left
+ * unsaved, the end of a run would take it for the run's and hold it back. Callers hold the lock.
+ */
+export const commitOwnerDecision = Effect.fn("majordome.commitSkillDecision")(function* (input: {
   readonly vaultRoot: string;
   readonly subject: string;
   readonly paths: ReadonlyArray<string>;
@@ -138,7 +166,7 @@ export const keepProposedSkill = Effect.fn("majordome.keepProposedSkill")(functi
   yield* fileSystem.remove(to, { recursive: true, force: true });
   yield* fileSystem.makeDirectory(path.dirname(to), { recursive: true });
   yield* fileSystem.rename(from, to);
-  yield* commitDecision({
+  yield* commitOwnerDecision({
     vaultRoot: input.vaultRoot,
     subject: `Kept a skill: ${input.name}`,
     paths: [`${PROPOSED_SKILLS_DIR}/${input.name}`, `${SKILLS_DIR}/${input.name}`],
@@ -172,7 +200,7 @@ export const removeSkill = Effect.fn("majordome.removeSkill")(function* (input: 
   } else {
     yield* fileSystem.remove(target, { recursive: true });
   }
-  yield* commitDecision({
+  yield* commitOwnerDecision({
     vaultRoot: input.vaultRoot,
     subject: `${input.proposed ? "Deleted a skill" : "Stopped using a skill"}: ${input.name}`,
     paths: [folder, waiting],
@@ -194,55 +222,75 @@ function changedPaths(stdout: string): ReadonlyArray<string> {
 }
 
 /**
- * Called before a run's changes are committed: every skill the run added or changed in place is
- * moved to the proposed folder, and the skills folder is put back as it was. A skill the run
- * deleted simply comes back. Returns the names moved.
+ * Called before a run's changes are committed. Every skill the run added or changed in place is
+ * moved to the proposed folder, and every other file that steers later runs is copied to
+ * `HELD_BACK_DIR`; then each is put back as it was. One the run deleted simply comes back.
  */
-export const holdBackSkillChanges = Effect.fn("majordome.holdBackSkillChanges")(function* (
+export const holdBackRunChanges = Effect.fn("majordome.holdBackSkillChanges")(function* (
   cwd: string,
 ) {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const git = yield* GitVcsDriver.GitVcsDriver;
+  // A run names these files, so none is read as a pattern.
   const run = (args: ReadonlyArray<string>) =>
     git.execute({
       operation: "majordome.holdBackSkillChanges",
       cwd,
-      args,
+      args: ["--literal-pathspecs", ...args],
       allowNonZeroExit: true,
     });
+  const putBack = Effect.fn("majordome.holdBackRunChanges.putBack")(function* (relative: string) {
+    yield* fileSystem.remove(path.join(cwd, relative), { recursive: true, force: true });
+    const before = yield* run(["ls-tree", "-r", "--name-only", "HEAD", "--", relative]);
+    if (before.stdout.trim() !== "") yield* run(["checkout", "--quiet", "HEAD", "--", relative]);
+  });
 
-  const status = yield* run([
-    "status",
-    "--porcelain",
-    "--untracked-files=all",
-    "-z",
-    "--",
-    SKILLS_DIR,
-    CLAUDE_SKILLS_DIR,
-  ]);
-  const touched = new Map<string, { readonly dir: string; readonly name: string }>();
-  for (const changed of changedPaths(status.stdout)) {
-    for (const dir of [SKILLS_DIR, CLAUDE_SKILLS_DIR]) {
-      if (!changed.startsWith(`${dir}/`)) continue;
-      const name = changed.slice(dir.length + 1).split("/")[0] ?? "";
-      if (name !== "") touched.set(`${dir}/${name}`, { dir, name });
+  const status = yield* run(["status", "--porcelain", "--untracked-files=all", "-z"]);
+  const touchedSkills = new Map<string, string>();
+  const touchedFiles = new Set<string>();
+  for (const listed of changedPaths(status.stdout)) {
+    const changed = listed.replace(/\/+$/, "");
+    if (!steersLaterRuns(changed)) continue;
+    const dir = [SKILLS_DIR, CLAUDE_SKILLS_DIR].find((skills) => changed.startsWith(`${skills}/`));
+    if (dir === undefined) {
+      touchedFiles.add(changed);
+      continue;
     }
+    const name = changed.slice(dir.length + 1).split("/")[0] ?? "";
+    if (name !== "") touchedSkills.set(`${dir}/${name}`, name);
   }
 
-  const held: Array<string> = [];
-  for (const [relative, { name }] of touched) {
+  const skills: Array<string> = [];
+  for (const [relative, name] of touchedSkills) {
     const written = path.join(cwd, relative);
     if (yield* fileSystem.exists(path.join(written, SKILL_FILE))) {
       const proposed = path.join(cwd, PROPOSED_SKILLS_DIR, name);
       yield* fileSystem.remove(proposed, { recursive: true, force: true });
       yield* fileSystem.makeDirectory(path.dirname(proposed), { recursive: true });
       yield* fileSystem.copy(written, proposed);
-      held.push(name);
+      skills.push(name);
     }
-    yield* fileSystem.remove(written, { recursive: true, force: true });
-    const before = yield* run(["ls-tree", "-r", "--name-only", "HEAD", "--", relative]);
-    if (before.stdout.trim() !== "") yield* run(["checkout", "--quiet", "HEAD", "--", relative]);
+    yield* putBack(relative);
   }
-  return held;
+
+  const files: Array<string> = [];
+  for (const relative of touchedFiles) {
+    const written = path.join(cwd, relative);
+    const isLink = Option.isSome(yield* fileSystem.readLink(written).pipe(Effect.option));
+    const isFile =
+      !isLink &&
+      (yield* fileSystem.stat(written).pipe(
+        Effect.map((info) => info.type === "File"),
+        Effect.orElseSucceed(() => false),
+      ));
+    if (isFile) {
+      const waiting = path.join(cwd, HELD_BACK_DIR, `${relative.replaceAll("/", "__")}.txt`);
+      yield* fileSystem.makeDirectory(path.dirname(waiting), { recursive: true });
+      yield* fileSystem.copyFile(written, waiting);
+    }
+    yield* putBack(relative);
+    files.push(relative);
+  }
+  return { skills, files };
 });

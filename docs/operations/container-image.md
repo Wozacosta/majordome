@@ -16,9 +16,10 @@
   as `node` (uid 1000).
 - Health check: `GET /.well-known/t3/environment`, which needs no auth.
 
-"Set up a server for me" writes the same compose file on the server it creates, on `latest` so
-the nightly update (`deploy/install-updates.sh`, which its first boot runs) can bring new
-releases, and sets two variables in its `.env`:
+"Set up a server for me" writes the same compose file on the server it creates. It names `latest`
+for the first start only: the nightly update (`deploy/install-updates.sh`, which its first boot
+runs) reads `image-digest.txt` from the newest release and pins the image to that digest, so a
+tag moved on the registry changes nothing on a running server. It sets two variables in its `.env`:
 `MAJORDOME_HOSTNAME` (a name free on the tailnet) and `MAJORDOME_SETUP_SECRET` (a one-time pairing
 secret, see [decisions](../decisions.md#servers-and-sync)). `serverMoveCompose.ts` and
 `serverMoveUpdates.ts` hold copies of the compose file and the update script, since the packaged

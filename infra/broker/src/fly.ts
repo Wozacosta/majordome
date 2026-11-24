@@ -14,7 +14,6 @@ interface FlyErrorBody {
 export function makeFlyHost(config: {
   readonly apiToken: string;
   readonly orgSlug: string;
-  readonly image: string;
   readonly region: string;
   readonly memoryMb: number;
   readonly volumeGb: number;
@@ -55,10 +54,11 @@ export function makeFlyHost(config: {
 
   return {
     urlFor,
-    createServer: async ({ name, env }) => {
+    createServer: async ({ name, env, image }) => {
       const url = urlFor(name);
       const app = `/apps/${name}`;
-      await call("POST", "/apps", { app_name: name, org_slug: config.orgSlug });
+      // A private network of its own: apps on an organization's default one reach each other.
+      await call("POST", "/apps", { app_name: name, org_slug: config.orgSlug, network: name });
       // An app made through the API gets no address by itself.
       await call("POST", `${app}/ip_assignments`, { type: "shared_v4" });
       await call("POST", `${app}/ip_assignments`, { type: "v6" });
@@ -76,7 +76,7 @@ export function makeFlyHost(config: {
         name: "majordome",
         region: config.region,
         config: {
-          image: config.image,
+          image,
           env: { ...env, MAJORDOME_PUBLIC_URL: url },
           guest: { cpu_kind: "shared", cpus: 2, memory_mb: config.memoryMb },
           mounts: [{ volume: volume.id, path: "/data" }],
@@ -87,7 +87,7 @@ export function makeFlyHost(config: {
               internal_port: 3773,
               ports: [
                 { port: 443, handlers: ["tls", "http"] },
-                { port: 80, handlers: ["http"] },
+                { port: 80, handlers: ["http"], force_https: true },
               ],
             },
           ],
@@ -101,17 +101,14 @@ export function makeFlyHost(config: {
         | undefined;
       return (machines ?? []).some((machine) => machine.state === "started");
     },
-    updateServer: async (name) => {
+    updateServer: async (name, image) => {
       const machines = (await call("GET", `/apps/${name}/machines`)) as
         | ReadonlyArray<{ readonly id?: string; readonly config?: Record<string, unknown> }>
         | undefined;
       for (const machine of machines ?? []) {
         if (typeof machine.id !== "string" || machine.config === undefined) continue;
-        // The image by its tag: Fly looks the tag up again and restarts on what it finds. A
-        // machine updated with `fly machine update` has its image pinned to a digest, which
-        // would be kept if the config were sent back as it is.
         await call("POST", `/apps/${name}/machines/${machine.id}`, {
-          config: { ...machine.config, image: config.image },
+          config: { ...machine.config, image },
         });
       }
     },

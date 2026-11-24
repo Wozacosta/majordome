@@ -11,7 +11,9 @@ import {
   SIGNUP_IDLE,
   signupErrorMessage,
   signupNext,
+  signupPairingUrl,
   signupProgress,
+  storedPairingUrl,
   waitUntilReady,
   type SignupEvent,
   type SignupState,
@@ -22,6 +24,8 @@ const server = {
   url: "https://majordome-abc.fly.dev",
   pairingUrl: "https://majordome-abc.fly.dev/pair#token=mjsetup-1-x",
 };
+const filed = { name: server.name, url: server.url };
+const { pairingUrl } = server;
 
 const answer = (status: number, body: unknown) => ({
   ok: status < 400,
@@ -83,20 +87,26 @@ it("moves only on the event its step is waiting for", () => {
     [
       "a server kept on the phone, not connected",
       SIGNUP_IDLE,
-      { type: "resumed", progress: { server, environmentId: null } },
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl },
       { step: "made", server, error: null },
+    ],
+    [
+      "a server kept on a phone that lost its link, as after restoring a backup",
+      SIGNUP_IDLE,
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl: null },
+      { step: "made", server: { ...filed, pairingUrl: null }, error: null },
     ],
     [
       "a server kept on the phone, connected",
       SIGNUP_IDLE,
-      { type: "resumed", progress: { server, environmentId: "env-1" } },
-      { step: "finishing", server, environmentId: "env-1" },
+      { type: "resumed", progress: { server: filed, environmentId: "env-1" }, pairingUrl: null },
+      { step: "finishing", server: { ...filed, pairingUrl: null }, environmentId: "env-1" },
     ],
-    ["nothing kept", SIGNUP_IDLE, { type: "resumed", progress: null }, "same"],
+    ["nothing kept", SIGNUP_IDLE, { type: "resumed", progress: null, pairingUrl: null }, "same"],
     [
       "the phone's copy read while a signup is under way",
       { step: "making" },
-      { type: "resumed", progress: { server, environmentId: null } },
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl },
       "same",
     ],
   ];
@@ -107,35 +117,44 @@ it("moves only on the event its step is waiting for", () => {
   }
 });
 
-it("keeps a made server on the phone until its setup is finished", () => {
-  const cases: ReadonlyArray<readonly [SignupState, ReturnType<typeof signupProgress>]> = [
-    [SIGNUP_IDLE, null],
-    [{ step: "making" }, null],
-    [
-      { step: "waiting", server },
-      { server, environmentId: null },
-    ],
-    [
-      { step: "pairing", server },
-      { server, environmentId: null },
-    ],
+it("keeps a made server in the file and its link apart, until each is no longer needed", () => {
+  const cases: ReadonlyArray<
+    readonly [SignupState, ReturnType<typeof signupProgress>, string | null]
+  > = [
+    [SIGNUP_IDLE, null, null],
+    [{ step: "making" }, null, null],
+    [{ step: "waiting", server }, { server: filed, environmentId: null }, pairingUrl],
+    [{ step: "pairing", server }, { server: filed, environmentId: null }, pairingUrl],
     [
       { step: "made", server, error: "No answer." },
-      { server, environmentId: null },
+      { server: filed, environmentId: null },
+      pairingUrl,
     ],
+    // Connected: the link is spent, so it is dropped while the rest waits for the last step.
     [
       { step: "finishing", server, environmentId: "env-1" },
-      { server, environmentId: "env-1" },
+      { server: filed, environmentId: "env-1" },
+      null,
     ],
-    [{ step: "done" }, null],
+    [{ step: "done" }, null, null],
   ];
-  for (const [state, kept] of cases) {
+  for (const [state, kept, link] of cases) {
     expect(signupProgress(state), state.step).toEqual(kept);
+    expect(JSON.stringify(signupProgress(state)), state.step).not.toContain("mjsetup");
+    expect(signupPairingUrl(state), state.step).toBe(link);
     // What is written reads back the same.
     expect(readSignupProgress(JSON.parse(JSON.stringify(kept)))).toEqual(kept);
   }
   expect(readSignupProgress({ server: { name: "x" }, environmentId: "env-1" })).toBeNull();
   expect(readSignupProgress("null")).toBeNull();
+});
+
+it("takes the link out of a file an earlier version wrote", () => {
+  const old = { server, environmentId: null };
+  expect(readSignupProgress(old)).toEqual({ server: filed, environmentId: null });
+  expect(storedPairingUrl(old)).toBe(pairingUrl);
+  expect(storedPairingUrl({ server: filed, environmentId: null })).toBeNull();
+  expect(storedPairingUrl(null)).toBeNull();
 });
 
 it("sends the code the way the service reads it and decodes its answers", async () => {

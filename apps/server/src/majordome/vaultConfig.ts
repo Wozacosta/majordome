@@ -49,12 +49,28 @@ export interface VaultLayout {
   readonly projectsFolder: string;
 }
 
+/**
+ * A vault-relative path with forward slashes, or null when it is empty, absolute, climbs out of
+ * the vault, or is plumbing (a dot folder).
+ */
+export function normalizeTopicFolder(value: string): string | null {
+  const trimmed = value.trim().replaceAll("\\", "/");
+  if (trimmed.startsWith("/") || /^[a-z]:/i.test(trimmed)) return null;
+  const segments = trimmed.split("/").filter((segment) => segment !== "" && segment !== ".");
+  if (segments.length === 0) return null;
+  if (segments.some((segment) => segment === ".." || segment.startsWith("."))) return null;
+  return segments.join("/");
+}
+
+// The config is a file any run can write, so a path it names never leads out of the vault.
 function layoutOf(config: VaultConfig): VaultLayout {
+  const inVault = (value: string | undefined, fallback: string) =>
+    (value === undefined ? null : normalizeTopicFolder(value)) ?? fallback;
   return {
-    memory: config.memory ?? "memory.md",
-    dailyFolder: config.folders?.daily ?? "daily",
-    inboxFolder: config.folders?.inbox ?? "inbox",
-    projectsFolder: config.folders?.projects ?? "projects",
+    memory: inVault(config.memory, "memory.md"),
+    dailyFolder: inVault(config.folders?.daily, "daily"),
+    inboxFolder: inVault(config.folders?.inbox, "inbox"),
+    projectsFolder: inVault(config.folders?.projects, "projects"),
   };
 }
 

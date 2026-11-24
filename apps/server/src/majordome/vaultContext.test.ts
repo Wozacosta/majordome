@@ -54,6 +54,32 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
     }),
   );
 
+  it.effect("loads nothing from outside the vault, by a config path or a link", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const outside = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-outside-" });
+      const outsideName = outside.slice(outside.lastIndexOf("/") + 1);
+      yield* fs.writeFileString(`${outside}/secret.md`, "- The door code is 4242");
+      yield* fs.writeFileString(`${outside}/2026-11-15.md`, "- The safe code is 9191");
+
+      const climbing = yield* makeVault({
+        ".majordome/config.json": JSON.stringify({
+          memory: `../${outsideName}/secret.md`,
+          folders: { daily: `../${outsideName}` },
+        }),
+        "memory.md": "- Likes tea",
+      });
+      const climbed = yield* readVaultContext({ vaultRoot: climbing, nowMillis: NOW });
+      assert.include(climbed, '<memory path="memory.md">\n- Likes tea\n</memory>');
+      assert.notInclude(climbed, "code is");
+
+      const linked = yield* makeVault({ ".majordome/config.json": "{}" });
+      yield* fs.symlink(`${outside}/secret.md`, `${linked}/memory.md`);
+      yield* fs.symlink(outside, `${linked}/daily`);
+      assert.equal(yield* readVaultContext({ vaultRoot: linked, nowMillis: NOW }), "");
+    }),
+  );
+
   it.effect("follows the folder names in the vault config", () =>
     Effect.gen(function* () {
       const root = yield* makeVault({

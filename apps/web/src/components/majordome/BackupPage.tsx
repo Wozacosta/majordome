@@ -76,7 +76,7 @@ import {
 } from "./paper";
 import { RestoreNotes } from "./RestoreNotes";
 import { linkedPairKey, type PeerLinkPlan, peerLinkPlans } from "./peerLink.logic";
-import { useDeclinedPeerLinks, useLinkMachines } from "./useKeepMachinesInStep";
+import { useLinkMachines, usePeerLinkAnswers } from "./useKeepMachinesInStep";
 import { useMachineNames } from "./useMachineNames";
 
 interface BackupVault {
@@ -141,8 +141,13 @@ export function BackupPage() {
       Number(backupAttention(right.copy.status) !== null) -
       Number(backupAttention(left.copy.status) !== null),
   );
-  // Offered by hand too: for a pair the owner turned off, or one the app could not link itself.
-  const offers = peerLinkPlans({ brains, localEnvironmentId, declined: new Set() });
+  // Every pair that could be linked: one to ask about, one turned off, one the app could not link.
+  const offers = peerLinkPlans({
+    brains,
+    localEnvironmentId,
+    approved: new Set(),
+    declined: new Set(),
+  });
 
   // One copy shown at a time, named by its computer; a lone copy has no name and no switch.
   const choices = vaults.map(({ copy, label }) => ({
@@ -525,7 +530,7 @@ function OtherMachine({
   const router = useRouter();
   const { machineOf } = useMachineNames();
   const [ask, setAsk] = useState<Parameters<typeof AskFirst>[0]["ask"]>(null);
-  const { decline, allow } = useDeclinedPeerLinks();
+  const { declined, approve, decline } = usePeerLinkAnswers();
   const [busy, setBusy] = useState(false);
   const peer = vault.peer ?? null;
   if (peer === null && offer === undefined) return null;
@@ -534,7 +539,7 @@ function OtherMachine({
     const machine = machineOf(offer!.other.environmentId);
     const start = async () => {
       setBusy(true);
-      allow(offer!.key);
+      approve(offer!.key);
       const problem = await link(offer!);
       setBusy(false);
       if (problem === null) return;
@@ -564,15 +569,26 @@ function OtherMachine({
           <Entry title={machine} data-backup-destination="machine">
             <StatusLine tone="neutral">Not kept in step</StatusLine>
             <Muted className={READING_MEASURE_CLASS}>
-              These notes are also on {machine}. Majordome can carry changes between the two every
-              few minutes, over your private network, with no account anywhere.
+              {machine} says it holds these same notes. Majordome can carry changes between the two
+              every few minutes, over your private network, with no account anywhere. Say yes only
+              if {machine} is yours: it receives all of these notes.
             </Muted>
             {canConfigure ? (
-              <div>
+              <div className="flex flex-wrap gap-2">
                 <Button size="xs" disabled={busy} onClick={() => void start()}>
                   {busy ? <Spinner size="sm" /> : null}
                   Keep in step with {machine}
                 </Button>
+                {declined.has(offer!.key) ? null : (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => decline(offer!.key)}
+                  >
+                    Not now
+                  </Button>
+                )}
               </div>
             ) : null}
           </Entry>

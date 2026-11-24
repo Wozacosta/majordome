@@ -1,16 +1,27 @@
+// @effect-diagnostics nodeBuiltinImport:off - Effect has no DNS lookup or address block list.
 /**
  * What a link saved to the reading list is: its title, where it is from, what kind of thing it is
  * and how long it takes. Looked up from the page itself, and never in the way of saving: a page
  * that cannot be read still gives a title made from its address.
  */
 
+import * as NodeDnsPromises from "node:dns/promises";
+import * as NodeNet from "node:net";
+
 import type { MajordomeReadingKind } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
+import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
-import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http";
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientError,
+  HttpClientRequest,
+  HttpClientResponse,
+} from "effect/http";
 
 interface LinkDetails {
   readonly title: string;
@@ -85,44 +96,86 @@ export function normalizeLink(url: URL): string {
   return `${copy.protocol}//${copy.host.toLowerCase()}${path}${query === "" ? "" : `?${query}`}`;
 }
 
-function isPrivateIpv4(host: string): boolean {
-  const parts = host.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part))) return false;
-  const [a = 0, b = 0] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 169 && b === 254)
-  );
+// This machine, private networks, Tailscale's and carriers' shared range, and ranges never routed.
+const REFUSED_ADDRESSES = new NodeNet.BlockList();
+for (const [network, prefix] of [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["224.0.0.0", 3],
+] as const) {
+  REFUSED_ADDRESSES.addSubnet(network, prefix, "ipv4");
+}
+// `::/96` holds `::`, `::1` and IPv4 written the old way; Teredo and 6to4 carry an IPv4 address.
+for (const [network, prefix] of [
+  ["::", 96],
+  ["2001::", 32],
+  ["2002::", 16],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+] as const) {
+  REFUSED_ADDRESSES.addSubnet(network, prefix, "ipv6");
+}
+const NAT64_PREFIX = "64:ff9b::";
+const NAT64 = new NodeNet.BlockList();
+NAT64.addSubnet(NAT64_PREFIX, 96, "ipv6");
+
+/** The IPv4 address a NAT64 address stands for, read from its last 32 bits. */
+function nat64Target(address: string): string {
+  const groups = new URL(`http://[${address}]/`).hostname
+    .slice(NAT64_PREFIX.length + 1, -1)
+    .split(":")
+    .filter((group) => group !== "")
+    .map((group) => Number.parseInt(group, 16));
+  const low = groups.at(-1) ?? 0;
+  const high = groups.length > 1 ? (groups[0] ?? 0) : 0;
+  return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
 }
 
-function isPrivateIpv6(address: string): boolean {
-  if (address === "::1" || address === "::") return true;
-  // `::ffff:7f00:1` is 127.0.0.1 written as an IPv6 address.
-  const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(address);
-  if (mapped !== null) {
-    const high = Number.parseInt(mapped[1] ?? "0", 16);
-    const low = Number.parseInt(mapped[2] ?? "0", 16);
-    return isPrivateIpv4(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
-  }
-  const first = Number.parseInt(address.split(":")[0] ?? "", 16);
-  if (Number.isNaN(first)) return false;
-  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80;
+/**
+ * True for an address on this machine or a private network, and for text that is no address.
+ * An IPv4 address written as IPv6 (`::ffff:10.0.0.1`) is judged as the IPv4 address it is.
+ */
+function isRefusedAddress(text: string): boolean {
+  const address = text.split("%", 1)[0] ?? "";
+  const family = NodeNet.isIP(address);
+  if (family === 0) return true;
+  if (REFUSED_ADDRESSES.check(address, family === 6 ? "ipv6" : "ipv4")) return true;
+  // Public sites are reached this way on IPv6-only networks, so only the target decides.
+  return family === 6 && NAT64.check(address, "ipv6") && isRefusedAddress(nat64Target(address));
 }
 
 /**
  * True for a host on this machine or its private network, which a pasted link must never make
- * the server fetch. `hostname` is a `URL`'s, so odd spellings of an IP are already plain.
+ * the server fetch. `hostname` is a `URL`'s, so odd spellings of an IP are already plain. A name
+ * is judged again by the addresses it leads to, before anything is asked of it.
  */
 export function isRefusedHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, "");
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
-  if (host.startsWith("[")) return isPrivateIpv6(host.slice(1, -1));
-  return isPrivateIpv4(host);
+  const literal = host.startsWith("[") ? host.slice(1, -1) : host;
+  return NodeNet.isIP(literal) !== 0 && isRefusedAddress(literal);
 }
+
+/** The addresses a host name leads to, none when it has no answer. Tests answer for the network. */
+export class HostAddresses extends Context.Reference<
+  (host: string) => Effect.Effect<ReadonlyArray<string>>
+>("t3/majordome/readingLink/HostAddresses", {
+  defaultValue: () => (host) =>
+    Effect.promise(() =>
+      NodeDnsPromises.lookup(host, { all: true, verbatim: true }).then(
+        (found): ReadonlyArray<string> => found.map((entry) => entry.address),
+        (): ReadonlyArray<string> => [],
+      ),
+    ),
+}) {}
 
 const siteOfHost = (hostname: string) => hostname.toLowerCase().replace(/^www\./, "");
 
@@ -308,15 +361,54 @@ const HEADERS = {
   "user-agent": "Mozilla/5.0 (compatible; Majordome)",
 };
 
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
+
+class ReadingLinkRefusedError extends Schema.TaggedError<ReadingLinkRefusedError>()(
+  "ReadingLinkRefusedError",
+  { reason: Schema.Literals(["address", "redirects"]) },
+) {}
+
+/** Fails unless the address is a web page on a host that is, and leads to, a public address. */
+const requirePublic = Effect.fn("majordome.readingLink.requirePublic")(function* (url: URL) {
+  const refused = new ReadingLinkRefusedError({ reason: "address" });
+  if (url.protocol !== "https:" && url.protocol !== "http:") return yield* refused;
+  if (isRefusedHost(url.hostname)) return yield* refused;
+  if (NodeNet.isIP(url.hostname.replace(/^\[|\]$/g, "")) !== 0) return;
+  const addresses = yield* (yield* HostAddresses)(url.hostname);
+  if (addresses.length === 0 || addresses.some(isRefusedAddress)) return yield* refused;
+});
+
+/**
+ * The page's answer, after following its redirects here instead of letting the client do it:
+ * a public page may answer with the address of a private one, so each address is checked.
+ */
+const fetchPublic = Effect.fn("majordome.readingLink.fetchPublic")(function* (url: URL) {
+  const http = yield* HttpClient.HttpClient;
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    yield* requirePublic(current);
+    const response = yield* http
+      .execute(HttpClientRequest.get(current.href).pipe(HttpClientRequest.setHeaders(HEADERS)))
+      .pipe(Effect.provideService(FetchHttpClient.RequestInit, { redirect: "manual" }));
+    const location = response.headers["location"];
+    if (!REDIRECT_STATUSES.has(response.status) || location === undefined) {
+      return yield* HttpClientResponse.filterStatusOk(response);
+    }
+    if (!URL.canParse(location, current.href)) {
+      return yield* new ReadingLinkRefusedError({ reason: "address" });
+    }
+    current = new URL(location, current);
+  }
+  return yield* new ReadingLinkRefusedError({ reason: "redirects" });
+});
+
 /** A page's HTML, up to `maxBytes` of it; undefined when it is not HTML. */
 const readHtml = Effect.fn("majordome.readingLink.readHtml")(function* (
   url: URL,
   maxBytes: number,
 ) {
-  const http = yield* HttpClient.HttpClient;
-  const response = yield* http
-    .execute(HttpClientRequest.get(url.href).pipe(HttpClientRequest.setHeaders(HEADERS)))
-    .pipe(Effect.flatMap(HttpClientResponse.filterStatusOk));
+  const response = yield* fetchPublic(url);
   if (!(response.headers["content-type"] ?? "").toLowerCase().includes("html")) return undefined;
   let read = 0;
   const bytes = yield* response.stream.pipe(
@@ -394,9 +486,11 @@ export const lookUpLink = Effect.fn("majordome.readingLink.lookUpLink")(function
     ...(found.image === undefined ? {} : { image: found.image }),
     ...(found.excerpt === undefined ? {} : { excerpt: found.excerpt }),
   });
-  const found = isYouTube(url)
-    ? readYouTube(url).pipe(Effect.map(withFallback))
-    : readPage(url, kind ?? fallback.kind).pipe(Effect.map(withFallback));
+  const found = Effect.gen(function* () {
+    return withFallback(
+      isYouTube(url) ? yield* readYouTube(url) : yield* readPage(url, kind ?? fallback.kind),
+    );
+  });
   return yield* found.pipe(
     Effect.timeoutOption(LOOKUP_TIMEOUT),
     Effect.map(Option.getOrElse(() => fallback)),

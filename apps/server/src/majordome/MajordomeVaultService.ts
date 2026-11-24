@@ -47,12 +47,18 @@ import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import { isTooBroadForNotes, NotesFolderError, setUpNotesFolder } from "./starterNotes.ts";
 import { findBackupFile, FolderBackupError, restoreFolderBackup } from "./vaultFolderBackup.ts";
-import { readVaultLayout, readVaultLimits, writeVaultLimits } from "./vaultConfig.ts";
+import {
+  readVaultLayout,
+  readVaultLimits,
+  VAULT_CONFIG_DIRNAME,
+  writeVaultLimits,
+} from "./vaultConfig.ts";
 import { listVaultHistory, undoVaultCommit } from "./vaultHistory.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { readMemoryChars } from "./vaultContext.ts";
 import { readVaultRunner } from "./vaultRunner.ts";
 import { describeVaultHistory } from "./vaultRunSummaries.ts";
+import { commitOwnerDecision } from "./vaultSkills.ts";
 
 const DEFAULT_HISTORY_LIMIT = 100;
 const isVaultError = Schema.is(MajordomeVaultError);
@@ -242,9 +248,20 @@ const make = Effect.gen(function* () {
       if (cwd === undefined) {
         return yield* new MajordomeVaultError({ message: "That project is not a vault." });
       }
-      yield* writeVaultLimits(cwd, input.limits).pipe(
-        Effect.provideService(FileSystem.FileSystem, fileSystem),
-        Effect.provideService(Path.Path, path),
+      yield* vaultLock.withLock(
+        cwd,
+        writeVaultLimits(cwd, input.limits).pipe(
+          Effect.andThen(
+            commitOwnerDecision({
+              vaultRoot: cwd,
+              subject: "Changed the limits on routines",
+              paths: [`${VAULT_CONFIG_DIRNAME}/config.json`],
+            }),
+          ),
+          Effect.provide(services),
+          Effect.provideService(FileSystem.FileSystem, fileSystem),
+          Effect.provideService(Path.Path, path),
+        ),
       );
       return input.limits;
     },

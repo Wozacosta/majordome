@@ -214,13 +214,21 @@ export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
 export type MajordomeOpenRoutinesConversationInput =
   typeof MajordomeOpenRoutinesConversationInput.Type;
 
+const isDateTimeText = Schema.makeFilter((value: string) => !Number.isNaN(Date.parse(value)), {
+  expected: "a date and time",
+});
+
 /** One message of a conversation moved between computers: the words only. */
 export const MajordomeMovedMessage = Schema.Struct({
   role: Schema.Literals(["user", "assistant"]),
   text: Schema.String,
-  createdAt: Schema.String,
+  createdAt: Schema.String.check(isDateTimeText),
 });
 export type MajordomeMovedMessage = typeof MajordomeMovedMessage.Type;
+
+/** Far past any real conversation: they keep one request from filling the server's disk. */
+export const MAJORDOME_MOVED_MESSAGES_MAX = 50_000;
+export const MAJORDOME_MOVED_MESSAGE_TEXT_MAX = 1_000_000;
 
 export const MajordomeTopicConversation = Schema.Struct({
   /** Null when the topic has no conversation on this server. */
@@ -233,7 +241,12 @@ export const MajordomeAdoptTopicConversationInput = Schema.Struct({
   ...MajordomeTopicRefInput.fields,
   /** Names the conversation being moved, so moving it twice gives the same thread. */
   sourceKey: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9:_-]{1,200}$/)),
-  messages: Schema.Array(MajordomeMovedMessage),
+  messages: Schema.Array(
+    Schema.Struct({
+      ...MajordomeMovedMessage.fields,
+      text: Schema.String.check(Schema.isMaxLength(MAJORDOME_MOVED_MESSAGE_TEXT_MAX)),
+    }),
+  ).check(Schema.isMaxLength(MAJORDOME_MOVED_MESSAGES_MAX)),
 });
 export type MajordomeAdoptTopicConversationInput = typeof MajordomeAdoptTopicConversationInput.Type;
 

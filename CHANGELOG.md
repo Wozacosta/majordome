@@ -7,6 +7,30 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Safer**
+
+- **The assistant can no longer rewrite its own rules.** What a conversation or routine changes
+  in `CLAUDE.md`, `AGENTS.md`, the notes folder's settings (routine limits included) or a
+  `.claude` folder is put back when it ends, and what it wrote waits in `.agents/held-back/` for
+  you to copy back. Changes you make in Majordome are kept.
+- **Notes settings cannot point outside your notes folder,** and memory and daily notes are no
+  longer read or written through a link that leads out of it.
+- **A device you removed stops getting notifications.** If you pair a browser again, turn
+  notifications on again on it.
+- **Saved links are only looked up on the public internet,** also when a page redirects or its
+  name leads to your own network or tailnet.
+- **A copy of your notes is no longer left on the server** after moving them to another computer.
+- **Signing in with your account now needs a key only your account holds for each server.** A
+  sign-in shown to one server can no longer be used on another of yours. Majordome on your
+  computer adds the key by itself the next time it starts; the phone needs this version.
+- **Majordome asks before keeping two computers in step.** A server that says it holds your notes
+  is no longer linked by itself: Settings > Back up my brain asks once, and "Not now" is kept.
+- **The Mac asks before copying a site's sign-in to a server's browser,** once per site.
+- **A server updates to the exact version a release names,** not to whatever "latest" points at.
+  To get this on a server you set up yourself, run the update command from the guide once more.
+- **Hosted servers answer over HTTPS only and each has its own private network.** This applies to
+  servers made from now on.
+
 ## 0.10.41
 
 **Fixed**

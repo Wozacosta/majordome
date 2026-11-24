@@ -12,7 +12,8 @@ identity.
   connected, and blocked ones, at most 8 per run.
 
 State is one D1 table, `addresses`. Removed rows stay as tombstones so a label is never handed
-out twice. The table stores the client IP of each claim for the per-IP limit.
+out twice. The table stores the client of each claim for the per-IP limit: an IPv4 address, or
+the /64 an IPv6 address is in, since one connection can use every address of its /64.
 
 ## Deploy
 
@@ -37,11 +38,11 @@ deploy with. It needs exactly:
 
 Set as vars in `wrangler.jsonc`:
 
-| Var                      | Default | Meaning                                         |
-| ------------------------ | ------- | ----------------------------------------------- |
-| `MAX_NEW_PER_IP_PER_DAY` | 3       | New addresses per client IP in 24 hours         |
-| `MAX_NEW_PER_DAY`        | 40      | New addresses in 24 hours, all clients          |
-| `MAX_LIVE_ADDRESSES`     | 180     | Live addresses; a free zone has 200 DNS records |
+| Var                      | Default | Meaning                                                |
+| ------------------------ | ------- | ------------------------------------------------------ |
+| `MAX_NEW_PER_IP_PER_DAY` | 3       | New addresses per IPv4 address or IPv6 /64 in 24 hours |
+| `MAX_NEW_PER_DAY`        | 40      | New addresses in 24 hours, all clients                 |
+| `MAX_LIVE_ADDRESSES`     | 180     | Live addresses; a free zone has 200 DNS records        |
 
 Claims by a computer that already has an address never count. Over the first two the caller
 gets `rate_limited`; at the ceiling it gets `full`.
@@ -68,32 +69,49 @@ The same Worker makes a server for someone who has an invite code. It is switche
 - `GET /start`: the page a person opens. It takes the code, makes the server, waits until it
   answers, and sends them to it already paired as its owner.
 - `POST /v1/hosted` with `{ "invite": "..." }`: spends the invite and returns the server's
-  `name`, `url` and a `pairingUrl` that works once, for a day.
+  `name`, `url` and a `pairingUrl` that works once, for a day. After ten wrong codes in 24 hours
+  a client (counted as above) gets `rate_limited`, whatever it sends next.
 - `GET /v1/hosted/ready?name=...`: how far that server has come, as `switchedOn` and `ready`.
-  The page shows its steps from these, so each one is something that really happened.
+  The page shows its steps from these, so each one is something that really happened. Only a
+  server in `hosted_invites` is looked at; any other name gets `false` twice and Fly is not asked.
 
 A server is one Fly.io app named `majordome-<10 characters>`, holding a 3 GB volume and one
 Machine (2 shared CPUs, 2 GB) that runs the released image with `MAJORDOME_HOSTED=1`. Its
-address is the app's `fly.dev` address. An invite makes one server; if Fly refuses, what was
-made is removed and the invite is given back.
+address is the app's `fly.dev` address, over HTTPS only. An invite makes one server; if Fly
+refuses, what was made is removed and the invite is given back.
+
+Each app is made with a private network of its own (named after the app), so one customer's
+server cannot reach another's over Fly's private networking. An app's network is set when it
+is made and cannot be changed: a server made before this still sits on the organization's
+default network until it is made again. Keep hosted servers in a Fly organization that holds
+nothing else, and name it in `FLY_ORG_SLUG`: the broker's token can then make and destroy only
+those apps, and nothing of yours shares an organization with customers' machines.
+
+The image is named by its digest, never by a tag, so moving `latest` on the registry changes
+nothing a server runs. The digest comes from `image-digest.txt`, which the image's build
+(`.github/workflows/container-image.yml`) attaches to the release it was built for.
+`HOSTED_IMAGE` is the repository alone. While the latest release has no `image-digest.txt` (its
+image is still building), no server can be made and none is updated.
 
 Every night (the second cron, 03:43 UTC) the Worker reads the latest release from GitHub and
-restarts each hosted server that reports another version, on the newest image. A server on the
-latest version, or one that does not answer, is left alone. Its volume, and so its notes and
-sign-ins, is kept across the restart.
+restarts each hosted server that reports another version, on that release's image. A server on
+the latest version, or one that does not answer, is left alone. Its volume, and so its notes
+and sign-ins, is kept across the restart.
 
 Set it up once:
 
 ```sh
-fly tokens create org -o personal --name majordome-broker --expiry 8760h \
+fly orgs create majordome-hosted
+fly tokens create org -o majordome-hosted --name majordome-broker --expiry 8760h \
   | pnpm dlx wrangler secret put FLY_API_TOKEN --config wrangler.deploy.jsonc
 ```
 
-Make an invite, list them, and remove a server:
+Make an invite, list them, and remove a server. The code is the only thing between a stranger
+and a server on your bill, so it is 128 random bits, not a word you choose:
 
 ```sh
 pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
-  --command "INSERT INTO hosted_invites (code, note, created_at) VALUES ('a-code-you-choose', 'for whom', unixepoch() * 1000)"
+  --command "INSERT INTO hosted_invites (code, note, created_at) VALUES ('$(openssl rand -hex 16)', 'for whom', unixepoch() * 1000)"
 pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
   --command "SELECT code, note, app_name, claimed_at, removed_at FROM hosted_invites"
 fly apps destroy majordome-xxxxxxxxxx

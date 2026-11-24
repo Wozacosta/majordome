@@ -3,6 +3,7 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import { AuthAccessWriteScope, type EnvironmentId, type ProjectId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import * as Schema from "effect/Schema";
+import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
 import { isMajordome } from "../../env";
@@ -12,27 +13,42 @@ import { useProjects, useQuietThreadShells } from "../../state/entities";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import { readEnvironmentScope, readPreparedConnection } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { toastManager } from "../ui/toast";
 import { groupBrains } from "./brains.logic";
 import { finishedReplies, replyFinishedSince } from "./home.logic";
 import { type PeerLinkCopy, type PeerLinkPlan, peerLinkPlans } from "./peerLink.logic";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
+const APPROVED_STORAGE_KEY = "majordome.machinesKeptInStep";
 const DECLINED_STORAGE_KEY = "majordome.machinesNotKeptInStep";
-const DeclinedPairs = Schema.Array(Schema.String);
+const Pairs = Schema.Array(Schema.String);
 const NO_PAIRS: ReadonlyArray<string> = [];
 
 /** Pairs this app has tried to link since it started, so a failure is not tried over and over. */
 const tried = new Set<string>();
+/** Pairs this app has asked the owner about since it started. */
+const asked = new Set<string>();
 
-/** Pairs of machines the owner chose not to keep in step, remembered by this app. */
-export function useDeclinedPeerLinks() {
-  const [declined, setDeclined] = useLocalStorage(DECLINED_STORAGE_KEY, NO_PAIRS, DeclinedPairs);
+const without = (key: string) => (pairs: ReadonlyArray<string>) =>
+  pairs.filter((pair) => pair !== key);
+const withKey = (key: string) => (pairs: ReadonlyArray<string>) => [...without(key)(pairs), key];
+
+/** What the owner answered about keeping pairs of machines in step, remembered by this app. */
+export function usePeerLinkAnswers() {
+  const [approved, setApproved] = useLocalStorage(APPROVED_STORAGE_KEY, NO_PAIRS, Pairs);
+  const [declined, setDeclined] = useLocalStorage(DECLINED_STORAGE_KEY, NO_PAIRS, Pairs);
   return {
+    approved: new Set(approved),
     declined: new Set(declined),
-    decline: (key: string) =>
-      setDeclined((pairs) => [...pairs.filter((pair) => pair !== key), key]),
-    allow: (key: string) => setDeclined((pairs) => pairs.filter((pair) => pair !== key)),
+    approve: (key: string) => {
+      setApproved(withKey(key));
+      setDeclined(without(key));
+    },
+    decline: (key: string) => {
+      setDeclined(withKey(key));
+      setApproved(without(key));
+    },
   };
 }
 
@@ -50,6 +66,7 @@ export function useLinkMachines() {
   const { machineOf } = useMachineNames();
 
   return async (plan: PeerLinkPlan<LinkCopy>): Promise<string | null> => {
+    tried.add(plan.key);
     const other = plan.other.environmentId;
     const connection = readPreparedConnection(other);
     if (connection === null || !readEnvironmentScope(other, AuthAccessWriteScope)) {
@@ -111,28 +128,51 @@ function usePeerLinkBrains(localEnvironmentId: EnvironmentId | null) {
 
 /**
  * In the desktop app, links this computer's notes with the same notes on another connected server
- * as soon as both are seen, so the owner has nothing to set up. Once per pair while the app runs.
+ * the owner agreed to, as soon as both are seen. Once per pair while the app runs. A server the
+ * owner has not answered about is pointed out once, and the Backup page asks.
  */
 function useKeepMachinesInStep() {
-  const { localEnvironmentId } = useMachineNames();
-  const { declined } = useDeclinedPeerLinks();
+  const { localEnvironmentId, machineOf } = useMachineNames();
+  const { approved, declined } = usePeerLinkAnswers();
   const link = useLinkMachines();
-  const plan = peerLinkPlans({
+  const router = useRouter();
+  const plans = peerLinkPlans({
     brains: usePeerLinkBrains(localEnvironmentId),
     localEnvironmentId,
+    approved,
     declined,
-  }).find((candidate) => !tried.has(candidate.key));
+  });
+  const plan = plans.find((candidate) => candidate.approved && !tried.has(candidate.key));
   // Without this the Backup page says what to do; nothing is tried, so it can be tried later.
   const mayLink =
     plan !== undefined && readEnvironmentScope(plan.other.environmentId, AuthAccessWriteScope);
+  const question = plans.find((candidate) => !candidate.approved && !asked.has(candidate.key));
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Linking is a request to two servers, made once when their statuses show the same notes with no working link between them.
   useEffect(() => {
     if (plan === undefined || !mayLink || tried.has(plan.key)) return;
-    tried.add(plan.key);
     // Quiet either way: the Backup page says whether the two are in step, and offers the button.
     void link(plan);
   }, [plan, mayLink, link]);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Another server showing the same notes arrives from outside React, and the owner is told once, when it does.
+  useEffect(() => {
+    if (question === undefined || asked.has(question.key)) return;
+    asked.add(question.key);
+    const machine = machineOf(question.other.environmentId);
+    const toastId = toastManager.add({
+      type: "info",
+      title: `Your notes also seem to be on ${machine}`,
+      description: "Choose whether Majordome keeps the two in step.",
+      actionProps: {
+        children: "Choose",
+        onClick: () => {
+          toastManager.close(toastId);
+          void router.navigate({ to: "/settings/backup" });
+        },
+      },
+    });
+  }, [question, machineOf, router]);
 }
 
 // The server saves a reply's notes as the reply ends, so they are asked for a moment later.

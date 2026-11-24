@@ -1,5 +1,11 @@
 import { type AccountKey, makeAccountVerifier } from "./account.ts";
-import { type AddressRequest, type Broker, CloudflareError, makeBroker } from "./broker.ts";
+import {
+  type AddressRequest,
+  type Broker,
+  clientBucket,
+  CloudflareError,
+  makeBroker,
+} from "./broker.ts";
 import { makeCloudflareClient } from "./cloudflare.ts";
 import { BrokerError, type BrokerErrorCode, ERROR_STATUS } from "./errors.ts";
 import { makeFlyHost } from "./fly.ts";
@@ -7,9 +13,10 @@ import {
   type HostClient,
   HostError,
   type Hosting,
-  isServerName,
+  imageByDigest,
   makeHosting,
   releaseVersion,
+  serverProgress,
   updateServers,
 } from "./hosting.ts";
 import { START_PAGE } from "./startPage.ts";
@@ -29,6 +36,7 @@ interface Env {
   /** Hosted servers are offered only when this secret is set. */
   readonly FLY_API_TOKEN?: string;
   readonly FLY_ORG_SLUG?: string;
+  /** The image's repository, without a tag: servers run the digest the latest release names. */
   readonly HOSTED_IMAGE?: string;
   readonly HOSTED_REGION?: string;
   readonly MAX_HOSTED_SERVERS?: string;
@@ -90,7 +98,6 @@ const hostFor = (env: Env): HostClient | null =>
     : makeFlyHost({
         apiToken: env.FLY_API_TOKEN,
         orgSlug: env.FLY_ORG_SLUG,
-        image: env.HOSTED_IMAGE ?? "ghcr.io/wozacosta/majordome:latest",
         region: env.HOSTED_REGION ?? "cdg",
         memoryMb: 2048,
         volumeGb: 3,
@@ -100,12 +107,18 @@ const hostingFor = (env: Env, host: HostClient): Hosting =>
   makeHosting({
     invites: makeD1InviteStore(env.DB),
     host,
+    image: async () => {
+      const version = await latestRelease();
+      const image = version === null ? null : await releasedImage(env, version);
+      if (image === null) throw new HostError(503, "The latest release names no image yet.");
+      return image;
+    },
     now: () => Date.now(),
     randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
     config: { namePrefix: HOSTED_NAME_PREFIX, maxServers: limit(env.MAX_HOSTED_SERVERS, 5) },
   });
 
-const RELEASES_LATEST_URL = "https://github.com/Wozacosta/majordome/releases/latest";
+const RELEASES_URL = "https://github.com/Wozacosta/majordome/releases";
 /** Must match the second entry of `triggers.crons`. */
 const UPDATE_CRON = "43 3 * * *";
 
@@ -124,11 +137,24 @@ async function serverVersion(host: HostClient, name: string): Promise<string | n
 
 /** The newest release, read from where its page redirects: no API, so no API limit. */
 async function latestRelease(): Promise<string | null> {
-  const response = await fetch(RELEASES_LATEST_URL, {
+  const response = await fetch(`${RELEASES_URL}/latest`, {
     redirect: "manual",
     signal: AbortSignal.timeout(8000),
   });
   return releaseVersion(response.headers.get("location"));
+}
+
+/**
+ * That release's image by its digest, from the `image-digest.txt` the image's build attaches to
+ * the release; null until it is there.
+ */
+async function releasedImage(env: Env, version: string): Promise<string | null> {
+  const response = await fetch(`${RELEASES_URL}/download/v${version}/image-digest.txt`, {
+    signal: AbortSignal.timeout(8000),
+  });
+  return response.ok
+    ? imageByDigest(env.HOSTED_IMAGE ?? "ghcr.io/wozacosta/majordome", await response.text())
+    : null;
 }
 
 async function updateHosted(env: Env) {
@@ -136,35 +162,28 @@ async function updateHosted(env: Env) {
   if (host === null) return null;
   const latestVersion = await latestRelease();
   if (latestVersion === null) return { error: "no latest release found" };
+  const image = await releasedImage(env, latestVersion);
+  if (image === null) return { latestVersion, error: "the release names no image yet" };
   return {
     latestVersion,
+    image,
     ...(await updateServers({
       names: await makeD1InviteStore(env.DB).liveNames(),
       host,
       latestVersion,
+      image,
       versionOf: (name) => serverVersion(host, name),
     })),
   };
 }
 
-/**
- * How far a new server has come: switched on, then answering. The page cannot ask the server
- * directly from another origin, and shows each step as it is reached.
- */
-async function serverProgress(
-  host: HostClient,
-  name: string,
-): Promise<{ readonly switchedOn: boolean; readonly ready: boolean }> {
-  if (!isServerName(HOSTED_NAME_PREFIX, name)) return { switchedOn: false, ready: false };
-  const ready = await fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
+const answers = (host: HostClient, name: string) =>
+  fetch(`${host.urlFor(name)}/.well-known/t3/environment`, {
     signal: AbortSignal.timeout(8000),
   }).then(
     (response) => response.ok,
     () => false,
   );
-  if (ready) return { switchedOn: true, ready };
-  return { switchedOn: await host.isSwitchedOn(name).catch(() => false), ready };
-}
 
 // Kept between requests while the Worker stays warm, so the keys are not fetched for each one.
 let accountVerifier: {
@@ -241,6 +260,9 @@ async function readWaitlist(
   throw new BrokerError("invalid_request", "Send a JSON body with email and platforms.");
 }
 
+const clientOf = (request: Request) =>
+  clientBucket(request.headers.get("cf-connecting-ip") ?? "unknown");
+
 const errorResponse = (code: BrokerErrorCode, message: string, headers?: HeadersInit) =>
   Response.json(
     { error: code, message },
@@ -259,7 +281,7 @@ async function readAddressRequest(request: Request): Promise<AddressRequest> {
   if (typeof publicKey !== "string" || typeof proof !== "string") {
     throw new BrokerError("invalid_request", "Send a JSON body with publicKey and proof.");
   }
-  return { publicKey, proof, clientIp: request.headers.get("cf-connecting-ip") ?? "unknown" };
+  return { publicKey, proof, clientIp: clientOf(request) };
 }
 
 async function handle(request: Request, env: Env): Promise<Response> {
@@ -292,9 +314,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   if (host !== null && pathname === "/v1/hosted/ready" && request.method === "GET") {
     const name = new URL(request.url).searchParams.get("name") ?? "";
-    return Response.json(await serverProgress(host, name), {
-      headers: { "cache-control": "no-store" },
-    });
+    return Response.json(
+      await serverProgress({
+        name,
+        namePrefix: HOSTED_NAME_PREFIX,
+        liveNames: makeD1InviteStore(env.DB).liveNames,
+        host,
+        answers: (server) => answers(host, server),
+      }),
+      { headers: { "cache-control": "no-store" } },
+    );
   }
   if (host !== null && pathname === "/v1/hosted" && request.method === "POST") {
     const { invite, accountToken } = await readInvite(request);
@@ -306,7 +335,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return Response.json(
       await hostingFor(env, host).create({
         invite,
-        clientIp: request.headers.get("cf-connecting-ip") ?? "unknown",
+        clientIp: clientOf(request),
         ...(ownerAccountId === undefined ? {} : { ownerAccountId }),
       }),
     );

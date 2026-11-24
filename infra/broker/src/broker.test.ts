@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { generateLabel, REAP_BATCH, selectReapable } from "./broker.ts";
+import { clientBucket, generateLabel, REAP_BATCH, selectReapable } from "./broker.ts";
 import { DAY, HOUR, makeIdentity, setup, START } from "./testing.ts";
 
 describe("claim", () => {
@@ -111,6 +111,22 @@ describe("claim", () => {
     await claim(await makeIdentity(), "198.51.100.8");
     clock.now += DAY + 1;
     await claim(await makeIdentity(), "198.51.100.7");
+  });
+
+  it("counts every address of one IPv6 /64 as the same client", () => {
+    for (const [ip, bucket] of [
+      ["203.0.113.7", "203.0.113.7"],
+      ["::ffff:203.0.113.7", "203.0.113.7"],
+      ["2001:db8:12:3400:1:2:3:4", "2001:db8:12:3400::/64"],
+      ["2001:DB8:12:3400:ffff:ffff:ffff:ffff", "2001:db8:12:3400::/64"],
+      ["2001:0db8:0012:3401::1", "2001:db8:12:3401::/64"],
+      ["2001:db8::1", "2001:db8:0:0::/64"],
+      ["2001::1:2:3:4:5:6", "2001:0:1:2::/64"],
+      ["::1", "0:0:0:0::/64"],
+      ["unknown", "unknown"],
+    ] as const) {
+      expect(clientBucket(ip)).toBe(bucket);
+    }
   });
 
   it("limits new addresses per day in total, counting released ones", async () => {

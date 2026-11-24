@@ -124,6 +124,8 @@ export const BrowserSiteCookiesResult = Schema.Struct({
   cookies: BrowserSiteCookies,
   /** Cookies of the site this computer could not decrypt, left out. */
   undecryptable: Schema.Int,
+  /** The owner said no when this computer asked whether to hand the site's cookies over. */
+  declined: Schema.optional(Schema.Boolean),
 });
 export type BrowserSiteCookiesResult = typeof BrowserSiteCookiesResult.Type;
 

@@ -130,6 +130,23 @@ export function makeD1InviteStore(db: D1Database): InviteStore {
         .all<{ app_name: string }>();
       return results.map((row) => row.app_name);
     },
+    failures: async ({ clientIp, since }) => {
+      const row = await db
+        .prepare(
+          "SELECT COUNT(*) AS tried FROM hosted_invite_failures WHERE client_ip = ? AND at > ?",
+        )
+        .bind(clientIp, since)
+        .first<{ tried: number }>();
+      return row?.tried ?? 0;
+    },
+    recordFailure: async ({ clientIp, at, forgetBefore }) => {
+      await db.batch([
+        db.prepare("DELETE FROM hosted_invite_failures WHERE at <= ?").bind(forgetBefore),
+        db
+          .prepare("INSERT INTO hosted_invite_failures (client_ip, at) VALUES (?, ?)")
+          .bind(clientIp, at),
+      ]);
+    },
   };
 }
 

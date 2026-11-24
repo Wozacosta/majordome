@@ -45,7 +45,14 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Sensitive ones go to Tier B instead ("Keep private"), linked to the topic but outside the vault.
   Larger files still stay in your file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
-  Edits to `CLAUDE.md` wait for approval.
+  A run's edits to the files that steer later runs wait for the owner: the root `CLAUDE.md` and
+  `AGENTS.md`, `.majordome/config.json` (it holds the routine limits and names the folders),
+  and anything under a `.claude/` or `.agents/skills/` folder. When a run ends they are put back
+  as they were and what the run wrote is copied to `.agents/held-back/` under flat names, for the
+  owner to copy back by hand; there is no screen for it yet. Everything uncommitted counts as the
+  run's, so what the owner changes through the app (the limits, a note edited in Notes) is
+  committed at once, and an edit made in another editor is held back too when a run ends before
+  the next autosave. A run that commits its own change with git is not caught.
 - **The assistant writes skills for itself, and the owner keeps them** (2026-11-22, after Hermes
   Agent). A skill is a `SKILL.md` in the vault's `.agents/skills/`, so it travels with the brain
   and every provider reads it. A conversation with the owner, and nightly dreaming, may write one
@@ -54,7 +61,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   able to plant one: what the assistant writes goes to `.agents/proposed-skills/` and is used
   only once the owner keeps it in Settings, then Skills. The rule does not rest on the prompt:
   when a run ends, anything it changed under the skills folder is moved to the proposals and the
-  folder is put back (`holdBackSkillChanges`). Proposals are files, not approval cards, because a
+  folder is put back (`holdBackRunChanges`). Proposals are files, not approval cards, because a
   card dies with its run and a nightly run cannot wait for an answer. "Stop using" moves a skill
   back to the proposals, so there is a way back; an agent can neither keep nor remove one.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting

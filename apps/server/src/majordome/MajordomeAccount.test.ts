@@ -17,6 +17,7 @@ const setup = Effect.fn(function* (options: Partial<AccountDeps> = {}) {
   const issued = yield* Ref.make<ReadonlyArray<string>>([]);
   const revoked = yield* Ref.make(0);
   const keyFetches = yield* Ref.make(0);
+  const signInKey = yield* Ref.make<string | null>(null);
   const account = yield* makeAccount({
     issuer: TEST_ISSUER,
     fixedOwnerId: null,
@@ -31,6 +32,13 @@ const setup = Effect.fn(function* (options: Partial<AccountDeps> = {}) {
         }),
       ),
     revokeAccountSessions: Ref.update(revoked, (count) => count + 1),
+    signInKey: {
+      read: Ref.get(signInKey),
+      readOrMake: Ref.updateAndGet(signInKey, (key) => key ?? "c2VydmVyLWtleQ").pipe(
+        Effect.map((key) => key ?? "c2VydmVyLWtleQ"),
+      ),
+      forget: Ref.set(signInKey, null),
+    },
     address: Effect.succeed("https://k7m2xq9d.majord.link"),
     ...options,
   });
@@ -54,23 +62,39 @@ describe("MajordomeAccount", () => {
         owner: { accountId: "user_owner", email: "owner@example.com" },
         fixed: false,
         address: "https://k7m2xq9d.majord.link",
+        signInKey: "c2VydmVyLWtleQ",
       });
 
       const signIn = yield* token({ jti: "a" });
-      expect((yield* account.signIn(signIn)).credential).toBe("one-time");
-      expect(yield* reasonOf(account.signIn(signIn))).toBe("used-token");
+      expect((yield* account.signIn(signIn, "c2VydmVyLWtleQ")).credential).toBe("one-time");
+      expect(yield* reasonOf(account.signIn(signIn, "c2VydmVyLWtleQ"))).toBe("used-token");
       expect(yield* Ref.get(issued)).toEqual(["user_owner"]);
+    }),
+  );
+
+  it.effect("refuses a token shown without this server's key, as another server would", () =>
+    Effect.gen(function* () {
+      const { account, token, issued } = yield* setup();
+      const added = yield* token({ jti: "added" });
+      yield* account.link(added);
+
+      expect(yield* reasonOf(account.signIn(yield* token({ jti: "a" }), null))).toBe("wrong-key");
+      expect(yield* reasonOf(account.signIn(yield* token({ jti: "b" }), "b3RoZXI"))).toBe(
+        "wrong-key",
+      );
+      expect(yield* reasonOf(account.signIn(added, "c2VydmVyLWtleQ"))).toBe("used-token");
+      expect(yield* Ref.get(issued)).toEqual([]);
     }),
   );
 
   it.effect("refuses another account, and any account before one is linked", () =>
     Effect.gen(function* () {
       const { account, token, issued } = yield* setup();
-      expect(yield* reasonOf(account.signIn(yield* token()))).toBe("not-owner");
+      expect(yield* reasonOf(account.signIn(yield* token(), null))).toBe("not-owner");
 
       yield* account.link(yield* token());
       const stranger = yield* token({ sub: "user_stranger" });
-      expect(yield* reasonOf(account.signIn(stranger))).toBe("not-owner");
+      expect(yield* reasonOf(account.signIn(stranger, null))).toBe("not-owner");
       expect(yield* reasonOf(account.link(stranger))).toBe("not-owner");
       expect(yield* Ref.get(issued)).toEqual([]);
     }),
@@ -82,7 +106,7 @@ describe("MajordomeAccount", () => {
       yield* account.link(yield* token());
       expect((yield* account.unlink()).owner).toBeNull();
       expect(yield* Ref.get(revoked)).toBe(1);
-      expect(yield* reasonOf(account.signIn(yield* token({ jti: "b" })))).toBe("not-owner");
+      expect(yield* reasonOf(account.signIn(yield* token({ jti: "b" }), null))).toBe("not-owner");
     }),
   );
 
@@ -94,7 +118,7 @@ describe("MajordomeAccount", () => {
       expect(yield* reasonOf(account.link(yield* token({ sub: "user_stranger" })))).toBe(
         "not-owner",
       );
-      yield* account.signIn(yield* token());
+      yield* account.signIn(yield* token(), null);
       expect((yield* account.read()).owner?.email).toBe("owner@example.com");
     }),
   );
@@ -104,11 +128,11 @@ describe("MajordomeAccount", () => {
       const { account, token, keyFetches } = yield* setup();
       yield* account.link(yield* token());
       const rotated = yield* token({}, { kid: "key-2" });
-      expect(yield* reasonOf(account.signIn(rotated))).toBe("invalid-token");
-      expect(yield* reasonOf(account.signIn(rotated))).toBe("invalid-token");
+      expect(yield* reasonOf(account.signIn(rotated, null))).toBe("invalid-token");
+      expect(yield* reasonOf(account.signIn(rotated, null))).toBe("invalid-token");
       expect(yield* Ref.get(keyFetches)).toBe(1);
       yield* TestClock.adjust("61 seconds");
-      expect(yield* reasonOf(account.signIn(rotated))).toBe("invalid-token");
+      expect(yield* reasonOf(account.signIn(rotated, null))).toBe("invalid-token");
       expect(yield* Ref.get(keyFetches)).toBe(2);
     }),
   );
@@ -117,7 +141,7 @@ describe("MajordomeAccount", () => {
     Effect.gen(function* () {
       const { account, token } = yield* setup({ issuer: null });
       expect((yield* account.read()).available).toBe(false);
-      expect(yield* reasonOf(account.signIn(yield* token()))).toBe("unavailable");
+      expect(yield* reasonOf(account.signIn(yield* token(), null))).toBe("unavailable");
     }),
   );
 });
