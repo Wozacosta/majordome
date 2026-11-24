@@ -19,7 +19,7 @@ type PeriodUnit = "day" | "week" | "month" | "year";
 const PERIOD_UNITS: ReadonlyArray<string> = ["day", "week", "month", "year"];
 
 /** What the screen reads of the App Store's product. */
-interface StoreProduct {
+export interface StoreProduct {
   readonly displayPrice: string;
   readonly subscriptionPeriodUnitIOS?: string | null;
   readonly subscriptionPeriodNumberIOS?: string | null;
@@ -75,7 +75,7 @@ export function serverOffer(
 }
 
 /** What the screen reads of one App Store purchase. */
-interface StorePurchase {
+export interface StorePurchase {
   readonly productId: string;
   readonly purchaseState: string;
   readonly transactionId?: string | null;

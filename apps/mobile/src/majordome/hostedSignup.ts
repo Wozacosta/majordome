@@ -13,12 +13,12 @@ import {
   signInToAccountServer,
 } from "@t3tools/shared/majordomeAccount";
 import { AsyncResult, Atom } from "effect/reactivity";
-import type { Purchase } from "expo-iap";
 import { Platform } from "react-native";
 
 import { hasAccountPublicConfig, resolveCloudPublicConfig } from "../features/cloud/publicConfig";
 import { buildPairingUrl, parsePairingUrl } from "../features/connection/pairing";
 import { writeFileAtomically } from "../lib/atomic-file";
+import { majordomeStore } from "../native/majordomeStore";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { appAtomRegistry } from "../state/atom-registry";
 import { authEnvironment } from "../state/auth";
@@ -66,13 +66,15 @@ import {
   serverProductId,
   signedOutNote,
   storeFailedNote,
+  type StorePurchase,
 } from "./serverPurchase.logic";
 
 // Spelled out in full: Expo only inlines `process.env.EXPO_PUBLIC_*` written this way.
 export const BROKER_URL = brokerUrl(process.env.EXPO_PUBLIC_MAJORDOME_BROKER_URL);
 const PRODUCT_ID = serverProductId(process.env.EXPO_PUBLIC_MAJORDOME_SERVER_PRODUCT_ID);
 /** Servers are sold through Apple only, to a Majordome account. */
-const SOLD_HERE = isMajordome && Platform.OS === "ios" && hasAccountPublicConfig();
+const SOLD_HERE =
+  isMajordome && Platform.OS === "ios" && majordomeStore !== null && hasAccountPublicConfig();
 const FILE_NAME = "majordome-hosted-signup.json";
 // The link makes its holder the server's owner, so it stays out of the file, which backups copy.
 const PAIRING_URL_KEY = "majordome.hosted-signup.pairing-url";
@@ -245,16 +247,13 @@ async function makeAndConnect(token: string, already: SignupNote | null): Promis
   await pair(made.server);
 }
 
-// Loaded on first use: only an iPhone build of Majordome has the App Store's module.
-const store = () => import("expo-iap");
-
 const settling = new Map<string, Promise<void>>();
 
 /**
  * Takes one purchase of the server to its end. The App Store hands a purchase over again at
  * every launch until it is marked delivered, which happens only once the service confirms it.
  */
-function settle(purchase: Purchase): Promise<void> {
+function settle(purchase: StorePurchase): Promise<void> {
   const transactionId = paidTransaction(purchase, PRODUCT_ID);
   if (transactionId === null) return Promise.resolve();
   const running = settling.get(transactionId);
@@ -267,11 +266,7 @@ function settle(purchase: Purchase): Promise<void> {
     if (asked) dispatch({ type: "pay", doing: "confirming" });
     const refusal = await confirmApplePurchase(fetch, BROKER_URL, token, transactionId);
     if (refusal !== null) return asked ? stop(refusal) : undefined;
-    await (
-      await store()
-    )
-      .finishTransaction({ purchase, isConsumable: false })
-      .catch(() => undefined);
+    await majordomeStore?.finish(transactionId).catch(() => undefined);
     if (asked) await makeAndConnect(token, alreadyConnectedNote);
     else if (isFirstPurchase(purchase)) await makeAndConnect(token, null);
   })().finally(() => settling.delete(transactionId));
@@ -280,8 +275,7 @@ function settle(purchase: Purchase): Promise<void> {
 }
 
 async function settleUnfinished(): Promise<void> {
-  const iap = await store();
-  const unfinished = await iap.getPendingTransactionsIOS().catch(() => []);
+  const unfinished = (await majordomeStore?.unfinished().catch(() => [])) ?? [];
   for (const purchase of unfinished) await settle(purchase);
 }
 
@@ -290,42 +284,32 @@ async function settleUnfinished(): Promise<void> {
  * at launch. Does nothing where servers are not sold.
  */
 export function installServerPurchases(): () => void {
-  if (!SOLD_HERE) return () => undefined;
-  let stopped = false;
-  let listening: { remove: () => void } | null = null;
+  const store = majordomeStore;
+  if (!SOLD_HERE || store === null) return () => undefined;
   let signedInAs: string | null = null;
   const stopWatchingAccount = account()?.addListener(({ session }) => {
     const id = session?.id ?? null;
     if (id === signedInAs) return;
     signedInAs = id;
-    if (id !== null) void settleUnfinished().catch(() => undefined);
+    if (id !== null) void settleUnfinished();
   });
+  const listening = store.addListener("purchase", (purchase) => void settle(purchase));
+  void settleUnfinished();
   void (async () => {
     try {
-      const iap = await store();
-      await iap.initConnection();
-      if (stopped) return;
-      listening = iap.purchaseUpdatedListener((purchase) => void settle(purchase));
-      void settleUnfinished().catch(() => undefined);
-      const [offered, products] = await Promise.all([
+      const [offered, product] = await Promise.all([
         payingOffered(fetch, BROKER_URL),
-        iap.fetchProducts({ skus: [PRODUCT_ID], type: "subs" }),
+        store.product(PRODUCT_ID),
       ]);
-      const product = (products ?? []).find((candidate) => candidate.id === PRODUCT_ID);
-      if (!offered || product === undefined) return;
-      const group = "subscriptionGroupIdIOS" in product ? product.subscriptionGroupIdIOS : null;
-      const trialOpen =
-        typeof group !== "string" ||
-        (await iap.isEligibleForIntroOfferIOS(group).catch(() => true));
-      appAtomRegistry.set(serverOfferAtom, serverOffer(product, trialOpen));
+      if (!offered || product === null) return;
+      appAtomRegistry.set(serverOfferAtom, serverOffer(product, product.trialOpen));
     } catch {
       // No store to buy from: the app says what it said before servers were sold.
     }
   })();
   return () => {
-    stopped = true;
     stopWatchingAccount?.();
-    listening?.remove();
+    listening.remove();
   };
 }
 
@@ -339,42 +323,27 @@ export async function buyServer(): Promise<void> {
   const decision = buyDecision(await readBillingStatus(fetch, BROKER_URL, token));
   if (!decision.buy) return stop(decision.note);
   dispatch({ type: "pay", doing: "buying" });
-  let bought: ReadonlyArray<Purchase>;
+  let bought: StorePurchase;
   try {
-    const iap = await store();
-    const answer = await iap.requestPurchase({
-      type: "subs",
-      request: {
-        apple: {
-          sku: PRODUCT_ID,
-          appAccountToken: decision.appToken,
-          andDangerouslyFinishTransactionAutomatically: false,
-        },
-      },
-    });
-    bought = [answer ?? []].flat();
+    const answer = await majordomeStore?.buy(PRODUCT_ID, decision.appToken);
+    if (answer === undefined || answer.outcome === "cancelled") return stop(null);
+    if (answer.outcome !== "purchased") return stop(awaitingApprovalNote);
+    bought = answer.purchase;
   } catch (cause) {
     return stop(purchaseFailure(cause));
   }
-  // The listener has the same purchase: whichever comes first carries it, the other waits on it.
-  await Promise.all(bought.map(settle));
-  if (state().step !== "paying") return;
-  stop(
-    bought.some((purchase) => purchase.purchaseState === "pending")
-      ? awaitingApprovalNote
-      : storeFailedNote,
-  );
+  // The listener may have the same purchase: whichever comes first carries it, the other waits.
+  await settle(bought);
+  if (state().step === "paying") stop(storeFailedNote);
 }
 
 /** Finds a server subscription this Apple account already pays for and connects to its server. */
 export async function restoreServer(): Promise<void> {
   if (state().step !== "idle") return;
   dispatch({ type: "pay", doing: "restoring" });
-  let owned: ReadonlyArray<Purchase>;
+  let owned: ReadonlyArray<StorePurchase>;
   try {
-    const iap = await store();
-    await iap.restorePurchases();
-    owned = await iap.getAvailablePurchases({ onlyIncludeActiveItemsIOS: true });
+    owned = (await majordomeStore?.owned(true)) ?? [];
   } catch (cause) {
     return stop(purchaseFailure(cause));
   }

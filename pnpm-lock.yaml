@@ -687,9 +687,6 @@ importers:
       expo-haptics:
         specifier: ~58.0.7
         version: 58.0.7(expo@58.0.23)
-      expo-iap:
-        specifier: 6.5.1
-        version: 6.5.1(expo@58.0.23)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
       expo-image:
         specifier: ~58.0.18
         version: 58.0.18(expo@58.0.23)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
@@ -9548,20 +9545,6 @@ packages:
     resolution: {integrity: sha512-mAY3rbng6EuYysq9wnJKhKwYYlDjqnPYcS5OXe3zj4TlAaOFMl/EfiSOuAMawc2nsXCAnwJ5U0E11nq5zQO0mg==}
     peerDependencies:
       expo: '*'
-
-  expo-iap@6.5.1:
-    resolution: {integrity: sha512-o+fHnmNELNmtSqL/t7wEJ8RsTjIJlB9FArHa2LW7SpZK6IfMmLVbVQK4FVnwuO1jBthqqdMFJPvhufP/Z84VeA==}
-    peerDependencies:
-      '@amazon-devices/keplerscript-appstore-iap-lib': ~2.13.0
-      '@amazon-devices/package-manager-lib': ~1.0.1767254401
-      expo: '*'
-      react: '*'
-      react-native: '*'
-    peerDependenciesMeta:
-      '@amazon-devices/keplerscript-appstore-iap-lib':
-        optional: true
-      '@amazon-devices/package-manager-lib':
-        optional: true
 
   expo-image-loader@58.0.3:
     resolution: {integrity: sha512-zlHudxC8OObyqCHmvdxJqURI7886KJ0cUJyn7R/a8FOD9fP837xKDN+u4SIt7XsSSVPNXzMd4Y7mN0pmup8NGA==}
@@ -19724,12 +19707,6 @@ snapshots:
   expo-haptics@58.0.7(expo@58.0.23):
     dependencies:
       expo: 58.0.23(d226faf1ca90e630d8c56a2108dee32d)
-
-  expo-iap@6.5.1(expo@58.0.23)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0):
-    dependencies:
-      expo: 58.0.23(d226faf1ca90e630d8c56a2108dee32d)
-      react: 19.3.0
-      react-native: 0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6)
 
   expo-image-loader@58.0.3(expo@58.0.23):
     dependencies:
