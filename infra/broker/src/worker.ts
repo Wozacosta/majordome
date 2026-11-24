@@ -52,6 +52,8 @@ interface Env {
   readonly ACCOUNT_ISSUER?: string;
   /** The one other site allowed to call from a browser: where people sign in and leave an email. */
   readonly ACCOUNT_PAGE_ORIGIN?: string;
+  /** Secret. Where a line of text is posted when the hourly pass fails; nothing is sent without it. */
+  readonly ALERT_URL?: string;
   /** Paying on the website is offered only when these two secrets and the price are set. */
   readonly STRIPE_SECRET_KEY?: string;
   readonly STRIPE_WEBHOOK_SECRET?: string;
@@ -496,12 +498,35 @@ export default {
       console.log("Updated hosted servers", await updateHosted(env));
       return;
     }
-    console.log("Reaped addresses", await brokerFor(env).reap());
-    const host = hostFor(env);
-    const billing = host === null ? null : billingFor(env, host);
-    if (billing !== null) console.log("Settled paid servers", await billing.sweep());
+    // One job failing must not cost the other its hour.
+    const problems: Array<string> = [];
+    try {
+      console.log("Reaped addresses", await brokerFor(env).reap());
+    } catch (error) {
+      console.error("Could not reap addresses", error);
+      problems.push("idle addresses were not reclaimed");
+    }
+    try {
+      const host = hostFor(env);
+      const report = host === null ? null : await billingFor(env, host)?.sweep();
+      if (report != null) console.log("Settled paid servers", report);
+      const failed = report?.failed.length ?? 0;
+      if (failed > 0) problems.push(`${failed} paid server(s) could not be brought in line`);
+    } catch (error) {
+      console.error("Could not settle paid servers", error);
+      problems.push("the pass over paid servers failed");
+    }
+    if (problems.length > 0) await alertOwner(env, `Majordome broker: ${problems.join("; ")}.`);
   },
 } satisfies ExportedHandler<Env>;
+
+/** Tells the owner something needs a look. No account is named: the address is an outside service. */
+async function alertOwner(env: Env, message: string) {
+  if (env.ALERT_URL === undefined) return;
+  await fetch(env.ALERT_URL, { method: "POST", body: `${message} See the Worker's logs.` }).catch(
+    (error) => console.error("Could not send an alert", error),
+  );
+}
 
 /** Work that goes on after the answer is sent. */
 type Later = (work: Promise<unknown>) => void;

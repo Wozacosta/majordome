@@ -306,6 +306,12 @@ describe("paying on the website", () => {
       t.billing.checkout({ accountId: ACCOUNT, email: null, startedOn: "computer" }),
     ).rejects.toMatchObject({ code: "full" });
     expect((await t.billing.status(ACCOUNT)).canBuy).toBe(false);
+
+    // The last place went while this account was on the payment page: it paid, so it is served.
+    t.subscribe();
+    await t.subscriptionNotice("evt_1", "created");
+    await t.billing.sweep();
+    expect(t.made).toHaveLength(1);
   });
 
   it("gives the place back when the host fails, and takes over a making that died half-way", async () => {
@@ -329,9 +335,21 @@ describe("paying on the website", () => {
       url: `https://${name}.example`,
     });
     expect(t.made).toHaveLength(1);
+    // Until it is made the account is shown no server, and the hourly pass leaves a fresh claim.
+    expect((await t.billing.status(ACCOUNT)).server).toBeNull();
+    await t.billing.sweep();
+    expect(t.made).toHaveLength(1);
     t.clock.now += 4 * 60 * 1000;
-    expect(await t.billing.server({ accountId: ACCOUNT })).toHaveProperty("pairingUrl");
+    expect(await t.billing.sweep()).toEqual({ settled: [ACCOUNT], failed: [] });
     expect(t.made).toEqual([`${name}:${ACCOUNT}`, `${name}:${ACCOUNT}`]);
+    expect((await t.billing.status(ACCOUNT)).server).toMatchObject({ name, stopped: false });
+
+    // It ended while half made: the name is given up, so it holds no place.
+    Object.assign(t.row() ?? {}, { madeAt: null, state: "ended" });
+    t.clock.now += 4 * 60 * 1000;
+    await t.billing.sweep();
+    expect(t.row()).toMatchObject({ appName: null, claimedAt: null });
+    expect(t.deleted).toContain(name);
   });
 });
 

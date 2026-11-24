@@ -199,7 +199,7 @@ export function makeBilling(deps: {
     ) {
       return { name: row.appName, url: host.urlFor(row.appName) };
     }
-    if (row.appName === null && !(await hasRoom())) throw full();
+    // No look at the places left: they are counted before the sale, and a paid server is owed.
     const name = row.appName ?? newServerName(deps.config.namePrefix, deps.randomBytes);
     const claimed = await accounts.claimServer({
       accountId: row.accountId,
@@ -234,11 +234,19 @@ export function makeBilling(deps: {
     if (row === null) return false;
     const at = deps.now();
     const live = isLive(row.state);
-    if (live && row.appName === null) {
-      await makeServer(row);
+    const beingMade = row.appName !== null && (row.claimedAt ?? 0) > at - STALE_CLAIM_MS;
+    if (row.madeAt === null) {
+      if (beingMade || (row.appName === null && !live)) return false;
+      if (live) {
+        await makeServer(row);
+        return true;
+      }
+      // It ended while its server was half made: the name and whatever exists under it go.
+      if (row.appName !== null) await host.deleteServer(row.appName);
+      await accounts.patch(accountId, { appName: null, claimedAt: null });
       return true;
     }
-    if (row.appName === null || row.madeAt === null) return false;
+    if (row.appName === null) return false;
     if (live) {
       if (row.stoppedAt === null) return false;
       await host.startServer(row.appName);
@@ -363,8 +371,9 @@ export function makeBilling(deps: {
           deps.stripe === null
             ? null
             : { ...(await deps.stripe.offer()), trialDays: trialFor(row) },
+        // A server still being made is not one yet: whoever asks goes on making it.
         server:
-          row.appName === null
+          row.appName === null || row.madeAt === null
             ? null
             : {
                 name: row.appName,

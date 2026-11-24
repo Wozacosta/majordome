@@ -5,7 +5,13 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **A paid server is always made.** If making one was cut short, the page said "Your server is
+  on" and nothing finished it; it is now finished within the hour, and the page goes on making
+  it. Someone who paid just as the last place went gets their server too.
+- **The hourly check on paid servers no longer waits on address cleanup,** and it can tell the
+  owner when it fails.
 
 ## 0.10.45
 

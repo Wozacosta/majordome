@@ -177,6 +177,15 @@ What happens to a server:
 | Paid again before the server is deleted            | The same server is switched back on            |
 | Stopped for `RETENTION_DAYS` (30)                  | Fly app, volume and address deleted            |
 
+Places are counted before the sale, not after it: an account that has paid gets its server even
+when the last place went while it was on the payment page, so `MAX_HOSTED_SERVERS` can be passed
+by the few sales that were open at once.
+
+The hourly pass also finishes a server whose making was cut short. When it cannot bring a paid
+server in line, or cannot run at all, it posts one line of text to the address in the `ALERT_URL`
+secret (`wrangler secret put ALERT_URL`), if there is one. The line names no account. Any service
+that turns a plain `POST` into a notification works, such as a private ntfy topic.
+
 A stopped Machine has no address: Fly starts a stopped Machine when its address is visited, so
 stopping takes the Machine's services away and starting puts them back. The row is kept after
 the server is deleted. The hourly cron finishes whatever a notice started and could not finish,
