@@ -36,7 +36,12 @@ import { leaveSettingsPage } from "../settings/settings-navigation";
 import { workspaceHasColumns } from "../layout/workspace/workspace-selection-store";
 import { m } from "../../i18n/messages";
 import { isMajordome } from "../../majordome/env";
-import { connectErrorForOwner, MAJORDOME_CONNECT } from "../../majordome/connectWording";
+import {
+  connectErrorForOwner,
+  MAJORDOME_CONNECT,
+  MAJORDOME_SERVER,
+} from "../../majordome/connectWording";
+import { serverOfferAtom } from "../../majordome/serverOffer";
 import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 
 type ConnectionsNewRouteParams = {
@@ -75,6 +80,7 @@ function PairingForm({
   const { connectionPairingUrl, onChangeConnectionPairingUrl, onConnectPress } =
     useRemoteConnections();
   const navigation = useNavigation();
+  const serverOffer = useAtomValue(serverOfferAtom);
   const insets = useSafeAreaInsets();
   const [initialPairing] = useState(() => parsePairingUrl(routePairingUrl || connectionPairingUrl));
   const [hostInput, setHostInput] = useState(initialPairing.host);
@@ -371,9 +377,19 @@ function PairingForm({
             {isMajordome ? (
               <View className="overflow-hidden rounded-[26px] border-continuous">
                 <ListRow
-                  label={MAJORDOME_CONNECT.hostedLabel}
-                  description={MAJORDOME_CONNECT.hostedDescription}
-                  onPress={() => navigation.navigate("SettingsAccount")}
+                  label={
+                    serverOffer === null ? MAJORDOME_CONNECT.hostedLabel : MAJORDOME_SERVER.getLabel
+                  }
+                  description={
+                    serverOffer === null
+                      ? MAJORDOME_CONNECT.hostedDescription
+                      : MAJORDOME_SERVER.getDescription
+                  }
+                  onPress={() =>
+                    navigation.navigate(
+                      serverOffer === null ? "SettingsAccount" : "SettingsHostedSignup",
+                    )
+                  }
                 />
               </View>
             ) : null}

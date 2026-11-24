@@ -111,6 +111,7 @@ import { pruneNewTaskBranchCheckouts } from "./features/threads/NewTaskDraftRout
 import { installAppUpdateChecks } from "./features/updates/app-updates";
 
 import { isMajordome } from "./majordome/env";
+import { installServerPurchases } from "./majordome/hostedSignup";
 import { pairLinkAsAppLink } from "./majordome/pairLink";
 
 import "../global.css";
@@ -236,6 +237,7 @@ const appServiceDisposers = [
   installAgentNotificationNavigation(linkToAppPath),
   installAppShortcuts(linkToAppPath),
   installAppUpdateChecks(),
+  installServerPurchases(),
   installShowcaseCapture(rootPathnameFromState),
 ];
 disposeOnFoundationReplace(typeof module === "undefined" ? undefined : module.hot, () => {

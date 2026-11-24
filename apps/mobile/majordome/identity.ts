@@ -53,7 +53,8 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   return {
     ...rest,
     slug: "majordome",
-    plugins: withMajordomeSplash(renamed.plugins),
+    // Sells the always-on server through the App Store; upstream's app sells nothing.
+    plugins: [...(withMajordomeSplash(renamed.plugins) ?? []), "expo-iap"],
     ...(renamed.scheme === undefined
       ? {}
       : {

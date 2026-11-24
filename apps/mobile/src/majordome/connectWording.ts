@@ -23,7 +23,7 @@ export const MAJORDOME_CONNECT = {
   accountLabel: "Sign in to your Majordome account",
   accountDescription:
     "With a Majordome account, this phone finds your computer by itself. No code to scan.",
-  // Says the server exists, never how to get one: a call to buy would need In-App Purchase.
+  // Says the server exists, never how to get one: shown wherever Apple does not sell it.
   hostedLabel: "No computer to leave on?",
   hostedDescription:
     "Majordome can also run on a Majordome server that is always on. If your account has one, sign in and this phone finds it.",
@@ -58,6 +58,10 @@ export const MAJORDOME_ACCOUNT = {
   deleteTitle: "Delete my account",
   deleteDetail:
     "Your Majordome account is removed for good. Your notes are not touched: they stay on your computer, and this phone stays connected to the computers it already has.",
+  deleteWithServer:
+    "Your Majordome account is removed for good. Your Majordome server and the notes on it are deleted now, and its subscription ends. Notes on your own computer are not touched.",
+  deleteWithAppleServer:
+    "Your Majordome account is removed for good. Your Majordome server and the notes on it are deleted now. Its subscription is not cancelled by this: only you can cancel it, in this iPhone's Settings, under your name, then Subscriptions. Notes on your own computer are not touched.",
   deleteConfirm: "Delete",
   deleteFailed: "The account could not be deleted. Sign out, sign in again, then try once more.",
 } as const;
@@ -73,3 +77,41 @@ export function accountConnectErrorForOwner(message: string, name: string): stri
   if (REFUSED_CODE.test(message)) return `${name} took too long to answer. Press Connect again.`;
   return message;
 }
+
+const CANCEL_PLACE = "this iPhone's Settings, under your name, then Subscriptions";
+
+/** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */
+export const MAJORDOME_SERVER = {
+  getLabel: "Get a Majordome server",
+  getDescription:
+    "No computer to leave on? A Majordome server is always on, so Majordome keeps working while your computer is off.",
+  what: "A Majordome server is a private server that is always on. Your notes and routines live on it, so Majordome keeps working while your computer is off.",
+  ownPlan: "You sign in to your own Claude plan on it. The price is for the server only.",
+  renews: `The subscription renews by itself until you cancel it, in ${CANCEL_PLACE}.`,
+  buy: "Subscribe",
+  signIn: "Sign in to continue",
+  signInHelp: "A server belongs to a Majordome account. Sign in, or make an account, to get one.",
+  restore: "Restore purchases",
+  connect: "Connect this phone to it",
+  terms: "Terms",
+  privacy: "Privacy",
+  checking: "Checking your account…",
+  buying: "Waiting for Apple…",
+  confirming: "Confirming your purchase…",
+  restoring: "Looking for your purchase…",
+  making: "Making your server. This takes about half a minute.",
+  hasServer: "This account already has a Majordome server.",
+  full: "Majordome isn't taking new servers right now. Nothing was bought. Try again later.",
+  awaitingApproval:
+    "The purchase is waiting to be approved. Your server is made once it is: open Majordome again then.",
+  nothingToRestore: "This Apple account has no Majordome server subscription to restore.",
+  otherAccount:
+    "This purchase belongs to another Majordome account. Sign in with that account, then press Restore purchases.",
+  alreadySubscribed: `This account already has a server and a subscription for it, so this purchase was not added. You can cancel it in ${CANCEL_PLACE}.`,
+  alreadyConnected: "This phone is already connected to your server.",
+  notConfirmed:
+    "Apple took the purchase, but Majordome could not confirm it yet. Nothing is lost: press Restore purchases in a few minutes.",
+  storeFailed: "The purchase did not go through. Try again in a few minutes.",
+  signedOut: "Your sign-in ended. Sign in again, then try once more.",
+  signInToConnect: "Sign in to your Majordome account, then try again.",
+} as const;

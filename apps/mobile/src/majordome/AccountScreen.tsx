@@ -25,7 +25,10 @@ import {
   pairEnvironment,
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
-import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT } from "./connectWording";
+import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
+import { BROKER_URL } from "./hostedSignup";
+import { serverOfferAtom } from "./serverOffer";
+import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
 // A build with no account service has no way in here.
 export function AccountScreen() {
@@ -51,6 +54,8 @@ function SignedIn() {
   const navigation = useNavigation();
   const clerk = useClerk();
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const serverOffer = useAtomValue(serverOfferAtom);
   const connections = useAtomValue(savedConnectionsByIdAtom);
   const servers = readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ });
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
@@ -62,16 +67,34 @@ function SignedIn() {
       : undefined;
 
   const [deleteProblem, setDeleteProblem] = useState<string | null>(null);
-  const confirmDelete = () => {
-    Alert.alert(MAJORDOME_ACCOUNT.deleteTitle, MAJORDOME_ACCOUNT.deleteDetail, [
+  const [preparingDelete, setPreparingDelete] = useState(false);
+  // The account's server goes first: once the account is gone, nothing could ask for that.
+  const deleteAccount = async () => {
+    setDeleteProblem(null);
+    const token = await getToken(ACCOUNT_TOKEN_OPTIONS).catch(() => null);
+    const serverEnded = token !== null && (await endServerBilling(fetch, BROKER_URL, token));
+    const deleted =
+      serverEnded &&
+      (await user?.delete().then(
+        () => true,
+        () => false,
+      ));
+    if (!deleted) setDeleteProblem(MAJORDOME_ACCOUNT.deleteFailed);
+  };
+  const confirmDelete = async () => {
+    setPreparingDelete(true);
+    const token = await getToken(ACCOUNT_TOKEN_OPTIONS).catch(() => null);
+    const detail =
+      token === null
+        ? MAJORDOME_ACCOUNT.deleteDetail
+        : deleteAccountDetail(await readBillingStatus(fetch, BROKER_URL, token));
+    setPreparingDelete(false);
+    Alert.alert(MAJORDOME_ACCOUNT.deleteTitle, detail, [
       { text: "Cancel", style: "cancel" },
       {
         text: MAJORDOME_ACCOUNT.deleteConfirm,
         style: "destructive",
-        onPress: () => {
-          setDeleteProblem(null);
-          user?.delete().catch(() => setDeleteProblem(MAJORDOME_ACCOUNT.deleteFailed));
-        },
+        onPress: () => void deleteAccount(),
       },
     ]);
   };
@@ -114,6 +137,13 @@ function SignedIn() {
               tone="text"
               onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
             />
+            {serverOffer === null ? null : (
+              <Button
+                label={MAJORDOME_SERVER.getLabel}
+                tone="text"
+                onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+              />
+            )}
           </View>
         ) : (
           servers.map((server) => (
@@ -126,7 +156,12 @@ function SignedIn() {
           ))
         )}
         <Button label="Sign out" tone="text" onPress={() => void clerk.signOut()} />
-        <Button label={MAJORDOME_ACCOUNT.deleteTitle} tone="text" onPress={confirmDelete} />
+        <Button
+          label={MAJORDOME_ACCOUNT.deleteTitle}
+          tone="text"
+          loading={preparingDelete}
+          onPress={() => void confirmDelete()}
+        />
         {deleteProblem === null ? null : (
           <Text accessibilityRole="alert" className="text-danger">
             {deleteProblem}

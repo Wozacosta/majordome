@@ -1,0 +1,68 @@
+{
+  "identifier" : "6D1A0E52-7C1B-4B6E-9A53-2F4C8E0B7A11",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "5RDKJ8PDGZ",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "A3F2C9D4",
+      "localizations" : [
+
+      ],
+      "name" : "Majordome server",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "B7E41C60",
+          "introductoryOffer" : {
+            "internalID" : "C58D2A17",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "An always-on server for Majordome.",
+              "displayName" : "Majordome server",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "io.github.wozacosta.majordome.server.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Majordome server, monthly",
+          "subscriptionGroupID" : "A3F2C9D4",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

@@ -22,7 +22,9 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
+import { MAJORDOME_SERVER } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
+import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
 import { useVault } from "./useVault";
 import {
@@ -115,6 +117,7 @@ const NOTICES = {
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const serverOffer = useAtomValue(serverOfferAtom);
   const store = useAtomValue(todayStoreAtom);
   const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
@@ -391,6 +394,13 @@ export function MajordomeTodayScreen() {
                   tone={hasAccounts ? "secondary" : "primary"}
                   onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
                 />
+                {serverOffer === null ? null : (
+                  <Button
+                    label={MAJORDOME_SERVER.getLabel}
+                    tone="text"
+                    onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+                  />
+                )}
               </View>
             }
           />
