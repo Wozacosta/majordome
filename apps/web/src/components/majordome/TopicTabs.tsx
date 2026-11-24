@@ -29,7 +29,7 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { onMachine } from "./brains.logic";
+import { machineInSentence, onMachine } from "./brains.logic";
 import { chatStatusWords, DONE_BLOCKER_WORDS } from "./chats.logic";
 import { ChatPlaceIcon, useChatPlaceWords } from "./ChatPlaceIcon";
 import { stepAround, topicTabs } from "./TopicPanel.logic";
@@ -75,6 +75,7 @@ export function TopicTabs(props: {
         homeEnvironmentId={
           vault?.home?.kind === "ready" ? vault.home.environmentId : props.environmentId
         }
+        homeProjectId={vault?.home?.kind === "ready" ? vault.home.projectId : copy.projectId}
         severalMachines={(vault?.copies.length ?? 1) > 1}
       />
     );
@@ -91,6 +92,7 @@ function TopicTabStrip(props: {
   readonly merged: VaultTopic | undefined;
   /** The computer a new chat about the topic starts on. */
   readonly homeEnvironmentId: EnvironmentId;
+  readonly homeProjectId: ProjectId;
   /** The notes are on more than one machine, so each tab says which one keeps its chat. */
   readonly severalMachines: boolean;
 }) {
@@ -113,7 +115,63 @@ function TopicTabStrip(props: {
     majordomeEnvironment.openTopic.permissionAtom(props.homeEnvironmentId),
   );
   const openTopic = useOpenTopic({ environmentId, projectId });
-  const { settleThread } = useThreadActions();
+  const { settleThread, archiveThread } = useThreadActions();
+  const readConversation = useAtomCommand(majordomeEnvironment.readTopicConversation, {
+    reportFailure: false,
+  });
+  const adoptConversation = useAtomCommand(majordomeEnvironment.adoptTopicConversation, {
+    reportFailure: false,
+  });
+  const canMove = useAtomValue(
+    majordomeEnvironment.adoptTopicConversation.permissionAtom(props.homeEnvironmentId),
+  );
+  const [moving, setMoving] = useState(false);
+  // This computer's own conversation for the topic, while the topic's home is another computer.
+  const movable =
+    canMove && topic.threadId === threadId && props.homeEnvironmentId !== environmentId;
+  const homeName = machineInSentence(machineOf(props.homeEnvironmentId));
+  const moveHome = async () => {
+    if (moving) return;
+    const question = `Move this conversation to ${homeName}? It becomes the main chat of ${topic.title} there, so your phone and this computer show the same one. A chat already there stays under the topic. The words are moved; pictures and files are not.`;
+    const labels = { confirm: "Move it", cancel: "Not now" };
+    const agreed = (await requestConfirmDialog(question, { labels })) ?? window.confirm(question);
+    if (!agreed) return;
+    setMoving(true);
+    const failed = (description: string) => {
+      setMoving(false);
+      toastManager.add({ type: "error", title: "The conversation was not moved", description });
+    };
+    const read = await readConversation({
+      environmentId,
+      input: { projectId, topicId: topic.id },
+    });
+    if (read._tag !== "Success" || read.value.threadId === null) {
+      return failed("It could not be read on this computer. Try again.");
+    }
+    const adopted = await adoptConversation({
+      environmentId: props.homeEnvironmentId,
+      input: {
+        projectId: props.homeProjectId,
+        topicId: topic.id,
+        sourceKey: `${environmentId}:${read.value.threadId}`,
+        messages: read.value.messages,
+      },
+    });
+    if (adopted._tag !== "Success") {
+      return failed(
+        `${homeName} did not take it. If it runs an older Majordome, update it, then try again. Nothing was changed.`,
+      );
+    }
+    // The copy here goes to the archive, so the topic shows one conversation.
+    await archiveThread(scopeThreadRef(environmentId, threadId));
+    setMoving(false);
+    void navigate({
+      to: "/$environmentId/$threadId",
+      params: buildThreadRouteParams(
+        scopeThreadRef(props.homeEnvironmentId, adopted.value.threadId),
+      ),
+    });
+  };
   const interruptTurn = useAtomCommand(threadEnvironment.interruptTurn, { reportFailure: false });
   const [starting, setStarting] = useState(false);
   const startChat = () => {
@@ -317,6 +375,17 @@ function TopicTabStrip(props: {
           );
         })}
       </ul>
+      {movable ? (
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={moving}
+          className="shrink-0"
+          onClick={() => void moveHome()}
+        >
+          {moving ? "Moving…" : `Move to ${homeName}`}
+        </Button>
+      ) : null}
       {canStart ? (
         <Tooltip>
           <TooltipTrigger

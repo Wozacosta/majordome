@@ -453,6 +453,15 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeOpenTopic,
       onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
     }),
+    readTopicConversation: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:read-topic-conversation",
+      tag: WS_METHODS.majordomeReadTopicConversation,
+    }),
+    adoptTopicConversation: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:adopt-topic-conversation",
+      tag: WS_METHODS.majordomeAdoptTopicConversation,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
     setThreadTopic: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:set-thread-topic",
       tag: WS_METHODS.majordomeSetThreadTopic,

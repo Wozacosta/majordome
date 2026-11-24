@@ -2570,6 +2570,14 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.open(input)),
           ),
+        [WS_METHODS.majordomeReadTopicConversation]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.readConversation(input)),
+          ),
+        [WS_METHODS.majordomeAdoptTopicConversation]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.adoptConversation(input)),
+          ),
         [WS_METHODS.majordomeSetThreadTopic]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.setThreadTopic(input)),

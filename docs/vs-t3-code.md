@@ -79,7 +79,8 @@ The landing page and the README show a short version of this list.
 - **An optional account that finds your servers:** sign in on a new device, in the app or at
   majord.me/open, and it connects with no code. It is identity only, and separate from T3
   Connect, which stays off. [Your account](./user/account.md)
-- **Conversations kept on the server,** so your phone and your computer show the same ones.
+- **Conversations kept on the server,** so your phone and your computer show the same ones. A
+  topic's older conversation moves there with one button.
 - **Your own sign-in in the server's browser,** copied one site at a time, by you only.
 
 ### First run and wording

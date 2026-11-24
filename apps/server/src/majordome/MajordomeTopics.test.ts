@@ -4,6 +4,7 @@ import { assert, it } from "@effect/vitest";
 import {
   DEFAULT_SERVER_SETTINGS,
   type ModelSelection,
+  type OrchestrationV2DomainEvent,
   type OrchestrationV2ServerCommand,
   ProjectId,
   TextGenerationError,
@@ -16,7 +17,9 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import * as ServerConfig from "../config.ts";
+import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ThreadCommandExecutor from "../orchestration-v2/ThreadCommandExecutor.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
@@ -36,6 +39,7 @@ interface FakeThread {
   settledOverride: "settled" | "active" | null;
   autoSettleDisabledAt: string | null;
   modelSelection: ModelSelection;
+  historyOrigin?: "native" | "v1_import";
 }
 
 const projectRow = (projectId: ProjectId, workspaceRoot: string) =>
@@ -55,7 +59,31 @@ const fakeThreads = () => {
   const timelines = new Map<string, ReadonlyArray<Record<string, unknown>>>();
   /** Message bodies the timeline leaves out. */
   const bodies = new Map<string, string>();
+  /** Each thread's messages, as the event sink was given them. */
+  const messages = new Map<string, Array<{ role: string; text: string; streaming: boolean }>>();
+  const eventSink = Layer.mock(EventSink.EventSinkV2)({
+    write: ({ events }) =>
+      Effect.sync(() => {
+        for (const event of events as ReadonlyArray<OrchestrationV2DomainEvent>) {
+          if (event.type === "message.updated") {
+            messages.set(event.threadId, [...(messages.get(event.threadId) ?? []), event.payload]);
+          } else if (event.type === "thread.metadata-updated") {
+            const thread = threads.get(event.threadId);
+            if (thread !== undefined && event.payload.historyOrigin !== undefined) {
+              thread.historyOrigin = event.payload.historyOrigin;
+            }
+          }
+        }
+        return [] as never;
+      }),
+  });
   const service = Layer.mock(ThreadManagementService.ThreadManagementService)({
+    getThreadRecords: (threadId) =>
+      Effect.succeed({
+        thread: threads.get(threadId),
+        messages: messages.get(threadId) ?? [],
+      } as never),
+    getMessageCount: (threadId) => Effect.succeed(messages.get(threadId)?.length ?? 0),
     getThreadShell: (threadId) => Effect.succeed((threads.get(threadId) ?? null) as never),
     getTimelinePage: (threadId, options) =>
       Effect.sync(() => {
@@ -106,7 +134,7 @@ const fakeThreads = () => {
         return { sequence: commands.length } as never;
       }),
   });
-  return { threads, commands, timelines, bodies, service };
+  return { threads, commands, timelines, bodies, messages, eventSink, service };
 };
 
 const setUp = Effect.fn("test.setUp")(function* (
@@ -140,6 +168,12 @@ const setUp = Effect.fn("test.setUp")(function* (
       MajordomeTopics.layer.pipe(
         Layer.provide(VaultLock.layer),
         Layer.provide(fake.service),
+        Layer.provide(fake.eventSink),
+        Layer.provide(
+          Layer.mock(ThreadCommandExecutor.ThreadCommandExecutor)({
+            withLock: (_threadId, effect) => effect,
+          }),
+        ),
         Layer.provide(
           Layer.mock(ProjectStore.ProjectStoreV2)({
             get: (projectId) =>
@@ -451,6 +485,47 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
         errorMessage(yield* Effect.exit(move(main.threadId, money.id))),
         "That chat already has its own place.",
       );
+    }),
+  );
+
+  it.effect("takes in a conversation from another computer as the topic's own", () =>
+    Effect.gen(function* () {
+      const { service, fake } = yield* setUp();
+      const topic = yield* service.create({
+        projectId: vaultProject,
+        title: "Fitness",
+        folder: "projects/fitness",
+        createFolder: true,
+      });
+      const ref = { projectId: vaultProject, topicId: topic.id };
+      const moved = [
+        { role: "user" as const, text: "Plan my week", createdAt: "2026-11-01T09:00:00.000Z" },
+        { role: "assistant" as const, text: "Three runs.", createdAt: "2026-11-01T09:00:05.000Z" },
+      ];
+      const adopt = service.adoptConversation({
+        ...ref,
+        sourceKey: "env-mac:thread-1",
+        messages: moved,
+      });
+      const words = (threadId: ThreadId) => fake.messages.get(threadId)?.map((m) => m.text);
+
+      // The conversation the phone started here stays, under the topic.
+      const started = yield* service.open(ref);
+      fake.messages.set(started.threadId, [{ role: "user", text: "Hi", streaming: false }]);
+      const first = yield* adopt;
+      assert.deepEqual(words(first.threadId), ["Plan my week", "Three runs."]);
+      assert.equal(fake.threads.get(first.threadId)?.historyOrigin, "v1_import");
+      assert.isNotNull(fake.threads.get(first.threadId)?.autoSettleDisabledAt);
+      const listed = (yield* service.list({ projectId: vaultProject })).topics[0];
+      assert.equal(listed?.threadId, first.threadId);
+      assert.deepEqual(listed?.sideThreadIds, [started.threadId]);
+      assert.isNull(fake.threads.get(started.threadId)?.autoSettleDisabledAt);
+
+      // Moving the same conversation again changes nothing.
+      assert.equal((yield* adopt).threadId, first.threadId);
+      assert.deepEqual(words(first.threadId), ["Plan my week", "Three runs."]);
+      // And it reads back as it came, ready to move on to a third computer.
+      assert.deepEqual((yield* service.readConversation(ref)).messages, moved);
     }),
   );
 

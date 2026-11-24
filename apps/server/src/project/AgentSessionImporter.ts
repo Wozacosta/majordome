@@ -105,11 +105,12 @@ function dateTime(value: string): DateTime.Utc {
   return DateTime.makeUnsafe(value);
 }
 
-type HistoryMessage = Omit<AgentSessionScanner.AgentSessionThreadMessage, "role"> & {
+export type HistoryMessage = Omit<AgentSessionScanner.AgentSessionThreadMessage, "role"> & {
   readonly role: AgentSessionScanner.AgentSessionThreadMessage["role"] | "reasoning";
 };
 
-function messageEvents(input: {
+/** A message as history that no run made: it shows in the thread and is handed to the next turn. */
+export function messageEvents(input: {
   readonly threadId: ThreadId;
   readonly index: number;
   readonly message: HistoryMessage;

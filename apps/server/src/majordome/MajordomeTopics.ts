@@ -8,7 +8,11 @@
 import {
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
+  EventId,
+  type MajordomeAdoptTopicConversationInput,
   type MajordomeCreateTopicInput,
+  type MajordomeMovedMessage,
+  type MajordomeTopicConversation,
   type MajordomeOpenRoutinesConversationInput,
   type MajordomeOpenTopicInput,
   type MajordomeOpenTopicResult,
@@ -43,8 +47,11 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 
 import * as ServerConfig from "../config.ts";
+import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ThreadCommandExecutor from "../orchestration-v2/ThreadCommandExecutor.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
+import { messageEvents } from "../project/AgentSessionImporter.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
@@ -109,6 +116,17 @@ export class MajordomeTopics extends Context.Service<
     readonly open: (
       input: MajordomeOpenTopicInput,
     ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
+    /** The words of the topic's conversation on this server, to move it to another one. */
+    readonly readConversation: (
+      input: MajordomeTopicRefInput,
+    ) => Effect.Effect<MajordomeTopicConversation, MajordomeTopicsError>;
+    /**
+     * Makes a conversation from another computer this topic's conversation here, with its
+     * history. One this server already had goes under the topic as another chat.
+     */
+    readonly adoptConversation: (
+      input: MajordomeAdoptTopicConversationInput,
+    ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
     /** Lists a chat under a topic as one of its other chats, or takes it back out. */
     readonly setThreadTopic: (
       input: MajordomeSetThreadTopicInput,
@@ -144,6 +162,8 @@ const readmeFor = (title: string) =>
 const make = Effect.gen(function* () {
   const projects = yield* ProjectStore.ProjectStoreV2;
   const threads = yield* ThreadManagementService.ThreadManagementService;
+  const eventSink = yield* EventSink.EventSinkV2;
+  const threadCommands = yield* ThreadCommandExecutor.ThreadCommandExecutor;
   const settings = yield* ServerSettings.ServerSettingsService;
   const providers = yield* ProviderRegistry.ProviderRegistry;
   const textGeneration = yield* TextGeneration.TextGeneration;
@@ -728,6 +748,90 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not open this topic.")),
   );
 
+  const readConversation: MajordomeTopics["Service"]["readConversation"] = Effect.fn(
+    "MajordomeTopics.readConversation",
+  )(
+    function* (input) {
+      const { project } = yield* requireVault(input.projectId);
+      const { topic } = yield* findTopic(project.workspaceRoot, input.topicId);
+      const thread = yield* liveThread((yield* projectState(input.projectId)).threads[topic.id]);
+      if (thread === null) return { threadId: null, messages: [] };
+      const { messages } = yield* threads.getThreadRecords(thread.id, ["messages"]);
+      return {
+        threadId: thread.id,
+        messages: messages.flatMap((message): ReadonlyArray<MajordomeMovedMessage> =>
+          message.role === "system" || message.streaming || message.text.trim() === ""
+            ? []
+            : [
+                {
+                  role: message.role,
+                  text: message.text,
+                  createdAt: DateTime.formatIso(message.createdAt),
+                },
+              ],
+        ),
+      };
+    },
+    Effect.mapError(toTopicsError("Could not read this conversation.")),
+  );
+
+  /**
+   * Writes the moved words as history no run made. The `v1_import` origin is what hands them to
+   * the AI on the next turn, and marks the write as done so a second call adds nothing.
+   */
+  const writeMovedHistory = (threadId: ThreadId, messages: ReadonlyArray<MajordomeMovedMessage>) =>
+    threadCommands.withLock(
+      threadId,
+      Effect.gen(function* () {
+        const { thread } = yield* threads.getThreadRecords(threadId, []);
+        if (thread.historyOrigin === "v1_import") return;
+        yield* eventSink.write({
+          events: [
+            ...messages.flatMap((message, index) => messageEvents({ threadId, index, message })),
+            {
+              id: EventId.make(`majordome:topic:moved:${threadId}`),
+              type: "thread.metadata-updated",
+              threadId,
+              providerInstanceId: thread.providerInstanceId,
+              occurredAt: yield* DateTime.now,
+              payload: { ...thread, historyOrigin: "v1_import" },
+            },
+          ],
+        });
+      }),
+    );
+
+  const adoptConversation: MajordomeTopics["Service"]["adoptConversation"] = Effect.fn(
+    "MajordomeTopics.adoptConversation",
+  )(
+    function* (input) {
+      const { project } = yield* requireVault(input.projectId);
+      const { topic } = yield* findTopic(project.workspaceRoot, input.topicId);
+      if (input.messages.length === 0) return yield* fail("That conversation has nothing in it.");
+      const threadId = ThreadId.make(`moved:${input.sourceKey}`);
+      const known = yield* threads.getThreadShell(threadId).pipe(Effect.orElseSucceed(() => null));
+      if (known === null) yield* startThread(project, topic.title, { threadId, kept: true });
+      yield* writeMovedHistory(threadId, input.messages);
+      const previousId = (yield* projectState(input.projectId)).threads[topic.id];
+      if (previousId === threadId) return { threadId };
+      const previous = yield* liveThread(previousId);
+      const hadWords = previous !== null && (yield* threads.getMessageCount(previous.id)) > 0;
+      yield* updateProjectState(input.projectId, (current) => ({
+        ...current,
+        threads: { ...current.threads, [topic.id]: threadId },
+        ...(previous !== null && hadWords
+          ? { sideThreads: withSideThread(current.sideThreads, previous.id, topic.id) }
+          : {}),
+      }));
+      if (previous !== null) {
+        yield* hadWords ? releaseThread(previous.id) : retireThread(previous.id);
+      }
+      return { threadId };
+    },
+    (effect) => lock.withPermits(1)(effect),
+    Effect.mapError(toTopicsError("Could not move this conversation.")),
+  );
+
   const setThreadTopic: MajordomeTopics["Service"]["setThreadTopic"] = Effect.fn(
     "MajordomeTopics.setThreadTopic",
   )(
@@ -801,6 +905,8 @@ const make = Effect.gen(function* () {
     reorder,
     remove,
     open,
+    readConversation,
+    adoptConversation,
     setThreadTopic,
     openRoutinesConversation,
     dismissSuggestions,

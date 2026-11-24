@@ -208,8 +208,10 @@ import {
   MajordomeCreateTopicInput,
   MajordomeDismissTopicSuggestionsInput,
   MajordomeOpenRoutinesConversationInput,
+  MajordomeAdoptTopicConversationInput,
   MajordomeOpenTopicInput,
   MajordomeOpenTopicResult,
+  MajordomeTopicConversation,
   MajordomeSetThreadTopicInput,
   MajordomeReorderTopicsInput,
   MajordomeSuggestTopicFolderInput,
@@ -882,6 +884,8 @@ export const WS_METHODS = {
   majordomeReorderTopics: "majordome.reorderTopics",
   majordomeRemoveTopic: "majordome.removeTopic",
   majordomeOpenTopic: "majordome.openTopic",
+  majordomeReadTopicConversation: "majordome.readTopicConversation",
+  majordomeAdoptTopicConversation: "majordome.adoptTopicConversation",
   majordomeSetThreadTopic: "majordome.setThreadTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
@@ -2770,6 +2774,18 @@ const WsMajordomeOpenTopicRpc = Rpc.make(WS_METHODS.majordomeOpenTopic, {
   error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeReadTopicConversationRpc = Rpc.make(WS_METHODS.majordomeReadTopicConversation, {
+  payload: MajordomeTopicRefInput,
+  success: MajordomeTopicConversation,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeAdoptTopicConversationRpc = Rpc.make(WS_METHODS.majordomeAdoptTopicConversation, {
+  payload: MajordomeAdoptTopicConversationInput,
+  success: MajordomeOpenTopicResult,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeSetThreadTopicRpc = Rpc.make(WS_METHODS.majordomeSetThreadTopic, {
   payload: MajordomeSetThreadTopicInput,
   error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
@@ -3369,6 +3385,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeReorderTopicsRpc,
   WsMajordomeRemoveTopicRpc,
   WsMajordomeOpenTopicRpc,
+  WsMajordomeReadTopicConversationRpc,
+  WsMajordomeAdoptTopicConversationRpc,
   WsMajordomeSetThreadTopicRpc,
   WsMajordomeOpenRoutinesConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,

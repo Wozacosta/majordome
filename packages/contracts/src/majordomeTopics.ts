@@ -214,6 +214,29 @@ export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
 export type MajordomeOpenRoutinesConversationInput =
   typeof MajordomeOpenRoutinesConversationInput.Type;
 
+/** One message of a conversation moved between computers: the words only. */
+export const MajordomeMovedMessage = Schema.Struct({
+  role: Schema.Literals(["user", "assistant"]),
+  text: Schema.String,
+  createdAt: Schema.String,
+});
+export type MajordomeMovedMessage = typeof MajordomeMovedMessage.Type;
+
+export const MajordomeTopicConversation = Schema.Struct({
+  /** Null when the topic has no conversation on this server. */
+  threadId: Schema.NullOr(ThreadId),
+  messages: Schema.Array(MajordomeMovedMessage),
+});
+export type MajordomeTopicConversation = typeof MajordomeTopicConversation.Type;
+
+export const MajordomeAdoptTopicConversationInput = Schema.Struct({
+  ...MajordomeTopicRefInput.fields,
+  /** Names the conversation being moved, so moving it twice gives the same thread. */
+  sourceKey: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9:_-]{1,200}$/)),
+  messages: Schema.Array(MajordomeMovedMessage),
+});
+export type MajordomeAdoptTopicConversationInput = typeof MajordomeAdoptTopicConversationInput.Type;
+
 export const MajordomeOpenTopicResult = Schema.Struct({
   threadId: ThreadId,
 });

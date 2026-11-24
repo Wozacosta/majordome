@@ -14,6 +14,14 @@ Not released yet.
   server. The app now remembers that you pressed Sign in, waits for its connections to come
   back, adds each computer and opens Settings > Your account.
 
+**New**
+
+- **Move a topic's conversation to your server.** A topic you talked in before you had a
+  server kept that conversation on your Mac, so your phone started a new one. Open the old
+  one on your Mac and press "Move to your server" above the messages: it becomes the topic's
+  main chat on the server, with everything said so far, and the assistant there knows it.
+  The chat your phone started stays under the topic. Pictures and files are not moved.
+
 **Improved**
 
 - **Set up your phone by signing in.** Settings > Phone & notifications now starts with

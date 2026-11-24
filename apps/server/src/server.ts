@@ -153,6 +153,7 @@ import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
+import * as ThreadCommandExecutor from "./orchestration-v2/ThreadCommandExecutor.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
@@ -752,7 +753,11 @@ const layerMajordomeVault = MajordomeVaultService.layer.pipe(
   Layer.provide(ProjectionStoreV2.layer),
 );
 
-const layerMajordomeTopics = MajordomeTopics.layer.pipe(Layer.provide(VaultLock.layer));
+const layerMajordomeTopics = MajordomeTopics.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(VaultLock.layer, RuntimeLayer.layerEventSink, ThreadCommandExecutor.layer),
+  ),
+);
 
 // One instance, shared by reference: agents ask from /mcp and the owner answers over WebSocket.
 const layerMajordomePrivateDocuments = MajordomePrivateDocuments.layer.pipe(
