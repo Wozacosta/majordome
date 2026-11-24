@@ -235,16 +235,6 @@
       <p class="muted" id="intro">Sign in to make your server. It will belong to your account.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
-      <section id="offer" hidden>
-        <p class="price" id="price"></p>
-        <p class="muted" id="price-terms"></p>
-        <button class="button" id="buy" type="button">Continue to payment</button>
-        <p class="muted small">
-          You bring your own Claude plan: the price is for the server only. By continuing you accept
-          the <a href="/terms">terms of sale</a>. See also <a href="/privacy">Privacy</a>.
-        </p>
-        <button class="link" id="have-invite" type="button">I have an invite code</button>
-      </section>
       <section id="manage" hidden>
         <p id="standing"></p>
         <p class="actions">
@@ -258,6 +248,16 @@
         </p>
         <p class="muted small" id="manage-note"></p>
         <button class="link" id="delete-account" type="button">Delete my account</button>
+      </section>
+      <section id="offer" hidden>
+        <p class="price" id="price"></p>
+        <p class="muted" id="price-terms"></p>
+        <button class="button" id="buy" type="button">Continue to payment</button>
+        <p class="muted small">
+          You bring your own Claude plan: the price is for the server only. By continuing you accept
+          the <a href="/terms">terms of sale</a>. See also <a href="/privacy">Privacy</a>.
+        </p>
+        <button class="link" id="have-invite" type="button">I have an invite code</button>
       </section>
       <form id="ask" hidden>
         <label for="invite">Invite code</label>
@@ -442,6 +442,7 @@
           $("buy").textContent =
             offer.trialDays > 0 ? "Start my free trial" : "Continue to payment";
         }
+        $("have-invite").hidden = server !== null || !$("ask").hidden;
         if ($("manage").hidden) {
           if (status.canBuy !== true && offer !== null) {
             $("intro").textContent =
