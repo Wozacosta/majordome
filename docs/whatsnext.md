@@ -394,6 +394,41 @@ What that first version does not do, in the order I would take them:
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
 OpenBot's does), a second host behind one interface, a pool of ready servers.
 
+## Selling servers: before telling strangers
+
+Paying on [majord.me/start](https://majord.me/start) is live and has one customer, the owner.
+These came out of two reviews on 2026-11-24 and wait until the page is shown to other people.
+
+- **Alerts.** The broker can post a line when the hourly pass fails, and posts nowhere: the
+  `ALERT_URL` secret is not set (`infra/broker/README.md`, "Paid servers"). Pick where it goes
+  (a private ntfy topic is the least work) and set it. A failed settle right after a Stripe
+  notice is only logged; the hourly pass is what reports it.
+- **The 14-day refund.** `site/terms/index.html` promises one and nothing performs it: the
+  cancel page ends the subscription at the period's end. Either refund by hand and be told when
+  one is due, or have the broker do it.
+- **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may appear
+  as the seller, while Managed Payments is off and Stripe computes no tax. For the accountant:
+  the VAT mention and the EU cross-border threshold. Turn on `STRIPE_MANAGED_PAYMENTS` once
+  Stripe approves the account.
+- **A French seller's flow,** to check with a professional: a French version, a pay button that
+  states the obligation to pay, a withdrawal form, the seller's address before purchase, the
+  SIRET and a consumer mediator on the terms page.
+- **The margin.** A reviewer guessed a server costs 10 to 11 euros a month on Fly against a
+  price of 12. One Fly invoice settles it.
+- **Stopped servers hold a place** under `MAX_HOSTED_SERVERS` for the 30 days they are kept.
+- **A new email is a new free trial** (`trialFor` in `infra/broker/src/billing.ts`).
+- **No way to buying from the landing page,** which still says a server is about 5 euros a
+  month; the account page still says hosting is by invitation.
+- **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
+  transcript on 2026-11-24.
+
+The iPhone purchase is not ready to submit. In the broker: App Review buys in Apple's sandbox,
+which is switched off (`APPLE_ALLOW_SANDBOX`); placeholder key ids switch selling on; a purchase
+with no account token is dropped; an unknown transaction gets the wrong message. In App Store
+Connect: the Paid Apps agreement, the subscription at the web price with a one-week free offer,
+the billing grace period, the In-App Purchase key, the notice address, a sandbox tester, and a
+demo account for the reviewer.
+
 ## Phone
 
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the
