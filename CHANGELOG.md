@@ -17,6 +17,9 @@ Not released yet.
 - **A server that is no longer paid for is switched off, not deleted.** Its notes are kept for
   30 days, and you can switch it on for a day from the same page to get them out. Paying again
   in that time brings the same server back.
+- **The terms of a paid server are written down,** at [majord.me/terms](https://majord.me/terms):
+  the price, the free week, cancelling, refunds, and what happens to your notes. The privacy
+  page now says what paying keeps about you.
 
 **Changed**
 

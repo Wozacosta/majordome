@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Terms | Majordome</title>
+    <meta
+      name="description"
+      content="What you get when you pay for a Majordome server, what it costs, and how to stop."
+    />
+    <link rel="canonical" href="https://majord.me/terms" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li .name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 600;
+      }
+      li .host {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+      li .problem {
+        flex-basis: 100%;
+        margin-top: 0;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        margin-top: 28px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 1.45rem;
+        letter-spacing: -0.01em;
+        margin: 40px 0 10px;
+      }
+      h3 {
+        font-size: 1.02rem;
+        margin: 22px 0 4px;
+      }
+      main p + p {
+        margin-top: 12px;
+      }
+      main ul {
+        display: block;
+        border: 0;
+        list-style: disc;
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      main li {
+        display: list-item;
+        padding: 3px 0;
+        border: 0;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>Terms</h1>
+      <p class="muted">Last updated 24 November 2026.</p>
+
+      <h2>The short version</h2>
+      <p>
+        Majordome, the app, is free and open source, and you can run it on your own computer or
+        server without paying anyone. These terms are about one optional thing: a server that
+        Majordome runs for you, for a monthly price. You can stop at any time, and your notes remain
+        yours.
+      </p>
+
+      <h2>Who you are dealing with</h2>
+      <p>
+        The service is provided by Samy Rabah, in France, who publishes Majordome. Write to
+        <a href="mailto:privacy@majord.me">privacy@majord.me</a> about anything on this page.
+      </p>
+
+      <h2>What you get</h2>
+      <ul>
+        <li>
+          One private server, in Paris, that runs Majordome for you all day, so your phone and your
+          computers reach the same notes and conversations.
+        </li>
+        <li>An address for it, and updates to the latest version of Majordome.</li>
+        <li>Daily copies of its disk, kept for 30 days, so it can be restored.</li>
+      </ul>
+      <p>
+        The price does not include an AI plan. You sign in to your own AI provider, such as
+        Anthropic or OpenAI, on your server, under that provider's terms and at its price.
+      </p>
+      <p>
+        Nothing in the app depends on paying. Everything the hosted server does, a server of your
+        own can do.
+      </p>
+
+      <h2>Price and payment</h2>
+      <ul>
+        <li>
+          €12 a month, tax included. The price that applies to you is the one shown before you pay.
+        </li>
+        <li>
+          The first 7 days are free, once per account. You give a payment method at the start, and
+          the first payment is taken when the trial ends unless you cancel before then.
+        </li>
+        <li>You then pay each month in advance, until you cancel.</li>
+        <li>
+          On this site, payment is taken by <a href="https://stripe.com/legal">Stripe</a>, which may
+          appear as the seller on your receipt. In the iPhone app, you buy through Apple, and
+          Apple's terms apply to the payment.
+        </li>
+      </ul>
+      <p>
+        If the price changes, you are told by email at least 30 days before it applies to you, and
+        you can cancel before it does.
+      </p>
+
+      <h2>Cancelling</h2>
+      <p>
+        You can cancel at any time: from <a href="/server">your server's page</a> if you paid on
+        this site, or from your Apple subscriptions if you bought in the iPhone app. Your server
+        keeps running until the end of the month you paid for. No payment is taken after that.
+      </p>
+
+      <h2>Changing your mind in the first 14 days</h2>
+      <p>
+        If you live in the European Union or the United Kingdom, you can withdraw within 14 days of
+        subscribing, without giving a reason. Write to
+        <a href="mailto:privacy@majord.me">privacy@majord.me</a>, or cancel as described above.
+        Anything you paid in those 14 days is refunded in full, and the server is stopped. Purchases
+        made through Apple are refunded by Apple, at
+        <a href="https://reportaproblem.apple.com">reportaproblem.apple.com</a>.
+      </p>
+
+      <h2>If a payment fails</h2>
+      <p>
+        The payment is tried again over the following days and you are told by email. Your server
+        stays on meanwhile. If no payment succeeds, the subscription ends and the server is stopped.
+      </p>
+
+      <h2>When a subscription ends</h2>
+      <ul>
+        <li>The server is stopped, not deleted. Nothing more is charged.</li>
+        <li>
+          Its notes and conversations are kept for 30 days. In that time you can subscribe again and
+          find everything as it was, or switch the server on for a day, up to three times, to take
+          your notes out.
+        </li>
+        <li>After 30 days the server, its disk and the copies of its disk are deleted for good.</li>
+      </ul>
+
+      <h2>Your notes are yours</h2>
+      <p>
+        Your notes are plain files, and you can have them backed up to your own Google Drive or
+        GitHub account at any time. Majordome does not read them, sell them, or use them to train AI
+        models. <a href="/privacy">Privacy</a> says what is kept and where.
+      </p>
+
+      <h2>Deleting your account</h2>
+      <p>
+        You can delete your account from the app or from <a href="/server">your server's page</a>.
+        That cancels the subscription and deletes the server and everything on it straight away. It
+        cannot be undone, so take a copy of your notes first.
+      </p>
+
+      <h2>What you agree not to do</h2>
+      <ul>
+        <li>Break the law with the server, or use it to harm or attack other people or systems.</li>
+        <li>Use it to send spam, mine cryptocurrency, or host things for the public.</li>
+        <li>Resell it or share it in a way that gets around the one-server-per-account limit.</li>
+      </ul>
+      <p>
+        A server used in one of these ways can be stopped. You are told why, and you can still take
+        your notes out, unless the law prevents it.
+      </p>
+
+      <h2>What to expect, and what is not promised</h2>
+      <p>
+        The service is run with care by a very small team, and it will sometimes be unavailable, for
+        maintenance or because something broke. There is no guaranteed uptime. If your server is
+        unavailable for more than a day in a month through a fault on Majordome's side, write and
+        that month is refunded.
+      </p>
+      <p>
+        What the assistant writes or does comes from the AI provider you chose, and can be wrong.
+        Majordome is not responsible for it. Keep your own copy of notes you could not bear to lose.
+      </p>
+      <p>
+        Beyond that, and as far as the law allows, Majordome's liability to you is limited to what
+        you paid for the service in the last 12 months. Nothing here takes away rights the law gives
+        you as a consumer.
+      </p>
+
+      <h2>If the service stops</h2>
+      <p>
+        If Majordome stops hosting servers, you are told by email at least 30 days before, nothing
+        further is charged, and your notes stay available to take out during that time.
+      </p>
+
+      <h2>Disputes and law</h2>
+      <p>
+        Write first to <a href="mailto:privacy@majord.me">privacy@majord.me</a>; most things are
+        settled that way. These terms are governed by French law. If you are a consumer, you keep
+        the protection of the law of the country you live in, and you can bring a dispute before the
+        courts there.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        When this page changes, the date at the top changes with it, and the
+        <a href="https://github.com/Wozacosta/majordome/commits/main/site/terms/index.html"
+          >history of this page</a
+        >
+        shows what changed. A change that takes something away from you is announced by email at
+        least 30 days before it applies.
+      </p>
+    </main>
+  </body>
+</html>
