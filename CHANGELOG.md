@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.43
+
 **New**
 
 - **An answer shows which services it used.** When the assistant reached Gmail, Google Calendar,
@@ -25,6 +27,11 @@ Not released yet.
   computers already connected are not touched.
 - **The phone no longer makes a Majordome server from an invite code.** That is done on the
   website. The phone still says a Majordome server exists, and finds yours when you sign in.
+
+**Try this**
+
+- On the phone, open Settings > Your account and press Connect on your server. Come back to the
+  app after more than an hour: it should still be connected.
 
 ## 0.10.42
 
