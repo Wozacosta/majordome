@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **An answer shows which services it used.** When the assistant reached Gmail, Google Calendar,
+  Google Drive or another connected service, its logo and name sit under the answer. A service
+  that refused is not shown.
+
 **Changed**
 
 - **On the phone, your account can be deleted** from Settings > Your account. Your notes and the

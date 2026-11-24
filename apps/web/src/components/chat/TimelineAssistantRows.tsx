@@ -17,6 +17,7 @@ import { checkpointFileTotals } from "@t3tools/client-runtime/state/thread-check
 import { ChangedFilesCard } from "./ChangedFilesTree";
 import { SavedNotesCard } from "../majordome/SavedNotesCard";
 import { QuickReplies } from "../majordome/QuickReplies";
+import { ServicesUsed } from "../majordome/ServicesUsed";
 import { splitQuickReplies } from "../majordome/QuickReplies.logic";
 import { isMajordome } from "~/env";
 import { useFileContextMenuHandler } from "../../fileContextMenu";
@@ -91,6 +92,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
           </AssistantCitationSource>
         </div>
         {quick ? <QuickReplies rowId={row.id} replies={quick.replies} /> : null}
+        {row.servicesUsed ? <ServicesUsed services={row.servicesUsed} /> : null}
         {ctx.onOpenTurnDiff ? (
           <AssistantChangedFilesSection
             turnSummary={row.assistantTurnDiffSummary}
