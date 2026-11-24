@@ -185,7 +185,7 @@ import {
   composerPlaceholder,
   connectionProblemInPlainWords,
 } from "../../majordome/conversation.logic";
-import { isMajordome } from "../../majordome/env";
+import { DEFAULT_TOOL_CALL_VISIBILITY, isMajordome } from "../../majordome/env";
 import { ComposerErrorNotice } from "./ComposerErrorNotice";
 import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
 import { FreshSessionNotice } from "./FreshSessionNotice";
@@ -518,8 +518,8 @@ function ThreadDetailBody(
   const composerError = useAtomValue(threadComposerErrorsAtom)[selectedThreadKey]?.message ?? null;
   const preferences = useAtomValue(mobilePreferencesAtom);
   const toolCallVisibility = AsyncResult.isSuccess(preferences)
-    ? (preferences.value.toolCallVisibility ?? "showAll")
-    : "showAll";
+    ? (preferences.value.toolCallVisibility ?? DEFAULT_TOOL_CALL_VISIBILITY)
+    : DEFAULT_TOOL_CALL_VISIBILITY;
   const queuedCount = useThreadQueuedCount(props.selectedThreadDetailRef);
   const turnSubagents = useThreadTurnSubagents(props.selectedThreadDetailRef);
   const agentsSegment = resolveSubagentPillSegment(turnSubagents, messages);

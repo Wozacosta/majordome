@@ -3,6 +3,8 @@ import { type ToolActivityIcon } from "@t3tools/contracts";
 import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
 import { getProjectFaviconCacheKey } from "@t3tools/shared/projectFavicon";
 import { use, useState } from "react";
+import { isMajordome } from "../../env";
+import { MajordomeCloche } from "../MajordomeCloche";
 import { T3Wordmark } from "../T3Wordmark";
 import {
   BotIcon,
@@ -245,7 +247,11 @@ function WorkEntryIcon({ name, className }: { name: WorkEntryIconName; className
     case "device":
       return <SmartphoneIcon className={className} aria-hidden />;
     case "t3-code":
-      return <T3Wordmark className={className} aria-hidden />;
+      return isMajordome ? (
+        <MajordomeCloche className={className} aria-hidden />
+      ) : (
+        <T3Wordmark className={className} aria-hidden />
+      );
     case "check":
       return <CheckIcon className={className} aria-hidden />;
     case "list-todo":

@@ -23,6 +23,11 @@ Not released yet.
 
 **Fixed**
 
+- **On the phone, a chat is as quiet as on the computer.** The "Worked for 6s" lines and the
+  steps behind an answer are left out unless you choose otherwise in Settings, Appearance.
+- **A topic's chat no longer offers "Mark as done"** on the phone. A topic is marked as done from
+  the list, as before.
+- **Majordome's own steps show Majordome's mark,** not the T3 logo, on the phone and the computer.
 - **A paid server is always made.** If making one was cut short, the page said "Your server is
   on" and nothing finished it; it is now finished within the hour, and the page goes on making
   it. Someone who paid just as the last place went gets their server too.
