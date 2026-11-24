@@ -7,20 +7,23 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.39
+
+**New**
+
+- **Your topic conversations follow you to your server.** A topic you talked in before you
+  had a server kept that conversation on your Mac, so your phone started a new one. Now, once
+  you have a server, each topic's conversation on your Mac moves there by itself, with
+  everything said so far, and the assistant there knows it. A chat your phone already started
+  stays under the topic. Pictures and files are not moved, and the copies left on the Mac are
+  in Settings > Archived chats.
+
 **Fixed**
 
 - **Signing in from the Mac app adds your computers every time.** After a sign-in with Google,
   which leaves for the browser and comes back, nothing was added and the phone listed no
   server. The app now remembers that you pressed Sign in, waits for its connections to come
   back, adds each computer and opens Settings > Your account.
-
-**New**
-
-- **Move a topic's conversation to your server.** A topic you talked in before you had a
-  server kept that conversation on your Mac, so your phone started a new one. Open the old
-  one on your Mac and press "Move to your server" above the messages: it becomes the topic's
-  main chat on the server, with everything said so far, and the assistant there knows it.
-  The chat your phone started stays under the topic. Pictures and files are not moved.
 
 **Improved**
 
@@ -41,6 +44,13 @@ Not released yet.
   computer with a Check again button, and a typed code has a Connect button.
 - **majord.me/open opens your Majordome by itself** when you have only one, and
   majord.me/start accepts an invitation link with the code in it.
+
+**Try this**
+
+- Sign out in Settings > Your account, then press Sign in at the bottom of the sidebar. Your
+  Majordome server should then show on your phone, at majord.me/open and in the iPhone app.
+- Open Majordome on your Mac and wait a few seconds for "topic conversations moved to your
+  Majordome server". Then open one of those topics on your phone: it is the same conversation.
 
 ## 0.10.38
 
