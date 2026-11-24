@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.40
+
 **Improved**
 
 - **Each conversation costs less to start.** The assistant is no longer handed Claude's
@@ -21,6 +23,12 @@ Not released yet.
   away into a "Working" section.
 - **On the phone, Settings starts with "Your account".** It shows your email, or "Sign in"
   when you are signed out.
+
+**Try this**
+
+- On the iPhone, update Majordome in TestFlight, then open Chats: your topics are at the top.
+  Send one a message and watch it stay there while it works.
+- Send an email to privacy@majord.me from another address and check it reaches you.
 
 ## 0.10.39
 
