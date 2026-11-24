@@ -575,7 +575,9 @@ async function answerFor(request: Request, env: Env, later: Later): Promise<Resp
     if (error instanceof HostError) {
       return errorResponse(
         "upstream",
-        "Majordome could not make your server just now. Your invite is still good: try again in a few minutes.",
+        new URL(request.url).pathname.startsWith("/v1/billing/")
+          ? "Majordome could not reach the payment service just now. Try again in a few minutes."
+          : "Majordome could not make your server just now. Your invite is still good: try again in a few minutes.",
       );
     }
     const retryAfter = error instanceof CloudflareError ? error.retryAfter : null;

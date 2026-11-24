@@ -211,12 +211,16 @@ Paying on the website is offered once `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRE
    end of the period**.
 5. `STRIPE_MANAGED_PAYMENTS` is `"1"` only once Stripe has approved the account for Managed
    Payments. Without it the checkout asks the card's owner to confirm with 3-D Secure where the
-   card supports it; a Radar rule is what refuses a card that does not.
+   card supports it; a Radar rule is what refuses a card that does not. With it, Stripe refuses
+   every checkout until the product carries a tax code Managed Payments accepts.
 
 ```sh
 pnpm dlx wrangler secret put STRIPE_SECRET_KEY --config wrangler.deploy.jsonc
 pnpm dlx wrangler secret put STRIPE_WEBHOOK_SECRET --config wrangler.deploy.jsonc
 ```
+
+To run it all on one machine, `stripe listen --forward-to` sends the sandbox's signed notices to
+a local copy of the broker, and a test clock moves a subscription past its trial.
 
 Refunding a charge in full ends the subscription and stops the server. Refund part of it to
 give money back and leave the server running. The trial is `TRIAL_DAYS` long, once per account.

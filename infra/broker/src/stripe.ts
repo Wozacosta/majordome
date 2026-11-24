@@ -165,7 +165,11 @@ export function makeStripeClient(config: {
         // As the seller, Stripe sets its own fraud rules; otherwise the card's owner must confirm.
         ...(config.managedPayments
           ? { "managed_payments[enabled]": "true" }
-          : { "payment_method_options[card][request_three_d_secure]": "any" }),
+          : {
+              // Said outright: an account approved for it has it switched on by default.
+              "managed_payments[enabled]": "false",
+              "payment_method_options[card][request_three_d_secure]": "any",
+            }),
       });
       if (typeof session.url !== "string") throw new HostError(502, "Stripe returned no page.");
       return { url: session.url };
