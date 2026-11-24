@@ -21,6 +21,15 @@ Not released yet.
   the price, the free week, cancelling, refunds, and what happens to your notes. The privacy
   page now says what paying keeps about you.
 
+**Changed**
+
+- **Key facts are shorter.** A day that is over is no longer listed, dates run soonest first, and
+  each kind shows its first two with **Show more** for the rest, so "In short" and your notes
+  stay in view.
+
+  **Try this:** open a long conversation with many dates and names: the list on the right should
+  be a few rows, with no date before today.
+
 **Fixed**
 
 - **On the phone, Your account shows how each server's connection really stands.** It said "This

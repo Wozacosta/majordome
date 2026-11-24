@@ -50,28 +50,67 @@ function readableDate(value: string, locale: string | undefined): string {
   return match[4] === undefined ? day : `${day}, ${match[4]}`;
 }
 
-/** A conversation's key facts as the panel lists them: by kind, each kind newest first. */
+const dayOf = (value: string) => /^\d{4}-\d{2}-\d{2}/.exec(value)?.[0] ?? null;
+
+/** Rows of each kind shown before "Show more". */
+const FIRST_ROWS_PER_KIND = 2;
+
+export interface KeyFactGroup {
+  readonly title: string;
+  readonly rows: ReadonlyArray<KeyFactRow>;
+}
+
+/**
+ * A conversation's key facts as the panel lists them: by kind, each kind newest first. Dates run
+ * soonest first, and a day that is over is left out: the panel is for what is still ahead.
+ */
 export function keyFactGroups(
   facts: ReadonlyArray<MajordomeKeyFact>,
-  locale?: string,
-): ReadonlyArray<{ readonly title: string; readonly rows: ReadonlyArray<KeyFactRow> }> {
+  options: { readonly today?: string; readonly locale?: string } = {},
+): ReadonlyArray<KeyFactGroup> {
+  const { today, locale } = options;
   return KEY_FACT_GROUPS.flatMap(({ kind, title }) => {
-    const rows = facts
-      .filter((fact) => fact.kind === kind)
-      .toReversed()
-      .map((fact): KeyFactRow => {
-        const note = fact.note ?? null;
-        const link = kind === "link";
-        const value = kind === "date" ? readableDate(fact.value, locale) : fact.value;
-        return {
-          key: `${kind}:${fact.value}`,
-          kind,
-          label: link ? (note ?? shortAddress(fact.value)) : value,
-          detail: link ? (note === null ? null : shortAddress(fact.value)) : note,
-          href: link ? fact.value : null,
-          value,
-        };
-      });
+    const ofKind = facts.filter((fact) => fact.kind === kind).toReversed();
+    const kept =
+      kind === "date"
+        ? ofKind
+            .filter((fact) => {
+              const day = dayOf(fact.value);
+              return today === undefined || day === null || day >= today;
+            })
+            .toSorted((a, b) =>
+              dayOf(a.value) === null || dayOf(b.value) === null
+                ? Number(dayOf(a.value) === null) - Number(dayOf(b.value) === null)
+                : a.value.localeCompare(b.value),
+            )
+        : ofKind;
+    const rows = kept.map((fact): KeyFactRow => {
+      const note = fact.note ?? null;
+      const link = kind === "link";
+      const value = kind === "date" ? readableDate(fact.value, locale) : fact.value;
+      return {
+        key: `${kind}:${fact.value}`,
+        kind,
+        label: link ? (note ?? shortAddress(fact.value)) : value,
+        detail: link ? (note === null ? null : shortAddress(fact.value)) : note,
+        href: link ? fact.value : null,
+        value,
+      };
+    });
     return rows.length === 0 ? [] : [{ title, rows }];
   });
+}
+
+/** The first rows of each kind, and how many rows that leaves out. */
+export function firstKeyFacts(groups: ReadonlyArray<KeyFactGroup>): {
+  readonly groups: ReadonlyArray<KeyFactGroup>;
+  readonly remaining: number;
+} {
+  const first = groups.map((group) => ({
+    title: group.title,
+    rows: group.rows.slice(0, FIRST_ROWS_PER_KIND),
+  }));
+  const count = (list: ReadonlyArray<KeyFactGroup>) =>
+    list.reduce((total, group) => total + group.rows.length, 0);
+  return { groups: first, remaining: count(groups) - count(first) };
 }

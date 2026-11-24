@@ -6,6 +6,8 @@ places, dates and names. It sits at the top of the panel on the right of the con
 
 - Click a link to open it. Click a place, a date or a name to copy it.
 - A date said in passing ("next Thursday at 10") is written out as the day it means.
+- Dates run soonest first, and a day that is over leaves the list.
+- Each kind shows its first two; **Show more** gives the rest.
 - The list is brought up to date after each reply, while you have the conversation open.
 
 ## In short, and a drawing

@@ -4,18 +4,18 @@ import { refreshMajordomeKeyFacts } from "@t3tools/client-runtime/state/majordom
 import type { EnvironmentId, MajordomeKeyFactKind, ThreadId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { CalendarIcon, LinkIcon, type LucideIcon, MapPinIcon, UserIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShell } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
-import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
+import { ThreadDetailsControl, ThreadDetailsMoreButton } from "../chat/ThreadDetailsControl";
 import { THREAD_DETAILS_PANEL_ICON_CLASS } from "../chat/threadDetailsPanelStyles";
 import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
 import { toastManager } from "../ui/toast";
 import { DrawConversationButton } from "./ConversationDrawing";
-import { keyFactGroups, type KeyFactRow } from "./keyFacts.logic";
+import { firstKeyFacts, keyFactGroups, type KeyFactRow } from "./keyFacts.logic";
 
 const ICONS: Record<MajordomeKeyFactKind, LucideIcon> = {
   link: LinkIcon,
@@ -23,6 +23,9 @@ const ICONS: Record<MajordomeKeyFactKind, LucideIcon> = {
   date: CalendarIcon,
   person: UserIcon,
 };
+
+const localDay = (now: Date) =>
+  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
 /**
  * What a conversation mentioned that is worth finding again (its links, places, dates and names)
@@ -54,7 +57,11 @@ export function KeyFactsSection({
 
   const data = AsyncResult.getOrElse(result, () => null);
   const summary = data?.summary ?? [];
-  const groups = keyFactGroups(data?.facts ?? []);
+  const [expanded, setExpanded] = useState(false);
+  const [today] = useState(() => localDay(new Date()));
+  const allGroups = keyFactGroups(data?.facts ?? [], { today });
+  const first = firstKeyFacts(allGroups);
+  const groups = expanded ? allGroups : first.groups;
   const row = (fact: KeyFactRow) => {
     const Icon = ICONS[fact.kind];
     return (
@@ -103,6 +110,13 @@ export function KeyFactsSection({
                 {group.rows.map(row)}
               </ul>
             ))
+          )}
+          {first.remaining === 0 ? null : (
+            <ThreadDetailsMoreButton
+              expanded={expanded}
+              remaining={first.remaining}
+              onToggle={() => setExpanded((open) => !open)}
+            />
           )}
         </div>
       </ThreadDetailsSection>
