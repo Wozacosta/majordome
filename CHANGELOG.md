@@ -5,7 +5,12 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **The page that sells a server looks the part.** At
+  [majord.me/start](https://majord.me/start) the price, the free days and what the server
+  gives you now sit in one card, and making the server shows its four steps as a progress
+  line.
 
 ## 0.10.44
 

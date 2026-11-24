@@ -23,6 +23,8 @@
         --button: #14161c;
         --button-text: #f4efe6;
         --problem: #a3261a;
+        --accent: #1f7a4d;
+        --accent-soft: #1f7a4d1f;
         --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
         --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
@@ -36,6 +38,8 @@
           --button: #f4efe6;
           --button-text: #14161c;
           --problem: #ff9d8f;
+          --accent: #6fd3a0;
+          --accent-soft: #6fd3a024;
         }
       }
       * {
@@ -91,35 +95,41 @@
       #sign-in {
         margin-top: 28px;
       }
-      ul {
-        list-style: none;
-        margin: 28px 0 0;
-        padding: 0;
-        border-top: 1px solid var(--line);
+      .card {
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
       }
-      li {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px 16px;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      li .name {
-        flex: 1 1 10rem;
-        min-width: 0;
+      .badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.85rem;
         font-weight: 600;
       }
-      li .host {
-        display: block;
-        font-weight: 400;
-        font-size: 0.9rem;
-        overflow-wrap: anywhere;
+      .gets {
+        list-style: none;
+        margin: 22px 0 26px;
+        padding: 20px 0 0;
+        border-top: 1px solid var(--line);
       }
-      li .problem {
-        flex-basis: 100%;
-        margin-top: 0;
-        font-size: 0.95rem;
+      .gets li {
+        position: relative;
+        padding: 5px 0 5px 28px;
+      }
+      .gets li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 0.8em;
+        width: 11px;
+        height: 6px;
+        border-left: 2px solid var(--accent);
+        border-bottom: 2px solid var(--accent);
+        transform: rotate(-45deg);
       }
       button {
         font: inherit;
@@ -167,20 +177,71 @@
       ol {
         list-style: none;
         margin: 28px 0 0;
-        padding: 0;
       }
       ol li {
-        display: block;
-        padding: 10px 0;
-        border: 0;
+        position: relative;
+        padding: 0 0 22px 36px;
         color: var(--muted);
+      }
+      ol li:last-child {
+        padding-bottom: 0;
+      }
+      ol li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.25em;
+        box-sizing: border-box;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--line);
+        border-radius: 50%;
+      }
+      ol li:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: calc(0.25em + 22px);
+        bottom: 0;
+        width: 2px;
+        background: var(--line);
       }
       ol li.now {
         color: var(--ink);
         font-weight: 600;
       }
+      ol li.now::before {
+        border-color: var(--accent-soft);
+        border-top-color: var(--accent);
+        animation: turn 0.9s linear infinite;
+      }
       ol li.done::before {
-        content: "\2713  ";
+        border-color: var(--accent);
+        background: var(--accent)
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.3l2.6 2.6L11 4.4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+          center / 14px no-repeat;
+      }
+      ol li.done::after {
+        background: var(--accent);
+      }
+      @media (prefers-color-scheme: dark) {
+        ol li.done::before {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.3l2.6 2.6L11 4.4' fill='none' stroke='%2314161c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+      }
+      @keyframes turn {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        ol li.now::before {
+          animation: none;
+        }
+      }
+      #note:not(:empty) {
+        margin-top: 16px;
+        font-size: 0.95rem;
       }
       section {
         margin-top: 28px;
@@ -191,7 +252,37 @@
       }
       .price {
         font-family: var(--serif);
-        font-size: 1.6rem;
+        font-size: 3rem;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+      .badge + .price {
+        margin-top: 14px;
+      }
+      .price .per {
+        font-family: var(--sans);
+        font-size: 1rem;
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      section .price + p {
+        margin-top: 6px;
+      }
+      .button.wide {
+        display: block;
+        width: 100%;
+        padding: 13px 20px;
+        font-size: 1.05rem;
+      }
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 24px;
+        margin-top: 24px;
+        font-size: 0.95rem;
+      }
+      .foot .link {
+        margin-top: 0;
       }
       .small {
         font-size: 0.9rem;
@@ -217,6 +308,7 @@
       section .link {
         display: block;
         margin-top: 20px;
+        font-size: 0.95rem;
       }
       [hidden] {
         display: none !important;
@@ -237,7 +329,7 @@
       <p class="muted" id="intro">Sign in to make your server. It will belong to your account.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
-      <section id="manage" hidden>
+      <section class="card" id="manage" hidden>
         <p id="standing"></p>
         <p class="actions">
           <a class="button" id="open" href="/open">Open my server</a>
@@ -251,15 +343,21 @@
         <p class="muted small" id="manage-note"></p>
         <button class="link" id="delete-account" type="button">Delete my account</button>
       </section>
-      <section id="offer" hidden>
-        <p class="price" id="price"></p>
+      <section class="card" id="offer" hidden>
+        <p class="badge" id="trial" hidden></p>
+        <p class="price"><span id="price"></span> <span class="per" id="per"></span></p>
         <p class="muted" id="price-terms"></p>
-        <button class="button" id="buy" type="button">Continue to payment</button>
+        <ul class="gets">
+          <li>Always on, in Paris</li>
+          <li>Your notes and conversations on all your devices</li>
+          <li>A copy of its disk every day, kept 30 days</li>
+          <li>Runs on your own Claude plan, which is not included</li>
+        </ul>
+        <button class="button wide" id="buy" type="button">Continue to payment</button>
         <p class="muted small">
-          You bring your own Claude plan: the price is for the server only. By continuing you accept
-          the <a href="/terms">terms of sale</a>. See also <a href="/privacy">Privacy</a>.
+          By continuing you accept the <a href="/terms">terms of sale</a>. See also
+          <a href="/privacy">Privacy</a>.
         </p>
-        <button class="link" id="have-invite" type="button">I have an invite code</button>
       </section>
       <form id="ask" hidden>
         <label for="invite">Invite code</label>
@@ -273,14 +371,17 @@
         />
         <button class="button" id="go" type="submit">Make my server</button>
       </form>
-      <ol id="steps" hidden>
+      <ol class="card" id="steps" hidden>
         <li data-step="made">Making your server</li>
         <li data-step="on">Switching it on</li>
         <li data-step="ready">Starting Majordome</li>
         <li data-step="open">Opening your server</li>
       </ol>
       <p class="muted" id="note" role="status"></p>
-      <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+      <p class="foot">
+        <button class="link" id="have-invite" type="button" hidden>I have an invite code</button>
+        <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+      </p>
     </main>
     <script type="module">
       // The account service's key is public. It only signs in on majord.me and its subdomains.
@@ -396,7 +497,7 @@
 
       async function making(clerk, fields) {
         showProblem("");
-        for (const id of ["ask", "offer", "manage"]) $(id).hidden = true;
+        for (const id of ["ask", "offer", "manage", "have-invite"]) $(id).hidden = true;
         $("steps").hidden = false;
         show("made");
         try {
@@ -435,11 +536,15 @@
           const price = new Intl.NumberFormat(undefined, {
             style: "currency",
             currency: offer.currency,
+            minimumFractionDigits: offer.amount % 100 === 0 ? 0 : 2,
           }).format(offer.amount / 100);
-          $("price").textContent = `${price} a ${offer.interval}`;
+          $("price").textContent = price;
+          $("per").textContent = `a ${offer.interval}`;
+          $("trial").hidden = !(offer.trialDays > 0);
+          $("trial").textContent = `${offer.trialDays} days free`;
           $("price-terms").textContent =
             offer.trialDays > 0
-              ? `Free for ${offer.trialDays} days, then ${price} a ${offer.interval}, tax included. Cancel when you like.`
+              ? "Nothing to pay today. Tax included. Cancel when you like."
               : "Tax included. Cancel when you like.";
           $("buy").textContent =
             offer.trialDays > 0 ? "Start my free trial" : "Continue to payment";
