@@ -154,6 +154,7 @@ const REVIEWED = [
   // A row label in the developer's component catalog.
   "apps/mobile/src/features/development/ComponentCatalogScreen.tsx: Projects",
   // A union local to the phone's undo notice; its three files are swapped together.
+  "apps/mobile/src/features/home/HomeScreen.tsx: this environment",
   "apps/mobile/src/features/home/ThreadUndoNotice.tsx: Settled",
   "apps/mobile/src/features/home/thread-undo-notice.ts: Settled",
   "apps/mobile/src/features/home/useThreadListActions.ts: Settled",

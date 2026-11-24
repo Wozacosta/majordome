@@ -52,9 +52,16 @@ const listedPaths = (command: Command.Command.Any, path: string): ReadonlyArray<
 ];
 
 it("feedback subjects name every listed t3 command", () => {
-  expect([...T3_CLI_COMMANDS].sort()).toEqual(
-    [...listedPaths(makeCli({ cloudEnabled: true }), "t3")].sort(),
-  );
+  // Majordome adds `secret`, has its own `service` with no `protect`, and no `up` or `update`.
+  const majordome = ["t3 secret", "t3 secret list", "t3 secret remove", "t3 secret set"];
+  expect(
+    [
+      ...T3_CLI_COMMANDS.filter(
+        (command) => !["t3 service protect", "t3 up", "t3 update"].includes(command),
+      ),
+      ...majordome,
+    ].sort(),
+  ).toEqual([...listedPaths(makeCli({ cloudEnabled: true }), "t3")].sort());
 });
 
 const hidden = (tool: string) =>

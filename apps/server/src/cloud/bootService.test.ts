@@ -249,9 +249,9 @@ const makeHarness = Effect.fn("test.make_boot_service_harness")(function* (
       commands.push(command);
       const marker = path.join(baseDir, "runtime", DESKTOP_UPDATE_RESTART_MARKER_FILE);
       if (
-        command === "systemctl --user stop t3code.service" ||
-        command === "systemctl --user disable --now t3code.service" ||
-        command === "systemctl --user restart --no-block t3code.service" ||
+        command === "systemctl --user stop majordome.service" ||
+        command === "systemctl --user disable --now majordome.service" ||
+        command === "systemctl --user restart --no-block majordome.service" ||
         command.startsWith("launchctl bootout --wait ") ||
         (input.command === SCHTASKS && input.args[0] === "/End")
       ) {
@@ -462,7 +462,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
         expect(markersAtStop).toEqual([true, true]);
         expect(yield* fs.exists(marker)).toBe(false);
 
-        control.failCommand = "systemctl --user stop t3code.service";
+        control.failCommand = "systemctl --user stop majordome.service";
         const error = yield* next.restart.pipe(Effect.flip);
         expect(error._tag).toBe("BootServiceCommandError");
         expect(markersAtStop).toEqual([true, true, true]);
@@ -1328,7 +1328,7 @@ process.disconnect();
       expect(yield* alias.restart).toBe("restarted");
       commands.length = 0;
       yield* alias.withStopped(Effect.void);
-      expect(commands).toContain("systemctl --user stop t3code.service");
+      expect(commands).toContain("systemctl --user stop majordome.service");
       expect((yield* alias.install()).baseDir).toBe(aliasDir);
       expect(yield* service.status).toMatchObject({ current: true });
       expect((yield* service.status).otherBaseDir).toBeUndefined();
@@ -1415,7 +1415,7 @@ process.disconnect();
         expect(markersAtPreparation.at(-1)).toBe(false);
         expect(markersAtStop).toEqual([]);
 
-        const queueCommand = "systemctl --user restart --no-block t3code.service";
+        const queueCommand = "systemctl --user restart --no-block majordome.service";
         control.failCommand = queueCommand;
         expect((yield* inside.restart.pipe(Effect.flip))._tag).toBe("BootServiceCommandError");
         expect(markersAtStop).toEqual([true]);

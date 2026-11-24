@@ -71,7 +71,6 @@ export interface SettingsSearchItem {
   readonly macOnly?: boolean;
   readonly windowsOnly?: boolean;
   readonly releaseChannelOnly?: boolean;
-  readonly secretsFeatureOnly?: boolean;
   readonly majordomeOnly?: boolean;
   readonly secretProvidersOnly?: boolean;
   readonly cloudOnly?: boolean;
@@ -225,6 +224,9 @@ const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
   "boring-sidebar-multiline",
   "simlock-hosts",
   "worktree-fast-checkout",
+  // Labs: upstream's coding workflows, and reports that go to T3 Code's own team.
+  "workflows-beta",
+  "agent-feedback",
   // About
   "mobile-app",
   "cli-command",
@@ -1737,7 +1739,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: [
       msg("secret providers keychain encrypted file 1password vault credentials api key token"),
     ],
-    secretsFeatureOnly: true,
+    secretProvidersOnly: true,
   },
   {
     id: "secret-providers-add",
@@ -1749,7 +1751,7 @@ export const SETTINGS_SEARCH_ITEMS = [
         "new secret provider keychain encrypted file command infisical doppler pass environment variable 1password op cli account",
       ),
     ],
-    secretsFeatureOnly: true,
+    secretProvidersOnly: true,
   },
   {
     id: "archive",
@@ -1933,7 +1935,9 @@ export function filterAvailableSettingsSearchItems(
         availability.hasFastWorktreeCheckoutEnvironment === true) &&
       (!item.agentFeedbackOnly || availability.hasAgentFeedbackEnvironment === true) &&
       (!item.textGeneratorsOnly || availability.hasTextGeneratorsEnvironment === true) &&
-      (!item.secretProvidersOnly || availability.hasSecretProvidersEnvironment === true),
+      (!item.secretProvidersOnly ||
+        isSecretsFeatureEnabled ||
+        availability.hasSecretProvidersEnvironment === true),
   );
 }
 
@@ -1946,7 +1950,6 @@ export function settingsForThisPlatform(
     (item) =>
       (isElectron || item.desktopOnly !== true) &&
       (!item.releaseChannelOnly || isElectron || HOSTED_APP_CHANNEL !== null) &&
-      (!item.secretsFeatureOnly || isSecretsFeatureEnabled) &&
       (!item.majordomeOnly || isMajordome) &&
       (!isMajordome ||
         (!MAJORDOME_HIDDEN_SETTINGS.has(item.to) && !MAJORDOME_HIDDEN_SETTING_IDS.has(item.id))) &&
