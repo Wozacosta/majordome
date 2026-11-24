@@ -115,9 +115,10 @@ rows; nothing was changed in how a turn is sent):
   own tools and listings, including its Artifact tools (8,000 to 13,000 tokens) that Majordome
   never uses. About 16% on the owner's Mac is his personal Claude plugins and settings, loaded
   because the session reads `~/.claude`. About 18% is Majordome's own text.
-- **"Other requests as large again as the chats" was a counting bug**, fixed the same day. A
-  process that resumed a conversation counted from zero, so the first turn after a restart was
-  charged with every turn before it.
+- **"Other requests as large again as the chats" is still unexplained.** One pass blamed the
+  count after a restart; a recorded resumed session
+  (`testkit/fixtures/claude_idle_resume`) shows that count starts at zero, as the code assumes.
+  It may simply be the side requests. Not settled.
 - **The small jobs already run on Haiku** (key facts, "In short", titles), through the
   provider's fallback. Only chat and routines are on Opus.
 
@@ -133,8 +134,8 @@ model answers, so each wants a look on a copy of real notes first.
 5. **A five-minute cache for routines** (`CLAUDE_CODE_PROMPT_CACHE_TTL=5m` in the routine's
    environment). They start a fresh session and finish in minutes, so the write costs 1.25
    times the input price, not 2. Chats keep the hour.
-6. **Show cost per run on Overview**, now that the count is right, and run one week on a real
-   API key to check these figures against the bill.
+6. **Run one week on a real API key** and check these figures against the bill, then show cost
+   per run on Overview.
 
 ## Hosted Majordome: where the servers come from
 

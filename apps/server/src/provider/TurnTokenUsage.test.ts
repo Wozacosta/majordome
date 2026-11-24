@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
-  claudeLedgerBaseline,
   claudeLedgerDelta,
   claudeModelLedger,
   normalizeClaudeTurnTokenUsage,
@@ -221,13 +220,6 @@ describe("billable native turn usage", () => {
     expect(claudeLedgerDelta(ledger(25), ledger(10))).toBeUndefined();
     expect(claudeLedgerDelta(undefined, ledger(10))).toBeUndefined();
     expect(claudeModelLedger({})).toBeUndefined();
-    // A process that resumes a conversation reports that conversation's whole earlier usage in
-    // its first ledger: that is no growth of this turn. A fresh process starts from nothing.
-    expect(claudeLedgerDelta(claudeLedgerBaseline(true), ledger(10))).toBeUndefined();
-    expect(claudeLedgerDelta(claudeLedgerBaseline(false), ledger(10))).toEqual({
-      inputTokens: 100,
-      outputTokens: 10,
-    });
   });
 
   it("adds Claude steering segments to the final measured result once", () => {
