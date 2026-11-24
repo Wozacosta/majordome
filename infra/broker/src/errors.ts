@@ -3,6 +3,8 @@ export type BrokerErrorCode =
   | "invalid_proof"
   | "invalid_invite"
   | "invalid_account"
+  | "not_paid"
+  | "already_subscribed"
   | "blocked"
   | "rate_limited"
   | "full"
@@ -13,6 +15,8 @@ export const ERROR_STATUS: Record<BrokerErrorCode, number> = {
   invalid_proof: 401,
   invalid_invite: 403,
   invalid_account: 401,
+  not_paid: 402,
+  already_subscribed: 409,
   blocked: 403,
   rate_limited: 429,
   full: 503,

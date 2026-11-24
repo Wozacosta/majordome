@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Your Majordome server</title>
-    <meta name="description" content="Get a Majordome server that is always on, with an invite." />
+    <meta
+      name="description"
+      content="Get a Majordome server that is always on, and manage the one you have."
+    />
     <meta name="robots" content="noindex" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
@@ -179,6 +182,42 @@
       ol li.done::before {
         content: "\2713  ";
       }
+      section {
+        margin-top: 28px;
+      }
+      section p + p,
+      section p + .button {
+        margin-top: 14px;
+      }
+      .price {
+        font-family: var(--serif);
+        font-size: 1.6rem;
+      }
+      .small {
+        font-size: 0.9rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .button {
+        display: inline-block;
+        text-decoration: none;
+      }
+      .button.quiet {
+        background: none;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      section .link {
+        display: block;
+        margin-top: 20px;
+      }
       [hidden] {
         display: none !important;
       }
@@ -196,6 +235,30 @@
       <p class="muted" id="intro">Sign in to make your server. It will belong to your account.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
+      <section id="offer" hidden>
+        <p class="price" id="price"></p>
+        <p class="muted" id="price-terms"></p>
+        <button class="button" id="buy" type="button">Continue to payment</button>
+        <p class="muted small">
+          You bring your own Claude plan: the price is for the server only. By continuing you accept
+          the <a href="/terms">terms of sale</a>. See also <a href="/privacy">Privacy</a>.
+        </p>
+        <button class="link" id="have-invite" type="button">I have an invite code</button>
+      </section>
+      <section id="manage" hidden>
+        <p id="standing"></p>
+        <p class="actions">
+          <a class="button" id="open" href="/open">Open my server</a>
+          <button class="button quiet" id="portal" type="button" hidden>
+            Payment and invoices
+          </button>
+          <button class="button quiet" id="wake" type="button" hidden>
+            Switch it on for a day
+          </button>
+        </p>
+        <p class="muted small" id="manage-note"></p>
+        <button class="link" id="delete-account" type="button">Delete my account</button>
+      </section>
       <form id="ask" hidden>
         <label for="invite">Invite code</label>
         <input
@@ -261,24 +324,36 @@
         });
       }
 
-      async function make(clerk) {
-        const accountToken = await clerk.session?.getToken({
-          template: "majordome",
-          skipCache: true,
-        });
-        if (!accountToken) throw new Error("Sign in again, then try once more.");
-        const response = await fetch(`${broker}/v1/hosted`, {
+      const accountToken = async (clerk) => {
+        const token = await clerk.session?.getToken({ template: "majordome", skipCache: true });
+        if (!token) throw new Error("Sign in again, then try once more.");
+        return token;
+      };
+
+      /** Asks the service something as the signed-in account. Throws what it should show. */
+      async function ask(clerk, path, fields = {}) {
+        const response = await fetch(`${broker}${path}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ invite: $("invite").value.trim(), accountToken }),
+          body: JSON.stringify({ ...fields, accountToken: await accountToken(clerk) }),
         }).catch(() => null);
         if (response === null) {
           throw new Error("Could not reach Majordome. Check your connection, then try again.");
         }
-        const server = await response.json().catch(() => ({}));
+        const answer = response.status === 204 ? {} : await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(server.message || "That did not work. Try again in a few minutes.");
+          const error = new Error(
+            answer.message || "That did not work. Try again in a few minutes.",
+          );
+          error.status = response.status;
+          throw error;
         }
+        return answer;
+      }
+
+      /** Makes the server from an invite, or the one that was just paid for, and opens it. */
+      async function make(clerk, fields) {
+        const server = await ask(clerk, "/v1/hosted", fields);
         show("on");
         $("note").textContent = "This usually takes under a minute. Keep this page open.";
         const started = Date.now();
@@ -300,10 +375,12 @@
           await wait(2500);
         }
         show("open");
+        // A server made while this page was closed has no one-time link: the account opens it.
+        const opens = server.pairingUrl ?? "/open";
         if (!ready) {
           // Never send someone to a server that does not answer: they would see an error page.
           const link = document.createElement("a");
-          link.href = server.pairingUrl;
+          link.href = opens;
           link.textContent = "Open my server";
           $("note").textContent =
             "Your server is made but has not answered yet. Wait a minute, then: ";
@@ -312,7 +389,91 @@
         }
         // Best effort: the server already belongs to the account, and the app can list it later.
         await listServer(clerk, server).catch(() => undefined);
-        location.assign(server.pairingUrl);
+        location.assign(opens);
+      }
+
+      async function making(clerk, fields) {
+        showProblem("");
+        for (const id of ["ask", "offer", "manage"]) $(id).hidden = true;
+        $("steps").hidden = false;
+        show("made");
+        try {
+          await make(clerk, fields);
+        } catch (error) {
+          $("steps").hidden = true;
+          $("note").textContent = "";
+          await view(clerk, false);
+          showProblem(error.message);
+        }
+      }
+
+      const day = (ms) =>
+        new Date(ms).toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+
+      /** What the signed-in person sees: what they have, what they can buy, or the invite form. */
+      async function view(clerk, finish = true) {
+        // Paying is not offered everywhere yet: without it this page takes an invite, as before.
+        const status = await ask(clerk, "/v1/billing/status").catch(() => null);
+        const server = status?.server ?? null;
+        const live = status?.state === "active" || status?.state === "past_due";
+        const offer = status?.offer ?? null;
+        $("manage").hidden = !live && server === null;
+        $("offer").hidden = live || offer === null || status.canBuy !== true;
+        $("ask").hidden = status !== null && (live || server !== null || !$("offer").hidden);
+        if (!$("offer").hidden && query.get("invite")) {
+          $("ask").hidden = false;
+          $("have-invite").hidden = true;
+        }
+        if (status === null) return;
+        if (!$("offer").hidden) {
+          const price = new Intl.NumberFormat(undefined, {
+            style: "currency",
+            currency: offer.currency,
+          }).format(offer.amount / 100);
+          $("price").textContent = `${price} a ${offer.interval}`;
+          $("price-terms").textContent =
+            offer.trialDays > 0
+              ? `Free for ${offer.trialDays} days, then ${price} a ${offer.interval}, tax included. Cancel when you like.`
+              : "Tax included. Cancel when you like.";
+          $("buy").textContent =
+            offer.trialDays > 0 ? "Start my free trial" : "Continue to payment";
+        }
+        if ($("manage").hidden) {
+          if (status.canBuy !== true && offer !== null) {
+            $("intro").textContent =
+              "Majordome is not taking new servers right now. Try again later.";
+          }
+          return;
+        }
+        if (live && server === null) {
+          // Paid for and not made yet: the page that would have made it was closed.
+          if (finish) return making(clerk, {});
+          $("manage").hidden = true;
+          return;
+        }
+        const until = status.periodEnd === null ? "" : day(status.periodEnd);
+        $("standing").textContent = !live
+          ? server.stopped
+            ? `Your server is switched off. It is deleted with its notes on ${day(server.deleteAt)}.`
+            : `Your server is on until ${day(server.awakeUntil)}, so you can get your notes out. It is deleted with its notes on ${day(server.deleteAt)}.`
+          : status.state === "past_due"
+            ? "The last payment did not go through. Update your card to keep your server."
+            : status.cancels
+              ? `Your subscription is cancelled. Your server runs until ${until}.`
+              : `Your server is on. Next payment on ${until}.`;
+        $("open").hidden = server.stopped;
+        $("portal").hidden = status.source !== "web";
+        $("wake").hidden = live || !server.stopped || !server.canWake;
+        $("manage-note").textContent =
+          status.source === "apple" && live
+            ? "You pay through Apple. To change or cancel, open Settings on your iPhone, then your name, then Subscriptions."
+            : !live
+              ? "To keep your notes, switch the server on, open it, and use Settings > Back up my brain."
+              : "";
       }
 
       let shown;
@@ -321,8 +482,8 @@
         if (signedIn === shown) return;
         shown = signedIn;
         $("sign-out").hidden = !signedIn;
-        $("ask").hidden = !signedIn;
         if (!signedIn) {
+          for (const id of ["ask", "offer", "manage"]) $(id).hidden = true;
           $("intro").textContent = "Sign in to make your server. It will belong to your account.";
           clerk.mountSignIn($("sign-in"), {
             forceRedirectUrl: location.href,
@@ -333,7 +494,25 @@
         clerk.unmountSignIn($("sign-in"));
         $("intro").textContent =
           "A server that is always on, so Majordome keeps working while your computer is off.";
+        const paid = query.get("paid");
+        if (paid === null) return view(clerk);
+        // Back from paying. The address is cleaned so a reload does not ask again.
+        history.replaceState(null, "", location.pathname);
+        return making(clerk, { checkoutSession: paid });
       }
+
+      /** Runs what a button asks, with the button off meanwhile and any problem shown. */
+      const press = (id, action) =>
+        $(id).addEventListener("click", async () => {
+          showProblem("");
+          $(id).disabled = true;
+          try {
+            await action(window.Clerk);
+          } catch (error) {
+            showProblem(error.message);
+          }
+          $(id).disabled = false;
+        });
 
       try {
         const frontendApi = atob(key.split("_")[2]).replace(/\$$/, "");
@@ -356,22 +535,36 @@
         $("sign-out").addEventListener("click", () =>
           window.Clerk.signOut({ redirectUrl: location.href }),
         );
-        $("ask").addEventListener("submit", async (event) => {
+        $("ask").addEventListener("submit", (event) => {
           event.preventDefault();
-          showProblem("");
-          $("go").disabled = true;
-          $("ask").hidden = true;
-          $("steps").hidden = false;
-          show("made");
-          try {
-            await make(window.Clerk);
-          } catch (error) {
-            $("steps").hidden = true;
-            $("ask").hidden = false;
-            $("go").disabled = false;
-            $("note").textContent = "";
-            showProblem(error.message);
-          }
+          return making(window.Clerk, { invite: $("invite").value.trim() });
+        });
+        press("buy", async (clerk) => {
+          const startedOn = matchMedia("(pointer: coarse)").matches ? "phone" : "computer";
+          location.assign((await ask(clerk, "/v1/billing/checkout", { startedOn })).url);
+        });
+        press("portal", async (clerk) => {
+          location.assign((await ask(clerk, "/v1/billing/portal")).url);
+        });
+        press("wake", async (clerk) => {
+          await ask(clerk, "/v1/billing/wake");
+          await view(clerk);
+        });
+        press("delete-account", async (clerk) => {
+          const sure = confirm(
+            "Delete your account? Your subscription ends now, and your server is deleted with every note on it. This cannot be undone.",
+          );
+          if (!sure) return;
+          // Where paying is not offered there is no subscription and no server to end.
+          await ask(clerk, "/v1/billing/delete-account").catch((error) => {
+            if (error.status !== 404) throw error;
+          });
+          await clerk.user.delete();
+          location.assign("/");
+        });
+        $("have-invite").addEventListener("click", () => {
+          $("ask").hidden = false;
+          $("have-invite").hidden = true;
         });
         // An invitation link can carry its code, so there is nothing to type.
         $("invite").value = query.get("invite") ?? "";

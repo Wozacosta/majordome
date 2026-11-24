@@ -1,3 +1,4 @@
+import type { AccountPatch, AccountRow, AccountStore, PaidState, Source } from "./billing.ts";
 import type { AddressRow, AddressStore } from "./broker.ts";
 import type { InviteStore } from "./hosting.ts";
 import type { WaitlistStore } from "./waitlist.ts";
@@ -168,6 +169,139 @@ export function makeD1WaitlistStore(db: D1Database): WaitlistStore {
         )
         .bind(email, platform, clientIp, createdAt)
         .run();
+    },
+  };
+}
+
+interface StoredAccount {
+  readonly account_id: string;
+  readonly app_token: string;
+  readonly source: Source | null;
+  readonly customer_id: string | null;
+  readonly subscription_id: string | null;
+  readonly state: PaidState;
+  readonly period_end: number | null;
+  readonly cancels: number;
+  readonly app_name: string | null;
+  readonly claimed_at: number | null;
+  readonly made_at: number | null;
+  readonly stopped_at: number | null;
+  readonly delete_at: number | null;
+  readonly wake_until: number | null;
+  readonly wakes: number;
+}
+
+const toAccount = (row: StoredAccount): AccountRow => ({
+  accountId: row.account_id,
+  appToken: row.app_token,
+  source: row.source,
+  customerId: row.customer_id,
+  subscriptionId: row.subscription_id,
+  state: row.state,
+  periodEnd: row.period_end,
+  cancels: row.cancels !== 0,
+  appName: row.app_name,
+  claimedAt: row.claimed_at,
+  madeAt: row.made_at,
+  stoppedAt: row.stopped_at,
+  deleteAt: row.delete_at,
+  wakeUntil: row.wake_until,
+  wakes: row.wakes,
+});
+
+const ACCOUNT_COLUMNS = {
+  appToken: "app_token",
+  source: "source",
+  customerId: "customer_id",
+  subscriptionId: "subscription_id",
+  state: "state",
+  periodEnd: "period_end",
+  cancels: "cancels",
+  appName: "app_name",
+  claimedAt: "claimed_at",
+  madeAt: "made_at",
+  stoppedAt: "stopped_at",
+  deleteAt: "delete_at",
+  wakeUntil: "wake_until",
+  wakes: "wakes",
+} as const satisfies Record<keyof AccountPatch, string>;
+
+export function makeD1AccountStore(db: D1Database): AccountStore {
+  const one = async (where: string, value: string) => {
+    const row = await db
+      .prepare(`SELECT * FROM hosted_accounts WHERE ${where} = ?`)
+      .bind(value)
+      .first<StoredAccount>();
+    return row === null ? null : toAccount(row);
+  };
+  const get = (accountId: string) => one("account_id", accountId);
+  return {
+    get,
+    byToken: (appToken) => one("app_token", appToken),
+    byCustomer: (customerId) => one("customer_id", customerId),
+    ensure: async ({ accountId, appToken, at }) => {
+      await db
+        .prepare(
+          "INSERT OR IGNORE INTO hosted_accounts (account_id, app_token, created_at) VALUES (?, ?, ?)",
+        )
+        .bind(accountId, appToken, at)
+        .run();
+      const row = await get(accountId);
+      if (row === null) throw new Error("The account's row could not be made.");
+      return row;
+    },
+    patch: async (accountId, patch) => {
+      const entries = Object.entries(patch) as Array<[keyof AccountPatch, unknown]>;
+      if (entries.length === 0) return;
+      const assignments = entries.map(([key]) => `${ACCOUNT_COLUMNS[key]} = ?`).join(", ");
+      await db
+        .prepare(`UPDATE hosted_accounts SET ${assignments} WHERE account_id = ?`)
+        .bind(
+          ...entries.map(([, value]) => (typeof value === "boolean" ? Number(value) : value)),
+          accountId,
+        )
+        .run();
+    },
+    claimServer: async ({ accountId, appName, at, staleBefore }) => {
+      const result = await db
+        .prepare(
+          `UPDATE hosted_accounts SET app_name = ?1, claimed_at = ?2
+           WHERE account_id = ?3
+             AND (app_name IS NULL OR (app_name = ?1 AND made_at IS NULL AND claimed_at <= ?4))`,
+        )
+        .bind(appName, at, accountId, staleBefore)
+        .run();
+      return result.meta.changes === 1;
+    },
+    open: async () => {
+      const { results } = await db
+        .prepare(
+          "SELECT * FROM hosted_accounts WHERE app_name IS NOT NULL OR state IN ('active', 'past_due')",
+        )
+        .all<StoredAccount>();
+      return results.map(toAccount);
+    },
+    serverNames: async () => {
+      const { results } = await db
+        .prepare("SELECT app_name FROM hosted_accounts WHERE app_name IS NOT NULL")
+        .all<{ app_name: string }>();
+      return results.map((row) => row.app_name);
+    },
+    logPurchase: async ({ subscriptionId, accountId, source, startedOn, at }) => {
+      await db
+        .prepare(
+          "INSERT OR IGNORE INTO purchases (subscription_id, account_id, source, started_on, at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(subscriptionId, accountId, source, startedOn, at)
+        .run();
+    },
+    eventSeen: async (id) =>
+      (await db.prepare("SELECT 1 FROM payment_events WHERE id = ?").bind(id).first()) !== null,
+    recordEvent: async ({ id, at, forgetBefore }) => {
+      await db.batch([
+        db.prepare("DELETE FROM payment_events WHERE at <= ?").bind(forgetBefore),
+        db.prepare("INSERT OR IGNORE INTO payment_events (id, at) VALUES (?, ?)").bind(id, at),
+      ]);
     },
   };
 }

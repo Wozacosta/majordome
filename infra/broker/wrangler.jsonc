@@ -44,8 +44,23 @@
     // Majordome's account service and the one site allowed to ask for a server from a browser.
     "ACCOUNT_ISSUER": "https://clerk.majord.me",
     "ACCOUNT_PAGE_ORIGIN": "https://majord.me",
+    // Paid servers (README, "Paid servers"). The website sells once the Stripe secrets are set.
+    // PLACEHOLDER: the monthly price's id in Stripe.
+    "STRIPE_PRICE_ID": "REPLACE_WITH_STRIPE_PRICE_ID",
+    "STRIPE_MANAGED_PAYMENTS": "0",
+    "TRIAL_DAYS": "7",
+    // How long a stopped server and its notes are kept before they are deleted.
+    "RETENTION_DAYS": "30",
+    // The iPhone app sells once the APPLE_IAP_KEY secret is set.
+    // PLACEHOLDER: the In-App Purchase key's id and the issuer id, from App Store Connect.
+    "APPLE_IAP_KEY_ID": "REPLACE_WITH_IAP_KEY_ID",
+    "APPLE_IAP_ISSUER_ID": "REPLACE_WITH_ISSUER_ID",
+    "APPLE_BUNDLE_ID": "io.github.wozacosta.majordome.ios",
+    "APPLE_PRODUCT_ID": "io.github.wozacosta.majordome.server.monthly",
+    "APPLE_ALLOW_SANDBOX": "0",
   },
   // CLOUDFLARE_API_TOKEN is a secret: `wrangler secret put CLOUDFLARE_API_TOKEN`.
   // FLY_API_TOKEN is a secret too, from `fly tokens create org` for the organization above.
+  // STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and APPLE_IAP_KEY are secrets (README, "Paid servers").
   "observability": { "enabled": true },
 }

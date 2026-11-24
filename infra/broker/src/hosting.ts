@@ -15,6 +15,10 @@ export interface HostClient {
   readonly isSwitchedOn: (name: string) => Promise<boolean>;
   /** Restarts the server on that image. Its notes and sign-ins are kept. */
   readonly updateServer: (name: string, image: string) => Promise<void>;
+  /** Switches the machine off and keeps it off: a visit to its address must not wake it. */
+  readonly stopServer: (name: string) => Promise<void>;
+  /** Switches a stopped machine back on, as it was. */
+  readonly startServer: (name: string) => Promise<void>;
 }
 
 export class HostError extends Error {
@@ -89,11 +93,40 @@ export function serverName(prefix: string, random: Uint8Array): string {
   return `${prefix}${name}`;
 }
 
+/** Makes the server `name`, the account's from its first start when one is given. */
+export async function launchServer(
+  deps: {
+    readonly host: Pick<HostClient, "createServer">;
+    readonly image: () => Promise<string>;
+    readonly now: () => number;
+    readonly randomBytes: (length: number) => Uint8Array;
+  },
+  name: string,
+  ownerAccountId: string | undefined,
+): Promise<HostedServer> {
+  const secret = setupSecret(deps.now() + SETUP_SECRET_TTL_MS, deps.randomBytes(32));
+  const { url } = await deps.host.createServer({
+    name,
+    image: await deps.image(),
+    env: {
+      MAJORDOME_HOSTED: "1",
+      MAJORDOME_SETUP_SECRET: secret,
+      ...(ownerAccountId === undefined ? {} : { MAJORDOME_OWNER_ACCOUNT: ownerAccountId }),
+    },
+  });
+  return { name, url, pairingUrl: `${url}/pair#token=${secret}` };
+}
+
+export const newServerName = (prefix: string, randomBytes: (length: number) => Uint8Array) =>
+  serverName(prefix, randomBytes(NAME_LENGTH));
+
 export function makeHosting(deps: {
   readonly invites: InviteStore;
   readonly host: HostClient;
   /** The image a new server runs, named by its digest. Throws `HostError` when it is not known. */
   readonly image: () => Promise<string>;
+  /** Servers made another way that count toward the same cap. */
+  readonly otherServers?: () => Promise<number>;
   readonly now: () => number;
   readonly randomBytes: (length: number) => Uint8Array;
   readonly config: { readonly namePrefix: string; readonly maxServers: number };
@@ -115,13 +148,14 @@ export function makeHosting(deps: {
       if (tried >= MAX_WRONG_INVITES_PER_IP_PER_DAY) {
         throw new BrokerError("rate_limited", "Too many wrong invite codes. Try again tomorrow.");
       }
-      if ((await deps.invites.live()) >= deps.config.maxServers) {
+      const others = (await deps.otherServers?.()) ?? 0;
+      if ((await deps.invites.live()) + others >= deps.config.maxServers) {
         throw new BrokerError(
           "full",
           "Majordome is not taking new servers right now. Try again later.",
         );
       }
-      const name = serverName(deps.config.namePrefix, deps.randomBytes(NAME_LENGTH));
+      const name = newServerName(deps.config.namePrefix, deps.randomBytes);
       if (!(await deps.invites.claim({ code, appName: name, clientIp: input.clientIp, at }))) {
         await deps.invites.recordFailure({
           clientIp: input.clientIp,
@@ -131,20 +165,8 @@ export function makeHosting(deps: {
         // The same answer for an unknown code and a spent one, so codes cannot be probed.
         throw new BrokerError("invalid_invite", "That invite code is not valid, or was used.");
       }
-      const secret = setupSecret(at + SETUP_SECRET_TTL_MS, deps.randomBytes(32));
       try {
-        const { url } = await deps.host.createServer({
-          name,
-          image: await deps.image(),
-          env: {
-            MAJORDOME_HOSTED: "1",
-            MAJORDOME_SETUP_SECRET: secret,
-            ...(input.ownerAccountId === undefined
-              ? {}
-              : { MAJORDOME_OWNER_ACCOUNT: input.ownerAccountId }),
-          },
-        });
-        return { name, url, pairingUrl: `${url}/pair#token=${secret}` };
+        return await launchServer(deps, name, input.ownerAccountId);
       } catch (error) {
         await deps.host.deleteServer(name).catch(() => undefined);
         await deps.invites.release(code);

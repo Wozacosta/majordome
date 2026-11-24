@@ -7,6 +7,17 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **A Majordome server can be paid for,** once payment is switched on. At
+  [majord.me/start](https://majord.me/start), sign in, pay by card and the server is made for
+  your account; an invite code still works. The same page then shows how your subscription
+  stands, opens Stripe's page for your card and invoices, and deletes your account. On the
+  iPhone, **Get a Majordome server** buys it through Apple and connects the phone to it.
+- **A server that is no longer paid for is switched off, not deleted.** Its notes are kept for
+  30 days, and you can switch it on for a day from the same page to get them out. Paying again
+  in that time brings the same server back.
+
 **Changed**
 
 - **On the phone, your account can be deleted** from Settings > Your account. Your notes and the

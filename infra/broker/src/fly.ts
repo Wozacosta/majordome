@@ -52,6 +52,24 @@ export function makeFlyHost(config: {
 
   const urlFor = (name: string) => `https://${name}.fly.dev`;
 
+  interface Machine {
+    readonly id?: string;
+    readonly state?: string;
+    readonly config?: { readonly services?: ReadonlyArray<unknown> };
+  }
+  const machinesOf = async (name: string) =>
+    ((await call("GET", `/apps/${name}/machines`)) as ReadonlyArray<Machine> | undefined) ?? [];
+  const services = [
+    {
+      protocol: "tcp",
+      internal_port: 3773,
+      ports: [
+        { port: 443, handlers: ["tls", "http"] },
+        { port: 80, handlers: ["http"], force_https: true },
+      ],
+    },
+  ];
+
   return {
     urlFor,
     createServer: async ({ name, env, image }) => {
@@ -81,16 +99,7 @@ export function makeFlyHost(config: {
           guest: { cpu_kind: "shared", cpus: 2, memory_mb: config.memoryMb },
           mounts: [{ volume: volume.id, path: "/data" }],
           restart: { policy: "always" },
-          services: [
-            {
-              protocol: "tcp",
-              internal_port: 3773,
-              ports: [
-                { port: 443, handlers: ["tls", "http"] },
-                { port: 80, handlers: ["http"], force_https: true },
-              ],
-            },
-          ],
+          services,
         },
       });
       return { url };
@@ -109,6 +118,31 @@ export function makeFlyHost(config: {
         if (typeof machine.id !== "string" || machine.config === undefined) continue;
         await call("POST", `/apps/${name}/machines/${machine.id}`, {
           config: { ...machine.config, image },
+        });
+      }
+    },
+    stopServer: async (name) => {
+      for (const machine of await machinesOf(name)) {
+        if (typeof machine.id !== "string") continue;
+        const path = `/apps/${name}/machines/${machine.id}`;
+        const reachable = (machine.config?.services ?? []).length > 0;
+        if (!reachable && machine.state === "stopped") continue;
+        if (reachable) {
+          // Fly starts a stopped Machine when its address is visited, whatever `autostart` says
+          // (seen 2026-11-24), so the address is taken away. Updating launches the Machine, so
+          // this comes first and the stop last.
+          await call("POST", path, { config: { ...machine.config, services: [] } });
+          await call("GET", `${path}/wait?state=started&timeout=60`);
+        }
+        await call("POST", `${path}/stop`, {});
+        await call("GET", `${path}/wait?state=stopped&timeout=60`);
+      }
+    },
+    startServer: async (name) => {
+      for (const machine of await machinesOf(name)) {
+        if (typeof machine.id !== "string") continue;
+        await call("POST", `/apps/${name}/machines/${machine.id}`, {
+          config: { ...machine.config, services },
         });
       }
     },

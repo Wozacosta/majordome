@@ -110,8 +110,8 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
 - About 27 settings that only matter when writing code are hidden, and so is the Usage page.
 - No T3 account, T3 Connect, or T3's phone apps. Adding a computer over SSH is not offered.
 - An iPhone app of Majordome's own is being built from upstream's (not in the App Store yet):
-  Today, one list of topics and chats, plain words in a conversation, offline capture, and an
-  invite code that makes a Majordome server from the phone. It has its own links, and a
+  Today, one list of topics and chats, plain words in a conversation, offline capture, and a
+  Majordome server bought through Apple from the phone. It has its own links, and a
   server's phone code can open it.
 
 ## What comes from T3 Code

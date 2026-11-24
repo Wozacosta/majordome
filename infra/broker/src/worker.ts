@@ -1,4 +1,6 @@
-import { type AccountKey, makeAccountVerifier } from "./account.ts";
+import { type AccountKey, accountEmail, makeAccountVerifier } from "./account.ts";
+import { makeAppleClient, noticeTransaction } from "./apple.ts";
+import { type Billing, makeBilling } from "./billing.ts";
 import {
   type AddressRequest,
   type Broker,
@@ -20,7 +22,13 @@ import {
   updateServers,
 } from "./hosting.ts";
 import { START_PAGE } from "./startPage.ts";
-import { makeD1InviteStore, makeD1Store, makeD1WaitlistStore } from "./store.ts";
+import {
+  makeD1AccountStore,
+  makeD1InviteStore,
+  makeD1Store,
+  makeD1WaitlistStore,
+} from "./store.ts";
+import { makeStripeClient } from "./stripe.ts";
 import { makeWaitlist } from "./waitlist.ts";
 
 interface Env {
@@ -44,9 +52,26 @@ interface Env {
   readonly ACCOUNT_ISSUER?: string;
   /** The one other site allowed to call from a browser: where people sign in and leave an email. */
   readonly ACCOUNT_PAGE_ORIGIN?: string;
+  /** Paying on the website is offered only when these two secrets and the price are set. */
+  readonly STRIPE_SECRET_KEY?: string;
+  readonly STRIPE_WEBHOOK_SECRET?: string;
+  readonly STRIPE_PRICE_ID?: string;
+  /** "1" once Stripe has approved the account for Managed Payments. */
+  readonly STRIPE_MANAGED_PAYMENTS?: string;
+  readonly TRIAL_DAYS?: string;
+  readonly RETENTION_DAYS?: string;
+  /** Paying in the iPhone app is offered only when this secret, the text of the `.p8`, is set. */
+  readonly APPLE_IAP_KEY?: string;
+  readonly APPLE_IAP_KEY_ID?: string;
+  readonly APPLE_IAP_ISSUER_ID?: string;
+  readonly APPLE_BUNDLE_ID?: string;
+  readonly APPLE_PRODUCT_ID?: string;
+  readonly APPLE_ALLOW_SANDBOX?: string;
 }
 
 const MAX_BODY_CHARS = 4096;
+// A payment notice carries the whole subscription or a signed transaction.
+const MAX_NOTICE_CHARS = 262_144;
 
 /**
  * Names Majordome's iPhone app (released, preview and development builds) as the one that opens
@@ -107,16 +132,77 @@ const hostingFor = (env: Env, host: HostClient): Hosting =>
   makeHosting({
     invites: makeD1InviteStore(env.DB),
     host,
-    image: async () => {
-      const version = await latestRelease();
-      const image = version === null ? null : await releasedImage(env, version);
-      if (image === null) throw new HostError(503, "The latest release names no image yet.");
-      return image;
-    },
+    image: imageFor(env),
+    // Paid servers take places under the same cap.
+    otherServers: async () => (await makeD1AccountStore(env.DB).serverNames()).length,
     now: () => Date.now(),
     randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
     config: { namePrefix: HOSTED_NAME_PREFIX, maxServers: limit(env.MAX_HOSTED_SERVERS, 5) },
   });
+
+const imageFor = (env: Env) => async () => {
+  const version = await latestRelease();
+  const image = version === null ? null : await releasedImage(env, version);
+  if (image === null) throw new HostError(503, "The latest release names no image yet.");
+  return image;
+};
+
+/** Paid servers, by either way of paying; null while the account service is not named. */
+function billingFor(env: Env, host: HostClient): Billing | null {
+  const pageOrigin = env.ACCOUNT_PAGE_ORIGIN;
+  if (env.ACCOUNT_ISSUER === undefined || pageOrigin === undefined) return null;
+  const stripe =
+    env.STRIPE_SECRET_KEY === undefined || env.STRIPE_PRICE_ID === undefined
+      ? null
+      : makeStripeClient({
+          secretKey: env.STRIPE_SECRET_KEY,
+          priceId: env.STRIPE_PRICE_ID,
+          managedPayments: env.STRIPE_MANAGED_PAYMENTS === "1",
+          startPage: `${pageOrigin}/start`,
+          managePage: `${pageOrigin}/server`,
+        });
+  const apple =
+    env.APPLE_IAP_KEY === undefined ||
+    env.APPLE_IAP_KEY_ID === undefined ||
+    env.APPLE_IAP_ISSUER_ID === undefined ||
+    env.APPLE_BUNDLE_ID === undefined ||
+    env.APPLE_PRODUCT_ID === undefined
+      ? null
+      : makeAppleClient({
+          privateKey: env.APPLE_IAP_KEY,
+          keyId: env.APPLE_IAP_KEY_ID,
+          issuerId: env.APPLE_IAP_ISSUER_ID,
+          bundleId: env.APPLE_BUNDLE_ID,
+          productId: env.APPLE_PRODUCT_ID,
+          allowSandbox: env.APPLE_ALLOW_SANDBOX === "1",
+          now: () => Date.now(),
+        });
+  if (stripe === null && apple === null) return null;
+  return makeBilling({
+    accounts: makeD1AccountStore(env.DB),
+    host,
+    stripe,
+    apple,
+    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
+    image: imageFor(env),
+    otherServers: makeD1InviteStore(env.DB).live,
+    now: () => Date.now(),
+    randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
+    randomUUID: () => crypto.randomUUID(),
+    config: {
+      namePrefix: HOSTED_NAME_PREFIX,
+      maxServers: limit(env.MAX_HOSTED_SERVERS, 5),
+      trialDays: limit(env.TRIAL_DAYS, 7),
+      retentionDays: limit(env.RETENTION_DAYS, 30),
+    },
+  });
+}
+
+/** Every server this service made and has not deleted, from an invite or paid for. */
+const liveNamesFor = (env: Env) => async () => [
+  ...(await makeD1InviteStore(env.DB).liveNames()),
+  ...(await makeD1AccountStore(env.DB).serverNames()),
+];
 
 const RELEASES_URL = "https://github.com/Wozacosta/majordome/releases";
 /** Must match the second entry of `triggers.crons`. */
@@ -168,7 +254,7 @@ async function updateHosted(env: Env) {
     latestVersion,
     image,
     ...(await updateServers({
-      names: await makeD1InviteStore(env.DB).liveNames(),
+      names: await liveNamesFor(env)(),
       host,
       latestVersion,
       image,
@@ -228,21 +314,36 @@ export function accountPageCors(
     : {};
 }
 
-async function readInvite(
-  request: Request,
-): Promise<{ readonly invite: string; readonly accountToken: string | null }> {
+/** The strings of a small JSON body; anything else in it is dropped. */
+async function readFields(request: Request): Promise<Readonly<Record<string, string>>> {
   const text = await request.text();
-  let body: unknown;
   try {
-    body = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : undefined;
+    const body: unknown = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : null;
+    if (typeof body === "object" && body !== null) {
+      return Object.fromEntries(
+        Object.entries(body).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string",
+        ),
+      );
+    }
   } catch {
-    body = undefined;
+    // Answered below, like any other body that is not what was asked for.
   }
-  const { invite, accountToken } = (body ?? {}) as { invite?: unknown; accountToken?: unknown };
-  if (typeof invite !== "string") {
-    throw new BrokerError("invalid_request", "Send a JSON body with invite.");
+  throw new BrokerError("invalid_request", "Send a JSON body.");
+}
+
+async function readNotice(request: Request): Promise<string> {
+  const text = await request.text();
+  if (text.length > MAX_NOTICE_CHARS) throw new BrokerError("invalid_request", "Too long.");
+  return text;
+}
+
+/** The signed-in account a request is from. Every paid route needs one. */
+async function accountOf(env: Env, fields: Readonly<Record<string, string>>): Promise<string> {
+  if (fields.accountToken === undefined || env.ACCOUNT_ISSUER === undefined) {
+    throw new BrokerError("invalid_account", "Sign in first.");
   }
-  return { invite, accountToken: typeof accountToken === "string" ? accountToken : null };
+  return accountVerifierFor(env.ACCOUNT_ISSUER)(fields.accountToken);
 }
 
 async function readWaitlist(
@@ -284,7 +385,7 @@ async function readAddressRequest(request: Request): Promise<AddressRequest> {
   return { publicKey, proof, clientIp: clientOf(request) };
 }
 
-async function handle(request: Request, env: Env): Promise<Response> {
+async function handle(request: Request, env: Env, later: Later): Promise<Response> {
   const { pathname, hostname } = new URL(request.url);
   // The zone's root only says which phone app its addresses open in; iPhones read it from there.
   if (hostname === env.ZONE_NAME) {
@@ -318,20 +419,37 @@ async function handle(request: Request, env: Env): Promise<Response> {
       await serverProgress({
         name,
         namePrefix: HOSTED_NAME_PREFIX,
-        liveNames: makeD1InviteStore(env.DB).liveNames,
+        liveNames: liveNamesFor(env),
         host,
         answers: (server) => answers(host, server),
       }),
       { headers: { "cache-control": "no-store" } },
     );
   }
+  const billing = host === null ? null : billingFor(env, host);
+  if (billing !== null && pathname.startsWith("/v1/billing/") && request.method === "POST") {
+    const answer = await handleBilling(pathname.slice("/v1/billing/".length), request, env, {
+      billing,
+      later,
+    });
+    if (answer !== null) return answer;
+  }
   if (host !== null && pathname === "/v1/hosted" && request.method === "POST") {
-    const { invite, accountToken } = await readInvite(request);
+    const fields = await readFields(request);
+    const invite = fields.invite?.trim() ?? "";
+    if (invite === "" && billing !== null) {
+      return Response.json(
+        await billing.server({
+          accountId: await accountOf(env, fields),
+          checkoutSession: fields.checkoutSession,
+        }),
+      );
+    }
     // The account is checked before the invite is spent, so a bad sign-in costs nothing.
     const ownerAccountId =
-      accountToken === null || env.ACCOUNT_ISSUER === undefined
+      fields.accountToken === undefined || env.ACCOUNT_ISSUER === undefined
         ? undefined
-        : await accountVerifierFor(env.ACCOUNT_ISSUER)(accountToken);
+        : await accountOf(env, fields);
     return Response.json(
       await hostingFor(env, host).create({
         invite,
@@ -354,16 +472,21 @@ async function handle(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, context) {
     const { pathname } = new URL(request.url);
-    const fromSite = pathname.startsWith("/v1/hosted") || pathname === WAITLIST_PATH;
+    const fromSite =
+      pathname.startsWith("/v1/hosted") ||
+      pathname.startsWith("/v1/billing/") ||
+      pathname === WAITLIST_PATH;
     const cors = fromSite
       ? accountPageCors(request.headers.get("origin"), env.ACCOUNT_PAGE_ORIGIN)
       : {};
     if (fromSite && request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
     }
-    const answer = await answerFor(request, env);
+    const answer = await answerFor(request, env, (work) =>
+      context.waitUntil(work.catch((error) => console.error("Could not settle an account", error))),
+    );
     for (const [name, value] of Object.entries(cors)) answer.headers.set(name, value);
     return answer;
   },
@@ -374,12 +497,78 @@ export default {
       return;
     }
     console.log("Reaped addresses", await brokerFor(env).reap());
+    const host = hostFor(env);
+    const billing = host === null ? null : billingFor(env, host);
+    if (billing !== null) console.log("Settled paid servers", await billing.sweep());
   },
 } satisfies ExportedHandler<Env>;
 
-async function answerFor(request: Request, env: Env): Promise<Response> {
+/** Work that goes on after the answer is sent. */
+type Later = (work: Promise<unknown>) => void;
+
+async function handleBilling(
+  route: string,
+  request: Request,
+  env: Env,
+  { billing, later }: { readonly billing: Billing; readonly later: Later },
+): Promise<Response | null> {
+  // The two providers' notices come first: they carry no account and their own proof.
+  if (route === "stripe") {
+    const accountId = await billing.stripeEvent({
+      body: await readNotice(request),
+      signature: request.headers.get("stripe-signature"),
+    });
+    // Making a server takes longer than Stripe waits; the hourly pass finishes it if this fails.
+    if (accountId !== null) later(billing.settle(accountId));
+    return new Response(null, { status: 204 });
+  }
+  // The phone app asks this route, with no account, whether it may sell: 404 means it may not.
+  if (route.startsWith("apple") && !billing.takesApple) return null;
+  if (route === "apple/notice") {
+    let transactionId: string | null = null;
+    try {
+      transactionId = noticeTransaction(JSON.parse(await readNotice(request)));
+    } catch {
+      // Not a notice: answered as one that names nothing.
+    }
+    const accountId = transactionId === null ? undefined : await billing.appleNotice(transactionId);
+    if (accountId !== undefined) later(billing.settle(accountId));
+    return new Response(null, { status: 204 });
+  }
+  const fields = await readFields(request);
+  const accountId = await accountOf(env, fields);
+  switch (route) {
+    case "status":
+      return Response.json(await billing.status(accountId), {
+        headers: { "cache-control": "no-store" },
+      });
+    case "checkout":
+      return Response.json(
+        await billing.checkout({
+          accountId,
+          email: accountEmail(fields.accountToken ?? ""),
+          startedOn: fields.startedOn === "phone" ? "phone" : "computer",
+        }),
+      );
+    case "portal":
+      return Response.json(await billing.portal(accountId));
+    case "apple":
+      await billing.applePurchase({ accountId, transactionId: fields.transactionId ?? "" });
+      return new Response(null, { status: 204 });
+    case "wake":
+      await billing.wake(accountId);
+      return new Response(null, { status: 204 });
+    case "delete-account":
+      await billing.deleteAccount(accountId);
+      return new Response(null, { status: 204 });
+    default:
+      return null;
+  }
+}
+
+async function answerFor(request: Request, env: Env, later: Later): Promise<Response> {
   try {
-    return await handle(request, env);
+    return await handle(request, env, later);
   } catch (error) {
     if (error instanceof BrokerError) return errorResponse(error.code, error.message);
     console.error("Address request failed", error);

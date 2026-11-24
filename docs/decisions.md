@@ -92,6 +92,16 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   server for me" uses. The page (`majord.me/start`) asks for a Majordome account first, and the
   server starts with that account as its owner, so a customer who loses every paired device
   signs in again. Making a server sits behind a small interface (create, delete, address) with Fly.io as the first host.
+- **How a hosted server is paid for (2026-11-24).** Two ways, one record: by card on
+  `majord.me/start` through Stripe (Managed Payments once Stripe approves the account, so Stripe
+  is the seller and handles tax; plain Stripe with the same code until then), and in the iPhone
+  app through Apple's In-App Purchase, talking to StoreKit directly with no RevenueCat between.
+  One monthly price, the same on both, with a free trial once per account. The broker keeps who
+  has paid in its own database and only ever asks a provider how a subscription stands, never
+  believing a notice or the phone. One live subscription and one server per account. A server
+  no longer paid for is stopped and its notes kept 30 days before it is deleted. Invites stay,
+  for people let in for free. The phone app never points to the website to buy. No feature
+  depends on having paid: a hosted server and one on the owner's own Mac do the same things.
 - **What a server is called (2026-11-23).** One the owner runs is "Your server" ("your server"
   in a sentence), not "Always-on server". One Majordome hosts is "Majordome server" ("your
   Majordome server"), drawn with a cloud. The host's name (Fly, or any other) is never shown, and
