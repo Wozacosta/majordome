@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.44
+
 **New**
 
 - **A Majordome server can be paid for,** once payment is switched on. At
