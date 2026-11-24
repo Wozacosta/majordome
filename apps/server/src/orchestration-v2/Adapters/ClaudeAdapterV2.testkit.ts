@@ -35,6 +35,7 @@ import {
   resolveClaudeSdkExecutablePath,
 } from "../../provider/Drivers/ClaudeExecutable.ts";
 import * as ClaudeAdapterV2 from "./ClaudeAdapterV2.ts";
+import { claudeSessionCuts } from "../../majordome/claudeSessionCuts.ts";
 import { claudeTaskOutputRoot } from "./ClaudeTaskOutputTail.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as ProviderInstallationGate from "../../provider/ProviderInstallationGate.ts";
@@ -437,12 +438,16 @@ async function waitForReplayDelay(afterMs: number, signal: AbortSignal): Promise
 function stableClaudeQueryOptions(
   options: ClaudeAdapterV2.ClaudeAgentSdkQueryOptions,
 ): ClaudeAdapterV2.ClaudeAgentSdkQueryOptions {
+  // The recordings are upstream's and predate Majordome's own cuts, so those stay out of the frame.
+  const disallowedTools = options.disallowedTools?.filter(
+    (tool) => claudeSessionCuts.disallowedTools?.includes(tool) !== true,
+  );
   const stable = {
     model: options.model,
     tools: options.tools,
     permissionMode: options.permissionMode,
     ...(options.allowedTools === undefined ? {} : { allowedTools: options.allowedTools }),
-    ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
+    ...(disallowedTools === undefined || disallowedTools.length === 0 ? {} : { disallowedTools }),
     ...(options.settings === undefined ? {} : { settings: options.settings }),
     ...(options.allowDangerouslySkipPermissions === true
       ? { allowDangerouslySkipPermissions: true }

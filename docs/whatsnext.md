@@ -122,19 +122,22 @@ rows; nothing was changed in how a turn is sent):
 - **The small jobs already run on Haiku** (key facts, "In short", titles), through the
   provider's fallback. Only chat and routines are on Opus.
 
-Proposals, largest saving first. None is applied: each changes what the model is given or which
-model answers, so each wants a look on a copy of real notes first.
+Done on 2026-11-24, in `apps/server/src/majordome/claudeSessionCuts.ts`, each measured on a
+first request of 43,755 tokens (Haiku, a small notes folder, the owner's Mac):
 
-1. **Sonnet 5.5 for chat and routines by default**, Opus on request. About half the cost.
-2. **Stop offering the Artifact tools.** 8,000 to 13,000 tokens off every first request.
-3. **Do not load the owner's personal Claude settings and plugins** in Majordome sessions.
-   About 8,300 tokens on the Mac; nothing on a hosted server, which has none.
-4. **Name the built-in tools a session may use** instead of taking Claude Code's whole list.
+- **The Artifact tools are no longer offered:** 12,346 tokens less.
+- **The owner's personal Claude Code settings are not loaded** (plugins, skills, hooks, personal
+  MCP servers): 9,899 less. Turning off only the two plugins saved 1,601, so the whole "user"
+  source is left out. The notes folder's own `.claude` is still read.
+- **Routines keep their cache five minutes,** not an hour.
+
+Still proposals, each the owner's to decide:
+
+1. **Sonnet 5.5 for chat and routines by default**, Opus on request. About half the cost. The
+   owner chose to stay on Opus for now (2026-11-24).
+2. **Name the built-in tools a session may use** instead of taking Claude Code's whole list.
    About 5,300 tokens.
-5. **A five-minute cache for routines** (`CLAUDE_CODE_PROMPT_CACHE_TTL=5m` in the routine's
-   environment). They start a fresh session and finish in minutes, so the write costs 1.25
-   times the input price, not 2. Chats keep the hour.
-6. **Run one week on a real API key** and check these figures against the bill, then show cost
+3. **Run one week on a real API key** and check these figures against the bill, then show cost
    per run on Overview.
 
 ## Hosted Majordome: where the servers come from

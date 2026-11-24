@@ -7,6 +7,16 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Improved**
+
+- **Each conversation costs less to start.** The assistant is no longer handed Claude's
+  page-publishing tools, which it never used here, nor your personal Claude Code plugins,
+  skills and hooks. A first message is about 22,000 tokens lighter on a computer that has
+  them, about 12,000 on a server. Skills in your notes folder are kept.
+- **Routines cost less.** What a routine writes to the AI's cache is kept five minutes and not
+  an hour, which is cheaper and enough for a run that takes a few minutes.
+- **A privacy address.** Questions and deletion requests go to privacy@majord.me.
+
 ## 0.10.39
 
 **New**
