@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.45
+
 **New**
 
 - **The page that sells a server looks the part.** At
