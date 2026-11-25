@@ -1,4 +1,3 @@
-import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import { EnvironmentId, ProviderInstanceId, ThreadId } from "@t3tools/contracts";
@@ -8,8 +7,8 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
-import * as ServerConfig from "../../../config.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
+import { layerSavedKeysForTest } from "../../../majordome/MajordomeSavedKeys.testkit.ts";
 import * as ThreadManagement from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
@@ -137,6 +136,13 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
         expect(listed).toEqual({ keys: [{ name: "toto", note: "A test" }] });
         expect(JSON.stringify(listed)).not.toContain("test1234");
 
+        // The key Bitwarden signs in with is the owner's: not listed for the agent, never handed over.
+        yield* result("save_key", { name: "bitwarden", note: "", value: "0.token:part" });
+        expect(yield* result("list_saved_keys", {})).toEqual(listed);
+        expect(yield* result("use_saved_key", { name: "bitwarden" })).toMatchObject({
+          code: "orchestration_error",
+        });
+
         const taken = yield* result("use_saved_key", { name: "toto" });
         expect(taken).toMatchObject({ status: "ready" });
         const file = (taken as { readonly file: string }).file;
@@ -147,14 +153,7 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
         Effect.provide(
           McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(
             Layer.provideMerge(layerAgent),
-            Layer.provideMerge(
-              MajordomeSavedKeys.layer.pipe(
-                Layer.provide(
-                  ServerConfig.layerTest(process.cwd(), { prefix: "majordome-saved-keys-tools-" }),
-                ),
-                Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
-              ),
-            ),
+            Layer.provideMerge(layerSavedKeysForTest("majordome-saved-keys-tools-")),
           ),
         ),
       ),

@@ -43,6 +43,27 @@ RUN reported="$(node /out/dist/bin.mjs --version)" \
 
 FROM ghcr.io/gitleaks/gitleaks:v8.30.1 AS secret-scan
 
+# Bitwarden's Secrets Manager CLI, for the Bitwarden secret source. Checked against the checksums
+# its release publishes; bump the version and both sums together.
+FROM debian:trixie-slim AS bws
+ARG TARGETARCH
+ARG BWS_VERSION=2.1.0
+ARG BWS_SHA256_AMD64=ba8233c3a4aee5d43e3c73bbd04d99e9bc5aba13bbbfd06d89b073abe732b860
+ARG BWS_SHA256_ARM64=18253757286e119d450133a87eb463bf8c1ce418ce24c834f4f250d60cba6f9e
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+  && rm -rf /var/lib/apt/lists/*
+RUN case "$TARGETARCH" in \
+    amd64) triple=x86_64-unknown-linux-gnu; sum="$BWS_SHA256_AMD64" ;; \
+    arm64) triple=aarch64-unknown-linux-gnu; sum="$BWS_SHA256_ARM64" ;; \
+    *) echo "No bws build for $TARGETARCH." >&2; exit 1 ;; \
+  esac \
+  && curl -fsSL -o /tmp/bws.zip \
+    "https://github.com/bitwarden/sdk-sm/releases/download/bws-v${BWS_VERSION}/bws-${triple}-${BWS_VERSION}.zip" \
+  && echo "${sum}  /tmp/bws.zip" | sha256sum -c - \
+  && unzip -q /tmp/bws.zip bws -d /out \
+  && /out/bws --version
+
 FROM node:${NODE_VERSION}-trixie-slim
 # Provider CLIs the server starts for agent turns. Bump deliberately.
 ARG CLAUDE_CODE_VERSION=2.1.325
@@ -61,6 +82,7 @@ RUN apt-get update \
 RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}" \
   && npm cache clean --force
 COPY --from=secret-scan /usr/bin/gitleaks /usr/local/bin/gitleaks
+COPY --from=bws /out/bws /usr/local/bin/bws
 COPY --from=build /out /opt/majordome
 RUN printf '#!/bin/sh\nexec node /opt/majordome/dist/bin.mjs "$@"\n' > /usr/local/bin/majord \
   && chmod 755 /usr/local/bin/majord \

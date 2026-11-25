@@ -1,6 +1,7 @@
 // What Majordome's scenarios share. A project is a notes folder when it has a `.majordome` folder.
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import * as Schema from "effect/Schema";
 
 import { T3_HOME } from "../e2e.config.ts";
 import { makeState, runPromise } from "./t3.ts";
@@ -11,6 +12,10 @@ export const NOTES_FOLDER = {
   "Welcome.md": "# Welcome\n\nThe first note.\n",
   "Other.md": "# Other\n\nAnother note.\n",
 } as const;
+
+const SettingsJson = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
+const decodeSettings = Schema.decodeEffect(SettingsJson);
+const encodeSettings = Schema.encodeEffect(SettingsJson);
 
 const withFiles = <A, E>(use: (fs: FileSystem.FileSystem) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(FileSystem.FileSystem, use));
@@ -29,3 +34,29 @@ export const files = {
  */
 export const forgetNotesFolder = (folder: string) =>
   runPromise(makeState(T3_HOME).cli(["project", "remove", folder, "--force"], [0, 1]));
+
+/**
+ * Empties the server's saved keys and secret sources, so a scenario about them starts from none
+ * whatever an earlier one left: the server outlives each test. Run before the app opens.
+ */
+export const forgetSavedKeys = () =>
+  runPromise(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const state = `${T3_HOME}/userdata`;
+      for (const file of [
+        "secrets/integration-keys.age",
+        "secrets/integration-keys.agekey",
+        "majordome/saved-keys.json",
+      ]) {
+        yield* fs.remove(`${state}/${file}`, { force: true });
+      }
+      // The server reads its settings file again when it changes.
+      const settingsPath = `${state}/settings.json`;
+      const settings = yield* decodeSettings(yield* fs.readFileString(settingsPath));
+      if (settings.secretProviders !== undefined) {
+        const { secretProviders: _sources, ...kept } = settings;
+        yield* fs.writeFileString(settingsPath, yield* encodeSettings(kept));
+      }
+    }),
+  );

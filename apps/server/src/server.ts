@@ -862,7 +862,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   MajordomeNotes.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeTopicFiles.layer.pipe(Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer))),
   MajordomeKeyFacts.layer,
-  MajordomeSavedKeys.layer,
+  MajordomeSavedKeys.layer.pipe(Layer.provide(SecretResolver.layer)),
   MajordomeConnectors.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(

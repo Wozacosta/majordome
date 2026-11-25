@@ -14,4 +14,10 @@ it("says what a key is for and when it was last used", () => {
   expect(
     savedKeyLine({ note: "Garmin token", lastUsedAt: "2026-11-03T10:00:00.000Z" }, "en-GB", "UTC"),
   ).toBe("Garmin token · Last used 3 Nov 2026");
+  expect(savedKeyLine({ note: "Runs", source: "My Bitwarden" })).toBe(
+    "Runs · Kept in My Bitwarden · Not used yet",
+  );
+  expect(savedKeyLine({ note: "", signsInTo: "My Bitwarden" })).toBe(
+    "Signs Majordome in to My Bitwarden. Your assistant cannot take it.",
+  );
 });

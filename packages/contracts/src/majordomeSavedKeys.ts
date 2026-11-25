@@ -1,6 +1,7 @@
 import * as Schema from "effect/Schema";
 
 import { IsoDateTime } from "./baseSchemas.ts";
+import { SecretReference } from "./secretReference.ts";
 
 export const MAJORDOME_SAVED_KEY_NOTE_MAX = 200;
 export const MAJORDOME_SAVED_KEY_VALUE_MAX = 64 * 1024;
@@ -21,6 +22,10 @@ export const MajordomeSavedKey = Schema.Struct({
   addedAt: Schema.optional(IsoDateTime),
   /** The last time an assistant took the key for a command. */
   lastUsedAt: Schema.optional(IsoDateTime),
+  /** The name of the secret source the key is read from, for a key Majordome holds no copy of. */
+  source: Schema.optional(Schema.String),
+  /** The name of the secret source this key signs Majordome in to. An assistant cannot take it. */
+  signsInTo: Schema.optional(Schema.String),
 });
 export type MajordomeSavedKey = typeof MajordomeSavedKey.Type;
 
@@ -33,10 +38,12 @@ export type MajordomeSavedKeysResult = typeof MajordomeSavedKeysResult.Type;
 export const MajordomeSaveKeyInput = Schema.Struct({
   name: MajordomeSavedKeyName,
   note: Schema.optional(Note),
-  value: Schema.String.check(
-    Schema.isMinLength(1),
-    Schema.isMaxLength(MAJORDOME_SAVED_KEY_VALUE_MAX),
+  /** The key itself, kept in the server's key file. Give this or `reference`. */
+  value: Schema.optional(
+    Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAJORDOME_SAVED_KEY_VALUE_MAX)),
   ),
+  /** Where the key is in a secret source; it is read from there each time it is used. */
+  reference: Schema.optional(SecretReference),
 });
 export type MajordomeSaveKeyInput = typeof MajordomeSaveKeyInput.Type;
 

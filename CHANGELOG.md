@@ -7,6 +7,29 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Bitwarden Secrets Manager as a place keys are kept.** Settings, Passwords and keys, Add
+  source now offers Bitwarden Secrets Manager. It signs in with a machine account's access
+  token, so it works on your always-on server; the Bitwarden password manager is not supported,
+  because it needs your master password. Save the access token as a key named `bitwarden`, then
+  add the source. That key is marked "Signs Majordome in to…" and your assistant cannot take it.
+- **A key your assistant uses can stay in 1Password, Bitwarden or any other source.** In "Add a
+  key" on the computer, pick the source next to the key field and enter where the key is.
+  Majordome keeps no copy and reads it from the source each time, so a key you change there is
+  the one used. It refuses to save a place it cannot read.
+
+**Fixed**
+
+- The list of keys now updates right after you add or remove a source.
+
+**Try this**
+
+- In Settings, Passwords and keys, add a key, add an "Encrypted file" source, then add a second
+  key that points at the first with `secret://` and its name: it shows "Kept in" and the source.
+- With a Bitwarden Secrets Manager account: follow "Bitwarden Secrets Manager" in the Secrets
+  guide, add a key kept there, and ask your assistant to use it.
+
 ## 0.10.48
 
 **New**

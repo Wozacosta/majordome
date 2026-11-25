@@ -15,9 +15,12 @@ export function savedKeyNameFrom(typed: string): string {
     .slice(0, 128);
 }
 
-/** The line under a key's name: what it is for, and when the assistant last took it. */
+/**
+ * The line under a key's name: what it is for, the secret source it is kept in, and when the
+ * assistant last took it. A key a source signs in with says so instead: it is never taken.
+ */
 export function savedKeyLine(
-  key: Pick<MajordomeSavedKey, "note" | "lastUsedAt">,
+  key: Pick<MajordomeSavedKey, "note" | "lastUsedAt" | "source" | "signsInTo">,
   locale?: string,
   timeZone?: string,
 ): string {
@@ -30,5 +33,10 @@ export function savedKeyLine(
           year: "numeric",
           ...(timeZone === undefined ? {} : { timeZone }),
         }).format(new Date(key.lastUsedAt))}`;
-  return key.note === "" ? used : `${key.note} · ${used}`;
+  if (key.signsInTo !== undefined) {
+    return `Signs Majordome in to ${key.signsInTo}. Your assistant cannot take it.`;
+  }
+  return [key.note, key.source === undefined ? "" : `Kept in ${key.source}`, used]
+    .filter((part) => part !== "")
+    .join(" · ");
 }

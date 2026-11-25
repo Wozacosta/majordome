@@ -104,6 +104,7 @@ import {
   type PullRequestRef,
   WS_METHODS,
   WsRpcGroup,
+  MajordomeSavedKeysError,
 } from "@t3tools/contracts";
 import {
   HttpRouter,
@@ -2493,7 +2494,14 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
         [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),
         [WS_METHODS.majordomeListSavedKeys]: () => savedKeys.list(),
-        [WS_METHODS.majordomeSaveKey]: (input) => savedKeys.save(input),
+        [WS_METHODS.majordomeSaveKey]: ({ name, note, value, reference }) =>
+          reference !== undefined
+            ? savedKeys.save({ name, note, reference })
+            : value !== undefined
+              ? savedKeys.save({ name, note, value })
+              : Effect.fail(
+                  new MajordomeSavedKeysError({ message: "Give the key, or where it is kept." }),
+                ),
         [WS_METHODS.majordomeRemoveSavedKey]: (input) => savedKeys.remove(input),
         [WS_METHODS.majordomeViewPrivateDocument]: (input) => privateDocuments.ownerViewUrl(input),
         [WS_METHODS.majordomeGetPrivateDocumentRequest]: (input) =>

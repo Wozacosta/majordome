@@ -1,24 +1,17 @@
-import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
 import * as ServerConfig from "../config.ts";
 import * as MajordomeSavedKeys from "./MajordomeSavedKeys.ts";
+import { layerSavedKeysForTest, TOTO } from "./MajordomeSavedKeys.testkit.ts";
 
 const setUp = Effect.gen(function* () {
-  const context = yield* Layer.build(
-    MajordomeSavedKeys.layer.pipe(
-      Layer.provideMerge(
-        ServerConfig.layerTest(process.cwd(), { prefix: "majordome-saved-keys-" }),
-      ),
-      Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
-    ),
-  );
+  const context = yield* Layer.build(layerSavedKeysForTest("majordome-saved-keys-"));
   return {
     service: yield* Effect.service(MajordomeSavedKeys.MajordomeSavedKeys).pipe(
       Effect.provide(context),
@@ -78,6 +71,65 @@ it.layer(NodeServices.layer)("MajordomeSavedKeys", (it) => {
         (yield* service.list()).keys.map((key) => key.name),
         ["strava"],
       );
+    }),
+  );
+
+  it.effect("keeps a key that lives in a secret source by reference and reads it from there", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const { service } = yield* setUp;
+      // What the owner keeps in the source "toto": here the server's own key file.
+      yield* service.save({ name: "garmin", value: "gm-1" });
+
+      const kept = yield* service.save({
+        name: "runs",
+        note: "Garmin token",
+        reference: { provider: TOTO, reference: "secret://garmin" },
+      });
+      assert.deepInclude(kept, { name: "runs", note: "Garmin token", source: "toto" });
+      assert.deepEqual(
+        (yield* service.list()).keys.map((key) => [key.name, key.source]),
+        [
+          ["garmin", undefined],
+          ["runs", "toto"],
+        ],
+      );
+      const read = (name: string) =>
+        service.use({ name }).pipe(
+          Effect.map(Option.getOrThrow),
+          Effect.flatMap(({ file }) => fileSystem.readFileString(file)),
+        );
+      assert.strictEqual(yield* read("runs"), "gm-1");
+      // Changed in the source: the next use gets the new key, with nothing saved again.
+      yield* service.save({ name: "garmin", value: "gm-2" });
+      assert.strictEqual(yield* read("runs"), "gm-2");
+
+      // Nothing there to read: refused when saving, not when a routine needs it at night.
+      const refused = yield* Effect.flip(
+        service.save({
+          name: "rides",
+          reference: { provider: TOTO, reference: "secret://strava" },
+        }),
+      );
+      assert.include(refused.message, "couldn't read that from toto");
+
+      // Removing the key leaves what the source holds.
+      yield* service.remove({ name: "runs" });
+      assert.deepEqual(
+        (yield* service.list()).keys.map((key) => key.name),
+        ["garmin"],
+      );
+      assert.strictEqual(yield* read("garmin"), "gm-2");
+    }),
+  );
+
+  it.effect("lists the key a source signs in with, and never hands it to an assistant", () =>
+    Effect.gen(function* () {
+      const { service } = yield* setUp;
+      yield* service.save({ name: "bitwarden", value: "0.token:part" });
+      assert.strictEqual((yield* service.list()).keys[0]?.signsInTo, "My Bitwarden");
+      const refused = yield* Effect.flip(service.use({ name: "bitwarden" }));
+      assert.include(refused.message, "signs Majordome in to My Bitwarden");
     }),
   );
 });

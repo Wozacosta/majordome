@@ -1,5 +1,6 @@
 import {
   FileLockIcon,
+  ShieldCheckIcon,
   KeyRoundIcon,
   LockKeyholeIcon,
   SquareTerminalIcon,
@@ -15,6 +16,7 @@ const ICONS: Readonly<
   keychain: LockKeyholeIcon,
   encrypted_file: FileLockIcon,
   one_password: OnePasswordIcon,
+  bitwarden_secrets_manager: ShieldCheckIcon,
   exec: SquareTerminalIcon,
   env: VariableIcon,
 };

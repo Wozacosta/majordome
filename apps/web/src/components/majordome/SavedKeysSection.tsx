@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -7,15 +7,19 @@ import {
   type EnvironmentId,
   MAJORDOME_SAVED_KEY_NOTE_MAX,
   type MajordomeSavedKey,
+  type SecretProviderId,
 } from "@t3tools/contracts";
+import { builtInSecretProviderDefinitions } from "@t3tools/secret-provider-definitions/registry";
 import { savedKeyLine, savedKeyNameFrom } from "@t3tools/shared/majordomeSavedKeys";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { KeyRoundIcon, PlusIcon } from "lucide-react";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
+import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { SecretSourceSelect, useSecretSources } from "../settings/SecretSourceInput";
 import { SettingsRow, SettingsSection } from "../settings/settingsLayout";
 import {
   AlertDialog,
@@ -43,7 +47,19 @@ const failureMessage = (result: { readonly cause: Cause.Cause<unknown> }, fallba
  * owner adds and removes them here; a value is never shown again once saved.
  */
 export function SavedKeysSection({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const result = useAtomValue(majordomeEnvironment.savedKeys({ environmentId, input: {} }));
+  const savedKeys = majordomeEnvironment.savedKeys({ environmentId, input: {} });
+  const result = useAtomValue(savedKeys);
+  const refresh = useAtomRefresh(savedKeys);
+  const sourcesKey = JSON.stringify(
+    useEnvironmentSettings(environmentId, (settings) => settings.secretProviders),
+  );
+  const seenSourcesKey = useRef(sourcesKey);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the server says which key a source signs in with and names each key's source, so a changed source list asks it again
+  useEffect(() => {
+    if (seenSourcesKey.current === sourcesKey) return;
+    seenSourcesKey.current = sourcesKey;
+    refresh();
+  }, [sourcesKey, seenSourcesKey, refresh]);
   const canChange = useAtomValue(majordomeEnvironment.saveKey.permissionAtom(environmentId));
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<MajordomeSavedKey | null>(null);
@@ -140,6 +156,12 @@ function AddKeyForm({
   const [typedName, setTypedName] = useState("");
   const [note, setNote] = useState("");
   const [value, setValue] = useState("");
+  // Where the key is: pasted here (null), or an item in one of this computer's secret sources.
+  const sources = useSecretSources(environmentId);
+  const [sourceId, setSourceId] = useState<SecretProviderId | null>(null);
+  const source = sources.find((candidate) => candidate.id === sourceId);
+  const sourceKind =
+    source === undefined ? undefined : builtInSecretProviderDefinitions.find(source.kind);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = savedKeyNameFrom(typedName);
@@ -149,12 +171,22 @@ function AddKeyForm({
     event.preventDefault();
     if (busy) return;
     if (name === "") return setError("Give the key a name, such as garmin.");
-    if (value === "") return setError("Paste the key.");
+    const typed = value.trim();
+    if (source === undefined && value === "") return setError("Paste the key.");
+    if (source !== undefined && sourceKind?.isReference(typed) !== true) {
+      return setError(sourceKind?.invalidReferenceMessage ?? `Say where it is in ${source.label}.`);
+    }
     setBusy(true);
     setError(null);
     const saved = await saveKey({
       environmentId,
-      input: { name, value, ...(note.trim() === "" ? {} : { note: note.trim() }) },
+      input: {
+        name,
+        ...(note.trim() === "" ? {} : { note: note.trim() }),
+        ...(source === undefined
+          ? { value }
+          : { reference: { provider: source.id, reference: typed } }),
+      },
     });
     setBusy(false);
     if (saved._tag === "Success") {
@@ -200,26 +232,48 @@ function AddKeyForm({
           onChange={(event) => setNote(event.target.value)}
         />
       </Label>
-      <Label className="flex flex-col items-stretch" htmlFor={`${id}-value`}>
-        The key
-        <Input
-          nativeInput
-          id={`${id}-value`}
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          value={value}
-          disabled={busy}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setError(null);
-          }}
-        />
-      </Label>
+      {/* The picker sits outside the label: a label names one field. */}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${id}-value`}>
+          {source === undefined ? "The key" : `Where it is in ${source.label}`}
+        </Label>
+        <span className="flex items-center gap-2">
+          {sources.length === 0 ? null : (
+            <SecretSourceSelect
+              value={sourceId}
+              sources={sources}
+              label="The key"
+              disabled={busy}
+              onValueChange={(next) => {
+                setSourceId(next);
+                setValue("");
+                setError(null);
+              }}
+            />
+          )}
+          <Input
+            nativeInput
+            id={`${id}-value`}
+            className="min-w-0 flex-1"
+            type={source === undefined ? "password" : "text"}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={sourceKind?.referencePlaceholder}
+            value={value}
+            disabled={busy}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setError(null);
+            }}
+          />
+        </span>
+      </div>
       <p className="text-xs text-muted-foreground">
         {replaces
           ? `A key named ${name} is already saved. Saving replaces it.`
-          : "Your assistant sees the name and what it is for. It uses the key in a command without the key appearing in the chat, and it is not shown here again."}
+          : source !== undefined
+            ? `Majordome keeps no copy: it reads the key from ${source.label} each time your assistant uses it, and checks now that it can.`
+            : "Your assistant sees the name and what it is for. It uses the key in a command without the key appearing in the chat, and it is not shown here again."}
       </p>
       {error !== null ? (
         <p role="alert" className="text-sm text-destructive-foreground">
@@ -272,8 +326,9 @@ function RemoveKeyPopup({
       <AlertDialogHeader>
         <AlertDialogTitle>Remove “{name}”?</AlertDialogTitle>
         <AlertDialogDescription>
-          Your assistant can no longer use this key, and Majordome deletes its copy. The key itself
-          still works wherever it came from: cancel it there if it should stop working.
+          Your assistant can no longer use this key, and Majordome deletes its copy if it holds one.
+          The key itself still works wherever it came from: cancel it there if it should stop
+          working.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

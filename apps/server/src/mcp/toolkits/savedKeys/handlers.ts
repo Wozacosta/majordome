@@ -24,7 +24,12 @@ const handlers = {
       const { keys } = yield* (yield* MajordomeSavedKeys.MajordomeSavedKeys)
         .list()
         .pipe(Effect.mapError(toFailure));
-      return { keys: keys.map(({ name, note }) => ({ name, note })) };
+      // A key that signs Majordome in to a source is not the agent's to use.
+      return {
+        keys: keys
+          .filter((key) => key.signsInTo === undefined)
+          .map(({ name, note }) => ({ name, note })),
+      };
     }),
   ),
   use_saved_key: McpToolAccess.actsAsCaller((input) =>

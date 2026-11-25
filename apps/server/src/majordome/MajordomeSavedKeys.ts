@@ -1,16 +1,18 @@
 /**
- * The keys the owner saved for the assistant on this server: the encrypted key file
- * (`majord secret`), listed by name, with what each is for and when it was last used.
- *
- * A saved key is a standing yes: an assistant takes one without a card. It gets a file to read
- * inside one command, never the value, so the key stays out of the conversation and its log.
+ * The keys the owner saved for the assistant on this server, by name. A saved key is a standing
+ * yes: an assistant takes one without a card, as a file to read inside one command, never the
+ * value. A key is in the server's key file, or points at an item in a secret source.
  */
 
 import {
   type MajordomeSavedKey,
   MajordomeSavedKeysError,
   type MajordomeSavedKeysResult,
+  SecretReference,
 } from "@t3tools/contracts";
+import * as Bitwarden from "@t3tools/secret-provider-bitwarden/shared/definition";
+import * as SecretResolver from "@t3tools/secret-provider-core/server/SecretResolver";
+import { isSecretName } from "@t3tools/secret-provider-encrypted-file/shared/definition";
 import {
   encryptedFileLocation,
   readSecrets,
@@ -29,27 +31,34 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 
 import * as ServerConfig from "../config.ts";
+import * as ServerSettings from "../serverSettings.ts";
 
 export class MajordomeSavedKeys extends Context.Service<
   MajordomeSavedKeys,
   {
     readonly list: () => Effect.Effect<MajordomeSavedKeysResult, MajordomeSavedKeysError>;
     /**
-     * Adds a key, or replaces the one with that name. The value comes as text, or as a file a
-     * secret request wrote, which is how an assistant saves a key it never saw.
+     * Adds a key, or replaces the one with that name. The value comes as text, as a file a
+     * secret request wrote, which is how an assistant saves a key it never saw, or as a reference
+     * to an item in a secret source, which must be readable now.
      */
     readonly save: (
       input: {
         readonly name: string;
         readonly note?: string | undefined;
-      } & ({ readonly value: string } | { readonly file: string }),
+      } & (
+        | { readonly value: string }
+        | { readonly file: string }
+        | { readonly reference: SecretReference }
+      ),
     ) => Effect.Effect<MajordomeSavedKey, MajordomeSavedKeysError>;
     readonly remove: (input: {
       readonly name: string;
     }) => Effect.Effect<void, MajordomeSavedKeysError>;
     /**
      * Writes the key to an owner-only file for one command. None when no key has that name. The
-     * file is swept with the secret request files, a day later at most.
+     * file is swept with the secret request files, a day later at most. Fails for a key that
+     * signs Majordome in to a secret source, and for one its source cannot read right now.
      */
     readonly use: (input: {
       readonly name: string;
@@ -63,6 +72,8 @@ const KeyNotes = Schema.Record(
     note: Schema.String,
     addedAt: Schema.optional(Schema.String),
     lastUsedAt: Schema.optional(Schema.String),
+    /** Set for a key that lives in a secret source; the key file then holds nothing under the name. */
+    reference: Schema.optional(SecretReference),
   }),
 );
 type KeyNotes = typeof KeyNotes.Type;
@@ -75,6 +86,8 @@ const make = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const random = yield* SecureRandom.SecureRandom;
+  const resolver = yield* SecretResolver.SecretResolver;
+  const settings = yield* ServerSettings.ServerSettingsService;
   const location = encryptedFileLocation(config.secretsDir, path.join);
   // What each key is for sits outside the encrypted file, which the terminal command also writes.
   const notesPath = path.join(config.stateDir, "majordome", "saved-keys.json");
@@ -104,7 +117,28 @@ const make = Effect.gen(function* () {
     yield* fileSystem.rename(temporary, notesPath);
   }, Effect.ignore);
 
-  const describe = (name: string, notes: KeyNotes): MajordomeSavedKey => {
+  const isBitwardenConfig = Schema.is(Bitwarden.BitwardenSecretProviderConfig);
+
+  /** The keys a secret source signs in with, by name, with that source's own name. */
+  const signInKeys = settings.getSettings.pipe(
+    Effect.map(
+      ({ secretProviders }) =>
+        new Map(
+          Object.values(secretProviders).flatMap((provider) =>
+            provider.kind === Bitwarden.definition.kind && isBitwardenConfig(provider.config)
+              ? [[provider.config.tokenName, provider.label] as const]
+              : [],
+          ),
+        ),
+    ),
+    Effect.orElseSucceed(() => new Map<string, string>()),
+  );
+
+  const describe = Effect.fn("MajordomeSavedKeys.describe")(function* (
+    name: string,
+    notes: KeyNotes,
+    signIn: ReadonlyMap<string, string>,
+  ) {
     const known = notes[name];
     const stamp = (value: string | undefined) =>
       value === undefined
@@ -112,26 +146,62 @@ const make = Effect.gen(function* () {
         : Option.getOrUndefined(Option.map(DateTime.make(value), DateTime.formatIso));
     const addedAt = stamp(known?.addedAt);
     const lastUsedAt = stamp(known?.lastUsedAt);
+    const source =
+      known?.reference === undefined ? undefined : yield* resolver.label(known.reference.provider);
+    const signsInTo = signIn.get(name);
     return {
       name,
       note: known?.note ?? "",
       ...(addedAt === undefined ? {} : { addedAt }),
       ...(lastUsedAt === undefined ? {} : { lastUsedAt }),
-    };
-  };
+      ...(source === undefined ? {} : { source }),
+      ...(signsInTo === undefined ? {} : { signsInTo }),
+    } satisfies MajordomeSavedKey;
+  });
 
   const now = DateTime.now.pipe(Effect.map(DateTime.formatIso));
 
   const list: MajordomeSavedKeys["Service"]["list"] = Effect.fn("MajordomeSavedKeys.list")(
     function* () {
-      const names = Object.keys(yield* withStore(readSecrets(location))).sort();
+      const held = Object.keys(yield* withStore(readSecrets(location)));
       const notes = yield* readNotes;
-      return { keys: names.map((name) => describe(name, notes)) };
+      const kept = Object.keys(notes).filter((name) => notes[name]?.reference !== undefined);
+      const signIn = yield* signInKeys;
+      return {
+        keys: yield* Effect.forEach([...new Set([...held, ...kept])].sort(), (name) =>
+          describe(name, notes, signIn),
+        ),
+      };
     },
   );
 
   const save: MajordomeSavedKeys["Service"]["save"] = Effect.fn("MajordomeSavedKeys.save")(
     function* (input) {
+      const notes = yield* readNotes;
+      const entry = {
+        note: input.note?.trim() ?? notes[input.name]?.note ?? "",
+        addedAt: yield* now,
+      };
+      if ("reference" in input) {
+        if (!isSecretName(input.name)) {
+          return yield* new MajordomeSavedKeysError({ message: INVALID_NAME });
+        }
+        const [read] = yield* resolver.read([input.reference], { fresh: true });
+        if (read === undefined) {
+          const source = yield* resolver.label(input.reference.provider);
+          return yield* new MajordomeSavedKeysError({
+            message: `Majordome couldn't read that from ${source}. Check what you entered, and that ${source} is set up on this computer.`,
+          });
+        }
+        // One key per name: a copy Majordome held under it goes.
+        yield* withStore(removeSecret(location, input.name));
+        const next: KeyNotes = {
+          ...notes,
+          [input.name]: { ...entry, reference: input.reference },
+        };
+        yield* writeNotes(next);
+        return yield* describe(input.name, next, yield* signInKeys);
+      }
       const value =
         "value" in input
           ? input.value
@@ -140,16 +210,9 @@ const make = Effect.gen(function* () {
             ? yield* fileSystem.readFileString(input.file).pipe(Effect.orElseSucceed(() => ""))
             : "";
       yield* withStore(setSecret(location, input.name, value));
-      const notes = yield* readNotes;
-      const next: KeyNotes = {
-        ...notes,
-        [input.name]: {
-          note: input.note?.trim() ?? notes[input.name]?.note ?? "",
-          addedAt: yield* now,
-        },
-      };
+      const next: KeyNotes = { ...notes, [input.name]: entry };
       yield* writeNotes(next);
-      return describe(input.name, next);
+      return yield* describe(input.name, next, yield* signInKeys);
     },
     lock.withPermits(1),
   );
@@ -166,15 +229,31 @@ const make = Effect.gen(function* () {
   const use: MajordomeSavedKeys["Service"]["use"] = Effect.fn("MajordomeSavedKeys.use")(function* (
     input,
   ) {
+    const signsInTo = (yield* signInKeys).get(input.name);
+    if (signsInTo !== undefined) {
+      return yield* new MajordomeSavedKeysError({
+        message: `That key signs Majordome in to ${signsInTo}. It is not yours to take: use the keys kept in ${signsInTo} instead.`,
+      });
+    }
+    const reference = (yield* readNotes)[input.name]?.reference;
     const secrets = yield* withStore(readSecrets(location));
-    if (!Object.hasOwn(secrets, input.name)) return Option.none();
+    if (reference === undefined && !Object.hasOwn(secrets, input.name)) return Option.none();
+    // Asked of the source each time, so a key changed there is the one used.
+    const value =
+      reference === undefined
+        ? secrets[input.name]
+        : (yield* resolver.read([reference], { fresh: true }))[0];
+    if (value === undefined) {
+      const source = reference === undefined ? "" : yield* resolver.label(reference.provider);
+      return yield* new MajordomeSavedKeysError({
+        message: `${source} could not be read right now, so the key is not available. Tell the owner.`,
+      });
+    }
     const file = path.join(filesDir, (yield* random.uuidV4()).replaceAll("-", ""));
     yield* fileSystem.makeDirectory(filesDir, { recursive: true, mode: 0o700 }).pipe(
       Effect.andThen(fileSystem.chmod(filesDir, 0o700)),
       // `wx` never follows or replaces an existing path.
-      Effect.andThen(
-        fileSystem.writeFileString(file, secrets[input.name]!, { flag: "wx", mode: 0o600 }),
-      ),
+      Effect.andThen(fileSystem.writeFileString(file, value, { flag: "wx", mode: 0o600 })),
       Effect.mapError(
         () => new MajordomeSavedKeysError({ message: "Could not hand over the key." }),
       ),
@@ -191,6 +270,9 @@ const make = Effect.gen(function* () {
 });
 
 /** The store's errors say what to do in the owner's words; anything else gets one plain line. */
+const INVALID_NAME =
+  "A key's name starts with a letter or digit and has only letters, digits, and . _ or -.";
+
 const messageOf = (error: unknown) =>
   error instanceof Error && error.message.length > 0
     ? error.message

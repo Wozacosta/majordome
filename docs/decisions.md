@@ -224,7 +224,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   names (`list_saved_keys`), takes one as an owner-only file read inside a single command
   (`use_saved_key`), and saves one the owner hands it (`save_key`). A saved key is a standing yes:
   no card, in chats and in routines, because the owner asked to stop being asked. The value never
-  enters the conversation or its log. Only the owner removes a key.
+  enters the conversation or its log. Only the owner removes a key. A saved key can instead hold
+  a reference to an item in a secret source and is then read from the source at each use.
+  Bitwarden Secrets Manager is a source (`bws`, machine-account token kept as a saved key the
+  assistant cannot take); the Bitwarden password manager is not, since it needs a master password
+  an unattended server cannot type.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.

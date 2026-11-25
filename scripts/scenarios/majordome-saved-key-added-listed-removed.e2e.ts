@@ -1,7 +1,7 @@
 import { expect } from "e2e";
 
 import { T3_HOME } from "../e2e.config.ts";
-import { NOTES_FOLDER } from "./majordome.ts";
+import { forgetSavedKeys, NOTES_FOLDER } from "./majordome.ts";
 import { makeState, runPromise, test, WEB } from "./t3.ts";
 
 const KEY = "gm_live_4f9a2c7e1b";
@@ -16,6 +16,7 @@ test(
   "A key added in Passwords and keys is listed, is in the server's key file, and is removed",
   WEB,
   async ({ t3, app, screen }) => {
+    await forgetSavedKeys();
     await t3.project("Notes", NOTES_FOLDER);
     await t3.open("/settings/secrets");
     await expect(screen.getByText("No keys saved yet.")).toBeVisible();

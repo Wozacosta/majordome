@@ -108,7 +108,7 @@ function ComputerKeys({
     Dialog.confirm({
       title: `Remove “${key.name}”?`,
       message:
-        "Your assistant can no longer use this key, and Majordome deletes its copy. The key itself still works wherever it came from: cancel it there if it should stop working.",
+        "Your assistant can no longer use this key, and Majordome deletes its copy if it holds one. The key itself still works wherever it came from: cancel it there if it should stop working.",
       confirmText: "Remove",
       destructive: true,
       onConfirm: () => {
