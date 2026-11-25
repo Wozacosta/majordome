@@ -14,6 +14,7 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
+import { SavedKeysSection } from "../majordome/SavedKeysSection";
 import { Button } from "../ui/button";
 import { SecretProviderDialog } from "./SecretProviderDialog";
 import { classifySecretProvider } from "./SecretProviderDialog.logic";
@@ -43,11 +44,14 @@ export function SecretsSettingsPanel() {
           </p>
         </SettingsSection>
       ) : connected ? (
-        <EnvironmentSecretProviders
-          key={environment.environmentId}
-          environment={environment}
-          projectScoped={scope.kind === "project" || scope.kind === "checkout"}
-        />
+        <>
+          <SavedKeysSection environmentId={environment.environmentId} />
+          <EnvironmentSecretProviders
+            key={environment.environmentId}
+            environment={environment}
+            projectScoped={scope.kind === "project" || scope.kind === "checkout"}
+          />
+        </>
       ) : (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">

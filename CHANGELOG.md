@@ -22,8 +22,17 @@ Not released yet.
   the phone yet: "Draw it", searching the key facts, and adding or removing a private document.
   (From the next iPhone build.)
 
+- **Keys your assistant can use, listed.** Settings, Passwords and keys now starts with the API
+  keys, tokens and passwords saved for your assistant: add one, see when it was last used, remove
+  it. Your assistant sees the names and what each is for, so it can tell you whether it can reach
+  a service, and it uses a key without asking you for it again and without the key appearing in
+  the chat. You can also hand it a key in a chat and ask it to keep it. On the iPhone the same
+  list is under Settings, Passwords and keys (from the next iPhone build). Saving a key is the
+  permission: the assistant does not ask before using one.
+
 **Try this**
 
+- In Settings, Passwords and keys, add a key, then ask in a chat "which keys do you have?".
 - On the iPhone, open a topic's chat and touch the "i" at the top right.
 
 ## 0.10.47

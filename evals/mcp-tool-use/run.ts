@@ -66,6 +66,7 @@ import { SETTING_CHANGE_NOTES } from "../../apps/server/src/mcp/toolkits/majordo
 import { MajordomeSettingsToolkit } from "../../apps/server/src/mcp/toolkits/majordomeSettings/tools.ts";
 import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolkits/privateDocuments/handlers.ts";
 import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
+import { SavedKeysToolkit } from "../../apps/server/src/mcp/toolkits/savedKeys/tools.ts";
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
 import { routinesGuide } from "../../apps/server/src/majordome/routinesGuide.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
@@ -494,6 +495,7 @@ const t3SourceTools: ReadonlyArray<Tool.Any> = [
   HtmlToolkit,
   MessageToolkit,
   PrivateDocumentsToolkit,
+  SavedKeysToolkit,
   NotesSearchToolkit,
   MajordomeSettingsToolkit,
 ].flatMap((toolkit): ReadonlyArray<Tool.Any> => Object.values(toolkit.tools));

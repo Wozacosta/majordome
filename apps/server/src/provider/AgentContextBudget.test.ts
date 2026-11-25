@@ -16,6 +16,7 @@ import { GitManager } from "../git/GitManager.ts";
 import { GitWorkflowService } from "../git/GitWorkflowService.ts";
 import { MajordomeNotesSearch } from "../majordome/MajordomeNotesSearch.ts";
 import { MajordomePrivateDocuments } from "../majordome/MajordomePrivateDocuments.ts";
+import { MajordomeSavedKeys } from "../majordome/MajordomeSavedKeys.ts";
 import { MajordomeSettings } from "../majordome/MajordomeSettings.ts";
 import { MajordomePush } from "../majordome/MajordomePush.ts";
 import { MajordomeReadingList } from "../majordome/MajordomeReadingList.ts";
@@ -67,6 +68,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(IssueService)({}),
   Layer.mock(MajordomeNotesSearch)({}),
   Layer.mock(MajordomePrivateDocuments)({}),
+  Layer.mock(MajordomeSavedKeys)({}),
   Layer.mock(MajordomePush)({}),
   Layer.mock(MajordomeReadingList)({}),
   Layer.mock(MajordomeSettings)({}),

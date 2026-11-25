@@ -177,6 +177,7 @@ describe("RPC authorization scopes", () => {
   it("lets readers list private documents, operators answer a request, and only settings scope add, remove or download one", () => {
     for (const method of [
       WS_METHODS.majordomeListPrivateDocuments,
+      WS_METHODS.majordomeListSavedKeys,
       WS_METHODS.majordomeGetPrivateDocumentRequest,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationReadScope);
@@ -191,6 +192,8 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeAddPrivateDocument,
       WS_METHODS.majordomeRemovePrivateDocument,
       WS_METHODS.majordomeViewPrivateDocument,
+      WS_METHODS.majordomeSaveKey,
+      WS_METHODS.majordomeRemoveSavedKey,
       // Allowing a setting change takes the scope that could make the change directly.
       WS_METHODS.majordomeAnswerApproval,
     ]) {

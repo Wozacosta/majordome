@@ -253,6 +253,23 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeRemovePrivateDocument,
       onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
     }),
+    /** Read again on every mount and after each change; the assistant saves keys too. */
+    savedKeys: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:saved-keys",
+      tag: WS_METHODS.majordomeListSavedKeys,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => savedKeysRevision(environmentId),
+    }),
+    saveKey: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:save-key",
+      tag: WS_METHODS.majordomeSaveKey,
+      onSettled: ({ environmentId }, registry) => bumpSavedKeys(environmentId, registry),
+    }),
+    removeSavedKey: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-saved-key",
+      tag: WS_METHODS.majordomeRemoveSavedKey,
+      onSettled: ({ environmentId }, registry) => bumpSavedKeys(environmentId, registry),
+    }),
     viewPrivateDocument: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:view-private-document",
       tag: WS_METHODS.majordomeViewPrivateDocument,
@@ -614,6 +631,16 @@ const connectorsRevision = Atom.family((environmentId: EnvironmentId) =>
 );
 
 /** Bumped after a private document is added, removed, viewed or answered for, so the page reads again. */
+const savedKeysRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:saved-keys-revision:${environmentId}`),
+  ),
+);
+
+const bumpSavedKeys = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(savedKeysRevision(environmentId), (value) => value + 1));
+
 const privateDocumentsRevision = Atom.family((environmentId: EnvironmentId) =>
   Atom.make(0).pipe(
     Atom.keepAlive,

@@ -146,6 +146,7 @@ import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
 import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
 import * as GuestShareService from "./guest/GuestShareService.ts";
@@ -1514,6 +1515,7 @@ export const layerWsRpc = (
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
+      const savedKeys = yield* MajordomeSavedKeys.MajordomeSavedKeys;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
@@ -2490,6 +2492,9 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeListPrivateDocuments]: (_input) => privateDocuments.list(),
         [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
         [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),
+        [WS_METHODS.majordomeListSavedKeys]: () => savedKeys.list(),
+        [WS_METHODS.majordomeSaveKey]: (input) => savedKeys.save(input),
+        [WS_METHODS.majordomeRemoveSavedKey]: (input) => savedKeys.remove(input),
         [WS_METHODS.majordomeViewPrivateDocument]: (input) => privateDocuments.ownerViewUrl(input),
         [WS_METHODS.majordomeGetPrivateDocumentRequest]: (input) =>
           privateDocuments.getRequest(input),

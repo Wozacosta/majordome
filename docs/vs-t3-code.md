@@ -47,6 +47,9 @@ The landing page and the README show a short version of this list.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
   conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
   facts and a topic's files. [Key facts](./user/key-facts.md)
+- **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
+  with when each was last used, and tools so it knows which it has and uses one without the key
+  appearing in the chat. [Secrets](./user/secrets.md)
 - **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
 
 ### An assistant that works without you

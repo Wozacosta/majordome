@@ -218,6 +218,13 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **Tier A, integration keys.** Config holds references, never values. Sources: macOS Keychain,
   encrypted file, env, `exec` (Infisical, 1Password…). Values are injected when a request goes out;
   the model and the file tools never see them.
+- **Saved keys (2026-11-25).** The owner also saves keys for the assistant itself: an API key for
+  a service it should read. They live in the server's encrypted key file, the one `majord secret`
+  writes, listed by name with what each is for and when it was last used. An agent reads the
+  names (`list_saved_keys`), takes one as an owner-only file read inside a single command
+  (`use_saved_key`), and saves one the owner hands it (`save_key`). A saved key is a standing yes:
+  no card, in chats and in routines, because the owner asked to stop being asked. The value never
+  enters the conversation or its log. Only the owner removes a key.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.
@@ -382,10 +389,10 @@ takes over.
       opens a sheet with "In short", the key facts and, for a topic, its files (open, add,
       remove). Left on the computer only: "Draw it", key-fact search, and adding or removing a
       private document.
-    - **What a topic can reach, and taking it away.** On the phone and the computer, a topic
-      shows which APIs, secrets and other access it has, and each can be removed there: "a
-      Bitwarden light". Today access is set for the whole assistant (Settings > Secrets and
-      Private documents), not per topic, so this needs a decision on scoping first.
+    - **What a topic can reach, and taking it away.** Done 2026-11-25, without per-topic scoping
+      (the owner dropped it): Settings, Passwords and keys lists the keys saved for the assistant
+      on a server, on the phone and the computer, and each can be removed there. See "Saved keys"
+      under Credentials and documents.
     - **What one topic knows of the others.** It should be clearer what a topic's chat knows
       about other topics and when it looks something up in them, and there may need to be one
       central topic for facts that concern all of them. Open: whether that is a new topic, or the

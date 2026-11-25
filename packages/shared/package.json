@@ -15,6 +15,10 @@
       "types": "./src/majordomeTopicIcons.ts",
       "import": "./src/majordomeTopicIcons.ts"
     },
+    "./majordomeSavedKeys": {
+      "types": "./src/majordomeSavedKeys.ts",
+      "import": "./src/majordomeSavedKeys.ts"
+    },
     "./majordomeKeyFacts": {
       "types": "./src/majordomeKeyFacts.ts",
       "import": "./src/majordomeKeyFacts.ts"

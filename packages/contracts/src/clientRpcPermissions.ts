@@ -123,6 +123,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeUnlinkPeer]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeAddPrivateDocument]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeRemovePrivateDocument]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeSaveKey]: AuthSettingsWriteScope,
+  [WS_METHODS.majordomeRemoveSavedKey]: AuthSettingsWriteScope,
   // Hands out the decrypted file, so it needs more than the scope that lists the names.
   [WS_METHODS.majordomeViewPrivateDocument]: AuthSettingsWriteScope,
   [WS_METHODS.majordomeAnswerPrivateDocumentRequest]: AuthOrchestrationOperateScope,

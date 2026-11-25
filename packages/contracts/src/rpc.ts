@@ -205,6 +205,13 @@ import {
   MajordomeKeyFactsResult,
 } from "./majordomeKeyFacts.ts";
 import {
+  MajordomeRemoveSavedKeyInput,
+  MajordomeSaveKeyInput,
+  MajordomeSavedKey,
+  MajordomeSavedKeysError,
+  MajordomeSavedKeysResult,
+} from "./majordomeSavedKeys.ts";
+import {
   MajordomeCreateTopicInput,
   MajordomeDismissTopicSuggestionsInput,
   MajordomeOpenRoutinesConversationInput,
@@ -862,6 +869,9 @@ export const WS_METHODS = {
   majordomeListPrivateDocuments: "majordome.listPrivateDocuments",
   majordomeAddPrivateDocument: "majordome.addPrivateDocument",
   majordomeRemovePrivateDocument: "majordome.removePrivateDocument",
+  majordomeListSavedKeys: "majordome.listSavedKeys",
+  majordomeSaveKey: "majordome.saveKey",
+  majordomeRemoveSavedKey: "majordome.removeSavedKey",
   majordomeViewPrivateDocument: "majordome.viewPrivateDocument",
   majordomeGetPrivateDocumentRequest: "majordome.getPrivateDocumentRequest",
   majordomeAnswerPrivateDocumentRequest: "majordome.answerPrivateDocumentRequest",
@@ -2700,6 +2710,25 @@ const WsMajordomeRemovePrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeRemoveP
   error: privateDocumentErrors,
 });
 
+const savedKeysErrors = Schema.Union([MajordomeSavedKeysError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListSavedKeysRpc = Rpc.make(WS_METHODS.majordomeListSavedKeys, {
+  payload: Schema.Struct({}),
+  success: MajordomeSavedKeysResult,
+  error: savedKeysErrors,
+});
+
+const WsMajordomeSaveKeyRpc = Rpc.make(WS_METHODS.majordomeSaveKey, {
+  payload: MajordomeSaveKeyInput,
+  success: MajordomeSavedKey,
+  error: savedKeysErrors,
+});
+
+const WsMajordomeRemoveSavedKeyRpc = Rpc.make(WS_METHODS.majordomeRemoveSavedKey, {
+  payload: MajordomeRemoveSavedKeyInput,
+  error: savedKeysErrors,
+});
+
 const WsMajordomeViewPrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeViewPrivateDocument, {
   payload: MajordomePrivateDocumentInput,
   success: MajordomeViewPrivateDocumentResult,
@@ -3363,6 +3392,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListPrivateDocumentsRpc,
   WsMajordomeAddPrivateDocumentRpc,
   WsMajordomeRemovePrivateDocumentRpc,
+  WsMajordomeListSavedKeysRpc,
+  WsMajordomeSaveKeyRpc,
+  WsMajordomeRemoveSavedKeyRpc,
   WsMajordomeViewPrivateDocumentRpc,
   WsMajordomeGetPrivateDocumentRequestRpc,
   WsMajordomeAnswerPrivateDocumentRequestRpc,

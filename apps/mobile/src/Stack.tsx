@@ -145,6 +145,7 @@ import { SettingsEnvironmentFilterProvider } from "./features/settings/settings-
 import { openSettings, settingsOpenIn } from "./features/settings/settings-navigation";
 import { isMajordome } from "./majordome/env";
 import { AccountScreen } from "./majordome/AccountScreen";
+import { SavedKeysScreen } from "./majordome/SavedKeysScreen";
 import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
@@ -321,6 +322,10 @@ const SETTINGS_SCREENS = {
   }),
   SettingsAccount: createNativeStackScreen({
     screen: AccountScreen,
+    options: settingsPage(),
+  }),
+  SettingsSavedKeys: createNativeStackScreen({
+    screen: SavedKeysScreen,
     options: settingsPage(),
   }),
   SettingsArchive: createNativeStackScreen({

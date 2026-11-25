@@ -5,6 +5,28 @@ dashboard. You can paste the key into its field, or keep it somewhere safer and 
 a _reference_ to it, such as `keychain://Majordome/openai`. Settings then hold the reference, never
 the key, and Majordome's server reads the key at the moment it needs it.
 
+## Keys your assistant can use
+
+Separate from the above: an API key, a token or a password you want your assistant to use, for
+example to read your runs from a sports service. **Settings → Passwords and keys** lists them under
+**Keys your assistant can use**, on the computer and in the iPhone app.
+
+- **Add a key** asks for a name, what it is for, and the key. The key is not shown again.
+- Or give the key to your assistant in a chat and ask it to keep it.
+- **Remove** takes it away from the assistant and deletes Majordome's copy. The key still works
+  wherever it came from, so cancel it there if it should stop working.
+- Each key shows when the assistant last used it.
+
+Your assistant sees the names and what each key is for, so you can ask "can you reach my Garmin
+data?" and get a straight answer. It uses a key inside a command, without the key appearing in the
+chat, and **it does not ask you first**: saving a key here is the permission. Save only keys you are
+happy for it to use on its own, routines included.
+
+The keys are kept in the encrypted file described under [Encrypted file](#encrypted-file) below,
+on the computer you saved them on. `majord secret list` shows the same names.
+
+## Secret sources
+
 The place a reference points to is a **secret source**. You add sources in **Settings → Secrets**
 (under **Advanced**). Each server keeps its own list.
 

@@ -101,6 +101,8 @@ import * as NotifyHandlers from "./toolkits/notify/handlers.ts";
 import * as AgentNotify from "../majordome/AgentNotify.ts";
 import { PrivateDocumentsToolkit } from "./toolkits/privateDocuments/tools.ts";
 import * as PrivateDocumentsHandlers from "./toolkits/privateDocuments/handlers.ts";
+import { SavedKeysToolkit } from "./toolkits/savedKeys/tools.ts";
+import * as SavedKeysHandlers from "./toolkits/savedKeys/handlers.ts";
 import { NotesSearchToolkit } from "./toolkits/notesSearch/tools.ts";
 import { ReadingListToolkit } from "./toolkits/readingList/tools.ts";
 import { MajordomeSettingsToolkit } from "./toolkits/majordomeSettings/tools.ts";
@@ -1355,6 +1357,8 @@ const layerPrivateDocumentsToolkit = toolkitRegistration(
   PrivateDocumentsHandlers.layer,
 );
 
+const layerSavedKeysToolkit = toolkitRegistration(SavedKeysToolkit, SavedKeysHandlers.layer);
+
 const layerNotesSearchToolkit = toolkitRegistration(NotesSearchToolkit, NotesSearchHandlers.layer);
 
 const layerReadingListToolkit = toolkitRegistration(ReadingListToolkit, ReadingListHandlers.layer);
@@ -1464,6 +1468,7 @@ export const layerTools = Layer.mergeAll(
   layerMessageToolkit,
   layerNotifyToolkit,
   layerPrivateDocumentsToolkit,
+  layerSavedKeysToolkit,
   layerNotesSearchToolkit,
   layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
