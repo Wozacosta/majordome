@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.47
+
 **Fixed**
 
 - **The app no longer says it collects usage data.** Majordome sends none, but the setup page
