@@ -103,6 +103,12 @@ vi.mock(import("../../state/entities"), async (original) => ({
 import { LabsSettingsPanel } from "./LabsSettingsPanel";
 import { SettingsScopeProvider } from "./SettingsScopeContext";
 
+// Majordome hides what these tests cover; they test T3 Code's coding UI.
+vi.mock(import("~/env"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  isMajordome: false,
+}));
+
 const [group] = buildSidebarProjectSnapshots({
   projects,
   settings: DEFAULT_CLIENT_SETTINGS,

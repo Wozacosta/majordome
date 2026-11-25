@@ -1513,7 +1513,7 @@ it.effect("the raw arm drops T3's forge tools and text; both arms meet T3's refu
     assert.notInclude(names(raw), "mcp__t3-code__pull_request_read");
     assert.notInclude(names(raw), "mcp__t3-code__link_issue");
     assert.include(names(raw), "mcp__t3-code__delegate_task");
-    assert.include(JSON.stringify(tools.system), "<pull_request_linking>");
+    // Majordome sends no pull request text to either arm (hidesCodingTools).
     assert.notInclude(JSON.stringify(raw.system), "<pull_request_linking>");
 
     const head = "c3a91f27d0b84e6a95f1c2d3e4b5a6978d0c1e2f";

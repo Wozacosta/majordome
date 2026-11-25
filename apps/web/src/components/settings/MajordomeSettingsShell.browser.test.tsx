@@ -10,7 +10,10 @@ vi.mock("~/env", async (importOriginal) => ({
   isMajordome: true,
 }));
 
-vi.mock("./useAvailableSettingsSearchItems", () => ({ useAvailableSettingsSearchItems: () => [] }));
+vi.mock("./useAvailableSettingsSearchItems", () => ({
+  useAvailableSettingsSearchItems: () => [],
+  useHasSecretProvidersEnvironment: () => false,
+}));
 // The close button needs the Settings dialog around it, and the dialog needs the app stylesheet.
 vi.mock("../AppRouteModal", () => ({ AppRouteModalClose: () => null }));
 

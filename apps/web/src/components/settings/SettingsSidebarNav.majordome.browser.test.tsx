@@ -10,7 +10,10 @@ vi.mock("~/env", async (importOriginal) => ({
   isMajordome: true,
 }));
 
-vi.mock("./useAvailableSettingsSearchItems", () => ({ useAvailableSettingsSearchItems: () => [] }));
+vi.mock("./useAvailableSettingsSearchItems", () => ({
+  useAvailableSettingsSearchItems: () => [],
+  useHasSecretProvidersEnvironment: () => false,
+}));
 
 function renderNav(pathname: string) {
   return render(

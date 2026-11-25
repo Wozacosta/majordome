@@ -12,6 +12,12 @@ import {
 import { useThemeEditorStore } from "../components/settings/themeEditorStore";
 import { installCommandPaletteCommands } from "./commandPaletteCommands";
 
+// Majordome hides what these tests cover; they test T3 Code's coding UI.
+vi.mock(import("~/env"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  isMajordome: false,
+}));
+
 const keybindings = compileResolvedKeybindingsConfig([
   { key: "mod+k", command: "commandPalette.toggle" },
   { key: "mod+alt+shift+t", command: "themeEditor.toggle" },

@@ -817,7 +817,8 @@ describe("MessagesTimeline messages", () => {
       [Symbol.asyncDispose]: () => page.viewport(pageSize.width, pageSize.height),
     };
     const props = baseProps();
-    const entries = Array.from({ length: 6 }, (_, index) => [
+    // Majordome draws the minimap from 8 messages up, not T3 Code's 6.
+    const entries = Array.from({ length: 8 }, (_, index) => [
       message(`Question ${index}`, {}, `user-${index}`),
       message(`Answer ${index}`, { role: "assistant" }, `assistant-${index}`),
     ]).flat();
@@ -856,7 +857,7 @@ describe("MessagesTimeline messages", () => {
       [Symbol.asyncDispose]: () => page.viewport(pageSize.width, pageSize.height),
     };
     const props = baseProps();
-    const entries = Array.from({ length: 6 }, (_, index) => [
+    const entries = Array.from({ length: 8 }, (_, index) => [
       message(`Question ${index}`, {}, `user-${index}`),
       message(`Answer ${index}`, { role: "assistant" }, `assistant-${index}`),
     ]).flat();

@@ -1,6 +1,6 @@
 import type { KeybindingCommand, ResolvedKeybindingsConfig } from "@t3tools/contracts";
 import { useEffect, useState } from "react";
-import { expect, it } from "vite-plus/test";
+import { expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
 import { compileResolvedKeybindingsConfig } from "@t3tools/shared/keybindings";
@@ -9,6 +9,12 @@ import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
 import { render } from "../../../test/render";
 import type { ChatComposerHandle } from "./ChatComposer";
 import { useChatShortcuts } from "./useChatShortcuts";
+
+// Majordome hides what these tests cover; they test T3 Code's coding UI.
+vi.mock(import("~/env"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  isMajordome: false,
+}));
 
 const shortcutContext = {
   terminalFocus: false,
