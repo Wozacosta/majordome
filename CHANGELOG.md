@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- Checking a key or password twice in a row, after changing where it comes from, no longer lets
+  the first check's answer replace the second one's. T3 Code had fixed this on 21 November;
+  Majordome's own copy of that screen had missed it.
 
 ## 0.10.53
 
