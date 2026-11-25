@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.52
+
 **New**
 
 - **A chat you keep for weeks stays up to date with your notes.** A conversation used to keep the
