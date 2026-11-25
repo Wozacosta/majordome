@@ -213,7 +213,12 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   - Before an event leaves the server that recorded it, secrets are removed, Tier B content is
     replaced by a placeholder, and large tool output is summarized.
 - The app connects to several servers at once and lists all their threads together. New threads
-  start on the server marked primary.
+  start on the notes folder's home (2026-11-22): the always-on server (a connected server other
+  than the app's own that runs the folder's routines and whose provider is signed in), else the
+  app's own server. A phone only sees the always-on server, so conversations kept on the owner's
+  computer were invisible there. When the home is another server that cannot be reached, the app
+  refuses to start a thread rather than split a topic's history. Existing threads are not moved; a
+  topic's thread on a server that is not its home is listed under the topic.
 
 ## Credentials and documents
 
