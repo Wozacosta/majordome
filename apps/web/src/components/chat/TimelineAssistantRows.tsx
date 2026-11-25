@@ -6,7 +6,7 @@ import { T, useGT, useMessages } from "gt-react";
 import { use, useState } from "react";
 import { type ChatMessage } from "../../types";
 import ChatMarkdown from "../ChatMarkdown";
-import { GitForkIcon, ReplyIcon } from "lucide-react";
+import { MessageSquarePlusIcon, ReplyIcon } from "lucide-react";
 import { captureAssistantMessageOpening } from "~/lib/assistantTextSelection";
 import { responseContextRecord } from "~/lib/composerContextRecords";
 import { Button } from "../ui/button";
@@ -171,14 +171,14 @@ function AssistantForkButton({
                 () => setBusy(false),
               );
             }}
-            aria-label={gt("Fork from this response")}
+            aria-label={gt("Continue in a new chat from here")}
           />
         }
       >
-        <GitForkIcon className={cn("size-3", busy && "animate-pulse")} />
+        <MessageSquarePlusIcon className={busy ? "animate-pulse" : undefined} />
       </TooltipTrigger>
       <TooltipPopup side="top">
-        <T>Fork from this response</T>
+        <T>Continue in a new chat from here</T>
       </TooltipPopup>
     </Tooltip>
   );
@@ -305,7 +305,7 @@ function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemI
           />
         }
       >
-        <ReplyIcon className="size-3" />
+        <ReplyIcon />
       </TooltipTrigger>
       <TooltipPopup side="top">
         <T>Reply to this response</T>

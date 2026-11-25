@@ -15,6 +15,9 @@ The section for a version is also the text of its release on GitHub.
   was removed, and no usage data is sent, as before.
 - **"What this chat knows" is shorter.** The list of your other topics is folded into one line,
   "Other topics (10)". Click it to see where each one stands. Same in the phone app's chat details.
+- **Clearer buttons under each answer.** The three small buttons are a little larger, and the one
+  that looked like a programmer's branching symbol is now a speech bubble with a plus, named
+  "Continue in a new chat from here". Same change on the phone.
 
 **Try this**
 
@@ -24,6 +27,8 @@ The section for a version is also the text of its release on GitHub.
 - Settings, Advanced, "Passwords and keys" still opens.
 - Open a topic's chat details: the panel stops after the notes it starts with and one "Other
   topics" line.
+- Hover an answer and look at the buttons under it: copy, a bubble with a plus, a reply arrow.
+  Hover the bubble to read its name, then click it: a new chat opens that continues from there.
 
 ## 0.10.52
 

@@ -89,7 +89,7 @@ export interface TimelineRowSharedState {
     intent?: SideThreadOpenIntent,
   ) => void;
   workflowOpening: WorkflowOpening | null;
-  /** Absent hides "Fork from this response", as in the guest view. */
+  /** Absent hides "Continue in a new chat from here", as in the guest view. */
   onForkFromRun:
     | ((input: { readonly sourceThreadId: ThreadId; readonly runId: RunId }) => Promise<void>)
     | undefined;

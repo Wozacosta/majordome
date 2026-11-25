@@ -490,7 +490,7 @@ function AssistantForkButton(props: {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={gt("Fork from this response")}
+      accessibilityLabel={gt("Continue in a new chat from here")}
       disabled={busy}
       onPress={() => {
         const targetThreadId = ThreadId.make(uuidv4());
@@ -545,7 +545,7 @@ function AssistantForkButton(props: {
         <AppActivityIndicator size="small" />
       ) : (
         <SymbolView
-          name="arrow.triangle.branch"
+          name="plus.bubble"
           size={props.iconSize}
           tintColor={props.iconColor}
           type="monochrome"
