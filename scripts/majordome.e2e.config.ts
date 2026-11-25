@@ -113,14 +113,22 @@ const NOT_ON_MAJORDOME = {
     "overlapping-image-pastes-keep-order",
     "stopped-question-keeps-preparing-image",
   ],
+  // These pass on a Mac and time out on the runner (2026-11-25); why is not known yet.
+  "slow on the runner": [
+    "linked-thread-retry-reads-again",
+    "pull-request-search-keeps-whole-characters",
+    "short-window-file-suggestions-reach-last-file",
+  ],
   // Not Majordome's doing: its first attempt on a fresh app times out, here and on the runner.
   "a flaky first attempt": ["browser-tab-follows-page-title"],
   "one control each": [
+    "agent-browser-devtools-port-not-a-server",
     "cleanup-skips-dangling-log-symlink",
     "pairing-completion-keeps-reopened-dialog",
     "pi-catalog-gap-keeps-chosen-model",
     "replay-turn-streams",
     "restored-settings-directory-stays-live",
+    "webhook-log-keeps-whole-emoji",
   ],
 };
 
