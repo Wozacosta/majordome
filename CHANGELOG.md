@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.51
+
 **New**
 
 - **The levels keep up with new models without an update of the app.** Which model Quick,
