@@ -14,21 +14,23 @@ Not released yet.
   Code's privacy policy. Both now say "Majordome sends no usage data" and open
   [majord.me/privacy](https://majord.me/privacy). On the iPhone, Settings, About, Legal opens
   Majordome's page too (from the next iPhone build).
-
-**Try this**
-
-- Open Settings, About and press "View policy": it opens majord.me/privacy.
-
-## 0.10.46
-
-**Fixed**
-
 - **On the phone, a chat is as quiet as on the computer.** The "Worked for 6s" lines and the
   steps behind an answer are left out unless you choose otherwise in Settings, Appearance.
 - **A topic is closed, not "done".** "Mark as done" on a topic is now "Close this topic", closed
   topics sit under **Closed topics**, and "Reopen" brings one back, on the phone and the computer.
   On the phone, a topic's chat no longer offers "Mark as done" at all.
 - **Majordome's own steps show Majordome's mark,** not the T3 logo, on the phone and the computer.
+
+**Try this**
+
+- Open the menu of a topic (right-click on the computer, long press on the phone): it says
+  "Close this topic". Close one, find it under Closed topics, and reopen it.
+- Open Settings, About and press "View policy": it opens majord.me/privacy.
+
+## 0.10.46
+
+**Fixed**
+
 - **A paid server is always made.** If making one was cut short, the page said "Your server is
   on" and nothing finished it; it is now finished within the hour, and the page goes on making
   it. Someone who paid just as the last place went gets their server too.
