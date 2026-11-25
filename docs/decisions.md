@@ -376,3 +376,19 @@ takes over.
     The AWS shape, if the price needs it: the same image, one container and
     encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
     and wake for routines and when the owner opens the app, to keep the price low.
+11. **Later, from the owner's TestFlight notes (2026-11-24).** Four things asked for while using
+    the iPhone app, not designed yet and in no order:
+    - **A topic's side panel on the phone.** Key facts, "In short" and Files sit beside a topic's
+      chat on the computer; a topic on the phone shows only the conversation. The phone should
+      reach the same three.
+    - **What a topic can reach, and taking it away.** On the phone and the computer, a topic
+      shows which APIs, secrets and other access it has, and each can be removed there: "a
+      Bitwarden light". Today access is set for the whole assistant (Settings > Secrets and
+      Private documents), not per topic, so this needs a decision on scoping first.
+    - **What one topic knows of the others.** It should be clearer what a topic's chat knows
+      about other topics and when it looks something up in them, and there may need to be one
+      central topic for facts that concern all of them. Open: whether that is a new topic, or the
+      memory layers and `search_notes` made visible.
+    - **Choosing the model again.** The picker was taken out of the message box for a quieter
+      chat. Bring back a clear way to choose, shaped by the AI behind it: each provider's own
+      models and options, not one list for all.
