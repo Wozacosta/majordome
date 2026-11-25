@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.54
+
 **Fixed**
 
 - Checking a key or password twice in a row, after changing where it comes from, no longer lets
