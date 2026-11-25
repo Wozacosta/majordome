@@ -30,7 +30,11 @@ test(
 
     await expect(screen.getByText("What this chat knows")).toBeVisible();
     await expect(screen.getByText("Shared by every chat")).toBeVisible();
-    await expect(screen.getByText("Your topics")).toBeVisible();
+    // The topics are folded into one line until asked for.
+    await expect(screen.getByText("Your topics (2)")).toBeVisible();
+    await expect(screen.getByText(STANDING)).toBeHidden();
+    await app.screenshot("topics-folded");
+    await screen.getByText("Your topics (2)").tap();
     await expect(screen.getByText(STANDING)).toBeVisible();
     await expect(screen.getByRole("list", "Your topics").getByText("Garden")).toBeVisible();
     await app.screenshot("what-this-chat-knows");
