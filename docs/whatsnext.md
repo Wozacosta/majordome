@@ -459,6 +459,16 @@ plainly, make it checkable, and narrow it. In order of what each buys for its co
 6. **Deletion that can be checked.** What is deleted when, including Fly's disk copies, stated
    with dates in the account page.
 
+A different answer, raised by the owner on 2026-11-25: **the server belongs to the customer.**
+It is made in the customer's own hosting account, not Majordome's, so the operator has no way in
+at all. The customer opens an account with the host and pays it directly; Majordome is let in
+once to set the server up, and the customer then takes that permission back. The server updates
+itself. This is the only option here that needs no trust, and it is another product: what is
+sold is the setup and the software, not the hosting, and the customer has one more account and
+one more bill. It can sit beside the hosted one as the choice for those who will not take a
+promise. Not checked: whether Fly lets an app be handed from one organisation to another
+person's, and what a one-time permission on a Fly account can be limited to.
+
 Not checked: what other hosted products of this kind publish, and Fly's own access and logging.
 
 ## Phone
