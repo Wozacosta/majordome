@@ -1,10 +1,14 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import { EnvironmentId, ProviderInstanceId, ThreadId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
+import * as ServerConfig from "../../../config.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
 import * as ThreadManagement from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
@@ -15,27 +19,31 @@ import { SavedKeysToolkit } from "./tools.ts";
 
 const threadId = ThreadId.make("thread:runs");
 
+const layerAgent = Layer.mergeAll(
+  Layer.succeed(McpInvocationContext.McpInvocationContext, {
+    environmentId: EnvironmentId.make("environment:home"),
+    requestNamespace: "provider:runs",
+    thread: {
+      threadId,
+      providerSessionId: "provider:runs",
+      providerInstanceId: ProviderInstanceId.make("codex"),
+    },
+    client: undefined,
+    capabilities: new Set(["orchestration" as const]),
+    issuedAt: 0,
+  }),
+  Layer.mock(ThreadManagement.ThreadManagementService)({
+    getThreadShell: () => Effect.succeed(liveThreadShell(threadId)),
+  }),
+);
+
 it.effect(
   "tells the agent names and what each is for, never a value, and saves what it is given",
   () =>
     Effect.gen(function* () {
       const saved: Array<unknown> = [];
       const layerDependencies = Layer.mergeAll(
-        Layer.succeed(McpInvocationContext.McpInvocationContext, {
-          environmentId: EnvironmentId.make("environment:home"),
-          requestNamespace: "provider:runs",
-          thread: {
-            threadId,
-            providerSessionId: "provider:runs",
-            providerInstanceId: ProviderInstanceId.make("codex"),
-          },
-          client: undefined,
-          capabilities: new Set(["orchestration" as const]),
-          issuedAt: 0,
-        }),
-        Layer.mock(ThreadManagement.ThreadManagementService)({
-          getThreadShell: () => Effect.succeed(liveThreadShell(threadId)),
-        }),
+        layerAgent,
         Layer.mock(MajordomeSavedKeys.MajordomeSavedKeys)({
           list: () =>
             Effect.succeed({
@@ -99,3 +107,56 @@ it.effect(
       );
     }),
 );
+
+it.layer(NodeServices.layer)("with the server's own key file", (it) => {
+  it.effect(
+    "an agent saves a key the owner pasted, sees it listed, and reads it back from a file",
+    () =>
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const toolkit = yield* SavedKeysToolkit;
+        const result = <Name extends "list_saved_keys" | "use_saved_key" | "save_key">(
+          name: Name,
+          params: Parameters<typeof toolkit.handle<Name>>[1],
+        ) =>
+          toolkit.handle(name, params).pipe(
+            Stream.unwrap,
+            Stream.runCollect,
+            Effect.map((parts) => parts.at(-1)?.result),
+          );
+
+        expect(yield* result("list_saved_keys", {})).toEqual({ keys: [] });
+        expect(yield* result("use_saved_key", { name: "toto" })).toMatchObject({
+          status: "unknown_key",
+        });
+
+        expect(
+          yield* result("save_key", { name: "toto", note: "A test", value: "test1234" }),
+        ).toMatchObject({ status: "saved" });
+        const listed = yield* result("list_saved_keys", {});
+        expect(listed).toEqual({ keys: [{ name: "toto", note: "A test" }] });
+        expect(JSON.stringify(listed)).not.toContain("test1234");
+
+        const taken = yield* result("use_saved_key", { name: "toto" });
+        expect(taken).toMatchObject({ status: "ready" });
+        const file = (taken as { readonly file: string }).file;
+        expect(yield* fileSystem.readFileString(file)).toBe("test1234");
+        // The reply carries where the key is, never the key.
+        expect(JSON.stringify(taken)).not.toContain("test1234");
+      }).pipe(
+        Effect.provide(
+          McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(
+            Layer.provideMerge(layerAgent),
+            Layer.provideMerge(
+              MajordomeSavedKeys.layer.pipe(
+                Layer.provide(
+                  ServerConfig.layerTest(process.cwd(), { prefix: "majordome-saved-keys-tools-" }),
+                ),
+                Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+              ),
+            ),
+          ),
+        ),
+      ),
+  );
+});
