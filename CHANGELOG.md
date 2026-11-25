@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.50
+
 **New**
 
 - **Three levels of AI: Quick, Everyday, Powerful.** Majordome now asks for a level, not a model.
