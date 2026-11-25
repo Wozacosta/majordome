@@ -6,7 +6,12 @@ import * as FileSystem from "effect/FileSystem";
 
 import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import { writeMemoryPassState } from "./memoryPassState.ts";
-import { localIsoDate, readChatKnowledge, readVaultContext } from "./vaultContext.ts";
+import {
+  localIsoDate,
+  notesAreFromAnEarlierDay,
+  readChatKnowledge,
+  readVaultContext,
+} from "./vaultContext.ts";
 
 // Noon in the server's own time zone, so today and yesterday are unambiguous wherever tests run.
 const NOW = DateTime.toEpochMillis(
@@ -315,6 +320,18 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       assert.notInclude(scheduled, "<routines>");
       assert.notInclude(scheduled, "Replies:");
 
+      // A session picked up on a later day gets the notes again, said to replace the first ones.
+      const refreshed = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        refresh: true,
+        startedBy: { ...startedBy, scheduledTaskId: undefined },
+      });
+      assert.include(refreshed, "- Likes tea");
+      assert.include(refreshed, "They replace the notes loaded earlier in this conversation");
+      assert.notInclude(refreshed, "<routines>");
+      assert.notInclude(owned, "They replace the notes");
+
       // A vault with no notes to load still gets the guide.
       const empty = yield* makeVault({ ".majordome/config.json": "{}" });
       const guideOnly = yield* readVaultContext({
@@ -339,4 +356,9 @@ it("names days in the given time zone", () => {
   const lateEvening = DateTime.toEpochMillis(DateTime.makeUnsafe("2026-11-15T23:30:00Z"));
   assert.equal(localIsoDate(lateEvening, DateTime.zoneMakeOffset(0)), "2026-11-15");
   assert.equal(localIsoDate(lateEvening, DateTime.zoneMakeOffset(60 * 60 * 1000)), "2026-11-16");
+  const minutes = (count: number) => count * 60 * 1000;
+  const utc = DateTime.zoneMakeOffset(0);
+  assert.isFalse(notesAreFromAnEarlierDay(lateEvening, lateEvening + minutes(20), utc));
+  assert.isTrue(notesAreFromAnEarlierDay(lateEvening, lateEvening + minutes(40), utc));
+  assert.isFalse(notesAreFromAnEarlierDay(lateEvening + minutes(40), lateEvening, utc));
 });

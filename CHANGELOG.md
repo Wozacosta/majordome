@@ -5,7 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **A chat you keep for weeks stays up to date with your notes.** A conversation used to keep the
+  notes it was given when it began: your memory note, the daily notes, its topic's notes. Now
+  the first message you send it on a new day gives it all of them again, as they are that day,
+  along with where your other topics stand. A routine that runs every day in one chat gets the
+  same. Nothing to turn on, and it works with every AI account.
+
+**Try this**
+
+- Tomorrow, in a topic you have used for a while, ask "what is in my memory note about …" for
+  something you added since the chat began. It answers from today's note without going to look.
 
 ## 0.10.51
 

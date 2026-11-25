@@ -407,8 +407,15 @@ takes over.
       concerns several topics. A second shared place would have had to be loaded everywhere too,
       and would have competed with it. A chat's side panel, and the phone's sheet, show "What
       this chat knows": the notes it starts with and the topics it only knows the standing of.
-      It is read when the panel opens, so it shows what a conversation started now would get; a
-      long-running one was given its notes when its session began. Not done: a record of which
+      It is read when the panel opens, so it shows what a conversation started now would get. A
+      long-running one is given the same notes again with its first message of a later day
+      (2026-11-25): the server compares the local day of the thread's previous message with
+      today, so nothing is stored. By day and not on every change, because a chat writes to the
+      daily note itself and would be handed its own edits back each turn; not "when the chat is
+      reopened", because the server does not know a chat was opened, only that a message came.
+      The refresh says it replaces the earlier notes and leaves out the routines guide, which
+      does not change. Not refreshed: a session after its provider compacts it, which nothing
+      reports the same way across providers. Not done: a record of which
       topics a chat actually looked in. Providers report file reads in different shapes, so a
       list built from them would be wrong for some; the answer naming the topic is the record.
     - **Choosing the model again.** Done 2026-11-25, as three levels, not a model list (the

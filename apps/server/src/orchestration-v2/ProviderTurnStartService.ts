@@ -58,7 +58,7 @@ import {
   historicalMessage,
   latestNativeContextUsage,
 } from "@t3tools/provider-core/server/handoffBudget";
-import { readVaultContext } from "../majordome/vaultContext.ts";
+import { notesAreFromAnEarlierDay, readVaultContext } from "../majordome/vaultContext.ts";
 import { deliverContextHandoffs, withInlineContext } from "./ContextHandoffDelivery.ts";
 import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
@@ -1792,13 +1792,29 @@ export const layer: Layer.Layer<
         (legacyInputRunIds.size > 0 &&
           sameNativeThread &&
           !acceptedAttempts.some((source) => source.nativeThreadId !== undefined));
-      // Majordome: a new native session starts with the vault's live memory, for every provider.
+      // Majordome: a new native session starts with the vault's live memory, for every provider,
+      // and a session picked up on a later day is given it again.
+      const nowMillis = DateTime.toEpochMillis(now);
+      const lastMessageAt = projection.runs.reduce<number | undefined>(
+        (latest, previous) =>
+          previous.ordinal < run.ordinal
+            ? Math.max(latest ?? 0, DateTime.toEpochMillis(previous.requestedAt))
+            : latest,
+        undefined,
+      );
+      const refreshVaultContext =
+        nativeThreadHasTurns &&
+        lastMessageAt !== undefined &&
+        notesAreFromAnEarlierDay(lastMessageAt, nowMillis);
       const vaultContext =
-        nativeThreadHasTurns || goalCommand || resolvedRuntimePolicy.cwd == null
+        (nativeThreadHasTurns && !refreshVaultContext) ||
+        goalCommand ||
+        resolvedRuntimePolicy.cwd == null
           ? ""
           : yield* readVaultContext({
               vaultRoot: resolvedRuntimePolicy.cwd,
-              nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+              nowMillis,
+              refresh: refreshVaultContext,
               topicOf: { threadId: projection.thread.id, stateDir: serverConfig.stateDir },
               startedBy: {
                 projectId: projection.thread.projectId,
