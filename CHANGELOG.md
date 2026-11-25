@@ -5,7 +5,21 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Two weeks of T3 Code's own improvements.** Majordome is built on T3 Code, and this brings in
+  everything it changed up to 25 November: about 400 fixes, faster rendering of long answers,
+  dictation on the Mac with Apple Speech, search that finds the exact words of a query in double
+  quotes, a sidebar you can hide and bring back by dragging its edge, an AI account that shows
+  what it is doing while it starts, and a copy button on file previews. Nothing of Majordome's own
+  was removed, and no usage data is sent, as before.
+
+**Try this**
+
+- Open a topic you use every day, send a message, and look for anything that reads or sits
+  differently from yesterday. This update touches nearly every screen.
+- In the search box, type two words in double quotes: only chats with those words together show.
+- Settings, Advanced, "Passwords and keys" still opens.
 
 ## 0.10.52
 
