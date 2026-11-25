@@ -74,7 +74,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   become a topic in one action. Each topic shows an icon (picked from its title, changeable) and the
   gist of its latest message.
 - **Words.** T3's "settle" is **Done** in Majordome ("Mark as done", the Done section, "Bring
-  back"); **Archive** keeps its name and means out of sight, in Settings.
+  back"); **Archive** keeps its name and means out of sight, in Settings. A topic is never
+  "done": it is **closed** ("Close this topic", Closed topics, "Reopen").
 - **First topics are suggested** once from the vault's folders; the owner accepts or skips them.
 - **No projects in the interface.** Majordome shows only vaults; with one vault there are no
   project names or badges anywhere and new chats and topics go into it. Several vaults get a small

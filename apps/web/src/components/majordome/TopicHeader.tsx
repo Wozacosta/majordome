@@ -102,7 +102,7 @@ function TopicTitle({
       </div>
       {finished ? (
         <Button size="xs" variant="outline" onClick={() => void actions.setFinished(topic, false)}>
-          Bring back
+          Reopen
         </Button>
       ) : null}
       <Menu>

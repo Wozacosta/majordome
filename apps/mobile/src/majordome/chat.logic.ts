@@ -149,7 +149,7 @@ export function topicMenuActions<T extends { readonly id?: string }>(
   return [
     { id: "topic-side-chat", title: `New chat about ${title}`, image: "square.and.pencil" },
     ...kept(["pin", "unpin", "mark-unread"]),
-    { id: "topic-finish", title: "Mark as done", image: "checkmark" },
+    { id: "topic-finish", title: "Close this topic", image: "archivebox" },
   ];
 }
 

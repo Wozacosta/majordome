@@ -13,7 +13,7 @@ export function useConversationMenu(thread: EnvironmentThreadShell): AppBarMenu 
   const actions = useThreadListActions();
   // Until the computer says what it supports, marking as done can only fail.
   const configLoaded = useAtomValue(environmentServerConfigsAtom).has(thread.environmentId);
-  // A topic stays; it is its list entry that is marked as done, never its conversation.
+  // A topic is closed from the list; its conversation is never "done".
   const { vault, topics } = useVault(useAtomValue(todayStoreAtom));
   const isTopic =
     vault?.environmentId === thread.environmentId &&
