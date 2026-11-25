@@ -16,14 +16,21 @@ export function seedDraftModelSelection(draftId: DraftId, projectRef: ScopedProj
   if (hasExplicitComposerModelSelection(store.getComposerDraft(draftId))) return;
   store.applyStickyState(draftId);
   const project = readProject(projectRef);
-  const settings = readEnvironment(projectRef.environmentId)?.serverConfig?.settings;
+  const serverConfig = readEnvironment(projectRef.environmentId)?.serverConfig;
+  const settings = serverConfig?.settings;
   const providers = readEnvironmentProviders(projectRef.environmentId) ?? [];
   const projectSettings = settings
     ? resolveProjectSettings(settings, projectRef.projectId, project ?? undefined).settings
     : null;
   const defaultSelection = projectSettings
     ? (projectSettings.defaultModelSelection ??
-      (isMajordome ? resolveModelLevels({ providers, settings: projectSettings }).everyday : null))
+      (isMajordome
+        ? resolveModelLevels({
+            providers,
+            settings: projectSettings,
+            table: serverConfig?.modelLevelTable,
+          }).everyday
+        : null))
     : (project?.defaultModelSelection ?? null);
   const resolution = resolveNewThreadModelSelection({
     defaultSelection:

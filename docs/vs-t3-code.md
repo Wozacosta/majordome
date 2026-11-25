@@ -93,7 +93,8 @@ The landing page and the README show a short version of this list.
 - **Your own sign-in in the server's browser,** copied one site at a time, by you only.
 - **Three levels of AI instead of a model list:** Quick, Everyday and Powerful, each mapped to the
   right model of the AI account behind it (Haiku, Sonnet and Opus with Claude). The message box
-  shows the level and changes it; Settings says which model each level uses.
+  shows the level and changes it; Settings says which model each level uses. The mapping is
+  refreshed hourly from Majordome's repository, so it follows new models without an app update.
 - **A lighter start to every conversation:** the assistant is not handed Claude's publishing
   tools or the owner's personal Claude Code plugins, and a routine's cache is kept five minutes.
 

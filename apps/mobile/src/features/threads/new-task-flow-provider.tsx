@@ -452,6 +452,7 @@ export function NewTaskFlowProvider(
         ? resolveModelLevels({
             providers: selectedEnvironmentServerConfig.providers,
             settings: projectSettings.settings,
+            table: selectedEnvironmentServerConfig.modelLevelTable,
           }).everyday
         : null),
     selectedProject?.id ?? null,

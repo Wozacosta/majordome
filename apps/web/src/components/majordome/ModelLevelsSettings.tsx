@@ -11,7 +11,10 @@ import {
   type ModelLevel,
 } from "@t3tools/shared/majordomeModelLevels";
 
+import { useAtomValue } from "@effect/atom-react";
+
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
+import { environmentServerConfigsAtom } from "../../state/server";
 import { useEnvironmentScope } from "../../state/session";
 import { SettingsGroup } from "../settings/SettingsGroup";
 import { SettingsRow, SettingsSection } from "../settings/settingsLayout";
@@ -34,7 +37,10 @@ export function ModelLevelsSettings(props: {
   const settings = useEnvironmentSettings(props.environmentId);
   const updateSettings = useUpdateEnvironmentSettings(props.environmentId);
   const canWrite = useEnvironmentScope(props.environmentId, AuthSettingsWriteScope);
-  const levels = resolveModelLevels({ providers: props.providers, settings });
+  const table = useAtomValue(environmentServerConfigsAtom).get(
+    props.environmentId,
+  )?.modelLevelTable;
+  const levels = resolveModelLevels({ providers: props.providers, settings, table });
   // No AI account is ready, so there is no model to offer yet.
   if (levels.everyday === null) return null;
 

@@ -4,7 +4,7 @@ import {
   type ModelLevelAccount,
   type ModelLevelSettings,
 } from "@t3tools/shared/majordomeModelLevels";
-import type { ModelSelection } from "@t3tools/contracts";
+import type { ModelLevelTable, ModelSelection } from "@t3tools/contracts";
 import { View } from "react-native";
 
 import { AppText as Text } from "../components/ui/AppText";
@@ -18,6 +18,8 @@ import type { ModelOption } from "../lib/modelOptions";
 export function ModelLevelRows(props: {
   readonly account: ModelLevelAccount | null;
   readonly settings: ModelLevelSettings;
+  /** The server's table of level defaults; older servers send none. */
+  readonly table: ModelLevelTable | undefined;
   readonly options: ReadonlyArray<ModelOption>;
   /** The model the sheet shows as chosen, which may not be applied yet. */
   readonly selected: ModelSelection | null;
@@ -25,18 +27,21 @@ export function ModelLevelRows(props: {
 }) {
   const account = props.account;
   if (account === null) return null;
-  const rows = chatLevelChoices({ account, settings: props.settings, model: null }).choices.flatMap(
-    (choice) => {
-      const option = props.options.find(
-        (candidate) =>
-          candidate.selection.instanceId === account.instanceId &&
-          candidate.selection.model === choice.model &&
-          candidate.isUnavailable !== true &&
-          candidate.isHidden !== true,
-      );
-      return option === undefined ? [] : [{ ...choice, option }];
-    },
-  );
+  const rows = chatLevelChoices({
+    account,
+    settings: props.settings,
+    model: null,
+    table: props.table,
+  }).choices.flatMap((choice) => {
+    const option = props.options.find(
+      (candidate) =>
+        candidate.selection.instanceId === account.instanceId &&
+        candidate.selection.model === choice.model &&
+        candidate.isUnavailable !== true &&
+        candidate.isHidden !== true,
+    );
+    return option === undefined ? [] : [{ ...choice, option }];
+  });
   if (rows.length < 2) return null;
   return (
     <View>

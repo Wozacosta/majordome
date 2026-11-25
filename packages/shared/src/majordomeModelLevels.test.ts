@@ -1,12 +1,16 @@
 import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
+import hostedTable from "./majordome-model-levels.json" with { type: "json" };
 import {
+  BUNDLED_MODEL_LEVEL_TABLE,
   chatLevelChoices,
   defaultLevelModel,
   levelOfModel,
   modelLevelsForProvider,
+  newerModelLevelTable,
   resolveModelLevels,
+  unplacedModels,
   type ModelLevelSettings,
 } from "./majordomeModelLevels.ts";
 
@@ -210,4 +214,36 @@ it("offers a chat the levels of its AI account, each model once", () => {
   expect(single.choices.map((choice) => choice.level)).toEqual(["everyday"]);
   expect(single.current).toBeNull();
   expect(single.currentName).toBe("grok-other");
+});
+
+it("ships the same table as the copy servers download", () => {
+  expect(hostedTable).toEqual(BUNDLED_MODEL_LEVEL_TABLE);
+});
+
+it("uses a downloaded table only when it is newer, and for the levels it gives", () => {
+  const renamed = {
+    ...BUNDLED_MODEL_LEVEL_TABLE,
+    updatedAt: "2099-01-01",
+    drivers: {
+      ...BUNDLED_MODEL_LEVEL_TABLE.drivers,
+      claudeAgent: { quick: ["haiku"], everyday: ["opus"], powerful: ["fable"] },
+    },
+  };
+  expect(newerModelLevelTable(BUNDLED_MODEL_LEVEL_TABLE, renamed)).toBe(renamed);
+  expect(
+    newerModelLevelTable(BUNDLED_MODEL_LEVEL_TABLE, { ...renamed, updatedAt: "2020-01-01" }),
+  ).toBe(BUNDLED_MODEL_LEVEL_TABLE);
+  expect(
+    resolveModelLevels({ providers: [claude], settings: untouched, table: renamed }).powerful,
+  ).toEqual({ instanceId: claude.instanceId, model: "claude-fable-5-2" });
+});
+
+it("reports a model the table places at no level, for the periodic check", () => {
+  expect(
+    unplacedModels(BUNDLED_MODEL_LEVEL_TABLE, "codex", [
+      "gpt-6.2-sol",
+      "gpt-daybreak-blue-latest",
+      "gpt-7-nova",
+    ]),
+  ).toEqual(["gpt-7-nova"]);
 });

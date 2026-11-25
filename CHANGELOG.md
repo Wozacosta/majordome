@@ -7,6 +7,19 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **The levels keep up with new models without an update of the app.** Which model Quick,
+  Everyday and Powerful mean for each AI account is now a small list in Majordome's repository.
+  Your computer and your server read it once an hour, so when a maker renames a model or adds a
+  new one, the levels follow within the hour. A model you chose yourself in Settings is never
+  changed. Offline, or with "check for updates" of AI accounts turned off, the list that came
+  with the app is used.
+
+**Try this**
+
+- Nothing to see: Settings, AI accounts, "Levels of AI" shows the same models as before.
+
 ## 0.10.50
 
 **New**

@@ -5,6 +5,7 @@
 
 import {
   DEFAULT_TEXT_GENERATION_MODEL_BY_PROVIDER,
+  type ModelLevelTable,
   type ModelSelection,
   type ServerProvider,
   type ServerProviderModel,
@@ -47,42 +48,66 @@ export type ModelLevelSettings = Pick<ServerSettings, (typeof MODEL_LEVEL_SETTIN
 /** What a level is worked out from: one AI account and the models it lists. */
 export type ModelLevelAccount = Pick<ServerProvider, "driver" | "instanceId" | "models">;
 
-type LevelFamilies = Record<ModelLevel, ReadonlyArray<string>>;
-
 /**
- * A level's model families per kind of AI account, best first. A family is a piece of the model's
- * id, so a newer version of the same family is picked up without a change here. Each row follows
- * what the account's maker recommends (sources in docs/decisions.md, "Choosing the model again").
+ * The table this build ships with, kept word for word in `majordome-model-levels.json`, the copy
+ * servers download. A family is a piece of the model's id, so a newer version of the same family
+ * is picked up without a change. Each row follows what the account's maker recommends (sources in
+ * docs/decisions.md, "Choosing the model again").
  */
-const DRIVER_LEVEL_FAMILIES: Readonly<Record<string, LevelFamilies>> = {
-  claudeAgent: { quick: ["haiku"], everyday: ["sonnet"], powerful: ["opus"] },
-  // OpenAI: Sol "for everyday coding, writing", Astra "for demanding work", Luna "most efficient".
-  codex: { quick: ["luna", "terra", "mini"], everyday: ["sol", "terra"], powerful: ["astra"] },
-  // Google: Hydrogen for "fast, everyday" work on every plan, Carbon for the hardest. Argon and
-  // 3.8 Flash leave on 2026-11-30, so each is followed by what replaces it.
-  antigravity: {
-    quick: ["flash", "hydrogen"],
-    everyday: ["argon", "hydrogen", "neon"],
-    powerful: ["carbon", "neon"],
+export const BUNDLED_MODEL_LEVEL_TABLE: ModelLevelTable = {
+  updatedAt: "2026-11-25",
+  drivers: {
+    claudeAgent: { quick: ["haiku"], everyday: ["sonnet"], powerful: ["opus"] },
+    // OpenAI: Sol "for everyday coding, writing", Astra "for demanding work", Luna "most efficient".
+    codex: { quick: ["luna", "terra", "mini"], everyday: ["sol", "terra"], powerful: ["astra"] },
+    // Google: Hydrogen for "fast, everyday" work on every plan, Carbon for the hardest. Argon and
+    // 3.8 Flash leave on 2026-11-30, so each is followed by what replaces it.
+    antigravity: {
+      quick: ["flash", "hydrogen"],
+      everyday: ["argon", "hydrogen", "neon"],
+      powerful: ["carbon", "neon"],
+    },
+    // Cursor: Composer is "fast, cost-efficient", Auto is "good for everyday tasks", and its
+    // flagship "for the hardest, longest-running tasks" is a Grok 4 model.
+    cursor: { quick: ["composer"], everyday: ["auto"], powerful: ["grok-4", "opus"] },
+    // Kiro prices Auto as its baseline; Haiku costs a fraction of it and Opus about twice.
+    kiro: { quick: ["haiku"], everyday: ["auto"], powerful: ["opus"] },
+    // Grok Build's own default is right for everyday and hard work; only a fast variant is lighter.
+    grok: { quick: ["fast"], everyday: [], powerful: [] },
   },
-  // Cursor: Composer is "fast, cost-efficient", Auto is "good for everyday tasks", and its
-  // flagship "for the hardest, longest-running tasks" is a Grok 4 model.
-  cursor: { quick: ["composer"], everyday: ["auto"], powerful: ["grok-4", "opus"] },
-  // Kiro prices Auto as its baseline; Haiku costs a fraction of it and Opus about twice.
-  kiro: { quick: ["haiku"], everyday: ["auto"], powerful: ["opus"] },
-  // Grok Build's own default is right for everyday and hard work; only a fast variant is lighter.
-  grok: { quick: ["fast"], everyday: [], powerful: [] },
+  // Accounts that resell other makers' models (OpenCode, Pi, fx, Cursor, Kiro) list these. One
+  // with none of them, such as Muse with its one model, uses its own default throughout.
+  anyDriver: {
+    quick: ["haiku", "luna", "flash", "mini"],
+    everyday: ["sonnet", "sol"],
+    powerful: ["opus", "astra"],
+  },
+  // Fable costs several times Opus; Daybreak and the OSS and Pro models are special-purpose.
+  ignored: ["fable", "daybreak", "gpt-oss", "gemini-pro", "gemini-3.1-pro", "antigravity-default"],
 };
 
-/**
- * Accounts that resell other makers' models (OpenCode, Pi, fx, Cursor, Kiro) list these families.
- * An account with none of them, such as Muse with its one model, uses its own default throughout.
- */
-const ANY_DRIVER_LEVEL_FAMILIES: LevelFamilies = {
-  quick: ["haiku", "luna", "flash", "mini"],
-  everyday: ["sonnet", "sol"],
-  powerful: ["opus", "astra"],
-};
+/** The newer of two tables by date, so a stale download never replaces what the build ships. */
+export function newerModelLevelTable(
+  current: ModelLevelTable,
+  candidate: ModelLevelTable,
+): ModelLevelTable {
+  return candidate.updatedAt > current.updatedAt ? candidate : current;
+}
+
+/** Model ids the table places at no level and does not ignore: what the periodic check reports. */
+export function unplacedModels(
+  table: ModelLevelTable,
+  driver: string,
+  slugs: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  const row = table.drivers[driver];
+  const known = [
+    ...(row === undefined ? [] : MODEL_LEVELS.flatMap((level) => row[level])),
+    ...MODEL_LEVELS.flatMap((level) => table.anyDriver[level]),
+    ...table.ignored,
+  ];
+  return slugs.filter((slug) => !known.some((family) => slug.toLowerCase().includes(family)));
+}
 
 export function isProviderReady(provider: ServerProvider): boolean {
   return (
@@ -118,15 +143,16 @@ function familyModel(
 }
 
 /** The model a level means on this AI account when its owner chose none; null if it lists no model. */
-export function defaultLevelModel(provider: ModelLevelAccount, level: ModelLevel): string | null {
+export function defaultLevelModel(
+  provider: ModelLevelAccount,
+  level: ModelLevel,
+  table: ModelLevelTable = BUNDLED_MODEL_LEVEL_TABLE,
+): string | null {
   const models =
     level === "quick"
       ? provider.models.filter((model) => model.supportsTextGeneration !== false)
       : provider.models;
-  const families = [
-    ...(DRIVER_LEVEL_FAMILIES[provider.driver]?.[level] ?? []),
-    ...ANY_DRIVER_LEVEL_FAMILIES[level],
-  ];
+  const families = [...(table.drivers[provider.driver]?.[level] ?? []), ...table.anyDriver[level]];
   for (const family of families) {
     const model = familyModel(models, family);
     if (model !== undefined) return model.slug;
@@ -144,12 +170,13 @@ export function defaultLevelModel(provider: ModelLevelAccount, level: ModelLevel
 export function modelLevelsForProvider(
   provider: ModelLevelAccount,
   settings: ModelLevelSettings,
+  table?: ModelLevelTable,
 ): Record<ModelLevel, string | null> {
   const model = (level: ModelLevel) => {
     const chosen = settings[MODEL_LEVEL_SETTING[level]];
     return chosen?.instanceId === provider.instanceId
       ? chosen.model
-      : defaultLevelModel(provider, level);
+      : defaultLevelModel(provider, level, table);
   };
   return { quick: model("quick"), everyday: model("everyday"), powerful: model("powerful") };
 }
@@ -161,6 +188,8 @@ export function modelLevelsForProvider(
 export function resolveModelLevels(input: {
   readonly providers: ReadonlyArray<ServerProvider>;
   readonly settings: ModelLevelSettings;
+  /** The server's current table; the one this build ships with when it sent none. */
+  readonly table?: ModelLevelTable | undefined;
 }): Record<ModelLevel, ModelSelection | null> {
   const ready = input.providers.filter(isProviderReady);
   const readyInstance = (selection: ModelSelection | null) =>
@@ -174,7 +203,7 @@ export function resolveModelLevels(input: {
     if (chosen !== null && (readyInstance(chosen) !== undefined || home === undefined)) {
       return chosen;
     }
-    const model = home === undefined ? null : defaultLevelModel(home, level);
+    const model = home === undefined ? null : defaultLevelModel(home, level, input.table);
     return home === undefined || model === null ? null : { instanceId: home.instanceId, model };
   };
   return { quick: resolve("quick"), everyday: resolve("everyday"), powerful: resolve("powerful") };
@@ -205,12 +234,13 @@ export function chatLevelChoices(input: {
   readonly account: ModelLevelAccount;
   readonly settings: ModelLevelSettings;
   readonly model: string | null;
+  readonly table?: ModelLevelTable | undefined;
 }): {
   readonly choices: ReadonlyArray<ChatLevelChoice>;
   readonly current: ModelLevel | null;
   readonly currentName: string | null;
 } {
-  const levels = modelLevelsForProvider(input.account, input.settings);
+  const levels = modelLevelsForProvider(input.account, input.settings, input.table);
   const nameOf = (model: string) =>
     input.account.models.find((candidate) => candidate.slug === model)?.name ?? model;
   const choices = MODEL_LEVELS.flatMap((level) => {

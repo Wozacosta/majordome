@@ -1103,6 +1103,7 @@ function ThreadSettingsLevelsItem() {
     <ModelLevelRows
       account={config.providers.find((provider) => provider.instanceId === instanceId) ?? null}
       settings={config.settings}
+      table={config.modelLevelTable}
       options={session.providerGroups.flatMap((group) => group.models)}
       selected={session.displayedModelSelection}
       onPress={session.pressModel}

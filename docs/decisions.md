@@ -443,3 +443,11 @@ takes over.
         official list was found; `grok models` prints the account's.
       - Muse has one model family, so all three levels are its default. OpenCode, Pi and fx
         resell other makers' models and are read by the same family names.
+        Keeping it current (2026-11-25): the table is data, `majordome-model-levels.json` beside
+        the code that ships the same copy. A server downloads it from the repository's `main`
+        once an hour and keeps it only when it is well formed and its date is newer; it sends its
+        table to the apps with the rest of its settings, so the computer, the phone and the
+        server agree. A change to the table therefore needs a push, not a release. A weekly
+        GitHub job compares the table with T3 Code's list of current models and opens an issue
+        when a current model is at no level or a level has no current model; it changes nothing
+        itself. Cursor, Kiro and Grok Build are not in that list and are checked by hand.

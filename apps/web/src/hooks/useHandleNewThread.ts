@@ -181,6 +181,7 @@ export function createNewThreadHandler(router: AnyRouter) {
         ? resolveModelLevels({
             providers: environmentServerConfigs.get(projectRef.environmentId)?.providers ?? [],
             settings: projectSettings.settings,
+            table: environmentServerConfigs.get(projectRef.environmentId)?.modelLevelTable,
           }).everyday
         : null);
     const fallbackResolution = resolveNewThreadModelSelection({

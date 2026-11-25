@@ -1,0 +1,53 @@
+name: Majordome model levels
+
+# Majordome only. Once a week, compares the table of level defaults (Quick, Everyday, Powerful)
+# with the models the makers currently offer, and opens an issue when they have moved apart.
+# Nothing is changed automatically: which model a level means is a person's decision.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check the table of level defaults
+    if: github.repository == 'Wozacosta/majordome'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Setup Vite+
+        uses: ./.github/actions/setup-ci-deps
+
+      - name: Compare with the models on offer
+        id: compare
+        working-directory: scripts
+        run: |
+          set +e
+          node check-model-levels.ts > "$RUNNER_TEMP/report.md"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/report.md"
+
+      - name: Open or update the issue
+        if: steps.compare.outputs.status == '3'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: The table of level defaults needs a look
+        run: |
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/report.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file "$RUNNER_TEMP/report.md"
+          fi
+
+      - name: Fail when the check itself broke
+        if: steps.compare.outputs.status != '0' && steps.compare.outputs.status != '3'
+        run: exit 1

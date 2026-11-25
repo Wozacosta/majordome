@@ -4,9 +4,11 @@ import {
   chatLevelChoices,
   type ModelLevelAccount,
 } from "@t3tools/shared/majordomeModelLevels";
+import { useAtomValue } from "@effect/atom-react";
 import { GaugeIcon } from "lucide-react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
+import { environmentServerConfigsAtom } from "../../state/server";
 import { ComposerSelectControl, type ComposerControlSize } from "../chat/ComposerControl";
 import { useComposerMenuProps } from "../chat/composerEventScope";
 import { Select, SelectGroup, SelectGroupLabel, SelectItem, SelectPopup } from "../ui/select";
@@ -24,10 +26,14 @@ export function ModelLevelPicker(props: {
 }) {
   const settings = useEnvironmentSettings(props.environmentId);
   const composerFloatingLayerProps = useComposerMenuProps();
+  const table = useAtomValue(environmentServerConfigsAtom).get(
+    props.environmentId,
+  )?.modelLevelTable;
   const { choices, current, currentName } = chatLevelChoices({
     account: props.account,
     settings,
     model: props.model,
+    table,
   });
   // One model on this account and the chat is on it: nothing to choose.
   if (choices.length === 0 || (choices.length === 1 && current !== null)) return null;

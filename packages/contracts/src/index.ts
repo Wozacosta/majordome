@@ -67,6 +67,7 @@ export * from "./previewCapture.ts";
 export * from "./usage.ts";
 export * from "./scheduledTask.ts";
 export * from "./majordome.ts";
+export * from "./majordomeModelLevels.ts";
 export * from "./majordomePhone.ts";
 export * from "./majordomeAccount.ts";
 export * from "./majordomeBackup.ts";

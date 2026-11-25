@@ -8,6 +8,7 @@ import * as Effect from "effect/Effect";
 import type * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import { currentModelLevelTable } from "./modelLevelTable.ts";
 
 export { isProviderReady } from "@t3tools/shared/majordomeModelLevels";
 
@@ -23,6 +24,7 @@ export const chooseVaultModel = Effect.fn("majordome.chooseVaultModel")(
       providers: yield* providers.getProviders,
       settings: resolveProjectSettings(yield* settings.getSettings, project.projectId, project)
         .settings,
+      table: currentModelLevelTable(),
     }).everyday;
   },
   Effect.orElseSucceed((): ModelSelection | null => null),
