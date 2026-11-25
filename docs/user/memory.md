@@ -5,6 +5,18 @@ today's and yesterday's daily notes. Anything older it has to go and look for. S
 once, such as who your accountant is or what you decided about the gym, is only there two days later
 if it reached your memory note.
 
+A topic's conversation also starts with that topic's own notes. Of your other topics it is told
+only their names and where each one stands (the "Where things stand" lines at the top of its log),
+not their notes. When your question touches another topic, it looks inside that topic and says in
+its answer which one it looked in.
+
+So there is one place for a fact every conversation should know, whatever the topic: your memory
+note. Say "remember this for everything" and it goes there.
+
+**What this chat knows**, in a chat's side panel, lists exactly this: the notes the chat starts
+with, and the topics it only knows the standing of. A row opens its note. On the iPhone it is under
+the **i** at the top right of a chat.
+
 ## Tidy my memory
 
 "Tidy my memory" is a routine that does this for you. Every night at 3:30, by the clock of the

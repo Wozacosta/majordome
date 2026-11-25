@@ -68,6 +68,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeSearchNotes,
       WS_METHODS.majordomeGetNotesIndexStatus,
       WS_METHODS.majordomeListTopics,
+      WS_METHODS.majordomeGetChatKnowledge,
       WS_METHODS.majordomeReadTopicConversation,
       WS_METHODS.majordomeListTodos,
       WS_METHODS.majordomeListSkills,

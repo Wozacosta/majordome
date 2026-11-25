@@ -19,6 +19,17 @@ Not released yet.
   Majordome keeps no copy and reads it from the source each time, so a key you change there is
   the one used. It refuses to save a place it cannot read.
 
+- **A chat now knows about your other topics, and says when it looks in one.** Every
+  conversation is told the names of your other topics and where each one stands. When your
+  question touches another topic, it reads that topic's notes and names the topic in its answer.
+  It is also told that a fact for all your topics belongs in your memory note, the one note every
+  chat starts with.
+- **What this chat knows.** A chat's side panel has a new section listing the notes the chat
+  starts with (the topic's own notes, your memory note, today's and yesterday's notes) and the
+  topics it only knows the standing of. A row opens its note. On the iPhone it is under the "i"
+  of a chat. A conversation already under way was given its notes when it
+  began, so the first change shows in chats you start after the update.
+
 **Fixed**
 
 - The list of keys now updates right after you add or remove a source.
@@ -27,6 +38,9 @@ Not released yet.
 
 - In Settings, Passwords and keys, add a key, add an "Encrypted file" source, then add a second
   key that points at the first with `secret://` and its name: it shows "Kept in" and the source.
+- Open a topic and look at "What this chat knows" at the bottom of the side panel. Then start a
+  new chat and ask something only another topic's notes can answer, such as a date or an amount
+  from it: the answer should name the topic it looked in.
 - With a Bitwarden Secrets Manager account: follow "Bitwarden Secrets Manager" in the Secrets
   guide, add a key kept there, and ask your assistant to use it.
 

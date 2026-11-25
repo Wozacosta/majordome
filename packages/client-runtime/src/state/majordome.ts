@@ -441,6 +441,13 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 30_000,
       refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
     }),
+    /** Read again on every mount: it says what a chat started now would be given. */
+    chatKnowledge: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:chat-knowledge",
+      tag: WS_METHODS.majordomeGetChatKnowledge,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
+    }),
     createTopic: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:create-topic",
       tag: WS_METHODS.majordomeCreateTopic,

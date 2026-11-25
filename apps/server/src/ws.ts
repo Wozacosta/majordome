@@ -2559,6 +2559,10 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.list(input)),
           ),
+        [WS_METHODS.majordomeGetChatKnowledge]: (input) =>
+          Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
+            Effect.andThen(majordomeTopics.chatKnowledge(input)),
+          ),
         [WS_METHODS.majordomeCreateTopic]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.create(input)),

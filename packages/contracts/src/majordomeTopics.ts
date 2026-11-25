@@ -262,3 +262,42 @@ export class MajordomeTopicsError extends Schema.TaggedError<MajordomeTopicsErro
     cause: Schema.optional(Schema.Defect()),
   },
 ) {}
+
+export const MajordomeChatKnowledgeInput = Schema.Struct({ threadId: ThreadId });
+export type MajordomeChatKnowledgeInput = typeof MajordomeChatKnowledgeInput.Type;
+
+/**
+ * What a chat is given of the notes folder before its first message, by name and not by content.
+ * Read fresh, so it is what a conversation started now would get.
+ */
+export const MajordomeChatKnowledgeResult = Schema.Struct({
+  /** False when the chat does not work in a notes folder; the rest is then empty. */
+  isVault: Schema.Boolean,
+  /** The one note every chat starts with; null when it is missing or empty. */
+  memory: Schema.NullOr(
+    Schema.Struct({
+      path: Schema.String,
+      /** True when the note is longer than chats load, so its end is left out. */
+      cut: Schema.Boolean,
+    }),
+  ),
+  /** The daily notes that exist, today's first. */
+  dailyNotes: Schema.Array(
+    Schema.Struct({ day: Schema.Literals(["today", "yesterday"]), path: Schema.String }),
+  ),
+  /** The topic the chat belongs to, whose folder it starts with. */
+  topic: Schema.NullOr(
+    Schema.Struct({ id: Schema.String, title: Schema.String, folder: Schema.String }),
+  ),
+  /** The open topics it is told about without their notes, in the owner's order. */
+  otherTopics: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      title: Schema.String,
+      folder: Schema.String,
+      /** One line on where it stands; null when its log does not say. */
+      standing: Schema.NullOr(Schema.String),
+    }),
+  ),
+});
+export type MajordomeChatKnowledgeResult = typeof MajordomeChatKnowledgeResult.Type;

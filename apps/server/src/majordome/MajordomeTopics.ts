@@ -10,6 +10,8 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   EventId,
   type MajordomeAdoptTopicConversationInput,
+  type MajordomeChatKnowledgeInput,
+  type MajordomeChatKnowledgeResult,
   type MajordomeCreateTopicInput,
   type MajordomeMovedMessage,
   type MajordomeTopicConversation,
@@ -71,6 +73,7 @@ import {
 import { folderOfReady, READY_TOPICS, topicOfReady } from "./readyMade.ts";
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
 import { normalizeTopicFolder, readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import { NOT_A_VAULT_KNOWLEDGE, readChatKnowledge } from "./vaultContext.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
 import {
@@ -91,6 +94,13 @@ export class MajordomeTopics extends Context.Service<
     readonly list: (
       input: MajordomeTopicsInput,
     ) => Effect.Effect<MajordomeTopicsResult, MajordomeTopicsError>;
+    /**
+     * What the chat is given of its notes folder when it starts. Never fails: a chat that is gone
+     * or works outside a notes folder knows nothing of one.
+     */
+    readonly chatKnowledge: (
+      input: MajordomeChatKnowledgeInput,
+    ) => Effect.Effect<MajordomeChatKnowledgeResult>;
     readonly create: (
       input: MajordomeCreateTopicInput,
     ) => Effect.Effect<MajordomeTopic, MajordomeTopicsError>;
@@ -461,6 +471,29 @@ const make = Effect.gen(function* () {
       };
     },
     Effect.mapError(toTopicsError("Could not read your topics.")),
+  );
+
+  const chatKnowledge: MajordomeTopics["Service"]["chatKnowledge"] = Effect.fn(
+    "MajordomeTopics.chatKnowledge",
+  )(
+    function* (input) {
+      const thread = yield* liveThread(input.threadId);
+      // The same folder the session itself is started in.
+      const vaultRoot =
+        thread === null
+          ? undefined
+          : (thread.worktreePath ??
+            Option.getOrUndefined(yield* projects.get(thread.projectId))?.workspaceRoot);
+      if (vaultRoot === undefined) return NOT_A_VAULT_KNOWLEDGE;
+      return yield* provideFs(
+        readChatKnowledge({
+          vaultRoot,
+          nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+          topicOf: { threadId: input.threadId, stateDir: config.stateDir },
+        }),
+      );
+    },
+    Effect.orElseSucceed((): MajordomeChatKnowledgeResult => NOT_A_VAULT_KNOWLEDGE),
   );
 
   const create: MajordomeTopics["Service"]["create"] = Effect.fn("MajordomeTopics.create")(
@@ -901,6 +934,7 @@ const make = Effect.gen(function* () {
 
   return MajordomeTopics.of({
     list,
+    chatKnowledge,
     create,
     suggestFolder,
     update,

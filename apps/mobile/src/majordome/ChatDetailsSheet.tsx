@@ -18,6 +18,14 @@ import {
   type ProjectId,
   type ThreadId,
 } from "@t3tools/contracts";
+import {
+  CHAT_KNOWLEDGE_OTHERS_LINE,
+  CHAT_KNOWLEDGE_OTHERS_TITLE,
+  CHAT_KNOWLEDGE_TITLE,
+  CHAT_KNOWLEDGE_TOPICS_TITLE,
+  type ChatKnowledgeRow,
+  chatKnowledgeView,
+} from "@t3tools/shared/majordomeChatKnowledge";
 import { keyFactGroups, type KeyFactRow, localDay } from "@t3tools/shared/majordomeKeyFacts";
 import {
   isNoteFileName,
@@ -111,6 +119,7 @@ export function ChatDetailsSheet({ route }: StaticScreenProps<ChatTarget>) {
           {projectId !== null && topic ? (
             <TopicFiles environmentId={environmentId} projectId={projectId} topicId={topic.id} />
           ) : null}
+          <ChatKnowledge environmentId={environmentId} threadId={threadId} />
         </ScrollView>
       </ScreenContent>
     </View>
@@ -136,6 +145,7 @@ function Row(props: {
   readonly icon: AppSymbolName;
   readonly label: string;
   readonly detail: string | null;
+  readonly detailLines?: number;
   readonly accessibilityLabel: string;
   readonly busy?: boolean;
   readonly onPress?: (() => void) | undefined;
@@ -143,7 +153,7 @@ function Row(props: {
 }) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={props.onPress === undefined && !props.onLongPress ? "text" : "button"}
       accessibilityLabel={props.accessibilityLabel}
       accessibilityState={{ disabled: props.onPress === undefined, busy: Boolean(props.busy) }}
       disabled={props.onPress === undefined || props.busy}
@@ -162,7 +172,7 @@ function Row(props: {
           {props.label}
         </Text>
         {props.detail === null ? null : (
-          <Text className="text-xs text-foreground-muted" numberOfLines={1}>
+          <Text className="text-xs text-foreground-muted" numberOfLines={props.detailLines ?? 1}>
             {props.detail}
           </Text>
         )}
@@ -260,6 +270,51 @@ function KeyFacts({ environmentId, threadId }: ChatTarget) {
             ))}
           </Section>
         ))
+      )}
+    </>
+  );
+}
+
+const KNOWLEDGE_ICONS: Record<ChatKnowledgeRow["kind"], AppSymbolName> = {
+  memory: "brain",
+  daily: "calendar",
+  topic: "folder",
+  "other-topic": "bubble.left",
+};
+
+/** What the chat starts with and the topics it only knows the standing of; nothing opens here. */
+function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
+  const result = useAtomValue(
+    majordomeEnvironment.chatKnowledge({ environmentId, input: { threadId } }),
+  );
+  // A server from before this was added answers with a failure, and shows no section.
+  const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
+  if (view === null) return null;
+  const row = (item: ChatKnowledgeRow) => (
+    <Row
+      key={item.key}
+      icon={KNOWLEDGE_ICONS[item.kind]}
+      label={item.label}
+      detail={item.detail}
+      detailLines={2}
+      accessibilityLabel={item.detail === null ? item.label : `${item.label}. ${item.detail}`}
+    />
+  );
+  return (
+    <>
+      <Section title={CHAT_KNOWLEDGE_TITLE}>{view.starts.map(row)}</Section>
+      {view.others.length === 0 ? null : (
+        <Section
+          title={
+            view.starts[0]?.kind === "topic"
+              ? CHAT_KNOWLEDGE_OTHERS_TITLE
+              : CHAT_KNOWLEDGE_TOPICS_TITLE
+          }
+        >
+          <Muted>{CHAT_KNOWLEDGE_OTHERS_LINE}</Muted>
+          {view.others.map(row)}
+          {view.more === 0 ? null : <Muted>{`and ${view.more} more`}</Muted>}
+        </Section>
       )}
     </>
   );

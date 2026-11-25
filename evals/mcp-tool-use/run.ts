@@ -69,6 +69,7 @@ import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/priv
 import { SavedKeysToolkit } from "../../apps/server/src/mcp/toolkits/savedKeys/tools.ts";
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
 import { routinesGuide } from "../../apps/server/src/majordome/routinesGuide.ts";
+import { otherTopicsSection } from "../../apps/server/src/majordome/vaultContext.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
 import { ProjectToolkit } from "../../apps/server/src/mcp/toolkits/project/tools.ts";
 import {
@@ -345,6 +346,23 @@ export const McpToolUseCase = Schema.Struct({
      * with this local time (`2026-10-24T10:00:00`, read as Europe/Lisbon) as its "now".
      */
     routinesGuideAt: Schema.optional(Schema.String),
+    /**
+     * A Majordome notes-folder conversation: adds the list of the owner's topics the vault context
+     * carries. `inTopic` when the conversation is itself a topic, so these are the other ones.
+     */
+    otherTopics: Schema.optional(
+      Schema.Struct({
+        inTopic: Schema.Boolean,
+        memoryPath: Schema.String,
+        topics: Schema.Array(
+          Schema.Struct({
+            title: Schema.String,
+            folder: Schema.String,
+            standing: Schema.NullOr(Schema.String),
+          }),
+        ),
+      }),
+    ),
     priorTurns: Schema.optional(
       Schema.Array(
         Schema.Struct({
@@ -1130,7 +1148,14 @@ export const buildMessages = (sample: Sample) => {
     if (last?.role !== role) messages.push({ role, content: blocks });
     else messages[messages.length - 1] = { role, content: [...last.content, ...blocks] };
   };
-  const { role, context, delegateRole, priorTurns = [], routinesGuideAt } = testCase.setup;
+  const {
+    role,
+    context,
+    delegateRole,
+    priorTurns = [],
+    routinesGuideAt,
+    otherTopics,
+  } = testCase.setup;
   const sideChat = testCase.setup.sideChat;
   if (testCase.prompt === "" && (role !== "top" || sideChat !== undefined)) {
     throw new Error(
@@ -1150,6 +1175,12 @@ export const buildMessages = (sample: Sample) => {
       ? "You are a subagent started by the parent agent's Agent tool. Your final message goes to the parent agent, not to the user."
       : undefined,
     context,
+    otherTopics === undefined
+      ? undefined
+      : otherTopicsSection({
+          ...otherTopics,
+          topics: otherTopics.topics.map((topic) => ({ ...topic, id: topic.folder })),
+        }),
     routinesGuideAt === undefined
       ? undefined
       : routinesGuide(

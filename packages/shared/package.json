@@ -19,6 +19,10 @@
       "types": "./src/majordomeSavedKeys.ts",
       "import": "./src/majordomeSavedKeys.ts"
     },
+    "./majordomeChatKnowledge": {
+      "types": "./src/majordomeChatKnowledge.ts",
+      "import": "./src/majordomeChatKnowledge.ts"
+    },
     "./majordomeKeyFacts": {
       "types": "./src/majordomeKeyFacts.ts",
       "import": "./src/majordomeKeyFacts.ts"

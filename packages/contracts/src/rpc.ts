@@ -227,6 +227,8 @@ import {
   MajordomeTopicRefInput,
   MajordomeTopicsError,
   MajordomeTopicsInput,
+  MajordomeChatKnowledgeInput,
+  MajordomeChatKnowledgeResult,
   MajordomeTopicsResult,
   MajordomeUpdateTopicInput,
 } from "./majordomeTopics.ts";
@@ -888,6 +890,7 @@ export const WS_METHODS = {
   majordomeConnectGoogleDriveWait: "majordome.connectGoogleDriveWait",
   majordomeConnectGoogleDriveCancel: "majordome.connectGoogleDriveCancel",
   majordomeListTopics: "majordome.listTopics",
+  majordomeGetChatKnowledge: "majordome.getChatKnowledge",
   majordomeCreateTopic: "majordome.createTopic",
   majordomeSuggestTopicFolder: "majordome.suggestTopicFolder",
   majordomeUpdateTopic: "majordome.updateTopic",
@@ -2763,6 +2766,12 @@ const WsMajordomeAnswerApprovalRpc = Rpc.make(WS_METHODS.majordomeAnswerApproval
   error: Schema.Union([MajordomeApprovalError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeGetChatKnowledgeRpc = Rpc.make(WS_METHODS.majordomeGetChatKnowledge, {
+  payload: MajordomeChatKnowledgeInput,
+  success: MajordomeChatKnowledgeResult,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
   payload: MajordomeTopicsInput,
   success: MajordomeTopicsResult,
@@ -3411,6 +3420,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeConnectGoogleDriveWaitRpc,
   WsMajordomeConnectGoogleDriveCancelRpc,
   WsMajordomeListTopicsRpc,
+  WsMajordomeGetChatKnowledgeRpc,
   WsMajordomeCreateTopicRpc,
   WsMajordomeSuggestTopicFolderRpc,
   WsMajordomeUpdateTopicRpc,

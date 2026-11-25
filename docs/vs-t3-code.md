@@ -47,6 +47,9 @@ The landing page and the README show a short version of this list.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
   conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
   facts and a topic's files. [Key facts](./user/key-facts.md)
+- **What a chat knows, shown:** every conversation is told where your other topics stand and looks
+  inside one when your question touches it, saying which. The side panel lists the notes a chat
+  starts with and the topics it only knows the standing of. [Memory](./user/memory.md)
 - **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
   with when each was last used, and tools so it knows which it has and uses one without the key
   appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source

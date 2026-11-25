@@ -25,6 +25,7 @@ import { useState, type ComponentProps } from "react";
 import { ThreadDetailsCard } from "./ThreadDetailsCard";
 import { OpenInPicker } from "./OpenInPicker";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
+import { ChatKnowledgeSection } from "../majordome/ChatKnowledgeSection";
 import { KeyFactsSection } from "../majordome/KeyFactsSection";
 import { TopicPanelSections } from "../majordome/TopicPanelSections";
 import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
@@ -302,6 +303,13 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
 
               {isMajordome && !props.draftId ? (
                 <TopicPanelSections environmentId={props.environmentId} threadId={props.threadId} />
+              ) : null}
+
+              {isMajordome && !props.draftId ? (
+                <ChatKnowledgeSection
+                  environmentId={props.environmentId}
+                  threadId={props.threadId}
+                />
               ) : null}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}

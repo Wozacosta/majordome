@@ -32,6 +32,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - Memory layers:
   - Always loaded: `CLAUDE.md` and `memory.md` (size-capped; when full, the agent merges entries).
   - Loaded when recent: today's and yesterday's daily notes.
+  - Loaded by name only: the other open topics, each with the "Where things stand" lines of its
+    log (2026-11-25; see "What one topic knows of the others" under Milestones).
   - Searched: everything else, through a SQLite full-text index the server rebuilds. Not in git.
   - Nightly dreaming: a routine moves anything worth keeping into `memory.md` or project notes.
 - Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in
@@ -397,10 +399,18 @@ takes over.
       (the owner dropped it): Settings, Passwords and keys lists the keys saved for the assistant
       on a server, on the phone and the computer, and each can be removed there. See "Saved keys"
       under Credentials and documents.
-    - **What one topic knows of the others.** It should be clearer what a topic's chat knows
-      about other topics and when it looks something up in them, and there may need to be one
-      central topic for facts that concern all of them. Open: whether that is a new topic, or the
-      memory layers and `search_notes` made visible.
+    - **What one topic knows of the others.** Done 2026-11-25. Every conversation is given the
+      other open topics by name, folder and where each stands (up to 40, one line each), not
+      their notes, and is told to look inside one when the question touches it and to name that
+      topic in its answer. No central topic was added: `memory.md` already is the one note every
+      conversation starts with, so the prompt and the guide name it as the place for a fact that
+      concerns several topics. A second shared place would have had to be loaded everywhere too,
+      and would have competed with it. A chat's side panel, and the phone's sheet, show "What
+      this chat knows": the notes it starts with and the topics it only knows the standing of.
+      It is read when the panel opens, so it shows what a conversation started now would get; a
+      long-running one was given its notes when its session began. Not done: a record of which
+      topics a chat actually looked in. Providers report file reads in different shapes, so a
+      list built from them would be wrong for some; the answer naming the topic is the record.
     - **Choosing the model again.** The picker was taken out of the message box for a quieter
       chat. Bring back a clear way to choose, shaped by the AI behind it: each provider's own
       models and options, not one list for all.

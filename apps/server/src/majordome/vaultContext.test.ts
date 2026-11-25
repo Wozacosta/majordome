@@ -6,7 +6,7 @@ import * as FileSystem from "effect/FileSystem";
 
 import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import { writeMemoryPassState } from "./memoryPassState.ts";
-import { localIsoDate, readVaultContext } from "./vaultContext.ts";
+import { localIsoDate, readChatKnowledge, readVaultContext } from "./vaultContext.ts";
 
 // Noon in the server's own time zone, so today and yesterday are unambiguous wherever tests run.
 const NOW = DateTime.toEpochMillis(
@@ -197,7 +197,100 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
         nowMillis: NOW,
         topicOf: { threadId: "thread-other", stateDir },
       });
-      assert.equal(elsewhere, "");
+      assert.notInclude(elsewhere, "<topic title=");
+      assert.notInclude(elsewhere, "- Ran 5k");
+    }),
+  );
+
+  it.effect("tells every chat where the other open topics stand, without their notes", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const outside = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-outside-" });
+      yield* fs.writeFileString(
+        `${outside}/log.md`,
+        "## Where things stand\nThe safe code is 9191\n",
+      );
+      const root = yield* makeVault({
+        ".majordome/config.json": "{}",
+        ".majordome/topics.json": JSON.stringify({
+          topics: [
+            { id: "fitness", title: "Fitness", folder: "personal/fitness" },
+            { id: "accounting", title: "Accounting", folder: "personal/accounting" },
+            { id: "garden", title: "Garden", folder: "projects/garden" },
+            { id: "move", title: "Move", folder: "projects/move", finishedAt: "2026-10-01" },
+            { id: "linked", title: "Linked", folder: "linked" },
+          ],
+        }),
+        "memory.md": "- Likes tea",
+        "personal/fitness/log.md": "- Ran 5k",
+        "personal/accounting/log.md":
+          "## Where things stand\nVAT return is due 15 December.\nWaiting for the bank export.\n\n## 2026-11-10\nPaid the accountant 480.\n",
+        "projects/garden/plan.md": "Tomatoes along the south wall.",
+        "projects/move/log.md": "## Where things stand\nMoved in.\n",
+      });
+      yield* fs.symlink(outside, `${root}/linked`);
+      const stateDir = yield* makeVault({
+        "majordome/topics.json": JSON.stringify({
+          projects: { "vault-project": { threads: { fitness: "thread-fitness" } } },
+        }),
+      });
+      const threadOf = (threadId: string) => ({ threadId, stateDir });
+
+      const inTopic = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        topicOf: threadOf("thread-fitness"),
+      });
+      assert.include(inTopic, "The user's other topics:");
+      assert.include(
+        inTopic,
+        "- Accounting (folder personal/accounting): VAT return is due 15 December. Waiting for the bank export.",
+      );
+      assert.include(inTopic, "- Garden (folder projects/garden)\n");
+      assert.include(inTopic, "belongs in memory.md");
+      assert.notInclude(inTopic, "- Fitness (folder");
+      assert.notInclude(inTopic, "Paid the accountant");
+      assert.notInclude(inTopic, "- Move (folder");
+      assert.notInclude(inTopic, "safe code");
+
+      const elsewhere = yield* readVaultContext({
+        vaultRoot: root,
+        nowMillis: NOW,
+        topicOf: threadOf("thread-other"),
+      });
+      assert.include(elsewhere, "The user's topics:");
+      assert.include(elsewhere, "- Fitness (folder personal/fitness)\n");
+
+      assert.deepStrictEqual(
+        yield* readChatKnowledge({
+          vaultRoot: root,
+          nowMillis: NOW,
+          topicOf: threadOf("thread-fitness"),
+        }),
+        {
+          isVault: true,
+          memory: { path: "memory.md", cut: false },
+          dailyNotes: [],
+          topic: { id: "fitness", title: "Fitness", folder: "personal/fitness" },
+          otherTopics: [
+            {
+              id: "accounting",
+              title: "Accounting",
+              folder: "personal/accounting",
+              standing: "VAT return is due 15 December. Waiting for the bank export.",
+            },
+            { id: "garden", title: "Garden", folder: "projects/garden", standing: null },
+            { id: "linked", title: "Linked", folder: "linked", standing: null },
+          ],
+        },
+      );
+      assert.isFalse(
+        (yield* readChatKnowledge({
+          vaultRoot: outside,
+          nowMillis: NOW,
+          topicOf: threadOf("thread-fitness"),
+        })).isVault,
+      );
     }),
   );
 
