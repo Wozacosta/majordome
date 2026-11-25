@@ -13,6 +13,8 @@ The section for a version is also the text of its release on GitHub.
   quotes, a sidebar you can hide and bring back by dragging its edge, an AI account that shows
   what it is doing while it starts, and a copy button on file previews. Nothing of Majordome's own
   was removed, and no usage data is sent, as before.
+- **"What this chat knows" is shorter.** The list of your other topics is folded into one line,
+  "Other topics (10)". Click it to see where each one stands. Same in the phone app's chat details.
 
 **Try this**
 
@@ -20,6 +22,8 @@ The section for a version is also the text of its release on GitHub.
   differently from yesterday. This update touches nearly every screen.
 - In the search box, type two words in double quotes: only chats with those words together show.
 - Settings, Advanced, "Passwords and keys" still opens.
+- Open a topic's chat details: the panel stops after the notes it starts with and one "Other
+  topics" line.
 
 ## 0.10.52
 

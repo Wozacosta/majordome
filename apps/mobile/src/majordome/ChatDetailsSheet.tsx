@@ -289,6 +289,7 @@ function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
   );
   // A server from before this was added answers with a failure, and shows no section.
   const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
+  const [othersOpen, setOthersOpen] = useState(false);
   if (view === null) return null;
   const row = (item: ChatKnowledgeRow) => (
     <Row
@@ -300,20 +301,27 @@ function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
       accessibilityLabel={item.detail === null ? item.label : `${item.label}. ${item.detail}`}
     />
   );
+  const othersTitle =
+    view.starts[0]?.kind === "topic" ? CHAT_KNOWLEDGE_OTHERS_TITLE : CHAT_KNOWLEDGE_TOPICS_TITLE;
   return (
     <>
       <Section title={CHAT_KNOWLEDGE_TITLE}>{view.starts.map(row)}</Section>
       {view.others.length === 0 ? null : (
-        <Section
-          title={
-            view.starts[0]?.kind === "topic"
-              ? CHAT_KNOWLEDGE_OTHERS_TITLE
-              : CHAT_KNOWLEDGE_TOPICS_TITLE
-          }
-        >
-          <Muted>{CHAT_KNOWLEDGE_OTHERS_LINE}</Muted>
-          {view.others.map(row)}
-          {view.more === 0 ? null : <Muted>{`and ${view.more} more`}</Muted>}
+        <Section title={othersTitle}>
+          <Row
+            icon="bubble.left"
+            label={`${view.others.length + view.more} topics`}
+            detail={othersOpen ? "Tap to hide" : "Tap to show where each one stands"}
+            accessibilityLabel={`${othersTitle}, ${othersOpen ? "shown" : "hidden"}`}
+            onPress={() => setOthersOpen((open) => !open)}
+          />
+          {othersOpen ? (
+            <>
+              <Muted>{CHAT_KNOWLEDGE_OTHERS_LINE}</Muted>
+              {view.others.map(row)}
+              {view.more === 0 ? null : <Muted>{`and ${view.more} more`}</Muted>}
+            </>
+          ) : null}
         </Section>
       )}
     </>

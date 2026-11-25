@@ -11,7 +11,16 @@ import {
 } from "@t3tools/shared/majordomeChatKnowledge";
 import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
-import { BrainIcon, CalendarIcon, FolderIcon, HashIcon, type LucideIcon } from "lucide-react";
+import {
+  BrainIcon,
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  HashIcon,
+  type LucideIcon,
+} from "lucide-react";
+import { useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { useQuietThreadShell } from "../../state/entities";
@@ -39,7 +48,7 @@ const ICONS: Record<ChatKnowledgeRow["kind"], LucideIcon> = {
 
 /**
  * What the chat was given of the notes before the first message, and which topics it only knows
- * the standing of. A row with a note opens it in Notes.
+ * the standing of, folded until asked for. A row with a note opens it in Notes.
  */
 export function ChatKnowledgeSection({
   environmentId,
@@ -52,6 +61,7 @@ export function ChatKnowledgeSection({
     majordomeEnvironment.chatKnowledge({ environmentId, input: { threadId } }),
   );
   const projectId = useQuietThreadShell(scopeThreadRef(environmentId, threadId))?.projectId;
+  const [othersOpen, setOthersOpen] = useState(false);
   const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
   if (view === null || projectId === undefined) return null;
   const row = (item: ChatKnowledgeRow) => {
@@ -91,6 +101,7 @@ export function ChatKnowledgeSection({
   };
   const othersTitle =
     view.starts[0]?.kind === "topic" ? CHAT_KNOWLEDGE_OTHERS_TITLE : CHAT_KNOWLEDGE_TOPICS_TITLE;
+  const OthersChevron = othersOpen ? ChevronDownIcon : ChevronRightIcon;
   return (
     <ThreadDetailsSection
       headingId="thread-details-chat-knowledge-heading"
@@ -103,18 +114,34 @@ export function ChatKnowledgeSection({
         </ul>
         {view.others.length === 0 ? null : (
           <>
-            <h4 className="px-2.5 pt-2 text-2xs font-medium text-muted-foreground select-none">
-              {othersTitle}
-            </h4>
-            <p className="px-2.5 pt-0.5 pb-1 text-xs text-muted-foreground">
-              {CHAT_KNOWLEDGE_OTHERS_LINE}
-            </p>
-            <ul className="m-0 flex list-none flex-col p-0" aria-label={othersTitle}>
-              {view.others.map(row)}
-            </ul>
-            {view.more === 0 ? null : (
-              <p className="px-2.5 pt-1 text-xs text-muted-foreground">and {view.more} more</p>
-            )}
+            <ThreadDetailsControl
+              size="xs"
+              variant="ghost"
+              part="row"
+              panel
+              tone="muted"
+              aria-expanded={othersOpen}
+              aria-controls="thread-details-chat-knowledge-others"
+              onClick={() => setOthersOpen((open) => !open)}
+            >
+              <OthersChevron className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-left">
+                {othersTitle} ({view.others.length + view.more})
+              </span>
+            </ThreadDetailsControl>
+            {othersOpen ? (
+              <div id="thread-details-chat-knowledge-others" className="flex flex-col">
+                <p className="px-2.5 pt-0.5 pb-1 text-xs text-muted-foreground">
+                  {CHAT_KNOWLEDGE_OTHERS_LINE}
+                </p>
+                <ul className="m-0 flex list-none flex-col p-0" aria-label={othersTitle}>
+                  {view.others.map(row)}
+                </ul>
+                {view.more === 0 ? null : (
+                  <p className="px-2.5 pt-1 text-xs text-muted-foreground">and {view.more} more</p>
+                )}
+              </div>
+            ) : null}
           </>
         )}
       </div>
