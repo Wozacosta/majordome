@@ -19,7 +19,7 @@ import { findThreadTopic, readTopicThreadsState, topicThreadsStatePath } from ".
 import { routinesGuide } from "./routinesGuide.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import { topicStanding } from "./topicPreview.ts";
-import { readTopicContext, readVaultTopics } from "./vaultTopics.ts";
+import { readTopicContext, readVaultTopics, vaultTopicsChangedAt } from "./vaultTopics.ts";
 
 const DAILY_NOTE_CHAR_LIMIT = 4_000;
 /** A pass starts seconds after the schedule prepared its list; an older list is another night's. */
@@ -210,6 +210,33 @@ export function otherTopicsSection(input: {
     "</other_topics>",
   ].join("\n");
 }
+
+/**
+ * The other topics again, for a session that was given them before `sinceMillis` and whose list
+ * was added to, renamed or finished since. Empty when the list is as the session knows it.
+ */
+export const readTopicsChange = Effect.fn("majordome.readTopicsChange")(function* (input: {
+  readonly vaultRoot: string;
+  readonly nowMillis: number;
+  readonly sinceMillis: number;
+  readonly topicOf: TopicOf;
+}) {
+  const changedAt = yield* vaultTopicsChangedAt(input.vaultRoot);
+  if (Option.isNone(changedAt) || changedAt.value <= input.sinceMillis) return "";
+  const layers = yield* readLayers(input);
+  if (Option.isNone(layers)) return "";
+  const { memoryPath, topic, otherTopics } = layers.value;
+  const inTopic = topic !== undefined;
+  return [
+    "<vault_context>",
+    `The user's list of topics changed since the last message here. This replaces the list of ${inTopic ? "other topics" : "topics"} loaded earlier in this conversation: a topic that is not in it any more is finished or was removed.`,
+    "",
+    otherTopics.length === 0
+      ? `The user has no ${inTopic ? "other topic" : "topic"} in progress now.`
+      : otherTopicsSection({ topics: otherTopics, inTopic, memoryPath }),
+    "</vault_context>",
+  ].join("\n");
+});
 
 /** Empty when `vaultRoot` is not a vault or has nothing to load. */
 export const readVaultContext = Effect.fn("majordome.readVaultContext")(function* (input: {

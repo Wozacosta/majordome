@@ -1565,6 +1565,104 @@ describe("orchestration v2 provider switching", () => {
     }),
   );
 
+  it.live("tells a session about a topic made after its last message, once", () =>
+    Effect.gen(function* () {
+      const cwd = yield* checkpointWorkspace("topics-changed-same-day");
+      const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+      const layerRegistry = ProviderAdapterRegistry.layerFromAdapters([
+        makeTestAdapter({
+          instanceId: CLAUDE_MODEL_SELECTION.instanceId,
+          driver: CLAUDE_DRIVER,
+          capabilities: ClaudeProviderCapabilitiesV2,
+          modelSelection: CLAUDE_MODEL_SELECTION,
+          responseByRunOrdinal: {},
+          capturedTurns,
+        }),
+      ]);
+      yield* Effect.gen(function* () {
+        const orchestrator = yield* Orchestrator.OrchestratorV2;
+        const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+        const fileSystem = yield* FileSystem.FileSystem;
+        yield* fileSystem.makeDirectory(`${cwd}/.majordome`);
+        yield* fileSystem.writeFileString(`${cwd}/memory.md`, "- Lives in Lyon");
+        const send = (ordinal: number) =>
+          orchestrator
+            .dispatch({
+              type: "message.dispatch",
+              commandId: CommandId.make(`topics-changed:${ordinal}`),
+              threadId,
+              messageId: MessageId.make(`topics-changed:${ordinal}`),
+              createdBy: "user",
+              creationSource: "web",
+              text: `Message ${ordinal}`,
+              attachments: [],
+              modelSelection: CLAUDE_MODEL_SELECTION,
+              dispatchMode: { type: "start_immediately" },
+            })
+            .pipe(
+              Effect.andThen(
+                orchestrator.streamStoredEvents.pipe(
+                  Stream.filter(
+                    ({ event }) =>
+                      event.type === "run.updated" &&
+                      event.payload.ordinal === ordinal &&
+                      (event.payload.status === "completed" || event.payload.status === "failed"),
+                  ),
+                  Stream.runHead,
+                ),
+              ),
+              Effect.andThen(worker.drain()),
+            );
+        yield* orchestrator.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("topics-changed:create"),
+          threadId,
+          projectId,
+          createdBy: "user",
+          creationSource: "web",
+          title: "Topics changed",
+          modelSelection: CLAUDE_MODEL_SELECTION,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+        });
+        yield* send(1);
+        yield* send(2);
+        yield* fileSystem.writeFileString(
+          `${cwd}/.majordome/topics.json`,
+          JSON.stringify({ topics: [{ id: "lisbon", title: "Lisbon", folder: "lisbon" }] }),
+        );
+        yield* send(3);
+        yield* send(4);
+        const turns = yield* Ref.get(capturedTurns);
+        assert.equal(turns[1]?.text, "Message 2");
+        assert.include(turns[2]?.text, "list of topics changed since the last message here");
+        assert.include(turns[2]?.text, "- Lisbon (folder lisbon)");
+        assert.notInclude(turns[2]?.text, "Lives in Lyon");
+        assert.isTrue(turns[2]?.text.endsWith("Message 3"));
+        assert.equal(turns[3]?.text, "Message 4");
+      }).pipe(
+        Effect.provide(
+          Layer.merge(
+            ProviderReplayHarness.layerWithRegistry(
+              {
+                name: "topics-changed-same-day",
+                runtimePolicyOverride: {
+                  cwd,
+                  approvalPolicy: "never",
+                  sandboxPolicy: { type: "readOnly" },
+                },
+              },
+              layerRegistry,
+            ),
+            NodeServices.layer,
+          ),
+        ),
+      );
+    }),
+  );
+
   const importedNativeSessionScenario = (
     scenario: "first-send" | "after-failed-switch" | "resume-fails",
   ) =>

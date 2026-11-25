@@ -9,6 +9,7 @@ import { writeMemoryPassState } from "./memoryPassState.ts";
 import {
   localIsoDate,
   notesAreFromAnEarlierDay,
+  readTopicsChange,
   readChatKnowledge,
   readVaultContext,
 } from "./vaultContext.ts";
@@ -341,6 +342,56 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       });
       assert.isTrue(guideOnly.startsWith("<routines>"));
       assert.include(guideOnly, "<app>");
+    }),
+  );
+
+  it.effect("gives the topics again only when their list changed since the last message", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const topicsJson = (titles: ReadonlyArray<string>) =>
+        JSON.stringify({
+          topics: titles.map((title) => ({
+            id: title.toLowerCase(),
+            title,
+            folder: title.toLowerCase(),
+          })),
+        });
+      const root = yield* makeVault({
+        ".majordome/config.json": "{}",
+        "memory.md": "- Likes tea",
+        ".majordome/topics.json": topicsJson(["Garden"]),
+      });
+      const topicsPath = `${root}/.majordome/topics.json`;
+      const writtenAt = DateTime.toDate(DateTime.makeUnsafe(NOW));
+      yield* fs.utimes(topicsPath, writtenAt, writtenAt);
+      const change = (sinceMillis: number) =>
+        readTopicsChange({
+          vaultRoot: root,
+          nowMillis: NOW + 60_000,
+          sinceMillis,
+          topicOf: { threadId: "thread-other", stateDir: root },
+        });
+      assert.equal(yield* change(NOW + 1_000), "");
+
+      yield* fs.writeFileString(topicsPath, topicsJson(["Garden", "Lisbon"]));
+      yield* fs.utimes(topicsPath, writtenAt, writtenAt);
+      const changed = yield* change(NOW - 1_000);
+      assert.include(changed, "changed since the last message here");
+      assert.include(changed, "- Lisbon (folder lisbon)");
+      assert.notInclude(changed, "Likes tea");
+
+      yield* fs.writeFileString(topicsPath, topicsJson([]));
+      yield* fs.utimes(topicsPath, writtenAt, writtenAt);
+      assert.include(yield* change(NOW - 1_000), "The user has no topic in progress now.");
+      assert.equal(
+        yield* readTopicsChange({
+          vaultRoot: `${root}/missing`,
+          nowMillis: NOW,
+          sinceMillis: 0,
+          topicOf: { threadId: "thread-other", stateDir: root },
+        }),
+        "",
+      );
     }),
   );
 

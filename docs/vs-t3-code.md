@@ -50,7 +50,8 @@ The landing page and the README show a short version of this list.
 - **What a chat knows, shown:** every conversation is told where your other topics stand and looks
   inside one when your question touches it, saying which. The side panel lists the notes a chat
   starts with and the topics it only knows the standing of. A conversation kept for days is given
-  them again with its first message of each new day. [Memory](./user/memory.md)
+  them again with its first message of each new day, and the list of topics as soon as it
+  changes. [Memory](./user/memory.md)
 - **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
   with when each was last used, and tools so it knows which it has and uses one without the key
   appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source

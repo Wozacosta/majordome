@@ -13,7 +13,9 @@ its answer which one it looked in.
 A conversation you keep for weeks does not stay on the notes it began with. The first message you
 send on a new day gives it all of this again, as it is then: your memory note, the two daily notes,
 its topic's notes and where the other topics stand. Within a day it keeps what it was given, and
-reads a note again when it needs what changed.
+reads a note again when it needs what changed. The one thing it is told again the same day is the
+list of topics: when you add, rename or finish a topic, every conversation hears of it with the
+next message you send there.
 
 So there is one place for a fact every conversation should know, whatever the topic: your memory
 note. Say "remember this for everything" and it goes there.

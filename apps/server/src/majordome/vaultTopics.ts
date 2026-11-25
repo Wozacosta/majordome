@@ -298,6 +298,16 @@ export const readVaultTopics = Effect.fn("majordome.readVaultTopics")(function* 
   return Option.match(text, { onNone: () => [], onSome: parseVaultTopics });
 });
 
+/** When the list of topics was last written; none when there is no list. */
+export const vaultTopicsChangedAt = Effect.fn("majordome.vaultTopicsChangedAt")(function* (
+  vaultRoot: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const info = yield* fileSystem.stat(topicsFilePath(path, vaultRoot)).pipe(Effect.option);
+  return Option.flatMap(info, (stat) => stat.mtime).pipe(Option.map((date) => date.getTime()));
+});
+
 export const writeVaultTopics = Effect.fn("majordome.writeVaultTopics")(function* (input: {
   readonly vaultRoot: string;
   readonly topics: ReadonlyArray<MajordomeVaultTopic>;

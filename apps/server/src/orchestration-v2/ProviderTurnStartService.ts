@@ -65,7 +65,11 @@ import {
   historicalMessage,
   latestNativeContextUsage,
 } from "@t3tools/provider-core/server/handoffBudget";
-import { notesAreFromAnEarlierDay, readVaultContext } from "../majordome/vaultContext.ts";
+import {
+  notesAreFromAnEarlierDay,
+  readTopicsChange,
+  readVaultContext,
+} from "../majordome/vaultContext.ts";
 import {
   deliverContextHandoffs,
   isSlashCommandMessage,
@@ -2078,7 +2082,8 @@ export const layer: Layer.Layer<
           sameNativeThread &&
           !acceptedAttempts.some((source) => source.nativeThreadId !== undefined));
       // Majordome: a new native session starts with the vault's live memory, for every provider,
-      // and a session picked up on a later day is given it again.
+      // and a session picked up on a later day is given it again. Within a day it is told the
+      // topics again when their list changed since its last message.
       const nowMillis = DateTime.toEpochMillis(now);
       const lastMessageAt = projection.runs.reduce<number | undefined>(
         (latest, previous) =>
@@ -2091,22 +2096,28 @@ export const layer: Layer.Layer<
         nativeThreadHasTurns &&
         lastMessageAt !== undefined &&
         notesAreFromAnEarlierDay(lastMessageAt, nowMillis);
+      const vaultRoot = resolvedRuntimePolicy.cwd;
+      const topicOf = { threadId: projection.thread.id, stateDir: serverConfig.stateDir };
       const vaultContext =
-        (nativeThreadHasTurns && !refreshVaultContext) ||
-        goalCommand ||
-        resolvedRuntimePolicy.cwd == null
+        goalCommand || vaultRoot == null
           ? ""
-          : yield* readVaultContext({
-              vaultRoot: resolvedRuntimePolicy.cwd,
-              nowMillis,
-              refresh: refreshVaultContext,
-              topicOf: { threadId: projection.thread.id, stateDir: serverConfig.stateDir },
-              startedBy: {
-                projectId: projection.thread.projectId,
-                scheduledTaskId: message?.scheduledTaskId,
-                stateDir: serverConfig.stateDir,
-              },
-            }).pipe(
+          : yield* (
+              nativeThreadHasTurns && !refreshVaultContext
+                ? lastMessageAt === undefined
+                  ? Effect.succeed("")
+                  : readTopicsChange({ vaultRoot, nowMillis, sinceMillis: lastMessageAt, topicOf })
+                : readVaultContext({
+                    vaultRoot,
+                    nowMillis,
+                    refresh: refreshVaultContext,
+                    topicOf,
+                    startedBy: {
+                      projectId: projection.thread.projectId,
+                      scheduledTaskId: message?.scheduledTaskId,
+                      stateDir: serverConfig.stateDir,
+                    },
+                  })
+            ).pipe(
               Effect.provideService(FileSystem.FileSystem, fileSystem),
               Effect.provideService(Path.Path, path),
             );
