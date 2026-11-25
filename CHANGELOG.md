@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.46
+
 **Fixed**
 
 - **A paid server is always made.** If making one was cut short, the page said "Your server is
