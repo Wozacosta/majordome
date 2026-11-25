@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.48
+
 **New**
 
 - **Who can get into a server Majordome hosts, said plainly.**
