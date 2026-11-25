@@ -54,6 +54,7 @@ export const conversationHomesAtom = Atom.make((get) => {
         brainId,
         routinesRunner: pending ? undefined : (history?.routinesRunner ?? null),
         assistantReady: assistantCanAnswer(history?.routinesStatus),
+        lastInStepAt: status?.peer?.lastInStepAt ?? null,
       },
     ];
   });

@@ -11,24 +11,34 @@ import { groupBrains } from "./brains.logic";
 
 /**
  * The copy on the owner's always-on computer: one that runs routines, is not this window's own,
- * and is connected. With several, the first.
+ * and is connected. A server cut off from the notes still names itself, so with several it is the
+ * one most recently in step with another computer, then the first.
  */
 export function alwaysOnCopy<
   C extends {
     readonly environmentId: EnvironmentId;
     readonly routinesRunner: MajordomeRoutinesRunner | null | undefined;
+    readonly lastInStepAt?: string | null | undefined;
   },
 >(input: {
   readonly primaryEnvironmentId: EnvironmentId | null;
   readonly connected: ReadonlyArray<EnvironmentId>;
   readonly copies: ReadonlyArray<C>;
 }): C | undefined {
-  return input.copies.find(
-    (copy) =>
-      copy.routinesRunner === "this-server" &&
-      copy.environmentId !== input.primaryEnvironmentId &&
-      input.connected.includes(copy.environmentId),
-  );
+  let latest: C | undefined;
+  for (const copy of input.copies) {
+    if (
+      copy.routinesRunner !== "this-server" ||
+      copy.environmentId === input.primaryEnvironmentId ||
+      !input.connected.includes(copy.environmentId)
+    ) {
+      continue;
+    }
+    if (latest === undefined || (copy.lastInStepAt ?? "") > (latest.lastInStepAt ?? "")) {
+      latest = copy;
+    }
+  }
+  return latest;
 }
 
 /**
@@ -47,6 +57,8 @@ export interface HomeCopy {
   /** Undefined while its server has not answered; null when it could not. */
   readonly routinesRunner: MajordomeRoutinesRunner | null | undefined;
   readonly assistantReady: boolean;
+  /** When its notes were last exchanged with another computer, as its server's ISO time. */
+  readonly lastInStepAt?: string | null | undefined;
 }
 
 /**

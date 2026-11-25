@@ -12,6 +12,10 @@ The section for a version is also the text of its release on GitHub.
   it. Someone who paid just as the last place went gets their server too.
 - **The hourly check on paid servers no longer waits on address cleanup,** and it can tell the
   owner when it fails.
+- **A new topic opens when an old server is still connected.** With a server you used before
+  still in Connections, a new topic could fail with "That topic is no longer in your notes":
+  its chat was started on the old server, whose notes had stopped updating. Chats now start on
+  the server that is in step with your notes.
 
 ## 0.10.45
 
