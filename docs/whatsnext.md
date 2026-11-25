@@ -451,25 +451,49 @@ plainly, make it checkable, and narrow it. In order of what each buys for its co
    provenance (GitHub's attestations) so the digest can be tied to a commit by anyone.
 3. **Updates the customer can see and hold.** The nightly update is the one way new code
    reaches a server. Show what changed, and let the owner of a server delay or refuse it.
-4. **A record of access.** Whether Fly records shells opened in an organisation, and whether
-   that record can be shown to the customer, is not checked. A record kept on the server itself
-   proves little: whoever has a shell can edit it.
+4. **A record of access.** Fly keeps none that can be shown (below). A record kept on the
+   server itself proves little: whoever has a shell can edit it.
 5. **Encryption with the customer's key.** Protects the disk copies and a stopped server, not a
    running one, which holds the key in memory. Real work, and it makes a lost key a lost brain.
 6. **Deletion that can be checked.** What is deleted when, including Fly's disk copies, stated
    with dates in the account page.
 
 A different answer, raised by the owner on 2026-11-25: **the server belongs to the customer.**
-It is made in the customer's own hosting account, not Majordome's, so the operator has no way in
-at all. The customer opens an account with the host and pays it directly; Majordome is let in
-once to set the server up, and the customer then takes that permission back. The server updates
-itself. This is the only option here that needs no trust, and it is another product: what is
-sold is the setup and the software, not the hosting, and the customer has one more account and
-one more bill. It can sit beside the hosted one as the choice for those who will not take a
-promise. Not checked: whether Fly lets an app be handed from one organisation to another
-person's, and what a one-time permission on a Fly account can be limited to.
+It is made in the customer's own hosting account, so the operator has no shell, no disk and no
+disk copies to read. It does not remove trust by itself: a server that updates itself from
+Majordome's releases still runs whatever is released, so it only holds with step 3 above (the
+customer approves updates, or they are checked against public build provenance). It is another
+product: what is sold is the setup and the software, the customer has one more account and one
+more bill, and a server that will not start can only be looked at if they let the operator back
+in.
 
-Not checked: what other hosted products of this kind publish, and Fly's own access and logging.
+Checked on 2026-11-25 by two research agents, from the sources named; not re-read by hand:
+
+- **On Fly the operator cannot lock himself out.** Fly's security questionnaire
+  (`fly.io/legal/security-questionnaire`) says SSH cannot be disabled per app, a deploy token is
+  enough to open a shell, and disk keys are held by Fly with no customer-held option.
+- **There is no record of access to show a customer.** The same page says there is no
+  organisation activity log and no SSH session log. Step 4 above is therefore not possible on
+  Fly today.
+- **An app can be handed over:** `fly apps move`, with its disk, secrets and domains, a few
+  minutes down. The mover must belong to both organisations, so the customer invites the
+  operator, which the free plan does not allow.
+- **No "let Majordome in once" button on Fly.** Its OAuth only reads identity; the customer
+  would paste a token with a short expiry and revoke it after. DigitalOcean has scoped OAuth
+  for exactly this.
+- **Hosted servers do not update themselves today:** the broker does it with the organisation's
+  token (`updateServer` in `infra/broker/src/fly.ts`). A customer-owned server needs its own.
+- **How Obsidian Sync does it:** notes are encrypted on the device with a key made from a
+  password the company never has, so its servers only hold what they cannot read; two outside
+  audits are published, and a script lets anyone check their own traffic. It works because that
+  server only stores. Majordome's reads the notes to run the AI, so the same cannot hold while
+  it runs. What carries over: disk copies and a stopped server under the customer's key, and
+  notes synced between devices with no server at all.
+- **Proving it is possible in principle,** with attested hardware and published reproducible
+  images (Apple's Private Cloud Compute, Tinfoil), on AWS or Azure and not on Fly. A large
+  project for one person.
+- **What others in the same position say:** PikaPods promises staff never open customer data
+  unless asked; Proton's AI product says plainly that the model sees the message.
 
 ## Phone
 
