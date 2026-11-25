@@ -57,6 +57,8 @@ export const MOBILE_KEPT: Wording = kept([
 
 export const MOBILE_WORDING: Wording = [
   ...MOBILE_KEPT,
+  // Where Settings > About > Legal opens. majord.me answers upstream's page names (site/vercel.json).
+  ["https://t3.codes", "https://majord.me"],
   // Single words, checked to be display text only (never a route or screen name).
   ["Settle", "Mark as done"],
   ["Un-settle", "Bring back"],

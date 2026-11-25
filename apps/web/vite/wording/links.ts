@@ -4,6 +4,7 @@ import type { Wording } from "./index";
 // the whole address as source spells it.
 export const LINKS_WORDING: Wording = [
   ["https://t3.codes/download", "https://github.com/Wozacosta/majordome/releases/latest"],
+  ["https://t3.codes/privacy-policy", "https://majord.me/privacy"],
   [
     "https://github.com/pingdotgg/t3code/issues/new",
     "https://github.com/Wozacosta/majordome/issues/new",

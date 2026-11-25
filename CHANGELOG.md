@@ -7,6 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **The app no longer says it collects usage data.** Majordome sends none, but the setup page
+  and Settings, About still carried T3 Code's sentence about anonymous usage data and opened T3
+  Code's privacy policy. Both now say "Majordome sends no usage data" and open
+  [majord.me/privacy](https://majord.me/privacy). On the iPhone, Settings, About, Legal opens
+  Majordome's page too (from the next iPhone build).
+
+**Try this**
+
+- Open Settings, About and press "View policy": it opens majord.me/privacy.
+
 ## 0.10.46
 
 **Fixed**

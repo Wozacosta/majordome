@@ -99,6 +99,8 @@ The landing page and the README show a short version of this list.
 - **One computer at a time.** Pages that say the same things about each computer (Connections,
   Back up my brain, Private documents) have a switch under the title instead of repeating
   themselves.
+- **No usage data.** T3 Code sends anonymous usage data unless you turn it off. Majordome sends
+  none and says so in the app, with [its own privacy page](https://majord.me/privacy).
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
 

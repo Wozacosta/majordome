@@ -1,6 +1,8 @@
 import type { EnvironmentId, ManagedPolicySummary, ProviderDriverKind } from "@t3tools/contracts";
 import { msg } from "gt-react";
 
+import { NO_USAGE_DATA } from "../components/majordome/privacy";
+import { isMajordome } from "../env";
 import { m, type MessageResolver } from "../i18n/messages";
 
 import { useServerConfigs } from "./entities";
@@ -33,11 +35,12 @@ export function firstManagedDenial(
   return undefined;
 }
 
-/** What usage-data notices say when the policy turns product analytics off. */
+/** What usage-data notices say when product analytics are off: by policy, or always in Majordome. */
 export function managedTelemetryOffMessage(
   policy: ManagedPolicySummary | undefined,
   resolve: MessageResolver = m,
 ): string | undefined {
+  if (isMajordome) return NO_USAGE_DATA;
   return policy?.limits?.telemetry === false
     ? resolve(
         msg("{organization} turned off anonymous usage data.", {
