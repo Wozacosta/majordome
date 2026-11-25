@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.53
+
 **New**
 
 - **Two weeks of T3 Code's own improvements.** Majordome is built on T3 Code, and this brings in
