@@ -62,6 +62,7 @@ export function ChatKnowledgeSection({
   );
   const projectId = useQuietThreadShell(scopeThreadRef(environmentId, threadId))?.projectId;
   const [othersOpen, setOthersOpen] = useState(false);
+  const [restOpen, setRestOpen] = useState(false);
   const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
   if (view === null || projectId === undefined) return null;
   const row = (item: ChatKnowledgeRow) => {
@@ -126,7 +127,7 @@ export function ChatKnowledgeSection({
             >
               <OthersChevron className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
               <span className="min-w-0 flex-1 truncate text-left">
-                {othersTitle} ({view.others.length + view.more})
+                {othersTitle} ({view.others.length + view.rest.length})
               </span>
             </ThreadDetailsControl>
             {othersOpen ? (
@@ -136,9 +137,22 @@ export function ChatKnowledgeSection({
                 </p>
                 <ul className="m-0 flex list-none flex-col p-0" aria-label={othersTitle}>
                   {view.others.map(row)}
+                  {restOpen ? view.rest.map(row) : null}
                 </ul>
-                {view.more === 0 ? null : (
-                  <p className="px-2.5 pt-1 text-xs text-muted-foreground">and {view.more} more</p>
+                {view.rest.length === 0 ? null : (
+                  <ThreadDetailsControl
+                    size="xs"
+                    variant="ghost"
+                    part="row"
+                    panel
+                    tone="muted"
+                    aria-expanded={restOpen}
+                    onClick={() => setRestOpen((open) => !open)}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {restOpen ? "Show fewer" : `and ${view.rest.length} more`}
+                    </span>
+                  </ThreadDetailsControl>
                 )}
               </div>
             ) : null}

@@ -44,3 +44,35 @@ test(
     await app.screenshot("topic-log-opened");
   },
 );
+
+test(
+  'Past eight topics, "and N more" opens the rest of the list and "Show fewer" folds it back',
+  WEB,
+  async ({ t3, app, screen }) => {
+    const topics = Array.from({ length: 10 }, (_, index) => ({
+      id: `topic-${index}`,
+      title: `Subject ${index}`,
+      folder: `subject-${index}`,
+    }));
+    const notes = await t3.project("Notes", {
+      ...NOTES_FOLDER,
+      ".majordome/topics.json": JSON.stringify({ topics }),
+    });
+    const thread = await t3.thread({
+      project: notes,
+      title: "Trip to Lisbon",
+      messages: ["Where to stay?"],
+    });
+    await t3.open(thread);
+
+    await screen.getByText("Your topics (10)").tap();
+    const list = screen.getByRole("list", "Your topics");
+    await expect(list.getByText("Subject 7")).toBeVisible();
+    await expect(list.getByText("Subject 9")).toBeHidden();
+    await screen.getByText("and 2 more").tap();
+    await expect(list.getByText("Subject 9")).toBeVisible();
+    await app.screenshot("all-topics-shown");
+    await screen.getByText("Show fewer").tap();
+    await expect(list.getByText("Subject 9")).toBeHidden();
+  },
+);

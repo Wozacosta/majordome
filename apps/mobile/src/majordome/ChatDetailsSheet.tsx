@@ -290,6 +290,7 @@ function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
   // A server from before this was added answers with a failure, and shows no section.
   const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
   const [othersOpen, setOthersOpen] = useState(false);
+  const [restOpen, setRestOpen] = useState(false);
   if (view === null) return null;
   const row = (item: ChatKnowledgeRow) => (
     <Row
@@ -310,7 +311,7 @@ function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
         <Section title={othersTitle}>
           <Row
             icon="bubble.left"
-            label={`${view.others.length + view.more} topics`}
+            label={`${view.others.length + view.rest.length} topics`}
             detail={othersOpen ? "Tap to hide" : "Tap to show where each one stands"}
             accessibilityLabel={`${othersTitle}, ${othersOpen ? "shown" : "hidden"}`}
             onPress={() => setOthersOpen((open) => !open)}
@@ -319,7 +320,18 @@ function ChatKnowledge({ environmentId, threadId }: ChatTarget) {
             <>
               <Muted>{CHAT_KNOWLEDGE_OTHERS_LINE}</Muted>
               {view.others.map(row)}
-              {view.more === 0 ? null : <Muted>{`and ${view.more} more`}</Muted>}
+              {restOpen ? view.rest.map(row) : null}
+              {view.rest.length === 0 ? null : (
+                <Row
+                  icon={restOpen ? "chevron.up" : "chevron.down"}
+                  label={restOpen ? "Show fewer" : `and ${view.rest.length} more`}
+                  detail={null}
+                  accessibilityLabel={
+                    restOpen ? "Show fewer topics" : `Show ${view.rest.length} more topics`
+                  }
+                  onPress={() => setRestOpen((open) => !open)}
+                />
+              )}
             </>
           ) : null}
         </Section>

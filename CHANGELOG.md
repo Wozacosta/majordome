@@ -14,6 +14,8 @@ Not released yet.
 - Checking a key or password twice in a row, after changing where it comes from, no longer lets
   the first check's answer replace the second one's. T3 Code had fixed this on 21 November;
   Majordome's own copy of that screen had missed it.
+- "and 3 more" under the topics of "What this chat knows" now opens the rest of the list, and
+  "Show fewer" folds it back. It was plain text before. Same in the phone app's chat details.
 
 ## 0.10.53
 

@@ -13,10 +13,10 @@ export interface ChatKnowledgeRow {
 export interface ChatKnowledgeView {
   /** What the chat has read before the first message. */
   readonly starts: ReadonlyArray<ChatKnowledgeRow>;
-  /** The topics it is only told the standing of. */
+  /** The topics it is only told the standing of: the ones shown first. */
   readonly others: ReadonlyArray<ChatKnowledgeRow>;
-  /** Other topics past the ones shown. */
-  readonly more: number;
+  /** The ones past those, shown when asked for. */
+  readonly rest: ReadonlyArray<ChatKnowledgeRow>;
 }
 
 export const CHAT_KNOWLEDGE_TITLE = "What this chat knows";
@@ -73,6 +73,6 @@ export function chatKnowledgeView(
   return {
     starts,
     others: others.slice(0, OTHERS_SHOWN),
-    more: Math.max(0, others.length - OTHERS_SHOWN),
+    rest: others.slice(OTHERS_SHOWN),
   };
 }

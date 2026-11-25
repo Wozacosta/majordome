@@ -46,7 +46,7 @@ describe("chatKnowledgeView", () => {
       path: "personal/tax/log.md",
     });
     expect(view?.others[1]?.path).toBeNull();
-    expect(view?.more).toBe(2);
+    expect(view?.rest.map((row) => row.label)).toEqual(["Topic 7", "Topic 8"]);
   });
 
   it("says the memory note is empty rather than leaving it out", () => {
