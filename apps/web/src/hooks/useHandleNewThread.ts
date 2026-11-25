@@ -22,6 +22,7 @@ import {
   getProjectOrderKey,
   selectProjectGroupingSettings,
 } from "@t3tools/client-runtime/state/project-grouping";
+import { resolveModelLevels } from "@t3tools/shared/majordomeModelLevels";
 import { resolveNewThreadEnvMode, resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import {
   readProject,
@@ -173,7 +174,15 @@ export function createNewThreadHandler(router: AnyRouter) {
       project?.id ?? null,
       project,
     );
-    const configuredDefaultModelSelection = projectSettings.settings.defaultModelSelection ?? null;
+    // Majordome starts every new chat on its Everyday model, whatever the last chat was on.
+    const configuredDefaultModelSelection =
+      projectSettings.settings.defaultModelSelection ??
+      (isMajordome
+        ? resolveModelLevels({
+            providers: environmentServerConfigs.get(projectRef.environmentId)?.providers ?? [],
+            settings: projectSettings.settings,
+          }).everyday
+        : null);
     const fallbackResolution = resolveNewThreadModelSelection({
       defaultSelection:
         configuredDefaultModelSelection ??

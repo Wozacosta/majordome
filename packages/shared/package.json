@@ -7,6 +7,10 @@
       "types": "./src/majordome.ts",
       "import": "./src/majordome.ts"
     },
+    "./majordomeModelLevels": {
+      "types": "./src/majordomeModelLevels.ts",
+      "import": "./src/majordomeModelLevels.ts"
+    },
     "./majordomeAccount": {
       "types": "./src/majordomeAccount.ts",
       "import": "./src/majordomeAccount.ts"

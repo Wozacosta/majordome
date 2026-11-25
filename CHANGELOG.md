@@ -7,6 +7,33 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Three levels of AI: Quick, Everyday, Powerful.** Majordome now asks for a level, not a model.
+  Quick does the small jobs (chat titles, key facts, summaries, drawings). Everyday is for your
+  chats and routines, and new chats start on it. Powerful is for hard questions, when you choose
+  it. With Claude that is Haiku, Sonnet and Opus; ChatGPT (Codex), Gemini and the others have
+  their own three.
+- **Choose the level in the message box.** A new control at the bottom of the message box, on
+  the computer, shows the chat's level and moves it to another one. It names the model behind
+  each level. On the iPhone, the three levels are at the top of "Which AI".
+- **Choose the model for each level.** Settings, AI accounts, "Levels of AI" lists the three
+  levels with the model each one uses, and lets you change it.
+
+**Changed**
+
+- New chats and new routines start on the Everyday model (Sonnet with Claude). Before, they
+  followed the model of your last chat, which was often Opus. Chats and routines you already
+  have keep their model until you change it in their message box.
+
+**Try this**
+
+- Open a chat. At the bottom right of the message box, press "Everyday", choose "Powerful", and
+  send a message.
+- Start a new chat: it is on "Everyday" again.
+- Settings, AI accounts, "Levels of AI": change the model for Powerful, then look at the list in
+  a chat's message box.
+
 ## 0.10.49
 
 **New**

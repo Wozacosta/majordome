@@ -2,6 +2,8 @@ import { ActiveNewTaskContext } from "../../state/active-new-task";
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { msg, useMessages } from "gt-react-native";
 import { resolveNewThreadModelSelection } from "@t3tools/shared/usageLimits";
+import { resolveModelLevels } from "@t3tools/shared/majordomeModelLevels";
+import { isMajordome } from "../../majordome/env";
 import { useNowMinuteMs } from "../../lib/clock";
 import { m, type MessageResolver } from "../../i18n/messages";
 import * as Dialog from "../../components/ui/Dialog";
@@ -444,7 +446,14 @@ export function NewTaskFlowProvider(
   );
   const projectDefaultModelSelection = resolveDefaultableModelSelection(
     selectedEnvironmentServerConfig,
-    projectSettings.settings.defaultModelSelection,
+    // Majordome starts every new chat on its Everyday model, whatever the last chat was on.
+    projectSettings.settings.defaultModelSelection ??
+      (isMajordome && selectedEnvironmentServerConfig
+        ? resolveModelLevels({
+            providers: selectedEnvironmentServerConfig.providers,
+            settings: projectSettings.settings,
+          }).everyday
+        : null),
     selectedProject?.id ?? null,
   );
   const stickyModelSelection = resolveDefaultableModelSelection(

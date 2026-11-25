@@ -31,6 +31,7 @@ import {
 } from "./ComposerModelEffort";
 import type { useComposerProviderModel } from "./useComposerProviderModel";
 import { resolveComposerControlsOwnership } from "./composerControlsOwnership";
+import { ModelLevelPicker } from "../majordome/ModelLevelPicker";
 
 /**
  * The composer footer controls: the model picker (which also holds effort, speed and
@@ -83,7 +84,7 @@ export function ComposerControlsBar(props: {
   keybindings: ChatComposerProps["keybindings"];
   modelOptionsByInstance: ReadonlyMap<ProviderInstanceId, ReadonlyArray<AppModelOption>>;
   terminalOpen: boolean;
-  /** Majordome keeps the model in Settings and shows no picker in the message box. */
+  /** Majordome offers three levels in the message box in place of the model list. */
   modelPickerHidden?: boolean;
   modelPickerOpen: boolean;
   onModelPickerOpenChange: (open: boolean) => void;
@@ -267,7 +268,22 @@ export function ComposerControlsBar(props: {
     </ComposerControl>
   ) : (
     <>
-      {props.modelPickerHidden ? null : composerModelPicker}
+      {props.modelPickerHidden ? (
+        <ModelLevelPicker
+          environmentId={environmentId}
+          account={{
+            driver: selectedProvider,
+            instanceId: selectedInstanceId,
+            models: selectedProviderModels,
+          }}
+          model={providerCatalogPending ? null : selectedModel}
+          disabled={providerCatalogPending || isSendBusy}
+          size={controlSize}
+          onSelect={onProviderModelSelect}
+        />
+      ) : (
+        composerModelPicker
+      )}
 
       <>
         {restingBlockDefs.map((def, index) => {

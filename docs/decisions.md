@@ -411,6 +411,18 @@ takes over.
       long-running one was given its notes when its session began. Not done: a record of which
       topics a chat actually looked in. Providers report file reads in different shapes, so a
       list built from them would be wrong for some; the answer naming the topic is the record.
-    - **Choosing the model again.** The picker was taken out of the message box for a quieter
-      chat. Bring back a clear way to choose, shaped by the AI behind it: each provider's own
-      models and options, not one list for all.
+    - **Choosing the model again.** Done 2026-11-25, as three levels, not a model list (the
+      owner's shape): Quick for the small jobs Majordome does itself (titles, key facts,
+      summaries, drawings), Everyday for chats and routines, Powerful when the owner asks for
+      it in a chat. Each kind of AI account has its own three models
+      (`packages/shared/src/majordomeModelLevels.ts`): they are found by family (haiku, sonnet,
+      opus; luna, sol, astra; flash, argon, carbon), so a newer version is picked up without a
+      change, and an account with no such family uses its own default for all three. The owner
+      can give a level another model in Settings, AI accounts. Quick and Everyday are kept in
+      settings T3 Code already reads (`textGenerationModelSelection`, `defaultModelSelection`),
+      so titles, the phone and every other reader follow; only Powerful is a new setting. The
+      message box on the computer shows the level and changes it; the phone's "Which AI" lists
+      the levels above the full list. New chats start on Everyday whatever the last chat was
+      on; before, they followed the last chat's model. Not done: a level's options (thinking
+      effort) and a level per routine. A routine runs in its own chat, so its level is changed
+      in that chat's message box.

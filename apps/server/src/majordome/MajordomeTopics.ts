@@ -704,7 +704,6 @@ const make = Effect.gen(function* () {
   ) {
     const modelSelection = yield* chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
-      Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
       Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
     );
     if (modelSelection === null) {
