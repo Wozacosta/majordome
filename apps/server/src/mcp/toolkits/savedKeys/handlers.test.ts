@@ -48,12 +48,18 @@ it.effect(
             Effect.succeed({
               keys: [
                 { name: "garmin", note: "Garmin token", lastUsedAt: "2026-11-20T10:00:00.000Z" },
+                // The test clock starts in 1970: this key's last day is long past.
+                { name: "old", note: "", expiresOn: "1969-12-01" },
               ],
             }),
           use: ({ name }) =>
             Effect.succeed(
-              name === "garmin" ? Option.some({ file: "/state/secrets/files/abc" }) : Option.none(),
+              name === "strava" ? Option.none() : Option.some({ file: "/state/secrets/files/abc" }),
             ),
+          setExpiry: (input) => {
+            saved.push(input);
+            return Effect.succeed({ name: input.name, note: "" });
+          },
           save: (input) => {
             saved.push(input);
             return Effect.succeed({ name: input.name, note: input.note ?? "" });
@@ -73,15 +79,24 @@ it.effect(
           );
 
         expect(yield* result("list_saved_keys", {})).toEqual({
-          keys: [{ name: "garmin", note: "Garmin token" }],
+          keys: [
+            { name: "garmin", note: "Garmin token" },
+            { name: "old", note: "", expires: "1969-12-01" },
+          ],
         });
+        // A key past its last day is still handed over, with a word for the owner.
+        const ended = yield* result("use_saved_key", { name: "old" });
+        expect(ended).toMatchObject({ status: "ready" });
+        expect(ended).toHaveProperty("note", expect.stringContaining("stopped working after"));
+        const good = yield* result("use_saved_key", { name: "garmin" });
+        expect(good).toHaveProperty("note", expect.not.stringContaining("stop"));
         expect(yield* result("use_saved_key", { name: "garmin" })).toMatchObject({
           status: "ready",
           file: "/state/secrets/files/abc",
         });
         expect(yield* result("use_saved_key", { name: "strava" })).toEqual({
           status: "unknown_key",
-          note: "No saved key has that name. Names: garmin.",
+          note: "No saved key has that name. Names: garmin, old.",
         });
 
         expect(
@@ -97,6 +112,18 @@ it.effect(
           code: "invalid_request",
         });
         expect(saved).toHaveLength(2);
+        // A last day goes with a new key, and alone it dates the key already saved.
+        yield* result("save_key", {
+          name: "garmin",
+          note: "Runs",
+          value: "g_1",
+          expires: "2027-11-25",
+        });
+        yield* result("save_key", { name: "garmin", note: "", expires: "2028-01-01" });
+        expect(saved.slice(2)).toEqual([
+          { name: "garmin", note: "Runs", value: "g_1", expiresOn: "2027-11-25" },
+          { name: "garmin", expiresOn: "2028-01-01" },
+        ]);
       }).pipe(
         Effect.provide(
           McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(
@@ -149,6 +176,15 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
         expect(yield* fileSystem.readFileString(file)).toBe("test1234");
         // The reply carries where the key is, never the key.
         expect(JSON.stringify(taken)).not.toContain("test1234");
+
+        // The owner says later how long it lasts: the day is kept with the key and listed.
+        expect(
+          yield* result("save_key", { name: "toto", note: "", expires: "2027-11-25" }),
+        ).toMatchObject({ status: "saved" });
+        expect(yield* result("list_saved_keys", {})).toEqual({
+          keys: [{ name: "toto", note: "A test", expires: "2027-11-25" }],
+        });
+        expect(yield* fileSystem.readFileString(file)).toBe("test1234");
       }).pipe(
         Effect.provide(
           McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(

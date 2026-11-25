@@ -235,7 +235,10 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   a reference to an item in a secret source and is then read from the source at each use.
   Bitwarden Secrets Manager is a source (`bws`, machine-account token kept as a saved key the
   assistant cannot take); the Bitwarden password manager is not, since it needs a master password
-  an unattended server cannot type.
+  an unattended server cannot type. A key may carry the last day it works, set by the owner or
+  told to the assistant. It is a reminder only: the key is still handed over past that day, with a
+  note for the owner, since only the service knows whether it really stopped. The day is typed in
+  Settings or said in chat, not on the secret card, which stays upstream's.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.

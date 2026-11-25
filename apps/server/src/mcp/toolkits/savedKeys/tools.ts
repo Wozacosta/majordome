@@ -1,6 +1,7 @@
 import {
   MAJORDOME_SAVED_KEY_NOTE_MAX,
   MAJORDOME_SAVED_KEY_VALUE_MAX,
+  MajordomeSavedKeyDay,
   MajordomeSavedKeyName,
   OrchestratorMcpFailure,
 } from "@t3tools/contracts";
@@ -22,7 +23,15 @@ const ListSavedKeysTool = Tool.make("list_saved_keys", {
     "List the API keys, tokens and passwords the owner saved for you on this computer, by name with what each is for. Check here before you say you cannot reach a service, and before you ask for a key. Never shows a value.",
   // No `parameters`: Tool.make defaults to Tool.EmptyParams, which serializes as an object schema.
   success: Schema.Struct({
-    keys: Schema.Array(Schema.Struct({ name: Schema.String, note: Schema.String })),
+    keys: Schema.Array(
+      Schema.Struct({
+        name: Schema.String,
+        note: Schema.String,
+        expires: Schema.optional(Schema.String).annotate({
+          description: "The last day the owner said it works.",
+        }),
+      }),
+    ),
   }),
   failure: OrchestratorMcpFailure,
   failureMode: "return",
@@ -57,7 +66,7 @@ const UseSavedKeyTool = Tool.make("use_saved_key", {
 
 const SaveKeyTool = Tool.make("save_key", {
   description:
-    'Save an API key, token or password the owner gives you, so later chats can use it with `use_saved_key`. `name`: short, e.g. `garmin`. `note`: what it is for. The owner pasted it in chat: pass `value`. Otherwise get it with `request_secret` (`delivery: "file"`) and pass that `file`. Replaces a key with the same name. Never write a key in the notes folder instead.',
+    'Save an API key, token or password the owner gives you, so later chats can use it with `use_saved_key`. `name`: short, e.g. `garmin`. `note`: what it is for. The owner pasted it in chat: pass `value`. Otherwise get it with `request_secret` (`delivery: "file"`) and pass that `file`. Replaces a key with the same name. `expires`: its last day, when the owner or the service says how long it lasts; with no `value` or `file`, sets that day on a key already saved. Never write a key in the notes folder instead.',
   parameters: Schema.Struct({
     name: MajordomeSavedKeyName,
     note: Schema.String.check(Schema.isMaxLength(MAJORDOME_SAVED_KEY_NOTE_MAX)),
@@ -65,6 +74,7 @@ const SaveKeyTool = Tool.make("save_key", {
       Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAJORDOME_SAVED_KEY_VALUE_MAX)),
     ),
     file: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+    expires: Schema.optional(MajordomeSavedKeyDay).annotate({ description: "YYYY-MM-DD" }),
   }),
   success: Schema.Struct({ status: Schema.Literal("saved"), note: Schema.String }),
   failure: OrchestratorMcpFailure,

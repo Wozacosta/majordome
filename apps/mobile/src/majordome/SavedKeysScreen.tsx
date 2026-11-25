@@ -8,7 +8,13 @@ import {
   MAJORDOME_SAVED_KEY_NOTE_MAX,
   type MajordomeSavedKey,
 } from "@t3tools/contracts";
-import { savedKeyLine, savedKeyNameFrom } from "@t3tools/shared/majordomeSavedKeys";
+import {
+  savedKeyDayFrom,
+  savedKeyExpiryLine,
+  savedKeyLine,
+  savedKeyNameFrom,
+  savedKeyStanding,
+} from "@t3tools/shared/majordomeSavedKeys";
 import type * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
@@ -27,6 +33,10 @@ import { useSettingsEnvironmentFilter } from "../features/settings/settings-envi
 import { useAtomCommand } from "../state/use-atom-command";
 import { MAJORDOME_SETTINGS_LABELS } from "./settingsRows";
 import { majordomeEnvironment } from "./state";
+
+const WORKS_UNTIL_PLACEHOLDER = "1 year, or 2027-11-25";
+const WORKS_UNTIL_UNREADABLE =
+  "Write a day, such as 2027-11-25, or how long it lasts, such as 1 year.";
 
 const failureMessage = (result: { readonly cause: Cause.Cause<unknown> }, fallback: string) => {
   const error = squashAtomCommandFailure(result);
@@ -89,6 +99,8 @@ function ComputerKeys({
   });
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [dating, setDating] = useState<MajordomeSavedKey | null>(null);
+  const [now] = useState(() => Date.now());
 
   const data = AsyncResult.getOrElse(result, () => null);
   if (data === null) {
@@ -122,6 +134,11 @@ function ComputerKeys({
       },
     });
 
+  if (dating !== null && canChange) {
+    return (
+      <ExpiryForm environmentId={environmentId} savedKey={dating} onClose={() => setDating(null)} />
+    );
+  }
   // The form takes the list's place: with the keyboard up, its Save button must stay in view.
   if (adding && canChange) {
     return (
@@ -136,7 +153,9 @@ function ComputerKeys({
     <View className="gap-3">
       <ListSection
         {...(title === undefined ? {} : { title })}
-        {...(canChange && data.keys.length > 0 ? { footer: "Touch a key to remove it." } : {})}
+        {...(canChange && data.keys.length > 0
+          ? { footer: "Touch a key to say when it stops working, or to remove it." }
+          : {})}
       >
         {data.keys.length === 0 ? (
           <Text className="px-4 py-3 text-foreground-muted">No keys saved yet.</Text>
@@ -146,10 +165,30 @@ function ComputerKeys({
               key={key.name}
               icon="key"
               label={key.name}
-              description={savedKeyLine(key)}
+              description={[
+                savedKeyLine(key, undefined, undefined, now),
+                savedKeyStanding(key, now) === "over"
+                  ? "Make a new key where this one came from, then save it here again."
+                  : savedKeyStanding(key, now) === "soon"
+                    ? "Stops working soon: renew it where it came from."
+                    : "",
+              ]
+                .filter((part) => part !== "")
+                .join("\n")}
               loading={removing === key.name}
               disabled={!canChange}
-              onPress={() => remove(key)}
+              onPress={() =>
+                key.signsInTo === undefined
+                  ? Dialog.alert(key.name, undefined, [
+                      {
+                        text: key.expiresOn === undefined ? "Set last day" : "Change last day",
+                        onPress: () => setDating(key),
+                      },
+                      { text: "Remove", style: "destructive", onPress: () => remove(key) },
+                      { text: "Cancel", style: "cancel" },
+                    ])
+                  : remove(key)
+              }
             />
           ))
         )}
@@ -175,6 +214,9 @@ function AddKeyForm({
   const [typedName, setTypedName] = useState("");
   const [note, setNote] = useState("");
   const [value, setValue] = useState("");
+  const [worksUntil, setWorksUntil] = useState("");
+  const [now] = useState(() => Date.now());
+  const until = worksUntil.trim() === "" ? null : savedKeyDayFrom(worksUntil, now);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = savedKeyNameFrom(typedName);
@@ -184,11 +226,17 @@ function AddKeyForm({
     if (busy) return;
     if (name === "") return setError("Give the key a name, such as garmin.");
     if (typedValue === "") return setError("Paste the key.");
+    if (worksUntil.trim() !== "" && until === null) return setError(WORKS_UNTIL_UNREADABLE);
     setBusy(true);
     setError(null);
     const saved = await saveKey({
       environmentId,
-      input: { name, value: typedValue, ...(note.trim() === "" ? {} : { note: note.trim() }) },
+      input: {
+        name,
+        value: typedValue,
+        ...(note.trim() === "" ? {} : { note: note.trim() }),
+        ...(until === null ? {} : { expiresOn: until }),
+      },
     });
     setBusy(false);
     if (saved._tag === "Success") onClose();
@@ -246,6 +294,27 @@ function AddKeyForm({
         }}
         onSubmitEditing={(text) => void submit(text)}
       />
+      <Text textRole="footnote" className="font-t3-medium text-foreground-muted">
+        Works until (optional)
+      </Text>
+      <TextInput
+        accessibilityLabel="Works until"
+        placeholder={WORKS_UNTIL_PLACEHOLDER}
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={!busy}
+        value={worksUntil}
+        onChangeText={(text) => {
+          setWorksUntil(text);
+          setError(null);
+        }}
+      />
+      {until === null ? null : (
+        <Text textRole="footnote" className="text-foreground-muted">
+          {savedKeyExpiryLine({ expiresOn: until }, now)}. Your assistant tells you when that day is
+          near.
+        </Text>
+      )}
       {replaces ? (
         <Text textRole="footnote" className="text-foreground-muted">
           A key named {name} is already saved. Saving replaces it.
@@ -263,6 +332,78 @@ function AddKeyForm({
           loading={busy}
           onPress={() => void submit(value)}
         />
+        <Button label="Cancel" tone="text" disabled={busy} onPress={onClose} />
+      </View>
+    </View>
+  );
+}
+
+/** Sets, changes or clears the last day a saved key works. */
+function ExpiryForm({
+  environmentId,
+  savedKey,
+  onClose,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly savedKey: MajordomeSavedKey;
+  readonly onClose: () => void;
+}) {
+  const saveKey = useAtomCommand(majordomeEnvironment.saveKey, {
+    reportFailure: false,
+    reportDefect: false,
+  });
+  const [worksUntil, setWorksUntil] = useState(savedKey.expiresOn ?? "");
+  const [now] = useState(() => Date.now());
+  const until = worksUntil.trim() === "" ? null : savedKeyDayFrom(worksUntil, now);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async (expiresOn: string | null) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const saved = await saveKey({ environmentId, input: { name: savedKey.name, expiresOn } });
+    setBusy(false);
+    if (saved._tag === "Success") onClose();
+    else if (saved._tag === "Failure" && !isAtomCommandInterrupted(saved)) {
+      setError(failureMessage(saved, "The day could not be saved. Try again."));
+    }
+  };
+  const submit = () => (until === null ? setError(WORKS_UNTIL_UNREADABLE) : void send(until));
+
+  return (
+    <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-4">
+      <Text textRole="footnote" className="font-t3-medium text-foreground-muted">
+        {savedKey.name} works until
+      </Text>
+      <TextInput
+        accessibilityLabel="Works until"
+        placeholder={WORKS_UNTIL_PLACEHOLDER}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoFocus
+        editable={!busy}
+        value={worksUntil}
+        onChangeText={(text) => {
+          setWorksUntil(text);
+          setError(null);
+        }}
+        onSubmitEditing={submit}
+      />
+      <Text textRole="footnote" className="text-foreground-muted">
+        {until === null ? "" : `${savedKeyExpiryLine({ expiresOn: until }, now)}. `}
+        Majordome does not stop the key that day: it tells you and your assistant that it is near.
+      </Text>
+      {error === null ? null : (
+        <Text accessibilityRole="alert" className="text-danger-foreground">
+          {error}
+        </Text>
+      )}
+      <View className="flex-row flex-wrap items-center gap-2">
+        <Button label="Save" tone="primary" loading={busy} onPress={submit} />
+        {savedKey.expiresOn === undefined ? null : (
+          <Button label="No end date" disabled={busy} onPress={() => void send(null)} />
+        )}
         <Button label="Cancel" tone="text" disabled={busy} onPress={onClose} />
       </View>
     </View>

@@ -16,6 +16,11 @@ example to read your runs from a sports service. **Settings → Passwords and ke
 - **Remove** takes it away from the assistant and deletes Majordome's copy. The key still works
   wherever it came from, so cancel it there if it should stop working.
 - Each key shows when the assistant last used it.
+- **Works until** is for a key that stops working after a while. Write the day (`2027-11-25`) or
+  how long it lasts (`1 year`, `90 days`) when you add the key, or later with **Set last day**. You
+  can also tell your assistant, "it lasts a year". In its last month the key says so in the list,
+  and your assistant tells you when it uses it, so a routine does not start failing unannounced.
+  Majordome does not stop the key on that day.
 
 Your assistant sees the names and what each key is for, so you can ask "can you reach my Garmin
 data?" and get a straight answer. It uses a key inside a command, without the key appearing in the

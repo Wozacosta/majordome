@@ -5,6 +5,20 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **A saved key can say until when it works.** In Settings, Passwords and keys, a key has an
+  optional "Works until": a day, or how long it lasts, such as "1 year". In its last month the
+  list says it stops working soon, and your assistant tells you when it uses the key, routines
+  included. You can also tell your assistant how long a key lasts when you give it. On the
+  computer and in the phone app.
+
+**Try this**
+
+- Add a key with "1 year" under Works until: the line under its name should say the day.
+- Choose **Change last day** on it and write a day already past: the row should say it is past
+  its last day and what to do. **No end date** clears it.
+
 **Fixed**
 
 - "and 3 more" under the topics of "What this chat knows" now opens the rest of the list, and

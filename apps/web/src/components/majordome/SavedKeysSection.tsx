@@ -10,7 +10,13 @@ import {
   type SecretProviderId,
 } from "@t3tools/contracts";
 import { builtInSecretProviderDefinitions } from "@t3tools/secret-provider-definitions/registry";
-import { savedKeyLine, savedKeyNameFrom } from "@t3tools/shared/majordomeSavedKeys";
+import {
+  savedKeyDayFrom,
+  savedKeyExpiryLine,
+  savedKeyLine,
+  savedKeyNameFrom,
+  savedKeyStanding,
+} from "@t3tools/shared/majordomeSavedKeys";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { KeyRoundIcon, PlusIcon } from "lucide-react";
@@ -36,6 +42,19 @@ import { Label } from "../ui/label";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
 import { isUnknownRequest } from "./connections.logic";
+
+const WORKS_UNTIL_PLACEHOLDER = "1 year, or 2027-11-25";
+const WORKS_UNTIL_UNREADABLE =
+  "Write a day, such as 2027-11-25, or how long it lasts, such as 1 year.";
+
+/** What the typed last day comes to: nothing typed, a day, or text that is not one. */
+function typedDay(typed: string, now: number) {
+  if (typed.trim() === "") return { kind: "none" as const };
+  const day = savedKeyDayFrom(typed, now);
+  return day === null
+    ? { kind: "unreadable" as const }
+    : { kind: "day" as const, day, line: savedKeyExpiryLine({ expiresOn: day }, now) };
+}
 
 const failureMessage = (result: { readonly cause: Cause.Cause<unknown> }, fallback: string) => {
   const error = squashAtomCommandFailure(result);
@@ -63,6 +82,8 @@ export function SavedKeysSection({ environmentId }: { readonly environmentId: En
   const canChange = useAtomValue(majordomeEnvironment.saveKey.permissionAtom(environmentId));
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<MajordomeSavedKey | null>(null);
+  const [dating, setDating] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
 
   const data = AsyncResult.getOrElse(result, () => null);
   // A server from before saved keys shows no section.
@@ -92,25 +113,48 @@ export function SavedKeysSection({ environmentId }: { readonly environmentId: En
           description="Save an API key, a token or a password here, or give one to your assistant in a chat and ask it to keep it. It can then use the key without asking you for it each time."
         />
       ) : (
-        data.keys.map((key) => (
-          <SettingsRow
-            key={key.name}
-            title={
-              <span className="flex min-w-0 items-center gap-2">
-                <KeyRoundIcon className="size-4 shrink-0 text-foreground/80" aria-hidden />
-                <span className="min-w-0 wrap-anywhere">{key.name}</span>
-              </span>
-            }
-            description={savedKeyLine(key)}
-            control={
-              canChange ? (
-                <Button size="xs" variant="ghost" onClick={() => setRemoving(key)}>
-                  Remove
-                </Button>
-              ) : null
-            }
-          />
-        ))
+        data.keys.map((key) =>
+          dating === key.name ? (
+            <ExpiryForm
+              key={key.name}
+              environmentId={environmentId}
+              savedKey={key}
+              onClose={() => setDating(null)}
+            />
+          ) : (
+            <SettingsRow
+              key={key.name}
+              title={
+                <span className="flex min-w-0 items-center gap-2">
+                  <KeyRoundIcon className="size-4 shrink-0 text-foreground/80" aria-hidden />
+                  <span className="min-w-0 wrap-anywhere">{key.name}</span>
+                </span>
+              }
+              description={savedKeyLine(key, undefined, undefined, now)}
+              status={
+                savedKeyStanding(key, now) === "over"
+                  ? "Past its last day. Make a new key where this one came from, then save it here again."
+                  : savedKeyStanding(key, now) === "soon"
+                    ? "Stops working soon. Renew it where it came from."
+                    : undefined
+              }
+              control={
+                canChange ? (
+                  <span className="flex items-center gap-1">
+                    {key.signsInTo === undefined ? (
+                      <Button size="xs" variant="ghost" onClick={() => setDating(key.name)}>
+                        {key.expiresOn === undefined ? "Set last day" : "Change last day"}
+                      </Button>
+                    ) : null}
+                    <Button size="xs" variant="ghost" onClick={() => setRemoving(key)}>
+                      Remove
+                    </Button>
+                  </span>
+                ) : null
+              }
+            />
+          ),
+        )
       )}
       {adding ? (
         <AddKeyForm
@@ -156,6 +200,9 @@ function AddKeyForm({
   const [typedName, setTypedName] = useState("");
   const [note, setNote] = useState("");
   const [value, setValue] = useState("");
+  const [worksUntil, setWorksUntil] = useState("");
+  const [now] = useState(() => Date.now());
+  const until = typedDay(worksUntil, now);
   // Where the key is: pasted here (null), or an item in one of this computer's secret sources.
   const sources = useSecretSources(environmentId);
   const [sourceId, setSourceId] = useState<SecretProviderId | null>(null);
@@ -176,6 +223,7 @@ function AddKeyForm({
     if (source !== undefined && sourceKind?.isReference(typed) !== true) {
       return setError(sourceKind?.invalidReferenceMessage ?? `Say where it is in ${source.label}.`);
     }
+    if (until.kind === "unreadable") return setError(WORKS_UNTIL_UNREADABLE);
     setBusy(true);
     setError(null);
     const saved = await saveKey({
@@ -183,6 +231,7 @@ function AddKeyForm({
       input: {
         name,
         ...(note.trim() === "" ? {} : { note: note.trim() }),
+        ...(until.kind === "day" ? { expiresOn: until.day } : {}),
         ...(source === undefined
           ? { value }
           : { reference: { provider: source.id, reference: typed } }),
@@ -268,6 +317,25 @@ function AddKeyForm({
           />
         </span>
       </div>
+      <Label className="flex flex-col items-stretch" htmlFor={`${id}-until`}>
+        Works until (optional)
+        <Input
+          nativeInput
+          id={`${id}-until`}
+          placeholder={WORKS_UNTIL_PLACEHOLDER}
+          value={worksUntil}
+          disabled={busy}
+          onChange={(event) => {
+            setWorksUntil(event.target.value);
+            setError(null);
+          }}
+        />
+      </Label>
+      {until.kind === "day" ? (
+        <p className="text-xs text-muted-foreground">
+          {until.line}. Your assistant tells you when that day is near.
+        </p>
+      ) : null}
       <p className="text-xs text-muted-foreground">
         {replaces
           ? `A key named ${name} is already saved. Saving replaces it.`
@@ -285,6 +353,102 @@ function AddKeyForm({
           {busy ? <Spinner size="sm" /> : null}
           {replaces ? "Replace key" : "Save key"}
         </Button>
+        <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Sets, changes or clears the last day a saved key works, in the key's own row. */
+function ExpiryForm({
+  environmentId,
+  savedKey,
+  onClose,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly savedKey: MajordomeSavedKey;
+  readonly onClose: () => void;
+}) {
+  const id = useId();
+  const saveKey = useAtomCommand(majordomeEnvironment.saveKey, {
+    label: "set key last day",
+    reportFailure: false,
+    reportDefect: false,
+  });
+  const [worksUntil, setWorksUntil] = useState(savedKey.expiresOn ?? "");
+  const [now] = useState(() => Date.now());
+  const until = typedDay(worksUntil, now);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async (expiresOn: string | null) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const saved = await saveKey({ environmentId, input: { name: savedKey.name, expiresOn } });
+    setBusy(false);
+    if (saved._tag === "Success") onClose();
+    else if (saved._tag === "Failure" && !isAtomCommandInterrupted(saved)) {
+      setError(failureMessage(saved, "The day could not be saved. Try again."));
+    }
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-3 border-t border-border px-4 py-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (until.kind === "day") void send(until.day);
+        else
+          setError(
+            until.kind === "none"
+              ? "Write the day, or choose No end date."
+              : WORKS_UNTIL_UNREADABLE,
+          );
+      }}
+    >
+      <Label className="flex flex-col items-stretch" htmlFor={`${id}-until`}>
+        {savedKey.name} works until
+        <Input
+          nativeInput
+          id={`${id}-until`}
+          autoFocus
+          placeholder={WORKS_UNTIL_PLACEHOLDER}
+          value={worksUntil}
+          disabled={busy}
+          onChange={(event) => {
+            setWorksUntil(event.target.value);
+            setError(null);
+          }}
+        />
+      </Label>
+      <p className="text-xs text-muted-foreground">
+        {until.kind === "day" ? `${until.line}. ` : ""}
+        Majordome does not stop the key that day: it tells you and your assistant that it is near.
+      </p>
+      {error !== null ? (
+        <p role="alert" className="text-sm text-destructive-foreground">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" size="sm" disabled={busy}>
+          {busy ? <Spinner size="sm" /> : null}
+          Save
+        </Button>
+        {savedKey.expiresOn === undefined ? null : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void send(null)}
+          >
+            No end date
+          </Button>
+        )}
         <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onClose}>
           Cancel
         </Button>

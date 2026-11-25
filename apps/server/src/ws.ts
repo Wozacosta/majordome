@@ -2610,14 +2610,16 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
         [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),
         [WS_METHODS.majordomeListSavedKeys]: () => savedKeys.list(),
-        [WS_METHODS.majordomeSaveKey]: ({ name, note, value, reference }) =>
+        [WS_METHODS.majordomeSaveKey]: ({ name, note, value, reference, expiresOn }) =>
           reference !== undefined
-            ? savedKeys.save({ name, note, reference })
+            ? savedKeys.save({ name, note, expiresOn, reference })
             : value !== undefined
-              ? savedKeys.save({ name, note, value })
-              : Effect.fail(
-                  new MajordomeSavedKeysError({ message: "Give the key, or where it is kept." }),
-                ),
+              ? savedKeys.save({ name, note, expiresOn, value })
+              : expiresOn !== undefined
+                ? savedKeys.setExpiry({ name, expiresOn })
+                : Effect.fail(
+                    new MajordomeSavedKeysError({ message: "Give the key, or where it is kept." }),
+                  ),
         [WS_METHODS.majordomeRemoveSavedKey]: (input) => savedKeys.remove(input),
         [WS_METHODS.majordomeViewPrivateDocument]: (input) => privateDocuments.ownerViewUrl(input),
         [WS_METHODS.majordomeGetPrivateDocumentRequest]: (input) =>

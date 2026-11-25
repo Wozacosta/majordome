@@ -44,6 +44,19 @@ it.layer(NodeServices.layer)("MajordomeSavedKeys", (it) => {
       yield* service.save({ name: "garmin", value: "rotated" });
       assert.strictEqual((yield* service.list()).keys[0]?.note, "Garmin Connect token");
 
+      // The last day is the owner's to set, change and clear; a replaced key starts without one.
+      const dated = yield* service.setExpiry({ name: "garmin", expiresOn: "2027-11-25" });
+      assert.deepInclude(dated, { note: "Garmin Connect token", expiresOn: "2027-11-25" });
+      assert.isUndefined((yield* service.setExpiry({ name: "garmin", expiresOn: null })).expiresOn);
+      yield* service.save({ name: "garmin", value: "third", expiresOn: "2027-12-01" });
+      assert.strictEqual((yield* service.list()).keys[0]?.expiresOn, "2027-12-01");
+      yield* service.save({ name: "garmin", value: "fourth" });
+      assert.isUndefined((yield* service.list()).keys[0]?.expiresOn);
+      const unknown = yield* Effect.flip(
+        service.setExpiry({ name: "strava", expiresOn: "2027-01-01" }),
+      );
+      assert.strictEqual(unknown.message, "No saved key has that name.");
+
       yield* service.remove({ name: "garmin" });
       assert.deepEqual(yield* service.list(), { keys: [] });
       assert.isTrue(Option.isNone(yield* service.use({ name: "garmin" })));

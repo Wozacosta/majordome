@@ -5,6 +5,7 @@
  */
 
 import {
+  isCalendarDay,
   type MajordomeSavedKey,
   MajordomeSavedKeysError,
   type MajordomeSavedKeysResult,
@@ -46,12 +47,19 @@ export class MajordomeSavedKeys extends Context.Service<
       input: {
         readonly name: string;
         readonly note?: string | undefined;
+        /** The last day the key works. A key saved without one has no end date. */
+        readonly expiresOn?: string | null | undefined;
       } & (
         | { readonly value: string }
         | { readonly file: string }
         | { readonly reference: SecretReference }
       ),
     ) => Effect.Effect<MajordomeSavedKey, MajordomeSavedKeysError>;
+    /** Changes the last day a saved key works; null for no end date. Fails for an unknown name. */
+    readonly setExpiry: (input: {
+      readonly name: string;
+      readonly expiresOn: string | null;
+    }) => Effect.Effect<MajordomeSavedKey, MajordomeSavedKeysError>;
     readonly remove: (input: {
       readonly name: string;
     }) => Effect.Effect<void, MajordomeSavedKeysError>;
@@ -72,6 +80,7 @@ const KeyNotes = Schema.Record(
     note: Schema.String,
     addedAt: Schema.optional(Schema.String),
     lastUsedAt: Schema.optional(Schema.String),
+    expiresOn: Schema.optional(Schema.String),
     /** Set for a key that lives in a secret source; the key file then holds nothing under the name. */
     reference: Schema.optional(SecretReference),
   }),
@@ -146,6 +155,10 @@ const make = Effect.gen(function* () {
         : Option.getOrUndefined(Option.map(DateTime.make(value), DateTime.formatIso));
     const addedAt = stamp(known?.addedAt);
     const lastUsedAt = stamp(known?.lastUsedAt);
+    const expiresOn =
+      known?.expiresOn !== undefined && isCalendarDay(known.expiresOn)
+        ? known.expiresOn
+        : undefined;
     const source =
       known?.reference === undefined ? undefined : yield* resolver.label(known.reference.provider);
     const signsInTo = signIn.get(name);
@@ -154,6 +167,7 @@ const make = Effect.gen(function* () {
       note: known?.note ?? "",
       ...(addedAt === undefined ? {} : { addedAt }),
       ...(lastUsedAt === undefined ? {} : { lastUsedAt }),
+      ...(expiresOn === undefined ? {} : { expiresOn }),
       ...(source === undefined ? {} : { source }),
       ...(signsInTo === undefined ? {} : { signsInTo }),
     } satisfies MajordomeSavedKey;
@@ -181,6 +195,8 @@ const make = Effect.gen(function* () {
       const entry = {
         note: input.note?.trim() ?? notes[input.name]?.note ?? "",
         addedAt: yield* now,
+        // A replaced key is a new one: the old one's last day says nothing about it.
+        ...(typeof input.expiresOn === "string" ? { expiresOn: input.expiresOn } : {}),
       };
       if ("reference" in input) {
         if (!isSecretName(input.name)) {
@@ -216,6 +232,26 @@ const make = Effect.gen(function* () {
     },
     lock.withPermits(1),
   );
+
+  const setExpiry: MajordomeSavedKeys["Service"]["setExpiry"] = Effect.fn(
+    "MajordomeSavedKeys.setExpiry",
+  )(function* (input) {
+    const notes = yield* readNotes;
+    const held = Object.hasOwn(yield* withStore(readSecrets(location)), input.name);
+    if (!held && notes[input.name]?.reference === undefined) {
+      return yield* new MajordomeSavedKeysError({ message: "No saved key has that name." });
+    }
+    const { expiresOn: _previous, ...kept } = notes[input.name] ?? { note: "" };
+    const next: KeyNotes = {
+      ...notes,
+      [input.name]: {
+        ...kept,
+        ...(input.expiresOn === null ? {} : { expiresOn: input.expiresOn }),
+      },
+    };
+    yield* writeNotes(next);
+    return yield* describe(input.name, next, yield* signInKeys);
+  }, lock.withPermits(1));
 
   const remove: MajordomeSavedKeys["Service"]["remove"] = Effect.fn("MajordomeSavedKeys.remove")(
     function* (input) {
@@ -266,7 +302,7 @@ const make = Effect.gen(function* () {
     return Option.some({ file });
   }, lock.withPermits(1));
 
-  return MajordomeSavedKeys.of({ list, save, remove, use });
+  return MajordomeSavedKeys.of({ list, save, setExpiry, remove, use });
 });
 
 /** The store's errors say what to do in the owner's words; anything else gets one plain line. */
