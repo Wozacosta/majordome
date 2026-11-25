@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.49
+
 **New**
 
 - **Bitwarden Secrets Manager as a place keys are kept.** Settings, Passwords and keys, Add
