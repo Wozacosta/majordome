@@ -1,3 +1,4 @@
+import { useNavigation } from "@react-navigation/native";
 import { useGT, useMessages } from "gt-react-native";
 
 import { AppBar } from "../../components/ui/AppBar";
@@ -9,6 +10,7 @@ import {
 import type { ThreadInspectorMode } from "./thread-inspector-navigation";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { chatTitle } from "../../majordome/chat.logic";
+import { CHAT_DETAILS_LABEL } from "../../majordome/chatDetails.logic";
 import { useConversationMenu } from "../../majordome/conversationMenu";
 import { isMajordome } from "../../majordome/env";
 import { useWorkspaceBackNavigation } from "../layout/workspace/useAndroidWorkspaceNavigation";
@@ -35,16 +37,30 @@ export function ThreadHeader(props: ThreadHeaderProps) {
   return isMajordome && props.chat ? (
     <MajordomeChatHeader {...props} chat={props.chat} />
   ) : (
-    <ThreadHeaderBar {...props} chatMenu={null} />
+    <ThreadHeaderBar {...props} chatMenu={null} onOpenDetails={null} />
   );
 }
 
 function MajordomeChatHeader(props: ThreadHeaderProps & { readonly chat: EnvironmentThreadShell }) {
   const chatMenu = useConversationMenu(props.chat);
-  return <ThreadHeaderBar {...props} chatMenu={chatMenu} />;
+  const navigation = useNavigation();
+  const { environmentId, id: threadId } = props.chat;
+  return (
+    <ThreadHeaderBar
+      {...props}
+      chatMenu={chatMenu}
+      onOpenDetails={() => navigation.navigate("ThreadChatDetails", { environmentId, threadId })}
+    />
+  );
 }
 
-function ThreadHeaderBar(props: ThreadHeaderProps & { readonly chatMenu: AppBarMenu | null }) {
+function ThreadHeaderBar(
+  props: ThreadHeaderProps & {
+    readonly chatMenu: AppBarMenu | null;
+    /** Majordome: opens the chat's key facts and, for a topic, its files. */
+    readonly onOpenDetails: (() => void) | null;
+  },
+) {
   const gt = useGT();
   const m = useMessages();
   const goBack = useWorkspaceBackNavigation();
@@ -55,7 +71,16 @@ function ThreadHeaderBar(props: ThreadHeaderProps & { readonly chatMenu: AppBarM
   const filesVisible = props.inspectorMode === "files" && panes.auxiliaryPaneVisible;
   // Majordome has no terminal, git or files on a chat.
   const actions: AppBarAction[] = isMajordome
-    ? []
+    ? props.onOpenDetails === null
+      ? []
+      : [
+          {
+            accessibilityLabel: CHAT_DETAILS_LABEL,
+            icon: "info.circle",
+            separateBackground: false,
+            onPress: props.onOpenDetails,
+          },
+        ]
     : props.hasThreadCwd
       ? [
           {

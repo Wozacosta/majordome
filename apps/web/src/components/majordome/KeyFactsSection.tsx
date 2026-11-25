@@ -13,7 +13,7 @@ import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
 import { Button } from "../ui/button";
 import { DrawConversationButton } from "./ConversationDrawing";
 import { KeyFactRows } from "./KeyFactRow";
-import { firstKeyFacts, keyFactGroups, localDay } from "./keyFacts.logic";
+import { firstKeyFacts, keyFactGroups, localDay } from "@t3tools/shared/majordomeKeyFacts";
 
 /**
  * The conversation in short and, over it, the few key facts worth a glance: what is coming, then

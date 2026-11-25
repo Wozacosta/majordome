@@ -45,7 +45,8 @@ The landing page and the README show a short version of this list.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
   when the assistant ends with an offer.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
-  conversation in short, and a drawing of it. [Key facts](./user/key-facts.md)
+  conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
+  facts and a topic's files. [Key facts](./user/key-facts.md)
 - **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
 
 ### An assistant that works without you

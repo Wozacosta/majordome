@@ -21,6 +21,15 @@ options, or the order things happen in. A drawing is made only when you ask, and
 more small request to your AI plan. The last drawing is kept, so opening it again costs nothing;
 **Draw again** makes a new one from the latest messages.
 
+## On the iPhone
+
+Open a chat and touch the **i** at the top right. The sheet shows **In short** first, then every
+key fact under Dates, Links, Places and Names. Touch a link to open it; touch anything else to copy
+it. In a topic's chat the same sheet lists the topic's **Files**: touch one to look at it,
+**Add a file** to put one from the phone in the topic's folder, and touch and hold a file to remove
+it. Drawing the conversation and searching the key facts are on the computer only, and so is
+adding or removing a private document.
+
 ## Good to know
 
 - Reading a reply for key facts is one more small request to your AI plan each time. It uses the

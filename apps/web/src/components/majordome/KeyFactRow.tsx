@@ -5,7 +5,7 @@ import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
 import { THREAD_DETAILS_PANEL_ICON_CLASS } from "../chat/threadDetailsPanelStyles";
 import { toastManager } from "../ui/toast";
-import type { KeyFactRow } from "./keyFacts.logic";
+import type { KeyFactRow } from "@t3tools/shared/majordomeKeyFacts";
 
 const ICONS: Record<MajordomeKeyFactKind, LucideIcon> = {
   link: LinkIcon,

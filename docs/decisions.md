@@ -377,10 +377,11 @@ takes over.
     encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
     and wake for routines and when the owner opens the app, to keep the price low.
 11. **Later, from the owner's TestFlight notes (2026-11-24).** Four things asked for while using
-    the iPhone app, not designed yet and in no order:
-    - **A topic's side panel on the phone.** Key facts, "In short" and Files sit beside a topic's
-      chat on the computer; a topic on the phone shows only the conversation. The phone should
-      reach the same three.
+    the iPhone app, in no order; not designed yet unless marked done:
+    - **A topic's side panel on the phone.** Done 2026-11-25: a chat's header on the iPhone
+      opens a sheet with "In short", the key facts and, for a topic, its files (open, add,
+      remove). Left on the computer only: "Draw it", key-fact search, and adding or removing a
+      private document.
     - **What a topic can reach, and taking it away.** On the phone and the computer, a topic
       shows which APIs, secrets and other access it has, and each can be removed there: "a
       Bitwarden light". Today access is set for the whole assistant (Settings > Secrets and

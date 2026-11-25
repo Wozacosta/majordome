@@ -42,15 +42,13 @@ import { isUnknownRequest } from "./connections.logic";
 import { notesLink } from "./notes.logic";
 import { privateDocumentFailureMessage } from "./privateDocuments.logic";
 import {
-  moreFilesLine,
-  privateDocumentNameFor,
-  topicFileDate,
-  topicFilePreviewable,
   isNoteFileName,
-  topicFileProblem,
+  moreFilesLine,
+  topicFileDate,
   type TopicFileRow,
   topicFileRows,
-} from "./topicFiles.logic";
+} from "@t3tools/shared/majordomeTopicFiles";
+import { privateDocumentNameFor, topicFilePreviewable, topicFileProblem } from "./topicFiles.logic";
 import type { VaultTopic } from "./topics.logic";
 import { usePendingUpload } from "./usePendingUpload";
 

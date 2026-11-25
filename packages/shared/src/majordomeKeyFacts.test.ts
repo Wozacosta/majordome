@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { firstKeyFacts, keyFactGroups, searchKeyFacts } from "./keyFacts.logic";
+import { firstKeyFacts, keyFactGroups, searchKeyFacts } from "./majordomeKeyFacts.ts";
 
 describe("keyFactGroups", () => {
   const groups = keyFactGroups(

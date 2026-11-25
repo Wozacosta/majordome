@@ -6,7 +6,7 @@ import { useState } from "react";
 import { majordomeEnvironment } from "../../state/majordome";
 import { InputGroup, InputGroupInput } from "../ui/input-group";
 import { KeyFactRows } from "./KeyFactRow";
-import { keyFactGroups, localDay, searchKeyFacts } from "./keyFacts.logic";
+import { keyFactGroups, localDay, searchKeyFacts } from "@t3tools/shared/majordomeKeyFacts";
 
 /** Every key fact of a conversation, beside its chat: searchable, by kind, the days that are over last. */
 export function KeyFactsPanel({

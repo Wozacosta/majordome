@@ -1,3 +1,4 @@
+// @effect-diagnostics globalDate:off -- Key facts carry calendar days, said in the reader's own locale via Intl.
 import type { MajordomeKeyFact, MajordomeKeyFactKind } from "@t3tools/contracts";
 
 const KEY_FACT_GROUPS: ReadonlyArray<{
@@ -92,10 +93,10 @@ export function keyFactGroups(
     return today !== undefined && day !== null && day < today;
   };
   const groups = KEY_FACT_GROUPS.map(({ kind, title }) => {
-    const ofKind = facts.filter((fact) => fact.kind === kind && !over(fact)).toReversed();
+    const ofKind = facts.filter((fact) => fact.kind === kind && !over(fact)).reverse();
     const ordered =
       kind === "date"
-        ? ofKind.toSorted((a, b) =>
+        ? [...ofKind].sort((a, b) =>
             dayOf(a.value) === null || dayOf(b.value) === null
               ? Number(dayOf(a.value) === null) - Number(dayOf(b.value) === null)
               : a.value.localeCompare(b.value),
@@ -103,7 +104,7 @@ export function keyFactGroups(
         : ofKind;
     return { title, rows: ordered.map(row) };
   });
-  const earlier = facts.filter(over).toSorted((a, b) => b.value.localeCompare(a.value));
+  const earlier = facts.filter(over).sort((a, b) => b.value.localeCompare(a.value));
   return [...groups, { title: EARLIER, rows: earlier.map(row) }].filter(
     (group) => group.rows.length > 0,
   );

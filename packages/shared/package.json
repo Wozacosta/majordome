@@ -15,6 +15,14 @@
       "types": "./src/majordomeTopicIcons.ts",
       "import": "./src/majordomeTopicIcons.ts"
     },
+    "./majordomeKeyFacts": {
+      "types": "./src/majordomeKeyFacts.ts",
+      "import": "./src/majordomeKeyFacts.ts"
+    },
+    "./majordomeTopicFiles": {
+      "types": "./src/majordomeTopicFiles.ts",
+      "import": "./src/majordomeTopicFiles.ts"
+    },
     "./topicFolder": {
       "types": "./src/topicFolder.ts",
       "import": "./src/topicFolder.ts"

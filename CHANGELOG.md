@@ -14,6 +14,17 @@ Not released yet.
   technically do on a hosted server, what he promises, and why a server of your own is the
   better choice if you can run one. It carries a prompt to paste into an AI assistant that
   helps you pick a server and set it up. The page that sells a server links to it.
+- **Key facts, "In short" and Files on the iPhone.** A chat on the phone has a new button at the
+  top right, an "i" in a circle. It opens what sits beside the chat on the computer: the
+  conversation in short, then its dates, links, places and names, and for a topic the files kept
+  with it. Touch a link to open it, anything else to copy it, and a file to look at it. "Add a
+  file" puts one from the phone in the topic's folder; touch and hold a file to remove it. Not on
+  the phone yet: "Draw it", searching the key facts, and adding or removing a private document.
+  (From the next iPhone build.)
+
+**Try this**
+
+- On the iPhone, open a topic's chat and touch the "i" at the top right.
 
 ## 0.10.47
 
