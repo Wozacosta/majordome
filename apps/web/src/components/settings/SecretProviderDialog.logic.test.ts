@@ -79,6 +79,15 @@ describe("secretProviderFromDraft", () => {
     expect(from("exec", { command: "", args: "show" })).toEqual({ blocked: ["command"] });
     expect(from("exec", { command: "--version" })).toEqual({ blocked: ["command"] });
     expect(
+      from("bitwarden_secrets_manager", {
+        tokenName: "bitwarden",
+        serverUrl: "https://vault.bitwarden.eu",
+      }),
+    ).toEqual({ tokenName: "bitwarden", serverUrl: "https://vault.bitwarden.eu" });
+    expect(from("bitwarden_secrets_manager", { tokenName: "--access-token" })).toEqual({
+      blocked: ["tokenName"],
+    });
+    expect(
       Result.isFailure(
         secretProviderFromDraft(
           { name: "Keys", kind: kind("from_a_newer_build"), fields: {} },
@@ -93,6 +102,7 @@ describe("secretProviderFromDraft", () => {
     const drafts: Readonly<Record<string, Readonly<Record<string, string>>>> = {
       one_password: { account: "my.1password.com" },
       exec: { command: "pass", args: "show\n--clip" },
+      bitwarden_secrets_manager: { tokenName: "bitwarden" },
     };
     for (const definition of builtInSecretProviderDefinitions.definitions) {
       const fields = drafts[definition.kind] ?? {};
