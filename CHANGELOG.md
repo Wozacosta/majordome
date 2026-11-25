@@ -7,6 +7,14 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Who can get into a server Majordome hosts, said plainly.**
+  [majord.me/trust](https://majord.me/trust) lists what the person who runs Majordome can
+  technically do on a hosted server, what he promises, and why a server of your own is the
+  better choice if you can run one. It carries a prompt to paste into an AI assistant that
+  helps you pick a server and set it up. The page that sells a server links to it.
+
 ## 0.10.47
 
 **Fixed**

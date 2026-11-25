@@ -441,10 +441,10 @@ leave with **Settings > Back up my brain** and run Majordome on their own machin
 It cannot be proved away while the server has to read the notes to work, so the aim is to say it
 plainly, make it checkable, and narrow it. In order of what each buys for its cost:
 
-1. **Say it.** A short page, linked from `/start` and the privacy page: what the operator can
-   technically do, what it commits never to do (read notes, open a shell without being asked),
-   who has access (one person), where the machine is and who else could be made to hand it over
-   (Fly.io). Legal wording is for a professional; the facts are above.
+1. **Say it.** Done on 2026-11-25: `site/trust/index.html`, linked from `/start` and the
+   privacy page. Its promises are the owner's; the wording has not been read by a lawyer. Still
+   missing for someone who already has a server elsewhere: an install from the app, given the
+   server's address, in place of the seven steps by hand.
 2. **Show what runs.** The server shows the image digest it runs and the release it came from,
    and the release shows the same digest, built by public CI from the public source. Start at
    `image-digest.txt` in the release and `imageFor` in `infra/broker/src/worker.ts`. Add build
