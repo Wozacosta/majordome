@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Your Majordome server</title>
-    <meta name="description" content="Get a Majordome server that is always on, with an invite." />
+    <meta
+      name="description"
+      content="Get a Majordome server that is always on, and manage the one you have."
+    />
     <meta name="robots" content="noindex" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
@@ -20,6 +23,8 @@
         --button: #14161c;
         --button-text: #f4efe6;
         --problem: #a3261a;
+        --accent: #1f7a4d;
+        --accent-soft: #1f7a4d1f;
         --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
         --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
@@ -33,6 +38,8 @@
           --button: #f4efe6;
           --button-text: #14161c;
           --problem: #ff9d8f;
+          --accent: #6fd3a0;
+          --accent-soft: #6fd3a024;
         }
       }
       * {
@@ -88,35 +95,41 @@
       #sign-in {
         margin-top: 28px;
       }
-      ul {
-        list-style: none;
-        margin: 28px 0 0;
-        padding: 0;
-        border-top: 1px solid var(--line);
+      .card {
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
       }
-      li {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px 16px;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      li .name {
-        flex: 1 1 10rem;
-        min-width: 0;
+      .badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.85rem;
         font-weight: 600;
       }
-      li .host {
-        display: block;
-        font-weight: 400;
-        font-size: 0.9rem;
-        overflow-wrap: anywhere;
+      .gets {
+        list-style: none;
+        margin: 22px 0 26px;
+        padding: 20px 0 0;
+        border-top: 1px solid var(--line);
       }
-      li .problem {
-        flex-basis: 100%;
-        margin-top: 0;
-        font-size: 0.95rem;
+      .gets li {
+        position: relative;
+        padding: 5px 0 5px 28px;
+      }
+      .gets li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 0.8em;
+        width: 11px;
+        height: 6px;
+        border-left: 2px solid var(--accent);
+        border-bottom: 2px solid var(--accent);
+        transform: rotate(-45deg);
       }
       button {
         font: inherit;
@@ -164,25 +177,145 @@
       ol {
         list-style: none;
         margin: 28px 0 0;
-        padding: 0;
       }
       ol li {
-        display: block;
-        padding: 10px 0;
-        border: 0;
+        position: relative;
+        padding: 0 0 22px 36px;
         color: var(--muted);
+      }
+      ol li:last-child {
+        padding-bottom: 0;
+      }
+      ol li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.25em;
+        box-sizing: border-box;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--line);
+        border-radius: 50%;
+      }
+      ol li:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: calc(0.25em + 22px);
+        bottom: 0;
+        width: 2px;
+        background: var(--line);
       }
       ol li.now {
         color: var(--ink);
         font-weight: 600;
       }
+      ol li.now::before {
+        border-color: var(--accent-soft);
+        border-top-color: var(--accent);
+        animation: turn 0.9s linear infinite;
+      }
       ol li.done::before {
-        content: "\2713  ";
+        border-color: var(--accent);
+        background: var(--accent)
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.3l2.6 2.6L11 4.4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+          center / 14px no-repeat;
+      }
+      ol li.done::after {
+        background: var(--accent);
+      }
+      @media (prefers-color-scheme: dark) {
+        ol li.done::before {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.3l2.6 2.6L11 4.4' fill='none' stroke='%2314161c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+      }
+      @keyframes turn {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        ol li.now::before {
+          animation: none;
+        }
+      }
+      #note:not(:empty) {
+        margin-top: 16px;
+        font-size: 0.95rem;
+      }
+      section {
+        margin-top: 28px;
+      }
+      section p + p,
+      section p + .button {
+        margin-top: 14px;
+      }
+      .price {
+        font-family: var(--serif);
+        font-size: 3rem;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+      .badge + .price {
+        margin-top: 14px;
+      }
+      .price .per {
+        font-family: var(--sans);
+        font-size: 1rem;
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      section .price + p {
+        margin-top: 6px;
+      }
+      .button.wide {
+        display: block;
+        width: 100%;
+        padding: 13px 20px;
+        font-size: 1.05rem;
+      }
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 24px;
+        margin-top: 24px;
+        font-size: 0.95rem;
+      }
+      .foot .link {
+        margin-top: 0;
+      }
+      .small {
+        font-size: 0.9rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .button {
+        display: inline-block;
+        text-decoration: none;
+      }
+      .button.quiet {
+        background: none;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      section .link {
+        display: block;
+        margin-top: 20px;
+        font-size: 0.95rem;
       }
       [hidden] {
         display: none !important;
       }
     </style>
+    <script defer src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <main>
@@ -196,6 +329,41 @@
       <p class="muted" id="intro">Sign in to make your server. It will belong to your account.</p>
       <p class="problem" id="problem" role="alert" hidden></p>
       <div id="sign-in"></div>
+      <section class="card" id="manage" hidden>
+        <p id="standing"></p>
+        <p class="actions">
+          <a class="button" id="open" href="/open">Open my server</a>
+          <button class="button quiet" id="portal" type="button" hidden>
+            Payment and invoices
+          </button>
+          <button class="button quiet" id="wake" type="button" hidden>
+            Switch it on for a day
+          </button>
+        </p>
+        <p class="muted small" id="manage-note"></p>
+        <button class="link" id="delete-account" type="button">Delete my account</button>
+      </section>
+      <section class="card" id="offer" hidden>
+        <p class="badge" id="trial" hidden></p>
+        <p class="price"><span id="price"></span> <span class="per" id="per"></span></p>
+        <p class="muted" id="price-terms"></p>
+        <ul class="gets">
+          <li>Always on, in Paris</li>
+          <li>Your notes and conversations on all your devices</li>
+          <li>A copy of its disk every day, kept 30 days</li>
+          <li>Runs on your own Claude plan, which is not included</li>
+        </ul>
+        <button class="button wide" id="buy" type="button">Continue to payment</button>
+        <p class="muted small">
+          By continuing you accept the <a href="/terms">terms of sale</a>. See also
+          <a href="/privacy">Privacy</a>.
+        </p>
+        <p class="muted small">
+          Majordome's publisher runs this server and could technically get into it.
+          <a href="/trust">What he can see, what he promises</a>, and why your own server is the
+          better choice if you can run one.
+        </p>
+      </section>
       <form id="ask" hidden>
         <label for="invite">Invite code</label>
         <input
@@ -208,14 +376,17 @@
         />
         <button class="button" id="go" type="submit">Make my server</button>
       </form>
-      <ol id="steps" hidden>
+      <ol class="card" id="steps" hidden>
         <li data-step="made">Making your server</li>
         <li data-step="on">Switching it on</li>
         <li data-step="ready">Starting Majordome</li>
         <li data-step="open">Opening your server</li>
       </ol>
       <p class="muted" id="note" role="status"></p>
-      <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+      <p class="foot">
+        <button class="link" id="have-invite" type="button" hidden>I have an invite code</button>
+        <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+      </p>
     </main>
     <script type="module">
       // The account service's key is public. It only signs in on majord.me and its subdomains.
@@ -261,24 +432,36 @@
         });
       }
 
-      async function make(clerk) {
-        const accountToken = await clerk.session?.getToken({
-          template: "majordome",
-          skipCache: true,
-        });
-        if (!accountToken) throw new Error("Sign in again, then try once more.");
-        const response = await fetch(`${broker}/v1/hosted`, {
+      const accountToken = async (clerk) => {
+        const token = await clerk.session?.getToken({ template: "majordome", skipCache: true });
+        if (!token) throw new Error("Sign in again, then try once more.");
+        return token;
+      };
+
+      /** Asks the service something as the signed-in account. Throws what it should show. */
+      async function ask(clerk, path, fields = {}) {
+        const response = await fetch(`${broker}${path}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ invite: $("invite").value.trim(), accountToken }),
+          body: JSON.stringify({ ...fields, accountToken: await accountToken(clerk) }),
         }).catch(() => null);
         if (response === null) {
           throw new Error("Could not reach Majordome. Check your connection, then try again.");
         }
-        const server = await response.json().catch(() => ({}));
+        const answer = response.status === 204 ? {} : await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(server.message || "That did not work. Try again in a few minutes.");
+          const error = new Error(
+            answer.message || "That did not work. Try again in a few minutes.",
+          );
+          error.status = response.status;
+          throw error;
         }
+        return answer;
+      }
+
+      /** Makes the server from an invite, or the one that was just paid for, and opens it. */
+      async function make(clerk, fields) {
+        const server = await ask(clerk, "/v1/hosted", fields);
         show("on");
         $("note").textContent = "This usually takes under a minute. Keep this page open.";
         const started = Date.now();
@@ -300,10 +483,12 @@
           await wait(2500);
         }
         show("open");
+        // A server made while this page was closed has no one-time link: the account opens it.
+        const opens = server.pairingUrl ?? "/open";
         if (!ready) {
           // Never send someone to a server that does not answer: they would see an error page.
           const link = document.createElement("a");
-          link.href = server.pairingUrl;
+          link.href = opens;
           link.textContent = "Open my server";
           $("note").textContent =
             "Your server is made but has not answered yet. Wait a minute, then: ";
@@ -312,7 +497,96 @@
         }
         // Best effort: the server already belongs to the account, and the app can list it later.
         await listServer(clerk, server).catch(() => undefined);
-        location.assign(server.pairingUrl);
+        location.assign(opens);
+      }
+
+      async function making(clerk, fields) {
+        showProblem("");
+        for (const id of ["ask", "offer", "manage", "have-invite"]) $(id).hidden = true;
+        $("steps").hidden = false;
+        show("made");
+        try {
+          await make(clerk, fields);
+        } catch (error) {
+          $("steps").hidden = true;
+          $("note").textContent = "";
+          await view(clerk, false);
+          showProblem(error.message);
+        }
+      }
+
+      const day = (ms) =>
+        new Date(ms).toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+
+      /** What the signed-in person sees: what they have, what they can buy, or the invite form. */
+      async function view(clerk, finish = true) {
+        // Paying is not offered everywhere yet: without it this page takes an invite, as before.
+        const status = await ask(clerk, "/v1/billing/status").catch(() => null);
+        const server = status?.server ?? null;
+        const live = status?.state === "active" || status?.state === "past_due";
+        const offer = status?.offer ?? null;
+        $("manage").hidden = !live && server === null;
+        $("offer").hidden = live || offer === null || status.canBuy !== true;
+        $("ask").hidden = status !== null && (live || server !== null || !$("offer").hidden);
+        if (!$("offer").hidden && query.get("invite")) {
+          $("ask").hidden = false;
+          $("have-invite").hidden = true;
+        }
+        if (status === null) return;
+        if (!$("offer").hidden) {
+          const price = new Intl.NumberFormat(undefined, {
+            style: "currency",
+            currency: offer.currency,
+            minimumFractionDigits: offer.amount % 100 === 0 ? 0 : 2,
+          }).format(offer.amount / 100);
+          $("price").textContent = price;
+          $("per").textContent = `a ${offer.interval}`;
+          $("trial").hidden = !(offer.trialDays > 0);
+          $("trial").textContent = `${offer.trialDays} days free`;
+          $("price-terms").textContent =
+            offer.trialDays > 0
+              ? "Nothing to pay today. Tax included. Cancel when you like."
+              : "Tax included. Cancel when you like.";
+          $("buy").textContent =
+            offer.trialDays > 0 ? "Start my free trial" : "Continue to payment";
+        }
+        $("have-invite").hidden = server !== null || !$("ask").hidden;
+        if ($("manage").hidden) {
+          if (status.canBuy !== true && offer !== null) {
+            $("intro").textContent =
+              "Majordome is not taking new servers right now. Try again later.";
+          }
+          return;
+        }
+        if (live && server === null) {
+          // Paid for and not made yet: the page that would have made it was closed.
+          if (finish) return making(clerk, {});
+          $("manage").hidden = true;
+          return;
+        }
+        const until = status.periodEnd === null ? "" : day(status.periodEnd);
+        $("standing").textContent = !live
+          ? server.stopped
+            ? `Your server is switched off. It is deleted with its notes on ${day(server.deleteAt)}.`
+            : `Your server is on until ${day(server.awakeUntil)}, so you can get your notes out. It is deleted with its notes on ${day(server.deleteAt)}.`
+          : status.state === "past_due"
+            ? "The last payment did not go through. Update your card to keep your server."
+            : status.cancels
+              ? `Your subscription is cancelled. Your server runs until ${until}.`
+              : `Your server is on. Next payment on ${until}.`;
+        $("open").hidden = server.stopped;
+        $("portal").hidden = status.source !== "web";
+        $("wake").hidden = live || !server.stopped || !server.canWake;
+        $("manage-note").textContent =
+          status.source === "apple" && live
+            ? "You pay through Apple. To change or cancel, open Settings on your iPhone, then your name, then Subscriptions."
+            : !live
+              ? "To keep your notes, switch the server on, open it, and use Settings > Back up my brain."
+              : "";
       }
 
       let shown;
@@ -321,8 +595,8 @@
         if (signedIn === shown) return;
         shown = signedIn;
         $("sign-out").hidden = !signedIn;
-        $("ask").hidden = !signedIn;
         if (!signedIn) {
+          for (const id of ["ask", "offer", "manage"]) $(id).hidden = true;
           $("intro").textContent = "Sign in to make your server. It will belong to your account.";
           clerk.mountSignIn($("sign-in"), {
             forceRedirectUrl: location.href,
@@ -333,7 +607,25 @@
         clerk.unmountSignIn($("sign-in"));
         $("intro").textContent =
           "A server that is always on, so Majordome keeps working while your computer is off.";
+        const paid = query.get("paid");
+        if (paid === null) return view(clerk);
+        // Back from paying. The address is cleaned so a reload does not ask again.
+        history.replaceState(null, "", location.pathname);
+        return making(clerk, { checkoutSession: paid });
       }
+
+      /** Runs what a button asks, with the button off meanwhile and any problem shown. */
+      const press = (id, action) =>
+        $(id).addEventListener("click", async () => {
+          showProblem("");
+          $(id).disabled = true;
+          try {
+            await action(window.Clerk);
+          } catch (error) {
+            showProblem(error.message);
+          }
+          $(id).disabled = false;
+        });
 
       try {
         const frontendApi = atob(key.split("_")[2]).replace(/\$$/, "");
@@ -356,22 +648,36 @@
         $("sign-out").addEventListener("click", () =>
           window.Clerk.signOut({ redirectUrl: location.href }),
         );
-        $("ask").addEventListener("submit", async (event) => {
+        $("ask").addEventListener("submit", (event) => {
           event.preventDefault();
-          showProblem("");
-          $("go").disabled = true;
-          $("ask").hidden = true;
-          $("steps").hidden = false;
-          show("made");
-          try {
-            await make(window.Clerk);
-          } catch (error) {
-            $("steps").hidden = true;
-            $("ask").hidden = false;
-            $("go").disabled = false;
-            $("note").textContent = "";
-            showProblem(error.message);
-          }
+          return making(window.Clerk, { invite: $("invite").value.trim() });
+        });
+        press("buy", async (clerk) => {
+          const startedOn = matchMedia("(pointer: coarse)").matches ? "phone" : "computer";
+          location.assign((await ask(clerk, "/v1/billing/checkout", { startedOn })).url);
+        });
+        press("portal", async (clerk) => {
+          location.assign((await ask(clerk, "/v1/billing/portal")).url);
+        });
+        press("wake", async (clerk) => {
+          await ask(clerk, "/v1/billing/wake");
+          await view(clerk);
+        });
+        press("delete-account", async (clerk) => {
+          const sure = confirm(
+            "Delete your account? Your subscription ends now, and your server is deleted with every note on it. This cannot be undone.",
+          );
+          if (!sure) return;
+          // Where paying is not offered there is no subscription and no server to end.
+          await ask(clerk, "/v1/billing/delete-account").catch((error) => {
+            if (error.status !== 404) throw error;
+          });
+          await clerk.user.delete();
+          location.assign("/");
+        });
+        $("have-invite").addEventListener("click", () => {
+          $("ask").hidden = false;
+          $("have-invite").hidden = true;
         });
         // An invitation link can carry its code, so there is nothing to type.
         $("invite").value = query.get("invite") ?? "";

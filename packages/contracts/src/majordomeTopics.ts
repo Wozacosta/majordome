@@ -214,13 +214,21 @@ export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
 export type MajordomeOpenRoutinesConversationInput =
   typeof MajordomeOpenRoutinesConversationInput.Type;
 
+const isDateTimeText = Schema.makeFilter((value: string) => !Number.isNaN(Date.parse(value)), {
+  expected: "a date and time",
+});
+
 /** One message of a conversation moved between computers: the words only. */
 export const MajordomeMovedMessage = Schema.Struct({
   role: Schema.Literals(["user", "assistant"]),
   text: Schema.String,
-  createdAt: Schema.String,
+  createdAt: Schema.String.check(isDateTimeText),
 });
 export type MajordomeMovedMessage = typeof MajordomeMovedMessage.Type;
+
+/** Far past any real conversation: they keep one request from filling the server's disk. */
+export const MAJORDOME_MOVED_MESSAGES_MAX = 50_000;
+export const MAJORDOME_MOVED_MESSAGE_TEXT_MAX = 1_000_000;
 
 export const MajordomeTopicConversation = Schema.Struct({
   /** Null when the topic has no conversation on this server. */
@@ -233,7 +241,12 @@ export const MajordomeAdoptTopicConversationInput = Schema.Struct({
   ...MajordomeTopicRefInput.fields,
   /** Names the conversation being moved, so moving it twice gives the same thread. */
   sourceKey: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9:_-]{1,200}$/)),
-  messages: Schema.Array(MajordomeMovedMessage),
+  messages: Schema.Array(
+    Schema.Struct({
+      ...MajordomeMovedMessage.fields,
+      text: Schema.String.check(Schema.isMaxLength(MAJORDOME_MOVED_MESSAGE_TEXT_MAX)),
+    }),
+  ).check(Schema.isMaxLength(MAJORDOME_MOVED_MESSAGES_MAX)),
 });
 export type MajordomeAdoptTopicConversationInput = typeof MajordomeAdoptTopicConversationInput.Type;
 
@@ -249,3 +262,42 @@ export class MajordomeTopicsError extends Schema.TaggedError<MajordomeTopicsErro
     cause: Schema.optional(Schema.Defect()),
   },
 ) {}
+
+export const MajordomeChatKnowledgeInput = Schema.Struct({ threadId: ThreadId });
+export type MajordomeChatKnowledgeInput = typeof MajordomeChatKnowledgeInput.Type;
+
+/**
+ * What a chat is given of the notes folder before its first message, by name and not by content.
+ * Read fresh, so it is what a conversation started now would get.
+ */
+export const MajordomeChatKnowledgeResult = Schema.Struct({
+  /** False when the chat does not work in a notes folder; the rest is then empty. */
+  isVault: Schema.Boolean,
+  /** The one note every chat starts with; null when it is missing or empty. */
+  memory: Schema.NullOr(
+    Schema.Struct({
+      path: Schema.String,
+      /** True when the note is longer than chats load, so its end is left out. */
+      cut: Schema.Boolean,
+    }),
+  ),
+  /** The daily notes that exist, today's first. */
+  dailyNotes: Schema.Array(
+    Schema.Struct({ day: Schema.Literals(["today", "yesterday"]), path: Schema.String }),
+  ),
+  /** The topic the chat belongs to, whose folder it starts with. */
+  topic: Schema.NullOr(
+    Schema.Struct({ id: Schema.String, title: Schema.String, folder: Schema.String }),
+  ),
+  /** The open topics it is told about without their notes, in the owner's order. */
+  otherTopics: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      title: Schema.String,
+      folder: Schema.String,
+      /** One line on where it stands; null when its log does not say. */
+      standing: Schema.NullOr(Schema.String),
+    }),
+  ),
+});
+export type MajordomeChatKnowledgeResult = typeof MajordomeChatKnowledgeResult.Type;

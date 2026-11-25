@@ -148,9 +148,12 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeGetNotesIndexStatus]: AuthOrchestrationReadScope,
   // Names, sizes and the access log; the content needs an approval or `viewPrivateDocument`.
   [WS_METHODS.majordomeListPrivateDocuments]: AuthOrchestrationReadScope,
+  // Names and what each is for; a value never leaves the server.
+  [WS_METHODS.majordomeListSavedKeys]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetPrivateDocumentRequest]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetApproval]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeGetChatKnowledge]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeReadTopicConversation]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListReadingItems]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListReadyRoutines]: AuthOrchestrationReadScope,

@@ -520,6 +520,30 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodePlatformCrypto.layer))(
           "ServerAuthInvalidCredentialError",
         );
 
+        // A Majordome account sign-in keeps a phone signed in the same way.
+        const account = yield* serverAuth
+          .createPairingLink({
+            subject: EnvironmentAuth.MAJORDOME_ACCOUNT_SUBJECT,
+            scopes: ["orchestration:read"],
+          })
+          .pipe(
+            Effect.flatMap((link) =>
+              serverAuth.exchangeBootstrapCredentialForAccessToken(
+                link.credential,
+                undefined,
+                requestMetadata,
+                { proofKeyThumbprint: other.thumbprint },
+              ),
+            ),
+          );
+        yield* TestClock.adjust("2 hours");
+        const kept = yield* serverAuth.renewAccessToken(
+          account.access_token,
+          other.thumbprint,
+          Effect.void,
+        );
+        expect(kept.scope).toBe("orchestration:read");
+
         // Idle past the window, the device pairs again.
         const idle = yield* pair(key.thumbprint);
         yield* TestClock.adjust("31 days");

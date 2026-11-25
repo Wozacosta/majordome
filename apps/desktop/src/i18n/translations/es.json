@@ -123,6 +123,9 @@
   "202e13f15a3dcd30": "Copiar enlace",
   "8af79268f2349f4c": "Copiar dirección de correo",
   "a9f9254d458e49fe": "Copiar imagen",
+  "7ebaae4ef5d251ca": "Copiar inicio de sesión",
+  "5856a12fee6fc41c": "¿Copiar tu inicio de sesión de {host}?",
+  "dfe362dd66db4dcd": "Esto lee las cookies que tu navegador de este ordenador guarda para {host} y las envía a un navegador de otro ordenador, que queda con tu sesión iniciada.",
   "9c1b20fbc881de5d": "Configuración de escritorio",
   "1b14230874f19eb9": "Imágenes"
 }

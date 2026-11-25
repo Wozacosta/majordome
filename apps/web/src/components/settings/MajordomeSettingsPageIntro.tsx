@@ -28,7 +28,7 @@ const UPSTREAM_PAGE_INTROS = {
     "How the assistant uses the built-in browser, where links open, and how recordings look.",
   "/settings/keybindings": "See and change the keyboard shortcuts of this app.",
   "/settings/secrets":
-    "Where your passwords and keys are kept, such as the Mac Keychain or 1Password, so you never have to paste one into a field.",
+    "The keys your assistant can use, and where Majordome's own passwords and keys are kept, such as the Mac Keychain or 1Password.",
   "/settings/maintenance":
     "Updates, what keeps running in the background, cleaning up old files, and diagnostics for when something goes wrong.",
   "/settings/labs": "Features that are still being tried out. They may change or go away.",

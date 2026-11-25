@@ -8,7 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  CircleCheckIcon,
+  ArchiveIcon,
   FolderInputIcon,
   MessageCirclePlusIcon,
   NotebookTextIcon,
@@ -53,7 +53,7 @@ export interface TopicActions {
   readonly openDialog: (request: TopicDialogRequest) => void;
   readonly changeIcon: (topic: MajordomeTopic) => void;
   readonly openFolder: (topic: MajordomeTopic) => void;
-  /** Marks the topic as done, or brings it back; says so, with a way to undo. */
+  /** Closes the topic, or reopens it; says so, with a way to undo. */
   readonly setFinished: (topic: MajordomeTopic, finished: boolean) => Promise<void>;
   readonly remove: (topic: MajordomeTopic) => void;
   /** The dialogs these open; render it once, beside the menus. */
@@ -85,18 +85,18 @@ export function useTopicActions(
     });
     if (result._tag === "Failure") {
       reportTopicFailure(
-        finished ? `Could not mark ${topic.title} as done` : `Could not bring ${topic.title} back`,
+        finished ? `Could not close ${topic.title}` : `Could not reopen ${topic.title}`,
         result,
       );
       return;
     }
     if (!finished) {
-      toastManager.add({ type: "success", title: `${topic.title} is back in your topics` });
+      toastManager.add({ type: "success", title: `${topic.title} is open again` });
       return;
     }
     const toastId = toastManager.add({
       type: "success",
-      title: `${topic.title} is marked as done`,
+      title: `${topic.title} is closed`,
       description: "Its notes and chat are kept.",
       actionProps: {
         children: "Undo",
@@ -150,7 +150,7 @@ export function useTopicActions(
 
 /**
  * A topic's menu, the same wherever it shows: on its row in the sidebar and in its chat's header.
- * A topic marked as done offers no new chat and has no place to move to.
+ * A closed topic offers no new chat and has no place to move to.
  */
 export function TopicMenuItems({
   topic,
@@ -211,8 +211,8 @@ export function TopicMenuItems({
       )}
       <MenuSeparator />
       <MenuItem onClick={() => void actions.setFinished(topic, !done)}>
-        {done ? <Undo2Icon /> : <CircleCheckIcon />}
-        {done ? "Bring back" : "Mark as done"}
+        {done ? <Undo2Icon /> : <ArchiveIcon />}
+        {done ? "Reopen this topic" : "Close this topic"}
       </MenuItem>
       <MenuItem variant="destructive" onClick={() => actions.remove(topic)}>
         <TrashIcon />

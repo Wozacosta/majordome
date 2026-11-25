@@ -213,6 +213,13 @@ import {
   MajordomeKeyFactsResult,
 } from "./majordomeKeyFacts.ts";
 import {
+  MajordomeRemoveSavedKeyInput,
+  MajordomeSaveKeyInput,
+  MajordomeSavedKey,
+  MajordomeSavedKeysError,
+  MajordomeSavedKeysResult,
+} from "./majordomeSavedKeys.ts";
+import {
   MajordomeCreateTopicInput,
   MajordomeDismissTopicSuggestionsInput,
   MajordomeOpenRoutinesConversationInput,
@@ -228,6 +235,8 @@ import {
   MajordomeTopicRefInput,
   MajordomeTopicsError,
   MajordomeTopicsInput,
+  MajordomeChatKnowledgeInput,
+  MajordomeChatKnowledgeResult,
   MajordomeTopicsResult,
   MajordomeUpdateTopicInput,
 } from "./majordomeTopics.ts";
@@ -928,6 +937,9 @@ export const WS_METHODS = {
   majordomeListPrivateDocuments: "majordome.listPrivateDocuments",
   majordomeAddPrivateDocument: "majordome.addPrivateDocument",
   majordomeRemovePrivateDocument: "majordome.removePrivateDocument",
+  majordomeListSavedKeys: "majordome.listSavedKeys",
+  majordomeSaveKey: "majordome.saveKey",
+  majordomeRemoveSavedKey: "majordome.removeSavedKey",
   majordomeViewPrivateDocument: "majordome.viewPrivateDocument",
   majordomeGetPrivateDocumentRequest: "majordome.getPrivateDocumentRequest",
   majordomeAnswerPrivateDocumentRequest: "majordome.answerPrivateDocumentRequest",
@@ -944,6 +956,7 @@ export const WS_METHODS = {
   majordomeConnectGoogleDriveWait: "majordome.connectGoogleDriveWait",
   majordomeConnectGoogleDriveCancel: "majordome.connectGoogleDriveCancel",
   majordomeListTopics: "majordome.listTopics",
+  majordomeGetChatKnowledge: "majordome.getChatKnowledge",
   majordomeCreateTopic: "majordome.createTopic",
   majordomeSuggestTopicFolder: "majordome.suggestTopicFolder",
   majordomeUpdateTopic: "majordome.updateTopic",
@@ -2904,6 +2917,25 @@ const WsMajordomeRemovePrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeRemoveP
   error: privateDocumentErrors,
 });
 
+const savedKeysErrors = Schema.Union([MajordomeSavedKeysError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListSavedKeysRpc = Rpc.make(WS_METHODS.majordomeListSavedKeys, {
+  payload: Schema.Struct({}),
+  success: MajordomeSavedKeysResult,
+  error: savedKeysErrors,
+});
+
+const WsMajordomeSaveKeyRpc = Rpc.make(WS_METHODS.majordomeSaveKey, {
+  payload: MajordomeSaveKeyInput,
+  success: MajordomeSavedKey,
+  error: savedKeysErrors,
+});
+
+const WsMajordomeRemoveSavedKeyRpc = Rpc.make(WS_METHODS.majordomeRemoveSavedKey, {
+  payload: MajordomeRemoveSavedKeyInput,
+  error: savedKeysErrors,
+});
+
 const WsMajordomeViewPrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeViewPrivateDocument, {
   payload: MajordomePrivateDocumentInput,
   success: MajordomeViewPrivateDocumentResult,
@@ -2936,6 +2968,12 @@ const WsMajordomeGetApprovalRpc = Rpc.make(WS_METHODS.majordomeGetApproval, {
 const WsMajordomeAnswerApprovalRpc = Rpc.make(WS_METHODS.majordomeAnswerApproval, {
   payload: MajordomeAnswerApprovalInput,
   error: Schema.Union([MajordomeApprovalError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeGetChatKnowledgeRpc = Rpc.make(WS_METHODS.majordomeGetChatKnowledge, {
+  payload: MajordomeChatKnowledgeInput,
+  success: MajordomeChatKnowledgeResult,
+  error: EnvironmentAuthorizationError,
 });
 
 const WsMajordomeListTopicsRpc = Rpc.make(WS_METHODS.majordomeListTopics, {
@@ -3589,6 +3627,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListPrivateDocumentsRpc,
   WsMajordomeAddPrivateDocumentRpc,
   WsMajordomeRemovePrivateDocumentRpc,
+  WsMajordomeListSavedKeysRpc,
+  WsMajordomeSaveKeyRpc,
+  WsMajordomeRemoveSavedKeyRpc,
   WsMajordomeViewPrivateDocumentRpc,
   WsMajordomeGetPrivateDocumentRequestRpc,
   WsMajordomeAnswerPrivateDocumentRequestRpc,
@@ -3605,6 +3646,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeConnectGoogleDriveWaitRpc,
   WsMajordomeConnectGoogleDriveCancelRpc,
   WsMajordomeListTopicsRpc,
+  WsMajordomeGetChatKnowledgeRpc,
   WsMajordomeCreateTopicRpc,
   WsMajordomeSuggestTopicFolderRpc,
   WsMajordomeUpdateTopicRpc,

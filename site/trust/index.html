@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Who can get into your server | Majordome</title>
+    <meta
+      name="description"
+      content="What the person who runs Majordome can see on a server he hosts for you, what he promises, and why your own server is the better choice."
+    />
+    <link rel="canonical" href="https://majord.me/trust" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li .name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 600;
+      }
+      li .host {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+      li .problem {
+        flex-basis: 100%;
+        margin-top: 0;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        margin-top: 28px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 1.45rem;
+        letter-spacing: -0.01em;
+        margin: 40px 0 10px;
+      }
+      h3 {
+        font-size: 1.02rem;
+        margin: 22px 0 4px;
+      }
+      main p + p {
+        margin-top: 12px;
+      }
+      main ul {
+        display: block;
+        border: 0;
+        list-style: disc;
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      main li {
+        display: list-item;
+        padding: 3px 0;
+        border: 0;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      main ul + p {
+        margin-top: 12px;
+      }
+      pre {
+        margin: 12px 0 0;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        font:
+          0.9rem/1.55 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .copy {
+        margin-top: 12px;
+      }
+    </style>
+    <script defer src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>Who can get into your server</h1>
+      <p class="muted">Last updated 25 November 2026.</p>
+
+      <h2>The short version</h2>
+      <p>
+        If Majordome hosts your server, the person who runs Majordome can technically get into it.
+        He promises not to, and nothing but that promise stops him. You cannot check it.
+      </p>
+      <p>
+        If you know how to rent a server, or are willing to follow ten minutes of steps, run your
+        own. It is the better choice: it is in your name, it costs less, and nobody at Majordome has
+        a way in. The hosted server is for people who would rather not rent or look after anything,
+        and who accept the promise below.
+      </p>
+
+      <h2>A server Majordome hosts</h2>
+      <p>
+        Majordome is published and run by one person, Samy Rabah, in France. A hosted server is a
+        machine in Paris rented from <a href="https://fly.io">Fly.io</a>, in an account he owns. It
+        holds your notes, your conversations and your sign-in to Claude, because the assistant has
+        to read them to work while your own devices are off.
+      </p>
+
+      <h3>What he can technically do</h3>
+      <ul>
+        <li>Open a terminal on your server and read or change anything on it.</li>
+        <li>Read the daily copies of its disk, which are kept for 30 days.</li>
+        <li>Change the program it runs. Every night your server moves to the latest release.</li>
+      </ul>
+      <p>
+        Fly.io can too. It owns the machines and holds the keys that encrypt their disks. It says
+        its staff look at a customer's machine only for security, for maintenance, or for support
+        with the owner's consent.
+      </p>
+      <p>
+        There is no record of who went in that could be shown to you. Fly.io keeps none that its
+        customers can read, and one kept on the server could be edited by whoever got in.
+      </p>
+
+      <h3>What he promises</h3>
+      <ul>
+        <li>Never to read your notes or your conversations.</li>
+        <li>Never to open a terminal on your server unless you ask for help in writing.</li>
+        <li>Never to use your sign-in to Claude.</li>
+        <li>
+          To put on your server only the releases published for everyone, built from the
+          <a href="https://github.com/Wozacosta/majordome">public code</a>.
+        </li>
+        <li>To delete the server and its disk copies when you ask, or when its time runs out.</li>
+      </ul>
+      <p>
+        These are promises, not locks. The code is public, so anyone can read what a release does.
+        Your server does not yet show you which release it runs; that is planned.
+      </p>
+
+      <h3>What is true wherever Majordome runs</h3>
+      <p>
+        The assistant is Claude. What it reads to answer you goes to Anthropic under your own Claude
+        plan and their terms. That is the same on a hosted server, on your own server and on your
+        computer.
+      </p>
+
+      <h2>The better choice: your own server</h2>
+      <p>
+        You rent a small server in your own name and Majordome runs there. You pay the company you
+        rent from, about €5 a month for the smallest one that fits, and Majordome charges nothing.
+        The server answers only to your own devices, not to the internet. Nobody at Majordome has a
+        key to it.
+      </p>
+      <p>
+        You still trust two things: the company you rent from, which could read its own disks, and
+        the Majordome code you choose to run, which is public.
+      </p>
+      <ul>
+        <li>
+          <strong>The short way.</strong> In the app, open
+          <strong>Settings &gt; Your server</strong>. You paste one key from Hetzner and one from
+          Tailscale, press one button, and the app rents the server, installs Majordome and copies
+          your notes.
+        </li>
+        <li>
+          <strong>Any other company, by hand.</strong> Seven steps in a terminal, on any server with
+          Ubuntu and 2 GB of memory.
+        </li>
+      </ul>
+      <p>
+        Both are in
+        <a href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md"
+          >the guide to your own server</a
+        >.
+      </p>
+
+      <h3>Ask an AI assistant to walk you through it</h3>
+      <p>
+        Not sure which server to rent? Paste this into Claude, ChatGPT or another assistant that can
+        search the web. It asks you a few questions, then helps you choose and set up.
+      </p>
+      <pre id="prompt">
+I want to run Majordome, an open-source app, on a small server I rent in my own name, so that nobody but me has access to it. Help me choose the server and set it up, one step at a time.
+
+First ask me, one question at a time: which country I live in, how much I want to pay each month, whether I have used a terminal before, and whether I care which country my data is kept in.
+
+What the server needs: Ubuntu, at least 2 GB of memory, and Docker. The smallest disk on offer is enough to start. It needs no public website: Majordome is reached privately through Tailscale, which is free for personal use.
+
+Then:
+1. Suggest three companies that fit my answers. Look up their prices today instead of quoting from memory, and tell me the monthly price with tax, where the server would be, and whether disk backups cost extra. Say which one you would pick and why.
+2. Tell me that if I pick Hetzner, the Majordome app can do the whole setup for me from Settings > Your server, and that I can stop here.
+3. Otherwise, read the "Do it by hand" steps at https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md and walk me through them one at a time. Wait for me to say each step worked before giving the next. Explain each command in one sentence before I run it.
+4. Never ask me to paste a password, a key or a token into this chat. Tell me where to paste it instead.
+5. At the end, tell me how to turn on nightly updates, how to back up my notes, and what I will be billed each month and by whom.
+
+Use plain words. If something fails, ask me to paste the exact error message.</pre>
+      <button class="button copy" id="copy" type="button">Copy</button>
+
+      <h2>Leaving a hosted server</h2>
+      <p>
+        You are never held. On your hosted server, open
+        <strong>Settings &gt; Back up my brain</strong> to take your notes with their whole history,
+        then set up your own server or keep Majordome on your computer. Cancel on
+        <a href="/server">your server's page</a>. The <a href="/terms">terms</a> say when the server
+        and its copies are deleted, and <a href="/privacy">Privacy</a> lists what each service
+        keeps.
+      </p>
+
+      <h2>Questions</h2>
+      <p>Write to <a href="mailto:privacy@majord.me">privacy@majord.me</a>.</p>
+    </main>
+    <script>
+      document.getElementById("copy").addEventListener("click", async (event) => {
+        const text = document.getElementById("prompt").textContent.trim();
+        try {
+          await navigator.clipboard.writeText(text);
+          event.target.textContent = "Copied";
+        } catch {
+          // No clipboard here: select the text so it can be copied by hand.
+          const range = document.createRange();
+          range.selectNodeContents(document.getElementById("prompt"));
+          const selection = getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      });
+    </script>
+  </body>
+</html>

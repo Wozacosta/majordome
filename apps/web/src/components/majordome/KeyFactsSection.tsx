@@ -1,33 +1,24 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { refreshMajordomeKeyFacts } from "@t3tools/client-runtime/state/majordome";
-import type { EnvironmentId, MajordomeKeyFactKind, ThreadId } from "@t3tools/contracts";
+import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
-import { CalendarIcon, LinkIcon, type LucideIcon, MapPinIcon, UserIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useRightPanelStore } from "../../rightPanelStore";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShell } from "../../state/entities";
 import { majordomeEnvironment } from "../../state/majordome";
-import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
-import { THREAD_DETAILS_PANEL_ICON_CLASS } from "../chat/threadDetailsPanelStyles";
 import { ThreadDetailsSection } from "../chat/ThreadDetailsSection";
-import { toastManager } from "../ui/toast";
+import { Button } from "../ui/button";
 import { DrawConversationButton } from "./ConversationDrawing";
-import { keyFactGroups, type KeyFactRow } from "./keyFacts.logic";
-
-const ICONS: Record<MajordomeKeyFactKind, LucideIcon> = {
-  link: LinkIcon,
-  place: MapPinIcon,
-  date: CalendarIcon,
-  person: UserIcon,
-};
+import { KeyFactRows } from "./KeyFactRow";
+import { firstKeyFacts, keyFactGroups, localDay } from "@t3tools/shared/majordomeKeyFacts";
 
 /**
- * What a conversation mentioned that is worth finding again (its links, places, dates and names)
- * and, under them, the conversation in short. Both are read by the server after each reply. A
- * link opens; anything else is copied.
+ * The conversation in short and, over it, the few key facts worth a glance: what is coming, then
+ * the latest links, places and names. The full list opens beside the chat. Both are read by the
+ * server after each reply.
  */
 export function KeyFactsSection({
   environmentId,
@@ -39,7 +30,8 @@ export function KeyFactsSection({
   const result = useAtomValue(
     majordomeEnvironment.keyFacts({ environmentId, input: { threadId } }),
   );
-  const thread = useQuietThreadShell(scopeThreadRef(environmentId, threadId));
+  const threadRef = scopeThreadRef(environmentId, threadId);
+  const thread = useQuietThreadShell(threadRef);
   const replyStamp = thread?.latestRun?.completedAt ?? null;
   const seenReplyStamp = useRef(replyStamp);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the facts are read on the server, so a finished reply asks it for them again
@@ -48,61 +40,40 @@ export function KeyFactsSection({
     seenReplyStamp.current = replyStamp;
     refreshMajordomeKeyFacts(environmentId, appAtomRegistry);
   }, [replyStamp, environmentId, seenReplyStamp]);
-  const { copyToClipboard } = useCopyToClipboard<string>({
-    onCopy: (value) => toastManager.add({ type: "success", title: "Copied", description: value }),
-  });
+  const [today] = useState(() => localDay(new Date()));
 
   const data = AsyncResult.getOrElse(result, () => null);
   const summary = data?.summary ?? [];
-  const groups = keyFactGroups(data?.facts ?? []);
-  const row = (fact: KeyFactRow) => {
-    const Icon = ICONS[fact.kind];
-    return (
-      <li key={fact.key} className="flex min-w-0">
-        <ThreadDetailsControl
-          size="xs"
-          variant="ghost"
-          part="row"
-          panel
-          multiline={fact.detail !== null}
-          title={fact.href === null ? `Copy ${fact.value}` : fact.value}
-          {...(fact.href === null
-            ? { onClick: () => copyToClipboard(fact.value, fact.value) }
-            : { render: <a href={fact.href} target="_blank" rel="noreferrer" /> })}
-        >
-          <Icon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
-            <span className="truncate">{fact.label}</span>
-            {fact.detail === null ? null : (
-              <span className="truncate text-xs font-normal text-muted-foreground">
-                {fact.detail}
-              </span>
-            )}
-          </span>
-        </ThreadDetailsControl>
-      </li>
-    );
-  };
+  const total = data?.facts.length ?? 0;
+  const first = firstKeyFacts(keyFactGroups(data?.facts ?? [], { today }));
   return (
     <>
-      <ThreadDetailsSection headingId="thread-details-key-facts-heading" title="Key facts">
+      <ThreadDetailsSection
+        headingId="thread-details-key-facts-heading"
+        title="Key facts"
+        actions={
+          total === 0 ? undefined : (
+            <Button
+              size="xs"
+              variant="ghost-muted"
+              onClick={() => useRightPanelStore.getState().open(threadRef, "key-facts")}
+            >
+              {first.remaining === 0 ? "Search" : `All ${total}`}
+            </Button>
+          )
+        }
+      >
         <div className="flex flex-col">
-          {groups.length === 0 ? (
+          {total === 0 ? (
             <p className="px-2.5 pb-1 text-xs text-muted-foreground">
               {data === null && result.waiting
                 ? "Reading this chat…"
                 : "Links, places, dates and names you mention are noted here after each reply."}
             </p>
+          ) : first.rows.length === 0 ? (
+            <p className="px-2.5 pb-1 text-xs text-muted-foreground">Nothing coming up.</p>
           ) : (
-            groups.map((group) => (
-              <ul
-                key={group.title}
-                aria-label={group.title}
-                className="m-0 flex list-none flex-col p-0"
-              >
-                {group.rows.map(row)}
-              </ul>
-            ))
+            <KeyFactRows label="Key facts" rows={first.rows} />
           )}
         </div>
       </ThreadDetailsSection>

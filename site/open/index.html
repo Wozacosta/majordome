@@ -147,6 +147,8 @@
         display: none !important;
       }
     </style>
+    <script defer src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <main>
@@ -193,7 +195,8 @@
           const url = serverUrl(entry?.url);
           if (url === null || typeof entry.environmentId !== "string") continue;
           const name = typeof entry.name === "string" && entry.name !== "" ? entry.name : url.host;
-          servers.set(entry.environmentId, { url, name });
+          const key = typeof entry.key === "string" ? entry.key : undefined;
+          servers.set(entry.environmentId, { url, name, key });
         }
         return Array.from(servers.values());
       }
@@ -205,7 +208,7 @@
         const response = await fetch(new URL(SIGN_IN_PATH, server.url), {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ token, key: server.key }),
         }).catch(() => null);
         if (response === null) {
           return `${server.name} did not answer. Check that it is on and connected to the internet, then try again.`;

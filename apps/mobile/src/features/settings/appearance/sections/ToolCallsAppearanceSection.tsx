@@ -8,6 +8,7 @@ import { AppText as Text } from "../../../../components/ui/AppText";
 import { ListChoiceRow } from "../../../../components/ui/ListChoiceRow";
 import { mobilePreferencesAtom, saveMobilePreferences } from "../../../../state/preferences";
 import { useAtomCommand } from "../../../../state/use-atom-command";
+import { DEFAULT_TOOL_CALL_VISIBILITY } from "../../../../majordome/env";
 import { SettingsSection } from "../../components/SettingsSection";
 
 const TOOL_CALL_VISIBILITY_OPTIONS: ReadonlyArray<{
@@ -26,7 +27,7 @@ export function ToolCallsAppearanceSection() {
   const savePreferences = useAtomCommand(saveMobilePreferences);
   const preferences = useAtomValue(mobilePreferencesAtom);
   const selected = AsyncResult.isSuccess(preferences)
-    ? (preferences.value.toolCallVisibility ?? "showAll")
+    ? (preferences.value.toolCallVisibility ?? DEFAULT_TOOL_CALL_VISIBILITY)
     : null;
 
   return (

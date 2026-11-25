@@ -10,6 +10,8 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   EventId,
   type MajordomeAdoptTopicConversationInput,
+  type MajordomeChatKnowledgeInput,
+  type MajordomeChatKnowledgeResult,
   type MajordomeCreateTopicInput,
   type MajordomeMovedMessage,
   type MajordomeTopicConversation,
@@ -70,14 +72,14 @@ import {
 } from "./topicThreads.ts";
 import { folderOfReady, READY_TOPICS, topicOfReady } from "./readyMade.ts";
 import { pickTopicPreview, type TopicPreviewMessage } from "./topicPreview.ts";
-import { readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import { normalizeTopicFolder, readVaultLayout, type VaultLayout } from "./vaultConfig.ts";
+import { NOT_A_VAULT_KNOWLEDGE, readChatKnowledge } from "./vaultContext.ts";
 import * as VaultLock from "./VaultLock.ts";
 import { chooseVaultModel } from "./vaultModel.ts";
 import {
   canHoldTopic,
   listVaultFolders,
   newTopicId,
-  normalizeTopicFolder,
   readTopicFolderFacts,
   readVaultTopics,
   reorderVaultTopics,
@@ -92,6 +94,13 @@ export class MajordomeTopics extends Context.Service<
     readonly list: (
       input: MajordomeTopicsInput,
     ) => Effect.Effect<MajordomeTopicsResult, MajordomeTopicsError>;
+    /**
+     * What the chat is given of its notes folder when it starts. Never fails: a chat that is gone
+     * or works outside a notes folder knows nothing of one.
+     */
+    readonly chatKnowledge: (
+      input: MajordomeChatKnowledgeInput,
+    ) => Effect.Effect<MajordomeChatKnowledgeResult>;
     readonly create: (
       input: MajordomeCreateTopicInput,
     ) => Effect.Effect<MajordomeTopic, MajordomeTopicsError>;
@@ -464,6 +473,29 @@ const make = Effect.gen(function* () {
     Effect.mapError(toTopicsError("Could not read your topics.")),
   );
 
+  const chatKnowledge: MajordomeTopics["Service"]["chatKnowledge"] = Effect.fn(
+    "MajordomeTopics.chatKnowledge",
+  )(
+    function* (input) {
+      const thread = yield* liveThread(input.threadId);
+      // The same folder the session itself is started in.
+      const vaultRoot =
+        thread === null
+          ? undefined
+          : (thread.worktreePath ??
+            Option.getOrUndefined(yield* projects.get(thread.projectId))?.workspaceRoot);
+      if (vaultRoot === undefined) return NOT_A_VAULT_KNOWLEDGE;
+      return yield* provideFs(
+        readChatKnowledge({
+          vaultRoot,
+          nowMillis: DateTime.toEpochMillis(yield* DateTime.now),
+          topicOf: { threadId: input.threadId, stateDir: config.stateDir },
+        }),
+      );
+    },
+    Effect.orElseSucceed((): MajordomeChatKnowledgeResult => NOT_A_VAULT_KNOWLEDGE),
+  );
+
   const create: MajordomeTopics["Service"]["create"] = Effect.fn("MajordomeTopics.create")(
     function* (input) {
       const { project, layout } = yield* requireVault(input.projectId);
@@ -672,7 +704,6 @@ const make = Effect.gen(function* () {
   ) {
     const modelSelection = yield* chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
-      Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
       Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
     );
     if (modelSelection === null) {
@@ -810,6 +841,9 @@ const make = Effect.gen(function* () {
       if (input.messages.length === 0) return yield* fail("That conversation has nothing in it.");
       const threadId = ThreadId.make(`moved:${input.sourceKey}`);
       const known = yield* threads.getThreadShell(threadId).pipe(Effect.orElseSucceed(() => null));
+      if (known !== null && known.projectId !== input.projectId) {
+        return yield* fail("That conversation already belongs to other notes.");
+      }
       if (known === null) yield* startThread(project, topic.title, { threadId, kept: true });
       yield* writeMovedHistory(threadId, input.messages);
       const previousId = (yield* projectState(input.projectId)).threads[topic.id];
@@ -899,6 +933,7 @@ const make = Effect.gen(function* () {
 
   return MajordomeTopics.of({
     list,
+    chatKnowledge,
     create,
     suggestFolder,
     update,

@@ -149,6 +149,8 @@ import { SettingsEnvironmentFilterProvider } from "./features/settings/settings-
 import { openSettings, settingsOpenIn } from "./features/settings/settings-navigation";
 import { isMajordome } from "./majordome/env";
 import { AccountScreen } from "./majordome/AccountScreen";
+import { SavedKeysScreen } from "./majordome/SavedKeysScreen";
+import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
@@ -326,6 +328,10 @@ const SETTINGS_SCREENS = {
   }),
   SettingsAccount: createNativeStackScreen({
     screen: AccountScreen,
+    options: settingsPage(),
+  }),
+  SettingsSavedKeys: createNativeStackScreen({
+    screen: SavedKeysScreen,
     options: settingsPage(),
   }),
   SettingsArchive: createNativeStackScreen({
@@ -812,6 +818,10 @@ const RootStackConfig = createWorkspaceStackNavigator({
     ThreadBackgroundWork: createNativeStackScreen({
       screen: ThreadBackgroundWorkSheet,
       options: sheetRoute({ detent: 0.5, androidMaxDetent: 0.9 }),
+    }),
+    ThreadChatDetails: createNativeStackScreen({
+      screen: ChatDetailsSheet,
+      options: sheetRoute({ detent: 0.65, androidMaxDetent: 0.95 }),
     }),
     ThreadAgents: createNativeStackScreen({
       screen: ThreadAgentsSheet,

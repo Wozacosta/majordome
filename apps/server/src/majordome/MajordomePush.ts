@@ -21,6 +21,7 @@ import * as Semaphore from "effect/Semaphore";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import WebPush from "web-push";
 
+import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import type { VaultPushMessage } from "./pushDecision.ts";
 
@@ -122,6 +123,7 @@ const storageError = (message: string) => (cause: unknown) =>
 
 export const make = Effect.gen(function* () {
   const secrets = yield* ServerSecretStore.ServerSecretStore;
+  const auth = yield* EnvironmentAuth.EnvironmentAuth;
   const httpClient = yield* HttpClient.HttpClient;
   const lock = yield* Semaphore.make(1);
 
@@ -195,6 +197,39 @@ export const make = Effect.gen(function* () {
     );
   });
 
+  /**
+   * The devices to notify, after forgetting those whose access was removed or ran out. A device
+   * saved before accesses were recorded stays until the owner removes it.
+   */
+  const liveSubscriptions = Effect.fn("MajordomePush.liveSubscriptions")(function* () {
+    const subscriptions = yield* readSubscriptions;
+    if (subscriptions.every((subscription) => subscription.sessionId === undefined)) {
+      return subscriptions;
+    }
+    const live = new Set<string>(
+      (yield* auth
+        .listSessions()
+        .pipe(Effect.mapError(storageError("Could not read who still has access.")))).map(
+        (session) => session.sessionId,
+      ),
+    );
+    const isLive = (subscription: StoredSubscription) =>
+      subscription.sessionId === undefined || live.has(subscription.sessionId);
+    const removed = subscriptions.filter((subscription) => !isLive(subscription));
+    if (removed.length === 0) return subscriptions;
+    // By endpoint and access both: a device that signed in again meanwhile is kept.
+    yield* updateSubscriptions((current) =>
+      current.filter(
+        (subscription) =>
+          !removed.some(
+            (gone) =>
+              gone.endpoint === subscription.endpoint && gone.sessionId === subscription.sessionId,
+          ),
+      ),
+    );
+    return subscriptions.filter(isLive);
+  });
+
   const deliver = Effect.fn("MajordomePush.deliver")(function* (
     subscription: StoredSubscription,
     message: VaultPushMessage,
@@ -236,7 +271,7 @@ export const make = Effect.gen(function* () {
   });
 
   const sendTest = Effect.fn("MajordomePush.sendTest")(function* (endpoint: string) {
-    const subscription = (yield* readSubscriptions).find((entry) => entry.endpoint === endpoint);
+    const subscription = (yield* liveSubscriptions()).find((entry) => entry.endpoint === endpoint);
     if (subscription === undefined) {
       return yield* new MajordomePhoneError({
         message: "This device isn't set up for notifications. Turn them on again.",
@@ -262,7 +297,7 @@ export const make = Effect.gen(function* () {
 
   const notifyAll = Effect.fn("MajordomePush.notifyAll")(
     function* (message: VaultPushMessage) {
-      const subscriptions = yield* readSubscriptions;
+      const subscriptions = yield* liveSubscriptions();
       const deliveries = yield* Effect.forEach(
         subscriptions,
         (subscription) =>

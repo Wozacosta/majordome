@@ -45,6 +45,7 @@ const workspaceFiles = [
   "packages/secret-provider-definitions/package.json",
   "packages/secret-provider-encrypted-file/package.json",
   "packages/secret-provider-env/package.json",
+  "packages/secret-provider-bitwarden/package.json",
   "packages/secret-provider-exec/package.json",
   "packages/secret-provider-keychain/package.json",
   "packages/secret-provider-onepassword/package.json",

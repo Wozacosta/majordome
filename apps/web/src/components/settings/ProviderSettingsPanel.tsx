@@ -46,6 +46,8 @@ import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { m as resolveNow, type MessageResolver } from "../../i18n/messages";
 
 import { isDesktopLocalConnectionTarget } from "../../connection/desktopLocal";
+import { isMajordome } from "../../env";
+import { ModelLevelsSettings } from "../majordome/ModelLevelsSettings";
 import {
   useEnvironmentSettings,
   usePersistEnvironmentProviderInstanceMutation,
@@ -1145,6 +1147,9 @@ export function EnvironmentProviderSettings({
           </div>
         </SettingsGroup>
       </SettingsSection>
+      {isMajordome && !readOnly ? (
+        <ModelLevelsSettings environmentId={environmentId} providers={serverProviders} />
+      ) : null}
 
       <UsageProviderSettings
         key={environmentId}

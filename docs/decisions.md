@@ -32,6 +32,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - Memory layers:
   - Always loaded: `CLAUDE.md` and `memory.md` (size-capped; when full, the agent merges entries).
   - Loaded when recent: today's and yesterday's daily notes.
+  - Loaded by name only: the other open topics, each with the "Where things stand" lines of its
+    log (2026-11-25; see "What one topic knows of the others" under Milestones).
   - Searched: everything else, through a SQLite full-text index the server rebuilds. Not in git.
   - Nightly dreaming: a routine moves anything worth keeping into `memory.md` or project notes.
 - Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in
@@ -45,7 +47,14 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   Sensitive ones go to Tier B instead ("Keep private"), linked to the topic but outside the vault.
   Larger files still stay in your file store, and notes link to them.
 - The agent writes to the vault directly, one git commit per run, with the diff in the feed.
-  Edits to `CLAUDE.md` wait for approval.
+  A run's edits to the files that steer later runs wait for the owner: the root `CLAUDE.md` and
+  `AGENTS.md`, `.majordome/config.json` (it holds the routine limits and names the folders),
+  and anything under a `.claude/` or `.agents/skills/` folder. When a run ends they are put back
+  as they were and what the run wrote is copied to `.agents/held-back/` under flat names, for the
+  owner to copy back by hand; there is no screen for it yet. Everything uncommitted counts as the
+  run's, so what the owner changes through the app (the limits, a note edited in Notes) is
+  committed at once, and an edit made in another editor is held back too when a run ends before
+  the next autosave. A run that commits its own change with git is not caught.
 - **The assistant writes skills for itself, and the owner keeps them** (2026-11-22, after Hermes
   Agent). A skill is a `SKILL.md` in the vault's `.agents/skills/`, so it travels with the brain
   and every provider reads it. A conversation with the owner, and nightly dreaming, may write one
@@ -54,7 +63,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   able to plant one: what the assistant writes goes to `.agents/proposed-skills/` and is used
   only once the owner keeps it in Settings, then Skills. The rule does not rest on the prompt:
   when a run ends, anything it changed under the skills folder is moved to the proposals and the
-  folder is put back (`holdBackSkillChanges`). Proposals are files, not approval cards, because a
+  folder is put back (`holdBackRunChanges`). Proposals are files, not approval cards, because a
   card dies with its run and a nightly run cannot wait for an answer. "Stop using" moves a skill
   back to the proposals, so there is a way back; an agent can neither keep nor remove one.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
@@ -67,7 +76,8 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   become a topic in one action. Each topic shows an icon (picked from its title, changeable) and the
   gist of its latest message.
 - **Words.** T3's "settle" is **Done** in Majordome ("Mark as done", the Done section, "Bring
-  back"); **Archive** keeps its name and means out of sight, in Settings.
+  back"); **Archive** keeps its name and means out of sight, in Settings. A topic is never
+  "done": it is **closed** ("Close this topic", Closed topics, "Reopen").
 - **First topics are suggested** once from the vault's folders; the owner accepts or skips them.
 - **No projects in the interface.** Majordome shows only vaults; with one vault there are no
   project names or badges anywhere and new chats and topics go into it. Several vaults get a small
@@ -85,6 +95,16 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   server for me" uses. The page (`majord.me/start`) asks for a Majordome account first, and the
   server starts with that account as its owner, so a customer who loses every paired device
   signs in again. Making a server sits behind a small interface (create, delete, address) with Fly.io as the first host.
+- **How a hosted server is paid for (2026-11-24).** Two ways, one record: by card on
+  `majord.me/start` through Stripe (Managed Payments once Stripe approves the account, so Stripe
+  is the seller and handles tax; plain Stripe with the same code until then), and in the iPhone
+  app through Apple's In-App Purchase, talking to StoreKit directly with no RevenueCat between.
+  One monthly price, the same on both, with a free trial once per account. The broker keeps who
+  has paid in its own database and only ever asks a provider how a subscription stands, never
+  believing a notice or the phone. One live subscription and one server per account. A server
+  no longer paid for is stopped and its notes kept 30 days before it is deleted. Invites stay,
+  for people let in for free. The phone app never points to the website to buy. No feature
+  depends on having paid: a hosted server and one on the owner's own Mac do the same things.
 - **What a server is called (2026-11-23).** One the owner runs is "Your server" ("your server"
   in a sentence), not "Always-on server". One Majordome hosts is "Majordome server" ("your
   Majordome server"), drawn with a cloud. The host's name (Fly, or any other) is never shown, and
@@ -200,6 +220,17 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - **Tier A, integration keys.** Config holds references, never values. Sources: macOS Keychain,
   encrypted file, env, `exec` (Infisical, 1Password…). Values are injected when a request goes out;
   the model and the file tools never see them.
+- **Saved keys (2026-11-25).** The owner also saves keys for the assistant itself: an API key for
+  a service it should read. They live in the server's encrypted key file, the one `majord secret`
+  writes, listed by name with what each is for and when it was last used. An agent reads the
+  names (`list_saved_keys`), takes one as an owner-only file read inside a single command
+  (`use_saved_key`), and saves one the owner hands it (`save_key`). A saved key is a standing yes:
+  no card, in chats and in routines, because the owner asked to stop being asked. The value never
+  enters the conversation or its log. Only the owner removes a key. A saved key can instead hold
+  a reference to an item in a secret source and is then read from the source at each use.
+  Bitwarden Secrets Manager is a source (`bws`, machine-account token kept as a saved key the
+  assistant cannot take); the Bitwarden password manager is not, since it needs a master password
+  an unattended server cannot type.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.
@@ -342,9 +373,12 @@ takes over.
      routines, notes). The share sheet is also how a link reaches the reading list from the
      phone: a home-screen web app cannot appear in the iPhone share sheet, so until then links are
      pasted in the app, and no Apple Shortcut or token endpoint is built as a stopgap.
-   - **Not planned:** the App Store and Android. Push for other people's phones needs a hosted
-     relay, since a public app can't ship an Apple push key, and the relay waits until people ask
-     for it. The PWA stays the phone for everyone else.
+   - **Where it ships first (2026-11-24):** Mac, iPhone and Android. Linux and Windows come
+     after; until then the landing page marks them "coming soon" and takes an email, kept by
+     the address broker, for one message when each is ready. This replaces "not planned: the
+     App Store and Android". Still open: push for other people's phones needs a hosted relay,
+     since a public app can't ship an Apple push key. The PWA stays the phone until the apps
+     are out.
 10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, with the customer's own Claude plan (see
     Servers and sync). Fly.io first, always on, with UpCloud as the fallback (2026-11-23; the
     reasons and the deciding test are in `docs/whatsnext.md`). No single host: in 2026 Hetzner rationed new cloud servers
@@ -355,3 +389,72 @@ takes over.
     The AWS shape, if the price needs it: the same image, one container and
     encrypted volume per user, an HTTPS address per user instead of Tailscale, and machines that sleep
     and wake for routines and when the owner opens the app, to keep the price low.
+11. **Later, from the owner's TestFlight notes (2026-11-24).** Four things asked for while using
+    the iPhone app, in no order; not designed yet unless marked done:
+    - **A topic's side panel on the phone.** Done 2026-11-25: a chat's header on the iPhone
+      opens a sheet with "In short", the key facts and, for a topic, its files (open, add,
+      remove). Left on the computer only: "Draw it", key-fact search, and adding or removing a
+      private document.
+    - **What a topic can reach, and taking it away.** Done 2026-11-25, without per-topic scoping
+      (the owner dropped it): Settings, Passwords and keys lists the keys saved for the assistant
+      on a server, on the phone and the computer, and each can be removed there. See "Saved keys"
+      under Credentials and documents.
+    - **What one topic knows of the others.** Done 2026-11-25. Every conversation is given the
+      other open topics by name, folder and where each stands (up to 40, one line each), not
+      their notes, and is told to look inside one when the question touches it and to name that
+      topic in its answer. No central topic was added: `memory.md` already is the one note every
+      conversation starts with, so the prompt and the guide name it as the place for a fact that
+      concerns several topics. A second shared place would have had to be loaded everywhere too,
+      and would have competed with it. A chat's side panel, and the phone's sheet, show "What
+      this chat knows": the notes it starts with and the topics it only knows the standing of.
+      It is read when the panel opens, so it shows what a conversation started now would get. A
+      long-running one is given the same notes again with its first message of a later day
+      (2026-11-25): the server compares the local day of the thread's previous message with
+      today, so nothing is stored. By day and not on every change, because a chat writes to the
+      daily note itself and would be handed its own edits back each turn; not "when the chat is
+      reopened", because the server does not know a chat was opened, only that a message came.
+      The refresh says it replaces the earlier notes and leaves out the routines guide, which
+      does not change. Not refreshed: a session after its provider compacts it, which nothing
+      reports the same way across providers. Not done: a record of which
+      topics a chat actually looked in. Providers report file reads in different shapes, so a
+      list built from them would be wrong for some; the answer naming the topic is the record.
+    - **Choosing the model again.** Done 2026-11-25, as three levels, not a model list (the
+      owner's shape): Quick for the small jobs Majordome does itself (titles, key facts,
+      summaries, drawings), Everyday for chats and routines, Powerful when the owner asks for
+      it in a chat. Each kind of AI account has its own three models
+      (`packages/shared/src/majordomeModelLevels.ts`): they are found by family (haiku, sonnet,
+      opus; luna, sol, astra; flash, argon, carbon), so a newer version is picked up without a
+      change, and an account with no such family uses its own default for all three. The owner
+      can give a level another model in Settings, AI accounts. Quick and Everyday are kept in
+      settings T3 Code already reads (`textGenerationModelSelection`, `defaultModelSelection`),
+      so titles, the phone and every other reader follow; only Powerful is a new setting. The
+      message box on the computer shows the level and changes it; the phone's "Which AI" lists
+      the levels above the full list. New chats start on Everyday whatever the last chat was
+      on; before, they followed the last chat's model. Not done: a level's options (thinking
+      effort) and a level per routine. A routine runs in its own chat, so its level is changed
+      in that chat's message box.
+      The defaults follow what each maker recommends, read on 2026-11-25:
+      - ChatGPT (Codex): Luna, Sol, Astra. OpenAI's
+        [models page](https://learn.chatgpt.com/docs/models?surface=app) says Sol "for everyday
+        coding, writing", Astra "for demanding work", Luna "most efficient".
+      - Gemini (Antigravity): Flash, Argon, Carbon. Google's
+        [Choose a model](https://antigravity.google/docs/models/) retires Argon and 3.8 Flash on
+        2026-11-30; after that the same rows give an older Flash, Hydrogen ("fast, everyday") and
+        Carbon. Whether Neon ranks above Carbon is not stated there, so Carbon stays first.
+      - Cursor: Composer, Auto, then its Grok 4 flagship, from
+        [Available models](https://cursor.com/help/models-and-usage/available-models).
+      - Kiro: Haiku, Auto, Opus, by its credit prices
+        ([Available models](https://kiro.dev/docs/models/available-models/)): Auto is the
+        baseline, Haiku a fraction of it, Opus about twice.
+      - Grok Build: its own default for Everyday and Powerful, a "fast" variant for Quick. No
+        official list was found; `grok models` prints the account's.
+      - Muse has one model family, so all three levels are its default. OpenCode, Pi and fx
+        resell other makers' models and are read by the same family names.
+        Keeping it current (2026-11-25): the table is data, `majordome-model-levels.json` beside
+        the code that ships the same copy. A server downloads it from the repository's `main`
+        once an hour and keeps it only when it is well formed and its date is newer; it sends its
+        table to the apps with the rest of its settings, so the computer, the phone and the
+        server agree. A change to the table therefore needs a push, not a release. A weekly
+        GitHub job compares the table with T3 Code's list of current models and opens an issue
+        when a current model is at no level or a level has no current model; it changes nothing
+        itself. Cursor, Kiro and Grok Build are not in that list and are checked by hand.

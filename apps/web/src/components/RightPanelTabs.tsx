@@ -48,6 +48,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileDiff,
+  BookmarkIcon,
   Files,
   Globe2,
   MessagesSquare,
@@ -155,6 +156,8 @@ export interface RightPanelTabsProps {
   onAddTerminal: () => void;
   onAddDiff: () => void;
   onAddFiles: () => void;
+  /** Majordome only: absent where a chat has no key facts to show. */
+  onAddKeyFacts?: (() => void) | undefined;
   onAddPullRequest: () => void;
   onAddPullRequests: () => void;
   onAddDevice: () => void;
@@ -223,8 +226,9 @@ const MAJORDOME_HIDDEN_SURFACES = new Set([
 ]);
 const isMajordomeSurfaceAction = (action: { readonly label: string }) =>
   !isMajordome || !MAJORDOME_HIDDEN_SURFACES.has(action.label);
-// Not in the wording tables: "Files" is also the name browsers give dragged files.
-const FILES_LABEL = isMajordome ? "Notes" : msg("Files");
+const FILES_LABEL = msg("Files");
+// Majordome only, so it is not in the wording tables.
+const KEY_FACTS_LABEL = "Key facts";
 const DIFF_LABEL = isMajordome ? "What changed" : msg("Diff");
 
 const SURFACE_UNAVAILABLE_HINTS = {
@@ -355,6 +359,8 @@ function RightPanelEmptyState(props: {
   onAddTerminal: () => void;
   onAddDiff: () => void;
   onAddFiles: () => void;
+  /** Majordome only: absent where a chat has no key facts to show. */
+  onAddKeyFacts?: (() => void) | undefined;
   onAddPullRequest: () => void;
   onAddPullRequests: () => void;
   onAddDevice: () => void;
@@ -399,6 +405,18 @@ function RightPanelEmptyState(props: {
       disabledReason: messages(SURFACE_UNAVAILABLE_HINTS.files),
       onClick: props.onAddFiles,
     },
+    ...(props.onAddKeyFacts
+      ? [
+          {
+            label: KEY_FACTS_LABEL,
+            icon: BookmarkIcon,
+            shortcut: "K",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddKeyFacts,
+          },
+        ]
+      : []),
     {
       label: DIFF_LABEL,
       icon: FileDiff,
@@ -619,6 +637,8 @@ function surfaceTitle(
       return resolve(DIFF_LABEL);
     case "files":
       return resolve(FILES_LABEL);
+    case "key-facts":
+      return KEY_FACTS_LABEL;
     case "file":
       return surface.relativePath.slice(
         Math.max(surface.relativePath.lastIndexOf("/"), surface.relativePath.lastIndexOf("\\")) + 1,
@@ -712,6 +732,8 @@ function SurfaceIcon({
       return <FileDiff className="size-3 shrink-0" />;
     case "files":
       return <Files className="size-3 shrink-0" />;
+    case "key-facts":
+      return <BookmarkIcon className="size-3 shrink-0" />;
     case "file":
       return (
         <PierreEntryIcon
@@ -1242,6 +1264,18 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
       disabledReason: messages(SURFACE_DISABLED_REASONS.files),
       onClick: props.onAddFiles,
     },
+    ...(props.onAddKeyFacts
+      ? [
+          {
+            label: KEY_FACTS_LABEL,
+            icon: BookmarkIcon,
+            shortcut: "K",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddKeyFacts,
+          },
+        ]
+      : []),
     {
       label: DIFF_LABEL,
       icon: FileDiff,
@@ -1708,6 +1742,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
             onAddTerminal={props.onAddTerminal}
             onAddDiff={props.onAddDiff}
             onAddFiles={props.onAddFiles}
+            onAddKeyFacts={props.onAddKeyFacts}
             onAddPullRequest={props.onAddPullRequest}
             onAddPullRequests={props.onAddPullRequests}
             onAddDevice={props.onAddDevice}

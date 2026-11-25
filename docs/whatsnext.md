@@ -394,6 +394,107 @@ What that first version does not do, in the order I would take them:
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
 OpenBot's does), a second host behind one interface, a pool of ready servers.
 
+## Selling servers: before telling strangers
+
+Paying on [majord.me/start](https://majord.me/start) is live and has one customer, the owner.
+These came out of two reviews on 2026-11-24 and wait until the page is shown to other people.
+
+- **Alerts.** The broker can post a line when the hourly pass fails, and posts nowhere: the
+  `ALERT_URL` secret is not set (`infra/broker/README.md`, "Paid servers"). Pick where it goes
+  (a private ntfy topic is the least work) and set it. A failed settle right after a Stripe
+  notice is only logged; the hourly pass is what reports it.
+- **The 14-day refund.** `site/terms/index.html` promises one and nothing performs it: the
+  cancel page ends the subscription at the period's end. Either refund by hand and be told when
+  one is due, or have the broker do it.
+- **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may appear
+  as the seller, while Managed Payments is off and Stripe computes no tax. For the accountant:
+  the VAT mention and the EU cross-border threshold. Turn on `STRIPE_MANAGED_PAYMENTS` once
+  Stripe approves the account.
+- **A French seller's flow,** to check with a professional: a French version, a pay button that
+  states the obligation to pay, a withdrawal form, the seller's address before purchase, the
+  SIRET and a consumer mediator on the terms page.
+- **The margin.** A reviewer guessed a server costs 10 to 11 euros a month on Fly against a
+  price of 12. One Fly invoice settles it.
+- **Stopped servers hold a place** under `MAX_HOSTED_SERVERS` for the 30 days they are kept.
+- **A new email is a new free trial** (`trialFor` in `infra/broker/src/billing.ts`).
+- **No way to buying from the landing page,** which still says a server is about 5 euros a
+  month; the account page still says hosting is by invitation.
+- **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
+  transcript on 2026-11-24.
+
+The iPhone purchase is not ready to submit. In the broker: App Review buys in Apple's sandbox,
+which is switched off (`APPLE_ALLOW_SANDBOX`); placeholder key ids switch selling on; a purchase
+with no account token is dropped; an unknown transaction gets the wrong message. In App Store
+Connect: the Paid Apps agreement, the subscription at the web price with a one-week free offer,
+the billing grace period, the In-App Purchase key, the notice address, a sandbox tester, and a
+demo account for the reviewer.
+
+## Trust and transparency: a hosted server is the customer's
+
+The question a customer asks: how do I know the person running my server is not reading it or
+changing it? Today the honest answer is that nothing technical stops it. The owner of the Fly
+organisation can open a shell on any server, read its disk and its daily copies, and the nightly
+update runs whatever image the latest release names. The customer's Claude sign-in sits on that
+disk too. What exists already: the code is public, the broker holds no notes, and anyone can
+leave with **Settings > Back up my brain** and run Majordome on their own machine.
+
+It cannot be proved away while the server has to read the notes to work, so the aim is to say it
+plainly, make it checkable, and narrow it. In order of what each buys for its cost:
+
+1. **Say it.** Done on 2026-11-25: `site/trust/index.html`, linked from `/start` and the
+   privacy page. Its promises are the owner's; the wording has not been read by a lawyer. Still
+   missing for someone who already has a server elsewhere: an install from the app, given the
+   server's address, in place of the seven steps by hand.
+2. **Show what runs.** The server shows the image digest it runs and the release it came from,
+   and the release shows the same digest, built by public CI from the public source. Start at
+   `image-digest.txt` in the release and `imageFor` in `infra/broker/src/worker.ts`. Add build
+   provenance (GitHub's attestations) so the digest can be tied to a commit by anyone.
+3. **Updates the customer can see and hold.** The nightly update is the one way new code
+   reaches a server. Show what changed, and let the owner of a server delay or refuse it.
+4. **A record of access.** Fly keeps none that can be shown (below). A record kept on the
+   server itself proves little: whoever has a shell can edit it.
+5. **Encryption with the customer's key.** Protects the disk copies and a stopped server, not a
+   running one, which holds the key in memory. Real work, and it makes a lost key a lost brain.
+6. **Deletion that can be checked.** What is deleted when, including Fly's disk copies, stated
+   with dates in the account page.
+
+A different answer, raised by the owner on 2026-11-25: **the server belongs to the customer.**
+It is made in the customer's own hosting account, so the operator has no shell, no disk and no
+disk copies to read. It does not remove trust by itself: a server that updates itself from
+Majordome's releases still runs whatever is released, so it only holds with step 3 above (the
+customer approves updates, or they are checked against public build provenance). It is another
+product: what is sold is the setup and the software, the customer has one more account and one
+more bill, and a server that will not start can only be looked at if they let the operator back
+in.
+
+Checked on 2026-11-25 by two research agents, from the sources named; not re-read by hand:
+
+- **On Fly the operator cannot lock himself out.** Fly's security questionnaire
+  (`fly.io/legal/security-questionnaire`) says SSH cannot be disabled per app, a deploy token is
+  enough to open a shell, and disk keys are held by Fly with no customer-held option.
+- **There is no record of access to show a customer.** The same page says there is no
+  organisation activity log and no SSH session log. Step 4 above is therefore not possible on
+  Fly today.
+- **An app can be handed over:** `fly apps move`, with its disk, secrets and domains, a few
+  minutes down. The mover must belong to both organisations, so the customer invites the
+  operator, which the free plan does not allow.
+- **No "let Majordome in once" button on Fly.** Its OAuth only reads identity; the customer
+  would paste a token with a short expiry and revoke it after. DigitalOcean has scoped OAuth
+  for exactly this.
+- **Hosted servers do not update themselves today:** the broker does it with the organisation's
+  token (`updateServer` in `infra/broker/src/fly.ts`). A customer-owned server needs its own.
+- **How Obsidian Sync does it:** notes are encrypted on the device with a key made from a
+  password the company never has, so its servers only hold what they cannot read; two outside
+  audits are published, and a script lets anyone check their own traffic. It works because that
+  server only stores. Majordome's reads the notes to run the AI, so the same cannot hold while
+  it runs. What carries over: disk copies and a stopped server under the customer's key, and
+  notes synced between devices with no server at all.
+- **Proving it is possible in principle,** with attested hardware and published reproducible
+  images (Apple's Private Cloud Compute, Tinfoil), on AWS or Azure and not on Fly. A large
+  project for one person.
+- **What others in the same position say:** PikaPods promises staff never open customer data
+  unless asked; Proton's AI product says plainly that the model sees the message.
+
 ## Phone
 
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the

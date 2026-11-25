@@ -2,7 +2,11 @@ import { useAuth, useClerk } from "@clerk/react";
 import { useAtomValue } from "@effect/atom-react";
 import { runAtomCommand, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, MajordomeAccount } from "@t3tools/contracts";
-import { ACCOUNT_TOKEN_OPTIONS, withAccountServer } from "@t3tools/shared/majordomeAccount";
+import {
+  ACCOUNT_TOKEN_OPTIONS,
+  readAccountServers,
+  withAccountServer,
+} from "@t3tools/shared/majordomeAccount";
 import { useEffect, useEffectEvent } from "react";
 
 import { environmentCatalog } from "../../connection/catalog";
@@ -41,6 +45,7 @@ export async function listAccountServer(
       environmentId: server.environmentId,
       url: linked.address,
       name: server.name,
+      ...(linked.signInKey === undefined ? {} : { key: linked.signInKey }),
     }),
   });
 }
@@ -117,6 +122,8 @@ function clearSignInAsked(): void {
 
 /** One run at a time across the places that mount the hook below. */
 let adding = false;
+/** Servers listed before keys existed are added again once per start of the app. */
+let keyed = false;
 
 /**
  * Adds the connected servers to the account once, after a sign-in asked for with
@@ -150,11 +157,32 @@ export function useAddServersAfterSignIn(onAdding?: () => void): void {
         adding = false;
       });
   });
+  const giveKeys = useEffectEvent(() => {
+    if (adding || keyed) return;
+    const unkeyed = new Map(
+      readAccountServers(clerk.user?.unsafeMetadata)
+        .filter((server) => server.key === undefined)
+        .map((server) => [server.environmentId, server.name]),
+    );
+    const servers = Array.from(catalog.entries.keys())
+      .filter((environmentId) => unkeyed.has(environmentId))
+      .map((environmentId) => ({ environmentId, name: unkeyed.get(environmentId) ?? "" }));
+    if (servers.length === 0) return;
+    adding = true;
+    keyed = true;
+    void addConnectedServersToAccount(clerk, servers)
+      .catch(() => undefined)
+      .finally(() => {
+        adding = false;
+      });
+  });
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the account service reports a finished sign-in only through its own store, and the servers are added once when it does
   useEffect(() => {
     const askedAt = readSignInAsked();
     if (addServersAfterSignIn({ askedAt, now: Date.now(), signedIn, catalogReady }) === "add") {
       add();
+    } else if (signedIn && catalogReady) {
+      giveKeys();
     }
   }, [signedIn, catalogReady]);
 }

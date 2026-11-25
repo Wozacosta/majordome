@@ -1,11 +1,14 @@
 # Key facts
 
 Every conversation keeps a short list of what you mentioned that is worth finding again: links,
-places, dates and names. It sits at the top of the panel on the right of the conversation, under
-**Key facts**.
+places, dates and names. The panel on the right of the conversation shows three of them under
+**Key facts**: what is coming first, then the latest of the rest. **All** opens the full list
+beside the chat, where you can search it; **Key facts** in the side panel opens the same list.
 
 - Click a link to open it. Click a place, a date or a name to copy it.
 - A date said in passing ("next Thursday at 10") is written out as the day it means.
+- Dates run soonest first. A day that is over leaves the panel and moves to **Earlier**, at the
+  end of the full list.
 - The list is brought up to date after each reply, while you have the conversation open.
 
 ## In short, and a drawing
@@ -17,6 +20,15 @@ still open. It is rewritten after each reply, in the same request as the key fac
 options, or the order things happen in. A drawing is made only when you ask, and each one is one
 more small request to your AI plan. The last drawing is kept, so opening it again costs nothing;
 **Draw again** makes a new one from the latest messages.
+
+## On the iPhone
+
+Open a chat and touch the **i** at the top right. The sheet shows **In short** first, then every
+key fact under Dates, Links, Places and Names. Touch a link to open it; touch anything else to copy
+it. In a topic's chat the same sheet lists the topic's **Files**: touch one to look at it,
+**Add a file** to put one from the phone in the topic's folder, and touch and hold a file to remove
+it. Drawing the conversation and searching the key facts are on the computer only, and so is
+adding or removing a private document.
 
 ## Good to know
 

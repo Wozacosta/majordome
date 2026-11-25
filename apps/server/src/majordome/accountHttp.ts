@@ -7,7 +7,7 @@ import {
   MAJORDOME_ACCOUNT_SIGN_IN_PATH,
   type MajordomeAccountError,
   MajordomeAccountSignIn,
-  MajordomeAccountTokenInput,
+  MajordomeAccountSignInInput,
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -20,6 +20,7 @@ const REFUSAL_STATUS: Record<MajordomeAccountError["reason"], number> = {
   unavailable: 404,
   "invalid-token": 401,
   "used-token": 401,
+  "wrong-key": 401,
   "not-owner": 403,
   fixed: 409,
   failed: 500,
@@ -39,11 +40,11 @@ export const layer = Layer.unwrap(
     const account = yield* MajordomeAccount.MajordomeAccount;
 
     const signIn = Effect.gen(function* () {
-      const body = yield* HttpServerRequest.schemaBodyJson(MajordomeAccountTokenInput).pipe(
+      const body = yield* HttpServerRequest.schemaBodyJson(MajordomeAccountSignInInput).pipe(
         Effect.option,
       );
       if (body._tag === "None") return HttpServerResponse.empty({ status: 400 });
-      return yield* account.signIn(body.value.token).pipe(
+      return yield* account.signIn(body.value.token, body.value.key ?? null).pipe(
         Effect.map((signedIn) =>
           HttpServerResponse.jsonUnsafe(encodeSignIn(signedIn), { headers: NO_STORE }),
         ),

@@ -123,6 +123,24 @@ export interface ClaimedAddress {
   readonly tunnelId: string;
 }
 
+/**
+ * What the per-client limits count by: an IPv4 address, or the /64 an IPv6 address is in, since
+ * one connection is handed a whole /64 and can use any address in it.
+ */
+export function clientBucket(ip: string): string {
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/iu.exec(ip);
+  if (mapped?.[1] !== undefined) return mapped[1];
+  if (!ip.includes(":")) return ip;
+  const [head = "", tail] = ip.toLowerCase().split("::");
+  const before = head === "" ? [] : head.split(":");
+  const after = tail === undefined || tail === "" ? [] : tail.split(":");
+  const zeros = tail === undefined ? 0 : Math.max(0, 8 - before.length - after.length);
+  const network = [...before, ...Array<string>(zeros).fill("0"), ...after]
+    .slice(0, 4)
+    .map((group) => group.replace(/^0+(?=.)/u, ""));
+  return `${network.join(":")}::/64`;
+}
+
 export function generateLabel(randomBytes: (length: number) => Uint8Array): string {
   for (;;) {
     let label = "";

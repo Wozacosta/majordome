@@ -154,7 +154,6 @@ const make = Effect.gen(function* () {
   const chooseModel = (project: ProjectStore.ProjectRow) =>
     chooseVaultModel(project).pipe(
       Effect.provideService(ServerSettings.ServerSettingsService, settings),
-      Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
       Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
     );
 
@@ -627,7 +626,6 @@ export const layerAgentTaskDefaults = Layer.effect(
     const projects = yield* ProjectStore.ProjectStoreV2;
     const environment = yield* ServerEnvironment.ServerEnvironment;
     const settings = yield* ServerSettings.ServerSettingsService;
-    const threads = yield* ThreadManagementService.ThreadManagementService;
     const providers = yield* ProviderRegistry.ProviderRegistry;
     const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
     return (projectId) =>
@@ -638,7 +636,6 @@ export const layerAgentTaskDefaults = Layer.effect(
         if (Option.isNone(yield* readVaultLayout(vaultRoot))) return Option.none();
         const modelSelection = yield* chooseVaultModel(project.value).pipe(
           Effect.provideService(ServerSettings.ServerSettingsService, settings),
-          Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
           Effect.provideService(ProviderRegistry.ProviderRegistry, providers),
         );
         const provider =

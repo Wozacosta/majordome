@@ -132,3 +132,9 @@ export function makeAccountVerifier(deps: {
     return check(false).catch(() => check(true));
   };
 }
+
+/** The email a token carries, for a token already checked; null when it carries none. */
+export function accountEmail(token: string): string | null {
+  const email = decodeJsonObject(token.split(".")[1] ?? "")?.email;
+  return typeof email === "string" && email.includes("@") && email.length <= 254 ? email : null;
+}

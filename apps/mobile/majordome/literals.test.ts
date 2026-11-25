@@ -158,6 +158,8 @@ const REVIEWED = [
   "apps/mobile/src/features/home/ThreadUndoNotice.tsx: Settled",
   "apps/mobile/src/features/home/thread-undo-notice.ts: Settled",
   "apps/mobile/src/features/home/useThreadListActions.ts: Settled",
+  // The site the legal pages open from; the allowlist is built from the same value.
+  "apps/mobile/src/features/settings/lib/legal-document-url.ts: https://t3.codes",
   // Fallback texts of the home-screen widget.
   "apps/mobile/src/widgets/AgentActivity.tsx: Agent status out of date",
   "apps/mobile/src/widgets/AgentActivity.tsx: Agent work completed",

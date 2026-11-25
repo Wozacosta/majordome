@@ -129,7 +129,7 @@ function useSiteSignIn(props: SiteSignInProps) {
         host,
       })
       .catch(readFailed(source));
-    if (read === null) return;
+    if (read === null || read.declined === true) return;
     if (read.cookies.length === 0) {
       noneFound(source, read.undecryptable > 0);
       return;

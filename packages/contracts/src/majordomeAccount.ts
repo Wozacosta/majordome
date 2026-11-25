@@ -18,6 +18,11 @@ export const MajordomeAccount = Schema.Struct({
   fixed: Schema.Boolean,
   /** Where the account's other devices reach this server, or null when it has no such address. */
   address: Schema.NullOr(Schema.String),
+  /**
+   * Given only in the answer to adding the account: what a device shows beside its account token
+   * to sign in here. A token alone could be replayed by another server it was shown to.
+   */
+  signInKey: Schema.optional(Schema.String),
 });
 export type MajordomeAccount = typeof MajordomeAccount.Type;
 
@@ -27,6 +32,13 @@ export const MajordomeAccountTokenInput = Schema.Struct({
 });
 export type MajordomeAccountTokenInput = typeof MajordomeAccountTokenInput.Type;
 
+/** What a device with no session sends: the token, and the key the account lists for the server. */
+export const MajordomeAccountSignInInput = Schema.Struct({
+  token: MajordomeAccountTokenInput.fields.token,
+  key: Schema.optional(Schema.String.check(Schema.isMaxLength(256))),
+});
+export type MajordomeAccountSignInInput = typeof MajordomeAccountSignInInput.Type;
+
 export const MajordomeAccountErrorReason = Schema.Literals([
   /** This build has no account service. */
   "unavailable",
@@ -34,6 +46,8 @@ export const MajordomeAccountErrorReason = Schema.Literals([
   "invalid-token",
   /** The token was already used to sign in. */
   "used-token",
+  /** The device did not show this server's sign-in key, or showed an old one. */
+  "wrong-key",
   /** The server belongs to another account, or to none. */
   "not-owner",
   /** A hosted server's account cannot be removed. */
@@ -58,5 +72,5 @@ export const MajordomeAccountSignIn = Schema.Struct({
 });
 export type MajordomeAccountSignIn = typeof MajordomeAccountSignIn.Type;
 
-/** Where a signed-in device asks a server for its credential; the body is the token input. */
+/** Where a signed-in device asks a server for its credential; the body is the sign-in input. */
 export const MAJORDOME_ACCOUNT_SIGN_IN_PATH = "/api/majordome/account/sign-in";

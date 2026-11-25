@@ -327,6 +327,10 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
         limits: { runMinutes: 45, runsPerDay: 5 },
       });
 
+      // The owner's choice is saved at once, so the end of a run does not take it for the run's.
+      yield* commitVaultRun({ cwd: vault.root, message: "majordome: Later" });
+      assert.deepEqual(yield* limits, { runMinutes: 45, runsPerDay: 5 });
+
       // A config it can't read is left alone rather than replaced.
       yield* vault.fs.writeFileString(config, "{ not json");
       const failed = yield* Effect.flip(

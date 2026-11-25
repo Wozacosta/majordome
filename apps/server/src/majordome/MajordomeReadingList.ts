@@ -37,7 +37,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import { buildReadingEnrichmentPrompt, parseReadingEnrichment } from "./readingEnrichment.ts";
-import { lookUpLink, normalizeLink, parseLink } from "./readingLink.ts";
+import { HostAddresses, lookUpLink, normalizeLink, parseLink } from "./readingLink.ts";
 import { readVaultLayout, VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 
@@ -223,6 +223,12 @@ const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const random = yield* SecureRandom.SecureRandom;
   const http = yield* HttpClient.HttpClient;
+  const hostAddresses = yield* HostAddresses;
+  const lookUp = (...args: Parameters<typeof lookUpLink>) =>
+    lookUpLink(...args).pipe(
+      Effect.provideService(HttpClient.HttpClient, http),
+      Effect.provideService(HostAddresses, hostAddresses),
+    );
   const settings = yield* ServerSettings.ServerSettingsService;
   const textGeneration = yield* TextGeneration.TextGeneration;
   // One change at a time, so two quick edits never write over each other.
@@ -342,9 +348,7 @@ const make = Effect.gen(function* () {
             ? parseLink(item.url ?? "")
             : null;
         if (link === null) continue;
-        const { image } = yield* lookUpLink(link, item.kind).pipe(
-          Effect.provideService(HttpClient.HttpClient, http),
-        );
+        const { image } = yield* lookUp(link, item.kind);
         if (image === undefined) continue;
         const lacksPicture = (candidate: MajordomeReadingItem) =>
           candidate.id === item.id && candidate.image === undefined;
@@ -410,10 +414,7 @@ const make = Effect.gen(function* () {
       if (already !== undefined && already.deletedAt === undefined) {
         return { item: already, duplicate: true };
       }
-      const details =
-        link === null
-          ? undefined
-          : yield* lookUpLink(link).pipe(Effect.provideService(HttpClient.HttpClient, http));
+      const details = link === null ? undefined : yield* lookUp(link);
       if (options?.mustLoad === true && details?.missing === true) {
         return yield* fail("That link does not open: its site says there is no such page.");
       }
@@ -454,12 +455,7 @@ const make = Effect.gen(function* () {
         input.lookUp === true || input.enrich === true ? (yield* read(vaultRoot)).items : [];
       const target = before.find((item) => item.id === input.itemId);
       const link = target === undefined ? null : parseLink(target.url ?? "");
-      const found =
-        link === null
-          ? undefined
-          : yield* lookUpLink(link, input.kind ?? target?.kind).pipe(
-              Effect.provideService(HttpClient.HttpClient, http),
-            );
+      const found = link === null ? undefined : yield* lookUp(link, input.kind ?? target?.kind);
       const described =
         input.enrich === true && target !== undefined
           ? yield* describe(input.projectId, {

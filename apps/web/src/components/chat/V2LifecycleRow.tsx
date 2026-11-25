@@ -68,6 +68,8 @@ import { cn } from "~/lib/utils";
 import { TimelineSystemDivider } from "./TimelineSystemDivider";
 import { subagentResumedSince } from "./V2LifecycleRow.logic";
 import { Button, InlineButton } from "../ui/button";
+import { isMajordome } from "../../env";
+import { MajordomeCloche } from "../MajordomeCloche";
 import { T3Wordmark } from "../T3Wordmark";
 
 export type { HandoffTimelineRun } from "@t3tools/client-runtime/handoff";
@@ -148,7 +150,13 @@ export function V2LifecycleRow(props: {
     return (
       <WorkLogRow
         data-v2-item-type={item.type}
-        icon={<T3Wordmark className="size-4 text-icon-muted" aria-hidden />}
+        icon={
+          isMajordome ? (
+            <MajordomeCloche className="size-4 text-icon-muted" aria-hidden />
+          ) : (
+            <T3Wordmark className="size-4 text-icon-muted" aria-hidden />
+          )
+        }
         label={
           item.title ? (
             <T>

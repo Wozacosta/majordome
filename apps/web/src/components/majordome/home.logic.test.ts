@@ -79,6 +79,18 @@ describe("conversationHome", () => {
       here,
     ],
     [
+      "an old server still says it runs the routines: the one last in step with the notes",
+      [mac, server, EnvironmentId.make("old-server")],
+      [
+        copy(mac, "another-server"),
+        copy(EnvironmentId.make("old-server"), "this-server", {
+          lastInStepAt: "2026-11-23T09:00:00.000Z",
+        }),
+        copy(server, "this-server", { lastInStepAt: "2026-11-25T00:01:00.000Z" }),
+      ],
+      there,
+    ],
+    [
       "on the phone, the server is this window's own computer",
       [server],
       [copy(server, "this-server")],

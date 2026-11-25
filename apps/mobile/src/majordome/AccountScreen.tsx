@@ -2,7 +2,7 @@ import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native-components";
 import { useAtomValue } from "@effect/atom-react";
 import { StackActions, useNavigation } from "@react-navigation/native";
-import { MAJORDOME_ACCOUNT_SIGN_IN_PATH } from "@t3tools/contracts";
+import { EnvironmentId, MAJORDOME_ACCOUNT_SIGN_IN_PATH } from "@t3tools/contracts";
 import {
   ACCOUNT_TOKEN_OPTIONS,
   type AccountServer,
@@ -10,22 +10,28 @@ import {
   signInToAccountServer,
 } from "@t3tools/shared/majordomeAccount";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
-import { View } from "react-native";
+import { type ReactNode, useState } from "react";
+import { Alert, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
+import { useConnectionDiagnosis } from "../features/connection/ConnectionDiagnosisDetails";
 import { buildPairingUrl } from "../features/connection/pairing";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
+import { environmentPresentations } from "../state/presentation";
 import {
   pairEnvironment,
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
-import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT } from "./connectWording";
+import { computerState, computerStateText } from "./connectionState";
+import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
+import { BROKER_URL } from "./hostedSignup";
+import { serverOfferAtom } from "./serverOffer";
+import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
 // A build with no account service has no way in here.
 export function AccountScreen() {
@@ -51,6 +57,8 @@ function SignedIn() {
   const navigation = useNavigation();
   const clerk = useClerk();
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const serverOffer = useAtomValue(serverOfferAtom);
   const connections = useAtomValue(savedConnectionsByIdAtom);
   const servers = readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ });
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
@@ -60,6 +68,39 @@ function SignedIn() {
     Object.keys(connections).length === 0
       ? () => navigation.dispatch(StackActions.popToTop())
       : undefined;
+
+  const [deleteProblem, setDeleteProblem] = useState<string | null>(null);
+  const [preparingDelete, setPreparingDelete] = useState(false);
+  // The account's server goes first: once the account is gone, nothing could ask for that.
+  const deleteAccount = async () => {
+    setDeleteProblem(null);
+    const token = await getToken(ACCOUNT_TOKEN_OPTIONS).catch(() => null);
+    const serverEnded = token !== null && (await endServerBilling(fetch, BROKER_URL, token));
+    const deleted =
+      serverEnded &&
+      (await user?.delete().then(
+        () => true,
+        () => false,
+      ));
+    if (!deleted) setDeleteProblem(MAJORDOME_ACCOUNT.deleteFailed);
+  };
+  const confirmDelete = async () => {
+    setPreparingDelete(true);
+    const token = await getToken(ACCOUNT_TOKEN_OPTIONS).catch(() => null);
+    const detail =
+      token === null
+        ? MAJORDOME_ACCOUNT.deleteDetail
+        : deleteAccountDetail(await readBillingStatus(fetch, BROKER_URL, token));
+    setPreparingDelete(false);
+    Alert.alert(MAJORDOME_ACCOUNT.deleteTitle, detail, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: MAJORDOME_ACCOUNT.deleteConfirm,
+        style: "destructive",
+        onPress: () => void deleteAccount(),
+      },
+    ]);
+  };
 
   const checkAgain = async () => {
     setChecking(true);
@@ -99,6 +140,13 @@ function SignedIn() {
               tone="text"
               onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
             />
+            {serverOffer === null ? null : (
+              <Button
+                label={MAJORDOME_SERVER.getLabel}
+                tone="text"
+                onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+              />
+            )}
           </View>
         ) : (
           servers.map((server) => (
@@ -111,6 +159,17 @@ function SignedIn() {
           ))
         )}
         <Button label="Sign out" tone="text" onPress={() => void clerk.signOut()} />
+        <Button
+          label={MAJORDOME_ACCOUNT.deleteTitle}
+          tone="text"
+          loading={preparingDelete}
+          onPress={() => void confirmDelete()}
+        />
+        {deleteProblem === null ? null : (
+          <Text accessibilityRole="alert" className="text-danger">
+            {deleteProblem}
+          </Text>
+        )}
       </ScrollView>
     </SettingsScreen>
   );
@@ -138,7 +197,10 @@ function ServerCard(props: {
     });
     if (!signedIn.ok) return signedIn.message;
     // The same spelling a scanned code is connected with.
-    const outcome = await pairEnvironment(buildPairingUrl(server.url, signedIn.credential));
+    const outcome = await pairEnvironment(
+      buildPairingUrl(server.url, signedIn.credential),
+      props.connected ? EnvironmentId.make(server.environmentId) : undefined,
+    );
     if (outcome.ok) return null;
     return outcome.error === null
       ? `This phone couldn't connect to ${server.name}.`
@@ -175,10 +237,42 @@ function ServerCard(props: {
         </Text>
       )}
       {props.connected ? (
-        <Text className="text-foreground-muted">This phone is connected to it.</Text>
+        <SavedServer
+          server={server}
+          again={
+            <Button
+              label={MAJORDOME_ACCOUNT.connectAgain}
+              tone="primary"
+              loading={busy}
+              onPress={() => void run()}
+            />
+          }
+        />
       ) : (
         <Button label="Connect" tone="primary" loading={busy} onPress={() => void run()} />
       )}
     </View>
+  );
+}
+
+/** A server this phone already has: how the connection stands, and the way back in when the server let it go. */
+function SavedServer(props: { readonly server: AccountServer; readonly again: ReactNode }) {
+  const environmentId = EnvironmentId.make(props.server.environmentId);
+  const presentation = useAtomValue(environmentPresentations.presentationAtom(environmentId));
+  const { state } = useConnectionDiagnosis(environmentId, presentation);
+  const stands = computerState({
+    enabled: presentation?.entry.enabled ?? true,
+    phase: presentation?.connection.phase ?? "connecting",
+    network: state.network,
+    failure: state.lastFailure,
+  });
+  if (stands === null) {
+    return <Text className="text-foreground-muted">{MAJORDOME_ACCOUNT.connected}</Text>;
+  }
+  if (stands === "signInExpired") return props.again;
+  return (
+    <Text className="text-foreground-muted">
+      {computerStateText(stands, props.server.name).sentence}
+    </Text>
   );
 }

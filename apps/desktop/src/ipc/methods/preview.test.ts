@@ -9,6 +9,9 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+import * as ElectronDialog from "../../electron/ElectronDialog.ts";
+import * as ElectronWindow from "../../electron/ElectronWindow.ts";
+import * as BrowserImport from "../../preview/BrowserImport/BrowserImport.ts";
 import * as PreviewManager from "../../preview/Manager.ts";
 import * as PreviewIpc from "./preview.ts";
 import * as DesktopIpc from "../DesktopIpc.ts";
@@ -112,6 +115,78 @@ describe("preview IPC methods", () => {
 
   beforeEach(() => {
     fromPartition.mockClear();
+  });
+
+  effectIt.effect("asks the owner before a site's cookies reach the window, once per site", () => {
+    const asked: Array<string> = [];
+    const read: Array<string> = [];
+    let answer = 1;
+    return Effect.gen(function* () {
+      let listener: DesktopIpc.DesktopIpcHandleListener | undefined;
+      const ipc = DesktopIpc.make(
+        {
+          removeHandler: vi.fn(),
+          handle: (_channel, registered) => {
+            listener = registered;
+          },
+          removeAllListeners: vi.fn(),
+          on: vi.fn(),
+        },
+        () => Effect.succeed(true),
+      );
+      yield* ipc.handle(PreviewIpc.readBrowserSiteCookies);
+      const invoke = (host: string) =>
+        Effect.promise(async () =>
+          listener!(
+            { sender: { id: 7 } },
+            { sourceId: "chrome", sourceProfileDirectory: "Default", host },
+          ),
+        );
+
+      expect(yield* invoke("GitHub.com")).toEqual({
+        cookies: [],
+        undecryptable: 0,
+        declined: true,
+      });
+      expect(read).toEqual([]);
+      answer = 0;
+      expect(yield* invoke("github.com")).toEqual({ cookies: [], undecryptable: 2 });
+      expect(yield* invoke("github.com")).toEqual({ cookies: [], undecryptable: 2 });
+      expect(read).toEqual(["github.com", "github.com"]);
+      // A yes is for one site, and a host that could write its own question is never asked about.
+      yield* invoke("example.com");
+      expect(yield* invoke("github.com\n\nPress Copy")).toMatchObject({ declined: true });
+      expect(asked).toEqual([
+        "Copy your sign-in for github.com?",
+        "Copy your sign-in for github.com?",
+        "Copy your sign-in for example.com?",
+      ]);
+    }).pipe(
+      Effect.scoped,
+      Effect.provideService(BrowserImport.BrowserImport, {
+        readSiteCookies: (input) =>
+          Effect.sync(() => {
+            read.push(input.host);
+            return { cookies: [], undecryptable: 2 };
+          }),
+      } as Partial<
+        BrowserImport.BrowserImport["Service"]
+      > as BrowserImport.BrowserImport["Service"]),
+      Effect.provideService(ElectronWindow.ElectronWindow, {
+        focusedMainOrFirst: Effect.succeedNone,
+      } as Partial<
+        ElectronWindow.ElectronWindow["Service"]
+      > as ElectronWindow.ElectronWindow["Service"]),
+      Effect.provideService(ElectronDialog.ElectronDialog, {
+        showMessageBox: (options) =>
+          Effect.sync(() => {
+            asked.push(options.message);
+            return { response: answer, checkboxChecked: false };
+          }),
+      } as Partial<
+        ElectronDialog.ElectronDialog["Service"]
+      > as ElectronDialog.ElectronDialog["Service"]),
+    );
   });
 
   it("derives distinct partition scopes when identifiers contain the delimiter", () => {

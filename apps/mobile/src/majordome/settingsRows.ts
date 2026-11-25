@@ -5,6 +5,7 @@ export const MAJORDOME_SETTINGS_LABELS = {
   SettingsEnvironmentNew: "Add a computer",
   SettingsProviderAccounts: "AI accounts",
   SettingsScheduledTasks: "Routines",
+  SettingsSavedKeys: "Passwords and keys",
   SettingsOrganization: "Language",
   SettingsProjectGrouping: "Language",
   SettingsFollowUp: "Writing messages",
@@ -25,7 +26,10 @@ type Labelled = keyof typeof MAJORDOME_SETTINGS_LABELS;
  */
 const LAYOUT: ReadonlyArray<{ readonly title?: string; readonly pages: readonly string[] }> = [
   { pages: ["SettingsAccount", "SettingsEnvironments"] },
-  { title: "The assistant", pages: ["SettingsProviderAccounts", "SettingsScheduledTasks"] },
+  {
+    title: "The assistant",
+    pages: ["SettingsProviderAccounts", "SettingsScheduledTasks", "SettingsSavedKeys"],
+  },
   {
     title: "This app",
     pages: ["SettingsOrganization", "SettingsAppearance", "SettingsFollowUp", "SettingsVoice"],

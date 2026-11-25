@@ -308,6 +308,9 @@ function useSettingsIndexSections(): SettingsListSection[] {
         serverPage("SettingsProviderAccounts", "person.crop.circle", gt("Providers")),
         serverPage("SettingsThreads", "text.bubble", gt("Threads")),
         page("SettingsScheduledTasks", "clock", gt("Scheduled tasks")),
+        ...(isMajordome
+          ? [serverPage("SettingsSavedKeys", "key", MAJORDOME_SETTINGS_LABELS.SettingsSavedKeys)]
+          : []),
       ],
     },
     {

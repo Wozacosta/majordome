@@ -112,6 +112,7 @@ import type { AppBarMenu } from "../../components/ui/AppBar.types";
 import { ModelRow, ChoiceRow } from "./ThreadSettingsRows";
 import { MODEL_PICKER_WORDS } from "../../majordome/conversation.logic";
 import { isMajordome } from "../../majordome/env";
+import { ModelLevelRows } from "../../majordome/ModelLevelRows";
 import {
   compatibleRuntimeModeForChoices,
   runtimeModeChoicesForSupportedModes,
@@ -755,6 +756,10 @@ type ThreadSettingsCatalogItem =
       readonly key: "empty";
     }
   | {
+      readonly kind: "levels";
+      readonly key: "levels";
+    }
+  | {
       readonly kind: "options";
       readonly key: "options";
     };
@@ -1074,6 +1079,25 @@ function ThreadSettingsOptionsItem(props: {
   );
 }
 
+/** Reads the session itself: the list does not draw a row again when the chosen model changes. */
+function ThreadSettingsLevelsItem() {
+  const session = useThreadSettingsSession();
+  const configs = useAtomValue(environmentServerConfigsAtom);
+  const config = session.environmentId ? configs.get(session.environmentId) : undefined;
+  if (!config) return null;
+  const instanceId = session.displayedModelSelection?.instanceId ?? session.providerInstanceId;
+  return (
+    <ModelLevelRows
+      account={config.providers.find((provider) => provider.instanceId === instanceId) ?? null}
+      settings={config.settings}
+      table={config.modelLevelTable}
+      options={session.providerGroups.flatMap((group) => group.models)}
+      selected={session.displayedModelSelection}
+      onPress={session.pressModel}
+    />
+  );
+}
+
 function ThreadSettingsMainContent(props: {
   readonly bottomInset: number;
   readonly onOpenSubmenu: (submenu: ThreadSettingsSubmenuPage) => void;
@@ -1134,6 +1158,10 @@ function ThreadSettingsMainContent(props: {
     session.providerFilter !== null ||
     session.searchQuery.trim().length > 0;
   const listItems = [
+    // Majordome leads with its three levels; a search or filter is for the full list.
+    ...(isMajordome && !hasActiveCatalogFilter
+      ? ([{ kind: "levels", key: "levels" }] as const)
+      : []),
     ...(catalogItems.length === 0 ? ([{ kind: "empty", key: "empty" }] as const) : catalogItems),
     { kind: "options", key: "options" },
   ] satisfies ReadonlyArray<ThreadSettingsCatalogItem>;
@@ -1153,6 +1181,8 @@ function ThreadSettingsMainContent(props: {
           option={item.option}
         />
       );
+    } else if (item.kind === "levels") {
+      content = <ThreadSettingsLevelsItem />;
     } else if (item.kind === "notice") {
       content = <Text className="mx-8 mt-2 text-xs text-foreground-muted">{item.text}</Text>;
     } else if (item.kind === "empty") {

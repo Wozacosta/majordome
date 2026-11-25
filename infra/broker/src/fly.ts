@@ -14,7 +14,6 @@ interface FlyErrorBody {
 export function makeFlyHost(config: {
   readonly apiToken: string;
   readonly orgSlug: string;
-  readonly image: string;
   readonly region: string;
   readonly memoryMb: number;
   readonly volumeGb: number;
@@ -53,12 +52,31 @@ export function makeFlyHost(config: {
 
   const urlFor = (name: string) => `https://${name}.fly.dev`;
 
+  interface Machine {
+    readonly id?: string;
+    readonly state?: string;
+    readonly config?: { readonly services?: ReadonlyArray<unknown> };
+  }
+  const machinesOf = async (name: string) =>
+    ((await call("GET", `/apps/${name}/machines`)) as ReadonlyArray<Machine> | undefined) ?? [];
+  const services = [
+    {
+      protocol: "tcp",
+      internal_port: 3773,
+      ports: [
+        { port: 443, handlers: ["tls", "http"] },
+        { port: 80, handlers: ["http"], force_https: true },
+      ],
+    },
+  ];
+
   return {
     urlFor,
-    createServer: async ({ name, env }) => {
+    createServer: async ({ name, env, image }) => {
       const url = urlFor(name);
       const app = `/apps/${name}`;
-      await call("POST", "/apps", { app_name: name, org_slug: config.orgSlug });
+      // A private network of its own: apps on an organization's default one reach each other.
+      await call("POST", "/apps", { app_name: name, org_slug: config.orgSlug, network: name });
       // An app made through the API gets no address by itself.
       await call("POST", `${app}/ip_assignments`, { type: "shared_v4" });
       await call("POST", `${app}/ip_assignments`, { type: "v6" });
@@ -76,21 +94,12 @@ export function makeFlyHost(config: {
         name: "majordome",
         region: config.region,
         config: {
-          image: config.image,
+          image,
           env: { ...env, MAJORDOME_PUBLIC_URL: url },
           guest: { cpu_kind: "shared", cpus: 2, memory_mb: config.memoryMb },
           mounts: [{ volume: volume.id, path: "/data" }],
           restart: { policy: "always" },
-          services: [
-            {
-              protocol: "tcp",
-              internal_port: 3773,
-              ports: [
-                { port: 443, handlers: ["tls", "http"] },
-                { port: 80, handlers: ["http"] },
-              ],
-            },
-          ],
+          services,
         },
       });
       return { url };
@@ -101,17 +110,39 @@ export function makeFlyHost(config: {
         | undefined;
       return (machines ?? []).some((machine) => machine.state === "started");
     },
-    updateServer: async (name) => {
+    updateServer: async (name, image) => {
       const machines = (await call("GET", `/apps/${name}/machines`)) as
         | ReadonlyArray<{ readonly id?: string; readonly config?: Record<string, unknown> }>
         | undefined;
       for (const machine of machines ?? []) {
         if (typeof machine.id !== "string" || machine.config === undefined) continue;
-        // The image by its tag: Fly looks the tag up again and restarts on what it finds. A
-        // machine updated with `fly machine update` has its image pinned to a digest, which
-        // would be kept if the config were sent back as it is.
         await call("POST", `/apps/${name}/machines/${machine.id}`, {
-          config: { ...machine.config, image: config.image },
+          config: { ...machine.config, image },
+        });
+      }
+    },
+    stopServer: async (name) => {
+      for (const machine of await machinesOf(name)) {
+        if (typeof machine.id !== "string") continue;
+        const path = `/apps/${name}/machines/${machine.id}`;
+        const reachable = (machine.config?.services ?? []).length > 0;
+        if (!reachable && machine.state === "stopped") continue;
+        if (reachable) {
+          // Fly starts a stopped Machine when its address is visited, whatever `autostart` says
+          // (seen 2026-11-24), so the address is taken away. Updating launches the Machine, so
+          // this comes first and the stop last.
+          await call("POST", path, { config: { ...machine.config, services: [] } });
+          await call("GET", `${path}/wait?state=started&timeout=60`);
+        }
+        await call("POST", `${path}/stop`, {});
+        await call("GET", `${path}/wait?state=stopped&timeout=60`);
+      }
+    },
+    startServer: async (name) => {
+      for (const machine of await machinesOf(name)) {
+        if (typeof machine.id !== "string") continue;
+        await call("POST", `/apps/${name}/machines/${machine.id}`, {
+          config: { ...machine.config, services },
         });
       }
     },

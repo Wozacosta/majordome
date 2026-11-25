@@ -193,6 +193,77 @@
         font-size: 0.9rem;
         color: var(--muted);
       }
+      .soon {
+        margin: 28px auto 0;
+        max-width: 34rem;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+        font-size: 0.95rem;
+      }
+      .soon p {
+        margin: 0;
+      }
+      .soon .tag {
+        margin-right: 8px;
+        padding: 2px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--live-text);
+        white-space: nowrap;
+      }
+      .soon-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px 16px;
+        margin-top: 14px;
+      }
+      .soon label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .soon input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--ink);
+      }
+      .soon input[type="email"] {
+        flex: 1 1 13rem;
+        min-width: 0;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+      }
+      .soon button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .soon button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .soon-status:empty {
+        display: none;
+      }
+      .soon-status {
+        margin-top: 12px !important;
+        color: var(--muted);
+      }
 
       .made {
         margin: 48px auto 0;
@@ -506,32 +577,6 @@
         font-size: 1.1rem;
       }
 
-      ol.steps {
-        list-style: none;
-        counter-reset: step;
-        margin: 44px 0 0;
-        padding: 0;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-      }
-      ol.steps li {
-        counter-increment: step;
-        border-top: 2px solid var(--ink);
-        padding-top: 16px;
-        color: var(--muted);
-        font-size: 0.97rem;
-      }
-      ol.steps li::before {
-        content: counter(step);
-        display: block;
-        font: 500 1.6rem/1 var(--serif);
-        color: var(--ink);
-        margin-bottom: 10px;
-      }
-      ol.steps strong {
-        color: var(--ink);
-      }
       .after-steps {
         margin: 32px 0 0;
         max-width: 46rem;
@@ -564,11 +609,6 @@
         gap: 6px 20px;
       }
 
-      @media (max-width: 860px) {
-        ol.steps {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
       @media (max-width: 620px) {
         nav a.link {
           display: none;
@@ -578,9 +618,6 @@
         }
         section {
           padding-top: 76px;
-        }
-        ol.steps {
-          grid-template-columns: 1fr;
         }
       }
 
@@ -868,7 +905,521 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* Shared by the diagrams after the first one. */
+      .dg {
+        margin-top: 40px;
+      }
+      .dg .k {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .dg mark {
+        background: #3ddc8433;
+        color: inherit;
+        border-radius: 4px;
+        padding: 1px 4px;
+        margin: 0 -4px;
+        transition: background-color 0.5s ease;
+      }
+      .dg .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 18px 20px 20px;
+      }
+      .dg .card.main {
+        border: 2px solid var(--ink);
+      }
+      .dg .card.main > .k {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .dg .cap {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .dg .file .tag {
+        transition: opacity 0.5s ease;
+      }
+
+      .recall {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .recall .card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .recall .when {
+        margin-top: 4px;
+        font: 500 1.25rem/1.2 var(--serif);
+      }
+      .recall .later {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: auto;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .recall .file .new,
+      .recall .later .it {
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
+      }
+      .recall .file .new {
+        transition-delay: 0.4s;
+      }
+      .recall .later .it {
+        transition-delay: 1.2s;
+      }
+      .recall .later mark,
+      .recall .later .tag {
+        transition-delay: 1.6s;
+      }
+      .recall.wait .file .new,
+      .recall.wait .later .it {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      .recall.wait .later mark {
+        background-color: transparent;
+      }
+      .recall.wait .later .tag {
+        opacity: 0;
+      }
+      .recall .later .tag {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--live-text);
+        transition: opacity 0.5s ease 1.6s;
+      }
+
+      .lives {
+        display: grid;
+        grid-template-columns: 1.5fr 96px 1fr;
+        gap: 16px 0;
+      }
+      .lives .mac {
+        grid-row: 1 / span 2;
+      }
+      .lives .apart {
+        grid-column: 3;
+      }
+      .lives .held {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .lives .held li {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+        padding: 10px 12px;
+        font-size: 0.95rem;
+      }
+      .lives .held span,
+      .lives .card > p {
+        display: block;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .lives .card > p {
+        margin-top: 10px;
+        font-size: 0.9rem;
+      }
+      .lives .go {
+        position: relative;
+        align-self: center;
+        height: 2px;
+        margin: 0 12px 0 10px;
+        background: var(--ink);
+        transform-origin: left;
+        transition: transform 0.6s ease 0.3s;
+      }
+      .lives .go::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: -5px;
+        width: 10px;
+        height: 10px;
+        border-top: 2px solid var(--ink);
+        border-right: 2px solid var(--ink);
+        transform: rotate(45deg);
+      }
+      .lives .ai,
+      .lives .apart {
+        transition: opacity 0.5s ease 0.8s;
+      }
+      .lives .apart {
+        transition-delay: 1.5s;
+      }
+      .where.wait .go {
+        transform: scaleX(0);
+      }
+      .where.wait .ai,
+      .where.wait .apart {
+        opacity: 0;
+      }
+      .opt {
+        margin-top: 16px;
+        border: 1px dashed var(--muted);
+        border-radius: 14px;
+        padding: 16px 20px 18px;
+      }
+      .opt ul {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .opt li {
+        padding: 5px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .where > .cap {
+        margin-top: 14px;
+        max-width: 46rem;
+      }
+
+      .setups {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .setups .card {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .setups h3 {
+        margin: 0;
+        font: 500 1.5rem/1.15 var(--serif);
+      }
+      .setups p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .setups .devs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+      }
+      .setups .devs svg {
+        width: 28px;
+        height: 28px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .setups .devs i {
+        width: 16px;
+        border-top: 2px dotted var(--muted);
+      }
+      .setups .plans {
+        list-style: none;
+        margin: 2px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .setups .plans a,
+      .setups .plans div {
+        display: block;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+        padding: 9px 12px;
+        font-size: 0.93rem;
+      }
+      .setups .plans a:hover {
+        border-color: var(--ink);
+      }
+      .setups .plans span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .clock {
+        margin-top: auto;
+        padding-top: 10px;
+      }
+      .clock .bar {
+        position: relative;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--line);
+        overflow: hidden;
+      }
+      .clock .bar b {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: 5px;
+        background: var(--live);
+        transform-origin: left;
+        transition: transform 0.9s ease 0.3s;
+      }
+      .setups.wait .clock .bar b {
+        transform: scaleX(0);
+      }
+      .clock .ticks {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+      }
+      .clock .says {
+        margin-top: 4px;
+        font-size: 0.84rem;
+        color: var(--muted);
+      }
+
+      .undo {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 0;
+      }
+      .undo .ran {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .undo .ran time {
+        font: 500 1.6rem/1.1 var(--serif);
+        font-variant-numeric: tabular-nums;
+      }
+      .undo .did {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+        padding: 10px 12px;
+        font-size: 0.93rem;
+      }
+      .undo .did span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .undo button {
+        flex: none;
+        padding: 6px 14px;
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .undo .file .new > span:first-child {
+        transition: color 0.4s ease;
+      }
+      .undo.off .file .new > span:first-child {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      .undo.off .file mark {
+        background-color: transparent;
+      }
+      .undo.off .file .tag {
+        opacity: 0;
+      }
+
+      .path {
+        list-style: none;
+        margin: 44px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr 1.3fr 1.3fr;
+        border-top: 2px solid var(--ink);
+      }
+      .path > li {
+        position: relative;
+        padding: 26px 26px 0 0;
+      }
+      .path > li::before {
+        content: "";
+        position: absolute;
+        top: -7px;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 2px solid var(--ink);
+      }
+      .path > li:last-child::before {
+        background: var(--live);
+      }
+      .path .n {
+        display: block;
+        margin-bottom: 10px;
+        font: 500 1.6rem/1 var(--serif);
+      }
+      .path p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .path .drag {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+        color: var(--muted);
+      }
+      .path .drag span {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: var(--surface);
+        color: var(--ink);
+      }
+      .path .mock {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        padding: 12px 14px 4px;
+        font-size: 0.92rem;
+      }
+      .path .mock .t {
+        padding-bottom: 8px;
+        font-weight: 600;
+      }
+      .path .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+      }
+      .path .row span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .path .row .ok {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--live-text);
+        white-space: nowrap;
+        transition: opacity 0.5s ease 0.4s;
+      }
+      .path .row + .row .ok {
+        transition-delay: 0.9s;
+      }
+      .path .chat {
+        margin-top: 16px;
+      }
+      .path .chat .it {
+        background: var(--surface);
+        transition:
+          opacity 0.5s ease 1.5s,
+          transform 0.5s ease 1.5s;
+      }
+      .path.wait .ok {
+        opacity: 0;
+      }
+      .path.wait .chat .it {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      @media (max-width: 860px) {
+        .setups {
+          grid-template-columns: 1fr;
+        }
+        .path {
+          grid-template-columns: 1fr;
+          border-top: 0;
+          border-left: 2px solid var(--ink);
+        }
+        .path > li {
+          padding: 0 0 34px 24px;
+        }
+        .path > li:last-child {
+          padding-bottom: 0;
+        }
+        .path > li::before {
+          top: 4px;
+          left: -9px;
+        }
+      }
+      @media (max-width: 720px) {
+        .recall,
+        .lives {
+          grid-template-columns: 1fr;
+        }
+        .lives .mac,
+        .lives .apart {
+          grid-row: auto;
+          grid-column: auto;
+        }
+        .lives .go {
+          justify-self: center;
+          width: 2px;
+          height: 36px;
+          margin: 0;
+          transform-origin: top;
+        }
+        .lives .go::after {
+          right: -5px;
+          top: auto;
+          bottom: 0;
+          transform: rotate(135deg);
+        }
+        .where.wait .go {
+          transform: scaleY(0);
+        }
+      }
+      @media (max-width: 420px) {
+        .lives .held {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .dg *,
+        .path * {
+          transition: none !important;
+        }
+      }
     </style>
+    <script defer src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <div class="wrap">
@@ -909,6 +1460,30 @@
           </div>
           <p class="fineprint">For Apple silicon. No account needed.</p>
 
+          <form class="soon" id="soon">
+            <p>
+              <span class="tag">Coming soon</span>Linux and Windows. Leave your email and get one
+              message when yours is ready.
+            </p>
+            <div class="soon-row">
+              <label><input type="checkbox" name="platform" value="linux" checked /> Linux</label>
+              <label
+                ><input type="checkbox" name="platform" value="windows" checked /> Windows</label
+              >
+              <input
+                type="email"
+                name="email"
+                required
+                maxlength="254"
+                autocomplete="email"
+                placeholder="you@example.com"
+                aria-label="Your email address"
+              />
+              <button class="button small" type="submit">Tell me</button>
+            </div>
+            <p class="soon-status" role="status"></p>
+          </form>
+
           <div class="shot">
             <video
               autoplay
@@ -931,7 +1506,7 @@
             <h2>What it is made of.</h2>
           </div>
           <div
-            class="made"
+            class="made reveal"
             role="img"
             aria-label="Your markdown notes plus Claude or ChatGPT make Majordome. Inside it, one conversation reads your note Money.md to answer what you spent this week, and writes the train ticket you mention back into the note."
           >
@@ -1001,12 +1576,62 @@
 
         <section>
           <div class="intro">
+            <h2>Said once, known for good.</h2>
+            <p>What it learns goes into a note you can open, edit or delete.</p>
+          </div>
+          <div class="dg recall reveal">
+            <div class="card">
+              <div class="k">A chat with no notes</div>
+              <div class="when">Monday</div>
+              <div class="chat">
+                <div class="you">My accountant is Claire Morel.</div>
+                <div class="it">Got it.</div>
+              </div>
+              <div class="later">
+                <div class="when">Three weeks later</div>
+                <div class="chat">
+                  <div class="you">Who is my accountant?</div>
+                  <div class="it">I don't have that. Can you remind me?</div>
+                </div>
+              </div>
+            </div>
+            <div class="card main">
+              <div class="k"><span class="dot"></span>Majordome</div>
+              <div class="when">Monday</div>
+              <div class="chat">
+                <div class="you">My accountant is Claire Morel.</div>
+                <div class="it">Noted in <mark>memory.md</mark>.</div>
+              </div>
+              <div class="file">
+                <div class="fname">memory.md</div>
+                <div>- Lease ends 30 June</div>
+                <div class="new">
+                  <span><mark>- Accountant: Claire Morel</mark></span
+                  ><span class="tag">written</span>
+                </div>
+              </div>
+              <div class="later">
+                <div class="when">Three weeks later</div>
+                <div class="chat">
+                  <div class="you">Who is my accountant?</div>
+                  <div class="it">
+                    <mark>Claire Morel</mark>. You told me on 2 November.
+                    <span class="tag">read from memory.md</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="intro">
             <h2>One day with it.</h2>
           </div>
           <ol class="day">
             <li>
-              <time>07:00</time>
-              <span class="away">while you sleep</span>
+              <time>08:00</time>
+              <span class="away">on its own</span>
               <h3>Your day is ready</h3>
               <p>A summary from your notes and calendar.</p>
             </li>
@@ -1090,6 +1715,41 @@
               loading="lazy"
             />
           </div>
+          <div class="feature">
+            <div>
+              <h3>Everything it did, with an undo</h3>
+              <p>
+                Each run leaves one line saying what it changed in your notes. One press takes it
+                back. Try it.
+              </p>
+              <a href="https://github.com/Wozacosta/majordome/blob/main/docs/user/memory.md"
+                >How its memory works</a
+              >
+            </div>
+            <div class="dg undo card" id="undo">
+              <div class="k">While you slept</div>
+              <div class="ran"><time>03:30</time><b>Tidy my memory</b></div>
+              <div class="k">What it did</div>
+              <div class="did">
+                <div>Remembered 2 things.<span>Changed memory.md</span></div>
+                <button class="button small quiet" type="button" aria-pressed="false">
+                  Undo this
+                </button>
+              </div>
+              <div class="file">
+                <div class="fname">memory.md</div>
+                <div>- Accountant: Claire Morel</div>
+                <div class="new">
+                  <span><mark>- Lease ends 30 June</mark></span
+                  ><span class="tag">written</span>
+                </div>
+                <div class="new">
+                  <span><mark>- Gym: stopped, walking instead</mark></span
+                  ><span class="tag">written</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="feature phone">
             <div>
               <h3>On your phone too</h3>
@@ -1121,15 +1781,14 @@
             </a>
             <a
               class="tile"
-              href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md"
+              href="https://github.com/Wozacosta/majordome/blob/main/docs/user/backup.md"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="4" y="5" width="16" height="6" rx="1.5" />
-                <rect x="4" y="13" width="16" height="6" rx="1.5" />
-                <path d="M8 8h.01M8 16h.01" />
+                <path d="M12 4v10M8 10l4 4 4-4" />
+                <path d="M5 16v3h14v-3" />
               </svg>
-              <h3>Always on, if you want</h3>
-              <p>Add a small server of your own, about €5 a month.</p>
+              <h3>Back up my brain</h3>
+              <p>A locked copy every night, in a place you choose.</p>
             </a>
             <a class="tile" href="https://www.npmjs.com/package/obrain">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1142,9 +1801,165 @@
           </div>
         </section>
 
+        <section id="setup">
+          <div class="intro">
+            <h2>Pick your setup.</h2>
+            <p>Start on your Mac. Add the rest later, without starting over.</p>
+          </div>
+          <div class="dg setups reveal">
+            <div class="card">
+              <div class="devs" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="5" y="5" width="14" height="10" rx="1.5" />
+                  <path d="M3 18.500h18" />
+                </svg>
+              </div>
+              <h3>Just my Mac</h3>
+              <p>Free. Nothing to sign up for.</p>
+              <ul class="plans">
+                <li>
+                  <a href="/download">Majordome for Mac<span>Free and open source.</span></a>
+                </li>
+                <li>
+                  <div>Your AI plan<span>Claude or ChatGPT, the one you have.</span></div>
+                </li>
+              </ul>
+              <div class="clock">
+                <div class="bar" aria-hidden="true"><b style="left: 33.3%; right: 4.2%"></b></div>
+                <div class="ticks" aria-hidden="true">
+                  <span>00:00</span><span>12:00</span><span>24:00</span>
+                </div>
+                <div class="says">Routines run while your Mac is awake.</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="devs" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="5" y="5" width="14" height="10" rx="1.5" />
+                  <path d="M3 18.500h18" />
+                </svg>
+                <i></i>
+                <svg viewBox="0 0 24 24">
+                  <rect x="8" y="3" width="8" height="18" rx="2" />
+                  <path d="M11 18h2" />
+                </svg>
+              </div>
+              <h3>Mac and phone</h3>
+              <p>Free. The same app, on your Home Screen.</p>
+              <ul class="plans">
+                <li>
+                  <a href="/open">Sign in<span>Open majord.me/open on your phone.</span></a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/Wozacosta/majordome/blob/main/docs/user/phone-and-notifications.md"
+                    >Or scan a code<span>No account needed.</span></a
+                  >
+                </li>
+              </ul>
+              <div class="clock">
+                <div class="bar" aria-hidden="true"><b style="left: 33.3%; right: 4.2%"></b></div>
+                <div class="ticks" aria-hidden="true">
+                  <span>00:00</span><span>12:00</span><span>24:00</span>
+                </div>
+                <div class="says">Your phone reaches it while your Mac is awake.</div>
+              </div>
+            </div>
+            <div class="card main">
+              <div class="devs" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="5" y="5" width="14" height="10" rx="1.5" />
+                  <path d="M3 18.500h18" />
+                </svg>
+                <i></i>
+                <svg viewBox="0 0 24 24">
+                  <rect x="8" y="3" width="8" height="18" rx="2" />
+                  <path d="M11 18h2" />
+                </svg>
+                <i></i>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M7 18a4 4 0 0 1-.5-7.970A5.500 5.500 0 0 1 17.200 9.200 4.400 4.400 0 0 1 17 18Z"
+                  />
+                </svg>
+              </div>
+              <h3>Always on</h3>
+              <p>
+                A server that never sleeps. It keeps your conversations, so every device shows the
+                same ones.
+              </p>
+              <ul class="plans">
+                <li>
+                  <a href="/start"
+                    >Majordome server<span>Hosted for you. €12 a month, 7 days free.</span></a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md"
+                    >Your server<span>Rented in your name, about €5 a month.</span></a
+                  >
+                </li>
+              </ul>
+              <div class="clock">
+                <div class="bar" aria-hidden="true"><b style="left: 0; right: 0"></b></div>
+                <div class="ticks" aria-hidden="true">
+                  <span>00:00</span><span>12:00</span><span>24:00</span>
+                </div>
+                <div class="says">Routines run around the clock.</div>
+              </div>
+            </div>
+          </div>
+          <p class="compare-note">
+            In each one the assistant is your own Claude or ChatGPT plan. A Majordome server uses
+            Claude. The awake hours drawn are an example.
+          </p>
+        </section>
+
         <section>
           <div class="intro">
             <h2>Yours, all the way down.</h2>
+          </div>
+          <div class="dg where reveal">
+            <div class="lives">
+              <div class="card main mac">
+                <div class="k"><span class="dot"></span>Your Mac</div>
+                <ul class="held">
+                  <li>Your notes<span>and their history</span></li>
+                  <li>Your conversations<span>with the assistant</span></li>
+                  <li>Private documents<span>encrypted</span></li>
+                  <li>Your AI sign-in<span>and saved passwords</span></li>
+                </ul>
+              </div>
+              <div class="go" aria-hidden="true"></div>
+              <div class="card ai">
+                <div class="k">Claude or ChatGPT</div>
+                <p>
+                  Gets your message and the notes it reads, straight from your Mac, under your own
+                  account.
+                </p>
+              </div>
+              <div class="card apart">
+                <div class="k">Majordome, the project</div>
+                <p>
+                  No line to it. It receives none of these, no usage statistics and no crash
+                  reports.
+                </p>
+              </div>
+            </div>
+            <div class="opt">
+              <div class="k">Optional, off until you turn it on</div>
+              <ul>
+                <li>An address for your phone</li>
+                <li>An account</li>
+                <li>A backup copy</li>
+                <li>A server</li>
+              </ul>
+            </div>
+            <p class="cap">
+              Add a server and the same four things live there too. On a Majordome server, that is a
+              machine in Paris. <a href="/privacy">What each optional service keeps</a>
+            </p>
           </div>
           <ul class="yours">
             <li><strong>Your files</strong><span>Markdown on your machine.</span></li>
@@ -1289,18 +2104,59 @@
 
         <section id="install">
           <div class="intro">
-            <h2>Four steps.</h2>
+            <h2>Two questions, then Today.</h2>
           </div>
-          <ol class="steps">
-            <li><strong>Download</strong> the file for your Mac from the latest release.</li>
-            <li><strong>Drag</strong> Majordome to Applications and open it.</li>
+          <ol class="path reveal">
             <li>
-              <strong>Sign in to Claude or ChatGPT</strong> on the welcome screen. It installs what
-              it needs.
+              <span class="n">1</span>
+              <h3>Download, drag, open</h3>
+              <p>The file for your Mac, into Applications.</p>
+              <div class="drag" aria-hidden="true">
+                <span>
+                  <svg viewBox="0 0 40 40" width="30" height="30">
+                    <path
+                      d="M5.6 28C5.6 19.6 12 13.2 20 13.2S34.4 19.6 34.4 28Z"
+                      fill="currentColor"
+                    />
+                    <rect x="3" y="29.4" width="34" height="3.4" rx="1.7" fill="currentColor" />
+                    <circle cx="20" cy="9.2" r="2.8" fill="#3ddc84" />
+                  </svg>
+                </span>
+                →
+                <span>
+                  <svg viewBox="0 0 20 20" width="28" height="28">
+                    <path
+                      d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l2 2h7A1.5 1.5 0 0 1 18 7.500v7A1.500 1.500 0 0 1 16.500 16h-13A1.500 1.500 0 0 1 2 14.500Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+              </div>
             </li>
             <li>
-              <strong>Choose your notes:</strong> start new ones, or point it at a folder you
-              already have.
+              <span class="n">2</span>
+              <h3>Answer two questions</h3>
+              <p>Both are on the welcome screen.</p>
+              <div class="mock">
+                <div class="t">Welcome to Majordome</div>
+                <div class="row">
+                  <div>The assistant<span>Sign in to Claude or ChatGPT</span></div>
+                  <span class="ok">✓ Ready</span>
+                </div>
+                <div class="row">
+                  <div>Notes<span>Start new notes, or choose a folder you have</span></div>
+                  <span class="ok">✓ Ready</span>
+                </div>
+              </div>
+            </li>
+            <li>
+              <span class="n">3</span>
+              <h3>It opens on Today</h3>
+              <p>Ask it something.</p>
+              <div class="chat">
+                <div class="you">What is on today?</div>
+                <div class="it">Two to-dos, and the dentist at 15:00.</div>
+              </div>
             </li>
           </ol>
           <p class="muted after-steps">
@@ -1336,22 +2192,77 @@
           <a href="https://github.com/Wozacosta/majordome/issues">Report a problem</a>
           <a href="/account">How signing in works</a>
           <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
         </div>
       </footer>
     </div>
     <script>
-      const merge = document.querySelector(".made");
-      if (merge && "IntersectionObserver" in window) {
-        merge.classList.add("wait");
-        new IntersectionObserver(
-          (entries, seen) => {
-            if (!entries[0].isIntersecting) return;
-            merge.classList.remove("wait");
-            seen.disconnect();
+      // Each diagram plays once, when it scrolls into view.
+      if ("IntersectionObserver" in window) {
+        const seen = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.remove("wait");
+              seen.unobserve(entry.target);
+            }
           },
-          { threshold: 0.45 },
-        ).observe(merge);
+          { threshold: 0.3 },
+        );
+        for (const diagram of document.querySelectorAll(".reveal")) {
+          diagram.classList.add("wait");
+          seen.observe(diagram);
+        }
       }
+      const undo = document.getElementById("undo");
+      const undoButton = undo.querySelector("button");
+      undoButton.addEventListener("click", () => {
+        const off = undo.classList.toggle("off");
+        undoButton.textContent = off ? "Undone" : "Undo this";
+        undoButton.setAttribute("aria-pressed", String(off));
+      });
+      const soon = document.getElementById("soon");
+      const soonStatus = soon.querySelector(".soon-status");
+      const soonBoxes = [...soon.querySelectorAll("[name=platform]")];
+      // A visitor on one of the two systems starts with only theirs ticked. Android says Linux too.
+      const visitorOn = /Android/i.test(navigator.userAgent)
+        ? null
+        : /Win/i.test(navigator.userAgent)
+          ? "windows"
+          : /Linux/i.test(navigator.userAgent)
+            ? "linux"
+            : null;
+      if (visitorOn) for (const box of soonBoxes) box.checked = box.value === visitorOn;
+      soon.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const platforms = soonBoxes.filter((box) => box.checked).map((box) => box.value);
+        if (platforms.length === 0) {
+          soonStatus.textContent = "Tick Linux, Windows or both.";
+          return;
+        }
+        const button = soon.querySelector("button");
+        button.disabled = true;
+        soonStatus.textContent = "";
+        try {
+          const answer = await fetch("https://broker.majord.link/v1/waitlist", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email: soon.elements.email.value, platforms }),
+          });
+          if (!answer.ok) {
+            const body = await answer.json().catch(() => ({}));
+            throw new Error(typeof body.message === "string" ? body.message : "");
+          }
+          soon.querySelector(".soon-row").remove();
+          soonStatus.textContent =
+            "Noted. You will get one email when it is ready, and nothing else.";
+        } catch (error) {
+          button.disabled = false;
+          soonStatus.textContent =
+            (error instanceof Error && !(error instanceof TypeError) && error.message) ||
+            "That did not go through. Try again in a moment.";
+        }
+      });
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
         const tour = document.querySelector("video");
         tour.removeAttribute("autoplay");

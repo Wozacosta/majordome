@@ -22,7 +22,9 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
+import { MAJORDOME_SERVER } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
+import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
 import { useVault } from "./useVault";
 import {
@@ -115,6 +117,7 @@ const NOTICES = {
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const serverOffer = useAtomValue(serverOfferAtom);
   const store = useAtomValue(todayStoreAtom);
   const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
@@ -373,8 +376,8 @@ export function MajordomeTodayScreen() {
             title="Add your computer"
             detail={
               hasAccounts
-                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows. No computer to leave on? Majordome can keep one running for you."
-                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can keep one running for you."
+                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows. No computer to leave on? Majordome can also run on a Majordome server that is always on: sign in and it is here."
+                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can also run on a Majordome server that is always on."
             }
             action={
               <View className="gap-2">
@@ -391,10 +394,13 @@ export function MajordomeTodayScreen() {
                   tone={hasAccounts ? "secondary" : "primary"}
                   onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
                 />
-                <Button
-                  label="I have an invite code"
-                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-                />
+                {serverOffer === null ? null : (
+                  <Button
+                    label={MAJORDOME_SERVER.getLabel}
+                    tone="text"
+                    onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+                  />
+                )}
               </View>
             }
           />

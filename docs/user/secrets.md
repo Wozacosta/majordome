@@ -5,18 +5,48 @@ dashboard. You can paste the key into its field, or keep it somewhere safer and 
 a _reference_ to it, such as `keychain://Majordome/openai`. Settings then hold the reference, never
 the key, and Majordome's server reads the key at the moment it needs it.
 
+## Keys your assistant can use
+
+Separate from the above: an API key, a token or a password you want your assistant to use, for
+example to read your runs from a sports service. **Settings → Passwords and keys** lists them under
+**Keys your assistant can use**, on the computer and in the iPhone app.
+
+- **Add a key** asks for a name, what it is for, and the key. The key is not shown again.
+- Or give the key to your assistant in a chat and ask it to keep it.
+- **Remove** takes it away from the assistant and deletes Majordome's copy. The key still works
+  wherever it came from, so cancel it there if it should stop working.
+- Each key shows when the assistant last used it.
+
+Your assistant sees the names and what each key is for, so you can ask "can you reach my Garmin
+data?" and get a straight answer. It uses a key inside a command, without the key appearing in the
+chat, and **it does not ask you first**: saving a key here is the permission. Save only keys you are
+happy for it to use on its own, routines included.
+
+**A key kept in a source.** If the key already lives in 1Password, Bitwarden Secrets Manager or
+another [secret source](#secret-sources) you added, pick that source next to the key field (on the
+computer) and enter where the key is, such as `op://vault/item/field`. Majordome then keeps no
+copy: it reads the key from the source each time your assistant uses it, so a key you change
+there is the one used. It checks that it can read the key before saving, and the list says
+"Kept in" with the source's name. Removing such a key leaves the source untouched.
+
+Keys you paste are kept in the encrypted file described under [Encrypted file](#encrypted-file) below,
+on the computer you saved them on. `majord secret list` shows the same names.
+
+## Secret sources
+
 The place a reference points to is a **secret source**. You add sources in **Settings → Secrets**
 (under **Advanced**). Each server keeps its own list.
 
 ## Which source to use
 
-| Where Majordome's server runs          | Use                      | A reference looks like        |
-| -------------------------------------- | ------------------------ | ----------------------------- |
-| On your Mac                            | **Mac Keychain**         | `keychain://Majordome/openai` |
-| On a server of your own (Linux, a VPS) | **Encrypted file**       | `secret://openai`             |
-| Anywhere, and you use 1Password        | **1Password**            | `op://vault/item/field`       |
-| Anywhere, and you use a team tool      | **Command**              | `exec://OPENAI_API_KEY`       |
-| In a container that is handed its keys | **Environment variable** | `env://OPENAI_API_KEY`        |
+| Where Majordome's server runs          | Use                           | A reference looks like        |
+| -------------------------------------- | ----------------------------- | ----------------------------- |
+| On your Mac                            | **Mac Keychain**              | `keychain://Majordome/openai` |
+| On a server of your own (Linux, a VPS) | **Encrypted file**            | `secret://openai`             |
+| Anywhere, and you use 1Password        | **1Password**                 | `op://vault/item/field`       |
+| Anywhere, and you use Bitwarden        | **Bitwarden Secrets Manager** | `bws://<secret ID>`           |
+| Anywhere, and you use a team tool      | **Command**                   | `exec://OPENAI_API_KEY`       |
+| In a container that is handed its keys | **Environment variable**      | `env://OPENAI_API_KEY`        |
 
 "The server" is the computer that runs Majordome, which is not always the one in front of you. When
 you use Majordome from your phone, the secrets are read on your Mac or your server.
@@ -99,6 +129,34 @@ A desktop sign-in asks for approval on the server's screen, which you cannot ans
 On a server of your own, sign `op` in with a
 [service account](./secrets-1password-service-account.md) or a
 [Connect server](./secrets-1password-connect.md) instead.
+
+### Bitwarden Secrets Manager
+
+For secrets kept in [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/).
+This is not the Bitwarden password manager: the password manager has to be unlocked with your
+master password, which a server nobody sits at cannot do. Secrets Manager signs in with an access
+token, so it works on your always-on server.
+
+1. In Bitwarden, open Secrets Manager, create a **machine account**, give it read access to the
+   project that holds your secrets, and create an **access token** for it. Give it only what your
+   assistant should reach.
+2. In **Settings → Passwords and keys**, under **Keys your assistant can use**, add a key named
+   `bitwarden` and paste the access token. (On a server: `majord secret set bitwarden`.)
+3. Select **Add source**, choose **Bitwarden Secrets Manager**, and enter `bitwarden` as the
+   access token's name. If your account is on Bitwarden's EU cloud, enter
+   `https://vault.bitwarden.eu` as the server; for your own Bitwarden server, its address.
+4. A reference is `bws://` followed by the secret's ID, which Bitwarden copies with
+   **Copy secret ID**: `bws://2863ced6-eba1-48b4-b5c0-afa30104877a`.
+
+Once the source exists, the `bitwarden` key shows "Signs Majordome in to" and the source's name.
+Your assistant cannot take that key; it reaches only the secrets you add as keys kept in the
+source.
+
+Majordome reads with Bitwarden's `bws` program. The always-on server's image includes it. On a
+Mac, install it first with Bitwarden's
+[instructions](https://bitwarden.com/help/secrets-manager-cli/). `bws` keeps a sign-in session in
+`~/.config/bws/state`, so after you revoke a token in Bitwarden, delete that folder on the server
+too.
 
 ### Command
 

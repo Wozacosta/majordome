@@ -19,7 +19,12 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
-import { NOTE_CHANGED_WHILE_WRITING, readNoteText, replaceNoteIfUnchanged } from "./noteFile.ts";
+import {
+  NOTE_CHANGED_WHILE_WRITING,
+  readNoteText,
+  replaceNoteIfUnchanged,
+  resolveInVault,
+} from "./noteFile.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
 
@@ -63,11 +68,16 @@ const make = Effect.gen(function* () {
       return yield* new MajordomeDailyNoteError({ message: "That notes folder was not found." });
     }
     const relative = `${layout.value.dailyFolder}/${input.date}.md`;
-    return {
-      root: project.workspaceRoot,
-      relative,
-      file: path.join(project.workspaceRoot, relative),
-    };
+    const file = yield* resolveInVault(project.workspaceRoot, relative).pipe(
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(Path.Path, path),
+    );
+    if (Option.isNone(file)) {
+      return yield* new MajordomeDailyNoteError({
+        message: "That note is not in your notes folder.",
+      });
+    }
+    return { root: project.workspaceRoot, relative, file: file.value };
   });
 
   const read = (file: string) =>

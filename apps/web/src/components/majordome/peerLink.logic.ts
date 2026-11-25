@@ -14,6 +14,12 @@ export interface PeerLinkPlan<C extends PeerLinkCopy> {
   /** The copy on this computer's server, which does the work. */
   readonly local: C;
   readonly other: C;
+  /**
+   * Whether the owner agreed to these two exchanging notes: they said yes to this pair, or the
+   * link is one to make again. Only such a pair is linked without asking, since any connected
+   * server can claim to hold the same notes.
+   */
+  readonly approved: boolean;
 }
 
 /**
@@ -24,6 +30,8 @@ export function peerLinkPlans<C extends PeerLinkCopy>(input: {
   readonly brains: ReadonlyArray<Brain<C>>;
   /** The desktop app's own server; null in a browser or on the phone, which link nothing. */
   readonly localEnvironmentId: EnvironmentId | null;
+  /** Pairs the owner agreed to keep in step. */
+  readonly approved: ReadonlySet<string>;
   /** Pairs the owner chose not to keep in step. */
   readonly declined: ReadonlySet<string>;
 }): ReadonlyArray<PeerLinkPlan<C>> {
@@ -45,7 +53,8 @@ export function peerLinkPlans<C extends PeerLinkCopy>(input: {
     );
     if (other === undefined) return [];
     const key = `${brain.key}|${local.environmentId}|${other.environmentId}`;
-    return input.declined.has(key) ? [] : [{ key, local, other }];
+    if (input.declined.has(key)) return [];
+    return [{ key, local, other, approved: linked !== null || input.approved.has(key) }];
   });
 }
 

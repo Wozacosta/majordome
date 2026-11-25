@@ -17,7 +17,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import { topicStanding } from "./topicPreview.ts";
-import { VAULT_CONFIG_DIRNAME, type VaultLayout } from "./vaultConfig.ts";
+import { normalizeTopicFolder, VAULT_CONFIG_DIRNAME, type VaultLayout } from "./vaultConfig.ts";
 
 const TOPICS_FILENAME = "topics.json";
 
@@ -33,19 +33,6 @@ const decodeTopic = Schema.decodeUnknownOption(
   }),
 );
 const isTopicIcon = Schema.is(MajordomeTopicIcon);
-
-/**
- * A vault-relative folder with forward slashes, or null when it is empty, absolute, climbs out of
- * the vault, or is plumbing (a dot folder).
- */
-export function normalizeTopicFolder(value: string): string | null {
-  const trimmed = value.trim().replaceAll("\\", "/");
-  if (trimmed.startsWith("/") || /^[a-z]:/i.test(trimmed)) return null;
-  const segments = trimmed.split("/").filter((segment) => segment !== "" && segment !== ".");
-  if (segments.length === 0) return null;
-  if (segments.some((segment) => segment === ".." || segment.startsWith("."))) return null;
-  return segments.join("/");
-}
 
 /** The topics a `topics.json` holds, in its order. Entries that don't make sense are dropped. */
 export function parseVaultTopics(text: string): ReadonlyArray<MajordomeVaultTopic> {

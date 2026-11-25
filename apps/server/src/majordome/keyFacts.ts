@@ -67,8 +67,8 @@ ${input.transcript}
 </conversation>
 
 Rules for the facts:
-- Four kinds only: link (a web address, copied exactly as written), place (a named place or an address), date (a day or time something happens, is due or was done), person (a named person, company or organisation).
-- Keep what the owner gave and what the conversation settled on. Leave out passing mentions, examples, and anything already listed.
+- Four kinds only: link (a web address, copied exactly as written), place (a named place or an address), date (a day or time something still ahead happens or is due), person (a named person, company or organisation).
+- Keep what the owner gave and what the conversation settled on. Leave out passing mentions, examples, days that are already over, and anything already listed.
 - Write a date as YYYY-MM-DD, followed by the time as HH:MM when one is given. Work a relative day out from today's date: "tomorrow" is the day after today, and a weekday name ("Thursday", "next Thursday") is the nearest such day after today. Only when the day cannot be worked out, write it as the conversation does.
 - After each fact, add a note of at most eight words on what it is ("dentist appointment", "landlord"), in the language of the conversation. Leave the note out when nothing says.
 - At most ${MAX_FACTS_PER_PASS} facts. When there is nothing to keep, write no fact line.

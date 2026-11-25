@@ -20,6 +20,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import { type FakeReply, fakeHttp, type SentRequest } from "./fakeHttp.testkit.ts";
 import * as MajordomeReadingList from "./MajordomeReadingList.ts";
+import { HostAddresses } from "./readingLink.ts";
 import * as VaultLock from "./VaultLock.ts";
 
 const vaultProject = ProjectId.make("vault-project");
@@ -67,6 +68,7 @@ const setUp = Effect.fn("test.setUp")(function* (
           }),
         ),
         Layer.provide(Layer.succeed(HttpClient.HttpClient, http.client)),
+        Layer.provide(Layer.succeed(HostAddresses, () => Effect.succeed(["93.184.215.14"]))),
         Layer.provide(
           Layer.mock(ServerSettings.ServerSettingsService)({
             getSettings: Effect.succeed(DEFAULT_SERVER_SETTINGS),

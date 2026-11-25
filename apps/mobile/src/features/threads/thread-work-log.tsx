@@ -68,6 +68,7 @@ import {
 } from "@t3tools/client-runtime/work-log/command-label";
 
 import { AppText as Text } from "../../components/ui/AppText";
+import { MajordomeCloche } from "../../components/MajordomeCloche";
 import { T3Wordmark } from "../../components/T3Wordmark";
 import { BrowserAppIcon } from "./BrowserAppIcon";
 import { useAppActive, useReduceMotionEnabled } from "../../lib/appState";
@@ -139,8 +140,11 @@ function WorkLogIcon(props: {
 }) {
   const colorClassName = props.highlighted ? "accent-foreground" : props.colorClassName;
   if (props.icon === "t3-code") {
-    return (
-      <T3Wordmark height={10} {...(colorClassName ? { colorClassName } : { color: props.color })} />
+    const tint = colorClassName ? { colorClassName } : { color: props.color };
+    return isMajordome ? (
+      <MajordomeCloche size={14} {...tint} />
+    ) : (
+      <T3Wordmark height={10} {...tint} />
     );
   }
   if (props.icon === "computer") {

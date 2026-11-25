@@ -1,6 +1,7 @@
 import { expect, it } from "vite-plus/test";
 
 import {
+  alreadyConnected,
   brokerUrl,
   makeHostedServer,
   NO_ANSWER_ERROR,
@@ -11,7 +12,9 @@ import {
   SIGNUP_IDLE,
   signupErrorMessage,
   signupNext,
+  signupPairingUrl,
   signupProgress,
+  storedPairingUrl,
   waitUntilReady,
   type SignupEvent,
   type SignupState,
@@ -22,14 +25,26 @@ const server = {
   url: "https://majordome-abc.fly.dev",
   pairingUrl: "https://majordome-abc.fly.dev/pair#token=mjsetup-1-x",
 };
+const filed = { name: server.name, url: server.url };
+const { pairingUrl } = server;
 
 const answer = (status: number, body: unknown) => ({
   ok: status < 400,
+  status,
   json: async () => body,
 });
+const refusal = { kind: "error", message: "Not paid." } as const;
 
-it("walks a signup from the code to the finished server", () => {
+it("walks a signup from the purchase to the finished server", () => {
   const events: ReadonlyArray<readonly [SignupEvent, SignupState]> = [
+    [
+      { type: "pay", doing: "checking" },
+      { step: "paying", doing: "checking" },
+    ],
+    [
+      { type: "pay", doing: "buying" },
+      { step: "paying", doing: "buying" },
+    ],
     [{ type: "submit" }, { step: "making" }],
     [
       { type: "made", server },
@@ -37,7 +52,7 @@ it("walks a signup from the code to the finished server", () => {
     ],
     [{ type: "ready" }, { step: "pairing", server }],
     [
-      { type: "paired", environmentId: "env-1" },
+      { type: "paired", environmentId: "env-1", fresh: true },
       { step: "finishing", server, environmentId: "env-1" },
     ],
     [{ type: "finished" }, { step: "done" }],
@@ -54,17 +69,30 @@ it("moves only on the event its step is waiting for", () => {
   const cases: ReadonlyArray<readonly [string, SignupState, SignupEvent, SignupState | "same"]> = [
     ["a second press while making", { step: "making" }, { type: "submit" }, "same"],
     ["a press once the server exists", made, { type: "submit" }, "same"],
+    ["a purchase once the server exists", made, { type: "pay", doing: "checking" }, "same"],
     [
-      "a refused code keeps the form and says why",
+      "a refusal keeps the offer and says why",
       { step: "making" },
-      { type: "refused", message: "Not valid." },
-      { step: "idle", error: "Not valid." },
+      { type: "stopped", note: refusal },
+      { step: "idle", note: refusal },
+    ],
+    [
+      "a closed purchase sheet says nothing",
+      { step: "paying", doing: "buying" },
+      { type: "stopped", note: null },
+      SIGNUP_IDLE,
     ],
     [
       "a new try clears the last refusal",
-      { step: "idle", error: "Not valid." },
-      { type: "submit" },
-      { step: "making" },
+      { step: "idle", note: refusal },
+      { type: "pay", doing: "restoring" },
+      { step: "paying", doing: "restoring" },
+    ],
+    [
+      "a server made earlier has no setup left to finish",
+      { step: "pairing", server: { ...filed, pairingUrl: null } },
+      { type: "paired", environmentId: "env-1", fresh: false },
+      { step: "done" },
     ],
     [
       "a failed connection keeps the server and never asks for the code again",
@@ -77,26 +105,32 @@ it("moves only on the event its step is waiting for", () => {
     [
       "a late refusal after the server was made",
       { step: "waiting", server },
-      { type: "refused", message: "x" },
+      { type: "stopped", note: refusal },
       "same",
     ],
     [
       "a server kept on the phone, not connected",
       SIGNUP_IDLE,
-      { type: "resumed", progress: { server, environmentId: null } },
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl },
       { step: "made", server, error: null },
+    ],
+    [
+      "a server kept on a phone that lost its link, as after restoring a backup",
+      SIGNUP_IDLE,
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl: null },
+      { step: "made", server: { ...filed, pairingUrl: null }, error: null },
     ],
     [
       "a server kept on the phone, connected",
       SIGNUP_IDLE,
-      { type: "resumed", progress: { server, environmentId: "env-1" } },
-      { step: "finishing", server, environmentId: "env-1" },
+      { type: "resumed", progress: { server: filed, environmentId: "env-1" }, pairingUrl: null },
+      { step: "finishing", server: { ...filed, pairingUrl: null }, environmentId: "env-1" },
     ],
-    ["nothing kept", SIGNUP_IDLE, { type: "resumed", progress: null }, "same"],
+    ["nothing kept", SIGNUP_IDLE, { type: "resumed", progress: null, pairingUrl: null }, "same"],
     [
       "the phone's copy read while a signup is under way",
       { step: "making" },
-      { type: "resumed", progress: { server, environmentId: null } },
+      { type: "resumed", progress: { server: filed, environmentId: null }, pairingUrl },
       "same",
     ],
   ];
@@ -107,30 +141,32 @@ it("moves only on the event its step is waiting for", () => {
   }
 });
 
-it("keeps a made server on the phone until its setup is finished", () => {
-  const cases: ReadonlyArray<readonly [SignupState, ReturnType<typeof signupProgress>]> = [
-    [SIGNUP_IDLE, null],
-    [{ step: "making" }, null],
-    [
-      { step: "waiting", server },
-      { server, environmentId: null },
-    ],
-    [
-      { step: "pairing", server },
-      { server, environmentId: null },
-    ],
+it("keeps a made server in the file and its link apart, until each is no longer needed", () => {
+  const cases: ReadonlyArray<
+    readonly [SignupState, ReturnType<typeof signupProgress>, string | null]
+  > = [
+    [SIGNUP_IDLE, null, null],
+    [{ step: "paying", doing: "confirming" }, null, null],
+    [{ step: "making" }, null, null],
+    [{ step: "waiting", server }, { server: filed, environmentId: null }, pairingUrl],
+    [{ step: "pairing", server }, { server: filed, environmentId: null }, pairingUrl],
     [
       { step: "made", server, error: "No answer." },
-      { server, environmentId: null },
+      { server: filed, environmentId: null },
+      pairingUrl,
     ],
+    // Connected: the link is spent, so it is dropped while the rest waits for the last step.
     [
       { step: "finishing", server, environmentId: "env-1" },
-      { server, environmentId: "env-1" },
+      { server: filed, environmentId: "env-1" },
+      null,
     ],
-    [{ step: "done" }, null],
+    [{ step: "done" }, null, null],
   ];
-  for (const [state, kept] of cases) {
+  for (const [state, kept, link] of cases) {
     expect(signupProgress(state), state.step).toEqual(kept);
+    expect(JSON.stringify(signupProgress(state)), state.step).not.toContain("mjsetup");
+    expect(signupPairingUrl(state), state.step).toBe(link);
     // What is written reads back the same.
     expect(readSignupProgress(JSON.parse(JSON.stringify(kept)))).toEqual(kept);
   }
@@ -138,16 +174,30 @@ it("keeps a made server on the phone until its setup is finished", () => {
   expect(readSignupProgress("null")).toBeNull();
 });
 
-it("sends the code the way the service reads it and decodes its answers", async () => {
+it("takes the link out of a file an earlier version wrote", () => {
+  const old = { server, environmentId: null };
+  expect(readSignupProgress(old)).toEqual({ server: filed, environmentId: null });
+  expect(storedPairingUrl(old)).toBe(pairingUrl);
+  expect(storedPairingUrl({ server: filed, environmentId: null })).toBeNull();
+  expect(storedPairingUrl(null)).toBeNull();
+});
+
+it("asks for the account's server and decodes the service's answers", async () => {
   const cases: ReadonlyArray<
     readonly [string, number, unknown, Awaited<ReturnType<typeof makeHostedServer>>]
   > = [
     ["made", 200, server, { ok: true, server }],
     [
-      "wrong or used code",
-      403,
-      { error: "invalid_invite", message: "That invite code is not valid, or was used." },
-      { ok: false, message: signupErrorMessage({ error: "invalid_invite" }) },
+      "a server made earlier, which comes without a link",
+      200,
+      filed,
+      { ok: true, server: { ...filed, pairingUrl: null } },
+    ],
+    [
+      "not paid",
+      402,
+      { error: "not_paid", message: "This account has no server yet." },
+      { ok: false, message: signupErrorMessage({ error: "not_paid" }) },
     ],
     [
       "full",
@@ -163,9 +213,9 @@ it("sends the code the way the service reads it and decodes its answers", async 
     ],
     ["not JSON", 500, undefined, { ok: false, message: signupErrorMessage(null) }],
     [
-      "an answer missing the link",
+      "an answer missing the address",
       200,
-      { name: "n", url: "u" },
+      { name: "n" },
       { ok: false, message: signupErrorMessage(null) },
     ],
   ];
@@ -174,11 +224,13 @@ it("sends the code the way the service reads it and decodes its answers", async 
     const result = await makeHostedServer(
       async (url, init) => {
         calls.push([url, init]);
-        if (body === undefined) return { ok: false, json: () => Promise.reject(new Error("html")) };
+        if (body === undefined) {
+          return { ...answer(status, null), json: () => Promise.reject(new Error("html")) };
+        }
         return answer(status, body);
       },
       "https://broker.test",
-      "  CODE-1\n",
+      "token-1",
     );
     expect(result, name).toEqual(expected);
     expect(calls).toEqual([
@@ -187,7 +239,7 @@ it("sends the code the way the service reads it and decodes its answers", async 
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: '{"invite":"CODE-1"}',
+          body: '{"accountToken":"token-1"}',
         },
       ],
     ]);
@@ -198,7 +250,7 @@ it("sends the code the way the service reads it and decodes its answers", async 
 });
 
 it("says something different for each refusal the person can act on", () => {
-  const messages = ["invalid_invite", "full", "rate_limited", "upstream", "something_new"].map(
+  const messages = ["invalid_account", "not_paid", "rate_limited", "upstream", "something_new"].map(
     (error) => signupErrorMessage({ error }),
   );
   expect(new Set(messages).size).toBe(messages.length);
@@ -257,4 +309,11 @@ it("builds the server's sign-in page address", () => {
     "http://192.168.1.5:3773/pair#token=T1",
   );
   expect(setupPageUrl("not an address", "T1")).toBeNull();
+});
+
+it("knows a server this phone is already connected to by its address", () => {
+  const saved = ["https://den.majord.link", "https://majordome-abc.fly.dev/"];
+  expect(alreadyConnected("https://majordome-abc.fly.dev", saved)).toBe(true);
+  expect(alreadyConnected("https://majordome-xyz.fly.dev", saved)).toBe(false);
+  expect(alreadyConnected("not an address", ["not an address"])).toBe(false);
 });

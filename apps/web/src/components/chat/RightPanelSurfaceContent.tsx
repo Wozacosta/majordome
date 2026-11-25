@@ -36,6 +36,9 @@ const DiffPanel = lazy(() => import("../DiffPanel"));
 const DevicePanel = lazy(() =>
   import("../device/DevicePanel").then((module) => ({ default: module.DevicePanel })),
 );
+const KeyFactsPanel = lazy(() =>
+  import("../majordome/KeyFactsPanel").then((module) => ({ default: module.KeyFactsPanel })),
+);
 const FilePreviewPanel = lazy(() => import("../files/FilePreviewPanel"));
 
 type RightPanelTerminalProps = Omit<
@@ -266,6 +269,12 @@ export function RightPanelSurfaceContent(props: {
               useRightPanelStore.getState().show(threadRef);
             }}
           />
+        </Suspense>
+      );
+    case "key-facts":
+      return (
+        <Suspense fallback={null}>
+          <KeyFactsPanel environmentId={props.environmentId} threadId={threadRef.threadId} />
         </Suspense>
       );
     case "files":

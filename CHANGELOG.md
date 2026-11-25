@@ -7,6 +7,288 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.52
+
+**New**
+
+- **A chat you keep for weeks stays up to date with your notes.** A conversation used to keep the
+  notes it was given when it began: your memory note, the daily notes, its topic's notes. Now
+  the first message you send it on a new day gives it all of them again, as they are that day,
+  along with where your other topics stand. A routine that runs every day in one chat gets the
+  same. Nothing to turn on, and it works with every AI account.
+
+**Try this**
+
+- Tomorrow, in a topic you have used for a while, ask "what is in my memory note about …" for
+  something you added since the chat began. It answers from today's note without going to look.
+
+## 0.10.51
+
+**New**
+
+- **The levels keep up with new models without an update of the app.** Which model Quick,
+  Everyday and Powerful mean for each AI account is now a small list in Majordome's repository.
+  Your computer and your server read it once an hour, so when a maker renames a model or adds a
+  new one, the levels follow within the hour. A model you chose yourself in Settings is never
+  changed. Offline, or with "check for updates" of AI accounts turned off, the list that came
+  with the app is used.
+
+**Try this**
+
+- Nothing to see: Settings, AI accounts, "Levels of AI" shows the same models as before.
+
+## 0.10.50
+
+**New**
+
+- **Three levels of AI: Quick, Everyday, Powerful.** Majordome now asks for a level, not a model.
+  Quick does the small jobs (chat titles, key facts, summaries, drawings). Everyday is for your
+  chats and routines, and new chats start on it. Powerful is for hard questions, when you choose
+  it. Each AI account has its own three, taken from what its maker recommends: Haiku, Sonnet
+  and Opus with Claude; Luna, Sol and Astra with ChatGPT (Codex); Flash, Argon and Carbon with
+  Gemini; Composer, Auto and Grok 4 with Cursor; Haiku, Auto and Opus with Kiro.
+- **Choose the level in the message box.** A new control at the bottom of the message box, on
+  the computer, shows the chat's level and moves it to another one. It names the model behind
+  each level. On the iPhone, the three levels are at the top of "Which AI".
+- **Choose the model for each level.** Settings, AI accounts, "Levels of AI" lists the three
+  levels with the model each one uses, and lets you change it.
+
+**Changed**
+
+- New chats and new routines start on the Everyday model (Sonnet with Claude). Before, they
+  followed the model of your last chat, which was often Opus. Chats and routines you already
+  have keep their model until you change it in their message box.
+
+**Try this**
+
+- Open a chat. At the bottom right of the message box, press "Everyday", choose "Powerful", and
+  send a message.
+- Start a new chat: it is on "Everyday" again.
+- Settings, AI accounts, "Levels of AI": change the model for Powerful, then look at the list in
+  a chat's message box.
+
+## 0.10.49
+
+**New**
+
+- **Bitwarden Secrets Manager as a place keys are kept.** Settings, Passwords and keys, Add
+  source now offers Bitwarden Secrets Manager. It signs in with a machine account's access
+  token, so it works on your always-on server; the Bitwarden password manager is not supported,
+  because it needs your master password. Save the access token as a key named `bitwarden`, then
+  add the source. That key is marked "Signs Majordome in to…" and your assistant cannot take it.
+- **A key your assistant uses can stay in 1Password, Bitwarden or any other source.** In "Add a
+  key" on the computer, pick the source next to the key field and enter where the key is.
+  Majordome keeps no copy and reads it from the source each time, so a key you change there is
+  the one used. It refuses to save a place it cannot read.
+
+- **A chat now knows about your other topics, and says when it looks in one.** Every
+  conversation is told the names of your other topics and where each one stands. When your
+  question touches another topic, it reads that topic's notes and names the topic in its answer.
+  It is also told that a fact for all your topics belongs in your memory note, the one note every
+  chat starts with.
+- **What this chat knows.** A chat's side panel has a new section listing the notes the chat
+  starts with (the topic's own notes, your memory note, today's and yesterday's notes) and the
+  topics it only knows the standing of. A row opens its note. On the iPhone it is under the "i"
+  of a chat. A conversation already under way was given its notes when it
+  began, so the first change shows in chats you start after the update.
+
+**Fixed**
+
+- The list of keys now updates right after you add or remove a source.
+
+**Try this**
+
+- In Settings, Passwords and keys, add a key, add an "Encrypted file" source, then add a second
+  key that points at the first with `secret://` and its name: it shows "Kept in" and the source.
+- Open a topic and look at "What this chat knows" at the bottom of the side panel. Then start a
+  new chat and ask something only another topic's notes can answer, such as a date or an amount
+  from it: the answer should name the topic it looked in.
+- With a Bitwarden Secrets Manager account: follow "Bitwarden Secrets Manager" in the Secrets
+  guide, add a key kept there, and ask your assistant to use it.
+
+## 0.10.48
+
+**New**
+
+- **Who can get into a server Majordome hosts, said plainly.**
+  [majord.me/trust](https://majord.me/trust) lists what the person who runs Majordome can
+  technically do on a hosted server, what he promises, and why a server of your own is the
+  better choice if you can run one. It carries a prompt to paste into an AI assistant that
+  helps you pick a server and set it up. The page that sells a server links to it.
+- **Key facts, "In short" and Files on the iPhone.** A chat on the phone has a new button at the
+  top right, an "i" in a circle. It opens what sits beside the chat on the computer: the
+  conversation in short, then its dates, links, places and names, and for a topic the files kept
+  with it. Touch a link to open it, anything else to copy it, and a file to look at it. "Add a
+  file" puts one from the phone in the topic's folder; touch and hold a file to remove it. Not on
+  the phone yet: "Draw it", searching the key facts, and adding or removing a private document.
+  (From the next iPhone build.)
+
+- **Keys your assistant can use, listed.** Settings, Passwords and keys now starts with the API
+  keys, tokens and passwords saved for your assistant: add one, see when it was last used, remove
+  it. Your assistant sees the names and what each is for, so it can tell you whether it can reach
+  a service, and it uses a key without asking you for it again and without the key appearing in
+  the chat. You can also hand it a key in a chat and ask it to keep it. On the iPhone the same
+  list is under Settings, Passwords and keys (from the next iPhone build). Saving a key is the
+  permission: the assistant does not ask before using one.
+
+**Try this**
+
+- In Settings, Passwords and keys, add a key, then ask in a chat "which keys do you have?".
+- On the iPhone, open a topic's chat and touch the "i" at the top right.
+
+## 0.10.47
+
+**Fixed**
+
+- **The app no longer says it collects usage data.** Majordome sends none, but the setup page
+  and Settings, About still carried T3 Code's sentence about anonymous usage data and opened T3
+  Code's privacy policy. Both now say "Majordome sends no usage data" and open
+  [majord.me/privacy](https://majord.me/privacy). On the iPhone, Settings, About, Legal opens
+  Majordome's page too (from the next iPhone build).
+- **On the phone, a chat is as quiet as on the computer.** The "Worked for 6s" lines and the
+  steps behind an answer are left out unless you choose otherwise in Settings, Appearance.
+- **A topic is closed, not "done".** "Mark as done" on a topic is now "Close this topic", closed
+  topics sit under **Closed topics**, and "Reopen" brings one back, on the phone and the computer.
+  On the phone, a topic's chat no longer offers "Mark as done" at all.
+- **Majordome's own steps show Majordome's mark,** not the T3 logo, on the phone and the computer.
+
+**Try this**
+
+- Open the menu of a topic (right-click on the computer, long press on the phone): it says
+  "Close this topic". Close one, find it under Closed topics, and reopen it.
+- Open Settings, About and press "View policy": it opens majord.me/privacy.
+
+## 0.10.46
+
+**Fixed**
+
+- **A paid server is always made.** If making one was cut short, the page said "Your server is
+  on" and nothing finished it; it is now finished within the hour, and the page goes on making
+  it. Someone who paid just as the last place went gets their server too.
+- **The hourly check on paid servers no longer waits on address cleanup,** and it can tell the
+  owner when it fails.
+- **A new topic opens when an old server is still connected.** With a server you used before
+  still in Connections, a new topic could fail with "That topic is no longer in your notes":
+  its chat was started on the old server, whose notes had stopped updating. Chats now start on
+  the server that is in step with your notes.
+
+## 0.10.45
+
+**New**
+
+- **The page that sells a server looks the part.** At
+  [majord.me/start](https://majord.me/start) the price, the free days and what the server
+  gives you now sit in one card, and making the server shows its four steps as a progress
+  line.
+
+**Fixed**
+
+- **A topic's files open inside Majordome.** Clicking a private picture in a topic's Files list
+  downloaded it through your web browser; it now opens over the chat, read into memory and never
+  written to Downloads. An ordinary file opens in the side panel instead of a browser tab. A
+  private file that is not a picture, such as a PDF, is still downloaded.
+
+  **Try this:** in a topic, click a private picture (the lock icon) under Files: it should show
+  over the chat, with nothing new in Downloads.
+
+## 0.10.44
+
+**New**
+
+- **A Majordome server can be paid for,** once payment is switched on. At
+  [majord.me/start](https://majord.me/start), sign in, pay by card and the server is made for
+  your account; an invite code still works. The same page then shows how your subscription
+  stands, opens Stripe's page for your card and invoices, and deletes your account. On the
+  iPhone, **Get a Majordome server** buys it through Apple and connects the phone to it.
+- **A server that is no longer paid for is switched off, not deleted.** Its notes are kept for
+  30 days, and you can switch it on for a day from the same page to get them out. Paying again
+  in that time brings the same server back.
+- **The terms of a paid server are written down,** at [majord.me/terms](https://majord.me/terms):
+  the price, the free week, cancelling, refunds, and what happens to your notes. The privacy
+  page now says what paying keeps about you.
+
+**Changed**
+
+- **Key facts are short, and the full list opens beside the chat.** The chat's panel now shows
+  three: what is coming first, soonest on top, then the latest links, places and names. **All**
+  opens every key fact in the side panel, with a search field, grouped by kind, the days that are
+  over last under "Earlier". **Key facts** is also a new entry in that side panel (press K).
+- **A topic's files have a folder tree with search.** The side panel's **Notes** entry is now
+  called **Files** and, in a topic's chat, opens on the topic's own folder. Under the topic's
+  Files list, the line at the bottom opens the same tree. Majordome's own hidden folders no
+  longer show in it.
+
+  **Try this:** open a topic with a few files, click **Browse and search the folder** under
+  Files on the right, and type part of a file name. Then click **All** next to Key facts.
+
+**Fixed**
+
+- **On the phone, Your account shows how each server's connection really stands.** It said "This
+  phone is connected to it" for any server the phone had saved, even one that no longer
+  recognised the phone, and offered no way back in. It now says what is wrong, and shows
+  **Connect again** when the server has let the phone go.
+
+## 0.10.43
+
+**New**
+
+- **An answer shows which services it used.** When the assistant reached Gmail, Google Calendar,
+  Google Drive or another connected service, its logo and name sit under the answer. A service
+  that refused is not shown.
+
+**Fixed**
+
+- **A phone signed in with your account stays signed in.** It was let in for one hour only, then
+  the server "no longer recognised this phone". It now stays connected like a phone that scanned
+  a code: for 30 days after it was last used. Sign in once more on the phone after updating.
+
+**Changed**
+
+- **On the phone, your account can be deleted** from Settings > Your account. Your notes and the
+  computers already connected are not touched.
+- **The phone no longer makes a Majordome server from an invite code.** That is done on the
+  website. The phone still says a Majordome server exists, and finds yours when you sign in.
+
+**Try this**
+
+- On the phone, open Settings > Your account and press Connect on your server. Come back to the
+  app after more than an hour: it should still be connected.
+
+## 0.10.42
+
+**Safer**
+
+- **The assistant can no longer rewrite its own rules.** What a conversation or routine changes
+  in `CLAUDE.md`, `AGENTS.md`, the notes folder's settings (routine limits included) or a
+  `.claude` folder is put back when it ends, and what it wrote waits in `.agents/held-back/` for
+  you to copy back. Changes you make in Majordome are kept.
+- **Notes settings cannot point outside your notes folder,** and memory and daily notes are no
+  longer read or written through a link that leads out of it.
+- **A device you removed stops getting notifications.** If you pair a browser again, turn
+  notifications on again on it.
+- **Saved links are only looked up on the public internet,** also when a page redirects or its
+  name leads to your own network or tailnet.
+- **A copy of your notes is no longer left on the server** after moving them to another computer.
+- **Signing in with your account now needs a key only your account holds for each server.** A
+  sign-in shown to one server can no longer be used on another of yours. Majordome on your
+  computer adds the key by itself the next time it starts; the phone needs this version.
+- **Majordome asks before keeping two computers in step.** A server that says it holds your notes
+  is no longer linked by itself: Settings > Back up my brain asks once, and "Not now" is kept.
+- **The Mac asks before copying a site's sign-in to a server's browser,** once per site.
+- **A server updates to the exact version a release names,** not to whatever "latest" points at.
+  To get this on a server you set up yourself, run the update command from the guide once more.
+- **Hosted servers answer over HTTPS only and each has its own private network.** This applies to
+  servers made from now on.
+
+**Try this**
+
+- Open Majordome on your Mac, wait a minute, then update the iPhone app in TestFlight and open
+  your server from Settings > Your account: it should connect as before.
+- Ask the assistant to add a line to `CLAUDE.md`. When it finishes, the line is not there, and
+  what it wrote is in `.agents/held-back/`.
+
+## 0.10.41
+
 **Fixed**
 
 - **Usage "by other requests" no longer counts a conversation twice.** The first message after

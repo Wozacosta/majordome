@@ -25,7 +25,7 @@ import { placeTopics, type FinishedTopic } from "./topic.logic";
 import { TONE_COLORS, TOPIC_SYMBOLS, type ChatTopics } from "./topicFaces";
 import { useVault } from "./useVault";
 
-/** The conversations of topics marked as done, which the chat list leaves out. */
+/** The conversations of closed topics, which the chat list leaves out. */
 export function useDoneTopicThreadIds(): ReadonlySet<string> {
   const { finished } = useVault(useAtomValue(todayStoreAtom));
   return new Set(finished.flatMap((topic) => (topic.threadId === null ? [] : [topic.threadId])));
@@ -126,15 +126,15 @@ export function useChatListTopics(
     setBusy(null);
     if (result._tag !== "Success") {
       Dialog.alert(
-        done ? `Could not mark ${topic.title} as done` : `Could not bring ${topic.title} back`,
+        done ? `Could not close ${topic.title}` : `Could not reopen ${topic.title}`,
         "Check that your computer can be reached, then try again.",
       );
       return;
     }
     if (!done) return;
     Dialog.alert(
-      `${topic.title} is marked as done`,
-      "Its notes and its conversation are kept. Bring it back from Done topics, at the bottom of this list.",
+      `${topic.title} is closed`,
+      "Its notes and its conversation are kept. Reopen it from Closed topics, at the bottom of this list.",
       [{ text: "Undo", onPress: () => void setFinished(topic, false) }, { text: "OK" }],
     );
   };
@@ -235,15 +235,15 @@ function DoneTopicRow(props: { readonly topic: FinishedTopic; readonly topics: C
   return (
     <View className={cn(THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME, "flex-row items-center gap-3")}>
       <Text
-        accessibilityLabel={`${topic.title}, topic, done`}
+        accessibilityLabel={`${topic.title}, topic, closed`}
         className="flex-1 text-base text-foreground-muted"
         numberOfLines={2}
       >
         {topic.title}
       </Text>
       <Button
-        label="Bring back"
-        accessibilityLabel={`Bring ${topic.title} back`}
+        label="Reopen"
+        accessibilityLabel={`Reopen ${topic.title}`}
         loading={topics.busy === topic.id}
         disabled={topics.busy !== null}
         onPress={() => topics.setFinished(topic, false)}
@@ -252,7 +252,7 @@ function DoneTopicRow(props: { readonly topic: FinishedTopic; readonly topics: C
   );
 }
 
-/** Under the chats: the topics marked as done, folded away until asked for, each with a way back. */
+/** Under the chats: the closed topics, folded away until asked for, each with a way back. */
 export function MajordomeDoneTopics(props: { readonly topics: ChatTopics }) {
   const { topics } = props;
   const [expanded, setExpanded] = useState(false);
@@ -262,14 +262,14 @@ export function MajordomeDoneTopics(props: { readonly topics: ChatTopics }) {
     <View>
       <RowPressable
         accessibilityRole="button"
-        accessibilityLabel={`Done topics, ${count}`}
+        accessibilityLabel={`Closed topics, ${count}`}
         accessibilityState={{ expanded }}
         className="bg-screen"
         onPress={() => setExpanded((value) => !value)}
       >
         <View className="min-h-[44px] flex-row items-center gap-2.5 px-5">
           <Text className="text-xs font-t3-medium text-foreground-tertiary">
-            {`Done topics · ${count}`}
+            {`Closed topics · ${count}`}
           </Text>
           <View className="h-px flex-1 bg-border" />
           <Text className="text-xs font-t3-medium text-foreground-tertiary">

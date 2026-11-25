@@ -13,6 +13,7 @@ import { Button } from "../ui/button";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { HtmlRenderFrame } from "./HtmlRenderFrame";
 import { McpAppFrame } from "./McpAppFrame";
+import { ServicesUsed } from "../majordome/ServicesUsed";
 import { isMajordome } from "~/env";
 import { QuickReplies } from "../majordome/QuickReplies";
 import { SavedNotes } from "../majordome/SavedNotes";
@@ -77,6 +78,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
           </AssistantCitationSource>
         </div>
         {quick ? <QuickReplies rowId={row.id} replies={quick.replies} /> : null}
+        {row.servicesUsed ? <ServicesUsed services={row.servicesUsed} /> : null}
         {isMajordome ? <SavedNotes messageId={row.message.id} /> : null}
         {!row.showAssistantMeta && row.projectedItem?.item.status === "interrupted" ? (
           <div className="mt-1.5 flex">

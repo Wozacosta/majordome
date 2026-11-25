@@ -30,6 +30,34 @@ const refusal = (error: MajordomeMoveReceiver.MoveReceiverError) =>
     { status: error.reason === "failed" ? 500 : 409 },
   );
 
+/**
+ * This server's notes as one bundle, written to a folder of its own that is removed once the
+ * answer has been sent, or dropped half-way: a copy of every note is not left lying on disk.
+ */
+export const vaultBundleResponse = Effect.fn("majordome.moveReceiver.vaultBundleResponse")(
+  function* (receiver: MajordomeMoveReceiver.MajordomeMoveReceiver["Service"]) {
+    const fileSystem = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const folder = yield* fileSystem.makeTempDirectory({ prefix: "majordome-move-out-" });
+    const discard = fileSystem.remove(folder, { recursive: true, force: true }).pipe(Effect.ignore);
+    const bundlePath = path.join(folder, "vault.bundle");
+    const sent = yield* receiver.sendVault(bundlePath).pipe(
+      Effect.onInterrupt(() => discard),
+      Effect.result,
+    );
+    if (sent._tag === "Failure") {
+      yield* discard;
+      return refusal(sent.failure);
+    }
+    const info = yield* fileSystem.stat(bundlePath).pipe(Effect.tapError(() => discard));
+    return HttpServerResponse.stream(fileSystem.stream(bundlePath).pipe(Stream.ensuring(discard)), {
+      contentType: "application/octet-stream",
+      contentLength: Number(info.size),
+      headers: { "cache-control": "no-store" },
+    });
+  },
+);
+
 export const layer = Layer.unwrap(
   Effect.gen(function* () {
     const auth = yield* EnvironmentAuth.EnvironmentAuth;
@@ -37,8 +65,10 @@ export const layer = Layer.unwrap(
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const config = yield* ServerConfig.ServerConfig;
-    // Kept between requests: the response streams it after the handler has returned.
-    const outgoingBundle = path.join(config.stateDir, "majordome", "outgoing.bundle");
+    // Where the bundle was kept between requests before it had a folder of its own.
+    yield* fileSystem
+      .remove(path.join(config.stateDir, "majordome", "outgoing.bundle"), { force: true })
+      .pipe(Effect.ignore);
 
     const owner = makeOwnerGuard(auth, {
       span: "majordome.moveReceiver.owner",
@@ -75,16 +105,10 @@ export const layer = Layer.unwrap(
     );
 
     const sendVault = owner(() =>
-      Effect.gen(function* () {
-        yield* fileSystem.makeDirectory(path.dirname(outgoingBundle), { recursive: true });
-        yield* fileSystem.remove(outgoingBundle, { force: true });
-        const sent = yield* receiver.sendVault(outgoingBundle).pipe(Effect.result);
-        if (sent._tag === "Failure") return refusal(sent.failure);
-        return yield* HttpServerResponse.file(outgoingBundle, {
-          contentType: "application/octet-stream",
-          headers: { "cache-control": "no-store" },
-        });
-      }),
+      vaultBundleResponse(receiver).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      ),
     );
 
     const setGitHubToken = owner((request) =>

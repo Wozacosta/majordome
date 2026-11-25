@@ -45,7 +45,17 @@ The landing page and the README show a short version of this list.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
   when the assistant ends with an offer.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
-  conversation in short, and a drawing of it. [Key facts](./user/key-facts.md)
+  conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
+  facts and a topic's files. [Key facts](./user/key-facts.md)
+- **What a chat knows, shown:** every conversation is told where your other topics stand and looks
+  inside one when your question touches it, saying which. The side panel lists the notes a chat
+  starts with and the topics it only knows the standing of. A conversation kept for days is given
+  them again with its first message of each new day. [Memory](./user/memory.md)
+- **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
+  with when each was last used, and tools so it knows which it has and uses one without the key
+  appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source
+  Majordome adds) and be read from there each time. [Secrets](./user/secrets.md)
+- **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
 
 ### An assistant that works without you
 
@@ -82,6 +92,10 @@ The landing page and the README show a short version of this list.
 - **Conversations kept on the server,** so your phone and your computer show the same ones. A
   topic's older conversation moves there by itself.
 - **Your own sign-in in the server's browser,** copied one site at a time, by you only.
+- **Three levels of AI instead of a model list:** Quick, Everyday and Powerful, each mapped to the
+  right model of the AI account behind it (Haiku, Sonnet and Opus with Claude). The message box
+  shows the level and changes it; Settings says which model each level uses. The mapping is
+  refreshed hourly from Majordome's repository, so it follows new models without an app update.
 - **A lighter start to every conversation:** the assistant is not handed Claude's publishing
   tools or the owner's personal Claude Code plugins, and a routine's cache is kept five minutes.
 
@@ -98,6 +112,8 @@ The landing page and the README show a short version of this list.
 - **One computer at a time.** Pages that say the same things about each computer (Connections,
   Back up my brain, Private documents) have a switch under the title instead of repeating
   themselves.
+- **No usage data.** T3 Code sends anonymous usage data unless you turn it off. Majordome sends
+  none and says so in the app, with [its own privacy page](https://majord.me/privacy).
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
 
@@ -110,8 +126,8 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
 - About 27 settings that only matter when writing code are hidden, and so is the Usage page.
 - No T3 account, T3 Connect, or T3's phone apps. Adding a computer over SSH is not offered.
 - An iPhone app of Majordome's own is being built from upstream's (not in the App Store yet):
-  Today, one list of topics and chats, plain words in a conversation, offline capture, and an
-  invite code that makes a Majordome server from the phone. It has its own links, and a
+  Today, one list of topics and chats, plain words in a conversation, offline capture, and a
+  Majordome server bought through Apple from the phone. It has its own links, and a
   server's phone code can open it.
 
 ## What comes from T3 Code

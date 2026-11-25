@@ -39,11 +39,14 @@ import {
   MAX_KEYBINDINGS_COUNT,
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
+import { msg } from "gt-i18n";
 import * as Schema from "effect/Schema";
 import * as Option from "effect/Option";
 import * as NodeURL from "node:url";
 
+import * as ElectronDialog from "../../electron/ElectronDialog.ts";
 import * as ElectronWindow from "../../electron/ElectronWindow.ts";
+import { m } from "../../i18n/messages.ts";
 import * as BrowserImport from "../../preview/BrowserImport/BrowserImport.ts";
 import * as LoopbackTunnel from "../../preview/LoopbackTunnel.ts";
 import * as PreviewManager from "../../preview/Manager.ts";
@@ -462,14 +465,60 @@ export const importBrowserCookies = DesktopIpc.makeIpcMethod({
   }),
 });
 
+// Sites the owner let the window read cookies for since the app started. The window's word that
+// the owner asked is not enough: these cookies leave the main process, and a page could ask too.
+const siteCookieReadsAllowed = new Set<string>();
+
+const confirmSiteCookieRead = Effect.fn("desktop.ipc.preview.confirmSiteCookieRead")(function* (
+  host: string,
+) {
+  if (siteCookieReadsAllowed.has(host)) return true;
+  // Anything else could not be a host, and would let the caller write the question itself.
+  if (!/^[a-z0-9.:[\]-]+$/.test(host)) return false;
+  const electronDialog = yield* ElectronDialog.ElectronDialog;
+  const electronWindow = yield* ElectronWindow.ElectronWindow;
+  const owner = yield* electronWindow.focusedMainOrFirst;
+  const allowed = yield* electronDialog
+    .showMessageBox(
+      {
+        type: "question",
+        buttons: [
+          m(msg("Copy Sign-In", { $context: "button, copies a website sign-in" })),
+          m(msg("Cancel")),
+        ],
+        // Default to cancel so an Enter typed into the window cannot accept what it raised.
+        defaultId: 1,
+        cancelId: 1,
+        message: m(msg("Copy your sign-in for {host}?"), { host }),
+        detail: m(
+          msg(
+            "This reads the cookies your browser on this computer holds for {host} and sends them to a browser on another computer, which is then signed in as you.",
+          ),
+          { host },
+        ),
+      },
+      Option.getOrUndefined(owner),
+    )
+    .pipe(
+      Effect.map(({ response }) => response === 0),
+      Effect.orElseSucceed(() => false),
+    );
+  if (allowed) siteCookieReadsAllowed.add(host);
+  return allowed;
+});
+
 /** For "Use my sign-in for this site": the cookies go on to a server's browser, not this one. */
 export const readBrowserSiteCookies = DesktopIpc.makeIpcMethod({
   channel: IpcChannels.PREVIEW_READ_SITE_COOKIES_CHANNEL,
   payload: DesktopPreviewReadSiteCookiesInputSchema,
   result: BrowserSiteCookiesResult,
   handler: Effect.fn("desktop.ipc.preview.readBrowserSiteCookies")(function* (input) {
+    const host = input.host.toLowerCase();
+    if (!(yield* confirmSiteCookieRead(host))) {
+      return { cookies: [], undecryptable: 0, declined: true };
+    }
     const browserImport = yield* BrowserImport.BrowserImport;
-    return yield* browserImport.readSiteCookies(input);
+    return yield* browserImport.readSiteCookies({ ...input, host });
   }),
 });
 

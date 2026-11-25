@@ -8,6 +8,8 @@ export interface AccountServer {
   /** Where the account's other devices reach the server. */
   readonly url: string;
   readonly name: string;
+  /** What the server asks beside the account token, given to the app that added it. */
+  readonly key?: string;
 }
 
 /** The key under the account's own metadata. */
@@ -28,10 +30,15 @@ function isReachable(value: string, allowThisMachine: boolean): boolean {
 
 function readServer(value: unknown, allowThisMachine: boolean): AccountServer | null {
   if (!isRecord(value)) return null;
-  const { environmentId, url, name } = value;
+  const { environmentId, url, name, key } = value;
   if (typeof environmentId !== "string" || environmentId === "") return null;
   if (typeof url !== "string" || !isReachable(url, allowThisMachine)) return null;
-  return { environmentId, url, name: typeof name === "string" && name !== "" ? name : url };
+  return {
+    environmentId,
+    url,
+    name: typeof name === "string" && name !== "" ? name : url,
+    ...(typeof key === "string" && key !== "" ? { key } : {}),
+  };
 }
 
 /** What the account lists, leaving out anything that is not a server reached over HTTPS. */
@@ -50,14 +57,19 @@ export function readAccountServers(
   return Array.from(servers.values()).slice(0, MAX_SERVERS);
 }
 
-/** The account's metadata with `server` listed, replacing what was listed for the same server. */
+/**
+ * The account's metadata with `server` listed, replacing what was listed for the same server. A
+ * listing made without the server's key keeps the key already listed.
+ */
 export function withAccountServer(metadata: unknown, server: AccountServer) {
-  const others = readAccountServers(metadata).filter(
-    (listed) => listed.environmentId !== server.environmentId,
-  );
+  const listed = readAccountServers(metadata);
+  const known = listed.find((entry) => entry.environmentId === server.environmentId)?.key;
   return {
     ...(isRecord(metadata) ? metadata : {}),
-    [ACCOUNT_SERVERS_KEY]: [...others, server].slice(-MAX_SERVERS),
+    [ACCOUNT_SERVERS_KEY]: [
+      ...listed.filter((entry) => entry.environmentId !== server.environmentId),
+      { ...(known === undefined ? {} : { key: known }), ...server },
+    ].slice(-MAX_SERVERS),
   };
 }
 
@@ -98,7 +110,7 @@ export async function signInToAccountServer(input: {
     .request(new URL(input.path, server.url), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: input.token }),
+      body: JSON.stringify({ token: input.token, key: server.key }),
     })
     .catch(() => null);
   if (response === null) {

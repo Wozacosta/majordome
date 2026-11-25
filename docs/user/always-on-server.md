@@ -92,8 +92,10 @@ drops every incoming connection, and Majordome answers only on your Tailscale ne
 
 Your computer keeps its own copy of the notes. Every few minutes, while it is on, it and the server
 exchange what changed, directly over your Tailscale network. Nothing else is needed: no GitHub, no
-account. **Back up my brain** shows the server under **Your other machine**, with when the two were
-last in step, and **Stop keeping in step** if you want them apart.
+account. The first time, Majordome asks before it starts: in **Back up my brain**, choose **Keep in
+step** for the server, or **Not now**. It asks because the server then receives all of your notes,
+so say yes only to a server that is yours. After that the page shows when the two were last in step,
+and **Stop keeping in step** if you want them apart.
 
 While your computer is asleep or off, the server carries on by itself, and your computer catches up
 when it wakes. If the server stops accepting your computer (after a month or more apart, for
@@ -202,9 +204,9 @@ For any other provider, or if you prefer a terminal. In the app, these steps are
    - **What it did > Move routines here.** Your computer stops running them once it gets your latest notes.
 
 Your computer keeps its own copy of the notes. Once the Majordome app on your computer is connected
-to the server, it links the two by itself, and they [stay in step](#your-computer-and-the-server-stay-in-step)
-directly. If **Back up my brain** on your computer shows the server as **Not kept in step**, choose
-**Keep in step** there.
+to the server, **Back up my brain** on your computer shows the server as **Not kept in step**.
+Choose **Keep in step** there, and they [stay in step](#your-computer-and-the-server-stay-in-step)
+directly.
 
 ## Let Majordome host it
 

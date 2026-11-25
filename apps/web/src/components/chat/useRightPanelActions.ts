@@ -42,6 +42,8 @@ import type { ChatShortcutCommands } from "./useChatShortcuts";
 interface RightPanelActionsInput {
   readonly activeThreadRef: ScopedThreadRef | null;
   readonly activeProject: EnvironmentProject | null;
+  /** Majordome: the folder of the topic this chat belongs to, relative to the notes folder. */
+  readonly filesStartFolder?: string | null;
   readonly activeRightPanelSurface: RightPanelSurface | null;
   readonly activePreviewState: ThreadPreviewState;
   readonly deviceState: ReturnType<typeof useDeviceState>["state"];
@@ -154,8 +156,15 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
   const openChangesFromThreadPanelStable = useStableCallback(openChangesFromThreadPanel);
   const addFilesSurface = () => {
     if (!activeThreadRef || !activeProject) return;
-    useRightPanelStore.getState().open(activeThreadRef, "files");
+    // In a topic's chat the list opens on the topic's own folder.
+    if (input.filesStartFolder) {
+      useRightPanelStore.getState().openFile(activeThreadRef, input.filesStartFolder);
+    } else useRightPanelStore.getState().open(activeThreadRef, "files");
   };
+  const addKeyFactsSurface = () => {
+    if (activeThreadRef) useRightPanelStore.getState().open(activeThreadRef, "key-facts");
+  };
+  const addKeyFactsSurfaceStable = useStableCallback(addKeyFactsSurface);
   const addFilesSurfaceStable = useStableCallback(addFilesSurface);
   const addPullRequestsSurface = () => {
     if (!activeThreadRef || !pullRequestsSurfaceAvailable) return;
@@ -343,6 +352,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
     addDeviceSurfaceStable,
     addDiffSurfaceStable,
     addFilesSurfaceStable,
+    addKeyFactsSurfaceStable,
     addPullRequestSurfaceStable,
     addPullRequestsSurfaceStable,
     closePreviewPanelStable,

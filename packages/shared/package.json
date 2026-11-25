@@ -7,6 +7,10 @@
       "types": "./src/majordome.ts",
       "import": "./src/majordome.ts"
     },
+    "./majordomeModelLevels": {
+      "types": "./src/majordomeModelLevels.ts",
+      "import": "./src/majordomeModelLevels.ts"
+    },
     "./majordomeAccount": {
       "types": "./src/majordomeAccount.ts",
       "import": "./src/majordomeAccount.ts"
@@ -14,6 +18,22 @@
     "./majordomeTopicIcons": {
       "types": "./src/majordomeTopicIcons.ts",
       "import": "./src/majordomeTopicIcons.ts"
+    },
+    "./majordomeSavedKeys": {
+      "types": "./src/majordomeSavedKeys.ts",
+      "import": "./src/majordomeSavedKeys.ts"
+    },
+    "./majordomeChatKnowledge": {
+      "types": "./src/majordomeChatKnowledge.ts",
+      "import": "./src/majordomeChatKnowledge.ts"
+    },
+    "./majordomeKeyFacts": {
+      "types": "./src/majordomeKeyFacts.ts",
+      "import": "./src/majordomeKeyFacts.ts"
+    },
+    "./majordomeTopicFiles": {
+      "types": "./src/majordomeTopicFiles.ts",
+      "import": "./src/majordomeTopicFiles.ts"
     },
     "./topicFolder": {
       "types": "./src/topicFolder.ts",

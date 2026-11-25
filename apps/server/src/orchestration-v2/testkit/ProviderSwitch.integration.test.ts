@@ -1,5 +1,6 @@
 import { vi } from "vite-plus/test";
 import { historyResponseItems } from "@t3tools/provider-core/server/handoffBudget";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import {
   CommandId,
@@ -30,6 +31,7 @@ import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
@@ -1437,6 +1439,119 @@ describe("orchestration v2 provider switching", () => {
               },
             },
             layerRegistry,
+          ),
+        ),
+      );
+    }),
+  );
+
+  it.live("gives a session its notes again on its first message of a later day", () =>
+    Effect.gen(function* () {
+      const cwd = yield* checkpointWorkspace("notes-again-next-day");
+      const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+      const layerRegistry = ProviderAdapterRegistry.layerFromAdapters([
+        makeTestAdapter({
+          instanceId: CLAUDE_MODEL_SELECTION.instanceId,
+          driver: CLAUDE_DRIVER,
+          capabilities: ClaudeProviderCapabilitiesV2,
+          modelSelection: CLAUDE_MODEL_SELECTION,
+          responseByRunOrdinal: {},
+          capturedTurns,
+        }),
+      ]);
+      yield* Effect.gen(function* () {
+        const orchestrator = yield* Orchestrator.OrchestratorV2;
+        const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+        const fileSystem = yield* FileSystem.FileSystem;
+        yield* fileSystem.makeDirectory(`${cwd}/.majordome`);
+        yield* fileSystem.writeFileString(`${cwd}/memory.md`, "- Lives in Lyon");
+        const send = (ordinal: number) =>
+          orchestrator
+            .dispatch({
+              type: "message.dispatch",
+              commandId: CommandId.make(`notes-again:${ordinal}`),
+              threadId,
+              messageId: MessageId.make(`notes-again:${ordinal}`),
+              createdBy: "user",
+              creationSource: "web",
+              text: `Message ${ordinal}`,
+              attachments: [],
+              modelSelection: CLAUDE_MODEL_SELECTION,
+              dispatchMode: { type: "start_immediately" },
+            })
+            .pipe(
+              Effect.andThen(
+                orchestrator.streamStoredEvents.pipe(
+                  Stream.filter(
+                    ({ event }) =>
+                      event.type === "run.updated" &&
+                      event.payload.ordinal === ordinal &&
+                      (event.payload.status === "completed" || event.payload.status === "failed"),
+                  ),
+                  Stream.runHead,
+                ),
+              ),
+              Effect.andThen(worker.drain()),
+            );
+        yield* orchestrator.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("notes-again:create"),
+          threadId,
+          projectId,
+          createdBy: "user",
+          creationSource: "web",
+          title: "Notes again",
+          modelSelection: CLAUDE_MODEL_SELECTION,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+        });
+        yield* send(1);
+        yield* send(2);
+        const sameDay = yield* Ref.get(capturedTurns);
+        assert.include(sameDay[0]?.text, "- Lives in Lyon");
+        assert.include(sameDay[0]?.text, "loaded when this session started");
+        assert.equal(sameDay[1]?.text, "Message 2");
+
+        const twoDaysAgo = DateTime.subtract(yield* DateTime.now, { days: 2 });
+        const existing = yield* orchestrator.getThreadProjection(threadId);
+        yield* (yield* EventSink.EventSinkV2).write({
+          events: existing.runs.map((run) => ({
+            id: EventId.make(`notes-again-backdated:${run.ordinal}`),
+            type: "run.updated" as const,
+            threadId,
+            runId: run.id,
+            providerInstanceId: run.providerInstanceId,
+            occurredAt: twoDaysAgo,
+            payload: { ...run, requestedAt: twoDaysAgo },
+          })),
+        });
+        yield* fileSystem.writeFileString(`${cwd}/memory.md`, "- Lives in Porto");
+        yield* send(3);
+        yield* send(4);
+        const turns = yield* Ref.get(capturedTurns);
+        assert.isTrue(turns[2]?.nativeThreadHasTurns);
+        assert.equal(turns[2]?.nativeThreadId, turns[0]?.nativeThreadId);
+        assert.include(turns[2]?.text, "- Lives in Porto");
+        assert.include(turns[2]?.text, "They replace the notes loaded earlier");
+        assert.isTrue(turns[2]?.text.endsWith("Message 3"));
+        assert.equal(turns[3]?.text, "Message 4");
+      }).pipe(
+        Effect.provide(
+          Layer.merge(
+            ProviderReplayHarness.layerWithRegistry(
+              {
+                name: "notes-again-next-day",
+                runtimePolicyOverride: {
+                  cwd,
+                  approvalPolicy: "never",
+                  sandboxPolicy: { type: "readOnly" },
+                },
+              },
+              layerRegistry,
+            ),
+            NodeServices.layer,
           ),
         ),
       );

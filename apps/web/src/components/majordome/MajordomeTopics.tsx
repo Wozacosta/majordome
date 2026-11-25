@@ -539,10 +539,10 @@ function VaultTopics({
             onClick={() => setShowFinished((shown) => !shown)}
             className={QUIET_ROW_CLASS}
           >
-            {showFinished ? "Hide done" : `Show ${finished.length} done`}
+            {showFinished ? "Hide closed" : `Show ${finished.length} closed`}
           </button>
           {showFinished ? (
-            <ul aria-label="Topics marked as done" className="flex flex-col gap-px">
+            <ul aria-label="Closed topics" className="flex flex-col gap-px">
               {finished.map((topic) => (
                 <FinishedTopicRow
                   key={topic.id}
@@ -812,7 +812,7 @@ function TopicRow(props: {
   );
 }
 
-/** A topic marked as done, dimmed: its chat still opens, and its menu brings it back. */
+/** A closed topic, dimmed: its chat still opens, and its menu reopens it. */
 function FinishedTopicRow(props: {
   readonly topic: VaultTopic;
   readonly isActive: boolean;

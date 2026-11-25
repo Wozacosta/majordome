@@ -645,7 +645,11 @@ export const layerTopicFileViewRoute = HttpRouter.add(
       path: file.value.path,
       download: true,
       fileName: file.value.fileName,
-    }).pipe(Effect.orElseSucceed(() => HttpServerResponse.text("Not Found", { status: 404 })));
+    }).pipe(
+      // The link lasts a minute: no cache may keep the file past it.
+      Effect.map(HttpServerResponse.setHeader("Cache-Control", "no-store")),
+      Effect.orElseSucceed(() => HttpServerResponse.text("Not Found", { status: 404 })),
+    );
   }),
   SIGNED_URL_ROUTE_OPTIONS,
 );

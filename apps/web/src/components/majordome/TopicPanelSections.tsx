@@ -117,7 +117,7 @@ function TopicPanel(
       <TopicNotes {...place} workspaceRoot={workspaceRoot} />
       <TopicTodos {...place} />
       <TopicRoutines {...place} threadId={props.threadId} vault={props.vault} />
-      <TopicFiles {...place} workspaceRoot={workspaceRoot} />
+      <TopicFiles {...place} threadId={props.threadId} workspaceRoot={workspaceRoot} />
       <TopicChats {...place} threadId={props.threadId} vault={props.vault} />
     </>
   );

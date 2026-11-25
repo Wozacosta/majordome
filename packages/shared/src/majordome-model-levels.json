@@ -1,0 +1,41 @@
+{
+  "updatedAt": "2026-11-25",
+  "drivers": {
+    "claudeAgent": {
+      "quick": ["haiku"],
+      "everyday": ["sonnet"],
+      "powerful": ["opus"]
+    },
+    "codex": {
+      "quick": ["luna", "terra", "mini"],
+      "everyday": ["sol", "terra"],
+      "powerful": ["astra"]
+    },
+    "antigravity": {
+      "quick": ["flash", "hydrogen"],
+      "everyday": ["argon", "hydrogen", "neon"],
+      "powerful": ["carbon", "neon"]
+    },
+    "cursor": {
+      "quick": ["composer"],
+      "everyday": ["auto"],
+      "powerful": ["grok-4", "opus"]
+    },
+    "kiro": {
+      "quick": ["haiku"],
+      "everyday": ["auto"],
+      "powerful": ["opus"]
+    },
+    "grok": {
+      "quick": ["fast"],
+      "everyday": [],
+      "powerful": []
+    }
+  },
+  "anyDriver": {
+    "quick": ["haiku", "luna", "flash", "mini"],
+    "everyday": ["sonnet", "sol"],
+    "powerful": ["opus", "astra"]
+  },
+  "ignored": ["fable", "daybreak", "gpt-oss", "gemini-pro", "gemini-3.1-pro", "antigravity-default"]
+}

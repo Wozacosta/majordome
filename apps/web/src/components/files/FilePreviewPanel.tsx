@@ -98,6 +98,8 @@ import { BrowserDocumentFrame, isPdfPreviewFile } from "./BrowserDocumentFrame";
 import { DelimitedTablePreview } from "./DelimitedTablePreview";
 import { PreviewImage } from "./PreviewImage";
 import FileBrowserPanel from "./FileBrowserPanel";
+import { isMajordome } from "../../env";
+import { isHiddenVaultPath } from "../majordome/notes.logic";
 import { FileExplorerPane } from "./FileExplorerPane";
 import { FileBreadcrumbs } from "./FileBreadcrumbs";
 import { breadcrumbPathOf, retainedBreadcrumbTrail, trailChildOf } from "./filePath";
@@ -1923,6 +1925,7 @@ export default function FilePreviewPanel({
                 onOpenFile={onOpenFile}
                 answersPanelFind={!previewPath}
                 workspaceMutationId={workspaceMutationId}
+                {...(isMajordome && hostFolderPath === null ? { hidePath: isHiddenVaultPath } : {})}
                 {...(previewPath && !isMedia && !isPdf
                   ? {
                       onRefreshSelectedFile: () => {

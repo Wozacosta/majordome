@@ -108,6 +108,7 @@ import {
   type PullRequestRef,
   WS_METHODS,
   WsRpcGroup,
+  MajordomeSavedKeysError,
 } from "@t3tools/contracts";
 import {
   HttpRouter,
@@ -144,6 +145,7 @@ import * as MajordomeNotes from "./majordome/MajordomeNotes.ts";
 import * as MajordomeSkills from "./majordome/MajordomeSkills.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
+import { currentModelLevelTable } from "./majordome/modelLevelTable.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
@@ -151,6 +153,7 @@ import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
 import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
 import * as Workflows from "./workflows/Workflows.ts";
 import * as WorkflowRuntime from "./workflows/WorkflowRuntime.ts";
@@ -1533,6 +1536,7 @@ export const layerWsRpc = (
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
+      const savedKeys = yield* MajordomeSavedKeys.MajordomeSavedKeys;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
       const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
@@ -1967,6 +1971,7 @@ export const layerWsRpc = (
             otlpLogsEnabled: config.otlpLogsUrl !== undefined,
           },
           settings,
+          modelLevelTable: currentModelLevelTable(),
           ...(serverSettings.managedPolicy === undefined
             ? {}
             : { managedPolicy: serverSettings.managedPolicy }),
@@ -2551,6 +2556,16 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeListPrivateDocuments]: (_input) => privateDocuments.list(),
         [WS_METHODS.majordomeAddPrivateDocument]: (input) => privateDocuments.add(input),
         [WS_METHODS.majordomeRemovePrivateDocument]: (input) => privateDocuments.remove(input),
+        [WS_METHODS.majordomeListSavedKeys]: () => savedKeys.list(),
+        [WS_METHODS.majordomeSaveKey]: ({ name, note, value, reference }) =>
+          reference !== undefined
+            ? savedKeys.save({ name, note, reference })
+            : value !== undefined
+              ? savedKeys.save({ name, note, value })
+              : Effect.fail(
+                  new MajordomeSavedKeysError({ message: "Give the key, or where it is kept." }),
+                ),
+        [WS_METHODS.majordomeRemoveSavedKey]: (input) => savedKeys.remove(input),
         [WS_METHODS.majordomeViewPrivateDocument]: (input) => privateDocuments.ownerViewUrl(input),
         [WS_METHODS.majordomeGetPrivateDocumentRequest]: (input) =>
           privateDocuments.getRequest(input),
@@ -2606,6 +2621,10 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeListTopics]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.list(input)),
+          ),
+        [WS_METHODS.majordomeGetChatKnowledge]: (input) =>
+          Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
+            Effect.andThen(majordomeTopics.chatKnowledge(input)),
           ),
         [WS_METHODS.majordomeCreateTopic]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

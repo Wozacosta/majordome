@@ -33,21 +33,31 @@ const copy = (
 
 const plans = (
   copies: ReadonlyArray<PeerLinkCopy>,
-  options?: { readonly local?: EnvironmentId | null; readonly declined?: ReadonlyArray<string> },
+  options?: {
+    readonly local?: EnvironmentId | null;
+    readonly approved?: ReadonlyArray<string>;
+    readonly declined?: ReadonlyArray<string>;
+  },
 ) => {
   const localEnvironmentId = options?.local === undefined ? MAC : options.local;
   return peerLinkPlans({
     brains: groupBrains(copies, localEnvironmentId),
     localEnvironmentId,
+    approved: new Set(options?.approved),
     declined: new Set(options?.declined),
-  }).map((plan) => `${plan.local.environmentId} -> ${plan.other.environmentId}`);
+  }).map(
+    (plan) =>
+      `${plan.local.environmentId} -> ${plan.other.environmentId}${plan.approved ? "" : " (ask)"}`,
+  );
 };
 
 const PAIR = "brain:brain-1|env-mac|env-server";
 
 describe("peerLinkPlans", () => {
   it("links this computer's notes with the same notes on another server", () => {
-    expect(plans([copy(MAC, null), copy(SERVER, null)])).toEqual(["env-mac -> env-server"]);
+    expect(plans([copy(MAC, null), copy(SERVER, null)], { approved: [PAIR] })).toEqual([
+      "env-mac -> env-server",
+    ]);
     // The server answering this computer is what a working link looks like from its side.
     expect(
       plans([copy(MAC, linkedTo(SERVER)), copy(SERVER, linkedTo(MAC, { linkedHere: false }))]),
@@ -67,7 +77,7 @@ describe("peerLinkPlans", () => {
     expect(plans([copy(MAC, null), copy(SERVER, undefined)])).toEqual([]);
     expect(plans([copy(MAC, undefined), copy(SERVER, null)])).toEqual([]);
     expect(plans([copy(MAC, null), copy(SERVER, undefined), copy(MINI, null)])).toEqual([
-      "env-mac -> env-mini",
+      "env-mac -> env-mini (ask)",
     ]);
   });
 
@@ -89,15 +99,26 @@ describe("peerLinkPlans", () => {
   it("leaves the work to the other machine when it already does it", () => {
     expect(plans([copy(MAC, null), copy(SERVER, linkedTo(MAC))])).toEqual([]);
     expect(plans([copy(MAC, null), copy(SERVER, linkedTo(MINI))])).toEqual([
-      "env-mac -> env-server",
+      "env-mac -> env-server (ask)",
     ]);
+  });
+
+  it("asks before the first link with a server, which only says it holds the same notes", () => {
+    const copies = [copy(MAC, null), copy(SERVER, null), copy(MINI, null)];
+    expect(plans(copies)).toEqual(["env-mac -> env-server (ask)"]);
+    // A yes is for one server: another claiming the same notes is asked about by itself.
+    expect(plans(copies, { approved: ["brain:brain-1|env-mac|env-mini"] })).toEqual([
+      "env-mac -> env-server (ask)",
+    ]);
+    expect(plans(copies, { approved: [PAIR] })).toEqual(["env-mac -> env-server"]);
+    expect(plans(copies, { approved: [PAIR], declined: [PAIR] })).toEqual([]);
   });
 
   it("stays off for a pair the owner stopped keeping in step", () => {
     const copies = [copy(MAC, null), copy(SERVER, null)];
     expect(plans(copies, { declined: [PAIR] })).toEqual([]);
     expect(plans(copies, { declined: ["brain:brain-1|env-mac|env-mini"] })).toEqual([
-      "env-mac -> env-server",
+      "env-mac -> env-server (ask)",
     ]);
     expect(linkedPairKey("brain:brain-1", copy(MAC, linkedTo(SERVER)))).toBe(PAIR);
     expect(

@@ -7,6 +7,7 @@ import * as Layer from "effect/Layer";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import WebPush from "web-push";
 
+import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as MajordomePush from "./MajordomePush.ts";
@@ -17,8 +18,30 @@ interface SentPush {
   readonly bytes: number;
 }
 
-/** A push service that answers each endpoint with the status the test chose. */
-const pushService = (sent: Array<SentPush>, statusFor: (url: string) => number) =>
+type LiveSessions = Effect.Success<
+  ReturnType<EnvironmentAuth.EnvironmentAuth["Service"]["listSessions"]>
+>;
+
+/**
+ * A push service that answers each endpoint with the status the test chose, on a server where
+ * `liveSessions` are the accesses not removed.
+ */
+const pushService = (
+  sent: Array<SentPush>,
+  statusFor: (url: string) => number,
+  liveSessions: () => ReadonlyArray<string> = () => [],
+) =>
+  Layer.merge(
+    Layer.mock(EnvironmentAuth.EnvironmentAuth)({
+      listSessions: () =>
+        Effect.succeed(
+          liveSessions().map((sessionId) => ({ sessionId })) as unknown as LiveSessions,
+        ),
+    }),
+    httpLayer(sent, statusFor),
+  );
+
+const httpLayer = (sent: Array<SentPush>, statusFor: (url: string) => number) =>
   Layer.succeed(
     HttpClient.HttpClient,
     HttpClient.make((request) =>
@@ -108,6 +131,59 @@ it.layer(storeLayer)("MajordomePush", (it) => {
         yield* push.notifyAll({ title: "Start my day", body: "Hi", tag: "t", url: "/feed" });
         assert.lengthOf(sent, 0);
       }),
+  );
+
+  it.effect("forgets a device once the access it used is removed, before sending", () =>
+    Effect.gen(function* () {
+      const secrets = yield* ServerSecretStore.ServerSecretStore;
+      yield* secrets.set("majordome-web-push-subscriptions", new TextEncoder().encode("[]"));
+      const sent: Array<SentPush> = [];
+      const live = ["session-phone", "session-tablet"];
+      const push = yield* MajordomePush.make.pipe(
+        Effect.provide(
+          pushService(
+            sent,
+            () => 201,
+            () => live,
+          ),
+        ),
+      );
+      const endpoints = () =>
+        push.listDevices().pipe(Effect.map(({ devices }) => devices.map((d) => d.endpoint)));
+      yield* push.saveSubscription(browserSubscription("https://push.example/before-sessions"));
+      yield* push.saveSubscription(
+        browserSubscription("https://push.example/phone"),
+        "Phone",
+        "session-phone",
+      );
+      yield* push.saveSubscription(
+        browserSubscription("https://push.example/tablet"),
+        "Tablet",
+        "session-tablet",
+      );
+      const message = { title: "Start my day", body: "Hi", tag: "t", url: "/feed" };
+      assert.equal(yield* push.notifyAll(message), 3);
+
+      live.pop();
+      sent.length = 0;
+      assert.equal(yield* push.notifyAll(message), 2);
+      assert.deepEqual(sent.map((request) => request.url).toSorted(), [
+        "https://push.example/before-sessions",
+        "https://push.example/phone",
+      ]);
+      assert.deepEqual(yield* endpoints(), [
+        "https://push.example/before-sessions",
+        "https://push.example/phone",
+      ]);
+
+      live.pop();
+      sent.length = 0;
+      assert.isTrue(
+        Exit.isFailure(yield* Effect.exit(push.sendTest("https://push.example/phone"))),
+      );
+      assert.lengthOf(sent, 0);
+      yield* secrets.set("majordome-web-push-subscriptions", new TextEncoder().encode("[]"));
+    }),
   );
 
   it.effect("lists devices with their labels, reading devices saved before labels existed", () =>

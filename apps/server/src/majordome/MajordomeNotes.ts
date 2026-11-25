@@ -13,10 +13,12 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { NOTE_CHANGED_WHILE_WRITING, replaceNoteIfUnchanged } from "./noteFile.ts";
 import { isSkippedEntry } from "./notesIndex.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { commitOwnerDecision, steersLaterRuns } from "./vaultSkills.ts";
 
 const isNoteError = Schema.is(MajordomeNoteError);
 
@@ -35,6 +37,7 @@ const make = Effect.gen(function* () {
   const vaultLock = yield* VaultLock.VaultLock;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const git = yield* GitVcsDriver.GitVcsDriver;
 
   /** The note's file, or a failure for a path that leaves the vault or is not one of its notes. */
   const resolveNote = Effect.fn("MajordomeNotes.resolveNote")(function* (
@@ -77,6 +80,28 @@ const make = Effect.gen(function* () {
           const file = yield* resolveNote(project.workspaceRoot, input.path);
           if (!(yield* replaceNoteIfUnchanged({ ...input, file }))) {
             return yield* new MajordomeNoteError(NOTE_CHANGED_WHILE_WRITING);
+          }
+          const relative = path
+            .relative(yield* fileSystem.realPath(project.workspaceRoot), file)
+            .split(path.sep)
+            .join("/");
+          // Left for the next autosave, the end of a run would hold it back as the run's.
+          if (steersLaterRuns(relative)) {
+            yield* commitOwnerDecision({
+              vaultRoot: project.workspaceRoot,
+              subject: "Your edits",
+              paths: [relative],
+            }).pipe(
+              Effect.provideService(GitVcsDriver.GitVcsDriver, git),
+              Effect.catchCause((cause) =>
+                Effect.logWarning(
+                  "Majordome could not save the owner's edit to the instructions.",
+                  {
+                    cause,
+                  },
+                ),
+              ),
+            );
           }
         }),
       );
