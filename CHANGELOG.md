@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.55
+
 **New**
 
 - **A saved key can say until when it works.** In Settings, Passwords and keys, a key has an
