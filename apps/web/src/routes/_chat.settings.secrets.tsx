@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 import { SecretsSettingsPanel } from "../components/settings/SecretsSettings";
 import { useHasSecretProvidersEnvironment } from "../components/settings/useAvailableSettingsSearchItems";
+import { isSecretsFeatureEnabled } from "../env";
 import { useEnvironments } from "../state/environments";
 
 export const Route = createFileRoute("/_chat/settings/secrets")({
@@ -14,6 +15,7 @@ function SecretsSettingsRoute() {
   const { isReady, environments } = useEnvironments();
   const allReported =
     isReady && environments.every((environment) => environment.serverConfig !== null);
-  if (!enabled && allReported) return <Navigate to="/settings/general" replace />;
+  if (!isSecretsFeatureEnabled && !enabled && allReported)
+    return <Navigate to="/settings/general" replace />;
   return <SecretsSettingsPanel />;
 }

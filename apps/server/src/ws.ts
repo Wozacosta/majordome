@@ -2022,7 +2022,8 @@ export const layerWsRpc = (
           secretReferences: true,
           secretRequestReferences: true,
           featureFlags: {
-            secretProviders: featureFlags.secretProviders,
+            // Majordome always has secret sources; upstream previews them behind a flag.
+            secretProviders: true,
             tanstackSource: featureFlags.tanstackSource,
           },
           ...Option.match(scratchWorkspaceRoot, {
