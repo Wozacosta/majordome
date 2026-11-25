@@ -32,7 +32,6 @@ const RIGHT_PANEL_KINDS = [
   "issue",
   "thread",
   "linked-thread",
-  "side-chat",
   "key-facts",
 ] as const;
 export type RightPanelKind = (typeof RIGHT_PANEL_KINDS)[number];
