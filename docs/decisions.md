@@ -426,3 +426,20 @@ takes over.
       on; before, they followed the last chat's model. Not done: a level's options (thinking
       effort) and a level per routine. A routine runs in its own chat, so its level is changed
       in that chat's message box.
+      The defaults follow what each maker recommends, read on 2026-11-25:
+      - ChatGPT (Codex): Luna, Sol, Astra. OpenAI's
+        [models page](https://learn.chatgpt.com/docs/models?surface=app) says Sol "for everyday
+        coding, writing", Astra "for demanding work", Luna "most efficient".
+      - Gemini (Antigravity): Flash, Argon, Carbon. Google's
+        [Choose a model](https://antigravity.google/docs/models/) retires Argon and 3.8 Flash on
+        2026-11-30; after that the same rows give an older Flash, Hydrogen ("fast, everyday") and
+        Carbon. Whether Neon ranks above Carbon is not stated there, so Carbon stays first.
+      - Cursor: Composer, Auto, then its Grok 4 flagship, from
+        [Available models](https://cursor.com/help/models-and-usage/available-models).
+      - Kiro: Haiku, Auto, Opus, by its credit prices
+        ([Available models](https://kiro.dev/docs/models/available-models/)): Auto is the
+        baseline, Haiku a fraction of it, Opus about twice.
+      - Grok Build: its own default for Everyday and Powerful, a "fast" variant for Quick. No
+        official list was found; `grok models` prints the account's.
+      - Muse has one model family, so all three levels are its default. OpenCode, Pi and fx
+        resell other makers' models and are read by the same family names.

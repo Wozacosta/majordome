@@ -51,20 +51,37 @@ type LevelFamilies = Record<ModelLevel, ReadonlyArray<string>>;
 
 /**
  * A level's model families per kind of AI account, best first. A family is a piece of the model's
- * id, so a newer version of the same family is picked up without a change here.
+ * id, so a newer version of the same family is picked up without a change here. Each row follows
+ * what the account's maker recommends (sources in docs/decisions.md, "Choosing the model again").
  */
 const DRIVER_LEVEL_FAMILIES: Readonly<Record<string, LevelFamilies>> = {
   claudeAgent: { quick: ["haiku"], everyday: ["sonnet"], powerful: ["opus"] },
-  codex: { quick: ["luna", "mini"], everyday: ["sol", "terra"], powerful: ["astra"] },
-  antigravity: { quick: ["flash"], everyday: ["argon"], powerful: ["carbon"] },
-  cursor: { quick: ["composer"], everyday: ["auto"], powerful: [] },
+  // OpenAI: Sol "for everyday coding, writing", Astra "for demanding work", Luna "most efficient".
+  codex: { quick: ["luna", "terra", "mini"], everyday: ["sol", "terra"], powerful: ["astra"] },
+  // Google: Hydrogen for "fast, everyday" work on every plan, Carbon for the hardest. Argon and
+  // 3.8 Flash leave on 2026-11-30, so each is followed by what replaces it.
+  antigravity: {
+    quick: ["flash", "hydrogen"],
+    everyday: ["argon", "hydrogen", "neon"],
+    powerful: ["carbon", "neon"],
+  },
+  // Cursor: Composer is "fast, cost-efficient", Auto is "good for everyday tasks", and its
+  // flagship "for the hardest, longest-running tasks" is a Grok 4 model.
+  cursor: { quick: ["composer"], everyday: ["auto"], powerful: ["grok-4", "opus"] },
+  // Kiro prices Auto as its baseline; Haiku costs a fraction of it and Opus about twice.
+  kiro: { quick: ["haiku"], everyday: ["auto"], powerful: ["opus"] },
+  // Grok Build's own default is right for everyday and hard work; only a fast variant is lighter.
+  grok: { quick: ["fast"], everyday: [], powerful: [] },
 };
 
-/** Accounts that resell other makers' models (OpenCode, Pi, Kiro, Cursor) list these families. */
+/**
+ * Accounts that resell other makers' models (OpenCode, Pi, fx, Cursor, Kiro) list these families.
+ * An account with none of them, such as Muse with its one model, uses its own default throughout.
+ */
 const ANY_DRIVER_LEVEL_FAMILIES: LevelFamilies = {
   quick: ["haiku", "luna", "flash", "mini"],
-  everyday: ["sonnet"],
-  powerful: ["opus"],
+  everyday: ["sonnet", "sol"],
+  powerful: ["opus", "astra"],
 };
 
 export function isProviderReady(provider: ServerProvider): boolean {

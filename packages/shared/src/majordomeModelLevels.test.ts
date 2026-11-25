@@ -73,6 +73,43 @@ it("gives each kind of AI account its own three models", () => {
   expect(
     levels(provider("antigravity", ["gemini-4-carbon", "gemini-4-argon", "gemini-3.8-flash"])),
   ).toEqual({ quick: "gemini-3.8-flash", everyday: "gemini-4-argon", powerful: "gemini-4-carbon" });
+  // After Argon and 3.8 Flash are retired, what replaces them is used.
+  expect(
+    levels(
+      provider("antigravity", [
+        "antigravity-default",
+        "gemini-4-neon",
+        "gemini-4-carbon",
+        "gemini-4-hydrogen",
+        "gemini-3.7-flash",
+      ]),
+    ),
+  ).toEqual({
+    quick: "gemini-3.7-flash",
+    everyday: "gemini-4-hydrogen",
+    powerful: "gemini-4-carbon",
+  });
+  expect(
+    levels(
+      provider("kiro", [
+        "default",
+        "auto",
+        "claude-opus-5.5",
+        "claude-sonnet-5.5",
+        "claude-haiku-5.5",
+      ]),
+    ),
+  ).toEqual({ quick: "claude-haiku-5.5", everyday: "auto", powerful: "claude-opus-5.5" });
+  expect(
+    levels(
+      provider("cursor", ["auto", "composer-2.5", "grok-4.7", "claude-opus-5.5", "gpt-6.2-sol"]),
+    ),
+  ).toEqual({ quick: "composer-2.5", everyday: "auto", powerful: "grok-4.7" });
+  expect(levels(provider("grok", ["grok-build", "grok-4.7", "grok-4.5-fast"]))).toEqual({
+    quick: "grok-4.5-fast",
+    everyday: "grok-build",
+    powerful: "grok-build",
+  });
   // An account that resells other makers' models is read by family.
   expect(
     levels(

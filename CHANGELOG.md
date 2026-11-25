@@ -12,8 +12,9 @@ Not released yet.
 - **Three levels of AI: Quick, Everyday, Powerful.** Majordome now asks for a level, not a model.
   Quick does the small jobs (chat titles, key facts, summaries, drawings). Everyday is for your
   chats and routines, and new chats start on it. Powerful is for hard questions, when you choose
-  it. With Claude that is Haiku, Sonnet and Opus; ChatGPT (Codex), Gemini and the others have
-  their own three.
+  it. Each AI account has its own three, taken from what its maker recommends: Haiku, Sonnet
+  and Opus with Claude; Luna, Sol and Astra with ChatGPT (Codex); Flash, Argon and Carbon with
+  Gemini; Composer, Auto and Grok 4 with Cursor; Haiku, Auto and Opus with Kiro.
 - **Choose the level in the message box.** A new control at the bottom of the message box, on
   the computer, shows the chat's level and moves it to another one. It names the model behind
   each level. On the iPhone, the three levels are at the top of "Which AI".
