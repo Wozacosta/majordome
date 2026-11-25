@@ -39,6 +39,7 @@ export const BACKGROUND_SERVICE_SET_ENABLED_CHANNEL = "desktop:background-servic
 export const BACKGROUND_SERVICE_QUIT_COMPLETELY_CHANNEL =
   "desktop:background-service-quit-completely";
 export const GET_APP_BRANDING_CHANNEL = "desktop:get-app-branding";
+export const GET_DATABASE_MIGRATION_PROGRESS_CHANNEL = "desktop:get-database-migration-progress";
 export const GET_RELAY_TELEMETRY_ENABLED_CHANNEL = "desktop:get-relay-telemetry-enabled";
 export const GET_SYSTEM_LOCALE_CHANNEL = "desktop:get-system-locale";
 export const GET_PREFERRED_SYSTEM_LANGUAGES_CHANNEL = "desktop:get-preferred-system-languages";
