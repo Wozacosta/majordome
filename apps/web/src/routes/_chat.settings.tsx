@@ -10,6 +10,7 @@ import { AppRouteModal, AppRouteModalClose } from "../components/AppRouteModal";
 import { AssistantDock } from "../components/majordome/AssistantDock";
 import { getAppModalReturnThreadTarget } from "../components/sidebar/mainAppLocation";
 import { isMajordome } from "../env";
+import { useAssistantEnvironmentId } from "../components/majordome/useMajordomeVaults";
 import {
   MAJORDOME_SETTINGS_PHONE_QUERY,
   MajordomeSettingsShell,
@@ -213,9 +214,12 @@ function SettingsRouteLayout() {
   const rawSearch = Route.useSearch();
   const navigate = Route.useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
+  const assistantEnvironmentId = useAssistantEnvironmentId();
   return (
     <SettingsScopeProvider
       search={rawSearch}
+      // Keys are for the assistant, so the page opens on the computer that answers the chats.
+      preferredEnvironmentId={pathname === "/settings/secrets" ? assistantEnvironmentId : null}
       singleEnvironment={pathname === "/settings/providers" || pathname === "/settings/secrets"}
       deviceOnly={SETTINGS_DEVICE_ONLY_PATHS.has(pathname)}
       onChange={(next) => {

@@ -65,7 +65,18 @@ const failureMessage = (result: { readonly cause: Cause.Cause<unknown> }, fallba
  * The keys, tokens and passwords saved on one computer for the assistant to use, by name. The
  * owner adds and removes them here; a value is never shown again once saved.
  */
-export function SavedKeysSection({ environmentId }: { readonly environmentId: EnvironmentId }) {
+export function SavedKeysSection({
+  environmentId,
+  usedElsewhere,
+}: {
+  readonly environmentId: EnvironmentId;
+  /** Set when another computer answers the chats, so its keys are the ones the assistant has. */
+  readonly usedElsewhere?: {
+    readonly shown: string;
+    readonly answering: string;
+    readonly onShow: () => void;
+  };
+}) {
   const savedKeys = majordomeEnvironment.savedKeys({ environmentId, input: {} });
   const result = useAtomValue(savedKeys);
   const refresh = useAtomRefresh(savedKeys);
@@ -102,6 +113,17 @@ export function SavedKeysSection({ environmentId }: { readonly environmentId: En
         ) : null
       }
     >
+      {usedElsewhere === undefined ? null : (
+        <SettingsRow
+          title={`Your assistant answers on ${usedElsewhere.answering}`}
+          description={`It can't use the keys saved on ${usedElsewhere.shown}. Save them on ${usedElsewhere.answering} for your chats to have them.`}
+          control={
+            <Button size="xs" variant="outline" onClick={usedElsewhere.onShow}>
+              Show {usedElsewhere.answering}
+            </Button>
+          }
+        />
+      )}
       {data === null ? (
         <SettingsRow
           title={result._tag === "Failure" ? "The saved keys couldn't be read." : "Reading…"}

@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { MajordomeTopicsResult } from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeTopicsResult } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import * as Schema from "effect/Schema";
 
@@ -82,4 +82,13 @@ export function useMajordomeVaults() {
     activeVault: pickActiveVault(vaults, chosenKey),
     setActiveVaultKey,
   };
+}
+
+/**
+ * The computer that answers the shown notes folder's chats, so the one whose saved keys the
+ * assistant can use. Null until it is known, and outside Majordome.
+ */
+export function useAssistantEnvironmentId(): EnvironmentId | null {
+  const home = useMajordomeVaults().activeVault?.home;
+  return home?.kind === "ready" ? home.environmentId : null;
 }

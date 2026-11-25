@@ -3,7 +3,7 @@ import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
-import type { EnvironmentPresentation } from "../../state/environments";
+import { type EnvironmentPresentation, useEnvironments } from "../../state/environments";
 import { useEnvironmentSessionState } from "../../state/session";
 import {
   AlertDialog,
@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { SavedKeysSection } from "../majordome/SavedKeysSection";
+import { useAssistantEnvironmentId } from "../majordome/useMajordomeVaults";
 import { Button } from "../ui/button";
 import { SecretProviderDialog } from "./SecretProviderDialog";
 import { classifySecretProvider } from "./SecretProviderDialog.logic";
@@ -31,8 +32,18 @@ import { SecretProviderIcon } from "./secretProviderIcons";
 
 export function SecretsSettingsPanel() {
   const searchableSetting = useSearchableSetting();
-  const { scope, environment } = useSettingsScope();
+  const { scope, environment, search, selectScope } = useSettingsScope();
   const connected = environment?.connection.phase === "connected";
+  const assistantEnvironmentId = useAssistantEnvironmentId();
+  const { environments } = useEnvironments();
+  const answering =
+    assistantEnvironmentId === environment?.environmentId
+      ? undefined
+      : environments.find(
+          (candidate) =>
+            candidate.environmentId === assistantEnvironmentId &&
+            candidate.connection.phase === "connected",
+        );
   return (
     <SettingsPageContainer>
       {connected &&
@@ -45,7 +56,18 @@ export function SecretsSettingsPanel() {
         </SettingsSection>
       ) : connected ? (
         <>
-          <SavedKeysSection environmentId={environment.environmentId} />
+          <SavedKeysSection
+            environmentId={environment.environmentId}
+            {...(answering === undefined
+              ? {}
+              : {
+                  usedElsewhere: {
+                    shown: environment.label,
+                    answering: answering.label,
+                    onShow: () => selectScope({ ...search, machine: answering.environmentId }),
+                  },
+                })}
+          />
           <EnvironmentSecretProviders
             key={environment.environmentId}
             environment={environment}

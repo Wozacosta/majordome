@@ -1,9 +1,12 @@
+import { EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
+import type { ResolvedSettingsScope } from "./settingsScope";
 import {
   selectEnvironmentAxis,
   selectProjectAxis,
+  selectSingleEnvironmentScope,
   settingsScopeCheckoutChoices,
   settingsScopeCheckoutLabel,
 } from "./settingsScopeAxis";
@@ -18,6 +21,34 @@ const group = (...memberProjects: SidebarProjectSnapshot["memberProjects"]) =>
   ({ memberProjects }) as SidebarProjectSnapshot;
 
 describe("settings scope axes", () => {
+  it("opens a one-computer page on the preferred computer, then on this window's own", () => {
+    const scope: ResolvedSettingsScope = {
+      kind: "all",
+      label: "",
+      members: [],
+      environmentIds: [EnvironmentId.make("mac"), EnvironmentId.make("server")],
+    };
+    const environment = (environmentId: string, phase: "connected" | "disconnected") =>
+      ({ environmentId, connection: { phase } }) as Parameters<
+        typeof selectSingleEnvironmentScope
+      >[2][number];
+    const mac = environment("mac", "connected");
+    const pick = (server: "connected" | "disconnected", search = {}) =>
+      selectSingleEnvironmentScope(
+        search,
+        scope,
+        [mac, environment("server", server)],
+        "mac",
+        "server",
+      );
+
+    expect(pick("connected")).toEqual({ machine: "server" });
+    // A server that is away has nothing to show, and a choice already made is kept.
+    expect(pick("disconnected")).toEqual({ machine: "mac" });
+    expect(pick("connected", { machine: "mac" })).toEqual({ machine: "mac" });
+    expect(selectSingleEnvironmentScope({}, scope, [mac], "mac")).toEqual({ machine: "mac" });
+  });
+
   it("drops a checkout narrowing from older links when either axis changes", () => {
     const checkout = { project: "app", checkout: "app@first", machine: "first" };
     expect(selectEnvironmentAxis(checkout, "second")).toEqual({

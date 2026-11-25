@@ -18,9 +18,17 @@ The section for a version is also the text of its release on GitHub.
 - Add a key with "1 year" under Works until: the line under its name should say the day.
 - Choose **Change last day** on it and write a day already past: the row should say it is past
   its last day and what to do. **No end date** clears it.
+- With a Mac and an always-on server: open Settings, Passwords and keys. It shows the server. Add
+  a key, then ask the assistant beside it "which keys do you have?". Then pick your Mac in "on":
+  the first line says where your assistant answers.
 
 **Fixed**
 
+- **Passwords and keys opens on the computer your assistant answers from.** With an always-on
+  server, your chats are answered there, but the screen opened on the computer in front of you. A
+  key saved there was one the assistant could not see, and it said you had none. The screen now
+  opens on the server, and when you look at another computer it says so: "Your assistant answers
+  on …", with a button to go there.
 - "and 3 more" under the topics of "What this chat knows" now opens the rest of the list, and
   "Show fewer" folds it back. It was plain text before. Same in the phone app's chat details.
 
