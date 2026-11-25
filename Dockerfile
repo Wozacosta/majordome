@@ -16,7 +16,9 @@ WORKDIR /src
 COPY package.json pnpm-workspace.yaml ./
 RUN test "$(node -p 'require("./package.json").engines.node')" = "$NODE_VERSION" \
   || { echo "NODE_VERSION does not match package.json engines.node" >&2; exit 1; }
-RUN npm install -g "vite-plus@$(sed -nE 's/^  vite-plus: ([0-9][^ ]*)$/\1/p' pnpm-workspace.yaml)"
+# vite-plus no longer brings its own pnpm, so install the one package.json names.
+RUN npm install -g "vite-plus@$(sed -nE 's/^  vite-plus: ([0-9][^ ]*)$/\1/p' pnpm-workspace.yaml)" \
+  "$(node -p 'require("./package.json").packageManager')"
 COPY . .
 ENV CI=true ELECTRON_SKIP_BINARY_DOWNLOAD=1
 RUN --mount=type=cache,id=majordome-pnpm-store,target=/root/.local/share/pnpm/store \

@@ -86,7 +86,8 @@ jobs:
   build:
     name: macOS ${{ matrix.arch }}
     needs: [preflight]
-    runs-on: macos-15
+    # The Apple Speech helper for dictation needs Xcode 26.
+    runs-on: macos-26
     timeout-minutes: 90
     strategy:
       fail-fast: true
