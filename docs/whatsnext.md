@@ -14,8 +14,6 @@ opening is the Mac app, the iPhone app and hosted servers.
 
 ### The owner's to decide or supply
 
-- [ ] **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
-      transcript on 2026-11-24.
 - [ ] **Seller details on the terms page:** the SIRET, the seller's address before purchase, a
       consumer mediator and a withdrawal form.
 - [ ] **Read `site/terms/index.html` and `site/trust/index.html` line by line.** Both carry
