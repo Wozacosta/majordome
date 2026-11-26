@@ -150,6 +150,7 @@ import * as MajordomeSkills from "./majordome/MajordomeSkills.ts";
 import * as MajordomeTodos from "./majordome/MajordomeTodos.ts";
 import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
 import { currentModelLevelTable } from "./majordome/modelLevelTable.ts";
+import * as MajordomeLibrary from "./majordome/MajordomeLibrary.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
@@ -1560,6 +1561,7 @@ export const layerWsRpc = (
       const majordomeDailyNotes = yield* MajordomeDailyNotes.MajordomeDailyNotes;
       const majordomeNotes = yield* MajordomeNotes.MajordomeNotes;
       const majordomeTopicFiles = yield* MajordomeTopicFiles.MajordomeTopicFiles;
+      const majordomeLibrary = yield* MajordomeLibrary.MajordomeLibrary;
       const majordomeKeyFacts = yield* MajordomeKeyFacts.MajordomeKeyFacts;
       const majordomeNotesSearch = yield* MajordomeNotesSearch.MajordomeNotesSearch;
       const workflows = yield* Workflows.Workflows;
@@ -2816,6 +2818,10 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeListTopicFiles]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopicFiles.list(input)),
+          ),
+        [WS_METHODS.majordomeListLibrary]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeLibrary.list(input)),
           ),
         [WS_METHODS.majordomeAddTopicFile]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

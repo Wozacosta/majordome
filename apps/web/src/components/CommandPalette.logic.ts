@@ -850,6 +850,7 @@ const MAJORDOME_ACTIONS: ReadonlyArray<readonly [value: string, title: string | 
   ["action:routines", null],
   ["action:todos", null],
   ["action:reading-list", null],
+  ["action:library", null],
   ["action:reminders", null],
   ["action:phone", null],
   ["action:notifications", null],

@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
+- **Library: every file in one place.** A new page lists what is kept with your notes that is not
+  a note (bills, scans, spreadsheets, pictures) and what you attached in any chat, newest first.
+  Tabs sort them by kind, a list beside them narrows to one topic, and a search finds a file by
+  its name. Pictures show as themselves. Click a file to open it; the small button on it goes to
+  the chat or topic it came from. Library is under the three dots, where you can pin it.
 - **Unread chats, in one place.** A chat with a reply you have not read is listed under **Unread**
   at the top of the sidebar, with a count. The group is there only while something is unread. The
   Chats page has an **All / Unread** switch that lists the same chats. Opening a chat takes it out
@@ -34,6 +39,7 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Open **Library** from the three dots, pick **Images**, then one of your topics.
 - Ask something in a chat, then go to Today before the answer is there. When it arrives, open the
   chat from **Unread** in the sidebar and look for the New line.
 - Open **Routines**, scroll to **Add a routine** and click **To-dos left behind**.

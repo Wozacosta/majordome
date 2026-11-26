@@ -88,6 +88,56 @@ function parseCountObjectsKib(stdout: string): number | null {
   return loose === null || packed === null ? null : loose + packed;
 }
 
+const entryOf = (relativePath: string, info: FileSystem.File.Info): MajordomeTopicFile => ({
+  path: relativePath,
+  name: relativePath.split("/").at(-1) ?? relativePath,
+  sizeBytes: Number(info.size),
+  modifiedAt: DateTime.formatIso(
+    DateTime.makeUnsafe(Option.getOrUndefined(info.mtime)?.getTime() ?? 0),
+  ),
+});
+
+/**
+ * Every file under `top` (vault-relative; "" for the whole vault) that is not Markdown, skipping
+ * hidden folders. One directory read per folder and one stat per entry; nothing is opened.
+ */
+export const scanVaultFiles = Effect.fn("MajordomeTopicFiles.scan")(function* (
+  vaultRoot: string,
+  top: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const found: Array<MajordomeTopicFile> = [];
+  // Per folder, inside the scan's span.
+  const visit: (folder: string, depth: number) => Effect.Effect<void> = Effect.fnUntraced(
+    function* (folder, depth) {
+      const names = yield* fileSystem
+        .readDirectory(path.join(vaultRoot, folder))
+        .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+      const folders: Array<string> = [];
+      yield* Effect.forEach(
+        names,
+        // Per directory entry, inside the scan's span.
+        Effect.fnUntraced(function* (name) {
+          if (isSkippedEntry(name)) return;
+          const relative = folder === "" ? name : `${folder}/${name}`;
+          const info = yield* fileSystem.stat(path.join(vaultRoot, relative)).pipe(Effect.option);
+          if (Option.isNone(info)) return;
+          if (info.value.type === "Directory") {
+            if (depth < MAX_FOLDER_DEPTH) folders.push(relative);
+          } else if (info.value.type === "File" && !isMarkdownFile(name)) {
+            found.push(entryOf(relative, info.value));
+          }
+        }),
+        { concurrency: STAT_CONCURRENCY, discard: true },
+      );
+      yield* Effect.forEach(folders, (next) => visit(next, depth + 1), { discard: true });
+    },
+  );
+  yield* visit(top, 0);
+  return found;
+});
+
 export class MajordomeTopicFiles extends Context.Service<
   MajordomeTopicFiles,
   {
@@ -159,46 +209,7 @@ const make = Effect.gen(function* () {
     return real.startsWith(`${realRoot}${path.sep}`) ? Option.some(real) : Option.none();
   });
 
-  const entryOf = (relativePath: string, info: FileSystem.File.Info): MajordomeTopicFile => ({
-    path: relativePath,
-    name: relativePath.split("/").at(-1) ?? relativePath,
-    sizeBytes: Number(info.size),
-    modifiedAt: DateTime.formatIso(
-      DateTime.makeUnsafe(Option.getOrUndefined(info.mtime)?.getTime() ?? 0),
-    ),
-  });
-
-  const scan = Effect.fn("MajordomeTopicFiles.scan")(function* (vaultRoot: string, top: string) {
-    const found: Array<MajordomeTopicFile> = [];
-    // Per folder, inside the scan's span.
-    const visit: (folder: string, depth: number) => Effect.Effect<void> = Effect.fnUntraced(
-      function* (folder, depth) {
-        const names = yield* fileSystem
-          .readDirectory(path.join(vaultRoot, folder))
-          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-        const folders: Array<string> = [];
-        yield* Effect.forEach(
-          names,
-          // Per directory entry, inside the scan's span.
-          Effect.fnUntraced(function* (name) {
-            if (isSkippedEntry(name)) return;
-            const relative = `${folder}/${name}`;
-            const info = yield* fileSystem.stat(path.join(vaultRoot, relative)).pipe(Effect.option);
-            if (Option.isNone(info)) return;
-            if (info.value.type === "Directory") {
-              if (depth < MAX_FOLDER_DEPTH) folders.push(relative);
-            } else if (info.value.type === "File" && !isMarkdownFile(name)) {
-              found.push(entryOf(relative, info.value));
-            }
-          }),
-          { concurrency: STAT_CONCURRENCY, discard: true },
-        );
-        yield* Effect.forEach(folders, (next) => visit(next, depth + 1), { discard: true });
-      },
-    );
-    yield* visit(top, 0);
-    return found;
-  });
+  const scan = (vaultRoot: string, top: string) => provideFs(scanVaultFiles(vaultRoot, top));
 
   /** Never fails: a vault whose size cannot be read is not called large. */
   const isLarge = (vaultRoot: string) =>

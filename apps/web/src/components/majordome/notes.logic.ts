@@ -44,6 +44,7 @@ export const NOTES_RETURN_SCREENS = {
   today: { to: "/", label: "Today" },
   overview: { to: "/settings/overview", label: "Status" },
   todos: { to: "/todos", label: "To-dos" },
+  library: { to: "/library", label: "Library" },
 } as const;
 export type NotesReturnScreen = keyof typeof NOTES_RETURN_SCREENS;
 

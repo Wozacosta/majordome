@@ -18,6 +18,7 @@ import {
 const LINKED_SCREENS = {
   "/feed": FEED_NAME,
   "/reading": "Reading list",
+  "/library": "Library",
   "/chats": "Chats",
   "/reminders": "Reminders",
   "/routines": "Routines",

@@ -82,6 +82,25 @@ export const vaultTopicsAtom = Atom.family((key: string) => {
   ).pipe(Atom.withLabel(`majordome:vault-topics:${key}`));
 });
 
+/**
+ * A brain's files from each server that has a copy of it, keyed like `vaultHistoriesAtom`. The
+ * first server answers with everything; the notes are the same on the others, so those are asked
+ * for their chats' files only.
+ */
+export const vaultLibrariesAtom = Atom.family((key: string) => {
+  const refs = JSON.parse(key) as ReadonlyArray<VaultProjectRef>;
+  return Atom.make((get) =>
+    refs.map(([environmentId, projectId], index) =>
+      get(
+        majordomeEnvironment.library({
+          environmentId,
+          input: index === 0 ? { projectId } : { projectId, chatsOnly: true },
+        }),
+      ),
+    ),
+  ).pipe(Atom.withLabel(`majordome:vault-libraries:${key}`));
+});
+
 /** Every listed vault's notes search status, keyed like `vaultHistoriesAtom`. */
 export const vaultNotesIndexStatusesAtom = Atom.family((key: string) => {
   const refs = JSON.parse(key) as ReadonlyArray<VaultProjectRef>;

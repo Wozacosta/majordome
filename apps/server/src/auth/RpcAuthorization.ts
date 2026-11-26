@@ -163,6 +163,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeListTodos]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetDailyNote]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopicFiles]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeListLibrary]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetKeyFacts]: AuthOrchestrationReadScope,
   // The files sit beside the notes, which this scope already reads.
   [WS_METHODS.majordomeViewTopicFile]: AuthOrchestrationReadScope,

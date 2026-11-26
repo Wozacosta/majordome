@@ -82,6 +82,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeListTodos,
       WS_METHODS.majordomeListSkills,
       WS_METHODS.majordomeListTopicFiles,
+      WS_METHODS.majordomeListLibrary,
       WS_METHODS.majordomeGetKeyFacts,
       WS_METHODS.majordomeViewTopicFile,
     ]) {

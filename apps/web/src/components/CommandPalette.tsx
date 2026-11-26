@@ -65,6 +65,7 @@ import {
   ArrowLeftIcon,
   BellIcon,
   BookOpenIcon,
+  LibraryIcon,
   BugIcon,
   ChartNoAxesColumnIcon,
   CalendarClockIcon,
@@ -1886,6 +1887,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <BookOpenIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/reading" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:library",
+      searchTerms: ["library", "files", "attachments", "documents", "images", "pictures"],
+      title: gt("Open library"),
+      icon: <LibraryIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/library" });
       },
     });
     actionItems.push({

@@ -433,6 +433,13 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 0,
       refreshTrigger: ({ environmentId }) => topicFilesRevision(environmentId),
     }),
+    /** Every file of a notes folder and its chats. Read again on every mount, as files come and go. */
+    library: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:library",
+      tag: WS_METHODS.majordomeListLibrary,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => topicFilesRevision(environmentId),
+    }),
     addTopicFile: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:add-topic-file",
       tag: WS_METHODS.majordomeAddTopicFile,

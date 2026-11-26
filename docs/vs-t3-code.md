@@ -43,6 +43,8 @@ The landing page and the README show a short version of this list.
 - **To-dos:** every checkbox from every note in one list. Tick one and it is ticked in its note.
 - **Reading list:** links, videos and podcasts for later, with a Next view of three things, snooze,
   subjects, and tags and a summary written for you. [Reading list](./user/reading-list.md)
+- **Library:** every file kept with your notes and every file attached in a chat on one page, by
+  kind and by topic, with pictures shown as themselves.
 - **Topics:** one continuing conversation per part of life (Money, Meals, Trips), tied to its own
   folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
