@@ -54,15 +54,20 @@ vi.mock("../../components/ui/AppText", () => ({
     accessibilityLabel,
     value,
     onChangeText,
+    onSubmitEditing,
   }: {
     accessibilityLabel: string;
     value: string;
     onChangeText: (value: string) => void;
+    onSubmitEditing?: () => void;
   }) => (
     <input
       aria-label={accessibilityLabel}
       value={value}
       onChange={(event) => onChangeText(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") onSubmitEditing?.();
+      }}
     />
   ),
 }));
@@ -154,6 +159,50 @@ it("splits a pasted pairing link and preserves the code during address edits", (
       expect(address.value).toBe(value);
       expect(code.value).toBe("replacement-code");
     }
+  } finally {
+    act(() => root.unmount());
+  }
+});
+
+it("says it is connecting in place of the invitation to scan, until the computer answers", async () => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  vi.stubGlobal("__DEV__", false);
+  harness.pendingConnectionError = null;
+  let answer!: (outcome: { ok: boolean; error: string | null }) => void;
+  harness.connectPress.mockReturnValueOnce(
+    new Promise((resolve) => {
+      answer = resolve;
+    }),
+  );
+  const container = document.createElement("div");
+  const root = createRoot(container);
+
+  try {
+    act(() => root.render(<ConnectionsNewRouteScreen route={{ params: undefined }} />));
+    const address = container.querySelector<HTMLInputElement>('input[aria-label="Address"]')!;
+    const code = container.querySelector<HTMLInputElement>('input[aria-label="Code"]')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+        address,
+        "http://100.82.53.91:3773/pair#token=test-pairing-code",
+      );
+      address.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("Tap to scan");
+
+    act(() => {
+      code.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(harness.connectPress).toHaveBeenCalledWith(
+      "http://100.82.53.91:3773/#token=test-pairing-code",
+      undefined,
+    );
+    expect(container.textContent).toContain("Connecting");
+    expect(container.textContent).not.toContain("Tap to scan");
+
+    await act(async () => answer({ ok: false, error: "That pairing code is unknown." }));
+    expect(container.textContent).toContain("Tap to scan");
+    expect(container.textContent).toContain("That pairing code is unknown.");
   } finally {
     act(() => root.unmount());
   }

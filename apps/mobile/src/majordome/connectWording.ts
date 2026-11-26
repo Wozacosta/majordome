@@ -11,6 +11,7 @@ export const MAJORDOME_CONNECT = {
   confirmHelp:
     "This is the computer whose code you just scanned. If you don't recognise the address, close this.",
   confirmButton: "Connect",
+  connecting: "Connecting to your computer…",
   confirmOther: "Scan or type another code",
   fromLinkHelp:
     "Filled in from the code you scanned. Check that the address is your computer's, then press Connect.",

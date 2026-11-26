@@ -1,5 +1,6 @@
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { T, useGT } from "gt-react-native";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { Button } from "../../components/ui/Button";
 import { ListRow } from "../../components/ui/ListRow";
 import * as Dialog from "../../components/ui/Dialog";
@@ -15,8 +16,15 @@ import {
 } from "@react-navigation/native";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { useRef, useState } from "react";
+import {
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  type TextInputInstance,
+  View,
+} from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../../lib/cn";
@@ -115,6 +123,7 @@ function PairingForm({
   const [scanComplete, setScanComplete] = useState(false);
 
   const headerIconColor = useUniwindTheme()["--color-icon"];
+  const codeInputRef = useRef<TextInputInstance>(null);
 
   const connectDisabled = connecting || hostInput.trim().length === 0;
   // A code scanned outside the app arrives as a link: the owner only has to say yes, so the
@@ -262,6 +271,8 @@ function PairingForm({
       <ScrollView
         nestedScrollEnabled
         contentInsetAdjustmentBehavior="automatic"
+        // The fields sit under the scan card, where the keyboard would cover them.
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         className="flex-1"
@@ -319,7 +330,10 @@ function PairingForm({
               </View>
             ) : null}
             <PairingScanCard
-              cameraActive={cameraPermission?.granted === true && screenFocused && !scanComplete}
+              cameraActive={
+                cameraPermission?.granted === true && screenFocused && !scanComplete && !connecting
+              }
+              connecting={connecting}
               onScan={handleQrScan}
               onScanPress={() => {
                 void handleScanPress();
@@ -340,14 +354,19 @@ function PairingForm({
                 <PairingInputRow
                   label={gt("Address")}
                   keyboardType="url"
+                  textContentType="URL"
                   placeholder={
                     isMajordome ? MAJORDOME_CONNECT.addressPlaceholder : "192.168.1.100:3773"
                   }
+                  returnKeyType="next"
+                  submitBehavior="submit"
                   value={hostInput}
                   onChangeText={handleHostChange}
+                  onSubmitEditing={() => codeInputRef.current?.focus()}
                 />
                 <View className="ml-4 border-t border-border-subtle" />
                 <PairingInputRow
+                  ref={codeInputRef}
                   label={gt("Code", { $context: "pairing code field" })}
                   placeholder={isMajordome ? MAJORDOME_CONNECT.codePlaceholder : gt("Pairing code")}
                   returnKeyType="go"
@@ -429,16 +448,19 @@ const SCAN_RETICLE_RADIUS = 28;
 
 function PairingScanCard(props: {
   readonly cameraActive: boolean;
+  /** A code was read or typed and the computer has not answered yet. */
+  readonly connecting: boolean;
   readonly onScan: (result: { readonly data: string }) => void;
   readonly onScanPress: () => void;
 }) {
   const gt = useGT();
   const light = useAppearancePreferences().themeAppearance === "light";
+  const idle = !props.cameraActive && !props.connecting;
   return (
     <Pressable
-      accessibilityRole={props.cameraActive ? undefined : "button"}
-      accessibilityLabel={props.cameraActive ? undefined : gt("Scan QR code")}
-      disabled={props.cameraActive}
+      accessibilityRole={idle ? "button" : undefined}
+      accessibilityLabel={idle ? gt("Scan QR code") : undefined}
+      disabled={!idle}
       onPress={props.onScanPress}
       className={cn(
         "overflow-hidden rounded-[26px] border-continuous",
@@ -490,7 +512,22 @@ function PairingScanCard(props: {
             width: SCAN_RETICLE_SIZE,
           }}
         >
-          {props.cameraActive ? null : (
+          {props.connecting ? (
+            <>
+              <AppActivityIndicator color={light ? "#00000099" : "#ffffffb3"} />
+              <Text
+                accessibilityLiveRegion="polite"
+                className={cn(
+                  "px-2 text-center font-t3-medium text-sm",
+                  light ? "text-black/70" : "text-white/80",
+                )}
+              >
+                {isMajordome
+                  ? MAJORDOME_CONNECT.connecting
+                  : gt("Connecting", { $context: "connection status" })}
+              </Text>
+            </>
+          ) : props.cameraActive ? null : (
             <>
               <SymbolView
                 name="qrcode.viewfinder"
@@ -563,7 +600,7 @@ function T3ConnectSection() {
 function PairingInputRow({
   label,
   ...inputProps
-}: Omit<AppTextInputProps, "accessibilityLabel" | "className"> & {
+}: Omit<AppTextInputProps, "accessibilityLabel" | "className" | "autoComplete" | "spellCheck"> & {
   readonly label: string;
 }) {
   return (
@@ -579,7 +616,9 @@ function PairingInputRow({
         {...inputProps}
         accessibilityLabel={label}
         autoCapitalize="none"
+        autoComplete="off"
         autoCorrect={false}
+        spellCheck={false}
         textAlignVertical="center"
         className="min-h-[48px] flex-1 self-stretch rounded-none border-0 bg-transparent p-0 text-base leading-[23px]"
       />
