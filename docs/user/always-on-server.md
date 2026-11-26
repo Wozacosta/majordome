@@ -14,8 +14,11 @@ While the server can't be reached, new conversations wait until it is back.
 servers on the right, a line for what opens what, and **Main** on the computer where the assistant
 answers and your chats are kept. Under it, the page lists every server the app is connected to: whether the app can
 reach it, whether it has a copy of your notes and runs your routines, and whether it is signed in
-to your AI. **Add a computer** adds a server you already have, with its address and a one-time
-code. **Remove from this app** makes the app forget a server; the server keeps running. A server
+to your AI. Click your phone on the drawing to open Phone & notifications.
+**Make main** on a server moves your routines, the assistant and your chats to it; the server
+that had them stops, and every computer keeps its copy of your notes. It is offered on a server
+that has your notes and a signed-in AI. **Add a computer** adds a server you already have, with
+its address and a one-time code. **Remove from this app** makes the app forget a server; the server keeps running. A server
 the page set up for you, or moved your notes to, is removed further down the page instead, so
 your notes come back first.
 

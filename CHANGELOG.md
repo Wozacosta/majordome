@@ -11,6 +11,20 @@ The section for a version is also the text of its release on GitHub.
   and plan usage, and never worked in Majordome. Sharing something to Majordome from another
   app is unchanged.
 
+**New**
+
+- **You choose the main server.** On Your servers, each server that has your notes and a
+  signed-in AI now has "Make main". The server you pick runs your routines, answers the
+  assistant and keeps your chats; the one that did it before is told to stop straight away. Every
+  computer keeps its copy of your notes. To change back, press "Make main" on the other one.
+- **The phone on the drawing opens its settings.** Click your phone on Your servers to go to
+  Phone & notifications, where it is set up.
+
+**Try this**
+
+- Open Settings, Your servers and press "Make main" on a server that is not the main one. Check
+  the "Main" mark moves, then that a routine runs there and not on the old one.
+
 ## 0.10.63
 
 **Fixed**

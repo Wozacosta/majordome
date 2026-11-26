@@ -64,8 +64,28 @@ test(
         timeout: 60_000,
       });
       // The drawing says what this window opens and which server is the main one.
-      await expect(screen.getByRole("img", "is the main one", { exact: false })).toBeVisible();
+      await expect(screen.getByRole("group", "is the main one", { exact: false })).toBeVisible();
+      // The phone on the drawing leads to the page that sets it up.
+      await expect(screen.getByRole("link", "Your phone", { exact: false })).toHaveAttribute(
+        "href",
+        "/settings/phone",
+      );
       await app.screenshot("your-servers-two-servers");
+
+      // The added server becomes the main one: it takes the routines, and the other one stops.
+      const added = screen.getByRole("listitem").filter({ hasText: "Remove from this app" });
+      const opened = screen.getByRole("listitem").filter({ hasText: "You are on it now" });
+      await expect(opened.getByText("Main", { exact: true })).toBeVisible();
+      await added.getByRole("button", "Make Scenario the main server").tap();
+      const confirm = screen.getByRole("alertdialog");
+      await expect(confirm).toBeVisible();
+      await app.screenshot("your-servers-make-main-dialog");
+      await confirm.getByRole("button", "Make main").tap();
+      await expect(confirm).toBeHidden({ timeout: 60_000 });
+      await expect(added.getByText("Main", { exact: true })).toBeVisible({ timeout: 60_000 });
+      await expect(added.getByText("runs your routines", { exact: false })).toBeVisible();
+      await expect(opened.getByText("Has a copy of your notes.", { exact: true })).toBeVisible();
+      await app.screenshot("your-servers-new-main");
 
       await removeButton.tap();
       await app.screenshot("your-servers-remove-dialog");

@@ -112,27 +112,70 @@ export interface RoutinesClash {
   }>;
 }
 
+/** One notes folder with every computer's copy; a copy that has not answered has no runner. */
+export interface RunnerBrain {
+  readonly key: string;
+  readonly title: string;
+  readonly copies: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly projectId: ProjectId;
+    readonly name: string;
+    readonly routinesRunner: MajordomeRoutinesRunner | null | undefined;
+  }>;
+}
+
 /**
  * The notes folders with more than one runner. Each copy names the runner in a file that travels
  * with the notes; when a move never reaches one computer, that one goes on believing it is the
  * runner. A copy that has not answered counts as no runner, so nothing is claimed on a guess.
  */
-export function routinesClashes(
-  brains: ReadonlyArray<{
-    readonly key: string;
-    readonly title: string;
-    readonly copies: ReadonlyArray<{
-      readonly environmentId: EnvironmentId;
-      readonly projectId: ProjectId;
-      readonly name: string;
-      readonly routinesRunner: MajordomeRoutinesRunner | null | undefined;
-    }>;
-  }>,
-): ReadonlyArray<RoutinesClash> {
+export function routinesClashes(brains: ReadonlyArray<RunnerBrain>): ReadonlyArray<RoutinesClash> {
   return brains.flatMap((brain) => {
     const runners = brain.copies
       .filter((copy) => copy.routinesRunner === "this-server")
       .map(({ environmentId, projectId, name }) => ({ environmentId, projectId, name }));
     return runners.length > 1 ? [{ key: brain.key, title: brain.title, runners }] : [];
   });
+}
+
+/** Making one server the main one: its copy takes the routines, and each other runner is told. */
+export interface MainMove {
+  readonly title: string;
+  readonly target: RoutinesClash["runners"][number];
+  readonly stop: RoutinesClash["runners"];
+}
+
+/**
+ * What it takes to make `row` the main server for one notes folder, or null when it cannot be
+ * offered: the server must hold the notes and have a signed-in AI, or it would run nothing and
+ * answer nothing. The chats follow the routines, see `conversationHome`.
+ */
+export function mainMove(
+  row: ServerRow,
+  brain: RunnerBrain | undefined,
+  mainId: EnvironmentId | null,
+): MainMove | null {
+  if (
+    brain === undefined ||
+    mainId === null ||
+    row.environmentId === mainId ||
+    row.connection !== "connected" ||
+    row.signedIn !== true
+  ) {
+    return null;
+  }
+  const pick = ({ environmentId, projectId, name }: RunnerBrain["copies"][number]) => ({
+    environmentId,
+    projectId,
+    name,
+  });
+  const target = brain.copies.find((copy) => copy.environmentId === row.environmentId);
+  if (target === undefined || target.routinesRunner == null) return null;
+  return {
+    title: brain.title,
+    target: pick(target),
+    stop: brain.copies
+      .filter((copy) => copy !== target && copy.routinesRunner === "this-server")
+      .map(pick),
+  };
 }

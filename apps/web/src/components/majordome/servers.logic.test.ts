@@ -1,7 +1,13 @@
 import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { routinesClashes, serverLines, serverRows, type ServerRowInput } from "./servers.logic";
+import {
+  mainMove,
+  routinesClashes,
+  serverLines,
+  serverRows,
+  type ServerRowInput,
+} from "./servers.logic";
 
 const own = EnvironmentId.make("own");
 const hosted = EnvironmentId.make("hosted");
@@ -106,5 +112,62 @@ describe("routinesClashes", () => {
         },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("mainMove", () => {
+  const mac = EnvironmentId.make("mac");
+  const copy = (
+    environmentId: typeof own,
+    name: string,
+    routinesRunner: "this-server" | "another-server" | undefined,
+  ) => ({
+    environmentId,
+    projectId: ProjectId.make(`notes-${environmentId}`),
+    name,
+    routinesRunner,
+  });
+  const brain = {
+    key: "brain",
+    title: "Brain",
+    copies: [
+      copy(mac, "This Mac", "another-server"),
+      copy(hosted, "Majordome server", "this-server"),
+      copy(own, "Your server", "another-server"),
+    ],
+  };
+  const rows = serverRows({
+    servers: [
+      server({ environmentId: hosted, name: "Majordome server" }),
+      server({ environmentId: own }),
+    ],
+    copies: [
+      { environmentId: hosted, routinesRunner: "this-server", isVault: true },
+      { environmentId: own, routinesRunner: "another-server", isVault: true },
+    ],
+  });
+  const [hostedRow, ownRow] = rows;
+
+  it("gives the routines to the chosen server and tells the one that ran them to stop", () => {
+    expect(mainMove(ownRow!, brain, hosted)).toEqual({
+      title: "Brain",
+      target: { environmentId: own, projectId: ProjectId.make("notes-own"), name: "Your server" },
+      stop: [
+        {
+          environmentId: hosted,
+          projectId: ProjectId.make("notes-hosted"),
+          name: "Majordome server",
+        },
+      ],
+    });
+  });
+
+  it("is not offered for the main server, one without the notes, or one that cannot answer", () => {
+    expect(mainMove(hostedRow!, brain, hosted)).toBeNull();
+    expect(mainMove(ownRow!, brain, null)).toBeNull();
+    expect(mainMove({ ...ownRow!, signedIn: false }, brain, hosted)).toBeNull();
+    expect(mainMove({ ...ownRow!, connection: "disconnected" }, brain, hosted)).toBeNull();
+    expect(mainMove(ownRow!, { ...brain, copies: brain.copies.slice(0, 2) }, hosted)).toBeNull();
+    expect(mainMove(ownRow!, undefined, hosted)).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { Link } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import { CloudIcon, LaptopIcon, ServerIcon, SmartphoneIcon } from "lucide-react";
 
@@ -106,7 +107,7 @@ function Drawing({
     // Below this width the two columns would be too narrow to read; the list says it all.
     <div className="mb-4 hidden sm:block">
       <div
-        role="img"
+        role="group"
         aria-label={map.summary}
         className="grid grid-cols-[minmax(0,5fr)_minmax(0,2fr)_minmax(0,5fr)]"
         style={{ height: layout.height }}
@@ -156,16 +157,13 @@ function Column({
     <div className="flex min-w-0 flex-col" style={{ paddingTop: offset, gap: MAP_NODE_GAP }}>
       {nodes.map((node) => {
         const Icon = NODE_ICONS[node.kind];
-        return (
-          <div
-            key={node.id}
-            style={{ height: MAP_NODE_HEIGHT }}
-            className={cn(
-              "flex min-w-0 shrink-0 items-center gap-2.5 rounded-lg border bg-card px-3",
-              node.main ? "border-primary/60" : "border-border",
-              node.faint && "border-dashed opacity-70",
-            )}
-          >
+        const className = cn(
+          "flex min-w-0 shrink-0 items-center gap-2.5 rounded-lg border bg-card px-3",
+          node.main ? "border-primary/60" : "border-border",
+          node.faint && "border-dashed opacity-70",
+        );
+        const inside = (
+          <>
             <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{node.title}</p>
@@ -174,6 +172,24 @@ function Column({
               )}
             </div>
             {node.main ? <Badge size="sm">Main</Badge> : null}
+          </>
+        );
+        // The phone is set up, and changed, on its own settings page.
+        return node.kind === "phone" ? (
+          <Link
+            key={node.id}
+            to="/settings/phone"
+            style={{ height: MAP_NODE_HEIGHT }}
+            className={cn(
+              className,
+              "outline-none hover:border-primary/60 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+            )}
+          >
+            {inside}
+          </Link>
+        ) : (
+          <div key={node.id} style={{ height: MAP_NODE_HEIGHT }} className={className}>
+            {inside}
           </div>
         );
       })}

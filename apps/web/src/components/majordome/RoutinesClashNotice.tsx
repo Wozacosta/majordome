@@ -1,59 +1,24 @@
-import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import { AsyncResult } from "effect/reactivity";
 import { useState } from "react";
 
-import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome";
+import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { machineInSentence } from "./brains.logic";
 import { READING_MEASURE_CLASS, StatusLine } from "./paper";
 import { type RoutinesClash, routinesClashes } from "./servers.logic";
-import { useMachineNames } from "./useMachineNames";
-import { useMajordomeVaults } from "./useMajordomeVaults";
-
-/** The notes folders whose routines run on several computers at once, see `routinesClashes`. */
-function useRoutinesClashes(): ReadonlyArray<RoutinesClash> {
-  const { vaults } = useMajordomeVaults();
-  const { machineOf } = useMachineNames();
-  const copies = vaults.flatMap((vault) => vault.copies);
-  const histories = useAtomValue(
-    vaultHistoriesAtom(JSON.stringify(copies.map((copy) => [copy.environmentId, copy.projectId]))),
-  );
-  const runnerOf = new Map(
-    copies.map((copy, index) => {
-      const result = histories[index];
-      const history = result === undefined ? null : AsyncResult.getOrElse(result, () => null);
-      return [
-        `${copy.environmentId}:${copy.projectId}`,
-        history?.isVault === true ? history.routinesRunner : undefined,
-      ] as const;
-    }),
-  );
-  return routinesClashes(
-    vaults.map((vault) => ({
-      key: vault.key,
-      title: vault.title,
-      copies: vault.copies.map((copy) => ({
-        environmentId: copy.environmentId,
-        projectId: copy.projectId,
-        name: machineOf(copy.environmentId),
-        routinesRunner: runnerOf.get(`${copy.environmentId}:${copy.projectId}`),
-      })),
-    })),
-  );
-}
+import { useBrainRunners } from "./useBrainRunners";
 
 /**
  * Says when two computers both run the same routines, and lets the owner keep one. The others
  * are told directly, since the notes that would have told them never arrived.
  */
 export function RoutinesClashNotice() {
-  const clashes = useRoutinesClashes();
+  const clashes = routinesClashes(useBrainRunners().brains);
   const runElsewhere = useAtomCommand(majordomeEnvironment.runRoutinesElsewhere, {
     reportFailure: false,
   });

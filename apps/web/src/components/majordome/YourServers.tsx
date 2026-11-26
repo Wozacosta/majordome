@@ -24,11 +24,13 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { machineInSentence } from "./brains.logic";
+import { MakeMainButton, MakeMainDialog } from "./MakeMainDialog";
 import { RoutinesClashNotice } from "./RoutinesClashNotice";
 import { Entry, EntryList, Muted, READING_MEASURE_CLASS, Section, StatusLine } from "./paper";
 import { hasReadyProvider } from "./serverMove.logic";
-import { serverLines, type ServerRow, serverRows } from "./servers.logic";
+import { type MainMove, mainMove, serverLines, type ServerRow, serverRows } from "./servers.logic";
 import { ServersMap } from "./ServersMap";
+import { useBrainRunners } from "./useBrainRunners";
 import { useMachineNames } from "./useMachineNames";
 import { useAssistantEnvironmentId } from "./useMajordomeVaults";
 
@@ -107,6 +109,9 @@ export function YourServers({
   const [removing, setRemoving] = useState<ServerRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const { brains, activeKey } = useBrainRunners();
+  const activeBrain = brains.find((brain) => brain.key === activeKey);
+  const [makingMain, setMakingMain] = useState<MainMove | null>(null);
 
   const doRemove = async () => {
     if (removing === null) return;
@@ -146,56 +151,65 @@ export function YourServers({
           <RoutinesClashNotice />
           <ServersMap servers={servers} />
           <EntryList>
-            {servers.map((server) => (
-              <Entry
-                key={server.environmentId}
-                title={server.name}
-                aside={server.environmentId === mainId ? <Badge size="sm">Main</Badge> : null}
-                meta={[
-                  // Where Majordome keeps a server it hosts is its own business, never shown.
-                  server.hosted ? "Majordome looks after it" : addressHost(server.address),
-                  server.isThisWindow ? "You are on it now" : null,
-                ]
-                  .filter((part) => part !== null)
-                  .join(" · ")}
-                actions={
-                  server.isThisWindow || server.environmentId === managedId ? null : (
-                    <Button
-                      size="xs"
-                      variant="ghost-muted"
-                      aria-label={`Remove ${server.name} from this app`}
-                      onClick={() => {
-                        setRemoveError(null);
-                        setRemoving(server);
-                      }}
-                    >
-                      Remove from this app
-                    </Button>
-                  )
-                }
-              >
-                {serverLines(server).map((line) => (
-                  <StatusLine key={line.text} tone={line.tone}>
-                    {line.text}
-                    {line.signIn ? (
-                      <>
-                        {" "}
-                        <Link
-                          to="/settings/providers"
-                          search={{ environmentId: server.environmentId }}
-                          className="underline underline-offset-2"
+            {servers.map((server) => {
+              const move = mainMove(server, activeBrain, mainId);
+              return (
+                <Entry
+                  key={server.environmentId}
+                  title={server.name}
+                  aside={server.environmentId === mainId ? <Badge size="sm">Main</Badge> : null}
+                  meta={[
+                    // Where Majordome keeps a server it hosts is its own business, never shown.
+                    server.hosted ? "Majordome looks after it" : addressHost(server.address),
+                    server.isThisWindow ? "You are on it now" : null,
+                  ]
+                    .filter((part) => part !== null)
+                    .join(" · ")}
+                  actions={
+                    <>
+                      {move === null ? null : (
+                        <MakeMainButton move={move} onClick={() => setMakingMain(move)} />
+                      )}
+                      {server.isThisWindow || server.environmentId === managedId ? null : (
+                        <Button
+                          size="xs"
+                          variant="ghost-muted"
+                          aria-label={`Remove ${server.name} from this app`}
+                          onClick={() => {
+                            setRemoveError(null);
+                            setRemoving(server);
+                          }}
                         >
-                          Sign in on it
-                        </Link>
-                      </>
-                    ) : null}
-                  </StatusLine>
-                ))}
-              </Entry>
-            ))}
+                          Remove from this app
+                        </Button>
+                      )}
+                    </>
+                  }
+                >
+                  {serverLines(server).map((line) => (
+                    <StatusLine key={line.text} tone={line.tone}>
+                      {line.text}
+                      {line.signIn ? (
+                        <>
+                          {" "}
+                          <Link
+                            to="/settings/providers"
+                            search={{ environmentId: server.environmentId }}
+                            className="underline underline-offset-2"
+                          >
+                            Sign in on it
+                          </Link>
+                        </>
+                      ) : null}
+                    </StatusLine>
+                  ))}
+                </Entry>
+              );
+            })}
           </EntryList>
         </>
       )}
+      <MakeMainDialog move={makingMain} onClose={() => setMakingMain(null)} />
       <AlertDialog
         open={removing !== null}
         onOpenChange={(open) => {
