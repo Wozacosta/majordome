@@ -331,6 +331,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 10px;
+        margin: auto 0;
         font-size: 0.9rem;
         color: var(--muted);
       }
@@ -345,26 +346,6 @@
         color: var(--ink);
         font-size: 1rem;
         font-weight: 600;
-      }
-      .bubbles {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-      }
-      .bubbles i {
-        height: 12px;
-        border-radius: 6px;
-        background: var(--line);
-      }
-      .bubbles i:nth-child(1) {
-        width: 46%;
-        align-self: flex-end;
-      }
-      .bubbles i:nth-child(2) {
-        width: 72%;
-      }
-      .bubbles i:nth-child(3) {
-        width: 54%;
       }
       /* Two lines drop from the parts and meet at the knot. */
       .funnel {
@@ -1533,7 +1514,6 @@
               <div class="part">
                 <div class="k">Your AI</div>
                 <div class="models"><b>Claude</b> or <b>ChatGPT</b></div>
-                <div class="bubbles"><i></i><i></i><i></i></div>
                 <div class="cap">On the plan you already have</div>
               </div>
             </div>
