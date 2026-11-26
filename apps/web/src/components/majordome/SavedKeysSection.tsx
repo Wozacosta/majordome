@@ -11,10 +11,13 @@ import {
 } from "@t3tools/contracts";
 import { builtInSecretProviderDefinitions } from "@t3tools/secret-provider-definitions/registry";
 import {
+  mergeSavedKeys,
+  type SavedKeyEverywhere,
   savedKeyDayFrom,
   savedKeyExpiryLine,
   savedKeyLine,
   savedKeyNameFrom,
+  savedKeyPlaceLine,
   savedKeyStanding,
 } from "@t3tools/shared/majordomeSavedKeys";
 import * as Cause from "effect/Cause";
@@ -23,7 +26,11 @@ import { KeyRoundIcon, PlusIcon } from "lucide-react";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
-import { majordomeEnvironment } from "../../state/majordome";
+import {
+  majordomeEnvironment,
+  savedKeysOnAtom,
+  savedKeysWritableOnAtom,
+} from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { SecretSourceSelect, useSecretSources } from "../settings/SecretSourceInput";
 import { SettingsRow, SettingsSection } from "../settings/settingsLayout";
@@ -61,27 +68,60 @@ const failureMessage = (result: { readonly cause: Cause.Cause<unknown> }, fallba
   return error instanceof Error && error.message !== "" ? error.message : fallback;
 };
 
+/** One of the owner's computers, named as it reads mid-sentence ("this Mac", "your server"). */
+export interface KeyComputer {
+  readonly environmentId: EnvironmentId;
+  readonly name: string;
+  /** Run by someone else, who could read what is kept on it. */
+  readonly hosted: boolean;
+}
+
+type KeyRow = SavedKeyEverywhere<EnvironmentId>;
+
+const namesOf = (computers: ReadonlyArray<KeyComputer>) =>
+  new Intl.ListFormat("en", { type: "conjunction" }).format(
+    computers.map((computer) => computer.name),
+  );
+
 /**
- * The keys, tokens and passwords saved on one computer for the assistant to use, by name. The
- * owner adds and removes them here; a value is never shown again once saved.
+ * Makes one change on each computer at once. Answers with the computers it failed on and what
+ * each said; `change` gives null when it worked.
+ */
+async function onEach(
+  computers: ReadonlyArray<KeyComputer>,
+  change: (environmentId: EnvironmentId) => Promise<string | null>,
+) {
+  const said = await Promise.all(computers.map((computer) => change(computer.environmentId)));
+  return computers.flatMap((computer, index) => {
+    const message = said[index];
+    return message === null || message === undefined ? [] : [{ computer, message }];
+  });
+}
+
+/**
+ * The keys, tokens and passwords saved for the assistant, by name, as one list whichever of the
+ * owner's computers holds them. A key is saved on all of `computers` and removed from all; a row
+ * says where a key is only when it is not on every one. A value is never shown again once saved.
  */
 export function SavedKeysSection({
-  environmentId,
-  usedElsewhere,
+  computers: listed,
+  answers,
+  sourcesOn,
 }: {
-  readonly environmentId: EnvironmentId;
-  /** Set when another computer answers the chats, so its keys are the ones the assistant has. */
-  readonly usedElsewhere?: {
-    readonly shown: string;
-    readonly answering: string;
-    readonly onShow: () => void;
-  };
+  /** The connected computers that hold the notes, the one that answers the chats first. */
+  readonly computers: ReadonlyArray<KeyComputer>;
+  /** The computer that answers the chats, when it is known. */
+  readonly answers: EnvironmentId | null;
+  /** The computer whose secret sources the form offers: a source lives on one computer. */
+  readonly sourcesOn: EnvironmentId;
 }) {
-  const savedKeys = majordomeEnvironment.savedKeys({ environmentId, input: {} });
-  const result = useAtomValue(savedKeys);
-  const refresh = useAtomRefresh(savedKeys);
+  const listedKey = JSON.stringify(listed.map((computer) => computer.environmentId));
+  const results = useAtomValue(savedKeysOnAtom(listedKey));
+  const writable = useAtomValue(savedKeysWritableOnAtom(listedKey));
+  const sourceKeys = majordomeEnvironment.savedKeys({ environmentId: sourcesOn, input: {} });
+  const refresh = useAtomRefresh(sourceKeys);
   const sourcesKey = JSON.stringify(
-    useEnvironmentSettings(environmentId, (settings) => settings.secretProviders),
+    useEnvironmentSettings(sourcesOn, (settings) => settings.secretProviders),
   );
   const seenSourcesKey = useRef(sourcesKey);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the server says which key a source signs in with and names each key's source, so a changed source list asks it again
@@ -90,17 +130,47 @@ export function SavedKeysSection({
     seenSourcesKey.current = sourcesKey;
     refresh();
   }, [sourcesKey, seenSourcesKey, refresh]);
-  const canChange = useAtomValue(majordomeEnvironment.saveKey.permissionAtom(environmentId));
   const [adding, setAdding] = useState(false);
-  const [removing, setRemoving] = useState<MajordomeSavedKey | null>(null);
+  const [removing, setRemoving] = useState<KeyRow | null>(null);
   const [dating, setDating] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
 
-  const data = AsyncResult.getOrElse(result, () => null);
-  // A server from before saved keys shows no section.
-  if (data === null && result._tag === "Failure" && isUnknownRequest(Cause.squash(result.cause))) {
-    return null;
-  }
+  // A server from before saved keys is left out; with none left there is no section.
+  const computers = listed.filter((_, index) => {
+    const result = results[index];
+    return !(
+      result !== undefined &&
+      result._tag === "Failure" &&
+      AsyncResult.getOrElse(result, () => null) === null &&
+      isUnknownRequest(Cause.squash(result.cause))
+    );
+  });
+  if (computers.length === 0) return null;
+  const read = computers.map((computer) => {
+    const result = results[listed.indexOf(computer)];
+    return {
+      id: computer.environmentId,
+      keys: result === undefined ? null : (AsyncResult.getOrElse(result, () => null)?.keys ?? null),
+    };
+  });
+  const failed = computers.flatMap((computer) => {
+    const result = results[listed.indexOf(computer)];
+    return result !== undefined &&
+      result._tag === "Failure" &&
+      AsyncResult.getOrElse(result, () => null) === null
+      ? [{ computer, result }]
+      : [];
+  });
+  const changeable = computers.filter((computer) => writable[listed.indexOf(computer)] === true);
+  const canChange = changeable.length > 0;
+  const data = read.every((computer) => computer.keys === null)
+    ? null
+    : { keys: mergeSavedKeys(read) };
+  const nameOf = (environmentId: EnvironmentId) =>
+    computers.find((computer) => computer.environmentId === environmentId)?.name ??
+    "another computer";
+  const holding = (row: KeyRow) =>
+    changeable.filter((computer) => row.on.includes(computer.environmentId));
   return (
     <SettingsSection
       title="Keys your assistant can use"
@@ -113,21 +183,12 @@ export function SavedKeysSection({
         ) : null
       }
     >
-      {usedElsewhere === undefined ? null : (
-        <SettingsRow
-          title={`Your assistant answers on ${usedElsewhere.answering}`}
-          description={`It can't use the keys saved on ${usedElsewhere.shown}. Save them on ${usedElsewhere.answering} for your chats to have them.`}
-          control={
-            <Button size="xs" variant="outline" onClick={usedElsewhere.onShow}>
-              Show {usedElsewhere.answering}
-            </Button>
-          }
-        />
-      )}
       {data === null ? (
         <SettingsRow
-          title={result._tag === "Failure" ? "The saved keys couldn't be read." : "Reading…"}
-          description={result._tag === "Failure" ? failureMessage(result, "Try again.") : undefined}
+          title={failed.length > 0 ? "The saved keys couldn't be read." : "Reading…"}
+          description={
+            failed[0] === undefined ? undefined : failureMessage(failed[0].result, "Try again.")
+          }
         />
       ) : data.keys.length === 0 && !adding ? (
         <SettingsRow
@@ -139,7 +200,7 @@ export function SavedKeysSection({
           dating === key.name ? (
             <ExpiryForm
               key={key.name}
-              environmentId={environmentId}
+              computers={holding(key)}
               savedKey={key}
               onClose={() => setDating(null)}
             />
@@ -154,14 +215,19 @@ export function SavedKeysSection({
               }
               description={savedKeyLine(key, undefined, undefined, now)}
               status={
-                savedKeyStanding(key, now) === "over"
-                  ? "Past its last day. Make a new key where this one came from, then save it here again."
-                  : savedKeyStanding(key, now) === "soon"
-                    ? "Stops working soon. Renew it where it came from."
-                    : undefined
+                [
+                  savedKeyStanding(key, now) === "over"
+                    ? "Past its last day. Make a new key where this one came from, then save it here again."
+                    : savedKeyStanding(key, now) === "soon"
+                      ? "Stops working soon. Renew it where it came from."
+                      : null,
+                  savedKeyPlaceLine(key, nameOf, answers),
+                ]
+                  .filter((line) => line !== null)
+                  .join(" ") || undefined
               }
               control={
-                canChange ? (
+                holding(key).length > 0 ? (
                   <span className="flex items-center gap-1">
                     {key.signsInTo === undefined ? (
                       <Button size="xs" variant="ghost" onClick={() => setDating(key.name)}>
@@ -178,9 +244,16 @@ export function SavedKeysSection({
           ),
         )
       )}
+      {data !== null && failed.length > 0 ? (
+        <SettingsRow
+          title={`The keys on ${namesOf(failed.map((entry) => entry.computer))} couldn't be read.`}
+          description="A key shown here may be there too."
+        />
+      ) : null}
       {adding ? (
         <AddKeyForm
-          environmentId={environmentId}
+          computers={changeable}
+          sourcesOn={sourcesOn}
           taken={data?.keys.map((key) => key.name) ?? []}
           onClose={() => setAdding(false)}
         />
@@ -194,7 +267,7 @@ export function SavedKeysSection({
         {removing ? (
           <RemoveKeyPopup
             key={removing.name}
-            environmentId={environmentId}
+            computers={holding(removing)}
             name={removing.name}
             onClose={() => setRemoving(null)}
           />
@@ -205,11 +278,14 @@ export function SavedKeysSection({
 }
 
 function AddKeyForm({
-  environmentId,
+  computers,
+  sourcesOn,
   taken,
   onClose,
 }: {
-  readonly environmentId: EnvironmentId;
+  /** Where a pasted key is saved: every computer the owner may change. */
+  readonly computers: ReadonlyArray<KeyComputer>;
+  readonly sourcesOn: EnvironmentId;
   readonly taken: ReadonlyArray<string>;
   readonly onClose: () => void;
 }) {
@@ -226,7 +302,7 @@ function AddKeyForm({
   const [now] = useState(() => Date.now());
   const until = typedDay(worksUntil, now);
   // Where the key is: pasted here (null), or an item in one of this computer's secret sources.
-  const sources = useSecretSources(environmentId);
+  const sources = useSecretSources(sourcesOn);
   const [sourceId, setSourceId] = useState<SecretProviderId | null>(null);
   const source = sources.find((candidate) => candidate.id === sourceId);
   const sourceKind =
@@ -235,6 +311,10 @@ function AddKeyForm({
   const [error, setError] = useState<string | null>(null);
   const name = savedKeyNameFrom(typedName);
   const replaces = taken.includes(name);
+  // A source is on one computer, so a key kept in it is saved there alone.
+  const sourceComputer = computers.filter((computer) => computer.environmentId === sourcesOn);
+  const targets = source === undefined ? computers : sourceComputer;
+  const hosted = targets.filter((computer) => computer.hosted);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -248,24 +328,36 @@ function AddKeyForm({
     if (until.kind === "unreadable") return setError(WORKS_UNTIL_UNREADABLE);
     setBusy(true);
     setError(null);
-    const saved = await saveKey({
-      environmentId,
-      input: {
-        name,
-        ...(note.trim() === "" ? {} : { note: note.trim() }),
-        ...(until.kind === "day" ? { expiresOn: until.day } : {}),
-        ...(source === undefined
-          ? { value }
-          : { reference: { provider: source.id, reference: typed } }),
-      },
+    const failures = await onEach(targets, async (environmentId) => {
+      const saved = await saveKey({
+        environmentId,
+        input: {
+          name,
+          ...(note.trim() === "" ? {} : { note: note.trim() }),
+          ...(until.kind === "day" ? { expiresOn: until.day } : {}),
+          ...(source === undefined
+            ? { value }
+            : { reference: { provider: source.id, reference: typed } }),
+        },
+      });
+      return saved._tag === "Failure" && !isAtomCommandInterrupted(saved)
+        ? failureMessage(saved, "The key could not be saved. Try again.")
+        : null;
     });
     setBusy(false);
-    if (saved._tag === "Success") {
-      toastManager.add({ type: "success", title: "Saved", description: name });
-      onClose();
-    } else if (saved._tag === "Failure" && !isAtomCommandInterrupted(saved)) {
-      setError(failureMessage(saved, "The key could not be saved. Try again."));
-    }
+    const first = failures[0];
+    if (first !== undefined && failures.length === targets.length) return setError(first.message);
+    const missed = failures.map((failure) => failure.computer);
+    toastManager.add(
+      first === undefined
+        ? { type: "success", title: "Saved", description: name }
+        : {
+            type: "warning",
+            title: `Saved, but not on ${namesOf(missed)}`,
+            description: `${first.message} Save ${name} again when ${missed.length === 1 ? "it is" : "they are"} back.`,
+          },
+    );
+    onClose();
   };
 
   return (
@@ -365,6 +457,17 @@ function AddKeyForm({
             ? `Majordome keeps no copy: it reads the key from ${source.label} each time your assistant uses it, and checks now that it can.`
             : "Your assistant sees the name and what it is for. It uses the key in a command without the key appearing in the chat, and it is not shown here again."}
       </p>
+      {source !== undefined && computers.length > 1 ? (
+        <p className="text-xs text-muted-foreground">
+          It works only in chats answered on {namesOf(sourceComputer)}. Paste the key instead to
+          have it on all your computers.
+        </p>
+      ) : source === undefined && computers.length > 1 ? (
+        <p className="text-xs text-muted-foreground">
+          Saved on {namesOf(computers)}.
+          {hosted.length > 0 ? ` Whoever runs ${namesOf(hosted)} could read a key kept there.` : ""}
+        </p>
+      ) : null}
       {error !== null ? (
         <p role="alert" className="text-sm text-destructive-foreground">
           {error}
@@ -385,11 +488,12 @@ function AddKeyForm({
 
 /** Sets, changes or clears the last day a saved key works, in the key's own row. */
 function ExpiryForm({
-  environmentId,
+  computers,
   savedKey,
   onClose,
 }: {
-  readonly environmentId: EnvironmentId;
+  /** The computers that hold the key: each keeps its own note of the day. */
+  readonly computers: ReadonlyArray<KeyComputer>;
   readonly savedKey: MajordomeSavedKey;
   readonly onClose: () => void;
 }) {
@@ -409,12 +513,20 @@ function ExpiryForm({
     if (busy) return;
     setBusy(true);
     setError(null);
-    const saved = await saveKey({ environmentId, input: { name: savedKey.name, expiresOn } });
+    const failures = await onEach(computers, async (environmentId) => {
+      const saved = await saveKey({ environmentId, input: { name: savedKey.name, expiresOn } });
+      return saved._tag === "Failure" && !isAtomCommandInterrupted(saved)
+        ? failureMessage(saved, "The day could not be saved. Try again.")
+        : null;
+    });
     setBusy(false);
-    if (saved._tag === "Success") onClose();
-    else if (saved._tag === "Failure" && !isAtomCommandInterrupted(saved)) {
-      setError(failureMessage(saved, "The day could not be saved. Try again."));
-    }
+    const first = failures[0];
+    if (first === undefined) return onClose();
+    setError(
+      failures.length === computers.length
+        ? first.message
+        : `Not saved on ${namesOf(failures.map((failure) => failure.computer))}: ${first.message}`,
+    );
   };
 
   return (
@@ -480,11 +592,12 @@ function ExpiryForm({
 }
 
 function RemoveKeyPopup({
-  environmentId,
+  computers,
   name,
   onClose,
 }: {
-  readonly environmentId: EnvironmentId;
+  /** The computers that hold the key: it is removed from each. */
+  readonly computers: ReadonlyArray<KeyComputer>;
   readonly name: string;
   readonly onClose: () => void;
 }) {
@@ -496,13 +609,22 @@ function RemoveKeyPopup({
   const [busy, setBusy] = useState(false);
   const confirm = async () => {
     setBusy(true);
-    const result = await removeSavedKey({ environmentId, input: { name } });
+    const failures = await onEach(computers, async (environmentId) => {
+      const result = await removeSavedKey({ environmentId, input: { name } });
+      return result._tag === "Failure" && !isAtomCommandInterrupted(result)
+        ? failureMessage(result, "Try again.")
+        : null;
+    });
     setBusy(false);
-    if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+    const first = failures[0];
+    if (first !== undefined) {
       toastManager.add({
         type: "error",
-        title: "Could not remove it",
-        description: failureMessage(result, "Try again."),
+        title:
+          failures.length === computers.length
+            ? "Could not remove it"
+            : `Still on ${namesOf(failures.map((failure) => failure.computer))}`,
+        description: first.message,
       });
     }
     onClose();
@@ -512,9 +634,10 @@ function RemoveKeyPopup({
       <AlertDialogHeader>
         <AlertDialogTitle>Remove “{name}”?</AlertDialogTitle>
         <AlertDialogDescription>
-          Your assistant can no longer use this key, and Majordome deletes its copy if it holds one.
-          The key itself still works wherever it came from: cancel it there if it should stop
-          working.
+          Your assistant can no longer use this key
+          {computers.length > 1 ? " on any of your computers" : ""}, and Majordome deletes its copy
+          if it holds one. The key itself still works wherever it came from: cancel it there if it
+          should stop working.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

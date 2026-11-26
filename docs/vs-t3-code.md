@@ -56,7 +56,8 @@ The landing page and the README show a short version of this list.
   with when each was last used, and tools so it knows which it has and uses one without the key
   appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source
   Majordome adds) and be read from there each time. A key can say until when it works, and you
-  are told in its last month. [Secrets](./user/secrets.md)
+  are told in its last month. With several computers the keys are one list: a key is saved on
+  each and removed from each. [Secrets](./user/secrets.md)
 - **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
 
 ### An assistant that works without you

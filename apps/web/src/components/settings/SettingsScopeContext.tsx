@@ -61,11 +61,7 @@ function useMemberProjectFiles(scope: ReturnType<typeof resolveSettingsScope>) {
   );
 }
 
-function useResolvedSettingsScope(
-  rawSearch: SettingsScopeSearch,
-  singleEnvironment: boolean,
-  preferredEnvironmentId: EnvironmentId | null,
-) {
+function useResolvedSettingsScope(rawSearch: SettingsScopeSearch, singleEnvironment: boolean) {
   const groups = useSettingsProjectGroups();
   const { environments: availableEnvironments } = useEnvironments();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
@@ -76,7 +72,6 @@ function useResolvedSettingsScope(
         resolveSettingsScope(rawSearch, groups, availableEnvironments, m),
         availableEnvironments,
         primaryEnvironmentId,
-        preferredEnvironmentId,
       )
     : rawSearch;
   const scope = resolveSettingsScope(search, groups, availableEnvironments, m);
@@ -115,18 +110,15 @@ export function SettingsScopeProvider({
   children,
   singleEnvironment = false,
   deviceOnly = false,
-  preferredEnvironmentId = null,
 }: {
   singleEnvironment?: boolean;
-  /** The computer a single-environment page opens on, ahead of this window's own. */
-  preferredEnvironmentId?: EnvironmentId | null;
   /** The page hides the scope picker, so its client settings save for this device. */
   deviceOnly?: boolean;
   search: SettingsScopeSearch;
   onChange: (next: SettingsScopeSearch) => void;
   children: ReactNode;
 }) {
-  const resolved = useResolvedSettingsScope(search, singleEnvironment, preferredEnvironmentId);
+  const resolved = useResolvedSettingsScope(search, singleEnvironment);
   const value = { ...resolved, singleEnvironment, deviceOnly, selectScope: onChange };
   return <SettingsScopeContext value={value}>{children}</SettingsScopeContext>;
 }

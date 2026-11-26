@@ -239,6 +239,17 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   told to the assistant. It is a reminder only: the key is still handed over past that day, with a
   note for the owner, since only the service knows whether it really stopped. The day is typed in
   Settings or said in chat, not on the secret card, which stays upstream's.
+  - **Several computers (2026-11-26).** Each server keeps its own keys, but the owner thinks of a
+    key as theirs, not a computer's: a key saved on the Mac was invisible to the assistant on the
+    always-on server, which said there were none. The app, connected to every computer, is what
+    carries a key: Settings saves a pasted key on each connected computer that holds the notes,
+    removes from each, and shows one list that names a computer only for a key some computer
+    lacks. Servers do not exchange keys. A sealed exchange between the two linked servers was
+    designed and reviewed (`age` to the other's public key over the notes link, versions and
+    removal markers) and left out: it is a week of sync machinery whose gain is a computer that
+    was off catching up by itself, and it would copy every key to an internet-facing server
+    without the owner typing it there. Pasting again is the fallback, and the list says when it is
+    needed. An empty `list_saved_keys` names the computer it looked on.
 - **Tier B, sensitive documents.** A folder of `age`-encrypted files outside the vault. It works
   on any OS, unlike a macOS encrypted disk image. One file is decrypted to a temp path after you approve, then deleted. Every
   access is logged.

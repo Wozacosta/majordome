@@ -1,12 +1,18 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import { EnvironmentId, ProviderInstanceId, ThreadId } from "@t3tools/contracts";
+import {
+  EnvironmentId,
+  type ExecutionEnvironmentDescriptor,
+  ProviderInstanceId,
+  ThreadId,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
+import * as ServerEnvironment from "../../../environment/ServerEnvironment.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
 import { layerSavedKeysForTest } from "../../../majordome/MajordomeSavedKeys.testkit.ts";
 import * as ThreadManagement from "../../../orchestration-v2/ThreadManagementService.ts";
@@ -33,6 +39,9 @@ const layerAgent = Layer.mergeAll(
   }),
   Layer.mock(ThreadManagement.ThreadManagementService)({
     getThreadShell: () => Effect.succeed(liveThreadShell(threadId)),
+  }),
+  Layer.mock(ServerEnvironment.ServerEnvironment)({
+    getDescriptor: Effect.succeed({ label: "Majordome server" } as ExecutionEnvironmentDescriptor),
   }),
 );
 
@@ -151,9 +160,18 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
             Effect.map((parts) => parts.at(-1)?.result),
           );
 
-        expect(yield* result("list_saved_keys", {})).toEqual({ keys: [] });
+        // Each computer keeps its own keys: an empty list says which computer was looked at,
+        // never that the owner has none. "myage" was on the Mac; the server said "no keys at all".
+        const empty = yield* result("list_saved_keys", {});
+        expect(empty).toMatchObject({ keys: [] });
+        expect(empty).toHaveProperty(
+          "note",
+          expect.stringContaining("No keys are saved on Majordome server"),
+        );
+        expect(empty).toHaveProperty("note", expect.stringContaining("another of their computers"));
         expect(yield* result("use_saved_key", { name: "toto" })).toMatchObject({
           status: "unknown_key",
+          note: expect.stringContaining("No keys are saved on Majordome server"),
         });
 
         expect(

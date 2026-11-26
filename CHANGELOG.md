@@ -5,7 +5,30 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **A key you save is saved on all your computers.** With a Mac and an always-on server, Settings,
+  Passwords and keys now shows one list instead of one per computer, and has no computer to pick.
+  Add a key and it is saved on each computer that holds your notes; remove it and it goes from
+  each. A key that is on one computer only says so under its name ("Only on this Mac"), with what
+  to do. The form says where the key will be kept, and that whoever runs a Majordome server could
+  read a key kept there. With one computer, nothing changes.
+- **Your assistant says which computer it looked on.** When it finds no saved key, it names its
+  computer and says a key saved on another one cannot be used from there, instead of "there are
+  no saved keys at all".
+
+**Try this**
+
+- With a Mac and an always-on server: open Settings, Passwords and keys. A key you saved on the
+  Mac alone says "Only on this Mac". Add a key with the same name again, then ask the assistant
+  beside the page "which keys do you have?": it should list it.
+- Remove a key there, then check it is gone on the phone too.
+
+**Not yet**
+
+- A key your assistant saves in a chat stays on the computer that answered. A computer that was
+  off when you saved or removed a key keeps what it had: the list says so, and saving or removing
+  again fixes it. The phone still lists keys under each computer's name.
 
 ## 0.10.56
 

@@ -101,3 +101,19 @@ export const privateDocumentRequestsAtom = Atom.family((key: string) => {
     ),
   ).pipe(Atom.withLabel(`majordome:private-document-requests:${key}`));
 });
+
+/** Each listed computer's saved keys, in the order given; keyed by the JSON list of their ids. */
+export const savedKeysOnAtom = Atom.family((key: string) => {
+  const ids = JSON.parse(key) as ReadonlyArray<EnvironmentId>;
+  return Atom.make((get) =>
+    ids.map((environmentId) => get(majordomeEnvironment.savedKeys({ environmentId, input: {} }))),
+  ).pipe(Atom.withLabel(`majordome:saved-keys-on:${key}`));
+});
+
+/** Whether this app may save and remove keys on each listed computer, keyed like `savedKeysOnAtom`. */
+export const savedKeysWritableOnAtom = Atom.family((key: string) => {
+  const ids = JSON.parse(key) as ReadonlyArray<EnvironmentId>;
+  return Atom.make((get) =>
+    ids.map((environmentId) => get(majordomeEnvironment.saveKey.permissionAtom(environmentId))),
+  ).pipe(Atom.withLabel(`majordome:saved-keys-writable-on:${key}`));
+});

@@ -64,6 +64,8 @@ export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
   "/settings/backup",
   "/settings/connectors",
   "/settings/private-documents",
+  // One list of keys for every computer; the page picks the computer for what is per computer.
+  ...(isMajordome ? ["/settings/secrets"] : []),
   "/settings/skills",
   "/settings/notifications",
   "/settings/phone",

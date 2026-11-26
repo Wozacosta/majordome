@@ -108,3 +108,79 @@ export function savedKeyLine(
     .filter((part) => part !== "")
     .join(" · ");
 }
+
+/** One computer's saved keys as the app read them; `keys` is null while unread or unreadable. */
+export interface SavedKeysOnComputer<Id extends string = string> {
+  readonly id: Id;
+  readonly keys: ReadonlyArray<MajordomeSavedKey> | null;
+}
+
+/** A saved key as the owner thinks of it: one name, on some of their computers. */
+export interface SavedKeyEverywhere<Id extends string = string> extends MajordomeSavedKey {
+  /** The computers that hold it, in the order given. */
+  readonly on: ReadonlyArray<Id>;
+  /** The computers that were read and do not hold it. */
+  readonly missing: ReadonlyArray<Id>;
+}
+
+/**
+ * The keys of several computers as one list, by name. A key's details come from the first
+ * computer that holds it, so list the one that answers the chats first; it was last used when any
+ * of them last used it.
+ */
+export function mergeSavedKeys<Id extends string>(
+  computers: ReadonlyArray<SavedKeysOnComputer<Id>>,
+): ReadonlyArray<SavedKeyEverywhere<Id>> {
+  const read = computers.filter((computer) => computer.keys !== null);
+  const merged = new Map<string, SavedKeyEverywhere<Id>>();
+  for (const computer of read) {
+    for (const key of computer.keys ?? []) {
+      const known = merged.get(key.name);
+      if (known === undefined) {
+        merged.set(key.name, { ...key, on: [computer.id], missing: [] });
+        continue;
+      }
+      const lastUsedAt = [known.lastUsedAt, key.lastUsedAt]
+        .filter((at) => at !== undefined)
+        .sort()
+        .at(-1);
+      merged.set(key.name, {
+        ...known,
+        ...(lastUsedAt === undefined ? {} : { lastUsedAt }),
+        on: [...known.on, computer.id],
+      });
+    }
+  }
+  return [...merged.values()]
+    .map((key) => ({
+      ...key,
+      missing: read.map((computer) => computer.id).filter((id) => !key.on.includes(id)),
+    }))
+    .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+}
+
+/**
+ * What to say under a key that is not on every computer, or null when it is on all of them.
+ * `nameOf` gives a computer's name as it reads mid-sentence; `answers` is the computer that
+ * answers the chats, when it is known.
+ */
+export function savedKeyPlaceLine<Id extends string>(
+  key: Pick<SavedKeyEverywhere<Id>, "on" | "missing" | "source" | "signsInTo">,
+  nameOf: (id: Id) => string,
+  answers: Id | null,
+): string | null {
+  if (key.missing.length === 0) return null;
+  // Not Intl.ListFormat: the phone's engine has none.
+  const list = (ids: ReadonlyArray<Id>) => {
+    const names = ids.map(nameOf);
+    return names.length < 2
+      ? names.join("")
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  };
+  const where = key.on.length === 1 ? `Only on ${list(key.on)}.` : `Not on ${list(key.missing)}.`;
+  // A source lives on one computer, and a sign-in key is not the assistant's: neither can be copied.
+  if (key.source !== undefined || key.signsInTo !== undefined) return where;
+  return answers !== null && key.missing.includes(answers)
+    ? `${where} Chats answered on ${nameOf(answers)} can't use it: save it again to have it everywhere.`
+    : `${where} Save it again to have it everywhere.`;
+}

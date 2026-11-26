@@ -3,6 +3,7 @@ import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
+import { isMajordome } from "../../env";
 import { type EnvironmentPresentation, useEnvironments } from "../../state/environments";
 import { useEnvironmentSessionState } from "../../state/session";
 import {
@@ -14,8 +15,11 @@ import {
   AlertDialogPopup,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
+import { isHostedServer, machineInSentence } from "../majordome/brains.logic";
+import { ComputerSwitch, useShownComputer } from "../majordome/ComputerSwitch";
 import { SavedKeysSection } from "../majordome/SavedKeysSection";
-import { useAssistantEnvironmentId } from "../majordome/useMajordomeVaults";
+import { useMachineNames } from "../majordome/useMachineNames";
+import { useAssistantEnvironmentId, useMajordomeVaults } from "../majordome/useMajordomeVaults";
 import { Button } from "../ui/button";
 import { SecretProviderDialog } from "./SecretProviderDialog";
 import { classifySecretProvider } from "./SecretProviderDialog.logic";
@@ -32,54 +36,80 @@ import { SecretProviderIcon } from "./secretProviderIcons";
 
 export function SecretsSettingsPanel() {
   const searchableSetting = useSearchableSetting();
-  const { scope, environment, search, selectScope } = useSettingsScope();
-  const connected = environment?.connection.phase === "connected";
-  const assistantEnvironmentId = useAssistantEnvironmentId();
+  const { scope, environment } = useSettingsScope();
   const { environments } = useEnvironments();
-  const answering =
-    assistantEnvironmentId === environment?.environmentId
-      ? undefined
-      : environments.find(
+  const { primaryEnvironmentId, machineOf } = useMachineNames();
+  const { activeVault } = useMajordomeVaults();
+  const answers = useAssistantEnvironmentId();
+  // Majordome lists the keys of every connected computer that holds the notes as one list, the
+  // one that answers the chats first; T3 Code shows the environment chosen above the page.
+  const holders = new Set(activeVault?.copies.map((copy) => copy.environmentId));
+  const rank = (id: EnvironmentId) => (id === answers ? 0 : id === primaryEnvironmentId ? 1 : 2);
+  const together = isMajordome
+    ? environments
+        .filter(
           (candidate) =>
-            candidate.environmentId === assistantEnvironmentId &&
-            candidate.connection.phase === "connected",
-        );
-  return (
-    <SettingsPageContainer>
-      {connected &&
-      environment.serverConfig !== null &&
-      environment.serverConfig.secretProviderSettings !== true ? (
-        <SettingsSection {...searchableSetting("secret-providers")}>
-          <p className="px-4 py-3 text-sm text-muted-foreground">
-            Update Majordome on {environment.label} to manage where it reads secrets from.
-          </p>
-        </SettingsSection>
-      ) : connected ? (
-        <>
-          <SavedKeysSection
-            environmentId={environment.environmentId}
-            {...(answering === undefined
-              ? {}
-              : {
-                  usedElsewhere: {
-                    shown: environment.label,
-                    answering: answering.label,
-                    onShow: () => selectScope({ ...search, machine: answering.environmentId }),
-                  },
-                })}
-          />
-          <EnvironmentSecretProviders
-            key={environment.environmentId}
-            environment={environment}
-            projectScoped={scope.kind === "project" || scope.kind === "checkout"}
-          />
-        </>
-      ) : (
+            candidate.connection.phase === "connected" && holders.has(candidate.environmentId),
+        )
+        .toSorted((left, right) => rank(left.environmentId) - rank(right.environmentId))
+    : [];
+  const machines =
+    together.length > 0
+      ? together
+      : environment?.connection.phase === "connected"
+        ? [environment]
+        : [];
+  const choices = machines.map((machine) => ({
+    id: machine.environmentId as string,
+    label: machineOf(machine.environmentId),
+    machine,
+  }));
+  const [shown, showComputer] = useShownComputer(choices);
+  if (shown === null) {
+    return (
+      <SettingsPageContainer>
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
             Connect to a server to manage where its key and token fields read secrets from.
           </p>
         </SettingsSection>
+      </SettingsPageContainer>
+    );
+  }
+  return (
+    <SettingsPageContainer>
+      <SavedKeysSection
+        computers={machines.map((machine) => {
+          const name = machineOf(machine.environmentId);
+          return {
+            environmentId: machine.environmentId,
+            name: machineInSentence(name),
+            hosted: isHostedServer(name),
+          };
+        })}
+        answers={answers}
+        sourcesOn={shown.machine.environmentId}
+      />
+      {choices.length > 1 ? (
+        <p className="text-sm text-muted-foreground">
+          Each computer has its own places to read a key from. A key kept in one of them works only
+          on that computer.
+        </p>
+      ) : null}
+      <ComputerSwitch choices={choices} shownId={shown.id} onShow={showComputer} />
+      {shown.machine.serverConfig !== null &&
+      shown.machine.serverConfig.secretProviderSettings !== true ? (
+        <SettingsSection {...searchableSetting("secret-providers")}>
+          <p className="px-4 py-3 text-sm text-muted-foreground">
+            Update Majordome on {shown.machine.label} to manage where it reads secrets from.
+          </p>
+        </SettingsSection>
+      ) : (
+        <EnvironmentSecretProviders
+          key={shown.machine.environmentId}
+          environment={shown.machine}
+          projectScoped={scope.kind === "project" || scope.kind === "checkout"}
+        />
       )}
     </SettingsPageContainer>
   );

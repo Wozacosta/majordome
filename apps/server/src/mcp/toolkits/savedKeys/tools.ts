@@ -8,11 +8,13 @@ import {
 import * as Schema from "effect/Schema";
 import { McpSchema, Tool, Toolkit } from "effect/ai";
 
+import * as ServerEnvironment from "../../../environment/ServerEnvironment.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 
 const dependencies = [
+  ServerEnvironment.ServerEnvironment,
   McpInvocationContext.McpInvocationContext,
   ThreadManagementService.ThreadManagementService,
   MajordomeSavedKeys.MajordomeSavedKeys,
@@ -32,6 +34,10 @@ const ListSavedKeysTool = Tool.make("list_saved_keys", {
         }),
       }),
     ),
+    note: Schema.optional(Schema.String).annotate({
+      description:
+        "Set when no key is saved here: which computer this is, and what to tell the owner.",
+    }),
   }),
   failure: OrchestratorMcpFailure,
   failureMode: "return",

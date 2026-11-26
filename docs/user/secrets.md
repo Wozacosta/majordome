@@ -11,6 +11,14 @@ Separate from the above: an API key, a token or a password you want your assista
 example to read your runs from a sports service. **Settings → Passwords and keys** lists them under
 **Keys your assistant can use**, on the computer and in the iPhone app.
 
+With several computers, for example a Mac and an always-on server, the list on the computer is one
+list for all of them. A key you add is saved on each computer that holds your notes and is
+connected, and a key you remove is removed from each. A key that is on one computer only says so
+under its name, for example "Only on this Mac": add it again under the same name to have it
+everywhere. Each computer keeps its own copy; they do not pass keys to each other, so a computer
+that was off when you added a key does not have it until you add it again. A key your assistant
+saves in a chat is kept on the computer that answered.
+
 - **Add a key** asks for a name, what it is for, and the key. The key is not shown again.
 - Or give the key to your assistant in a chat and ask it to keep it.
 - **Remove** takes it away from the assistant and deletes Majordome's copy. The key still works
