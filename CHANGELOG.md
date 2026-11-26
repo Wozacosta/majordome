@@ -13,9 +13,18 @@ The section for a version is also the text of its release on GitHub.
   its routine. On a phone the days are a list. Each server starts keeping its runs with this
   version, so earlier weeks show only each routine's last run.
 
+**Fixed**
+
+- **Update no longer offers what it cannot do.** On a server we run, or one you run from our
+  image, Claude and Codex come with the server and only a server update changes them. The app
+  offered to update them anyway, and it failed every time with an npm error. It now leaves them
+  out.
+
 **Try this**
 
 - Open **Routines**, press **Run now** on one, and watch it land on today.
+- After your servers are on this version, click **Update** when a newer Claude is out: the
+  servers should not be listed for Claude, and nothing should fail.
 
 ## 0.10.70
 
