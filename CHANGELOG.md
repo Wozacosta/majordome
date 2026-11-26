@@ -5,18 +5,6 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
-
-## 0.10.72
-
-**New**
-
-- **Today shows what is going on.** Under the box where you start a chat, two short lists: **Needs
-  you**, the chats where the assistant asked you something, wants your OK, could not finish, or
-  has a reply you have not read; and **Working**, the chats and routines it is busy with right
-  now. Click one to open it. When nothing is going on, nothing is shown. Chats on all your
-  servers are included.
-
 **Changed**
 
 - **The iPhone page for getting a Majordome server is redrawn.** Three short lines say what a
@@ -29,6 +17,16 @@ Not released yet.
   continue** and the sign-in form answered "You're already signed in".
 - **On the iPhone, error messages can be read.** On Today, Your account and the server page they
   were written in a red so pale it could not be seen.
+
+## 0.10.72
+
+**New**
+
+- **Today shows what is going on.** Under the box where you start a chat, two short lists: **Needs
+  you**, the chats where the assistant asked you something, wants your OK, could not finish, or
+  has a reply you have not read; and **Working**, the chats and routines it is busy with right
+  now. Click one to open it. When nothing is going on, nothing is shown. Chats on all your
+  servers are included.
 
 **Try this**
 
