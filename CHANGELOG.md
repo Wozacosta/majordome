@@ -5,7 +5,17 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **The "This app" page shows the window, not a made-up diagram.** Its drawing joined Voice and
+  Keyboard shortcuts to General with lines that meant nothing. It is now a sketch of the
+  Majordome window with each setting named on the part it changes: Writing messages and Voice
+  on the message box, Browser on the page beside a chat, General and Appearance on the window
+  itself. Each name opens its page.
+
+**Try this**
+
+- Open Settings, select **This app**, and click a label in the sketch.
 
 ## 0.10.65
 

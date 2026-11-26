@@ -5,15 +5,9 @@ import {
   CloudUploadIcon,
   ConciergeBellIcon,
   FolderOpenIcon,
-  GlobeIcon,
   GraduationCapIcon,
-  KeyboardIcon,
-  MessageSquareTextIcon,
-  MicIcon,
-  PaletteIcon,
   PlugIcon,
   ServerIcon,
-  Settings2Icon,
   UserRoundIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -26,6 +20,7 @@ import {
   settingsNavGroups,
 } from "../settings/settingsSearch";
 import { useHasSecretProvidersEnvironment } from "../settings/useAvailableSettingsSearchItems";
+import { AppWindowSketch } from "./AppWindowSketch";
 import { FlowDiagram, type FlowLine, type FlowNode } from "./FlowDiagram";
 import { Entry, EntryList, PageHeader, Section } from "./paper";
 import { ServersMap } from "./ServersMap";
@@ -43,7 +38,7 @@ const GUIDES: Record<SettingsGuideTopic, Guide> = {
   app: {
     intro:
       "How Majordome looks and behaves on this device: its language and colours, how you write and speak to it, and the pages it opens beside a chat. These choices stay on this device.",
-    drawing: "What each setting changes",
+    drawing: "Where each setting acts",
     pages: {
       "/settings/general":
         "Language, what opens when the app starts, and how it runs in the background.",
@@ -94,35 +89,13 @@ const node = (id: string, icon: FlowNode["icon"], title: string, detail: string)
 });
 
 const DRAWINGS: Record<
-  Exclude<SettingsGuideTopic, "devices">,
+  Exclude<SettingsGuideTopic, "app" | "devices">,
   {
     readonly columns: ReadonlyArray<ReadonlyArray<FlowNode>>;
     readonly lines: ReadonlyArray<FlowLine>;
     readonly summary: string;
   }
 > = {
-  app: {
-    columns: [
-      [
-        node("write", MessageSquareTextIcon, "Writing messages", "You type"),
-        node("voice", MicIcon, "Voice", "You speak"),
-        node("keys", KeyboardIcon, "Keyboard shortcuts", "You press a key"),
-      ],
-      [
-        node("general", Settings2Icon, "General", "How the app behaves"),
-        node("look", PaletteIcon, "Appearance", "How it looks"),
-      ],
-      [node("browser", GlobeIcon, "Browser", "Pages opened beside a chat")],
-    ],
-    lines: [
-      { from: "write", to: "general" },
-      { from: "voice", to: "general" },
-      { from: "keys", to: "general" },
-      { from: "general", to: "browser" },
-    ],
-    summary:
-      "Writing messages, Voice and Keyboard shortcuts are the ways you reach the app. General and Appearance are how it behaves and looks. Browser is what it opens beside a chat.",
-  },
   notes: {
     columns: [
       [node("you", UserRoundIcon, "You and the assistant", "Read and write notes")],
@@ -178,7 +151,13 @@ export function SettingsGuidePage({ topic }: { readonly topic: SettingsGuideTopi
   const guide = GUIDES[topic];
   if (group === undefined) return null;
   const drawing: ReactNode =
-    topic === "devices" ? <DevicesDrawing /> : <FlowDiagram {...DRAWINGS[topic]} />;
+    topic === "devices" ? (
+      <DevicesDrawing />
+    ) : topic === "app" ? (
+      <AppWindowSketch />
+    ) : (
+      <FlowDiagram {...DRAWINGS[topic]} />
+    );
   return (
     <SettingsPageContainer>
       <PageHeader title={m(group.heading)} intro={guide.intro} />
