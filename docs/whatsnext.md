@@ -21,6 +21,10 @@ block the opening. Tick an item when it is done and remove it once the section i
 - [ ] **Anthropic's terms.** A customer signing their own Claude plan in on a hosted server is
       not confirmed as allowed (see "Hosted Majordome" below). The risk was accepted for a demo
       and the first few users, not for a public opening: decide again, or get their answer.
+- [ ] **Say it is a beta.** No page says so today. Where a person decides: beside the price on
+      the landing page and `/start`, and a short section in the terms (one person runs it, it
+      may break or change, keep a backup you own, how to leave). It sets expectations; it does
+      not remove what a paying French consumer is owed, so the refund and seller items stand.
 - [ ] A privacy policy that holds, and data processing agreements with Fly, Cloudflare, Stripe
       and Clerk.
 - [ ] An hour with someone who does this for French small businesses: a French version, a pay
