@@ -11,7 +11,6 @@ import type { ComponentType } from "react";
 
 import { cn } from "../../lib/utils";
 import type { SettingsPath } from "../settings/settingsSearch";
-import { Muted } from "./paper";
 
 /** A setting's name, set on the part of the window it changes; it opens that setting's page. */
 function Label({
@@ -114,10 +113,6 @@ export function AppWindowSketch() {
           </div>
         </div>
       </div>
-      <Muted className="mt-2 text-xs">
-        A sketch of the window. Each label is a setting, placed on the part it changes. General and
-        Appearance change all of it.
-      </Muted>
     </div>
   );
 }
