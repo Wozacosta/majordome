@@ -7,9 +7,9 @@ The section for a version is also the text of its release on GitHub.
 
 **Changed**
 
-- **The iPhone app opens on a welcome.** A phone with no computer yet shows Majordome's name, one
-  line about what it is, and the ways in: **Sign in**, **Scan a code**, and **Get a Majordome
-  server**.
+- **The iPhone app opens on a welcome.** A phone with no computer yet shows what Majordome is, in
+  the words and the lettering of the website, and the ways in: **Sign in**, **Scan the code on
+  your computer**, and **Get a Majordome server**.
 - **A reinstalled iPhone app starts clean.** iOS keeps an app's saved computers and sign-in when
   you delete it, so a new install used to open on a computer it could not reach. It now forgets
   them and opens on the welcome. Updating the app changes nothing.

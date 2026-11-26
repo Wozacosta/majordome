@@ -91,8 +91,11 @@ const CANCEL_PLACE = "this iPhone's Settings, under your name, then Subscription
 
 /** The first screen of a phone that knows no computer. */
 export const MAJORDOME_WELCOME = {
-  what: "A second brain that keeps working while you are away.",
-  where: "Majordome runs on your computer. Connect this phone to it.",
+  headline: "A second brain that keeps working",
+  headlineEnd: "while you are away.",
+  spoken: "A second brain that keeps working while you are away.",
+  what: "Your notes, plus the AI you already pay for. It reads them, runs your routines, and asks before touching anything sensitive.",
+  noComputer: "No computer? Get a Majordome server",
 } as const;
 
 /** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */

@@ -24,7 +24,7 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { MAJORDOME_SERVER, MAJORDOME_WELCOME } from "./connectWording";
+import { MAJORDOME_WELCOME } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
@@ -121,45 +121,65 @@ const MARK = {
   dark: require("../../assets/majordome-splash-dark.png"),
 };
 
-/** What a phone with no computer opens on: what Majordome is, and the ways to connect it. */
+// The site's heading face, which iOS carries; Android has no match and falls back to its serif.
+const SERIF = Platform.select({ ios: "Iowan Old Style", default: "serif" });
+
+/** What a phone with no computer opens on: what Majordome is, in the site's voice, and the ways to connect it. */
 function Welcome() {
   const navigation = useNavigation();
   const { themeAppearance } = useAppearancePreferences();
   const serverOffer = useAtomValue(serverOfferAtom);
   return (
-    <View className="gap-8 pt-10">
-      <View className="items-center gap-3">
+    <View className="gap-10 pt-4">
+      <View className="flex-row items-center gap-2">
         <Image
           accessibilityIgnoresInvertColors
           source={MARK[themeAppearance]}
-          style={{ width: 112, height: 112 }}
+          style={{ width: 40, height: 40 }}
         />
-        <Text accessibilityRole="header" textRole="display" className="text-center font-t3-bold">
+        <Text textRole="headline" className="font-t3-bold">
           Majordome
         </Text>
-        <Text className="text-center text-foreground-muted">{MAJORDOME_WELCOME.what}</Text>
+      </View>
+      <View className="gap-5">
+        <View accessible accessibilityRole="header" accessibilityLabel={MAJORDOME_WELCOME.spoken}>
+          <Text className="text-[42px] leading-[46px]" style={{ fontFamily: SERIF }}>
+            {MAJORDOME_WELCOME.headline}
+          </Text>
+          <View className="self-start">
+            <View className="absolute inset-x-0 bottom-[5px] h-[16px] rounded-[4px] bg-[#3ddc8466]" />
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              className="text-[42px] leading-[46px]"
+              style={{ fontFamily: SERIF, fontStyle: "italic" }}
+            >
+              {MAJORDOME_WELCOME.headlineEnd}
+            </Text>
+          </View>
+        </View>
+        <Text textRole="headline" className="leading-relaxed text-foreground-muted">
+          {MAJORDOME_WELCOME.what}
+        </Text>
       </View>
       <View className="gap-3">
-        <Text textRole="footnote" className="text-center text-foreground-muted">
-          {MAJORDOME_WELCOME.where}
-        </Text>
         {hasAccounts ? (
           <Button
             label="Sign in"
-            tone="primary"
+            tone="contrast"
             fullWidth
             onPress={() => openSettings(navigation, "SettingsAccount")}
           />
         ) : null}
         <Button
-          label={hasAccounts ? "Scan a code" : "Add a computer"}
-          tone={hasAccounts ? "secondary" : "primary"}
+          label={hasAccounts ? "Scan the code on your computer" : "Add a computer"}
+          tone={hasAccounts ? "secondary" : "contrast"}
           fullWidth
           onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
         />
         {serverOffer === null ? null : (
           <Button
-            label={MAJORDOME_SERVER.getLabel}
+            label={MAJORDOME_WELCOME.noComputer}
             tone="text"
             fullWidth
             onPress={() => openSettings(navigation, "SettingsHostedSignup")}
