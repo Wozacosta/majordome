@@ -66,6 +66,13 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   folder is put back (`holdBackRunChanges`). Proposals are files, not approval cards, because a
   card dies with its run and a nightly run cannot wait for an answer. "Stop using" moves a skill
   back to the proposals, so there is a way back; an agent can neither keep nor remove one.
+- **What the assistant has, drawn on request** (2026-11-26). Asked in a chat what it knows, can do
+  or can reach, the assistant calls `describe_setup` and draws the answer with `html_render`. The
+  server gives the facts (the notes it loaded, kept skills, this AI account's connections, saved
+  keys and private documents by name), because an assistant asked about itself otherwise answers
+  from belief. The assistant draws, not the server: a page only shows in a conversation as the
+  result of `html_render`, which every provider adapter knows by name, and a drawing made by the
+  assistant comes in the owner's language. There is no button for it: it is something to ask.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
   nicotine", "Fitness log"), not chats. A topic is one continuing conversation tied to one folder
   of the vault (an existing one or a new one); each session in it starts with that folder's notes.

@@ -55,6 +55,9 @@ The landing page and the README show a short version of this list.
   starts with and the topics it only knows the standing of. A conversation kept for days is given
   them again with its first message of each new day, and the list of topics as soon as it
   changes. [Memory](./user/memory.md)
+- **What the assistant has, drawn:** ask in any conversation and it draws what it read before your
+  first message, what it can use and what it can reach, from lists Majordome gives it: instructions,
+  skills, notes, connections, saved keys and private documents, by name only.
 - **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
   with when each was last used, and tools so it knows which it has and uses one without the key
   appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source

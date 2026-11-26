@@ -79,6 +79,7 @@ import { PRIVATE_DOCUMENT_REQUEST_NOTES } from "../../apps/server/src/mcp/toolki
 import { PrivateDocumentsToolkit } from "../../apps/server/src/mcp/toolkits/privateDocuments/tools.ts";
 import { SavedKeysToolkit } from "../../apps/server/src/mcp/toolkits/savedKeys/tools.ts";
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
+import { ChatSetupToolkit } from "../../apps/server/src/mcp/toolkits/chatSetup/tools.ts";
 import { routinesGuide } from "../../apps/server/src/majordome/routinesGuide.ts";
 import { otherTopicsSection } from "../../apps/server/src/majordome/vaultContext.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
@@ -546,6 +547,7 @@ const t3SourceTools: ReadonlyArray<Tool.Any> = [
   PrivateDocumentsToolkit,
   SavedKeysToolkit,
   NotesSearchToolkit,
+  ChatSetupToolkit,
   MajordomeSettingsToolkit,
 ].flatMap((toolkit): ReadonlyArray<Tool.Any> => Object.values(toolkit.tools));
 // McpHttpServer decodes arguments with each tool's JSON codec, which drops undeclared keys.

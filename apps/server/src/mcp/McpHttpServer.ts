@@ -115,6 +115,8 @@ import { PrivateDocumentsToolkit } from "./toolkits/privateDocuments/tools.ts";
 import * as PrivateDocumentsHandlers from "./toolkits/privateDocuments/handlers.ts";
 import { SavedKeysToolkit } from "./toolkits/savedKeys/tools.ts";
 import * as SavedKeysHandlers from "./toolkits/savedKeys/handlers.ts";
+import { ChatSetupToolkit } from "./toolkits/chatSetup/tools.ts";
+import * as ChatSetupHandlers from "./toolkits/chatSetup/handlers.ts";
 import { NotesSearchToolkit } from "./toolkits/notesSearch/tools.ts";
 import { ReadingListToolkit } from "./toolkits/readingList/tools.ts";
 import { MajordomeSettingsToolkit } from "./toolkits/majordomeSettings/tools.ts";
@@ -1445,6 +1447,8 @@ const layerSavedKeysToolkit = toolkitRegistration(SavedKeysToolkit, SavedKeysHan
 
 const layerNotesSearchToolkit = toolkitRegistration(NotesSearchToolkit, NotesSearchHandlers.layer);
 
+const layerChatSetupToolkit = toolkitRegistration(ChatSetupToolkit, ChatSetupHandlers.layer);
+
 const layerReadingListToolkit = toolkitRegistration(ReadingListToolkit, ReadingListHandlers.layer);
 
 const layerMajordomeSettingsToolkit = toolkitRegistration(
@@ -1567,6 +1571,7 @@ export const layerTools = Layer.mergeAll(
   layerPrivateDocumentsToolkit,
   layerSavedKeysToolkit,
   layerNotesSearchToolkit,
+  layerChatSetupToolkit,
   layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
   layerMajordomeHiddenTools,

@@ -5,6 +5,21 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **Ask to see what the assistant has.** In any conversation, ask it to show what it knows, what
+  it can do and what it can reach. It draws one diagram of three groups: what it read before your
+  first message (your instructions, its skills, the memory note, today's note, this topic's notes
+  and the names of your other topics), what it can use (the connections of your AI account, and
+  its own tools), and what it can reach (this computer, your notes folder, the topic's files, your
+  saved keys and private documents, by name). The lists come from Majordome itself, not from what
+  the assistant believes about itself, and never show a key or the text of a note.
+
+**Try this**
+
+- In a topic, write "Show me a diagram of what you know, what you can do and what you have access
+  to here."
+
 **Changed**
 
 - **The iPhone app opens on a welcome.** A phone with no computer yet shows what Majordome is, in

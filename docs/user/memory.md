@@ -24,6 +24,10 @@ note. Say "remember this for everything" and it goes there.
 with, and the topics it only knows the standing of. A row opens its note. On the iPhone it is under
 the **i** at the top right of a chat.
 
+To see it drawn, with what the assistant can use (your connections) and what it can reach (your
+notes folder, saved keys and private documents, by name), ask in the chat: "Show me a diagram of
+what you know, what you can do and what you have access to."
+
 ## Tidy my memory
 
 "Tidy my memory" is a routine that does this for you. Every night at 3:30, by the clock of the
