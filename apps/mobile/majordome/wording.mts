@@ -412,4 +412,115 @@ export const MOBILE_WORDING: Wording = [
     "“{title}” will be permanently deleted, including its terminal history.",
     "“{title}” will be deleted for good.",
   ],
+
+  // A question Majordome asks, above the message box.
+  ["User input needed", "Majordome has a question"],
+  ["Fill in the pending answers", "Answer to carry on"],
+  ["Submit answers", "Send my answer"],
+  ["Dismiss without answering", "Close without answering"],
+  ["Or type a custom answer", "Or write your own answer"],
+  ["Collapse user input", "Hide the question"],
+  [
+    "{count, plural, one {Expand user input, {count} question} other {Expand user input, {count} questions}}",
+    "{count, plural, one {Show the question} other {Show the {count} questions}}",
+  ],
+  [
+    "The provider process for this request is no longer available. Interrupt or restart the run to continue.",
+    "This question can no longer be answered. Stop Majordome, then ask again.",
+  ],
+  [
+    "This connection cannot submit answers.",
+    "This phone isn't allowed to answer for that computer.",
+  ],
+
+  // Messages written while Majordome is still replying. Upstream calls them a queue.
+  ["Queued", "Waiting"],
+  ["Queued message", "Waiting message"],
+  ["{count, plural, other {{count} queued}}", "{count, plural, other {{count} waiting}}"],
+  [
+    "{count, plural, other {Open queue, {count} messages}}",
+    "{count, plural, other {Show the {count} waiting messages}}",
+  ],
+  [
+    "Opens queued messages to send now, edit, or remove",
+    "Shows the waiting messages, to send now, edit or remove",
+  ],
+  ["No messages waiting in this queue.", "No messages are waiting."],
+  ["Queue paused", "Waiting messages are on hold"],
+  ["Resume queue", "Send waiting messages"],
+  ["Could not resume queue", "Couldn't send the waiting messages"],
+  ["Could not send queued message", "Couldn't send this message"],
+  ["Actions for queued message {number}", "Actions for waiting message {number}"],
+  ["Send now, queued message {number}", "Send waiting message {number} now"],
+  ["Remove queued message", "Remove this waiting message"],
+  ["Editing queued message", "Editing a waiting message"],
+  ["Cancel editing queued message", "Cancel editing"],
+  ["Update queued message", "Save changes"],
+  ["Edit pending message", "Edit this message"],
+  ["Queued message not updated", "Your changes weren't saved"],
+  ["Could not save the queued message", "Couldn't save your message"],
+  ["A queued message cannot be left empty.", "A waiting message can't be left empty."],
+  [
+    "Failed to save the queued message.",
+    "Your message couldn't be saved. It is back in the message box: send it again.",
+  ],
+  ["The message could not be sent.", "Your message couldn't be sent. Try again."],
+  [
+    "The unsent message could not be restored.",
+    "A message that wasn't sent couldn't be put back in the message box.",
+  ],
+  [
+    "Remove attachments from the draft before restoring this message. Messages can contain at most {max} attachments.",
+    "A message that wasn't sent is waiting to come back. Remove some photos or files first: a message holds {max} at most.",
+  ],
+  ["Some queued messages could not be loaded", "Some waiting messages couldn't be loaded"],
+  [
+    "Unreadable records and attachment files are still saved. Other messages can still be sent.",
+    "They are still saved on this phone. Other messages can still be sent.",
+  ],
+
+  // Stopping a reply that does not stop.
+  ["Force stop the agent", "Stop anyway"],
+  ["Force stopping...", "Stopping…"],
+  ["Could not force stop the agent", "Couldn't stop Majordome. Try again."],
+  [
+    "It has not answered Stop. Force stop ends the turn and kills the agent's processes, unless other working threads share them.",
+    "Majordome hasn't stopped yet. Stopping anyway ends this reply at once, even if a step is half done.",
+  ],
+  ["Turn stopped; the agent process kept running", "Stopped. Other chats are still working."],
+  [
+    "{count, plural, =0 {It is shared with other working threads. Stop those to free it.} one {It is shared with {count} working thread. Stop those to free it.} other {It is shared with {count} working threads. Stop those to free it.}}",
+    "{count, plural, =0 {Other chats are still being answered. Stop them too if you want everything to stop.} one {{count} other chat is still being answered. Stop it too if you want everything to stop.} other {{count} other chats are still being answered. Stop them too if you want everything to stop.}}",
+  ],
+
+  // A long chat: the earlier messages are summarised so the AI can keep going.
+  ["Compacting context", "Summarising earlier messages…"],
+  ["Compacting…", "Summarising earlier messages…"],
+  ["Compacting before the cache expires…", "Summarising earlier messages…"],
+  ["Context compaction", "Earlier messages summarised"],
+  ["Context compacted", "Earlier messages summarised"],
+  ["Context compacted {before} → {after} tokens", "Earlier messages summarised"],
+  ["{title} {before} → {after} tokens", "{title}"],
+  ["Auto-compacted before cache expiry", "Earlier messages summarised"],
+  ["Context compacted before sending", "Earlier messages summarised"],
+  ["Context compacted after {age} idle", "Earlier messages summarised after {age} away"],
+  ["Context compaction failed", "Couldn't summarise the earlier messages"],
+  ["Context compaction stopped", "Stopped summarising the earlier messages"],
+
+  // The steps of a reply, and what could not be shown.
+  [
+    "{count, plural, one {Double tap to hide {count} tool call.} other {Double tap to hide {count} tool calls.}}",
+    "{count, plural, one {Double tap to hide {count} step.} other {Double tap to hide {count} steps.}}",
+  ],
+  [
+    "{count, plural, one {Double tap to show {count} tool call.} other {Double tap to show {count} tool calls.}}",
+    "{count, plural, one {Double tap to show {count} step.} other {Double tap to show {count} steps.}}",
+  ],
+  ["Couldn't load work. Tap to retry.", "Couldn't load the steps. Tap to retry."],
+  [
+    "This connection cannot read host files. Pair again with a new link to view it.",
+    "This phone isn't allowed to read files on your computer. Connect it again with a new code to see this.",
+  ],
+  ["Choose model", "Choose which AI"],
+  ["Model and reasoning settings", "Which AI answers"],
 ];

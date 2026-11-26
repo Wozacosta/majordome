@@ -30,9 +30,11 @@ export function MajordomeApprovalCard(props: ApprovalCardProps) {
   const choices = approvalChoices(approval.options, "decline");
   const warning = choices.find((choice) => choice.warning)?.warning;
   const canRespond = approval.responseCapability === "live";
-  const disabled =
-    !canRespond || !props.canOperateThread || props.respondingApprovalId === approval.requestId;
+  const responding = props.respondingApprovalId === approval.requestId;
+  const disabled = !canRespond || !props.canOperateThread || responding;
   const [explanationOpen, setExplanationOpen] = useState(false);
+  // The answer just tapped, so its button shows it is being sent while the others go quiet.
+  const [sentDecision, setSentDecision] = useState<ProviderApprovalDecision | null>(null);
   const question = approvalQuestion({
     kind: approval.requestKind,
     detail: approval.detail,
@@ -89,7 +91,11 @@ export function MajordomeApprovalCard(props: ApprovalCardProps) {
                   : "secondary"
             }
             disabled={disabled}
-            onPress={() => void props.onRespond(approval.requestId, choice.decision)}
+            loading={responding && sentDecision === choice.decision}
+            onPress={() => {
+              setSentDecision(choice.decision);
+              void props.onRespond(approval.requestId, choice.decision);
+            }}
             fullWidth
           />
         ))}

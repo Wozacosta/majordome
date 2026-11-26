@@ -103,7 +103,7 @@ function QueuedEditAttachmentChip(props: {
         accessibilityRole="button"
         accessibilityLabel={gt("Remove {name}", { name: attachment.name })}
         disabled={props.disabled}
-        hitSlop={8}
+        hitSlop={15}
         onPress={() => props.onRemove(attachment.id)}
         className="active:opacity-70 disabled:opacity-40"
       >

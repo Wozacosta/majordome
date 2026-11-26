@@ -166,6 +166,7 @@ const REVIEWED = [
   "apps/mobile/src/widgets/AgentActivity.tsx: Agent work failed",
   "apps/mobile/src/widgets/AgentActivityWidget.tsx: No active agents",
   // Error messages, shown and never compared.
+  "packages/client-runtime/src/state/assets.ts: This connection cannot read host files. Pair again with a new link to view it.",
   "packages/client-runtime/src/state/attachments.ts: The environment is not connected.",
   "packages/client-runtime/src/state/peerPairingCode.ts: The environment is not connected.",
 ];

@@ -552,7 +552,7 @@ function QueueAttachmentThumbnail(props: {
     <Pressable
       accessibilityRole="imagebutton"
       accessibilityLabel={gt("Open {name}", { name: props.attachment.name })}
-      hitSlop={6}
+      hitSlop={10}
       onPress={props.onPress}
       className="active:opacity-70"
     >

@@ -344,7 +344,8 @@ export function ComposerAttachmentStrip(props: ComposerAttachmentStripProps) {
                   top: removeButtonPlacement === "gutter" ? 0 : 4,
                   right: removeButtonPlacement === "gutter" ? 0 : 4,
                 }}
-                hitSlop={6}
+                // 22pt drawn, 44pt to touch: it sits on the corner of a picture that opens on tap.
+                hitSlop={11}
                 onPress={() => props.onRemove(attachment.id)}
               >
                 <SymbolView

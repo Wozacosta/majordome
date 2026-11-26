@@ -179,6 +179,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
       icon="stop.fill"
       variant="danger"
       className="h-9 w-9"
+      hitSlop={4}
       disabled={!props.canOperateThread}
       onPress={props.onStopThread}
     />

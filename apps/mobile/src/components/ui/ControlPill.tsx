@@ -17,6 +17,8 @@ export function ControlPill(props: {
   readonly variant?: "circle" | "pill" | "primary" | "danger";
   readonly disabled?: boolean;
   readonly className?: string;
+  /** Widens the touch area of a pill drawn smaller than 44pt. */
+  readonly hitSlop?: number;
 }) {
   const variant = props.variant ?? "circle";
   const { smallIconSize } = useAndroidControlSizing();
@@ -125,6 +127,7 @@ export function ControlPill(props: {
       onPressIn={props.activateOnPressIn ? handlePressIn : undefined}
       onPressOut={props.activateOnPressIn ? handlePressOut : undefined}
       disabled={props.disabled}
+      hitSlop={props.hitSlop}
       className={containerClassName}
     >
       {props.iconNode ? (
