@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import { ProjectId } from "@t3tools/contracts";
+import { msg } from "gt-react-native";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 
@@ -11,6 +12,7 @@ import { Menu } from "../components/ui/Menu";
 import { RowPressable } from "../components/ui/RowPressable";
 import { useSelectWorkspaceDetail } from "../features/layout/workspace/useSelectWorkspaceDetail";
 import { THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME } from "../features/threads/thread-list-v2-row-appearance";
+import { m } from "../i18n/messages";
 import { cn } from "../lib/cn";
 import { useEnvironmentQuery } from "../state/query";
 import { serverEnvironment } from "../state/server";
@@ -139,6 +141,27 @@ export function useChatListTopics(
     );
   };
 
+  const setRoutineHidden: ChatTopics["setRoutineHidden"] = (title, hidden) => {
+    updateTodayStore((current) => {
+      const others = (current.hiddenRoutines ?? []).filter((name) => name !== title);
+      return { ...current, hiddenRoutines: hidden ? [...others, title] : others };
+    });
+    if (!hidden) return;
+    // The way back is at the far end of the list, so say where it is and offer it here.
+    Dialog.alert(
+      m(msg("{title} is hidden from Chats", { title })),
+      m(
+        msg(
+          "It keeps running, and its chats are kept. Show it again from Hidden routines, at the bottom of this list.",
+        ),
+      ),
+      [
+        { text: m(msg("Undo")), onPress: () => setRoutineHidden(title, false) },
+        { text: m(msg("OK")) },
+      ],
+    );
+  };
+
   return {
     byThread,
     apart,
@@ -150,11 +173,7 @@ export function useChatListTopics(
     toggleSideChats,
     routineOf: routineOfStable,
     hiddenRoutines,
-    setRoutineHidden: (title, hidden) =>
-      updateTodayStore((current) => {
-        const others = (current.hiddenRoutines ?? []).filter((name) => name !== title);
-        return { ...current, hiddenRoutines: hidden ? [...others, title] : others };
-      }),
+    setRoutineHidden,
     open: (topic) => (topic.threadId === null ? void start(topic.id, false) : show(topic.threadId)),
     startSideChat: (topic) => void start(topic.id, true),
     setFinished: (topic, done) => void setFinished(topic, done),

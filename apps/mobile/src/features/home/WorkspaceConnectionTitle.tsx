@@ -124,7 +124,7 @@ export function WorkspaceConnectionTitle(props: {
         accessibilityLabel={status.label}
         accessibilityRole="button"
         disabled={props.onPress === undefined}
-        hitSlop={8}
+        hitSlop={12}
         onPress={props.onPress}
         className="flex-row items-center gap-2"
         style={[
