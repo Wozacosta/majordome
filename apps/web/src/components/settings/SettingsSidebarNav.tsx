@@ -331,7 +331,7 @@ export function SettingsSidebarNav({
           <div className="flex flex-col gap-2">
             <div
               className={cn(
-                "flex h-8 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground",
+                "flex h-8 items-center gap-2 rounded-md bg-sidebar-control-surface px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground hover:text-sidebar-foreground focus-within:text-sidebar-foreground focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring/70",
                 rail && "max-md:hidden",
               )}
             >

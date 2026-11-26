@@ -5,7 +5,14 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **The search box in Settings stands out.** It has its own shade, lighter or darker than the
+  list under it, and a thin outline while you type in it.
+
+**Try this**
+
+- Open Settings and look at **Search** above the list of pages.
 
 ## 0.10.76
 
