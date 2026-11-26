@@ -102,10 +102,13 @@ function SignedIn() {
     ]);
   };
 
+  // Only said after a check: the card above already says the account is empty.
+  const [checkedOnce, setCheckedOnce] = useState(false);
   const checkAgain = async () => {
     setChecking(true);
     await user?.reload().catch(() => undefined);
     setChecking(false);
+    setCheckedOnce(true);
   };
 
   return (
@@ -128,6 +131,11 @@ function SignedIn() {
               {MAJORDOME_ACCOUNT.noComputerTitle}
             </Text>
             <Text className="text-foreground-muted">{MAJORDOME_ACCOUNT.noComputer}</Text>
+            {checkedOnce && !checking ? (
+              <Text accessibilityLiveRegion="polite" className="text-foreground">
+                {MAJORDOME_ACCOUNT.stillNoComputer}
+              </Text>
+            ) : null}
             <Button
               label={MAJORDOME_ACCOUNT.checkAgain}
               tone="primary"
