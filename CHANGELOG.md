@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.76
+
 **New**
 
 - **An icon for the map of what the assistant has.** The three linked dots at the top of a chat ask
