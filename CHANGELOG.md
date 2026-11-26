@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.59
+
 **New**
 
 - **Chats have their own background.** A chat now sits one step lighter than the pages around it,
