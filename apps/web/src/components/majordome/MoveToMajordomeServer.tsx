@@ -56,7 +56,7 @@ export function MoveToMajordomeServer({
     const connection = readPreparedConnection(server);
     if (connection === null || !readEnvironmentScope(server, AuthAccessWriteScope)) {
       setError(
-        "This app is not allowed to do this on your Majordome server. Add the server again in Computers with a new code, then try again.",
+        "This app is not allowed to do this on your Majordome server. Remove it from this app at the top of this page, add it again with a new code, then try again.",
       );
       return;
     }
@@ -121,14 +121,9 @@ export function MoveToMajordomeServer({
               here, sign in with the same account and connect the server listed there
             </>
           ) : (
-            <>
-              add the server to this app in{" "}
-              <Link to="/settings/connections" className="underline underline-offset-2">
-                Computers
-              </Link>
-            </>
+            <>add the server to this app with Add a computer, at the top of this page</>
           )}
-          . Come back to this page and it offers to move your notes.
+          . This page then offers to move your notes.
         </Muted>
       ) : (
         <>

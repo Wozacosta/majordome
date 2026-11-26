@@ -1,4 +1,4 @@
-# Your server
+# Your servers
 
 Majordome runs on your computer by default, so routines like "Start my day" only run while it is
 awake. A server of your own is a small computer you rent that never sleeps. Majordome runs there
@@ -10,7 +10,14 @@ the server by itself the next time you open the app there, with everything said 
 and files in it are not moved. The copy left on the computer goes to Settings > Archived chats.
 While the server can't be reached, new conversations wait until it is back.
 
-**Settings > Your server** starts with the way that needs the least: with an invite code,
+**Settings > Your servers** first lists every server the app is connected to: whether the app can
+reach it, whether it has a copy of your notes and runs your routines, and whether it is signed in
+to your AI. **Add a computer** adds a server you already have, with its address and a one-time
+code. **Remove from this app** makes the app forget a server; the server keeps running. A server
+the page set up for you, or moved your notes to, is removed further down the page instead, so
+your notes come back first.
+
+Under the list, the page starts with the way that needs the least: with an invite code,
 [Majordome hosts the server](#let-majordome-host-it), with nothing to rent or install. The rest
 of the page rents one in your name. For that you need:
 
@@ -128,7 +135,7 @@ move would be lost.
 ## Do it by hand
 
 For any other provider, or if you prefer a terminal. In the app, these steps are at the bottom of
-**Settings > Your server**.
+**Settings > Your servers**.
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.
@@ -190,7 +197,7 @@ For any other provider, or if you prefer a terminal. In the app, these steps are
    not your password.
 
 6. **Connect.** Get a one-time code with `docker compose exec majordome majord pair`.
-   - On your computer, open **Settings > Advanced > Computers**, add one, and enter
+   - On your computer, open **Settings > Your servers**, press **Add a computer**, and enter
      `majordome.<your-tailnet>.ts.net` and the code. Your Tailscale address is on
      [Tailscale's machines page](https://login.tailscale.com/admin/machines).
    - On your phone, open `https://majordome.<your-tailnet>.ts.net`, enter a new code, and add it to
@@ -231,7 +238,7 @@ If your notes are already on your computer, skip step 4 and move them instead:
 
 1. In the Mac app, open **Settings > Your account**, sign in with the same account, and press
    **Connect** next to the server.
-2. Open **Settings > Your server** and, under **Let Majordome host it**, press **Move my notes
+2. Open **Settings > Your servers** and, under **Let Majordome host it**, press **Move my notes
    to your Majordome server**.
 
 Your notes are copied with their whole history, and from then on the two copies follow each

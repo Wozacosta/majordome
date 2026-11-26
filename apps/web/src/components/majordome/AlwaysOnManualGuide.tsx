@@ -74,12 +74,9 @@ export function AlwaysOnManualGuide() {
       <Step title="Connect this computer and your phone">
         Get a one-time code:
         <CommandBlock command="docker compose exec majordome majord pair" />
-        Here, open{" "}
-        <Link to="/settings/connections" className="underline underline-offset-2">
-          {messages(SETTINGS_SECTION_LABELS["/settings/connections"])}
-        </Link>{" "}
-        and add one with the host majordome.your-tailnet.ts.net (your Tailscale address) and the
-        code. On your phone, open https://majordome.your-tailnet.ts.net and enter a new code.
+        Here, press Add a computer at the top of this page and give the host
+        majordome.your-tailnet.ts.net (your Tailscale address) and the code. On your phone, open
+        https://majordome.your-tailnet.ts.net and enter a new code.
       </Step>
       <Step title="Finish on the server">
         On the server's Majordome: in Back up my brain, press Sign in to GitHub so it can save your

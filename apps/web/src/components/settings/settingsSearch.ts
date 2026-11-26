@@ -140,7 +140,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/skills": msg("Skills"),
   "/settings/phone": msg("Phone & notifications"),
   "/settings/account": msg("Your account"),
-  "/settings/always-on": msg("Your server"),
+  "/settings/always-on": msg("Your servers"),
 };
 
 /** Coding settings Majordome leaves out of the sidebar and search. */
@@ -1373,7 +1373,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "majordome-always-on",
-    title: msg("Your server"),
+    title: msg("Your servers"),
     to: "/settings/always-on",
     majordomeOnly: true,
     searchTerms: [

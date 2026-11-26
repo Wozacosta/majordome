@@ -28,6 +28,12 @@ The section for a version is also the text of its release on GitHub.
   code and the Connect button, and Return on the address takes you to the code.
 - **On the phone, allow, and see it register.** The answer you tap on an approval shows it is
   being sent.
+- **"Your server" is now "Your servers", and lists all of them.** The page used to show only the
+  one server it had set up or moved your notes to. It now starts with every server this app is
+  connected to: its address, whether the app can reach it, whether it has a copy of your notes
+  and runs your routines, and whether it is signed in to an AI account. **Add a computer** adds
+  one you already have, and **Remove from this app** forgets one, without a visit to Advanced,
+  Computers. With several servers, the steps below say which one they are about.
 
 **Fixed**
 
@@ -55,6 +61,8 @@ The section for a version is also the text of its release on GitHub.
 - Go to Settings, Computers, Add a computer, tap Address and check the Connect button stays
   above the keyboard. Then open a computer's details, change its name and tap Save once.
 - Open Settings, then Labs: two switches are left, Linked computers and Suggest my next message.
+- Open Settings, then Your servers. Each server is there with what is on it, and the sections
+  under the list name the server they are about ("What is left on your Majordome server").
 - Open Settings, About and select **See what's new**.
 - After the next update, look at the top right of the window when the app opens.
 

@@ -88,7 +88,10 @@ The landing page and the README show a short version of this list.
   and one button to move the notes on your computer to it.
 - **A server of your own, set up for you:** a small rented computer that keeps your conversations
   and runs routines while your Mac sleeps, and updates itself every night.
-  [Your server](./user/always-on-server.md)
+  [Your servers](./user/always-on-server.md)
+- **One page for your servers, in plain words:** each server with what is on it (your notes, your
+  routines, an AI account), a way to add one and to remove one. T3 Code's map of machines and
+  routes stays under Advanced, Computers.
 - **An optional account that finds your servers:** sign in on a new device, in the app or at
   majord.me/open, and it connects with no code. It is identity only, and separate from T3
   Connect, which stays off. [Your account](./user/account.md)

@@ -45,7 +45,7 @@ import {
   HOSTED_START_URL,
   MoveToMajordomeServer,
 } from "./MoveToMajordomeServer";
-import { isHostedServer } from "./brains.logic";
+import { isHostedServer, machineInSentence } from "./brains.logic";
 import { useMachineNames } from "./useMachineNames";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
@@ -76,6 +76,8 @@ import {
   serverSummary,
 } from "./serverMove.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
+import { useServers, YourServers } from "./YourServers";
+import type { ServerRow } from "./servers.logic";
 
 const HETZNER_CONSOLE_URL = "https://console.hetzner.com/";
 const TAILSCALE_TAGS_URL = "https://login.tailscale.com/admin/acls";
@@ -133,10 +135,18 @@ const HOSTED_INTRO: Record<ServerMoveView, string> = {
     "Majordome is bringing your notes and routines back to this computer. Your Majordome server is left as it is.",
 };
 
-/** Set up a rented server that never sleeps from here, or follow the guide to do it by hand. */
+/** With servers already there and none set up from here, the page first says what they are. */
+const SERVERS_INTRO =
+  "A server is a computer that never sleeps: it keeps a copy of your notes, runs your routines on time and answers your phone. These are the ones this app is connected to. Below, Majordome can host one for you, or you can rent your own.";
+
+/**
+ * Every server this app is connected to, and the way to get one: let Majordome host it, rent one
+ * from here, or follow the guide to do it by hand.
+ */
 export function AlwaysOnServerPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   const { machineOf } = useMachineNames();
+  const servers = useServers();
   // Someone on a server Majordome hosts already has what this page sets up.
   if (environmentId !== null && isHostedServer(machineOf(environmentId))) {
     return (
@@ -144,17 +154,18 @@ export function AlwaysOnServerPage() {
         searchId="majordome-always-on"
         intro="Majordome hosts your server. It never sleeps, so your routines run on time and your phone can always reach it. There is nothing to set up here."
       >
-        {null}
+        <YourServers servers={servers} managedId={null} />
       </MajordomeSettingsPage>
     );
   }
   return environmentId === null ? (
     <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
+      <YourServers servers={servers} managedId={null} />
       <HostedWay environmentId={null} />
       <ManualGuide />
     </MajordomeSettingsPage>
   ) : (
-    <ServerMovePage environmentId={environmentId} />
+    <ServerMovePage environmentId={environmentId} servers={servers} />
   );
 }
 
@@ -186,7 +197,13 @@ function ManualGuide() {
   );
 }
 
-function ServerMovePage({ environmentId }: { readonly environmentId: EnvironmentId }) {
+function ServerMovePage({
+  environmentId,
+  servers,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly servers: ReadonlyArray<ServerRow>;
+}) {
   const result = useAtomValue(majordomeEnvironment.serverMove({ environmentId, input: {} }));
   const canManage = useAtomValue(
     majordomeEnvironment.serverMoveStart.permissionAtom(environmentId),
@@ -196,12 +213,19 @@ function ServerMovePage({ environmentId }: { readonly environmentId: Environment
   return (
     <MajordomeSettingsPage
       searchId="majordome-always-on"
-      intro={status?.move?.hosted === true ? HOSTED_INTRO[view] : INTRO[view]}
+      intro={
+        status?.move?.hosted === true
+          ? HOSTED_INTRO[view]
+          : view === "setup" && servers.length > 0
+            ? SERVERS_INTRO
+            : INTRO[view]
+      }
     >
       {/* What a removal did comes before any offer to set one up again. */}
       {view === "setup" && canManage && status !== null && status.removal !== null ? (
         <RemovalSummary removal={status.removal} />
       ) : null}
+      <YourServers servers={servers} managedId={status?.move?.server?.environmentId ?? null} />
       {view === "setup" ? <HostedWay environmentId={environmentId} /> : null}
       {!canManage ? (
         <Section>
@@ -793,6 +817,7 @@ function ReadyPanel({
   const serverId = move.server?.environmentId ?? null;
   const hosted = move.hosted === true;
   const { environments, isReady } = useEnvironments();
+  const { machineOf } = useMachineNames();
   const providers = useEnvironmentProviders();
   const saved = serverId !== null && environments.some((entry) => entry.environmentId === serverId);
   const providerReady = serverId !== null && hasReadyProvider(providers.get(serverId));
@@ -877,19 +902,29 @@ function ReadyPanel({
       </Link>
     );
 
+  // Once it is in this app, the list above names it; the sections below then say which one.
+  const named = saved && serverId !== null ? machineInSentence(machineOf(serverId)) : null;
+
   return (
     <>
-      <Section label="Your server">
-        <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
-          Running at <span className="font-medium break-all">{move.server?.url}</span>, with your
-          notes on it.
-          {hosted
-            ? " Majordome looks after it for you."
-            : " Only your devices on your Tailscale network can reach it."}
-        </StatusLine>
-        {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
-      </Section>
-      <Section label={next === "done" ? "Done" : "What is left"}>
+      {/* The list above already says where a hosted one is and who looks after it. */}
+      {named !== null && hosted ? null : (
+        <Section label={named === null ? "Your server" : `About ${named}`}>
+          <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
+            Running at <span className="font-medium break-all">{move.server?.url}</span>, with your
+            notes on it.
+            {hosted
+              ? " Majordome looks after it for you."
+              : " Only your devices on your Tailscale network can reach it."}
+          </StatusLine>
+          {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
+        </Section>
+      )}
+      <Section
+        label={
+          next === "done" ? "Done" : named === null ? "What is left" : `What is left on ${named}`
+        }
+      >
         <Steps>
           <Step title="Add it to this app">
             {saved ? (

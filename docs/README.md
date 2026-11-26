@@ -30,7 +30,7 @@
 - [Running in the background](./user/background-service.md)
 - [Phone and notifications](./user/phone-and-notifications.md)
 - [Your account](./user/account.md)
-- [Your server](./user/always-on-server.md)
+- [Your servers](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)
 - [Backing up and restoring your notes](./user/backup.md)
 - [Searching your notes](./user/notes-search.md)
