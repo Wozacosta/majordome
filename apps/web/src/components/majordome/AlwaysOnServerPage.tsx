@@ -920,80 +920,92 @@ function ReadyPanel({
           {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
         </Section>
       )}
-      <Section
-        label={
-          next === "done" ? "Done" : named === null ? "What is left" : `What is left on ${named}`
-        }
-      >
-        <Steps>
-          <Step title="Add it to this app">
-            {saved ? (
-              <StatusLine tone="ok">It is in this app. Its chats show beside yours.</StatusLine>
-            ) : busy === "add" ? (
-              <StatusLine tone="neutral">
-                <span className="inline-flex items-center gap-2">
-                  <Spinner size="sm" /> Adding it…
-                </span>
-              </StatusLine>
-            ) : (
-              <>
-                {addError === null ? null : <StatusLine tone="error">{addError}</StatusLine>}
-                <Button size="xs" variant="outline" onClick={() => void addToApp()}>
-                  Add it to this app
-                </Button>
-              </>
-            )}
-          </Step>
-          <Step title="Sign in to Claude on the server">
-            {providerReady ? (
-              <StatusLine tone="ok">Signed in.</StatusLine>
-            ) : (
-              <>
-                Sign-ins are not copied: each computer has its own. Open the server's {accountsPage}{" "}
-                page, choose Sign in to Claude (or Continue with ChatGPT), and follow the link it
-                shows.
-                {saved ? <span className="block">{signInLink}</span> : null}
-              </>
-            )}
-          </Step>
-          <Step title="Move routines to the server">
-            {move.routinesOnServer ? (
-              <StatusLine tone="ok">
-                Routines run on the server, whether this computer is awake or not.
-              </StatusLine>
-            ) : (
-              <>
-                Until then they keep running on this computer.
-                {routinesError === null ? null : (
-                  <StatusLine tone="error">{routinesError}</StatusLine>
-                )}
-                <span className="block">
-                  <Button
-                    size="xs"
-                    disabled={busy !== null || next !== "move-routines"}
-                    onClick={() => void doMoveRoutines()}
-                  >
-                    {busy === "routines" ? <Spinner size="sm" /> : null}
-                    Move routines now
+      {/* Setting up is a job with an end: once it is over, one line says so. */}
+      {next === "done" ? (
+        <Section label="Setup">
+          <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
+            Finished: {named ?? "your server"} is in this app, signed in to your AI, and runs your
+            routines.
+          </StatusLine>
+          <Muted className={`mt-1 ${READING_MEASURE_CLASS}`}>
+            Your phone can reach it from anywhere, with nothing to install on it.{" "}
+            <Link to="/settings/phone" className="underline underline-offset-2">
+              Set up your phone
+            </Link>
+          </Muted>
+        </Section>
+      ) : (
+        <Section label={`Finish setting up ${named ?? "your server"}`}>
+          <Steps>
+            <Step title="Add it to this app">
+              {saved ? (
+                <StatusLine tone="ok">It is in this app. Its chats show beside yours.</StatusLine>
+              ) : busy === "add" ? (
+                <StatusLine tone="neutral">
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" /> Adding it…
+                  </span>
+                </StatusLine>
+              ) : (
+                <>
+                  {addError === null ? null : <StatusLine tone="error">{addError}</StatusLine>}
+                  <Button size="xs" variant="outline" onClick={() => void addToApp()}>
+                    Add it to this app
                   </Button>
-                </span>
-              </>
-            )}
-          </Step>
-          <Step title="Set up your phone">
-            {move.routinesOnServer ? (
-              <>
-                Your phone can reach the server from anywhere, with nothing to install on it.{" "}
-                <Link to="/settings/phone" className="underline underline-offset-2">
-                  Set up your phone
-                </Link>
-              </>
-            ) : (
-              "Once routines run on the server, this step links to the page that sets up your phone on it."
-            )}
-          </Step>
-        </Steps>
-      </Section>
+                </>
+              )}
+            </Step>
+            <Step title="Sign in to Claude on the server">
+              {providerReady ? (
+                <StatusLine tone="ok">Signed in.</StatusLine>
+              ) : (
+                <>
+                  Sign-ins are not copied: each computer has its own. Open the server's{" "}
+                  {accountsPage} page, choose Sign in to Claude (or Continue with ChatGPT), and
+                  follow the link it shows.
+                  {saved ? <span className="block">{signInLink}</span> : null}
+                </>
+              )}
+            </Step>
+            <Step title="Move routines to the server">
+              {move.routinesOnServer ? (
+                <StatusLine tone="ok">
+                  Routines run on the server, whether this computer is awake or not.
+                </StatusLine>
+              ) : (
+                <>
+                  Until then they keep running on this computer.
+                  {routinesError === null ? null : (
+                    <StatusLine tone="error">{routinesError}</StatusLine>
+                  )}
+                  <span className="block">
+                    <Button
+                      size="xs"
+                      disabled={busy !== null || next !== "move-routines"}
+                      onClick={() => void doMoveRoutines()}
+                    >
+                      {busy === "routines" ? <Spinner size="sm" /> : null}
+                      Move routines now
+                    </Button>
+                  </span>
+                </>
+              )}
+            </Step>
+            <Step title="Set up your phone">
+              {move.routinesOnServer ? (
+                <>
+                  Your phone can reach the server from anywhere, with nothing to install on it.{" "}
+                  <Link to="/settings/phone" className="underline underline-offset-2">
+                    Set up your phone
+                  </Link>
+                </>
+              ) : (
+                "Once routines run on the server, this step links to the page that sets up your phone on it."
+              )}
+            </Step>
+          </Steps>
+        </Section>
+      )}
       <Section label={hosted ? "Bring your notes back" : "Remove this server"}>
         <Muted className={READING_MEASURE_CLASS}>
           {hosted

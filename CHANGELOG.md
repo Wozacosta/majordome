@@ -5,7 +5,17 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Your servers no longer shows a finished checklist under "Done".** The steps to set a server
+  up are now called "Finish setting up your Majordome server" (or your server's name) and show
+  only while something is left. Once it is all done, a short "Setup" section says so in one
+  line, with the link to set up your phone.
+
+**Try this**
+
+- Open Settings, Your servers. With a server fully set up, the four numbered steps are gone and
+  "Setup" says it is finished.
 
 ## 0.10.61
 
