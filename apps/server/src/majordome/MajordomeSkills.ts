@@ -22,7 +22,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import type * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { readVaultLayout } from "./vaultConfig.ts";
 import * as VaultLock from "./VaultLock.ts";
-import { keepProposedSkill, readVaultSkills, removeSkill } from "./vaultSkills.ts";
+import { keepProposedSkill, readVaultSkillsWithOrigins, removeSkill } from "./vaultSkills.ts";
 
 export class MajordomeSkills extends Context.Service<
   MajordomeSkills,
@@ -83,7 +83,7 @@ const make = Effect.gen(function* () {
     function* (input) {
       const vaultRoot = yield* vaultRootOf(input.projectId);
       if (vaultRoot === undefined) return { isVault: false, proposed: [], skills: [] };
-      return { isVault: true, ...(yield* readVaultSkills(vaultRoot)) };
+      return { isVault: true, ...(yield* readVaultSkillsWithOrigins(vaultRoot)) };
     },
     Effect.provide(services),
     Effect.mapError(

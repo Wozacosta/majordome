@@ -5,6 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **Skills you can browse.** The Skills page is now one short line per skill: its name, when it is
+  used, and whether your assistant wrote it or it came from Majordome. A search finds one by name,
+  tabs narrow to one origin with a count each, and clicking a skill shows its steps as readable
+  text. Skills waiting for your yes stay on top. One you stopped using now sits under **Off** with
+  **Use again**, apart from the ones your assistant just wrote. Skills is also under the three
+  dots, where you can pin it.
+
 **Fixed**
 
 - **The search box in Settings stands out.** It has its own shade, lighter or darker than the
@@ -12,6 +21,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Open **Skills** from the three dots, type a word in **Search skills**, then click a skill to
+  read its steps.
 - Open Settings and look at **Search** above the list of pages.
 
 ## 0.10.76

@@ -13,6 +13,7 @@ import {
   keepProposedSkill,
   parseSkill,
   readVaultSkills,
+  readVaultSkillsWithOrigins,
   removeSkill,
 } from "./vaultSkills.ts";
 import { commitAll, gitIn, makeVault } from "./vaultTestRepos.ts";
@@ -215,6 +216,75 @@ it.layer(testLayer)("vault skills", (it) => {
       assert.equal(yield* gitIn(root, ["log", "-1", "--format=%s"]), "Deleted a skill: recap");
       assert.deepEqual(yield* readVaultSkills(root), { skills: [], proposed: [] });
       assert.equal(yield* gitIn(root, ["status", "--porcelain"]), "");
+    }),
+  );
+
+  it.effect("tells who wrote a skill and which the owner stopped using, from the history", () =>
+    Effect.gen(function* () {
+      // "recap" comes with Majordome; "tax-letter" was put there by hand.
+      const { root, fs } = yield* makeVaultWithSkill();
+      const write = (folder: string, name: string, body: string) =>
+        fs
+          .makeDirectory(`${root}/${folder}/${name}`, { recursive: true })
+          .pipe(
+            Effect.andThen(
+              fs.writeFileString(`${root}/${folder}/${name}/SKILL.md`, skill(name, body)),
+            ),
+          );
+      yield* write(SKILLS_DIR, "tax-letter", "Answer the letter.");
+      yield* commitAll(root, "my own skill");
+      // A run writes two skills and a new version of one in use; the owner keeps one.
+      yield* write(SKILLS_DIR, "file-receipts", "Rename the scan.");
+      yield* write(SKILLS_DIR, "meal-plan", "Plan seven dinners.");
+      yield* write(SKILLS_DIR, "recap", "List the decisions first.");
+      yield* commitVaultRun({ cwd: root, message: "majordome: Receipts" });
+      assert.isTrue(yield* keepProposedSkill({ vaultRoot: root, name: "file-receipts" }));
+      const states = Effect.map(readVaultSkillsWithOrigins(root), ({ skills, proposed }) => ({
+        skills: skills.map((entry) => [entry.name, entry.source]),
+        proposed: proposed.map((entry) => [entry.name, entry.source, entry.stopped]),
+      }));
+
+      assert.deepEqual(yield* states, {
+        skills: [
+          ["file-receipts", "assistant"],
+          ["recap", "majordome"],
+          ["tax-letter", "other"],
+        ],
+        proposed: [
+          ["meal-plan", "assistant", false],
+          ["recap", "assistant", false],
+        ],
+      });
+
+      // Stopping one keeps who wrote it; the new version of "recap" still waits for a first yes.
+      assert.isTrue(
+        yield* removeSkill({ vaultRoot: root, name: "file-receipts", proposed: false }),
+      );
+      assert.isTrue(yield* removeSkill({ vaultRoot: root, name: "tax-letter", proposed: false }));
+      assert.isTrue(yield* removeSkill({ vaultRoot: root, name: "recap", proposed: false }));
+      assert.deepEqual(yield* states, {
+        skills: [],
+        proposed: [
+          ["file-receipts", "assistant", true],
+          ["meal-plan", "assistant", false],
+          ["recap", "assistant", false],
+          ["tax-letter", "other", true],
+        ],
+      });
+
+      // Using one again is a yes like any other, and it is no longer "stopped".
+      assert.isTrue(yield* keepProposedSkill({ vaultRoot: root, name: "tax-letter" }));
+      assert.isTrue(yield* keepProposedSkill({ vaultRoot: root, name: "recap" }));
+      assert.deepEqual(yield* states, {
+        skills: [
+          ["recap", "assistant"],
+          ["tax-letter", "other"],
+        ],
+        proposed: [
+          ["file-receipts", "assistant", true],
+          ["meal-plan", "assistant", false],
+        ],
+      });
     }),
   );
 });

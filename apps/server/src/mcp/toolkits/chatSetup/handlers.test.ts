@@ -127,7 +127,15 @@ const layerSetup = Effect.fn("test.layerSetup")(function* (input: {
     Layer.mock(MajordomeSkills.MajordomeSkills)({
       list: () =>
         readVaultSkills(input.notes).pipe(
-          Effect.map((skills) => ({ isVault: true, ...skills })),
+          Effect.map(({ skills, proposed }) => ({
+            isVault: true,
+            skills: skills.map((entry) => ({ ...entry, source: "other" as const })),
+            proposed: proposed.map((entry) => ({
+              ...entry,
+              source: "assistant" as const,
+              stopped: false,
+            })),
+          })),
           Effect.provide(services),
           Effect.orDie,
         ),

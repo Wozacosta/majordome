@@ -16,18 +16,25 @@ something that keeps coming back.
 A skill steers every later conversation and routine, including the ones that run while you are
 away. So a skill your assistant wrote is not used until you keep it.
 
-Open **Settings > Skills**. Under **Waiting for your yes**, choose **Read it** to see the exact
-steps, then **Keep** or **Delete**. A new version of a skill you already have says that it replaces
-the one in use.
+Open **Skills** from the three dots in the sidebar, or **Settings > Skills**. Under **Waiting for
+your yes**, click a skill to read its exact steps, then **Keep** or **Delete**. A new version of a
+skill you already have says that it replaces the one in use.
 
 This holds whatever the assistant was told: at the end of every conversation and routine, anything
 written straight into the skills folder is moved back to the waiting list, and a skill it deleted is
 put back.
 
+## Finding one
+
+Each skill is one line: its name, when it is used, and where it comes from. **By your assistant**
+is one it wrote; **From Majordome** is one that came with the app. Type in **Search skills** to find
+one by its name or by when it is used, or pick a tab to see the skills of one origin. Click a skill
+to read its steps.
+
 ## Stop using one
 
-**Stop using** on a skill moves it back to the waiting list. **Keep** brings it back; **Delete**
-removes it. Each decision is saved in your notes' history.
+**Stop using** moves a skill under **Off**. **Use again** brings it back; **Delete** removes it.
+Each decision is saved in your notes' history.
 
 ## Where they live
 

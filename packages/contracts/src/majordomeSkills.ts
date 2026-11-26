@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
 import { ProjectId } from "./baseSchemas.ts";
@@ -11,12 +12,21 @@ const MajordomeSkillName = Schema.String.check(
 export const MajordomeSkillsInput = Schema.Struct({ projectId: ProjectId });
 export type MajordomeSkillsInput = typeof MajordomeSkillsInput.Type;
 
+/**
+ * Where a skill's text comes from, as the notes' history tells it: the assistant wrote it, it came
+ * with Majordome, or neither is known (put there by hand, or by another tool).
+ */
+export const MajordomeSkillSource = Schema.Literals(["assistant", "majordome", "other"]);
+export type MajordomeSkillSource = typeof MajordomeSkillSource.Type;
+
 export const MajordomeSkill = Schema.Struct({
   name: Schema.String,
   /** When the assistant uses it, from the skill's own header; empty when it has none. */
   description: Schema.String,
   /** The instructions themselves, cut when very long. */
   text: Schema.String,
+  /** A server from before this field says nothing, which reads as "other". */
+  source: MajordomeSkillSource.pipe(Schema.withDecodingDefault(Effect.succeed("other" as const))),
 });
 export type MajordomeSkill = typeof MajordomeSkill.Type;
 
@@ -24,6 +34,8 @@ export const MajordomeProposedSkill = Schema.Struct({
   ...MajordomeSkill.fields,
   /** True when keeping it replaces a skill of the same name. */
   replaces: Schema.Boolean,
+  /** True when the owner stopped using it; false when it has never had their yes. */
+  stopped: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
 });
 export type MajordomeProposedSkill = typeof MajordomeProposedSkill.Type;
 

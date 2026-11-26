@@ -5,7 +5,11 @@
  * a run ends, and holds back the vault's instructions, config and agent settings the same way.
  */
 
-import type { MajordomeProposedSkill, MajordomeSkill } from "@t3tools/contracts";
+import type {
+  MajordomeProposedSkill,
+  MajordomeSkill,
+  MajordomeSkillSource,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -13,6 +17,7 @@ import * as Path from "effect/Path";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { PROPOSED_SKILLS_DIR, SKILLS_DIR } from "./skillsGuide.ts";
+import starter from "./starterNotes.json" with { type: "json" };
 import { identityEnv, ownerIdentity } from "./vaultAutosave.ts";
 import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 
@@ -20,6 +25,14 @@ import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
 const CLAUDE_SKILLS_DIR = ".claude/skills";
 const SKILL_FILE = "SKILL.md";
 const SKILL_TEXT_MAX = 20_000;
+
+/** The subjects of the owner's decisions in the vault's history, which `skillOrigins` reads back. */
+const KEPT = "Kept a skill";
+const STOPPED = "Stopped using a skill";
+const DELETED = "Deleted a skill";
+const STARTER_SKILLS: ReadonlySet<string> = new Set(Object.keys(starter.skills));
+/** Far more decisions and runs than a vault's skills see; older history is not read. */
+const HISTORY_MAX = 1_000;
 
 /** Flat names with `.txt` added, so nothing in it reads as an instruction file or a settings folder. */
 export const HELD_BACK_DIR = ".agents/held-back";
@@ -75,7 +88,7 @@ const readSkillsIn = Effect.fn("majordome.readSkillsIn")(function* (folder: stri
   const names = yield* fileSystem
     .readDirectory(folder)
     .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-  const skills: Array<MajordomeSkill> = [];
+  const skills: Array<Omit<MajordomeSkill, "source">> = [];
   for (const name of names.toSorted((left, right) => left.localeCompare(right))) {
     const file = yield* fileSystem
       .readFileString(path.join(folder, name, SKILL_FILE))
@@ -94,6 +107,81 @@ const readSkillsIn = Effect.fn("majordome.readSkillsIn")(function* (folder: stri
   return skills;
 });
 
+type SkillCommit = { readonly subject: string; readonly paths: ReadonlyArray<string> };
+
+/** The commits that touched a skill, in use or waiting, newest first. Empty when git cannot say. */
+const skillHistory = Effect.fn("majordome.skillHistory")(function* (vaultRoot: string) {
+  const git = yield* GitVcsDriver.GitVcsDriver;
+  const log = yield* git
+    .execute({
+      operation: "majordome.skillHistory",
+      cwd: vaultRoot,
+      args: [
+        "-c",
+        "core.quotePath=false",
+        "log",
+        `--max-count=${HISTORY_MAX}`,
+        "--no-renames",
+        "--name-only",
+        "--format=%x01%s%x02",
+        "--",
+        SKILLS_DIR,
+        PROPOSED_SKILLS_DIR,
+      ],
+      allowNonZeroExit: true,
+    })
+    .pipe(Effect.orElseSucceed(() => ({ stdout: "" })));
+  return log.stdout
+    .split("\u0001")
+    .slice(1)
+    .map((entry): SkillCommit => {
+      const [subject = "", files = ""] = entry.split("\u0002");
+      return { subject, paths: files.split("\n").filter((line) => line !== "") };
+    });
+});
+
+/**
+ * Where the text of a skill comes from, and whether the owner stopped using it. A skill moves
+ * between the two folders with each decision, so its text is followed back through them to the
+ * commit that wrote it: a run's, in the waiting folder, means the assistant did.
+ */
+function skillOrigin(
+  history: ReadonlyArray<SkillCommit>,
+  name: string,
+  proposed: boolean,
+): { readonly source: MajordomeSkillSource; readonly stopped: boolean } {
+  const folderOrigin = STARTER_SKILLS.has(name) ? "majordome" : "other";
+  let waiting = proposed;
+  let stopped = false;
+  let first = true;
+  for (const commit of history) {
+    const folder = `${waiting ? PROPOSED_SKILLS_DIR : SKILLS_DIR}/${name}/`;
+    if (!commit.paths.some((path) => path.startsWith(folder))) continue;
+    const wasFirst = first;
+    first = false;
+    if (waiting) {
+      if (commit.subject === `${STOPPED}: ${name}`) {
+        stopped ||= wasFirst;
+        waiting = false;
+        continue;
+      }
+      // An earlier text leaving the waiting folder says nothing about this one.
+      if (commit.subject === `${KEPT}: ${name}` || commit.subject === `${DELETED}: ${name}`) {
+        continue;
+      }
+      return { source: "assistant", stopped };
+    }
+    if (commit.subject === `${KEPT}: ${name}`) {
+      waiting = true;
+      continue;
+    }
+    return { source: folderOrigin, stopped };
+  }
+  // Only a run writes to the waiting folder; one not saved yet has no commit to show for it.
+  return { source: waiting ? "assistant" : folderOrigin, stopped };
+}
+
+/** The skills as their files tell them; `readVaultSkillsWithOrigins` adds what the history knows. */
 export const readVaultSkills = Effect.fn("majordome.readVaultSkills")(function* (
   vaultRoot: string,
 ) {
@@ -101,10 +189,27 @@ export const readVaultSkills = Effect.fn("majordome.readVaultSkills")(function* 
   const skills = yield* readSkillsIn(path.join(vaultRoot, SKILLS_DIR));
   const inUse = new Set(skills.map((skill) => skill.name));
   const proposed = (yield* readSkillsIn(path.join(vaultRoot, PROPOSED_SKILLS_DIR))).map(
-    (skill): MajordomeProposedSkill => ({ ...skill, replaces: inUse.has(skill.name) }),
+    (skill) => ({ ...skill, replaces: inUse.has(skill.name) }),
   );
   return { skills, proposed };
 });
+
+export const readVaultSkillsWithOrigins = Effect.fn("majordome.readVaultSkillsWithOrigins")(
+  function* (vaultRoot: string) {
+    const { skills, proposed } = yield* readVaultSkills(vaultRoot);
+    const history = yield* skillHistory(vaultRoot);
+    return {
+      skills: skills.map((skill): MajordomeSkill => ({
+        ...skill,
+        source: skillOrigin(history, skill.name, false).source,
+      })),
+      proposed: proposed.map((skill): MajordomeProposedSkill => ({
+        ...skill,
+        ...skillOrigin(history, skill.name, true),
+      })),
+    };
+  },
+);
 
 /**
  * Saves one decision of the owner's as its own entry in the vault's history, at once: left
@@ -168,7 +273,7 @@ export const keepProposedSkill = Effect.fn("majordome.keepProposedSkill")(functi
   yield* fileSystem.rename(from, to);
   yield* commitOwnerDecision({
     vaultRoot: input.vaultRoot,
-    subject: `Kept a skill: ${input.name}`,
+    subject: `${KEPT}: ${input.name}`,
     paths: [`${PROPOSED_SKILLS_DIR}/${input.name}`, `${SKILLS_DIR}/${input.name}`],
   });
   return true;
@@ -202,7 +307,7 @@ export const removeSkill = Effect.fn("majordome.removeSkill")(function* (input: 
   }
   yield* commitOwnerDecision({
     vaultRoot: input.vaultRoot,
-    subject: `${input.proposed ? "Deleted a skill" : "Stopped using a skill"}: ${input.name}`,
+    subject: `${input.proposed ? DELETED : STOPPED}: ${input.name}`,
     paths: [folder, waiting],
   });
   return true;

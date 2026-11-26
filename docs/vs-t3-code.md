@@ -83,7 +83,8 @@ The landing page and the README show a short version of this list.
 - **What it did, with Undo this.** Every change the assistant makes to your notes is listed in
   plain words, with the notes it touched, and one press takes it back.
 - **Skills it writes for itself.** Say "from now on, do it this way" and it writes the skill down.
-  It is used only after you keep it. [Skills](./user/skills.md)
+  It is used only after you keep it. One page lists every skill with when it is used and who wrote
+  it, with a search and the steps to read. [Skills](./user/skills.md)
 - **Private documents:** encrypted, outside your notes, opened only after your yes, each time.
   [Private documents](./user/private-documents.md)
 - **Email, calendar and files:** the steps to connect Gmail, Calendar and Drive through your Claude

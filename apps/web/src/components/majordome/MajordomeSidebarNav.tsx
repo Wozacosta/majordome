@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   CircleAlertIcon,
   EllipsisIcon,
+  GraduationCapIcon,
   HistoryIcon,
   HouseIcon,
   LibraryIcon,
@@ -43,6 +44,7 @@ const PAGES = [
   { to: "/routines", label: "Routines", icon: CalendarClockIcon },
   { to: "/reminders", label: "Reminders", icon: BellIcon },
   { to: "/feed", label: FEED_NAME, icon: HistoryIcon },
+  { to: "/settings/skills", label: "Skills", icon: GraduationCapIcon },
 ] as const satisfies ReadonlyArray<Page>;
 
 const PINNED_PAGES_KEY = "majordome:sidebar-pinned-pages";
