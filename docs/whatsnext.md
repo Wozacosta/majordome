@@ -3,7 +3,89 @@
 Things found and left for later. Each says what it is, why it waits, and where to start.
 Remove an entry when it is done.
 
-## Before going live
+## Before opening to the public
+
+The checklist, made on 2026-11-26. Payment on [majord.me/start](https://majord.me/start) is live
+and has one customer, the owner; everything here waits until strangers are told. **Bold** items
+block the opening. Tick an item when it is done and remove it once the section is stale.
+
+### The owner's to decide or supply
+
+- [ ] **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
+      transcript on 2026-11-24.
+- [ ] **Seller details on the terms page:** the SIRET, the seller's address before purchase, a
+      consumer mediator and a withdrawal form.
+- [ ] **Read `site/terms/index.html` and `site/trust/index.html` line by line.** Both carry
+      commitments written by an agent and not reviewed: a 14-day refund, a month refunded after
+      a day's outage, 30 days' notice.
+- [ ] **Anthropic's terms.** A customer signing their own Claude plan in on a hosted server is
+      not confirmed as allowed (see "Hosted Majordome" below). The risk was accepted for a demo
+      and the first few users, not for a public opening: decide again, or get their answer.
+- [ ] A privacy policy that holds, and data processing agreements with Fly, Cloudflare, Stripe
+      and Clerk.
+- [ ] An hour with someone who does this for French small businesses: a French version, a pay
+      button that states the obligation to pay, and for the accountant the VAT mention and the
+      EU cross-border threshold.
+
+### Payment
+
+- [ ] **One real purchase by someone else** on `/start`, the card typed into Stripe's page. That
+      step has never been run.
+- [ ] **The 14-day refund.** The terms promise one and nothing performs it: the cancel page ends
+      the subscription at the period's end. Either refund by hand and be told when one is due,
+      or have the broker do it.
+- [ ] **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may
+      appear as the seller, while Managed Payments is off and Stripe computes no tax. Turn on
+      `STRIPE_MANAGED_PAYMENTS` once Stripe approves the account.
+- [ ] The margin. A reviewer guessed a server costs 10 to 11 euros a month on Fly against a
+      price of 12. One Fly invoice settles it.
+- [ ] `MAX_HOSTED_SERVERS` is 10, and a stopped server holds a place for the 30 days it is kept.
+- [ ] A new email is a new free trial (`trialFor` in `infra/broker/src/billing.ts`). Decide
+      whether that is acceptable for now.
+
+### The iPhone app
+
+Details are in "The iPhone app" below.
+
+- [ ] **Sign up from the phone, run for real.** Making a server from the app has only been unit
+      tested.
+- [ ] **The purchase, or hide it.** It is not ready to submit. In the broker: App Review buys in
+      Apple's sandbox, which is switched off (`APPLE_ALLOW_SANDBOX`); placeholder key ids switch
+      selling on; a purchase with no account token is dropped; an unknown transaction gets the
+      wrong message. In App Store Connect: the Paid Apps agreement, the subscription at the web
+      price with a one-week free offer, the billing grace period, the In-App Purchase key, the
+      notice address, a sandbox tester, and a demo account for the reviewer.
+- [ ] A TestFlight link for people outside the team goes through Beta App Review first.
+- [ ] The widget and share-extension targets are upstream's, about coding agents: ship or drop.
+- [ ] "Scan to get the app" on the Welcome page opens T3 Code's app (`MOBILE_APP_URL`).
+- [ ] A chat not named yet shows the stored title "New thread".
+
+### The landing page and the docs
+
+- [ ] **The price and a way to buy.** The landing page still says a server is about 5 euros a
+      month and has no link to `/start`; the account page still says hosting is by invitation.
+- [ ] **The Intel Mac build** (below).
+- [ ] `docs/user/` beyond `install.md` still describes T3 Code (see "Still pointing at T3 Code").
+
+### Running it
+
+- [ ] **Alerts.** The broker can post a line when the hourly pass fails, and posts nowhere: the
+      `ALERT_URL` secret is not set (`infra/broker/README.md`, "Paid servers"). A private ntfy
+      topic is the least work. A failed settle right after a Stripe notice is only logged; the
+      hourly pass is what reports it.
+- [ ] **A support address that is read, and a way to report a bug.** The triage tool is hidden.
+- [ ] Removing a server and restoring a backup are by hand. Say how fast either is promised.
+- [ ] The nightly update does not wait for a run in progress to finish.
+- [ ] Invite codes have no limit on tries.
+- [ ] Something that checks the broker and `majord.me` are up.
+
+### A stranger's first run
+
+- [ ] **Watch one person who is not the owner** go from the landing page to a first chat, on a
+      clean Mac and on a hosted server. Everything so far was tested by its author.
+- [ ] The hidden settings pages (Source control, Worktrees, Devices, Diffs) may still open by
+      address.
+- [ ] T3 Code's name is left in the SSH failure message and the triage prompt.
 
 ### Put the Intel Mac build back
 
@@ -393,41 +475,6 @@ What that first version does not do, in the order I would take them:
 
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
 OpenBot's does), a second host behind one interface, a pool of ready servers.
-
-## Selling servers: before telling strangers
-
-Paying on [majord.me/start](https://majord.me/start) is live and has one customer, the owner.
-These came out of two reviews on 2026-11-24 and wait until the page is shown to other people.
-
-- **Alerts.** The broker can post a line when the hourly pass fails, and posts nowhere: the
-  `ALERT_URL` secret is not set (`infra/broker/README.md`, "Paid servers"). Pick where it goes
-  (a private ntfy topic is the least work) and set it. A failed settle right after a Stripe
-  notice is only logged; the hourly pass is what reports it.
-- **The 14-day refund.** `site/terms/index.html` promises one and nothing performs it: the
-  cancel page ends the subscription at the period's end. Either refund by hand and be told when
-  one is due, or have the broker do it.
-- **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may appear
-  as the seller, while Managed Payments is off and Stripe computes no tax. For the accountant:
-  the VAT mention and the EU cross-border threshold. Turn on `STRIPE_MANAGED_PAYMENTS` once
-  Stripe approves the account.
-- **A French seller's flow,** to check with a professional: a French version, a pay button that
-  states the obligation to pay, a withdrawal form, the seller's address before purchase, the
-  SIRET and a consumer mediator on the terms page.
-- **The margin.** A reviewer guessed a server costs 10 to 11 euros a month on Fly against a
-  price of 12. One Fly invoice settles it.
-- **Stopped servers hold a place** under `MAX_HOSTED_SERVERS` for the 30 days they are kept.
-- **A new email is a new free trial** (`trialFor` in `infra/broker/src/billing.ts`).
-- **No way to buying from the landing page,** which still says a server is about 5 euros a
-  month; the account page still says hosting is by invitation.
-- **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
-  transcript on 2026-11-24.
-
-The iPhone purchase is not ready to submit. In the broker: App Review buys in Apple's sandbox,
-which is switched off (`APPLE_ALLOW_SANDBOX`); placeholder key ids switch selling on; a purchase
-with no account token is dropped; an unknown transaction gets the wrong message. In App Store
-Connect: the Paid Apps agreement, the subscription at the web price with a one-week free offer,
-the billing grace period, the In-App Purchase key, the notice address, a sandbox tester, and a
-demo account for the reviewer.
 
 ## Trust and transparency: a hosted server is the customer's
 
