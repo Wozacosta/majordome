@@ -165,6 +165,9 @@ notices:
 - `POST /v1/billing/apple` with `transactionId`: a purchase made in the iPhone app. Apple is
   asked about it; it must carry the token `status` gave this account. Answers 404 until
   Apple is set up, which is how the app knows not to sell.
+- `POST /v1/billing/withdraw`: in the 14 days after the account's first web subscription, gives
+  back every payment since, ends the subscription now and stops the server. Refused after that,
+  for a later subscription, and for one bought from Apple.
 - `POST /v1/billing/wake`: switches a stopped server on for a day, three times at most, so its
   owner can get their notes out (**Settings > Back up my brain** on the server).
 - `POST /v1/billing/delete-account`: ends a Stripe subscription now and deletes the server.

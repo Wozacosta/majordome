@@ -38,15 +38,15 @@ opening is the Mac app, the iPhone app and hosted servers.
 
 - [ ] **One real purchase by someone else** on `/start`, the card typed into Stripe's page. That
       step has never been run.
-- [ ] **The 14-day refund.** The terms promise one and nothing performs it: the cancel page ends
-      the subscription at the period's end. Either refund by hand and be told when one is due,
-      or have the broker do it.
 - [ ] **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may
       appear as the seller, while Managed Payments is off and Stripe computes no tax. Turn on
       `STRIPE_MANAGED_PAYMENTS` once Stripe approves the account.
-- [ ] The margin. A reviewer guessed a server costs 10 to 11 euros a month on Fly against a
-      price of 12. One Fly invoice settles it.
-- [ ] `MAX_HOSTED_SERVERS` is 10, and a stopped server holds a place for the 30 days it is kept.
+- [ ] The margin. The price went from 12 to 20 euros on 2026-11-26: a 2 GB server always on
+      in Paris is about $16 a month at Fly's list prices, before Stripe's fee and any VAT. Check
+      it against one Fly invoice. Stopping idle servers (see "Later" under "Hosted Majordome")
+      would bring the cost to a few dollars and was set aside for now.
+- [ ] `MAX_HOSTED_SERVERS` is 10. It counts servers that are on; raising it raises the most the
+      Fly bill can reach.
 - [ ] A new email is a new free trial (`trialFor` in `infra/broker/src/billing.ts`). Decide
       whether that is acceptable for now.
 
@@ -70,8 +70,9 @@ Details are in "The iPhone app" below.
 
 ### The landing page and the docs
 
-- [ ] **The price and a way to buy.** The landing page still says a server is about 5 euros a
-      month and has no link to `/start`; the account page still says hosting is by invitation.
+- [ ] **"By invitation" is out of date.** The landing page shows the price and leads to
+      `/start`, but the account page, `docs/user/always-on-server.md` and `docs/vs-t3-code.md`
+      still say Majordome hosts by invitation.
 - [ ] **The Intel Mac build** (below).
 - [ ] `docs/user/` beyond `install.md` still describes T3 Code (see "Still pointing at T3 Code").
 

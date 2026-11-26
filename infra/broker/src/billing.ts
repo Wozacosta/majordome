@@ -70,6 +70,12 @@ export interface AccountStore {
   /** Rows with a server, or with a subscription that should have one. */
   readonly open: () => Promise<ReadonlyArray<AccountRow>>;
   readonly serverNames: () => Promise<ReadonlyArray<string>>;
+  /** Servers that are switched on, or being made: the ones that cost a full month. */
+  readonly runningServers: (at: number) => Promise<number>;
+  /** The account's first subscription and when it was bought. */
+  readonly firstPurchase: (
+    accountId: string,
+  ) => Promise<{ readonly subscriptionId: string; readonly at: number } | null>;
   readonly logPurchase: (input: {
     readonly subscriptionId: string;
     readonly accountId: string;
@@ -110,6 +116,11 @@ export interface StripeClient {
   readonly cancel: (subscriptionId: string) => Promise<void>;
   readonly portal: (customerId: string) => Promise<{ readonly url: string }>;
   readonly chargeCustomer: (chargeId: string) => Promise<string | null>;
+  /** Gives back in full every payment that customer made from `since` on. */
+  readonly refundSince: (input: {
+    readonly customerId: string;
+    readonly since: number;
+  }) => Promise<void>;
 }
 
 export interface AppleClient {
@@ -122,6 +133,8 @@ export interface PaidStatus {
   readonly source: Source | null;
   readonly periodEnd: number | null;
   readonly cancels: boolean;
+  /** Until when the account can withdraw and be refunded in full; null when it cannot. */
+  readonly withdrawUntil: number | null;
   /** Given to Apple with a purchase made in the phone app. */
   readonly appToken: string;
   /** False while a subscription is live, or while no new server can be made. */
@@ -150,6 +163,9 @@ const WAKE_MS = DAY_MS;
 const MAX_WAKES = 3;
 const EVENT_MEMORY_MS = 30 * DAY_MS;
 const OVERDUE_MS = 2 * DAY_MS;
+const WITHDRAW_MS = 14 * DAY_MS;
+// A payment is taken a moment before this service hears of the subscription.
+const PAID_BEFORE_HEARD_MS = 60 * 60 * 1000;
 const MAX_SWEEP_ACTIONS = 8;
 
 const isLive = (state: PaidState) => state === "active" || state === "past_due";
@@ -185,8 +201,22 @@ export function makeBilling(deps: {
   /** One trial per account. */
   const trialFor = (row: AccountRow) => (row.subscriptionId === null ? deps.config.trialDays : 0);
 
+  // A stopped server waiting out its retention costs its disk only, so it holds no place.
   const hasRoom = async () =>
-    (await deps.otherServers()) + (await accounts.serverNames()).length < deps.config.maxServers;
+    (await deps.otherServers()) + (await accounts.runningServers(deps.now())) <
+    deps.config.maxServers;
+
+  /**
+   * The 14 days to change one's mind, counted from the account's first subscription. A later
+   * subscription has none here, or subscribing again would be free for ever.
+   */
+  const withdrawUntil = async (row: AccountRow) => {
+    if (row.source !== "web" || row.subscriptionId === null || !isLive(row.state)) return null;
+    const first = await accounts.firstPurchase(row.accountId);
+    if (first === null || first.subscriptionId !== row.subscriptionId) return null;
+    const until = first.at + WITHDRAW_MS;
+    return until > deps.now() ? until : null;
+  };
 
   /** Makes the account's server, or returns the one it has. Safe to call from two places at once. */
   const makeServer = async (
@@ -365,6 +395,7 @@ export function makeBilling(deps: {
         source: row.source,
         periodEnd: row.periodEnd,
         cancels: row.cancels,
+        withdrawUntil: await withdrawUntil(row),
         appToken: row.appToken,
         canBuy: !isLive(row.state) && (row.appName !== null || (await hasRoom())),
         offer:
@@ -511,6 +542,31 @@ export function makeBilling(deps: {
       const at = deps.now();
       await accounts.recordEvent({ id: event.id, at, forgetBefore: at - EVENT_MEMORY_MS });
       return accountId;
+    },
+
+    /**
+     * The customer changes their mind in the first 14 days: what they paid is given back, the
+     * subscription ends now and the server is stopped, kept as after any ending.
+     */
+    withdraw: async (accountId: string) => {
+      const row = await accounts.get(accountId);
+      const until = row === null ? null : await withdrawUntil(row);
+      if (row === null || until === null || row.subscriptionId === null) {
+        throw new BrokerError(
+          "invalid_request",
+          "The 14 days to change your mind are over. You can still cancel.",
+        );
+      }
+      // The refund first: if ending fails after it, Stripe's notice of the refund ends it.
+      if (row.customerId !== null) {
+        await stripe().refundSince({
+          customerId: row.customerId,
+          since: until - WITHDRAW_MS - PAID_BEFORE_HEARD_MS,
+        });
+      }
+      await stripe().cancel(row.subscriptionId);
+      await refreshWeb(row.subscriptionId);
+      await settle(accountId);
     },
 
     /** Switches a stopped server on for a day, so its owner can get their notes out. */

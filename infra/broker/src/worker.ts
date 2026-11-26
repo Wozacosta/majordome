@@ -141,7 +141,7 @@ const hostingFor = (env: Env, host: HostClient): Hosting =>
     host,
     image: imageFor(env),
     // Paid servers take places under the same cap.
-    otherServers: async () => (await makeD1AccountStore(env.DB).serverNames()).length,
+    otherServers: () => makeD1AccountStore(env.DB).runningServers(Date.now()),
     now: () => Date.now(),
     randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
     config: { namePrefix: HOSTED_NAME_PREFIX, maxServers: limit(env.MAX_HOSTED_SERVERS, 5) },
@@ -589,6 +589,9 @@ async function handleBilling(
       return Response.json(await billing.portal(accountId));
     case "apple":
       await billing.applePurchase({ accountId, transactionId: fields.transactionId ?? "" });
+      return new Response(null, { status: 204 });
+    case "withdraw":
+      await billing.withdraw(accountId);
       return new Response(null, { status: 204 });
     case "wake":
       await billing.wake(accountId);

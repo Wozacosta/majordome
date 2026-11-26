@@ -207,5 +207,22 @@ export function makeStripeClient(config: {
       const charge = await call("GET", `/charges/${encodeURIComponent(chargeId)}`);
       return typeof charge.customer === "string" ? charge.customer : null;
     },
+    refundSince: async ({ customerId, since }) => {
+      const charges = (await call(
+        "GET",
+        `/charges?customer=${encodeURIComponent(customerId)}&created[gte]=${Math.floor(since / 1000)}&limit=100`,
+      )) as {
+        readonly data?: ReadonlyArray<{
+          readonly id: string;
+          readonly paid?: boolean;
+          readonly refunded?: boolean;
+        }>;
+      };
+      for (const charge of charges.data ?? []) {
+        if (charge.paid !== true || charge.refunded === true) continue;
+        // With no amount, Stripe gives back whatever of the payment is left.
+        await call("POST", "/refunds", { charge: charge.id, reason: "requested_by_customer" });
+      }
+    },
   };
 }

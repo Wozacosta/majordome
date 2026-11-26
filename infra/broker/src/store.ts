@@ -328,6 +328,24 @@ export function makeD1AccountStore(db: D1Database): AccountStore {
         .all<{ app_name: string }>();
       return results.map((row) => row.app_name);
     },
+    runningServers: async (at) =>
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM hosted_accounts WHERE app_name IS NOT NULL AND (stopped_at IS NULL OR wake_until > ?)",
+          )
+          .bind(at)
+          .first<{ n: number }>()
+      )?.n ?? 0,
+    firstPurchase: async (accountId) => {
+      const row = await db
+        .prepare(
+          "SELECT subscription_id, at FROM purchases WHERE account_id = ? ORDER BY at LIMIT 1",
+        )
+        .bind(accountId)
+        .first<{ subscription_id: string; at: number }>();
+      return row === null ? null : { subscriptionId: row.subscription_id, at: row.at };
+    },
     logPurchase: async ({ subscriptionId, accountId, source, startedOn, at }) => {
       await db
         .prepare(

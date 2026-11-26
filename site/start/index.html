@@ -341,6 +341,9 @@
           </button>
         </p>
         <p class="muted small" id="manage-note"></p>
+        <button class="link" id="withdraw" type="button" hidden>
+          I changed my mind: stop it and refund me
+        </button>
         <button class="link" id="delete-account" type="button">Delete my account</button>
       </section>
       <section class="card" id="offer" hidden>
@@ -581,12 +584,15 @@
         $("open").hidden = server.stopped;
         $("portal").hidden = status.source !== "web";
         $("wake").hidden = live || !server.stopped || !server.canWake;
+        $("withdraw").hidden = !status.withdrawUntil;
         $("manage-note").textContent =
           status.source === "apple" && live
             ? "You pay through Apple. To change or cancel, open Settings on your iPhone, then your name, then Subscriptions."
             : !live
               ? "To keep your notes, switch the server on, open it, and use Settings > Back up my brain."
-              : "";
+              : status.withdrawUntil
+                ? `You can change your mind until ${day(status.withdrawUntil)} and get back anything you paid.`
+                : "";
       }
 
       let shown;
@@ -662,6 +668,16 @@
         press("wake", async (clerk) => {
           await ask(clerk, "/v1/billing/wake");
           await view(clerk);
+        });
+        press("withdraw", async (clerk) => {
+          const sure = confirm(
+            "Stop your server and end your subscription now? Anything you paid is refunded. Your notes are kept for 30 days, and you can switch the server on to get them out.",
+          );
+          if (!sure) return;
+          await ask(clerk, "/v1/billing/withdraw");
+          await view(clerk);
+          $("manage-note").textContent =
+            `Your subscription has ended. A refund takes a few days to reach your card. ${$("manage-note").textContent}`;
         });
         press("delete-account", async (clerk) => {
           const sure = confirm(

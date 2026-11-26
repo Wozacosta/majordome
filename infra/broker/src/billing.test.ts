@@ -36,7 +36,13 @@ async function sign(body: string, atMs: number, secret = SECRET) {
 function makeAccounts() {
   const rows = new Map<string, AccountRow>();
   const events = new Set<string>();
-  const purchases: Array<{ subscriptionId: string; source: string; startedOn: string | null }> = [];
+  const purchases: Array<{
+    subscriptionId: string;
+    accountId: string;
+    source: string;
+    startedOn: string | null;
+    at: number;
+  }> = [];
   const find = (test: (row: AccountRow) => boolean) => [...rows.values()].find(test) ?? null;
   const store: AccountStore = {
     get: async (accountId) => rows.get(accountId) ?? null,
@@ -81,6 +87,12 @@ function makeAccounts() {
         (row) => row.appName !== null || row.state === "active" || row.state === "past_due",
       ),
     serverNames: async () => [...rows.values()].flatMap((row) => row.appName ?? []),
+    runningServers: async (at) =>
+      [...rows.values()].filter(
+        (row) => row.appName !== null && (row.stoppedAt === null || (row.wakeUntil ?? 0) > at),
+      ).length,
+    firstPurchase: async (accountId) =>
+      purchases.find((purchase) => purchase.accountId === accountId) ?? null,
     logPurchase: async (purchase) => {
       purchases.push(purchase);
     },
@@ -130,6 +142,7 @@ function setup(options: { readonly maxServers?: number; readonly invited?: numbe
   const subscriptions = new Map<string, WebSubscription>();
   const checkouts: Array<{ trialDays: number; customerId: string | null }> = [];
   const cancelled: Array<string> = [];
+  const refunds: Array<{ customerId: string; since: number }> = [];
   const appleSubscriptions = new Map<string, SubscriptionFacts>();
   let seed = 0;
   let uuid = 0;
@@ -162,6 +175,9 @@ function setup(options: { readonly maxServers?: number; readonly invited?: numbe
       },
       portal: async (customerId) => ({ url: `https://billing.stripe.example/${customerId}` }),
       chargeCustomer: async (chargeId) => (chargeId === "ch_1" ? "cus_1" : null),
+      refundSince: async (refund) => {
+        refunds.push(refund);
+      },
     },
     apple: { subscription: async (id) => appleSubscriptions.get(id) ?? null },
     stripeWebhookSecret: SECRET,
@@ -208,6 +224,7 @@ function setup(options: { readonly maxServers?: number; readonly invited?: numbe
     fail,
     checkouts,
     cancelled,
+    refunds,
     subscriptions,
     appleSubscriptions,
     purchases: accounts.purchases,
@@ -314,6 +331,21 @@ describe("paying on the website", () => {
     expect(t.made).toHaveLength(1);
   });
 
+  it("counts a stopped server as no place taken, and one switched back on as one", async () => {
+    const t = setup({ maxServers: 1 });
+    t.subscribe();
+    await t.subscriptionNotice("evt_1", "created");
+    const other = () => t.billing.status("user_bob").then((status) => status.canBuy);
+    expect(await other()).toBe(false);
+
+    t.subscribe("sub_1", { status: "canceled" });
+    await t.subscriptionNotice("evt_2", "deleted");
+    expect(await other()).toBe(true);
+
+    await t.billing.wake(ACCOUNT);
+    expect(await other()).toBe(false);
+  });
+
   it("gives the place back when the host fails, and takes over a making that died half-way", async () => {
     const t = setup();
     t.subscribe();
@@ -411,6 +443,45 @@ describe("a subscription ending", () => {
       expect(t.cancelled).toEqual(["sub_1"]);
       expect(t.machines.get(t.name)).toBe("stopped");
       expect(t.row()?.state).toBe("ended");
+    }
+  });
+
+  it("changing one's mind in the first 14 days: refunded, ended and stopped at once", async () => {
+    const t = await running();
+    expect((await t.billing.status(ACCOUNT)).withdrawUntil).toBe(START + 14 * DAY);
+
+    // The trial is over and the first month is paid.
+    t.clock.now += 9 * DAY;
+    t.subscribe("sub_1", { status: "active" });
+    await t.billing.withdraw(ACCOUNT);
+    expect(t.refunds).toEqual([{ customerId: "cus_1", since: START - 60 * 60 * 1000 }]);
+    expect(t.cancelled).toEqual(["sub_1"]);
+    expect(t.machines.get(t.name)).toBe("stopped");
+    expect(await t.billing.status(ACCOUNT)).toMatchObject({
+      state: "ended",
+      withdrawUntil: null,
+      server: { stopped: true, canWake: true },
+    });
+    await expect(t.billing.withdraw(ACCOUNT)).rejects.toBeInstanceOf(BrokerError);
+    expect(t.refunds).toHaveLength(1);
+  });
+
+  it("no refund after 14 days, for a second subscription, or for one bought from Apple", async () => {
+    const late = await running();
+    late.clock.now += 14 * DAY;
+    expect((await late.billing.status(ACCOUNT)).withdrawUntil).toBeNull();
+    await expect(late.billing.withdraw(ACCOUNT)).rejects.toBeInstanceOf(BrokerError);
+
+    const again = await running();
+    again.subscribe("sub_1", { status: "canceled" });
+    await again.subscriptionNotice("evt_2", "deleted");
+    again.subscribe("sub_2", { status: "active" });
+    await again.subscriptionNotice("evt_3", "created", "sub_2");
+    await expect(again.billing.withdraw(ACCOUNT)).rejects.toBeInstanceOf(BrokerError);
+
+    for (const t of [late, again]) {
+      expect(t.refunds).toEqual([]);
+      expect(t.machines.get(t.name)).toBe("started");
     }
   });
 

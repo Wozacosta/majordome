@@ -18,6 +18,23 @@ The section for a version is also the text of its release on GitHub.
 - Open the assistant, look at its earlier answer about setting up your phone, and click
   **Phone & notifications**.
 
+**Changed**
+
+- **A Majordome server is €20 a month.** It was €12, which did not cover what the server costs
+  to run. The first 7 days are still free. Anyone already subscribed keeps their price.
+
+**New**
+
+- **Change your mind and get refunded, from the page.** For 14 days after you first subscribe on
+  the website, [your server's page](https://majord.me/server) has "I changed my mind: stop it
+  and refund me". Anything you paid comes back to your card, the subscription ends and the
+  server is stopped; your notes are kept for 30 days so you can get them out.
+
+**Try this**
+
+- On [majord.me/server](https://majord.me/server), in the first 14 days, look for the line
+  saying until when you can change your mind.
+
 ## 0.10.66
 
 **New**
