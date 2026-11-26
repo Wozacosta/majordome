@@ -121,6 +121,32 @@ const MARK = {
   dark: require("../../assets/majordome-splash-dark.png"),
 };
 
+/** One of the quieter ways to connect, under the main button. */
+function WayIn(props: {
+  readonly icon: "qrcode.viewfinder" | "server.rack";
+  readonly title: string;
+  readonly detail: string;
+  readonly onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${props.title}. ${props.detail}`}
+      onPress={props.onPress}
+      className="flex-row items-center gap-4 px-4 py-3.5 active:opacity-70"
+    >
+      <SymbolView name={props.icon} size={24} tintColorClassName="accent-foreground" />
+      <View className="min-w-0 flex-1 gap-0.5">
+        <Text className="font-t3-medium text-foreground">{props.title}</Text>
+        <Text textRole="footnote" className="text-foreground-muted">
+          {props.detail}
+        </Text>
+      </View>
+      <SymbolView name="chevron.right" size={14} tintColorClassName="accent-foreground-muted" />
+    </Pressable>
+  );
+}
+
 // The site's heading face, which iOS carries; Android has no match and falls back to its serif.
 const SERIF = Platform.select({ ios: "Iowan Old Style", default: "serif" });
 
@@ -162,29 +188,36 @@ function Welcome() {
           {MAJORDOME_WELCOME.what}
         </Text>
       </View>
-      <View className="gap-3">
-        {hasAccounts ? (
-          <Button
-            label="Sign in"
-            tone="contrast"
-            fullWidth
-            onPress={() => openSettings(navigation, "SettingsAccount")}
-          />
-        ) : null}
+      <View className="gap-4">
         <Button
-          label={hasAccounts ? "Scan the code on your computer" : "Add a computer"}
-          tone={hasAccounts ? "secondary" : "contrast"}
+          label={hasAccounts ? "Sign in" : "Add a computer"}
+          tone="contrast"
           fullWidth
-          onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+          onPress={() =>
+            openSettings(navigation, hasAccounts ? "SettingsAccount" : "SettingsEnvironmentNew")
+          }
         />
-        {serverOffer === null ? null : (
-          <Button
-            label={MAJORDOME_WELCOME.noComputer}
-            tone="text"
-            fullWidth
-            onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-          />
-        )}
+        <ListSection>
+          {hasAccounts ? (
+            <WayIn
+              icon="qrcode.viewfinder"
+              title={MAJORDOME_WELCOME.scan}
+              detail={MAJORDOME_WELCOME.scanDetail}
+              onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+            />
+          ) : null}
+          {hasAccounts && serverOffer !== null ? (
+            <View className="ml-[60px] h-px bg-border" />
+          ) : null}
+          {serverOffer === null ? null : (
+            <WayIn
+              icon="server.rack"
+              title={MAJORDOME_WELCOME.server}
+              detail={MAJORDOME_WELCOME.serverDetail}
+              onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+            />
+          )}
+        </ListSection>
       </View>
     </View>
   );

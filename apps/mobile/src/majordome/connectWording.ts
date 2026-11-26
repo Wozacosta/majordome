@@ -95,7 +95,10 @@ export const MAJORDOME_WELCOME = {
   headlineEnd: "while you are away.",
   spoken: "A second brain that keeps working while you are away.",
   what: "Your notes, plus the AI you already pay for. It reads them, runs your routines, and asks before touching anything sensitive.",
-  noComputer: "No computer? Get a Majordome server",
+  scan: "Scan a code",
+  scanDetail: "Majordome on your computer shows one",
+  server: "Get a Majordome server",
+  serverDetail: "Always on, no computer needed",
 } as const;
 
 /** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */
