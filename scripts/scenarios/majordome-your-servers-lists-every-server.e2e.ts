@@ -63,6 +63,8 @@ test(
       await expect(screen.getByText("Has a copy of your notes.").first()).toBeVisible({
         timeout: 60_000,
       });
+      // The drawing says what this window opens and which server is the main one.
+      await expect(screen.getByRole("img", "is the main one", { exact: false })).toBeVisible();
       await app.screenshot("your-servers-two-servers");
 
       await removeButton.tap();

@@ -10,7 +10,9 @@ the server by itself the next time you open the app there, with everything said 
 and files in it are not moved. The copy left on the computer goes to Settings > Archived chats.
 While the server can't be reached, new conversations wait until it is back.
 
-**Settings > Your servers** first lists every server the app is connected to: whether the app can
+**Settings > Your servers** starts with a drawing: this computer and your phone on the left, your
+servers on the right, a line for what opens what, and **Main** on the computer where the assistant
+answers and your chats are kept. Under it, the page lists every server the app is connected to: whether the app can
 reach it, whether it has a copy of your notes and runs your routines, and whether it is signed in
 to your AI. **Add a computer** adds a server you already have, with its address and a one-time
 code. **Remove from this app** makes the app forget a server; the server keeps running. A server

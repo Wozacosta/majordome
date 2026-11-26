@@ -5,6 +5,14 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **Your servers has a drawing, with your phone on it.** At the top of the page: this Mac and
+  your phone on the left, your servers on the right, and a line for what opens what. A dashed
+  line or box means "not reachable" or "not set up yet".
+- **The main server is marked.** "Main" is on the computer where the assistant answers and your
+  chats are kept, in the drawing and in the list.
+
 **Fixed**
 
 - **Your servers no longer shows a finished checklist under "Done".** The steps to set a server
@@ -14,6 +22,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Open Settings, Your servers and look at the drawing: is "Main" on the server you expect, and
+  does your phone's line go to the server it opens?
 - Open Settings, Your servers. With a server fully set up, the four numbered steps are gone and
   "Setup" says it is finished.
 
