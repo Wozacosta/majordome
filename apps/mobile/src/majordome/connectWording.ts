@@ -89,6 +89,12 @@ export function accountConnectErrorForOwner(message: string, name: string): stri
 
 const CANCEL_PLACE = "this iPhone's Settings, under your name, then Subscriptions";
 
+/** The first screen of a phone that knows no computer. */
+export const MAJORDOME_WELCOME = {
+  what: "A second brain that keeps working while you are away.",
+  where: "Majordome runs on your computer. Connect this phone to it.",
+} as const;
+
 /** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */
 export const MAJORDOME_SERVER = {
   getLabel: "Get a Majordome server",

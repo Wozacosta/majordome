@@ -111,6 +111,7 @@ import { pruneNewTaskBranchCheckouts } from "./features/threads/NewTaskDraftRout
 import { installAppUpdateChecks } from "./features/updates/app-updates";
 
 import { isMajordome } from "./majordome/env";
+import { installFreshStart } from "./majordome/freshInstall";
 import { installServerPurchases } from "./majordome/hostedSignup";
 import { pairLinkAsAppLink } from "./majordome/pairLink";
 
@@ -238,6 +239,7 @@ const appServiceDisposers = [
   installAppShortcuts(linkToAppPath),
   installAppUpdateChecks(),
   installServerPurchases(),
+  installFreshStart(),
   installShowcaseCapture(rootPathnameFromState),
 ];
 disposeOnFoundationReplace(typeof module === "undefined" ? undefined : module.hot, () => {

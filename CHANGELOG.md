@@ -7,6 +7,14 @@ The section for a version is also the text of its release on GitHub.
 
 **Changed**
 
+- **The iPhone app opens on a welcome.** A phone with no computer yet shows Majordome's name, one
+  line about what it is, and the ways in: **Sign in**, **Scan a code**, and **Get a Majordome
+  server**.
+- **A reinstalled iPhone app starts clean.** iOS keeps an app's saved computers and sign-in when
+  you delete it, so a new install used to open on a computer it could not reach. It now forgets
+  them and opens on the welcome. Updating the app changes nothing.
+- **"Your computer can't be reached" is no longer a dead end on the iPhone.** Under **Try again**
+  are **Your computers** and **Your account**.
 - **The iPhone page for getting a Majordome server is redrawn.** Three short lines say what a
   server gives you; the price, the button and the small print stay at the bottom of the screen.
 

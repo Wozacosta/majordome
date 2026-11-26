@@ -2,6 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,6 +16,7 @@ import { ListSection } from "../components/ui/ListSection";
 import { RefreshControl } from "../components/ui/RefreshControl";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
+import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { useAdaptiveWorkspaceLayout } from "../features/layout/adaptive-workspace-context";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
@@ -22,7 +24,7 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { MAJORDOME_SERVER } from "./connectWording";
+import { MAJORDOME_SERVER, MAJORDOME_WELCOME } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
@@ -114,10 +116,63 @@ const NOTICES = {
   failed: "This day's note couldn't be read.",
 } as const;
 
+const MARK = {
+  light: require("../../assets/majordome-splash-light.png"),
+  dark: require("../../assets/majordome-splash-dark.png"),
+};
+
+/** What a phone with no computer opens on: what Majordome is, and the ways to connect it. */
+function Welcome() {
+  const navigation = useNavigation();
+  const { themeAppearance } = useAppearancePreferences();
+  const serverOffer = useAtomValue(serverOfferAtom);
+  return (
+    <View className="gap-8 pt-10">
+      <View className="items-center gap-3">
+        <Image
+          accessibilityIgnoresInvertColors
+          source={MARK[themeAppearance]}
+          style={{ width: 112, height: 112 }}
+        />
+        <Text accessibilityRole="header" textRole="display" className="text-center font-t3-bold">
+          Majordome
+        </Text>
+        <Text className="text-center text-foreground-muted">{MAJORDOME_WELCOME.what}</Text>
+      </View>
+      <View className="gap-3">
+        <Text textRole="footnote" className="text-center text-foreground-muted">
+          {MAJORDOME_WELCOME.where}
+        </Text>
+        {hasAccounts ? (
+          <Button
+            label="Sign in"
+            tone="primary"
+            fullWidth
+            onPress={() => openSettings(navigation, "SettingsAccount")}
+          />
+        ) : null}
+        <Button
+          label={hasAccounts ? "Scan a code" : "Add a computer"}
+          tone={hasAccounts ? "secondary" : "primary"}
+          fullWidth
+          onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+        />
+        {serverOffer === null ? null : (
+          <Button
+            label={MAJORDOME_SERVER.getLabel}
+            tone="text"
+            fullWidth
+            onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const serverOffer = useAtomValue(serverOfferAtom);
   const store = useAtomValue(todayStoreAtom);
   const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
@@ -308,7 +363,7 @@ export function MajordomeTodayScreen() {
   };
 
   return (
-    <SettingsScreen title="Today" workspaceRoot>
+    <SettingsScreen title={setup === "noComputer" ? "" : "Today"} workspaceRoot>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -327,89 +382,84 @@ export function MajordomeTodayScreen() {
           />
         }
       >
-        <View className="gap-1">
-          <View className="flex-row items-center gap-1">
-            <Text
-              accessibilityRole="header"
-              textRole="largeTitle"
-              className="min-w-0 flex-1 font-t3-bold"
-            >
-              {dayTitle(day, today)}
-            </Text>
-            {setup === "ready" ? (
-              <>
-                <IconButton
-                  icon="chevron.left"
-                  accessibilityLabel="Previous day"
-                  onPress={() => show(shiftDay(day, -1))}
-                />
-                <IconButton
-                  icon="chevron.right"
-                  accessibilityLabel="Next day"
-                  onPress={() => show(shiftDay(day, 1))}
-                />
-              </>
+        {setup === "noComputer" ? null : (
+          <View className="gap-1">
+            <View className="flex-row items-center gap-1">
+              <Text
+                accessibilityRole="header"
+                textRole="largeTitle"
+                className="min-w-0 flex-1 font-t3-bold"
+              >
+                {dayTitle(day, today)}
+              </Text>
+              {setup === "ready" ? (
+                <>
+                  <IconButton
+                    icon="chevron.left"
+                    accessibilityLabel="Previous day"
+                    onPress={() => show(shiftDay(day, -1))}
+                  />
+                  <IconButton
+                    icon="chevron.right"
+                    accessibilityLabel="Next day"
+                    onPress={() => show(shiftDay(day, 1))}
+                  />
+                </>
+              ) : null}
+            </View>
+            {setup === "ready" && (away !== null || progress !== null) ? (
+              <Text textRole="footnote" className="text-foreground-secondary">
+                {[
+                  away,
+                  progress === null ? null : `${progress.done} of ${progress.total} to-dos done`,
+                ]
+                  .filter((part) => part !== null)
+                  .join(" · ")}
+              </Text>
+            ) : null}
+            {setup === "ready" && !isToday ? (
+              <Button
+                label="Back to today"
+                tone="text"
+                icon="arrow.uturn.backward"
+                onPress={() => show(today)}
+              />
             ) : null}
           </View>
-          {setup === "ready" && (away !== null || progress !== null) ? (
-            <Text textRole="footnote" className="text-foreground-secondary">
-              {[
-                away,
-                progress === null ? null : `${progress.done} of ${progress.total} to-dos done`,
-              ]
-                .filter((part) => part !== null)
-                .join(" · ")}
-            </Text>
-          ) : null}
-          {setup === "ready" && !isToday ? (
-            <Button
-              label="Back to today"
-              tone="text"
-              icon="arrow.uturn.backward"
-              onPress={() => show(today)}
-            />
-          ) : null}
-        </View>
+        )}
 
         {setup === "starting" ? null : setup === "noComputer" ? (
-          <EmptyState
-            title="Add your computer"
-            detail={
-              hasAccounts
-                ? "Your notes live on your computer. Sign in with the Majordome account you use there, and this phone finds it. No account? Scan the code your computer shows. No computer to leave on? Majordome can also run on a Majordome server that is always on: sign in and it is here."
-                : "Your notes live on your computer. Add it to this phone to see today's note here. No computer to leave on? Majordome can also run on a Majordome server that is always on."
-            }
-            action={
-              <View className="gap-2">
-                {hasAccounts ? (
-                  <Button
-                    label="Sign in"
-                    tone="primary"
-                    icon="person.crop.circle"
-                    onPress={() => openSettings(navigation, "SettingsAccount")}
-                  />
-                ) : null}
-                <Button
-                  label={hasAccounts ? "Scan a code instead" : "Add a computer"}
-                  tone={hasAccounts ? "secondary" : "primary"}
-                  onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-                />
-                {serverOffer === null ? null : (
-                  <Button
-                    label={MAJORDOME_SERVER.getLabel}
-                    tone="text"
-                    onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-                  />
-                )}
-              </View>
-            }
-          />
+          <Welcome />
         ) : setup === "unreachable" ? (
           <EmptyState
             title="Your computer can't be reached"
             detail="Check that it is on and that Majordome is open on it."
-            actionLabel="Try again"
-            onAction={tryAgain}
+            action={
+              <View className="gap-2">
+                <Button
+                  label="Try again"
+                  tone="primary"
+                  icon="arrow.clockwise"
+                  onPress={tryAgain}
+                />
+                <View className="-ml-5 flex-row flex-wrap">
+                  <Button
+                    label="Your computers"
+                    tone="text"
+                    size="compact"
+                    onPress={() => openSettings(navigation, "SettingsEnvironments")}
+                  />
+                  {hasAccounts ? (
+                    <Button
+                      label="Your account"
+                      tone="text"
+                      size="compact"
+                      onPress={() => openSettings(navigation, "SettingsAccount")}
+                    />
+                  ) : null}
+                </View>
+              </View>
+            }
           />
         ) : setup === "looking" ? (
           <Text className="text-foreground-muted">Looking for your notes…</Text>
