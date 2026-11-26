@@ -16,10 +16,11 @@ paths, so it needs no font.
 | Live  | `#3ddc84` | The knob, always; never for the dome |
 
 The app's standard theme (`apps/web/src/components/majordome/majordomeTheme.ts`) follows it:
-green-tinted ink in dark mode with Live as the accent, white on a pale green-grey in light mode
-with a deeper green (`#17804a`) that white text can sit on. Amber and red are kept for warnings
-and errors only, which is why the accent is not orange (changed 2026-11-26). The page that makes
-a hosted server (`infra/broker/src/startPage.ts`) still has the orange accent.
+Ink in dark mode, white on a pale blue-grey in light mode, and one blue accent (`#6aa5ff` on dark,
+`#2563eb` on light, which white text can sit on). The accent is blue because blue means nothing
+else: Live green says "fine", amber warns and red fails, and each must stand out beside a button
+(2026-11-26; it was burnt orange, which hid warnings). The page that makes a hosted server
+(`infra/broker/src/startPage.ts`) still has the orange accent.
 
 ## Files
 

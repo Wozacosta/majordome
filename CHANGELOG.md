@@ -7,11 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
-- **Majordome is green now, not orange.** In the dark theme, buttons, headings and the selected
-  page are the green of the logo's light, on a dark background with a hint of green. In the
-  light theme they are a deeper green on white. Orange sat too close to the amber of a warning;
-  now a warning or an error is the only warm colour on the page, so you see it at once.
-  The line around the message box and its ring while you type are green too.
+- **Majordome is blue now, not orange.** In the dark theme, buttons, headings and the selected
+  page are a soft blue on the dark ink of the logo. In the light theme they are a deeper blue on
+  white. Orange sat too close to the amber of a warning. Blue is none of the colours that mean
+  something, so a green "fine", an amber warning and a red error each stand out at once. The
+  line around the message box and its ring while you type are blue too.
 
 **Fixed**
 
@@ -24,7 +24,7 @@ The section for a version is also the text of its release on GitHub.
 **Try this**
 
 - Look at a page with a warning, such as Settings, Your account when your phone cannot reach
-  this Mac: the amber dot stands apart from the green button beside it. Then switch between
+  this Mac: the amber dot stands apart from the blue button beside it. Then switch between
   light and dark in Settings, Appearance.
 - On the phone, open **Settings > Your account** and press **Sign out**, then **Sign out and
   disconnect**: Today and Chats no longer show that computer.
