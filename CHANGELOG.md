@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.62
+
 **New**
 
 - **Your servers has a drawing, with your phone on it.** At the top of the page: this Mac and
