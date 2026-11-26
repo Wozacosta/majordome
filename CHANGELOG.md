@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.63
+
 **Fixed**
 
 - **Your servers warns when two computers run the same routines.** If a move of your routines
