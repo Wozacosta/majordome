@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.75
+
 **New**
 
 - **Library: every file in one place.** A new page lists what is kept with your notes that is not
