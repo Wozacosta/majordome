@@ -41,6 +41,23 @@ you type, files what you drop in, runs routines on a schedule, and asks before i
 sensitive. What it learns goes into a note you can open, edit or delete.
 [Try the live version](https://majord.me/#how).
 
+## Change anything, keep your notes
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/no-lock-in-dark.png">
+    <img src="assets/readme/no-lock-in-light.png" width="880" alt="Three things you can swap: the AI (Claude or ChatGPT), where it runs (your Mac, a Majordome server, or your own server) and the app (Majordome, Obsidian or any editor). Under them, your notes stay unchanged.">
+  </picture>
+</p>
+
+No lock-in.
+
+- **Changed AI plan?** Sign in to the other one. Claude or ChatGPT, the notes are the same.
+- **Don't want our server?** Bring your notes back to your computer, or
+  [rent your own](docs/user/always-on-server.md) for about €5 a month.
+- **Done with the app?** The notes are plain markdown: open the folder in Obsidian or any editor.
+  [Backups](docs/user/backup.md) open without Majordome.
+
 ## One day with it
 
 <p align="center">
@@ -81,13 +98,27 @@ sensitive. What it learns goes into a note you can open, edit or delete.
   </tr>
 </table>
 
+## Private files and passwords, kept locked
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/locked-dark.png">
+    <img src="assets/readme/locked-light.png" width="880" alt="Private documents: the assistant asks to open Passport and you allow once or refuse. Passwords and keys: a list of saved keys, one kept in 1Password, and the assistant answering that it can reach Garmin with the key named garmin.">
+  </picture>
+</p>
+
+- **[Private documents](docs/user/private-documents.md).** A passport scan, a tax return, a
+  contract. Encrypted, and opened only after your yes, each time.
+- **[Passwords and keys](docs/user/secrets.md).** The passwords, tokens and API keys you save for
+  it. It uses one when a task needs it, without the key appearing in the chat. A key can stay in
+  1Password or Bitwarden Secrets Manager.
+
 And when you want them:
 
 |                                                           |                                                                    |
 | --------------------------------------------------------- | ------------------------------------------------------------------ |
 | **[On your phone](docs/user/phone-and-notifications.md)** | The same app on your Home Screen. Sign in, with no code to scan.   |
 | **[Always on](docs/user/always-on-server.md)**            | A small server of your own, so routines run while your Mac sleeps. |
-| **[Private documents](docs/user/private-documents.md)**   | Encrypted. Opened only after your yes, each time.                  |
 | **[Memory](docs/user/memory.md)**                         | A memory note it reads at the start of every conversation.         |
 | **[Skills](docs/user/skills.md)**                         | Your ways of doing a job, written down, that it follows by name.   |
 | **[Notes search](docs/user/notes-search.md)**             | It looks inside every note, not only at file names.                |
@@ -120,7 +151,7 @@ points the same engine at your notes.
 
 Majordome's own: Today, To-dos, Reading list, Topics, Key facts, routines in your words, an undo for
 what the assistant did, skills the
-assistant writes for itself, private documents, backup and restore, a phone with nothing to install,
+assistant writes for itself, private documents, passwords and keys, backup and restore, a phone with nothing to install,
 and a server of your own set up for you. Coding stays in T3 Code.
 **[The full list](docs/vs-t3-code.md)**
 

@@ -980,7 +980,7 @@
 
       .pair {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 16px;
         margin-top: 16px;
       }
@@ -1013,6 +1013,297 @@
         font-family: var(--mono);
         font-size: 0.85em;
         white-space: nowrap;
+      }
+
+      /* No lock-in: three things you can swap, over the one thing that stays. */
+      .free {
+        margin: 56px auto 0;
+        max-width: 1040px;
+      }
+      .swaps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .swap {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .seg {
+        display: flex;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--bg);
+      }
+      .seg button {
+        flex: 1;
+        padding: 7px 8px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition:
+          background-color 0.25s ease,
+          color 0.25s ease;
+      }
+      .seg button:hover {
+        color: var(--ink);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--button);
+        color: var(--button-text);
+      }
+      .swap .says {
+        font: 500 1.2rem/1.25 var(--serif);
+        min-height: 2.5em;
+      }
+      .swap .cap {
+        margin-top: auto;
+      }
+      .drops svg {
+        display: block;
+        width: 100%;
+        height: 48px;
+      }
+      .drops path {
+        fill: none;
+        stroke-linecap: round;
+      }
+      .drops .w {
+        stroke: var(--wire);
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .drops .p {
+        stroke: var(--live);
+        stroke-width: 3;
+        stroke-dasharray: 40 100;
+        stroke-dashoffset: 40;
+        opacity: 0;
+      }
+      .drops .p.go {
+        animation: drop 0.6s ease-in-out;
+      }
+      @keyframes drop {
+        from {
+          stroke-dashoffset: 40;
+          opacity: 1;
+        }
+        to {
+          stroke-dashoffset: -100;
+          opacity: 1;
+        }
+      }
+      .stays {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .stays .same {
+        margin-left: auto;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: var(--tint);
+        color: var(--live-text);
+        letter-spacing: 0.04em;
+      }
+      .stays .same.go {
+        animation: still-here 0.9s ease;
+      }
+      @keyframes still-here {
+        30% {
+          box-shadow:
+            0 0 0 6px #3ddc8433,
+            0 0 24px #3ddc8480;
+          transform: scale(1.08);
+        }
+      }
+      .files {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .files li {
+        padding: 6px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--bg);
+        font-family: var(--mono);
+        font-size: 0.86rem;
+      }
+
+      .vaults {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 48px;
+      }
+      .vaults .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .box {
+        align-self: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 22px;
+        flex: 1;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--bg);
+        padding: 16px 18px 18px;
+      }
+      .box .held {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.05rem;
+      }
+      .box .held svg {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .box .shackle {
+        transform-origin: 16px 11px;
+        transition: transform 0.4s ease;
+      }
+      .doc.open .shackle {
+        transform: rotate(38deg);
+      }
+      .doc.open .held svg {
+        color: var(--live-text);
+      }
+      .box .held .tag {
+        margin-left: auto;
+        padding: 2px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .doc.open .held .tag {
+        background: var(--tint);
+        border-color: transparent;
+        color: var(--live-text);
+      }
+      .box .did {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        padding: 10px 12px;
+        font-size: 0.93rem;
+      }
+      .box .did span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+      .box .btns {
+        display: flex;
+        gap: 6px;
+      }
+      .box button {
+        padding: 6px 14px;
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .box > .cap:last-child,
+      .box .steps {
+        margin-top: auto;
+      }
+      .steps {
+        list-style: none;
+        margin-bottom: 0;
+        padding: 14px 0 0;
+        border-top: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        counter-reset: step;
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+      .steps li {
+        counter-increment: step;
+      }
+      .steps li::before {
+        content: counter(step);
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin-bottom: 6px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--surface);
+        color: var(--ink);
+        font: 500 0.9rem/1 var(--serif);
+      }
+      .keys {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+      .keys li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0 12px;
+        padding: 9px 12px;
+        font-size: 0.93rem;
+      }
+      .keys li + li {
+        border-top: 1px solid var(--line);
+      }
+      .keys b {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+      }
+      .keys span,
+      .keys em {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-style: normal;
+      }
+      .keys i,
+      .keys em {
+        text-align: right;
+      }
+      .keys i {
+        grid-area: 1 / 2;
+        font-style: normal;
+        font-size: 0.84rem;
+        letter-spacing: 0.04em;
+      }
+      .keys em {
+        grid-area: 2 / 2;
       }
 
       .dg {
@@ -1600,6 +1891,8 @@
         }
         .bento,
         .pair,
+        .swaps,
+        .vaults,
         .setups,
         .fork,
         .path {
@@ -1612,6 +1905,15 @@
         }
         .day::before {
           display: none;
+        }
+        .drops svg {
+          display: none;
+        }
+        .drops {
+          height: 32px;
+          width: 0;
+          margin: 0 auto;
+          border-left: 1.5px solid var(--wire);
         }
       }
       @media (max-width: 760px) {
@@ -1727,8 +2029,8 @@
           </a>
           <nav>
             <a class="link" href="#how">How it works</a>
+            <a class="link" href="#free">No lock-in</a>
             <a class="link" href="#features">What it does</a>
-            <a class="link" href="#setup">Setups</a>
             <a class="link" href="https://github.com/Wozacosta/majordome/tree/main/docs/user"
               >Guides</a
             >
@@ -1869,6 +2171,109 @@
               </div>
             </div>
             <p class="cap">What it learns goes into a note you can open, edit or delete.</p>
+          </div>
+        </section>
+
+        <section id="free">
+          <div class="intro center">
+            <h2>Change anything. Keep your notes.</h2>
+            <p>
+              No lock-in. The AI, the server and even the app can be swapped. The folder stays the
+              same. Try it.
+            </p>
+          </div>
+          <div class="free reveal">
+            <div class="swaps">
+              <div class="card swap">
+                <div class="k">The AI</div>
+                <div class="seg" role="group" aria-label="The AI">
+                  <button type="button" aria-pressed="true" data-says="On your Claude plan.">
+                    Claude
+                  </button>
+                  <button type="button" aria-pressed="false" data-says="On your ChatGPT plan.">
+                    ChatGPT
+                  </button>
+                </div>
+                <p class="says" aria-live="polite">On your Claude plan.</p>
+                <p class="cap">Changed plan? Sign in to the other one.</p>
+              </div>
+              <div class="card swap">
+                <div class="k">Where it runs</div>
+                <div class="seg" role="group" aria-label="Where it runs">
+                  <button
+                    type="button"
+                    aria-pressed="true"
+                    data-says="Free. Runs while your Mac is awake."
+                  >
+                    Your Mac
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed="false"
+                    data-says="€14 a month. Cancel any time."
+                  >
+                    Our server
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed="false"
+                    data-says="About €5 a month, rented in your name."
+                  >
+                    Your own
+                  </button>
+                </div>
+                <p class="says" aria-live="polite">Free. Runs while your Mac is awake.</p>
+                <p class="cap">Don't want our server? Bring your notes back, or rent your own.</p>
+              </div>
+              <div class="card swap">
+                <div class="k">The app</div>
+                <div class="seg" role="group" aria-label="The app">
+                  <button
+                    type="button"
+                    aria-pressed="true"
+                    data-says="Today, routines and the assistant."
+                  >
+                    Majordome
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed="false"
+                    data-says="The same folder, opened as a vault."
+                  >
+                    Obsidian
+                  </button>
+                  <button type="button" aria-pressed="false" data-says="They are text files.">
+                    Any editor
+                  </button>
+                </div>
+                <p class="says" aria-live="polite">Today, routines and the assistant.</p>
+                <p class="cap">Open source. Backups open without Majordome.</p>
+              </div>
+            </div>
+            <div class="drops" aria-hidden="true">
+              <svg viewBox="0 0 1000 48" preserveAspectRatio="none">
+                <path class="w" d="M160 0V48" />
+                <path class="w" d="M500 0V48" />
+                <path class="w" d="M840 0V48" />
+                <path class="p" pathLength="100" d="M160 0V48" />
+                <path class="p" pathLength="100" d="M500 0V48" />
+                <path class="p" pathLength="100" d="M840 0V48" />
+              </svg>
+            </div>
+            <div class="card main stays">
+              <div class="k">
+                <span class="dot"></span>Your notes<span class="same">unchanged</span>
+              </div>
+              <ul class="files">
+                <li>memory.md</li>
+                <li>Money.md</li>
+                <li>Health.md</li>
+                <li>Reading list.md</li>
+              </ul>
+              <div class="cap">
+                Plain markdown, in a folder you own. Nothing to export, nothing to convert.
+              </div>
+            </div>
           </div>
         </section>
 
@@ -2060,17 +2465,6 @@
           <div class="pair rise">
             <a
               class="card tile"
-              href="https://github.com/Wozacosta/majordome/blob/main/docs/user/private-documents.md"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="5" y="11" width="14" height="9" rx="2" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-              </svg>
-              <h3>Private documents</h3>
-              <p>Encrypted. Opened only after your yes, each time.</p>
-            </a>
-            <a
-              class="card tile"
               href="https://github.com/Wozacosta/majordome/blob/main/docs/user/backup.md"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -2088,6 +2482,82 @@
               <h3>Plain markdown</h3>
               <p>Works with Obsidian. Layout from <code>npx obrain</code>.</p>
             </a>
+          </div>
+        </section>
+
+        <section id="safe">
+          <div class="intro">
+            <h2>Private files and passwords, kept locked.</h2>
+            <p>What your assistant may use, but should never have lying around.</p>
+          </div>
+          <div class="vaults">
+            <div class="card cell rise">
+              <h3>Private documents</h3>
+              <p>
+                A passport scan, a tax return, a contract. Encrypted, and opened only after your
+                yes, each time. Try it.
+              </p>
+              <a
+                href="https://github.com/Wozacosta/majordome/blob/main/docs/user/private-documents.md"
+                >How private documents work</a
+              >
+              <div class="box doc" id="doc">
+                <div class="held">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="9" rx="2" />
+                    <path class="shackle" d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                  <b>Passport</b>
+                  <span class="tag">encrypted</span>
+                </div>
+                <div class="did">
+                  <div>Open Passport?<span>To fill in the visa form</span></div>
+                  <div class="btns">
+                    <button class="button small" type="button" data-answer="open">
+                      Allow once
+                    </button>
+                    <button class="button small quiet" type="button" data-answer="shut">
+                      Don't allow
+                    </button>
+                  </div>
+                </div>
+                <p class="cap" role="status">Closed until you answer.</p>
+                <ol class="steps" aria-hidden="true">
+                  <li>It asks, and says why</li>
+                  <li>You say yes, each time</li>
+                  <li>It opens for that task only</li>
+                </ol>
+              </div>
+            </div>
+            <div class="card cell rise">
+              <h3>Passwords and keys</h3>
+              <p>
+                The passwords, tokens and API keys you save for it. It uses one when a task needs
+                it, without the key appearing in the chat.
+              </p>
+              <a href="https://github.com/Wozacosta/majordome/blob/main/docs/user/secrets.md"
+                >How passwords and keys work</a
+              >
+              <div class="box">
+                <ul class="keys" aria-hidden="true">
+                  <li>
+                    <b>garmin</b><span>Read my runs</span><i>••••••••</i><em>Used 2 days ago</em>
+                  </li>
+                  <li>
+                    <b>bank</b><span>Download statements</span><i>Kept in 1Password</i
+                    ><em>Works until 25 Nov 2027</em>
+                  </li>
+                </ul>
+                <div class="chat" aria-hidden="true">
+                  <div class="you">Can you reach my Garmin data?</div>
+                  <div class="it">Yes, with the key named <mark>garmin</mark>.</div>
+                </div>
+                <p class="cap">
+                  Kept encrypted on your computers, or left in 1Password or Bitwarden Secrets
+                  Manager. Saving a key is the permission: it uses it without asking.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -2375,6 +2845,7 @@
                 <li>What it did, with undo</li>
                 <li>Skills it writes itself</li>
                 <li>Private documents</li>
+                <li>Passwords and keys</li>
                 <li>Gmail, Calendar, Drive</li>
                 <li>Back up my brain</li>
                 <li>Phone, nothing to install</li>
@@ -2668,6 +3139,41 @@
           });
         }),
       );
+
+      // No lock-in: pressing a choice changes one line, and the notes are flagged as unchanged.
+      const same = document.querySelector(".stays .same");
+      const drops = [...document.querySelectorAll(".drops .p")];
+      document.querySelectorAll(".swap").forEach((swap, column) => {
+        const choices = [...swap.querySelectorAll(".seg button")];
+        for (const choice of choices) {
+          choice.addEventListener("click", () => {
+            choices.forEach((other) =>
+              other.setAttribute("aria-pressed", String(other === choice)),
+            );
+            swap.querySelector(".says").textContent = choice.dataset.says;
+            if (still) return;
+            for (const lit of [drops[column], same]) {
+              lit.classList.remove("go");
+              void lit.getBoundingClientRect();
+              lit.classList.add("go");
+            }
+          });
+        }
+      });
+
+      const doc = document.getElementById("doc");
+      const docSays = {
+        open: ["open for this task", "Open for this task only. Closed again when it ends."],
+        shut: ["encrypted", "Left closed. Your assistant tells you what it could not do."],
+      };
+      for (const answer of doc.querySelectorAll("button")) {
+        answer.addEventListener("click", () => {
+          const [tag, line] = docSays[answer.dataset.answer];
+          doc.classList.toggle("open", answer.dataset.answer === "open");
+          doc.querySelector(".tag").textContent = tag;
+          doc.querySelector(".cap").textContent = line;
+        });
+      }
 
       const undo = document.getElementById("undo");
       const undoButton = undo.querySelector("button");
