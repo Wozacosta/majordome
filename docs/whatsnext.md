@@ -68,9 +68,6 @@ Details are in "The iPhone app" below.
       price with a one-week free offer, the billing grace period, the In-App Purchase key, the
       notice address, a sandbox tester, and a demo account for the reviewer.
 - [ ] A TestFlight link for people outside the team goes through Beta App Review first.
-- [ ] **Xcode 27 before April 2027.** Apple warned on build 15 (ITMS-90725): from April 2027 it
-      refuses uploads built with the iOS 26 SDK. This Mac has Xcode 26.6 on macOS 26.2; Xcode 27
-      needs macOS 26.6 or later. Update macOS, then Xcode, then run one TestFlight build to check.
 - [ ] The share extension is upstream's: it puts what you share from another app into a new
       chat. Keep it or drop it. (The widgets, about coding agents, are out of the build.)
 - [ ] "Scan to get the app" on the Welcome page opens T3 Code's app (`MOBILE_APP_URL`).
@@ -639,7 +636,7 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   is still `usage`. Upstream's tests of the tabs mock `src/majordome/env` with `isMajordome`
   false. The iPhone tab bar's label and icon are in Swift
   (`modules/t3-native-controls/ios/T3SidebarTabBarView.swift`).
-- **Building here:** Xcode 26.6 builds it, with CocoaPods from Homebrew.
+- **Building here:** Xcode 27.2 builds it, with CocoaPods from Homebrew.
   `T3_NATIVE_CLIENT_BUILD=local T3_NATIVE_CLIENT_CACHE=off vp run mobile:install ios <simulator>`
   then `vp run dev:client` in `apps/mobile`. A build is about six minutes.
 - **Testing writes safely:** `vp run dev` seeds from the real data, so the notes folder it lists
