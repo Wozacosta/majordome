@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { ClaudeAI, OpenAI } from "../Icons";
 import { SettingsPageContainer } from "../settings/settingsLayout";
 import {
   SETTINGS_NAV_LABELS,
@@ -107,9 +108,18 @@ const DRAWINGS: Record<
       [node("you", UserRoundIcon, "You")],
       [node("assistant", ConciergeBellIcon, "The assistant")],
       [
-        node("account", BotIcon, "AI accounts", "/settings/providers"),
-        node("connections", PlugIcon, "Connections", "/settings/connectors"),
-        node("skills", GraduationCapIcon, "Skills", "/settings/skills"),
+        {
+          ...node("account", BotIcon, "AI accounts", "/settings/providers"),
+          marks: [ClaudeAI, OpenAI],
+        },
+        {
+          ...node("connections", PlugIcon, "Connections", "/settings/connectors"),
+          detail: "Gmail, Calendar, MCP",
+        },
+        {
+          ...node("skills", GraduationCapIcon, "Skills", "/settings/skills"),
+          detail: "e.g. your weekly review",
+        },
       ],
     ],
     lines: [

@@ -13,6 +13,8 @@ export interface FlowNode {
   readonly detail?: string | null;
   /** A word on the node, such as "Main". */
   readonly badge?: string;
+  /** Small marks at the end of the node, such as the logos of what it stands for. */
+  readonly marks?: ReadonlyArray<ComponentType<{ className?: string }>>;
   /** Not there yet, or out of reach: drawn faint. */
   readonly faint?: boolean;
   /** The settings page where this is set up; the box then opens it. */
@@ -61,7 +63,11 @@ export function FlowDiagram({
       style={{
         height: layout.height,
         gridTemplateColumns: columns
-          .map((_, index) => (index === 0 ? "minmax(0,6fr)" : "minmax(1.5rem,1fr) minmax(0,6fr)"))
+          .map((nodes, index) => {
+            // A column whose boxes say more than a name gets the room to say it.
+            const width = nodes.some((node) => node.detail || node.marks) ? 7 : 4;
+            return `${index === 0 ? "" : "minmax(1.5rem,1fr) "}minmax(0,${width}fr)`;
+          })
           .join(" "),
       }}
     >
@@ -114,10 +120,16 @@ export function FlowDiagram({
                       {node.title}
                     </p>
                     {node.detail ? (
-                      <p className="truncate text-xs text-muted-foreground">{node.detail}</p>
+                      <p className="line-clamp-2 text-xs leading-tight text-muted-foreground">
+                        {node.detail}
+                      </p>
                     ) : null}
                   </div>
                   {node.badge ? <Badge size="sm">{node.badge}</Badge> : null}
+                  {node.marks?.map((Mark, index) => (
+                    // oxlint-disable-next-line react/no-array-index-key -- a fixed list of logos
+                    <Mark key={index} className="size-4 shrink-0 text-foreground" aria-hidden />
+                  ))}
                 </>
               );
               return node.to ? (
