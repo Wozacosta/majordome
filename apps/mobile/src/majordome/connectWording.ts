@@ -11,6 +11,7 @@ export const MAJORDOME_CONNECT = {
   confirmHelp:
     "This is the computer whose code you just scanned. If you don't recognise the address, close this.",
   confirmButton: "Connect",
+  connecting: "Connecting to your computer…",
   confirmOther: "Scan or type another code",
   fromLinkHelp:
     "Filled in from the code you scanned. Check that the address is your computer's, then press Connect.",
@@ -53,6 +54,8 @@ export const MAJORDOME_ACCOUNT = {
   noComputer:
     "On your computer, open Majordome and go to Settings, then Your account. Sign in there with this same account and follow what it says. Then come back here.",
   checkAgain: "Check again",
+  stillNoComputer:
+    "Still nothing. Check that Majordome on your computer is signed in with this same account, then check again.",
   codeInstead: "Scan a code instead",
   sessionEnded: "Your sign-in ended. Sign out below, sign in again, then press Connect.",
   connected: "This phone is connected to it.",

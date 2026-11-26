@@ -202,6 +202,48 @@ export const MOBILE_WORDING: Wording = [
     "Update this app and Majordome on your computer so they work together.",
   ],
 
+  // What a computer answers when it turns this phone away, while adding it or later.
+  [
+    "That address reaches {host}, a different machine. Add it as its own environment instead.",
+    "That address belongs to {host}, another computer. To add it, go to Computers and tap Add a computer.",
+  ],
+  [
+    "This address now runs a different T3 Code install ({actual}, not {expected}). Remove this connection and add it again.",
+    "Another Majordome now answers at this address. Remove this computer and add it again with a new code.",
+  ],
+  [
+    "The environment credential is invalid.",
+    "Your computer no longer recognises this phone. Add it again with a new code.",
+  ],
+  [
+    "The environment credential does not grant the required access.",
+    "This phone isn't allowed to do that on your computer. Add it again with a new code.",
+  ],
+  [
+    "The environment rejected the authentication request.",
+    "Your computer turned this phone away. Add it again with a new code.",
+  ],
+  [
+    "The environment endpoint could not be found.",
+    "Majordome didn't answer at that address. Check the address on your computer.",
+  ],
+  [
+    "This device is waiting for approval on the host.",
+    "Open Majordome on your computer and approve this phone.",
+  ],
+  [
+    "The environment could not authorize the connection.",
+    "Your computer couldn't check this phone just now. Try again in a moment.",
+  ],
+  ["Environment label cannot be empty.", "Give the computer a name."],
+  [
+    "The saved bearer credential is unavailable.",
+    "This phone lost its sign-in to that computer. Remove it and add it again with a new code.",
+  ],
+  ["Failed to connect. Reconnecting...", "Couldn't connect. Trying again…"],
+  ["Failed to connect. Reconnecting... Reason: {error}", "Couldn't connect. Trying again… {error}"],
+  ["Connection failed. Reason: {error}", "Couldn't connect. {error}"],
+
   // Computers. Upstream's "route" is an address there, and a page of the app here.
   ["Route not found", "Page not found"],
   ["Add route", "Add an address"],

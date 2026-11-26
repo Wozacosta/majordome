@@ -26,6 +26,7 @@ import { serverEnvironment } from "../../state/server";
 import { environmentPresentations } from "../../state/presentation";
 import { ConnectionDiagnosisDetails, useConnectionDiagnosis } from "./ConnectionDiagnosisDetails";
 import { ConnectionFormField } from "./ConnectionFormField";
+import { canSaveEnvironmentEdit } from "./environmentEdit";
 import { ConnectionStatusDot } from "./ConnectionStatusDot";
 import { environmentStatusText } from "./environmentStatusText";
 import type { MessageResolver } from "../../i18n/messages";
@@ -35,6 +36,7 @@ import {
   computerStateText,
   MAJORDOME_COMPUTER_ROW,
 } from "../../majordome/connectionState";
+import { MAJORDOME_CONNECT } from "../../majordome/connectWording";
 import { isMajordome } from "../../majordome/env";
 
 function connectionStatusLabel(
@@ -124,11 +126,21 @@ export function ConnectionEnvironmentRow(props: {
     enabled &&
     (props.environment.connectionState === "connecting" ||
       props.environment.connectionState === "reconnecting");
+  const [saving, setSaving] = useState(false);
+  const canSave =
+    !saving &&
+    canSaveEnvironmentEdit(
+      { label: props.environment.environmentLabel, displayUrl: props.environment.displayUrl },
+      { label, displayUrl: url },
+    );
   const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
     const result = await props.onUpdate(props.environment.environmentId, {
       label: label.trim(),
       displayUrl: url.trim(),
     });
+    setSaving(false);
     if (AsyncResult.isSuccess(result)) {
       props.onToggle();
       return;
@@ -301,6 +313,7 @@ export function ConnectionEnvironmentRow(props: {
                 autoCapitalize="words"
                 autoCorrect={false}
                 placeholder={gt("My MacBook")}
+                returnKeyType="done"
                 value={label}
                 onChangeText={setLabel}
               />
@@ -308,9 +321,15 @@ export function ConnectionEnvironmentRow(props: {
               <ConnectionFormField
                 label={isMajordome ? MAJORDOME_COMPUTER_ROW.address : "URL"}
                 autoCapitalize="none"
+                autoComplete="off"
                 autoCorrect={false}
+                spellCheck={false}
                 keyboardType="url"
-                placeholder="192.168.1.100:8080"
+                textContentType="URL"
+                returnKeyType="done"
+                placeholder={
+                  isMajordome ? MAJORDOME_CONNECT.addressPlaceholder : "192.168.1.100:8080"
+                }
                 value={url}
                 onChangeText={setUrl}
               />
@@ -325,6 +344,8 @@ export function ConnectionEnvironmentRow(props: {
                     label={gt("Save")}
                     tone="primary"
                     fullWidth
+                    disabled={!canSave}
+                    loading={saving}
                     onPress={() => {
                       void handleSave();
                     }}
@@ -349,8 +370,14 @@ export function ConnectionEnvironmentRow(props: {
             <View className="flex-row justify-end gap-2">
               {props.environment.isRelayManaged ? null : (
                 <Pressable
-                  className="min-h-[42px] flex-1 flex-row items-center justify-center gap-1.5 rounded-[14px] bg-primary px-3.5 py-2.5 active:opacity-70"
-                  onPress={handleSave}
+                  accessibilityRole="button"
+                  accessibilityLabel={gt("Save")}
+                  accessibilityState={{ disabled: !canSave, busy: saving }}
+                  className="min-h-[44px] flex-1 flex-row items-center justify-center gap-1.5 rounded-[14px] bg-primary px-3.5 py-2.5 active:opacity-70 disabled:opacity-40"
+                  disabled={!canSave}
+                  onPress={() => {
+                    void handleSave();
+                  }}
                 >
                   <SymbolView
                     name="checkmark"
@@ -368,7 +395,7 @@ export function ConnectionEnvironmentRow(props: {
                 accessibilityRole="button"
                 accessibilityLabel={gt("Reconnect environment")}
                 accessibilityState={{ disabled: !enabled }}
-                className="h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-input-border bg-input active:opacity-70 disabled:opacity-40"
+                className="h-[44px] w-[44px] items-center justify-center rounded-[14px] border border-input-border bg-input active:opacity-70 disabled:opacity-40"
                 disabled={!enabled}
                 onPress={() => props.onReconnect(props.environment.environmentId)}
               >
@@ -383,7 +410,7 @@ export function ConnectionEnvironmentRow(props: {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={gt("Remove environment")}
-                className="h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-danger-border bg-danger active:opacity-70"
+                className="h-[44px] w-[44px] items-center justify-center rounded-[14px] border border-danger-border bg-danger active:opacity-70"
                 onPress={() => props.onRemove(props.environment.environmentId)}
               >
                 <SymbolView
