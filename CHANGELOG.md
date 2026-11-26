@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **An answer no longer says it used "T3 Code".** Under an answer, the line naming the services
+  it reached, such as Gmail, also showed "T3 Code" when your assistant had used one of its own
+  tools, like your saved keys. Only outside services are named now, in old answers too.
+
+**Try this**
+
+- Ask your assistant "which keys do I have saved?": no "T3 Code" line should sit under the answer.
 
 ## 0.10.57
 

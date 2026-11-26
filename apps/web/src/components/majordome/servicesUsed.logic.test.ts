@@ -41,6 +41,16 @@ describe("servicesUsedByRun", () => {
     ]);
     expect(services.get(run)).toEqual([gmail]);
   });
+
+  it("leaves out the app's own tools", () => {
+    const services = servicesUsedByRun([
+      step("keys", { toolSource: { key: "mcp:t3-code", name: "T3 Code", kind: "integration" } }),
+      step("direct", {
+        toolSource: { key: "mcp:t3_code_direct", name: "t3 code direct", kind: "integration" },
+      }),
+    ]);
+    expect(services.get(run)).toBeUndefined();
+  });
 });
 
 describe("serviceBrand", () => {

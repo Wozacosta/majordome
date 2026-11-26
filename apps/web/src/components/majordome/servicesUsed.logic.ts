@@ -20,6 +20,10 @@ export function serviceBrand(name: string): ServiceBrand | null {
   return BRANDS[name.toLowerCase().replace(/[^a-z]/g, "")] ?? null;
 }
 
+// The app's own tools arrive as a connector too, under T3 Code's name. They are not an outside
+// service, and answers already stored carry that source, so it is dropped here.
+const OWN_TOOLS = /^mcp:t3[-_]?code([-_]direct)?$/;
+
 /**
  * The outside services each answer reached, in the order it first reached them. A service counts
  * once one of its steps worked, so an answer never shows a service that refused it.
@@ -32,6 +36,7 @@ export function servicesUsedByRun(
     if (entry.kind !== "work") continue;
     const { runId, toolSource } = entry.entry;
     if (runId == null || toolSource?.kind !== "integration") continue;
+    if (OWN_TOOLS.test(toolSource.key)) continue;
     if (!workEntryIndicatesToolSuccess(entry.entry)) continue;
     const services = byRun.get(runId) ?? new Map<string, ToolActivitySource>();
     if (!services.has(toolSource.key)) services.set(toolSource.key, toolSource);
