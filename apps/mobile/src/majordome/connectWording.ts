@@ -32,7 +32,10 @@ export const MAJORDOME_CONNECT = {
 
 const REFUSED_CODE =
   /pairing code is unknown, expired, or already used|not a one-time pairing code/i;
-const NO_ANSWER = /network request failed|failed to fetch|timed out|could not connect|unreachable/i;
+// The last two are those same answers as the build rewords them (majordome/wording.mts): the
+// rewording runs first, so in the app these are the sentences that arrive.
+const NO_ANSWER =
+  /network request failed|failed to fetch|timed out|could not connect|unreachable|didn't answer at|took too long to answer at/i;
 
 /**
  * Why connecting failed, as the owner can act on it. The computer's own answers are written for

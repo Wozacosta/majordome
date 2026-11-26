@@ -5,7 +5,43 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **On the phone, a chat speaks plainly in more places.** A question from Majordome now says
+  "Majordome has a question" and "Send my answer". Messages you write while it is still replying
+  are "waiting", not "queued". Stopping a reply that won't stop explains itself without "turns"
+  or "processes". A long chat says "Earlier messages summarised" instead of counting tokens.
+- **On the phone, the Chats list says what happened.** After you mark a chat as done, snooze or
+  unpin it, the notice says "Marked as done", "Chat snoozed" or "Chat unpinned". A chat you have
+  not named yet is called "New chat" when you delete it. Hiding a routine from Chats tells you
+  where to find it again, with Undo.
+- **On the phone, adding a computer is clearer.** After you scan the code, the phone says it is
+  connecting instead of asking you to scan again. On an iPhone the keyboard no longer hides the
+  code and the Connect button, and Return on the address takes you to the code.
+- **On the phone, allow, and see it register.** The answer you tap on an approval shows it is
+  being sent.
+
+**Fixed**
+
+- **On the phone, renaming a computer saves on the first tap.** Save lights up only when you
+  changed something.
+- **On the phone, a computer that refuses or doesn't answer says why in plain words,** and what
+  to do next, without a technical address in the middle. "Check again" on Your account now tells
+  you when it still finds no computer.
+- **On the phone, small things are easier to hit:** the Working, Snoozed and Done labels, "Show
+  more", the ✕ on an attached photo or file, and the stop button on a question.
+- **On the phone, a Chats list with nothing left but closed topics** now offers to start a chat
+  instead of staying blank.
+
+**Try this**
+
+- Swipe a chat to mark it as done and read the notice at the bottom, then tap "Done" to fold
+  that section.
+- Touch and hold a routine, choose "Hide this routine from Chats", and tap Undo.
+- Write two messages while Majordome is still answering, then tap "2 waiting" above the message
+  box.
+- Go to Settings, Computers, Add a computer, tap Address and check the Connect button stays
+  above the keyboard. Then open a computer's details, change its name and tap Save once.
 
 ## 0.10.59
 

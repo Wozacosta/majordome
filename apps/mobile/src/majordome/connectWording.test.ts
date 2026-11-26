@@ -11,6 +11,14 @@ describe("connectErrorForOwner", () => {
       /didn't answer at that address/,
     ],
     ["Remote environment endpoint https://x/api timed out after 10000ms.", /didn't answer/],
+    [
+      "Your computer took too long to answer at http://10.9.9.9:1/.well-known/t3/environment. Check that it is on and that Majordome is open on it.",
+      /^Your computer didn't answer at that address/,
+    ],
+    [
+      "Your computer didn't answer at http://10.9.9.9:1/.well-known/t3/environment. Check that it is on and that Majordome is open on it.",
+      /^Your computer didn't answer at that address/,
+    ],
   ])("says what to do about %j", (message, expected) => {
     expect(connectErrorForOwner(message)).toMatch(expected);
   });
