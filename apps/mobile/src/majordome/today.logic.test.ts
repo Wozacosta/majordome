@@ -1,6 +1,16 @@
 import { expect, it } from "vite-plus/test";
 
-import { friendlyDate, noteLines, noteSections, toggleTodo, topicRows } from "./today.logic";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
+
+import {
+  forgetRemovedComputers,
+  friendlyDate,
+  noteLines,
+  noteSections,
+  toggleTodo,
+  topicRows,
+  type TodayStore,
+} from "./today.logic";
 
 const NOTE = [
   "---",
@@ -112,4 +122,40 @@ it("lists the topics still going with their latest message, else where they stan
       notes: 4,
     },
   ]);
+});
+
+const MAC = EnvironmentId.make("mac");
+const OTHER = EnvironmentId.make("other");
+const capture = (environmentId: EnvironmentId) => ({
+  id: `line-${environmentId}`,
+  environmentId,
+  projectId: ProjectId.make("notes"),
+  date: "2026-11-26",
+  time: "09:12",
+  text: "bought bread",
+});
+const KEPT: TodayStore = {
+  vault: { environmentId: MAC, projectId: ProjectId.make("notes") },
+  note: { date: "2026-11-26", content: "# Thursday" },
+  captures: [capture(MAC), capture(OTHER)],
+  topics: [{ id: "accounting", title: "Accounting", threadId: null, preview: null }],
+  hiddenRoutines: ["Morning brief"],
+};
+
+it("forgets the note, topics and waiting lines of a computer the phone no longer has", () => {
+  expect(forgetRemovedComputers(KEPT, (id) => id === OTHER)).toEqual({
+    vault: null,
+    note: null,
+    captures: [capture(OTHER)],
+    topics: [],
+  });
+});
+
+it("keeps the phone's copy while its computer is still there", () => {
+  const both = forgetRemovedComputers(KEPT, () => true);
+  expect(both).toBe(KEPT);
+  expect(forgetRemovedComputers(KEPT, (id) => id === MAC)).toEqual({
+    ...KEPT,
+    captures: [capture(MAC)],
+  });
 });

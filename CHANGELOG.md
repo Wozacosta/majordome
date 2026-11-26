@@ -44,6 +44,10 @@ The section for a version is also the text of its release on GitHub.
   were still there, even after signing in as someone else. **Sign out** now disconnects the
   computers of that account from the phone. Nothing is deleted on them, and computers you
   added with a code that are not in the account stay.
+- **On the phone, a removed computer's notes no longer stay on screen.** The phone keeps a copy
+  of today's note and your topics so Today opens with no connection. That copy was kept after
+  the computer was removed, in Settings or by signing out, so its topics were still listed. It
+  is now forgotten with the computer, along with any lines still waiting to be sent to it.
 
 **Try this**
 

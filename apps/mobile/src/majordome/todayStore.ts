@@ -1,8 +1,14 @@
 import { Atom } from "effect/reactivity";
 
+import { environmentCatalog } from "../connection/catalog";
 import { writeFileAtomically } from "../lib/atomic-file";
 import { appAtomRegistry } from "../state/atom-registry";
-import { EMPTY_TODAY_STORE, type NoteCapture, type TodayStore } from "./today.logic";
+import {
+  EMPTY_TODAY_STORE,
+  forgetRemovedComputers,
+  type NoteCapture,
+  type TodayStore,
+} from "./today.logic";
 
 const FILE_NAME = "majordome-today.json";
 
@@ -30,6 +36,17 @@ export function loadTodayStore(): Promise<void> {
       // An unreadable copy is the same as none: the server still has the note.
     }
     appAtomRegistry.set(todayStoreAtom, stored);
+    appAtomRegistry.subscribe(
+      environmentCatalog.catalogValueAtom,
+      (catalog) => {
+        // Not before the saved computers are read: until then every computer looks removed.
+        if (!catalog.isReady) return;
+        updateTodayStore((current) =>
+          forgetRemovedComputers(current, (environmentId) => catalog.entries.has(environmentId)),
+        );
+      },
+      { immediate: true },
+    );
   })();
   return loading;
 }

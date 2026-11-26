@@ -44,6 +44,22 @@ export interface TopicRow {
 
 export const EMPTY_TODAY_STORE: TodayStore = { vault: null, note: null, captures: [], topics: [] };
 
+/**
+ * The phone's copy without what belongs to a computer it no longer has. The copy outlives the
+ * connection so Today opens offline; once the computer is removed, by hand or by signing out,
+ * its note and topics must not stay on screen for whoever uses the phone next.
+ */
+export function forgetRemovedComputers(
+  store: TodayStore,
+  has: (environmentId: EnvironmentId) => boolean,
+): TodayStore {
+  const captures = store.captures.filter((capture) => has(capture.environmentId));
+  if (store.vault !== null && !has(store.vault.environmentId)) {
+    return { ...EMPTY_TODAY_STORE, captures };
+  }
+  return captures.length === store.captures.length ? store : { ...store, captures };
+}
+
 /** The topics still going, each with a line saying where its conversation is. */
 export function topicRows(
   topics: ReadonlyArray<{
