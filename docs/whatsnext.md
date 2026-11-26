@@ -43,7 +43,7 @@ opening is the Mac app, the iPhone app and hosted servers.
       in its own name and handles the tax. No sale has gone through it yet. To check on the
       first one: the checkout page, the receipt naming Stripe as the seller, and that the
       refund button still gives the money back, since Stripe also takes refund requests itself.
-- [ ] The margin. The price went from 12 to 20 euros on 2026-11-26: a 2 GB server always on
+- [ ] The margin. The price went from 12 to 22 euros on 2026-11-26: a 2 GB server always on
       in Paris is about $16 a month at Fly's list prices, before Stripe's fee and any VAT. Check
       it against one Fly invoice. Stopping idle servers (see "Later" under "Hosted Majordome")
       would bring the cost to a few dollars and was set aside for now.

@@ -20,7 +20,7 @@ The section for a version is also the text of its release on GitHub.
 
 **Changed**
 
-- **A Majordome server is €20 a month.** It was €12, which did not cover what the server costs
+- **A Majordome server is €22 a month.** It was €12, which did not cover what the server costs
   to run. The first 7 days are still free. Anyone already subscribed keeps their price.
 
 **New**
