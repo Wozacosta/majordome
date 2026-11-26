@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { EnvironmentId, ProjectId, type ScheduledTask, ScheduledTaskId } from "@t3tools/contracts";
+import {
+  EnvironmentId,
+  type MajordomeReadyRoutine,
+  ProjectId,
+  type ScheduledTask,
+  ScheduledTaskId,
+} from "@t3tools/contracts";
+import { AsyncResult } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 
@@ -7,6 +14,7 @@ import "~/index.css";
 
 import { render } from "../../../test/render";
 import type { ComposerHandleRef } from "../../composerHandleContext";
+import { majordomeEnvironment } from "../../state/majordome";
 import { serverEnvironment } from "../../state/server";
 import { SidebarProvider } from "../ui/sidebar";
 import { AssistantDock } from "./AssistantDock";
@@ -36,13 +44,35 @@ const task = (id: string, overrides: Partial<ScheduledTask>) =>
 const state = vi.hoisted(() => ({
   typed: [] as Array<string>,
   commands: [] as Array<readonly [unknown, unknown]>,
+  /** False for a notes folder with no routine in it. */
+  hasRoutines: true,
+  /** What the server still offers ready-made. */
+  ready: [] as Array<unknown>,
+  readyAtom: {},
 }));
+
+const ready = (key: string, title: string, rest: Partial<MajordomeReadyRoutine> = {}) =>
+  ({
+    key,
+    title,
+    description: "Asks one question about your day.",
+    when: "Every day at 21:00",
+    ...rest,
+  }) as MajordomeReadyRoutine;
 
 vi.mock("../../hooks/useNowMinute", () => ({ useNowMinute: () => "2026-11-16T09:00" }));
 vi.mock("@effect/atom-react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@effect/atom-react")>()),
-  useAtomValue: () => true,
+  useAtomValue: (atom: unknown) =>
+    atom === state.readyAtom ? AsyncResult.success({ routines: state.ready }) : true,
 }));
+vi.mock("../../state/majordome", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../../state/majordome")>();
+  return {
+    ...real,
+    majordomeEnvironment: { ...real.majordomeEnvironment, readyRoutines: () => state.readyAtom },
+  };
+});
 vi.mock("../../state/entities", () => ({ useQuietThreadShell: () => null }));
 vi.mock("../../state/use-atom-command", () => ({
   useAtomCommand: (command: unknown) => (value: unknown) => {
@@ -62,30 +92,34 @@ vi.mock("./useMajordomeVaults", () => ({
 }));
 vi.mock("./useVaultRoutines", () => ({
   useVaultRoutines: () => ({
-    routines: [
-      { key: "start", environmentId, task: task("Start my day", {}), timeZone: undefined },
-      {
-        key: "hook",
-        environmentId,
-        timeZone: undefined,
-        task: task("From the shop", {
-          schedule: { type: "webhook", signature: null },
-          nextRunAt: null,
-          lastRunStatus: "never",
-        }),
-      },
-    ],
-    reminders: [
-      {
-        key: "bank",
-        environmentId,
-        timeZone: undefined,
-        task: task("Call the bank", {
-          schedule: { type: "once", runAt: "2026-11-17T10:00:00.000Z" },
-          nextRunAt: "2026-11-17T10:00:00.000Z",
-        }),
-      },
-    ],
+    routines: state.hasRoutines
+      ? [
+          { key: "start", environmentId, task: task("Start my day", {}), timeZone: undefined },
+          {
+            key: "hook",
+            environmentId,
+            timeZone: undefined,
+            task: task("From the shop", {
+              schedule: { type: "webhook", signature: null },
+              nextRunAt: null,
+              lastRunStatus: "never",
+            }),
+          },
+        ]
+      : [],
+    reminders: state.hasRoutines
+      ? [
+          {
+            key: "bank",
+            environmentId,
+            timeZone: undefined,
+            task: task("Call the bank", {
+              schedule: { type: "once", runAt: "2026-11-17T10:00:00.000Z" },
+              nextRunAt: "2026-11-17T10:00:00.000Z",
+            }),
+          },
+        ]
+      : [],
     fired: [],
     runner: copy,
     runnerHistory: null,
@@ -113,6 +147,8 @@ vi.mock("./RoutinesAssistant", () => ({
 async function setup(width: number) {
   state.typed.length = 0;
   state.commands.length = 0;
+  state.hasRoutines = true;
+  state.ready = [];
   const viewport = { width: window.innerWidth, height: window.innerHeight };
   await page.viewport(width, 800);
   return { [Symbol.asyncDispose]: () => page.viewport(viewport.width, viewport.height) };
@@ -199,4 +235,70 @@ it("on a phone, shows the list first and opens the assistant over it", async () 
     .click();
   await expect.element(assistant).toBeVisible();
   expect(state.typed).toEqual(["I'd like to change my routine “Start my day”: "]);
+});
+
+it("offers ready-made routines as cards under the list, each adding the routine it names", async () => {
+  await using _viewport = await setup(1280);
+  state.ready = [
+    ready("evening-journal", "Evening journal prompt"),
+    ready("inbox-summary", "What needs a reply", { needs: "Gmail", when: "Weekdays at 8:15" }),
+    ready("from-a-newer-server", "Something new"),
+  ];
+  await using screen = await render(routinesPage);
+
+  // The list keeps its place; the cards come after it.
+  await expect.element(screen.getByRole("list", { name: "Routines" })).toBeVisible();
+  const cards = screen.getByRole("list", { name: "Add a routine" }).getByRole("listitem");
+  await expect.element(cards).toHaveLength(4);
+  const journal = cards.first();
+  await expect.element(journal.getByText("Evening journal prompt")).toBeVisible();
+  await expect
+    .element(journal.getByText("Every day at 21:00, asks one question about your day."))
+    .toBeVisible();
+  await expect.element(cards.nth(1).getByText("Needs Gmail connected")).toBeVisible();
+  // Each has its own drawing; one this version does not know gets the plain one.
+  expect(
+    [...document.querySelectorAll("[data-routine-drawing]")].map((drawing) =>
+      drawing.getAttribute("data-routine-drawing"),
+    ),
+  ).toEqual(["evening-journal", "inbox-summary", "message", "own"]);
+
+  for (const title of ["Evening journal prompt", "What needs a reply", "Something new"]) {
+    // The cards are off while one is being added, so each click waits for the one before.
+    await screen.getByRole("button", { name: new RegExp(`^${title}`) }).click();
+  }
+  expect(state.commands).toEqual(
+    ["evening-journal", "inbox-summary", "from-a-newer-server"].map((key) => [
+      majordomeEnvironment.addReadyRoutine,
+      { environmentId, input: { projectId, key } },
+    ]),
+  );
+
+  // The last card is the way to describe one in words.
+  await screen.getByRole("button", { name: /^Your own/ }).click();
+  expect(state.typed).toEqual(["I'd like a new routine: "]);
+});
+
+it("makes the cards the page when there is no routine yet", async () => {
+  await using _viewport = await setup(390);
+  state.hasRoutines = false;
+  state.ready = [ready("evening-journal", "Evening journal prompt")];
+  await using screen = await render(routinesPage);
+
+  const cards = screen.getByRole("list", { name: "Start with a routine" }).getByRole("listitem");
+  await expect.element(cards).toHaveLength(2);
+  await expect.element(screen.getByRole("list", { name: "Routines" })).not.toBeInTheDocument();
+  await expect.element(screen.getByText("No routines yet")).not.toBeInTheDocument();
+  // Two to a row on a phone, without the page scrolling sideways.
+  const [first, second] = cards.elements().map((card) => card.getBoundingClientRect());
+  expect(first?.top).toBe(second?.top);
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+
+  await screen.getByRole("button", { name: /^Evening journal prompt/ }).click();
+  expect(state.commands).toEqual([
+    [
+      majordomeEnvironment.addReadyRoutine,
+      { environmentId, input: { projectId, key: "evening-journal" } },
+    ],
+  ]);
 });

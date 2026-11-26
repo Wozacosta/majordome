@@ -41,6 +41,8 @@ export interface ReadyTopic {
 
 const SUNDAY = 0;
 const MONDAY = 1;
+const WEDNESDAY = 3;
+const FRIDAY = 5;
 const SATURDAY = 6;
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
@@ -311,6 +313,42 @@ const STANDALONE_ROUTINES: ReadonlyArray<ReadyRoutine> = [
         "3. When I answer, add it to today's daily note under a “Journal” heading, in my own words.",
         "",
         "Ask only once; if I do not answer, leave the note as it is. " + closing,
+      ].join("\n"),
+  },
+  {
+    key: "note-to-reread",
+    title: "A note worth rereading",
+    description: "Brings back one note you wrote a while ago and says why it matters now.",
+    when: "Wednesdays at 12:30",
+    schedule: { type: "fixed_time", timeOfDay: "12:30", weekdays: [WEDNESDAY] },
+    prompt: () =>
+      [
+        `Bring back one of my older notes. ${conventions}`,
+        "",
+        "1. Read what I wrote in the last two weeks to see what I am busy with.",
+        "2. Find one note older than a month that says something useful about it, and that you have not brought back before.",
+        "3. Tell me which note, what it says in two lines, and why it matters now.",
+        "",
+        "Do not change the note. If nothing fits, say so in one line. " + closing,
+      ].join("\n"),
+  },
+  {
+    key: "todos-left-behind",
+    title: "To-dos left behind",
+    description: "Lists the to-dos that have waited longest and asks which to drop.",
+    when: "Fridays at 16:00",
+    schedule: { type: "fixed_time", timeOfDay: "16:00", weekdays: [FRIDAY] },
+    prompt: () =>
+      [
+        `Go through my open to-dos, the unticked boxes in my notes. ${conventions}`,
+        "",
+        "1. Find the ones in notes I have not changed for three weeks or more.",
+        "2. List up to seven of them, oldest first, each with the note it is in.",
+        "3. Ask me which to keep, which to drop and which are already done.",
+        "4. When I answer, tick the done ones, and remove the dropped ones from their notes.",
+        "",
+        "Change nothing before I answer. If none have waited that long, say so in one line. " +
+          closing,
       ].join("\n"),
   },
 ];

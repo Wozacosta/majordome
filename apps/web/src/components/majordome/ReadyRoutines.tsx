@@ -5,28 +5,83 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, MajordomeReadyRoutine, ProjectId } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
-import { Entry, EntryList, Section } from "./paper";
+import { Section } from "./paper";
+import { RoutineDrawing } from "./RoutineDrawings";
+
+const lowerFirst = (text: string) => `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+
+/** One routine to pick: a drawing of what it hands you, its name, and one sentence. */
+function RoutineCard({
+  drawing,
+  title,
+  sentence,
+  note,
+  busy = false,
+  disabled = false,
+  onPick,
+}: {
+  /** A ready-made routine's key, or `own`. */
+  readonly drawing: string;
+  readonly title: string;
+  readonly sentence: string;
+  /** What it needs first, or the topic it belongs to. */
+  readonly note?: string | null;
+  readonly busy?: boolean;
+  readonly disabled?: boolean;
+  readonly onPick: () => void;
+}) {
+  return (
+    <li className="flex">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-busy={busy}
+        onClick={onPick}
+        className="flex w-full cursor-pointer flex-col rounded-xl border border-border bg-card p-1.5 text-left outline-none hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-default disabled:opacity-60"
+      >
+        <span className="block overflow-hidden rounded-lg bg-muted/60">
+          <RoutineDrawing routine={drawing} />
+        </span>
+        <span className="flex flex-col gap-1 px-1.5 pt-2.5 pb-1.5">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            {title}
+            {busy ? <Spinner size="sm" /> : null}
+          </span>
+          <span className="text-sm text-muted-foreground">{sentence}</span>
+          {note ? <span className="text-xs text-muted-foreground/80">{note}</span> : null}
+        </span>
+      </button>
+    </li>
+  );
+}
 
 /**
- * Routines the owner can add in one step, read from the computer that runs their routines.
- * Nothing while there are none left to offer.
+ * Routines the owner can add in one click, read from the computer that runs their routines, as
+ * picture cards; the last card is for one of their own. Nothing while there is no card to show.
  */
 export function ReadyRoutines({
   environmentId,
   projectId,
   topicTitles,
+  label,
+  onOwn,
+  fallback = null,
 }: {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   /** By topic id, to say which topic a routine belongs to. */
   readonly topicTitles: ReadonlyMap<string, string>;
+  readonly label: string;
+  /** Starts a routine described in words; null where that cannot be done. */
+  readonly onOwn: (() => void) | null;
+  /** Shown in place of the cards when there are none. */
+  readonly fallback?: ReactNode;
 }) {
   const result = useAtomValue(
     majordomeEnvironment.readyRoutines({ environmentId, input: { projectId } }),
@@ -41,8 +96,10 @@ export function ReadyRoutines({
     reportFailure: false,
   });
   const [adding, setAdding] = useState<string | null>(null);
-  const routines = AsyncResult.getOrElse(result, () => null)?.routines ?? [];
-  if (routines.length === 0 || !canAdd) return null;
+  // Asked again each time the page opens: empty until then, so nothing is offered twice.
+  if (AsyncResult.isInitial(result)) return null;
+  const routines = canAdd ? (AsyncResult.getOrElse(result, () => null)?.routines ?? []) : [];
+  if (routines.length === 0 && onOwn === null) return fallback;
 
   const add = async (routine: MajordomeReadyRoutine) => {
     if (adding !== null) return;
@@ -74,44 +131,45 @@ export function ReadyRoutines({
     toastManager.add({
       type: "success",
       title: `“${routine.title}” was added`,
-      description: `It runs ${routine.when.charAt(0).toLowerCase()}${routine.when.slice(1)}.`,
+      description: `It runs ${lowerFirst(routine.when)}.`,
     });
   };
 
   return (
-    <Section label="Ready-made routines">
-      <EntryList aria-label="Ready-made routines">
+    <Section label={label} className="@container">
+      <ul aria-label={label} className="m-0 grid list-none grid-cols-2 gap-3 p-0 @xl:grid-cols-3">
         {routines.map((routine) => {
           const topic =
             routine.topicId === undefined ? undefined : topicTitles.get(routine.topicId);
           return (
-            <Entry
+            <RoutineCard
               key={routine.key}
+              drawing={routine.key}
               title={routine.title}
-              meta={[
-                routine.when,
-                topic === undefined ? null : `in your topic ${topic}`,
-                routine.needs === undefined ? null : `needs ${routine.needs} connected`,
-              ]
-                .filter((part) => part !== null)
-                .join(" · ")}
-              actions={
-                <Button
-                  size="xs"
-                  variant="outline"
-                  disabled={adding !== null}
-                  onClick={() => void add(routine)}
-                >
-                  {adding === routine.key ? <Spinner size="sm" /> : null}
-                  Add
-                </Button>
+              sentence={`${routine.when}, ${lowerFirst(routine.description)}`}
+              note={
+                [
+                  routine.needs === undefined ? null : `Needs ${routine.needs} connected`,
+                  topic === undefined ? null : `In your topic ${topic}`,
+                ]
+                  .filter((part) => part !== null)
+                  .join(" · ") || null
               }
-            >
-              <p className="text-muted-foreground">{routine.description}</p>
-            </Entry>
+              busy={adding === routine.key}
+              disabled={adding !== null}
+              onPick={() => void add(routine)}
+            />
           );
         })}
-      </EntryList>
+        {onOwn === null ? null : (
+          <RoutineCard
+            drawing="own"
+            title="Your own"
+            sentence="Tell the assistant what you'd like done, and when."
+            onPick={onOwn}
+          />
+        )}
+      </ul>
     </Section>
   );
 }

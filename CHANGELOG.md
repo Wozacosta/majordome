@@ -5,7 +5,23 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **Ready-made routines are picture cards.** On **Routines**, each ready-made routine is now a
+  card: a small drawing of what you get, its name, and one sentence saying when it runs and what
+  it does. Click a card to add it. The last card, **Your own**, hands the assistant a routine you
+  describe in words. With no routine yet, the cards are the page; otherwise they come after your
+  list.
+
+**New**
+
+- **Two more ready-made routines.** **A note worth rereading** brings back one older note each
+  Wednesday and says why it matters now. **To-dos left behind** lists, each Friday, the to-dos
+  that have waited longest and asks which to drop.
+
+**Try this**
+
+- Open **Routines**, scroll to **Add a routine** and click **To-dos left behind**.
 
 ## 0.10.74
 

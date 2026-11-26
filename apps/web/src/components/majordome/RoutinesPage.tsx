@@ -113,6 +113,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const askAssistant = useAskAssistant();
   const askToChange = (title: string) => askAssistant?.(changeRoutineMessage(title));
   const hold = runnerUnreachable ? null : routinesHold(runnerHistory);
+  const noRoutines = routines.length === 0 && !loading && !routinesFailed;
   const newRoutine =
     askAssistant === null || !canChange || runnerUnreachable ? null : (
       <Button size="sm" onClick={() => askAssistant(NEW_ROUTINE_MESSAGE)}>
@@ -208,7 +209,7 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
           />
         )}
 
-        {runnerUnreachable ? null : (
+        {runnerUnreachable || noRoutines ? null : (
           <Section label="Routines">
             {!canChange && routines.length > 0 ? (
               <Muted className="mb-2">
@@ -231,16 +232,8 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
               </EntryList>
             ) : loading ? (
               <ListSkeleton />
-            ) : routinesFailed ? (
-              <LoadFailed onRetry={retry}>Couldn't load your routines.</LoadFailed>
             ) : (
-              <div className="flex flex-col items-start gap-3 border-t border-border py-3">
-                <Muted>
-                  No routines yet. Tell the assistant what you'd like done and when, such as “every
-                  Friday evening, list what I spent this week”.
-                </Muted>
-                {newRoutine}
-              </div>
+              <LoadFailed onRetry={retry}>Couldn't load your routines.</LoadFailed>
             )}
           </Section>
         )}
@@ -250,6 +243,18 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
             environmentId={(runner ?? vault).environmentId}
             projectId={(runner ?? vault).projectId}
             topicTitles={new Map(vault.topics.map((topic) => [topic.id, topic.title]))}
+            // With no routine yet the cards are the page; with some they come after the list.
+            label={noRoutines ? "Start with a routine" : "Add a routine"}
+            onOwn={
+              askAssistant === null || !canChange ? null : () => askAssistant(NEW_ROUTINE_MESSAGE)
+            }
+            fallback={
+              noRoutines ? (
+                <Section label="Routines">
+                  <Muted className="border-t border-border py-3">No routines yet.</Muted>
+                </Section>
+              ) : null
+            }
           />
         )}
 

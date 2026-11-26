@@ -19,9 +19,11 @@ Times are in your own time, by the clock of the machine that runs your routines.
 
 ### Ready-made routines and topics
 
-You don't have to start from a blank page. Under your routines, **Ready-made routines** lists ones
-you can add in one step, such as an evening journal prompt. Some need a connection first (your
-email or calendar), and say so.
+You don't have to start from a blank page. Under your routines, **Add a routine** shows ready-made
+ones as cards, such as an evening journal prompt: a drawing of what you get, and one sentence
+saying when it runs. Click a card to add it; it joins your list, switched on. Some need a
+connection first (your email or calendar), and say so. The last card, **Your own**, is the same as
+**Set up a routine**. With no routine yet, the cards are the first thing on the page.
 
 **New topic** offers ready-made topics the same way: Meals, Money, Health and others. One comes
 with a starter note or two and usually a routine that posts in the topic's chat. If you already

@@ -459,6 +459,10 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         // A topic the owner does not have brings no routine; ones without a topic are always there.
         assert.isUndefined(offered.find((routine) => routine.key === "meals"));
         assert.equal(offered.find((routine) => routine.key === "inbox-summary")?.needs, "Gmail");
+        assert.includeMembers(
+          offered.map((routine) => routine.key),
+          ["note-to-reread", "todos-left-behind"],
+        );
         const elsewhere = yield* Effect.flip(service.addReady({ projectId, key: "money" }));
         assert.include(elsewhere.message, "another of your computers");
 
