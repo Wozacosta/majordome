@@ -1,3 +1,5 @@
+import { SHOW_SETUP_LABEL } from "@t3tools/shared/majordome";
+
 /** A file as a person names it: "Notes/Taxes 2026.md" is "Taxes 2026". */
 export function noteName(path: string): string {
   const base =
@@ -252,7 +254,12 @@ export function composerPlaceholder(input: {
   return input.working ? "Add something while Majordome works" : "Ask Majordome anything";
 }
 
-export type ConversationMenuAction = "rename" | "mark-done" | "bring-back" | "delete";
+export type ConversationMenuAction =
+  | "rename"
+  | "show-setup"
+  | "mark-done"
+  | "bring-back"
+  | "delete";
 
 export interface ConversationMenuEntry {
   readonly id: ConversationMenuAction;
@@ -266,7 +273,14 @@ export function conversationMenu(input: {
   readonly done: boolean;
   readonly canMarkDone: boolean;
 }): ReadonlyArray<ConversationMenuEntry> {
-  const entries: Array<ConversationMenuEntry> = [{ id: "rename", title: "Rename", icon: "pencil" }];
+  const entries: Array<ConversationMenuEntry> = [
+    { id: "rename", title: "Rename", icon: "pencil" },
+    {
+      id: "show-setup",
+      title: SHOW_SETUP_LABEL,
+      icon: "point.3.connected.trianglepath.dotted",
+    },
+  ];
   if (input.done) {
     entries.push({ id: "bring-back", title: "Bring back", icon: "arrow.uturn.backward" });
   } else if (input.canMarkDone) {

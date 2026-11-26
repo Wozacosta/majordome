@@ -60,7 +60,7 @@ The landing page and the README show a short version of this list.
   starts with and the topics it only knows the standing of. A conversation kept for days is given
   them again with its first message of each new day, and the list of topics as soon as it
   changes. [Memory](./user/memory.md)
-- **What the assistant has, drawn:** ask in any conversation and it shows a map with the chat in the
+- **What the assistant has, drawn:** click the icon at the top of any conversation, or ask, and it shows a map with the chat in the
   middle and a line out to each thing it read before your first message, can use and can reach:
   instructions, skills, notes, connections, saved keys and private documents. A box opens onto
   what is behind it; a key's value and a private document's text are never shown.

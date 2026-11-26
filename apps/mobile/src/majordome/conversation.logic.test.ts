@@ -166,8 +166,8 @@ it("invites what the chat is waiting for", () => {
 it("offers the way back on a chat marked as done, and never both ways at once", () => {
   const ids = (done: boolean, canMarkDone: boolean) =>
     conversationMenu({ done, canMarkDone }).map((entry) => entry.id);
-  expect(ids(false, true)).toEqual(["rename", "mark-done", "delete"]);
-  expect(ids(true, true)).toEqual(["rename", "bring-back", "delete"]);
-  expect(ids(false, false)).toEqual(["rename", "delete"]);
+  expect(ids(false, true)).toEqual(["rename", "show-setup", "mark-done", "delete"]);
+  expect(ids(true, true)).toEqual(["rename", "show-setup", "bring-back", "delete"]);
+  expect(ids(false, false)).toEqual(["rename", "show-setup", "delete"]);
   expect(conversationMenu({ done: false, canMarkDone: true }).at(-1)?.destructive).toBe(true);
 });

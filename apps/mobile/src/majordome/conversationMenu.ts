@@ -1,9 +1,13 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { CommandId, MessageId } from "@t3tools/contracts";
+import { SHOW_SETUP_REQUEST } from "@t3tools/shared/majordome";
 
 import type { AppBarMenu } from "../components/ui/AppBar.types";
 import { useThreadListActions } from "../features/home/useThreadListActions";
+import { uuidv4 } from "../lib/uuid";
 import { environmentServerConfigsAtom } from "../state/server";
+import { enqueueThreadOutboxMessage } from "../state/thread-outbox";
 import { conversationMenu, type ConversationMenuAction } from "./conversation.logic";
 import { todayStoreAtom } from "./todayStore";
 import { useVault } from "./useVault";
@@ -20,6 +24,17 @@ export function useConversationMenu(thread: EnvironmentThreadShell): AppBarMenu 
     topics.some((topic) => topic.threadId === thread.id);
   const run: Record<ConversationMenuAction, () => void> = {
     rename: () => actions.renameThread(thread),
+    "show-setup": () =>
+      void enqueueThreadOutboxMessage({
+        environmentId: thread.environmentId,
+        threadId: thread.id,
+        messageId: MessageId.make(uuidv4()),
+        commandId: CommandId.make(uuidv4()),
+        text: SHOW_SETUP_REQUEST,
+        attachments: [],
+        dispatchMode: "queue",
+        createdAt: new Date().toISOString(),
+      }),
     "mark-done": () => void actions.settleThread(thread),
     "bring-back": () => void actions.unsettleThread(thread),
     delete: () => actions.confirmDeleteThread(thread),

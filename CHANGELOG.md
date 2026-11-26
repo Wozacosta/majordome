@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **An icon for the map of what the assistant has.** The three linked dots at the top of a chat ask
+  for the drawing in one click, so there is no sentence to remember. On the iPhone it is **What the
+  assistant has here** in the chat's menu.
+
+**Try this**
+
+- Open any chat and click the three linked dots beside its title.
 
 ## 0.10.75
 
