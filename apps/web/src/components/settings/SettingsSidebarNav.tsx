@@ -65,7 +65,9 @@ import { scrollToSettingsTarget } from "./settingsLayout";
 import {
   searchSettings,
   revealSettingsSearchTarget,
+  settingsGuidePath,
   settingsNavGroups,
+  type SettingsNavGroup,
   SETTINGS_NAV_LABELS,
   SETTINGS_SECTION_LABELS,
   type SettingsPath,
@@ -238,6 +240,19 @@ export function SettingsSidebarNav({
   useEffect(() => {
     if (compactSearchOpen) searchInputRef.current?.focus();
   }, [compactSearchOpen]);
+
+  /** A part's own page: opening it also unfolds the part, so its pages show beside it. */
+  const openGuide = (group: SettingsNavGroup) => {
+    if (group.guide === undefined) return;
+    setOpenGroups((open) => (open.includes(group.heading) ? open : [...open, group.heading]));
+    void navigate({
+      to: "/settings/guide/$topic",
+      params: { topic: group.guide },
+      hash: "",
+      replace: true,
+      hashScrollIntoView: false,
+    });
+  };
 
   const handleSectionClick = (to: SettingsPath) => {
     void navigate({
@@ -425,7 +440,10 @@ export function SettingsSidebarNav({
                     </SidebarMenuItem>
                   </SidebarMenu>
                 ) : null}
-                <div onKeyDown={handleSettingsSectionKeyDown} className="flex flex-col gap-4">
+                <div
+                  onKeyDown={handleSettingsSectionKeyDown}
+                  className={cn("flex flex-col", isMajordome ? "gap-1" : "gap-4")}
+                >
                   {navGroups.map((group, index) => {
                     const isPathActive = (to: SettingsPath) =>
                       activePath === to || activePath.startsWith(`${to}/`);
@@ -441,7 +459,64 @@ export function SettingsSidebarNav({
                             "max-md:border-t max-md:border-sidebar-border max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0",
                         )}
                       >
-                        {group.collapsible ? (
+                        {group.collapsible && isMajordome ? (
+                          // Majordome's parts are the list itself: each is a row, and a part
+                          // with a page of its own opens it.
+                          <h3 className="relative">
+                            <SidebarMenuButton
+                              data-settings-section={
+                                group.guide ? settingsGuidePath(group.guide) : group.heading
+                              }
+                              aria-current={
+                                group.guide && activePath === settingsGuidePath(group.guide)
+                                  ? "page"
+                                  : undefined
+                              }
+                              aria-expanded={group.guide ? undefined : !collapsed}
+                              isActive={
+                                group.guide !== undefined &&
+                                activePath === settingsGuidePath(group.guide)
+                              }
+                              size={list ? "lg" : "default"}
+                              onClick={() =>
+                                group.guide ? openGuide(group) : toggleGroup(group.heading)
+                              }
+                            >
+                              <span
+                                id={`settings-nav-group-${index}`}
+                                className="truncate pe-6 font-medium"
+                              >
+                                {m(group.heading)}
+                              </span>
+                            </SidebarMenuButton>
+                            {group.guide ? (
+                              <button
+                                type="button"
+                                aria-expanded={!collapsed}
+                                aria-label={
+                                  collapsed
+                                    ? gt("Show the pages of {part}", { part: m(group.heading) })
+                                    : gt("Hide the pages of {part}", { part: m(group.heading) })
+                                }
+                                onClick={() => toggleGroup(group.heading)}
+                                className="absolute inset-y-0 end-0 flex w-8 items-center justify-center rounded-md text-sidebar-muted-foreground hover:text-sidebar-foreground"
+                              >
+                                <ChevronRightIcon
+                                  aria-hidden
+                                  className={cn("size-3.5", !collapsed && "rotate-90")}
+                                />
+                              </button>
+                            ) : (
+                              <ChevronRightIcon
+                                aria-hidden
+                                className={cn(
+                                  "pointer-events-none absolute end-2 top-1/2 size-3.5 -translate-y-1/2 text-sidebar-muted-foreground",
+                                  !collapsed && "rotate-90",
+                                )}
+                              />
+                            )}
+                          </h3>
+                        ) : group.collapsible ? (
                           <h3 id={`settings-nav-group-${index}`}>
                             <button
                               type="button"
@@ -473,7 +548,11 @@ export function SettingsSidebarNav({
                           </h3>
                         )}
                         {/* The heading stays outside the group it names so NVDA does not read the name twice. */}
-                        <div role="group" aria-labelledby={`settings-nav-group-${index}`}>
+                        <div
+                          role="group"
+                          aria-labelledby={`settings-nav-group-${index}`}
+                          className={cn(isMajordome && !list && "ps-3")}
+                        >
                           <SidebarMenu>
                             {paths.map((to) => {
                               const Icon = SETTINGS_SECTION_ICONS[to];

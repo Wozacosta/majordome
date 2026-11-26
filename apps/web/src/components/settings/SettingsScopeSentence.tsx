@@ -61,6 +61,10 @@ export const SETTINGS_DEVICE_ONLY_PATHS: ReadonlySet<string> = new Set([
   "/settings/about",
   // Majordome's own screens pick their vaults and devices themselves.
   "/settings/overview",
+  "/settings/guide/app",
+  "/settings/guide/notes",
+  "/settings/guide/ai",
+  "/settings/guide/devices",
   "/settings/backup",
   "/settings/connectors",
   "/settings/private-documents",

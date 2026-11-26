@@ -249,11 +249,18 @@ export const SETTINGS_NAV_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/access": msg("Sharing & access", { $context: "settings navigation item" }),
 };
 
+/** The parts of Majordome's Settings that have a page explaining them. */
+export type SettingsGuideTopic = "app" | "notes" | "ai" | "devices";
+
+export const settingsGuidePath = (topic: SettingsGuideTopic) => `/settings/guide/${topic}` as const;
+
 export interface SettingsNavGroup {
   readonly heading: string;
   readonly headingHidden?: true;
   /** Folded away until opened; the choice is kept per browser. */
   readonly collapsible?: true;
+  /** The page that explains this part, opened by its heading. */
+  readonly guide?: SettingsGuideTopic;
   readonly paths: ReadonlyArray<SettingsPath>;
 }
 
@@ -296,23 +303,46 @@ const T3_SETTINGS_NAV_GROUPS = (secrets: ReadonlyArray<SettingsPath>): SettingsN
   },
 ];
 
-// Majordome opens on whether all is well, groups pages by what the owner is setting up, and folds
-// T3's plumbing away under Advanced.
+// Majordome shows six parts and nothing else until one is opened. Four of them have a page of
+// their own that explains the part with a drawing; Others holds T3's plumbing and the rest.
 const MAJORDOME_SETTINGS_NAV_GROUPS = (
   secrets: ReadonlyArray<SettingsPath>,
 ): SettingsNavGroup[] => [
-  { heading: msg("Status"), headingHidden: true, paths: ["/settings/overview"] },
   {
-    heading: msg("Your notes"),
-    paths: ["/settings/projects", "/settings/backup", "/settings/private-documents"],
+    heading: msg("This app"),
+    collapsible: true,
+    guide: "app",
+    paths: [
+      "/settings/general",
+      "/settings/appearance",
+      "/settings/chat",
+      "/settings/voice",
+      "/settings/browser",
+      "/settings/keybindings",
+    ],
+  },
+  {
+    heading: msg("Notes"),
+    collapsible: true,
+    guide: "notes",
+    paths: ["/settings/projects", "/settings/backup"],
+  },
+  {
+    heading: msg("Files & credentials"),
+    collapsible: true,
+    paths: [...secrets, "/settings/private-documents"],
   },
   // Routines have their own screen, in the sidebar.
   {
-    heading: msg("The assistant"),
+    heading: msg("AI"),
+    collapsible: true,
+    guide: "ai",
     paths: ["/settings/providers", "/settings/connectors", "/settings/skills"],
   },
   {
-    heading: msg("Your devices"),
+    heading: msg("You and your devices"),
+    collapsible: true,
+    guide: "devices",
     paths: [
       "/settings/phone",
       "/settings/always-on",
@@ -321,28 +351,18 @@ const MAJORDOME_SETTINGS_NAV_GROUPS = (
     ],
   },
   {
-    heading: msg("This app"),
-    paths: ["/settings/general", "/settings/appearance", "/settings/chat", "/settings/voice"],
-  },
-  {
-    heading: msg("Advanced"),
+    heading: msg("Others"),
     collapsible: true,
     paths: [
+      "/settings/overview",
       "/settings/threads",
       "/settings/connections",
       "/settings/access",
-      "/settings/browser",
-      "/settings/keybindings",
-      ...secrets,
       "/settings/maintenance",
       "/settings/labs",
+      "/settings/about",
+      "/settings/archived",
     ],
-  },
-  // Archived chats are the owner's chats, not a setting to dig for.
-  {
-    heading: msg("About"),
-    headingHidden: true,
-    paths: ["/settings/about", "/settings/archived"],
   },
 ];
 

@@ -2,7 +2,7 @@ import { EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { ServerRow } from "./servers.logic";
-import { serversMap, serversMapLayout } from "./serversMap.logic";
+import { serversMap } from "./serversMap.logic";
 
 const mac = EnvironmentId.make("mac");
 const own = EnvironmentId.make("own");
@@ -88,14 +88,5 @@ describe("serversMap", () => {
     });
     expect(map.devices).toMatchObject([{ detail: "Opens your server", main: false }]);
     expect(map.lines).toEqual([{ from: "this-device", to: own, live: true }]);
-  });
-});
-
-describe("serversMapLayout", () => {
-  it("centres the shorter column on the longer one", () => {
-    const layout = serversMapLayout(1, 3);
-    expect(layout.height).toBe(192);
-    expect(layout.middleOf(layout.serverOffset, 0)).toBe(28);
-    expect(layout.middleOf(layout.deviceOffset, 0)).toBe(96);
   });
 });

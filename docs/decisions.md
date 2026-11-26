@@ -112,7 +112,7 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   `MAJORDOME_HOSTED=1` and reports that name; the app never guesses from the address. The image
   names itself "Your server", and a connection saved under the old name is shown under the new.
   The settings page is "Your servers" (2026-11-26): it lists every server the app is connected
-  to, so that Advanced > Computers, upstream's page, can be hidden later without losing anything
+  to, so that Others > Computers, upstream's page, can be hidden later without losing anything
   a person needs.
 - **One package, one container image.** The same server runs on a Mac, a VPS or, later, a per-user
   cloud machine. **Hosted Majordome** is the next piece of work (2026-11-23): one isolated machine per user, paid, offered as a

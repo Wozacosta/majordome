@@ -29,33 +29,64 @@ const sections = (container: HTMLElement) =>
     row.getAttribute("data-settings-section"),
   );
 
-it("folds Advanced away until opened, and remembers it was opened", async () => {
+const PARTS = ["This app", "Notes", "Files & credentials", "AI", "You and your devices", "Others"];
+
+it("shows the six parts and no page until a part is opened, and remembers what was opened", async () => {
   localStorage.clear();
   {
-    await using screen = await renderNav("/settings/general");
-    const advanced = page.getByRole("button", { name: "Advanced" });
-    await expect.element(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(sections(screen.container)).not.toContain("/settings/keybindings");
-    expect(sections(screen.container)).toContain("/settings/backup");
+    await using screen = await renderNav("/settings/guide/app");
+    for (const part of PARTS) {
+      await expect.element(page.getByRole("button", { name: part, exact: true })).toBeVisible();
+    }
+    expect(sections(screen.container).filter((id) => id?.startsWith("/settings/"))).toEqual([
+      "/settings/guide/app",
+      "/settings/guide/notes",
+      "/settings/guide/ai",
+      "/settings/guide/devices",
+    ]);
 
-    await userEvent.click(advanced);
-    await expect.element(advanced).toHaveAttribute("aria-expanded", "true");
-    expect(sections(screen.container)).toContain("/settings/keybindings");
+    const show = page.getByRole("button", { name: "Show the pages of Notes" });
+    await expect.element(show).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(show);
+    await expect
+      .element(page.getByRole("button", { name: "Hide the pages of Notes" }))
+      .toHaveAttribute("aria-expanded", "true");
+    expect(sections(screen.container)).toContain("/settings/backup");
   }
-  await using screen = await renderNav("/settings/general");
-  await expect
-    .element(page.getByRole("button", { name: "Advanced" }))
-    .toHaveAttribute("aria-expanded", "true");
-  expect(sections(screen.container)).toContain("/settings/keybindings");
+  await using screen = await renderNav("/settings/guide/app");
+  expect(sections(screen.container)).toContain("/settings/backup");
   localStorage.clear();
 });
 
-it("keeps the open Advanced page in view while the group is folded", async () => {
+it("opens a part's own page from its name, and unfolds its pages beside it", async () => {
+  localStorage.clear();
+  await using screen = await renderNav("/settings/overview");
+  await userEvent.click(page.getByRole("button", { name: "AI", exact: true }));
+  await expect.poll(() => screen.router?.state.location.pathname).toBe("/settings/guide/ai");
+  expect(sections(screen.container)).toContain("/settings/providers");
+  localStorage.clear();
+});
+
+it("a part without a page of its own only folds and unfolds", async () => {
+  localStorage.clear();
+  await using screen = await renderNav("/settings/guide/app");
+  const others = page.getByRole("button", { name: "Others", exact: true });
+  await expect.element(others).toHaveAttribute("aria-expanded", "false");
+  await userEvent.click(others);
+  await expect.element(others).toHaveAttribute("aria-expanded", "true");
+  expect(sections(screen.container)).toContain("/settings/labs");
+  expect(screen.router?.state.location.pathname).toBe("/settings/guide/app");
+  localStorage.clear();
+});
+
+it("keeps the open page in view while its part is folded", async () => {
   localStorage.clear();
   await using screen = await renderNav("/settings/keybindings");
-  await expect
-    .element(page.getByRole("button", { name: "Advanced" }))
-    .toHaveAttribute("aria-expanded", "false");
-  const last = sections(screen.container).slice(-3);
-  expect(last).toEqual(["/settings/keybindings", "/settings/about", "/settings/archived"]);
+  expect(sections(screen.container).filter((id) => id?.startsWith("/settings/"))).toEqual([
+    "/settings/guide/app",
+    "/settings/keybindings",
+    "/settings/guide/notes",
+    "/settings/guide/ai",
+    "/settings/guide/devices",
+  ]);
 });

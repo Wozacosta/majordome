@@ -17,49 +17,67 @@ vi.mock("~/env", async (importOriginal) => ({
 // Accounts show only in a build with an account service, which a developer's `.env` may name.
 vi.mock("../../cloud/publicConfig", () => ({ hasAccountPublicConfig: () => false }));
 
-it("opens on Status, groups pages by what is being set up, and folds T3's plumbing away", () => {
+it("shows six parts, each folded, four of them with a page that explains the part", () => {
   expect(
     SETTINGS_NAV_GROUPS.map((group) => ({
-      heading: group.headingHidden ? null : group.heading,
+      heading: group.heading,
       collapsible: group.collapsible === true,
+      guide: group.guide ?? null,
       labels: group.paths.map((path) => SETTINGS_SECTION_LABELS[path]),
     })),
   ).toEqual([
-    { heading: null, collapsible: false, labels: ["Status"] },
     {
-      heading: "Your notes",
-      collapsible: false,
-      labels: ["Notes folders", "Back up my brain", "Private documents"],
+      heading: "This app",
+      collapsible: true,
+      guide: "app",
+      labels: [
+        "General",
+        "Appearance",
+        "Writing messages",
+        "Voice",
+        "Browser",
+        "Keyboard shortcuts",
+      ],
     },
     {
-      heading: "The assistant",
-      collapsible: false,
+      heading: "Notes",
+      collapsible: true,
+      guide: "notes",
+      labels: ["Notes folders", "Back up my brain"],
+    },
+    {
+      heading: "Files & credentials",
+      collapsible: true,
+      guide: null,
+      labels: ["Private documents"],
+    },
+    {
+      heading: "AI",
+      collapsible: true,
+      guide: "ai",
       labels: ["AI accounts", "Connections", "Skills"],
     },
     {
-      heading: "Your devices",
-      collapsible: false,
+      heading: "You and your devices",
+      collapsible: true,
+      guide: "devices",
       labels: ["Phone & notifications", "Your servers"],
     },
     {
-      heading: "This app",
-      collapsible: false,
-      labels: ["General", "Appearance", "Writing messages", "Voice"],
-    },
-    {
-      heading: "Advanced",
+      heading: "Others",
       collapsible: true,
+      guide: null,
       labels: [
+        "Status",
         "New chat defaults",
         "Computers",
         "Sharing & access",
-        "Browser",
-        "Keyboard shortcuts",
         "Maintenance",
         "Labs",
+        "About",
+        "Archived chats",
       ],
     },
-    { heading: null, collapsible: false, labels: ["About", "Archived chats"] },
   ]);
 });
 

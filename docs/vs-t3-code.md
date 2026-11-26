@@ -91,8 +91,10 @@ The landing page and the README show a short version of this list.
   [Your servers](./user/always-on-server.md)
 - **One page for your servers, in plain words:** a drawing of this computer, your phone and your
   servers with the main one marked, then each server with what is on it (your notes, your
-  routines, an AI account), a way to add one, to remove one, and to make another one the main. T3 Code's map of machines and
-  routes stays under Advanced, Computers.
+  routines, an AI account), a way to add one, to remove one, and to make another one the main.
+  T3 Code's map of machines and routes stays under Others, Computers.
+- **Settings in six parts that explain themselves.** Four of them open on a page with a few
+  lines and a drawing of how the pieces fit, written for someone who has never opened Settings.
 - **An optional account that finds your servers:** sign in on a new device, in the app or at
   majord.me/open, and it connects with no code. It is identity only, and separate from T3
   Connect, which stays off. [Your account](./user/account.md)

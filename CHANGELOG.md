@@ -19,11 +19,24 @@ The section for a version is also the text of its release on GitHub.
   computer keeps its copy of your notes. To change back, press "Make main" on the other one.
 - **The phone on the drawing opens its settings.** Click your phone on Your servers to go to
   Phone & notifications, where it is set up.
+- **Settings is six parts, and nothing else until you open one.** The left side now reads: This
+  app, Notes, Files & credentials, AI, You and your devices, Others. A part's pages show when
+  you open it. Others holds what used to be under Advanced, plus Status, About and Archived
+  chats. Browser and Keyboard shortcuts moved into This app, and Passwords and keys into Files &
+  credentials. Settings still opens on Status.
+- **Four parts explain themselves.** Select This app, Notes, AI or You and your devices: a page
+  says in a few lines what the part is, shows a drawing of how its pieces fit together, and
+  lists its pages with a line about each. You and your devices shows your real computers, phone
+  and servers.
 
 **Try this**
 
 - Open Settings, Your servers and press "Make main" on a server that is not the main one. Check
   the "Main" mark moves, then that a routine runs there and not on the old one.
+- Open Settings and select **AI**: its page opens and its three pages unfold beside it. The
+  small arrow at the end of a part's row folds it again.
+- Select **Others** to find Status, Computers, Labs and the rest.
+- Search still finds every page, whichever part it is in.
 
 ## 0.10.63
 

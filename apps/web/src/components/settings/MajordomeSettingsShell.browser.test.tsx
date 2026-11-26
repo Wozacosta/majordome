@@ -43,8 +43,9 @@ it("drills from the list of pages into a page and back on a phone", async () => 
 
   const backup = page.getByRole("button", { name: "Back up my brain" });
   const back = page.getByRole("button", { name: "Settings", exact: true });
+  await expect.element(page.getByRole("button", { name: "Notes", exact: true })).toBeVisible();
+  await userEvent.click(page.getByRole("button", { name: "Show the pages of Notes" }));
   await expect.element(backup).toBeVisible();
-  await expect.element(page.getByRole("heading", { name: "Your notes" })).toBeVisible();
   await expect.element(page.getByRole("combobox", { name: "Search settings" })).toBeVisible();
   await expect.element(page.getByText("The open page")).not.toBeInTheDocument();
   await expect.element(back).not.toBeInTheDocument();

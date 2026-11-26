@@ -131,28 +131,3 @@ export function serversMap(input: {
     summary: parts.filter((part) => part !== null).join(" "),
   };
 }
-
-export const MAP_NODE_HEIGHT = 56;
-export const MAP_NODE_GAP = 12;
-
-/** Where each node's middle is, top to bottom, with the shorter column centred on the longer. */
-export function serversMapLayout(
-  deviceCount: number,
-  serverCount: number,
-): {
-  readonly height: number;
-  readonly deviceOffset: number;
-  readonly serverOffset: number;
-  readonly middleOf: (offset: number, index: number) => number;
-} {
-  const columnHeight = (count: number) =>
-    count === 0 ? 0 : count * MAP_NODE_HEIGHT + (count - 1) * MAP_NODE_GAP;
-  const height = Math.max(columnHeight(deviceCount), columnHeight(serverCount));
-  return {
-    height,
-    deviceOffset: (height - columnHeight(deviceCount)) / 2,
-    serverOffset: (height - columnHeight(serverCount)) / 2,
-    middleOf: (offset, index) =>
-      offset + index * (MAP_NODE_HEIGHT + MAP_NODE_GAP) + MAP_NODE_HEIGHT / 2,
-  };
-}
