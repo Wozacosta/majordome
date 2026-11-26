@@ -518,6 +518,32 @@ it.effect("moves a vault's routines here and digests files dropped in its inbox"
         assert.equal(yield* Queue.size(launched), 0);
         yield* TestClock.adjust("2 seconds");
         assert.equal(yield* Queue.take(launched), "Digest my inbox");
+
+        // Told that another computer runs them, this copy says so and this server steps down.
+        const itself = yield* Effect.flip(
+          service.runElsewhere({
+            projectId,
+            environmentId: EnvironmentId.make("env-here"),
+            label: "vps",
+          }),
+        );
+        assert.include(itself.message, "this computer");
+        yield* service
+          .runElsewhere({
+            projectId,
+            environmentId: EnvironmentId.make("env-other"),
+            label: "Majordome server",
+          })
+          .pipe(withWatchBackend);
+        assert.equal(yield* fs.readFileString(`${vaultRoot}/.majordome/runner`), "env-other\n");
+        assert.equal(
+          yield* gitIn(vaultRoot, ["log", "-1", "--format=%an|%s"]),
+          "Majordome|majordome: Routines run on Majordome server",
+        );
+        const afterwards = yield* Effect.flip(
+          service.addReady({ projectId, key: "inbox-summary" }),
+        );
+        assert.include(afterwards.message, "another of your computers");
       }),
     );
   }).pipe(

@@ -184,6 +184,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       onSettled: ({ environmentId }, registry) =>
         Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
     }),
+    runRoutinesElsewhere: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:run-routines-elsewhere",
+      tag: WS_METHODS.majordomeRunRoutinesElsewhere,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
+    }),
     setRoutineLimits: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:set-routine-limits",
       tag: WS_METHODS.majordomeSetRoutineLimits,

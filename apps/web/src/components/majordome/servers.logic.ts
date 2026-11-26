@@ -1,4 +1,4 @@
-import type { EnvironmentId, MajordomeRoutinesRunner } from "@t3tools/contracts";
+import type { EnvironmentId, MajordomeRoutinesRunner, ProjectId } from "@t3tools/contracts";
 
 import { isHostedServer } from "./brains.logic";
 import type { OverviewTone } from "./overview.logic";
@@ -99,4 +99,40 @@ export function serverLines(row: ServerRow): ReadonlyArray<ServerLine> {
     });
   }
   return lines;
+}
+
+/** One notes folder whose routines run on several computers at once, so each runs several times. */
+export interface RoutinesClash {
+  readonly key: string;
+  readonly title: string;
+  readonly runners: ReadonlyArray<{
+    readonly environmentId: EnvironmentId;
+    readonly projectId: ProjectId;
+    readonly name: string;
+  }>;
+}
+
+/**
+ * The notes folders with more than one runner. Each copy names the runner in a file that travels
+ * with the notes; when a move never reaches one computer, that one goes on believing it is the
+ * runner. A copy that has not answered counts as no runner, so nothing is claimed on a guess.
+ */
+export function routinesClashes(
+  brains: ReadonlyArray<{
+    readonly key: string;
+    readonly title: string;
+    readonly copies: ReadonlyArray<{
+      readonly environmentId: EnvironmentId;
+      readonly projectId: ProjectId;
+      readonly name: string;
+      readonly routinesRunner: MajordomeRoutinesRunner | null | undefined;
+    }>;
+  }>,
+): ReadonlyArray<RoutinesClash> {
+  return brains.flatMap((brain) => {
+    const runners = brain.copies
+      .filter((copy) => copy.routinesRunner === "this-server")
+      .map(({ environmentId, projectId, name }) => ({ environmentId, projectId, name }));
+    return runners.length > 1 ? [{ key: brain.key, title: brain.title, runners }] : [];
+  });
 }

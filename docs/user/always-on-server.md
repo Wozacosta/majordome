@@ -19,6 +19,10 @@ code. **Remove from this app** makes the app forget a server; the server keeps r
 the page set up for you, or moved your notes to, is removed further down the page instead, so
 your notes come back first.
 
+If two of your computers both run the routines of the same notes, the page says so at the top
+and asks which one should. This happens when routines were moved and one server never received
+the news, for example because it could not reach your backup. The one you do not choose stops.
+
 Under the list, the page starts with the way that needs the least: with an invite code,
 [Majordome hosts the server](#let-majordome-host-it), with nothing to rent or install. The rest
 of the page rents one in your name. For that you need:

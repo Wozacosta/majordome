@@ -911,11 +911,14 @@ function ReadyPanel({
       {named !== null && hosted ? null : (
         <Section label={named === null ? "Your server" : `About ${named}`}>
           <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
-            Running at <span className="font-medium break-all">{move.server?.url}</span>, with your
-            notes on it.
-            {hosted
-              ? " Majordome looks after it for you."
-              : " Only your devices on your Tailscale network can reach it."}
+            {hosted ? (
+              "Running, with your notes on it. Majordome looks after it for you."
+            ) : (
+              <>
+                Running at <span className="font-medium break-all">{move.server?.url}</span>, with
+                your notes on it. Only your devices on your Tailscale network can reach it.
+              </>
+            )}
           </StatusLine>
           {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
         </Section>

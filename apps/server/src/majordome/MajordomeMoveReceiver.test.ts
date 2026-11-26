@@ -76,6 +76,7 @@ const makeServer = Effect.fn("test.makeServer")(function* (options?: {
     Effect.provideService(MajordomeRoutines.MajordomeRoutines, {
       start: () => Effect.void,
       runHere: (projectId) => Effect.sync(() => void ranHere.push(projectId)),
+      runElsewhere: () => Effect.void,
       list: () => Effect.succeed([]),
       place: () => Effect.void,
       ready: () => Effect.succeed({ routines: [] }),

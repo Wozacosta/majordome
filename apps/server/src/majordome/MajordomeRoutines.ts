@@ -9,6 +9,7 @@ import {
   type MajordomeAddReadyRoutineInput,
   type MajordomeReadyRoutinesResult,
   type ModelSelection,
+  type EnvironmentId,
   type ProjectId,
   type ScheduledTask,
   ScheduledTaskId,
@@ -86,6 +87,15 @@ export class MajordomeRoutines extends Context.Service<
     readonly start: () => Effect.Effect<void, never, Scope.Scope>;
     /** Makes this server the vault's runner, for "Move routines here". */
     readonly runHere: (projectId: ProjectId) => Effect.Effect<void, MajordomeRoutinesError>;
+    /**
+     * Names another server as the vault's runner in this copy, so this one stops. For two
+     * servers that both run the routines because the move never reached one of them.
+     */
+    readonly runElsewhere: (input: {
+      readonly projectId: ProjectId;
+      readonly environmentId: EnvironmentId;
+      readonly label: string;
+    }) => Effect.Effect<void, MajordomeRoutinesError>;
     /** The vault's routines, without reminders. */
     readonly list: (
       projectId: ProjectId,
@@ -401,34 +411,66 @@ const make = Effect.gen(function* () {
     },
   );
 
+  /** Writes and commits who runs the vault's routines, then sends it and applies it here. */
+  const setRunner = Effect.fn("MajordomeRoutines.setRunner")(function* (input: {
+    readonly projectId: ProjectId;
+    readonly environmentId: string;
+    readonly label: string;
+  }) {
+    const project = yield* projects.get(input.projectId);
+    if (Option.isNone(project)) {
+      return yield* new MajordomeRoutinesError({ message: "That vault was not found." });
+    }
+    const vaultRoot = project.value.workspaceRoot;
+    const layout = yield* readVaultLayout(vaultRoot).pipe(Effect.provide(services));
+    if (Option.isNone(layout)) {
+      return yield* new MajordomeRoutinesError({ message: "That project is not a vault." });
+    }
+    yield* vaultLock.withLock(
+      vaultRoot,
+      moveVaultRunner({
+        vaultRoot,
+        environmentId: input.environmentId,
+        serverLabel: input.label,
+      }).pipe(Effect.provide(services)),
+    );
+    // The other server runs the routines too until the move reaches it, so it is sent now. A
+    // failed send shows on the backup screen like any other.
+    yield* backup.runCycle(vaultRoot).pipe(Effect.forkIn(layerScope));
+    yield* reconcile;
+  });
+
   const runHere: MajordomeRoutines["Service"]["runHere"] = Effect.fn("MajordomeRoutines.runHere")(
     function* (projectId) {
-      const project = yield* projects.get(projectId);
-      if (Option.isNone(project)) {
-        return yield* new MajordomeRoutinesError({ message: "That vault was not found." });
-      }
-      const vaultRoot = project.value.workspaceRoot;
-      const layout = yield* readVaultLayout(vaultRoot).pipe(Effect.provide(services));
-      if (Option.isNone(layout)) {
-        return yield* new MajordomeRoutinesError({ message: "That project is not a vault." });
-      }
-      yield* vaultLock.withLock(
-        vaultRoot,
-        moveVaultRunner({
-          vaultRoot,
-          environmentId: yield* environment.getEnvironmentId,
-          serverLabel: (yield* environment.getDescriptor).label,
-        }).pipe(Effect.provide(services)),
-      );
-      // The other server runs the routines too until the move reaches it, so it is sent now. A
-      // failed send shows on the backup screen like any other.
-      yield* backup.runCycle(vaultRoot).pipe(Effect.forkIn(layerScope));
-      yield* reconcile;
+      yield* setRunner({
+        projectId,
+        environmentId: yield* environment.getEnvironmentId,
+        label: (yield* environment.getDescriptor).label,
+      });
     },
     Effect.mapError((cause) =>
       isMajordomeRoutinesError(cause)
         ? cause
         : new MajordomeRoutinesError({ message: "Could not move routines here.", cause }),
+    ),
+  );
+
+  const runElsewhere: MajordomeRoutines["Service"]["runElsewhere"] = Effect.fn(
+    "MajordomeRoutines.runElsewhere",
+  )(
+    function* (input) {
+      // Naming this server would be a move here, which has its own way in.
+      if (input.environmentId === (yield* environment.getEnvironmentId)) {
+        return yield* new MajordomeRoutinesError({
+          message: "That is this computer. Use Move routines here.",
+        });
+      }
+      yield* setRunner(input);
+    },
+    Effect.mapError((cause) =>
+      isMajordomeRoutinesError(cause)
+        ? cause
+        : new MajordomeRoutinesError({ message: "Could not stop routines here.", cause }),
     ),
   );
 
@@ -548,7 +590,7 @@ const make = Effect.gen(function* () {
     Effect.mapError((cause) => (isMajordomeRoutinesError(cause) ? cause : routinesFailed(cause))),
   );
 
-  return MajordomeRoutines.of({ start, runHere, list, place, ready, addReady });
+  return MajordomeRoutines.of({ start, runHere, runElsewhere, list, place, ready, addReady });
 });
 
 export const layer = Layer.effect(MajordomeRoutines, make);

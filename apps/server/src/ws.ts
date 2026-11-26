@@ -2573,6 +2573,11 @@ export const layerWsRpc = (
             Effect.andThen(majordomeRoutines.runHere(input.projectId)),
             Effect.mapError((cause) => new MajordomeVaultError({ message: cause.message, cause })),
           ),
+        [WS_METHODS.majordomeRunRoutinesElsewhere]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeRoutines.runElsewhere(input)),
+            Effect.mapError((cause) => new MajordomeVaultError({ message: cause.message, cause })),
+          ),
         [WS_METHODS.majordomeListReadyRoutines]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeRoutines.ready(input.projectId)),

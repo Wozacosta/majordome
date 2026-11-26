@@ -1,6 +1,12 @@
 import * as Schema from "effect/Schema";
 
-import { PositiveInt, ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import {
+  EnvironmentId,
+  PositiveInt,
+  ProjectId,
+  ThreadId,
+  TrimmedNonEmptyString,
+} from "./baseSchemas.ts";
 
 export const MajordomeVaultHistoryInput = Schema.Struct({
   projectId: ProjectId,
@@ -127,6 +133,17 @@ export const MajordomeRunRoutinesHereInput = Schema.Struct({
   projectId: ProjectId,
 });
 export type MajordomeRunRoutinesHereInput = typeof MajordomeRunRoutinesHereInput.Type;
+
+/**
+ * Tells a server that another one runs the vault's routines, when the two copies disagree and
+ * the move never reached it. `label` names that other server in the commit.
+ */
+export const MajordomeRunRoutinesElsewhereInput = Schema.Struct({
+  projectId: ProjectId,
+  environmentId: EnvironmentId,
+  label: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
+});
+export type MajordomeRunRoutinesElsewhereInput = typeof MajordomeRunRoutinesElsewhereInput.Type;
 
 /** A routine the owner can add in one step. */
 export const MajordomeReadyRoutine = Schema.Struct({

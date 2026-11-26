@@ -90,6 +90,7 @@ describe("RPC authorization scopes", () => {
     for (const method of [
       WS_METHODS.majordomeUndoVaultRun,
       WS_METHODS.majordomeRunRoutinesHere,
+      WS_METHODS.majordomeRunRoutinesElsewhere,
       WS_METHODS.majordomeBackUpNow,
       WS_METHODS.majordomeRestoreNotes,
       WS_METHODS.majordomeRebuildNotesIndex,

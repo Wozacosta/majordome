@@ -5,7 +5,20 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Your servers warns when two computers run the same routines.** If a move of your routines
+  never reached one of your servers, that server went on running them, and each routine ran
+  twice with nothing to say so. The page now says which two, and two buttons let you keep one:
+  "Only on your Majordome server" or "Only on your server". The other is told directly and
+  stops. Both servers need this version.
+- **A server Majordome hosts no longer shows where it is hosted.** Its row on Your servers says
+  "Majordome looks after it" and no address.
+
+**Try this**
+
+- Open Settings, Your servers. If a warning about routines running in two places is at the top,
+  choose where they should run and check the warning goes away.
 
 ## 0.10.62
 

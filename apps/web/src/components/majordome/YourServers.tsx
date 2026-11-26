@@ -24,6 +24,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { machineInSentence } from "./brains.logic";
+import { RoutinesClashNotice } from "./RoutinesClashNotice";
 import { Entry, EntryList, Muted, READING_MEASURE_CLASS, Section, StatusLine } from "./paper";
 import { hasReadyProvider } from "./serverMove.logic";
 import { serverLines, type ServerRow, serverRows } from "./servers.logic";
@@ -142,6 +143,7 @@ export function YourServers({
         </Muted>
       ) : (
         <>
+          <RoutinesClashNotice />
           <ServersMap servers={servers} />
           <EntryList>
             {servers.map((server) => (
@@ -150,8 +152,8 @@ export function YourServers({
                 title={server.name}
                 aside={server.environmentId === mainId ? <Badge size="sm">Main</Badge> : null}
                 meta={[
-                  addressHost(server.address),
-                  server.hosted ? "Majordome looks after it" : null,
+                  // Where Majordome keeps a server it hosts is its own business, never shown.
+                  server.hosted ? "Majordome looks after it" : addressHost(server.address),
                   server.isThisWindow ? "You are on it now" : null,
                 ]
                   .filter((part) => part !== null)

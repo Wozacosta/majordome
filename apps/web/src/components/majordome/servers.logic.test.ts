@@ -1,7 +1,7 @@
-import { EnvironmentId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { serverLines, serverRows, type ServerRowInput } from "./servers.logic";
+import { routinesClashes, serverLines, serverRows, type ServerRowInput } from "./servers.logic";
 
 const own = EnvironmentId.make("own");
 const hosted = EnvironmentId.make("hosted");
@@ -61,5 +61,50 @@ describe("serverRows", () => {
     expect(serverLines(away!)).toEqual([
       { tone: "warning", text: "This app can't reach it right now." },
     ]);
+  });
+});
+
+describe("routinesClashes", () => {
+  const copy = (
+    environmentId: typeof own,
+    name: string,
+    routinesRunner: "this-server" | "another-server" | undefined,
+  ) => ({
+    environmentId,
+    projectId: ProjectId.make(`notes-${environmentId}`),
+    name,
+    routinesRunner,
+  });
+
+  it("names the notes folder that two computers both run the routines of", () => {
+    const clashes = routinesClashes([
+      {
+        key: "brain",
+        title: "Brain",
+        copies: [
+          copy(EnvironmentId.make("mac"), "This Mac", "another-server"),
+          copy(own, "Your server", "this-server"),
+          copy(hosted, "Majordome server", "this-server"),
+        ],
+      },
+    ]);
+    expect(clashes).toMatchObject([
+      { title: "Brain", runners: [{ name: "Your server" }, { name: "Majordome server" }] },
+    ]);
+  });
+
+  it("claims nothing while a copy has not answered, or with one runner", () => {
+    expect(
+      routinesClashes([
+        {
+          key: "brain",
+          title: "Brain",
+          copies: [
+            copy(own, "Your server", "this-server"),
+            copy(hosted, "Majordome server", undefined),
+          ],
+        },
+      ]),
+    ).toEqual([]);
   });
 });
