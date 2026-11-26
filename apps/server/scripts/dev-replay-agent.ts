@@ -74,6 +74,11 @@ export const SCENARIOS = [
     name: "Link to a screen",
     file: "./dev-replay/screen_link_transcript.ndjson",
   },
+  {
+    id: "screen-name",
+    name: "Screen named in bold",
+    file: "./dev-replay/screen_name_transcript.ndjson",
+  },
 ] as const;
 
 // Session setup and vendor state stay out: they would replace the replay agent's own models.

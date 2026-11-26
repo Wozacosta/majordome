@@ -91,7 +91,8 @@ import { parseAssistantCitationHref } from "@t3tools/shared/assistantCitations";
 import { parseComposerContextHref } from "@t3tools/shared/composerContextReferences";
 import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
 import { parseAppScreenHref } from "@t3tools/shared/appScreenLinks";
-import { MarkdownAppScreenLink } from "./chat/MarkdownAppScreenLink";
+import { MarkdownAppScreenLink, MarkdownNamedScreen } from "./chat/MarkdownAppScreenLink";
+import { namedScreenTarget } from "./majordome/assistant.logic";
 import { AssistantCitationEmbed } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
 import { artifactTemplateFromHastProperties } from "@t3tools/shared/codexArtifactTemplates";
@@ -240,6 +241,8 @@ const isAssetNotFoundError = Schema.is(AssetWorkspaceAssetNotFoundError);
 
 interface ChatMarkdownProps {
   renderInsights?: boolean;
+  /** An assistant's message: a screen of the app named in bold opens that screen. */
+  screenNames?: boolean;
   /** Compact markdown transforms remove blocks before rendering inside a label. */
   inline?: boolean;
   text: string;
@@ -592,6 +595,7 @@ function useChatMarkdownState(
     onImageExpand,
     renderContextReference,
     headingLevelOffset = 0,
+    screenNames = false,
     sourceControlMedia = false,
     sourceControlMediaRepository,
   }: ChatMarkdownProps,
@@ -1095,6 +1099,7 @@ function useChatMarkdownState(
     sourceControlMediaRepository,
     renderContextReference,
     headingLevelOffset,
+    screenNames,
     imageBaseDir,
     workspaceMutationId,
     inlineCodeFileLinkMetaByText,
@@ -1138,6 +1143,21 @@ const ChatMarkdownRendererContext = React.createContext<
 
 // Isolate streamed source text from the renderer context; only offset-based renderers need it.
 const ChatMarkdownTextContext = React.createContext("");
+
+// The whole message where screen names are linked, null elsewhere.
+const ScreenNamesContext = React.createContext<string | null>(null);
+
+// Reads the message only for a name that could be a screen, so other bold text ignores streaming.
+function NamedScreenIn(props: { readonly name: string; readonly children: ReactNode }) {
+  const message = use(ScreenNamesContext);
+  return message === null ? (
+    props.children
+  ) : (
+    <MarkdownNamedScreen name={props.name} message={message}>
+      {props.children}
+    </MarkdownNamedScreen>
+  );
+}
 
 // A quote card is a block. These say nothing else shares its paragraph or list item on that side.
 const LIST_MARKER = String.raw`(?:[-*+]|\d+[.)])[ \t]+`;
@@ -1223,6 +1243,16 @@ const CHAT_MARKDOWN_COMPONENTS = {
     const gutterStyle = orderedListGutterStyle(itemValues, start);
     return (
       <ol {...props} start={start} style={gutterStyle ? { ...style, ...gutterStyle } : style} />
+    );
+  },
+  strong: function MarkdownStrong({ node, children, ...props }) {
+    const m = useMessages();
+    const name = hastPlainTextDeep(node).trim();
+    const linked = !use(MarkdownLinkContext) && namedScreenTarget(name, null, m) !== null;
+    return (
+      <strong {...props}>
+        {linked ? <NamedScreenIn name={name}>{children}</NamedScreenIn> : children}
+      </strong>
     );
   },
   li: function MarkdownListItem({ node, children, ...props }) {
@@ -1984,13 +2014,16 @@ function markdownIslandOptions(state: ChatMarkdownComponentState): MarkdownIslan
     imageBaseDir,
     inlineCodeFileLinkMetaByText,
     onTaskListChange,
+    screenNames,
     skills,
   } = state;
   const options: MarkdownIslandOptions = {
     components: CHAT_MARKDOWN_COMPONENTS,
-    variant: String(headingLevelOffset),
+    variant: `${headingLevelOffset}${screenNames ? ":screens" : ""}`,
     isIsland: (node) => {
       switch (node.tagName) {
+        case "strong":
+          return screenNames && namedScreenTarget(hastPlainTextDeep(node).trim(), null, m) !== null;
         case "a":
         case "img":
         case "pre":
@@ -2090,6 +2123,7 @@ function ChatMarkdown({
   renderInsights = false,
   ...props
 }: ChatMarkdownProps) {
+  const screenNames = props.screenNames === true;
   // Streaming re-renders only the last block; offsets for task edits, and extensions that read
   // the whole message, need the whole text.
   const streamingBlocks =
@@ -2123,18 +2157,20 @@ function ChatMarkdown({
       onCopy={handleCopy}
     >
       <ChatMarkdownRendererContext value={componentState}>
-        <SharedTooltipProvider>
-          {blocks.map((source, index) => (
-            <MarkdownSource
-              // oxlint-disable-next-line react/no-array-index-key -- streamed blocks only change at the end
-              key={index}
-              text={source}
-              markdown={markdown}
-              // Every block before the last is finished, so its parse can be reused.
-              cache={!props.isStreaming || index < blocks.length - 1}
-            />
-          ))}
-        </SharedTooltipProvider>
+        <ScreenNamesContext value={screenNames ? text : null}>
+          <SharedTooltipProvider>
+            {blocks.map((source, index) => (
+              <MarkdownSource
+                // oxlint-disable-next-line react/no-array-index-key -- streamed blocks only change at the end
+                key={index}
+                text={source}
+                markdown={markdown}
+                // Every block before the last is finished, so its parse can be reused.
+                cache={!props.isStreaming || index < blocks.length - 1}
+              />
+            ))}
+          </SharedTooltipProvider>
+        </ScreenNamesContext>
       </ChatMarkdownRendererContext>
       {localMediaPreview ? (
         <ExpandedImageDialog preview={localMediaPreview} onClose={closeLocalMediaPreview} />

@@ -209,6 +209,20 @@ function buttonsLabelled(container: HTMLElement, label: string) {
 
 const USER_MESSAGE = { userMessage: true };
 
+it("links a screen an assistant names in bold, and only in an assistant's message", async () => {
+  setup();
+  const text =
+    "Go to **Settings**, then **Phone & notifications**. It is on the **Routines** screen. **Important**.";
+  await using screen = await renderText(text, { screenNames: true });
+  const links = [...screen.container.querySelectorAll<HTMLAnchorElement>("a")];
+  expect(links.map((link) => [link.textContent, link.dataset.appScreenLink])).toEqual([
+    ["Phone & notifications", "/settings/phone"],
+    ["Routines", "/routines"],
+  ]);
+  await using plain = await renderText(text);
+  expect(plain.container.querySelector("a")).toBeNull();
+});
+
 it("links the app's own screens by the name written for them, and leaves an unknown one as text", async () => {
   setup();
   await using screen = await renderText(

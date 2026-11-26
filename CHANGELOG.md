@@ -5,7 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **A screen the assistant names in bold is a link, in every conversation.** In 0.10.66 the link
+  only appeared when the assistant chose to write one, and a chat begun before the update, or one
+  run by a server that had not updated, never did. Now the app itself links the name: "go to
+  Settings, then **Phone & notifications**" opens that page, and so do Routines, Reminders,
+  To-dos, Reading list and What it did. It works on answers already in your chats.
+
+**Try this**
+
+- Open the assistant, look at its earlier answer about setting up your phone, and click
+  **Phone & notifications**.
 
 ## 0.10.66
 

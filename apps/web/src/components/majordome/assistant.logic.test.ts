@@ -5,6 +5,7 @@ import {
   assistantConversationActivity,
   assistantIntro,
   assistantScreenName,
+  namedScreenTarget,
   isAssistantConversationStale,
   screenContextRecord,
 } from "./assistant.logic";
@@ -42,6 +43,24 @@ describe("appScreenLinkTarget", () => {
     ["https://example.com/settings/phone", null],
   ])("opens %s at %o", (href, expected) => {
     expect(appScreenLinkTarget(href)).toEqual(expected);
+  });
+});
+
+describe("namedScreenTarget", () => {
+  const SETTINGS = "In the app, go to **Settings**, then **Phone & notifications**.";
+  it.each([
+    ["Phone & notifications", SETTINGS, "/settings/phone"],
+    ["Your server", "Settings, then **Your server**.", "/settings/always-on"],
+    ["Routines", "Everything is listed on the **Routines** screen.", "/routines"],
+    // Before the message is read, a name that could be a page counts.
+    ["General", null, "/settings/general"],
+    ["General", "**General** advice: sleep more.", null],
+    ["Status", "**Status**: all good.", null],
+    ["Notes", "Open **Notes** in Settings.", null],
+    ["Settings", SETTINGS, null],
+    ["Worktrees", "Settings, then **Worktrees**.", null],
+  ])("reads %s in %j as %s", (name, message, to) => {
+    expect(namedScreenTarget(name, message)?.to ?? null).toBe(to);
   });
 });
 

@@ -6,8 +6,14 @@ import {
   toComposerContextId,
 } from "@t3tools/shared/composerContextReferences";
 
+import { msg } from "gt-react";
+
 import { FEED_NAME } from "./feed.logic";
-import { SETTINGS_SECTION_LABELS, type SettingsPath } from "../settings/settingsSearch";
+import {
+  SETTINGS_NAV_GROUPS,
+  SETTINGS_SECTION_LABELS,
+  type SettingsPath,
+} from "../settings/settingsSearch";
 
 const LINKED_SCREENS = {
   "/feed": FEED_NAME,
@@ -44,6 +50,46 @@ export function appScreenLinkTarget(
     return { to: pathname, label: SETTINGS_SECTION_LABELS[pathname] };
   }
   return names(LINKED_SCREENS, pathname) ? { to: pathname, label: LINKED_SCREENS[pathname] } : null;
+}
+
+const SETTINGS_WORD = msg("Settings");
+
+type ScreenTarget = NonNullable<ReturnType<typeof appScreenLinkTarget>>;
+
+// Names too plain to link on their own ("Notes", "Chats", "Usage") are left out.
+const NAMED_SCREENS: ReadonlyArray<ScreenTarget> = (
+  ["/routines", "/reminders", "/todos", "/reading", "/feed"] as const
+).map((to) => ({ to, label: LINKED_SCREENS[to] }));
+
+const NAMED_SETTINGS: ReadonlyArray<ScreenTarget> = [
+  ...SETTINGS_NAV_GROUPS.flatMap((group) => group.paths).map((to) => ({
+    to,
+    label: SETTINGS_SECTION_LABELS[to],
+  })),
+  // What conversations begun before the page was renamed still call it.
+  { to: "/settings/always-on", label: "Your server" },
+];
+
+/**
+ * The screen a name set in bold in an assistant's message stands for. An assistant that was not
+ * told to link screens, or forgot, still writes "open **Phone & notifications**". A page of
+ * Settings counts only where the message speaks of Settings, since "General" or "Status" in bold
+ * is otherwise an ordinary word.
+ */
+export function namedScreenTarget(
+  name: string,
+  message: string | null,
+  translate: (text: string) => string = (text) => text,
+): ScreenTarget | null {
+  const named = (screens: ReadonlyArray<ScreenTarget>) =>
+    screens.find((screen) => screen.label === name || translate(screen.label) === name) ?? null;
+  const screen = named(NAMED_SCREENS);
+  if (screen !== null) return screen;
+  const setting = named(NAMED_SETTINGS);
+  if (setting === null || message === null) return setting;
+  return message.includes("Settings") || message.includes(translate(SETTINGS_WORD))
+    ? setting
+    : null;
 }
 
 const SETTINGS_LABELS: Readonly<Record<string, string>> = SETTINGS_SECTION_LABELS;
