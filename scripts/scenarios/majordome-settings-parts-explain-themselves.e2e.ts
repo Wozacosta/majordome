@@ -17,9 +17,15 @@ test(
 
     await screen.getByRole("button", "AI", { exact: true }).tap();
     await expect(screen.getByRole("heading", "AI", { level: 1 })).toBeVisible();
-    await expect(screen.getByRole("img", "does the thinking", { exact: false })).toBeVisible();
+    await expect(screen.getByRole("group", "does the thinking", { exact: false })).toBeVisible();
     await expect(screen.getByRole("button", "AI accounts", { exact: true })).toBeVisible();
     await app.screenshot("settings-ai-explained");
+
+    // A box of the drawing that stands for a page opens it.
+    await screen.getByRole("link", "Connections Mail, calendar", { exact: false }).tap();
+    await expect(screen.getByRole("heading", "Connections", { level: 1 })).toBeVisible();
+    await screen.getByRole("button", "AI", { exact: true }).tap();
+    await expect(screen.getByRole("heading", "AI", { level: 1 })).toBeVisible();
 
     // The page lists the part's pages, and each opens.
     await screen.getByRole("link", "Open Skills").tap();

@@ -20,11 +20,15 @@ The section for a version is also the text of its release on GitHub.
   Majordome window with each setting named on the part it changes: Writing messages and Voice
   on the message box, Browser on the page beside a chat, General and Appearance on the window
   itself. Each name opens its page.
+- **The boxes in the drawings open their pages.** On the Notes, AI and You and your devices
+  pages, click "Back up my brain", "Connections" or a server in the drawing to go straight to
+  it. A box that is not a page, such as "You", stays a plain box.
 
 **Try this**
 
 - Ask the assistant "connect my phone", then click **Phone & notifications** in its answer.
 - Open Settings, select **This app**, and click a label in the sketch.
+- Select **AI** and click "Connections" in the drawing.
 
 ## 0.10.65
 

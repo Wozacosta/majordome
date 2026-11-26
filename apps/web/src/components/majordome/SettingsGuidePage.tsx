@@ -81,12 +81,14 @@ const GUIDES: Record<SettingsGuideTopic, Guide> = {
   },
 };
 
-const node = (id: string, icon: FlowNode["icon"], title: string, detail: string): FlowNode => ({
-  id,
-  icon,
-  title,
-  detail,
-});
+/** A box of a drawing. One that stands for a settings page opens it. */
+const node = (
+  id: string,
+  icon: FlowNode["icon"],
+  title: string,
+  detail: string,
+  to?: SettingsPath,
+): FlowNode => ({ id, icon, title, detail, ...(to ? { to } : {}) });
 
 const DRAWINGS: Record<
   Exclude<SettingsGuideTopic, "app" | "devices">,
@@ -99,10 +101,30 @@ const DRAWINGS: Record<
   notes: {
     columns: [
       [node("you", UserRoundIcon, "You and the assistant", "Read and write notes")],
-      [node("folder", FolderOpenIcon, "Notes folders", "Plain files on this computer")],
       [
-        node("backup", CloudUploadIcon, "Back up my brain", "An encrypted second copy"),
-        node("servers", ServerIcon, "Your servers", "A copy that follows this one"),
+        node(
+          "folder",
+          FolderOpenIcon,
+          "Notes folders",
+          "Plain files on this computer",
+          "/settings/projects",
+        ),
+      ],
+      [
+        node(
+          "backup",
+          CloudUploadIcon,
+          "Back up my brain",
+          "An encrypted second copy",
+          "/settings/backup",
+        ),
+        node(
+          "servers",
+          ServerIcon,
+          "Your servers",
+          "A copy that follows this one",
+          "/settings/always-on",
+        ),
       ],
     ],
     lines: [
@@ -118,9 +140,15 @@ const DRAWINGS: Record<
       [node("you", UserRoundIcon, "You", "Ask, or a routine runs")],
       [node("assistant", ConciergeBellIcon, "The assistant", "Reads your notes, then acts")],
       [
-        node("account", BotIcon, "AI accounts", "Does the thinking"),
-        node("connections", PlugIcon, "Connections", "Mail, calendar, other services"),
-        node("skills", GraduationCapIcon, "Skills", "How you like things done"),
+        node("account", BotIcon, "AI accounts", "Does the thinking", "/settings/providers"),
+        node(
+          "connections",
+          PlugIcon,
+          "Connections",
+          "Mail, calendar, other services",
+          "/settings/connectors",
+        ),
+        node("skills", GraduationCapIcon, "Skills", "How you like things done", "/settings/skills"),
       ],
     ],
     lines: [
@@ -136,7 +164,7 @@ const DRAWINGS: Record<
 
 /** The live drawing of this device, the phone and the servers, as on Your servers. */
 function DevicesDrawing() {
-  return <ServersMap servers={useServers()} />;
+  return <ServersMap servers={useServers()} serversOpenTheirPage />;
 }
 
 /**
