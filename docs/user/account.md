@@ -29,6 +29,14 @@ If the page says there is nothing to open, the computer has no address yet: see
 [Sign in](#sign-in). If a server does not answer, check that it is on and connected to the
 internet.
 
+## Sign out on a phone
+
+A phone stays connected to a computer until you remove it there, whether or not you are signed
+in. So **Sign out** asks whether to disconnect the account's computers too. Choose **Sign out
+and disconnect** before handing the phone to someone else or signing in with another account;
+otherwise the notes and chats of those computers stay on the phone. Nothing is deleted on the
+computers, and signing in again brings them back with **Connect**.
+
 ## Remove a computer from your account
 
 Press **Remove from account** on the same page. Every device that got in by signing in is

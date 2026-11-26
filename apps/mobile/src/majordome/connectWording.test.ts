@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { accountConnectErrorForOwner, connectErrorForOwner } from "./connectWording";
+import {
+  accountConnectErrorForOwner,
+  connectErrorForOwner,
+  signOutQuestion,
+} from "./connectWording";
 
 describe("connectErrorForOwner", () => {
   it.each([
@@ -38,5 +42,27 @@ describe("accountConnectErrorForOwner", () => {
     const said = accountConnectErrorForOwner(message, "Studio");
     expect(said).toMatch(expected);
     expect(said).not.toMatch(/Show the code|the address is the one/);
+  });
+});
+
+describe("signOutQuestion", () => {
+  const mac = { environmentId: "mac", name: "Samy's Mac" };
+  const server = { environmentId: "server", name: "Majordome server" };
+
+  it("asks nothing when this phone is connected to none of the account's computers", () => {
+    expect(signOutQuestion([mac], {})).toBeNull();
+    expect(signOutQuestion([], { other: {} })).toBeNull();
+  });
+
+  it("names only the account's computers this phone is connected to", () => {
+    const question = signOutQuestion([mac, server], { mac: {}, scanned: {} });
+    expect(question?.environmentIds).toEqual(["mac"]);
+    expect(question?.message).toMatch(/connected to Samy's Mac\. Disconnect it too\?/);
+  });
+
+  it("names several", () => {
+    const question = signOutQuestion([mac, server], { mac: {}, server: {} });
+    expect(question?.environmentIds).toEqual(["mac", "server"]);
+    expect(question?.message).toMatch(/Samy's Mac and Majordome server\. Disconnect them too\?/);
   });
 });

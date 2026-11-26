@@ -72,7 +72,34 @@ export const MAJORDOME_ACCOUNT = {
     "Your Majordome account is removed for good. Your Majordome server and the notes on it are deleted now. Its subscription is not cancelled by this: only you can cancel it, in this iPhone's Settings, under your name, then Subscriptions. Notes on your own computer are not touched.",
   deleteConfirm: "Delete",
   deleteFailed: "The account could not be deleted. Sign out, sign in again, then try once more.",
+  signOut: "Sign out",
+  signOutAndDisconnect: "Sign out and disconnect",
+  signOutOnly: "Sign out only",
 } as const;
+
+function listed(names: ReadonlyArray<string>): string {
+  if (names.length <= 2) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/**
+ * Asked before signing out while this phone is connected to the account's computers: a connection
+ * is the phone's own and outlives the sign-in, so their notes would stay on screen. Null when
+ * there is nothing to disconnect.
+ */
+export function signOutQuestion(
+  servers: ReadonlyArray<{ readonly environmentId: string; readonly name: string }>,
+  connections: Readonly<Record<string, unknown>>,
+): { readonly message: string; readonly environmentIds: ReadonlyArray<string> } | null {
+  const connected = servers.filter((server) => server.environmentId in connections);
+  if (connected.length === 0) return null;
+  const names = listed(connected.map((server) => server.name));
+  const them = connected.length === 1 ? "it" : "them";
+  return {
+    message: `This phone is connected to ${names}. Disconnect ${them} too? Otherwise the notes and chats there stay on this phone after you sign out. Nothing is deleted on ${them}.`,
+    environmentIds: connected.map((server) => server.environmentId),
+  };
+}
 
 /**
  * Why connecting through the account failed. The account already holds the address, so there is

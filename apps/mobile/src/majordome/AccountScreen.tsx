@@ -17,18 +17,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
+import { environmentCatalog } from "../connection/catalog";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { useConnectionDiagnosis } from "../features/connection/ConnectionDiagnosisDetails";
 import { buildPairingUrl } from "../features/connection/pairing";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
 import { environmentPresentations } from "../state/presentation";
+import { useAtomCommand } from "../state/use-atom-command";
 import {
   pairEnvironment,
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
-import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
+import {
+  accountConnectErrorForOwner,
+  MAJORDOME_ACCOUNT,
+  MAJORDOME_SERVER,
+  signOutQuestion,
+} from "./connectWording";
 import { BROKER_URL } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
@@ -102,6 +109,27 @@ function SignedIn() {
     ]);
   };
 
+  const removeEnvironment = useAtomCommand(environmentCatalog.remove, "environment remove");
+  const signOut = () => {
+    const question = signOutQuestion(servers, connections);
+    if (question === null) return void clerk.signOut();
+    Alert.alert(MAJORDOME_ACCOUNT.signOut, question.message, [
+      { text: "Cancel", style: "cancel" },
+      { text: MAJORDOME_ACCOUNT.signOutOnly, onPress: () => void clerk.signOut() },
+      {
+        text: MAJORDOME_ACCOUNT.signOutAndDisconnect,
+        isPreferred: true,
+        onPress: () => {
+          // Before the sign-out: this screen, and its list of computers, goes with the account.
+          const removing = question.environmentIds.map((id) =>
+            removeEnvironment(EnvironmentId.make(id)),
+          );
+          void Promise.allSettled(removing).then(() => clerk.signOut());
+        },
+      },
+    ]);
+  };
+
   // Only said after a check: the card above already says the account is empty.
   const [checkedOnce, setCheckedOnce] = useState(false);
   const checkAgain = async () => {
@@ -166,7 +194,7 @@ function SignedIn() {
             />
           ))
         )}
-        <Button label="Sign out" tone="text" onPress={() => void clerk.signOut()} />
+        <Button label={MAJORDOME_ACCOUNT.signOut} tone="text" onPress={signOut} />
         <Button
           label={MAJORDOME_ACCOUNT.deleteTitle}
           tone="text"

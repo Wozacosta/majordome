@@ -13,11 +13,21 @@ The section for a version is also the text of its release on GitHub.
   now a warning or an error is the only warm colour on the page, so you see it at once.
   The line around the message box and its ring while you type are green too.
 
+**Fixed**
+
+- **On the phone, signing out can also disconnect the account's computers.** A phone stays
+  connected to a computer until you remove it, so after signing out, and even after signing in
+  as someone else, the first account's notes and chats were still there. **Sign out** now asks
+  whether to disconnect the computers of that account too. Nothing is deleted on them, and
+  computers you added with a code that are not in the account stay.
+
 **Try this**
 
 - Look at a page with a warning, such as Settings, Your account when your phone cannot reach
   this Mac: the amber dot stands apart from the green button beside it. Then switch between
   light and dark in Settings, Appearance.
+- On the phone, open **Settings > Your account** and press **Sign out**, then **Sign out and
+  disconnect**: Today and Chats no longer show that computer.
 
 ## 0.10.60
 
