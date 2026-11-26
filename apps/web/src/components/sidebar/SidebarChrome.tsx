@@ -233,10 +233,12 @@ function SidebarUtilityItem({
   icon,
   label,
   onClick,
+  tooltipSide = "top",
 }: {
   icon: ReactNode;
   label: string;
   onClick: () => void;
+  tooltipSide?: "top" | "right";
 }) {
   return (
     <SidebarMenuItem className="shrink-0">
@@ -248,9 +250,42 @@ function SidebarUtilityItem({
             </SidebarMenuButton>
           }
         />
-        <TooltipPopup side="top">{label}</TooltipPopup>
+        <TooltipPopup side={tooltipSide}>{label}</TooltipPopup>
       </Tooltip>
     </SidebarMenuItem>
+  );
+}
+
+/** Majordome's fixed ways out of the chat list, for the foot of its page rail. */
+export function SidebarChromeRailItems() {
+  const navigate = useNavigate();
+  const gt = useGT();
+  return (
+    <>
+      <SidebarUtilityItem
+        icon={<SmartphoneIcon />}
+        label={PHONE_SHORTCUT_LABEL}
+        onClick={() => void navigate({ to: "/settings/phone" })}
+        tooltipSide="right"
+      />
+      <SidebarUtilityItem
+        icon={<KeyRoundIcon />}
+        label={gt("Passwords and keys")}
+        onClick={() => void navigate({ to: "/settings/secrets" })}
+        tooltipSide="right"
+      />
+      <SidebarUtilityItem
+        icon={<SettingsIcon />}
+        label={gt("Settings")}
+        onClick={() => void navigate({ to: "/settings" })}
+        tooltipSide="right"
+      />
+      {hasAccountPublicConfig() ? (
+        <Suspense fallback={null}>
+          <AccountSidebarItem rail />
+        </Suspense>
+      ) : null}
+    </>
   );
 }
 
@@ -299,7 +334,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
 
   return (
     <SidebarMenu className="flex-row items-center">
-      {isOnUtilityPage ? (
+      {isMajordome && !isMobile ? null : isOnUtilityPage ? (
         <SidebarMenuItem className="min-w-0 flex-1">
           <SidebarMenuButton onClick={handleBackClick}>
             <ArrowLeftIcon />

@@ -259,8 +259,12 @@ import {
   useComboboxFilter,
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
-import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
+import {
+  SidebarChromeFooter,
+  SidebarChromeHeader,
+  SidebarChromeRailItems,
+} from "./sidebar/SidebarChrome";
+import { MajordomePageRail, MajordomeSidebarNav } from "./majordome/MajordomeSidebarNav";
 import { MajordomeTopicsSection } from "./majordome/MajordomeTopics";
 import { usePendingAssistantThreadKeys } from "./majordome/pendingAssistantThreads";
 import { routineThreadKeys } from "./majordome/routines.logic";
@@ -3351,9 +3355,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       onClearSearch={clearThreadSearch}
     />
   );
-  return (
-    <SidebarFolderDrop>
-      <SidebarChromeHeader isElectron={isElectron} />
+  const chatList = (
+    <>
       <SidebarContent
         ref={sidebarContentRef}
         className="min-h-full"
@@ -3879,6 +3882,19 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         </SidebarGroup>
       </SidebarContent>
       <SidebarChromeFooter />
+    </>
+  );
+  return (
+    <SidebarFolderDrop>
+      <SidebarChromeHeader isElectron={isElectron} />
+      {isMajordome && !isMobile ? (
+        <div className="flex min-h-0 flex-1">
+          <MajordomePageRail footer={<SidebarChromeRailItems />} />
+          <div className="flex min-w-0 flex-1 flex-col">{chatList}</div>
+        </div>
+      ) : (
+        chatList
+      )}
     </SidebarFolderDrop>
   );
 }

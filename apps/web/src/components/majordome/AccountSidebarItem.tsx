@@ -12,7 +12,7 @@ import { markSignInAsked, useAddServersAfterSignIn } from "./accountLink";
  * page. Loaded lazily and only by a build with an account service, so it never weighs on a
  * start without one.
  */
-export default function AccountSidebarItem() {
+export default function AccountSidebarItem({ rail = false }: { readonly rail?: boolean }) {
   const { isLoaded, isSignedIn } = useAuth();
   const clerk = useClerk();
   const navigate = useNavigate();
@@ -25,15 +25,31 @@ export default function AccountSidebarItem() {
   useAddServersAfterSignIn(() => void navigate({ to: "/settings/account" }));
 
   if (!isLoaded) return null;
+  const tooltipSide = rail ? "right" : "top";
+  const signIn = () => {
+    markSignInAsked();
+    clerk.openSignIn();
+  };
+  if (!isSignedIn && rail) {
+    return (
+      <SidebarMenuItem className="shrink-0">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <SidebarMenuButton aria-label="Sign in" size="icon" onClick={signIn}>
+                <CircleUserRoundIcon />
+              </SidebarMenuButton>
+            }
+          />
+          <TooltipPopup side="right">Sign in</TooltipPopup>
+        </Tooltip>
+      </SidebarMenuItem>
+    );
+  }
   if (!isSignedIn) {
     return (
       <SidebarMenuItem className="shrink-0">
-        <SidebarMenuButton
-          onClick={() => {
-            markSignInAsked();
-            clerk.openSignIn();
-          }}
-        >
+        <SidebarMenuButton onClick={signIn}>
           <CircleUserRoundIcon />
           <span>Sign in</span>
         </SidebarMenuButton>
@@ -54,7 +70,7 @@ export default function AccountSidebarItem() {
             </SidebarMenuButton>
           }
         />
-        <TooltipPopup side="top">Your account</TooltipPopup>
+        <TooltipPopup side={tooltipSide}>Your account</TooltipPopup>
       </Tooltip>
     </SidebarMenuItem>
   );

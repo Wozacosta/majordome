@@ -5,6 +5,14 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **Your pages are icons down the left edge.** Today, Notes, To-dos and the rest moved out of
+  the chat list into a narrow strip beside it, with Settings at the foot, so topics and chats get
+  the room the page names took. The three dots list every page; the pin beside each one puts it
+  in the strip or takes it out. Your choice is kept on this computer. On a phone the same icons
+  run across the top of the menu.
+
 **Fixed**
 
 - **The AI drawing says a little more.** AI accounts shows the Claude and ChatGPT logos,
@@ -14,6 +22,7 @@ The section for a version is also the text of its release on GitHub.
 **Try this**
 
 - Open Settings, AI, with the Assistant panel open beside it.
+- Click the three dots in the left strip and unpin a page you never open. It stays in that list.
 
 ## 0.10.68
 

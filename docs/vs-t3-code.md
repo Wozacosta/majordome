@@ -36,6 +36,8 @@ The landing page and the README show a short version of this list.
 
 ### Pages for everyday life
 
+- **A strip of page icons you choose.** The pages sit as icons down the left of the sidebar. Pin
+  the ones you use; the rest wait under the three dots.
 - **Today:** your day, the to-dos due, and what changed in your notes lately.
 - **To-dos:** every checkbox from every note in one list. Tick one and it is ticked in its note.
 - **Reading list:** links, videos and podcasts for later, with a Next view of three things, snooze,

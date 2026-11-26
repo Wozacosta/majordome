@@ -1,25 +1,28 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useGT } from "gt-react";
 import {
   BellIcon,
   BookOpenIcon,
   CalendarClockIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
-  ChevronUpIcon,
   CircleAlertIcon,
+  EllipsisIcon,
   HistoryIcon,
   HouseIcon,
   ListTodoIcon,
   NotebookTextIcon,
+  PinIcon,
   SearchIcon,
   type LucideIcon,
 } from "lucide-react";
 import * as Schema from "effect/Schema";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
+import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { FEED_NAME } from "./feed.logic";
@@ -27,28 +30,182 @@ import { NewChatRow } from "./NewChatRow";
 import { useAttention } from "./useAttention";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 
-type SidebarItem = { readonly to: string; readonly label: string; readonly icon: LucideIcon };
+type Page = { readonly to: string; readonly label: string; readonly icon: LucideIcon };
 
 /** The screens Majordome is used through day to day; its setup lives in Settings. */
-const DAILY_ITEMS = [
+const PAGES = [
   { to: "/", label: "Today", icon: HouseIcon },
   { to: "/notes", label: "Notes", icon: NotebookTextIcon },
   { to: "/todos", label: "To-dos", icon: ListTodoIcon },
   { to: "/reading", label: "Reading list", icon: BookOpenIcon },
-] as const satisfies ReadonlyArray<SidebarItem>;
-
-/** What the assistant does without being asked each time. */
-const ON_ITS_OWN_ITEMS = [
   { to: "/routines", label: "Routines", icon: CalendarClockIcon },
   { to: "/reminders", label: "Reminders", icon: BellIcon },
   { to: "/feed", label: FEED_NAME, icon: HistoryIcon },
-] as const satisfies ReadonlyArray<SidebarItem>;
+] as const satisfies ReadonlyArray<Page>;
 
-const CompactChoice = Schema.NullOr(Schema.Boolean);
+const PINNED_PAGES_KEY = "majordome:sidebar-pinned-pages";
+const PinnedPages = Schema.Array(Schema.String);
+/** What is looked at every day; the rest waits under More until someone pins it. */
+const DEFAULT_PINNED_PAGES: ReadonlyArray<string> = [
+  "/",
+  "/notes",
+  "/todos",
+  "/reading",
+  "/routines",
+];
+
+type Layout = "rail" | "row";
 
 /**
- * Majordome's own screens, named, above the thread list. `search` is the chat search field, shown
- * under the top row; `onSearch` puts the cursor in it.
+ * Majordome's pages as icons: the pinned ones, then More, which lists every page and pins or
+ * unpins it. A rail down the side of the sidebar, or a row across the top of it on a phone.
+ */
+function PageIcons({ layout }: { readonly layout: Layout }) {
+  const gt = useGT();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const { isMobile, setOpenMobile } = useSidebar();
+  const [pinned, setPinned] = useLocalStorage(PINNED_PAGES_KEY, DEFAULT_PINNED_PAGES, PinnedPages);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const leave = () => {
+    setMoreOpen(false);
+    if (isMobile) setOpenMobile(false);
+  };
+  const size = layout === "rail" ? "icon" : "iconWide";
+  const tooltipSide = layout === "rail" ? "right" : "bottom";
+  const itemClassName = layout === "rail" ? "shrink-0" : "flex-1";
+  const pinnedPages = PAGES.filter((page) => pinned.includes(page.to));
+  // An open page that is not pinned is under More, so More is where it shows.
+  const openPageIsUnderMore = PAGES.some(
+    (page) => page.to === pathname && !pinned.includes(page.to),
+  );
+
+  return (
+    <>
+      {pinnedPages.map(({ to, label, icon: Icon }) => (
+        <SidebarMenuItem key={to} className={itemClassName}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <SidebarMenuButton
+                  size={size}
+                  isActive={pathname === to}
+                  aria-current={pathname === to ? "page" : undefined}
+                  aria-label={label}
+                  render={<Link to={to} />}
+                  onClick={leave}
+                />
+              }
+            >
+              <Icon />
+            </TooltipTrigger>
+            <TooltipPopup side={tooltipSide}>{label}</TooltipPopup>
+          </Tooltip>
+        </SidebarMenuItem>
+      ))}
+      <SidebarMenuItem className={itemClassName}>
+        <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <PopoverTrigger
+                  render={
+                    <SidebarMenuButton
+                      size={size}
+                      type="button"
+                      isActive={openPageIsUnderMore}
+                      aria-label={gt("More", { $context: "opens the list of every page" })}
+                    />
+                  }
+                />
+              }
+            >
+              <EllipsisIcon />
+            </TooltipTrigger>
+            <TooltipPopup side={tooltipSide}>
+              {gt("More", { $context: "opens the list of every page" })}
+            </TooltipPopup>
+          </Tooltip>
+          <PopoverPopup
+            side={layout === "rail" ? "right" : "bottom"}
+            align={layout === "rail" ? "start" : "end"}
+            padding="none"
+            width="auto"
+          >
+            <ul className="flex min-w-52 flex-col gap-px p-1">
+              {PAGES.map(({ to, label, icon: Icon }) => {
+                const isPinned = pinned.includes(to);
+                return (
+                  <li key={to} className="flex items-center gap-1">
+                    <Link
+                      to={to}
+                      aria-current={pathname === to ? "page" : undefined}
+                      onClick={leave}
+                      className={cn(
+                        "flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-sm outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                        pathname === to && "bg-accent font-medium",
+                      )}
+                    >
+                      <Icon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{label}</span>
+                    </Link>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-pressed={isPinned}
+                      aria-label={
+                        isPinned
+                          ? gt("Unpin {name}", { name: label })
+                          : gt("Pin {name}", { name: label })
+                      }
+                      onClick={() =>
+                        setPinned(isPinned ? pinned.filter((page) => page !== to) : [...pinned, to])
+                      }
+                    >
+                      <PinIcon
+                        className={cn(
+                          "size-4",
+                          isPinned ? "fill-current" : "text-muted-foreground/60",
+                        )}
+                      />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </PopoverPopup>
+        </Popover>
+      </SidebarMenuItem>
+    </>
+  );
+}
+
+/**
+ * The narrow rail down the left of the sidebar: the pinned pages and More at the top, and at the
+ * foot what `footer` holds, such as Settings.
+ */
+export function MajordomePageRail({ footer }: { readonly footer: ReactNode }) {
+  // Before there is a notes folder every screen is empty; the welcome page is the only place to be.
+  const { activeVault, loading } = useMajordomeVaults();
+  return (
+    <div className="flex w-11 shrink-0 flex-col items-center gap-2 py-2 ps-2 pe-1">
+      <nav
+        aria-label="Majordome"
+        className="min-h-0 w-full flex-1 overflow-y-auto [scrollbar-width:none]"
+      >
+        {activeVault === null && !loading ? null : (
+          <SidebarMenu className="items-center">
+            <PageIcons layout="rail" />
+          </SidebarMenu>
+        )}
+      </nav>
+      <SidebarMenu className="items-center">{footer}</SidebarMenu>
+    </div>
+  );
+}
+
+/**
+ * The top of the chat list: a new chat and the chat search. `search` is the search field, shown
+ * under the top row; `onSearch` puts the cursor in it. A phone has no rail, so its pages go here.
  */
 export function MajordomeSidebarNav({
   search,
@@ -57,88 +214,19 @@ export function MajordomeSidebarNav({
   readonly search?: ReactNode;
   readonly onSearch?: () => void;
 }) {
-  const pathname = useLocation({ select: (location) => location.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
-  const closeMobileSidebar = () => {
-    if (isMobile) setOpenMobile(false);
-  };
-  // Before there is a notes folder every screen is empty; the welcome page is the only place to be.
   const { activeVault, loading } = useMajordomeVaults();
-  // Unset until the owner chooses: a phone starts with the icons, which leave room for topics.
-  const [chosenCompact, setCompact] = useLocalStorage(
-    "majordome:sidebar-menu-compact",
-    null,
-    CompactChoice,
-  );
-  const compact = chosenCompact ?? isMobile;
   if (activeVault === null && !loading) return null;
 
-  const toggle = (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <SidebarMenuButton
-            size="icon"
-            type="button"
-            aria-expanded={!compact}
-            aria-label={compact ? "Show the menu with names" : "Show the menu as icons"}
-            onClick={() => setCompact(!compact)}
-          />
-        }
-      >
-        {compact ? <ChevronDownIcon /> : <ChevronUpIcon />}
-      </TooltipTrigger>
-      <TooltipPopup side="bottom">
-        {compact ? "Show the menu with names" : "Show the menu as icons"}
-      </TooltipPopup>
-    </Tooltip>
-  );
-  const icons = (items: ReadonlyArray<SidebarItem>) =>
-    items.map(({ to, label, icon: Icon }) => (
-      <SidebarMenuItem key={to} className="flex-1">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <SidebarMenuButton
-                size="iconWide"
-                isActive={pathname === to}
-                aria-current={pathname === to ? "page" : undefined}
-                aria-label={label}
-                render={<Link to={to} />}
-                onClick={closeMobileSidebar}
-              />
-            }
-          >
-            <Icon />
-          </TooltipTrigger>
-          <TooltipPopup side="bottom">{label}</TooltipPopup>
-        </Tooltip>
-      </SidebarMenuItem>
-    ));
-
-  const rows = (items: ReadonlyArray<SidebarItem>) =>
-    items.map(({ to, label, icon: Icon }) => {
-      return (
-        <SidebarMenuItem key={to}>
-          <SidebarMenuButton
-            size="row"
-            isActive={pathname === to}
-            aria-current={pathname === to ? "page" : undefined}
-            render={<Link to={to} />}
-            onClick={closeMobileSidebar}
-          >
-            <Icon />
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      );
-    });
-
   return (
-    <nav aria-label="Majordome" className="mb-1 flex flex-col gap-1">
+    <div className="mb-1 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <SidebarMenu className="min-w-0 flex-1">
-          <NewChatRow onOpen={closeMobileSidebar} />
+          <NewChatRow
+            onOpen={() => {
+              if (isMobile) setOpenMobile(false);
+            }}
+          />
         </SidebarMenu>
         {onSearch ? (
           <Tooltip>
@@ -160,31 +248,14 @@ export function MajordomeSidebarNav({
         ) : null}
       </div>
       {search}
-      {compact ? (
-        <SidebarMenu className="mt-1.5 flex-row items-center">
-          {icons([...DAILY_ITEMS, ...ON_ITS_OWN_ITEMS])}
-          <SidebarMenuItem>{toggle}</SidebarMenuItem>
-        </SidebarMenu>
-      ) : (
-        <>
-          <SidebarMenu className="mt-1.5">{rows(DAILY_ITEMS)}</SidebarMenu>
-          <div>
-            <div className="flex h-7 items-center justify-between ps-2">
-              <h2
-                id="majordome-nav-on-its-own"
-                className="text-xs font-medium text-sidebar-muted-foreground"
-              >
-                Automatic
-              </h2>
-              {toggle}
-            </div>
-            <SidebarMenu aria-labelledby="majordome-nav-on-its-own">
-              {rows(ON_ITS_OWN_ITEMS)}
-            </SidebarMenu>
-          </div>
-        </>
-      )}
-    </nav>
+      {isMobile ? (
+        <nav aria-label="Majordome">
+          <SidebarMenu className="mt-1.5 flex-row items-center">
+            <PageIcons layout="row" />
+          </SidebarMenu>
+        </nav>
+      ) : null}
+    </div>
   );
 }
 

@@ -1,9 +1,10 @@
 import { expect, it, vi } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 
 import { render } from "../../../test/render";
 import { SidebarProvider } from "../ui/sidebar";
 import type { AttentionCard } from "./attention.logic";
-import { MajordomeSidebarAlert, MajordomeSidebarNav } from "./MajordomeSidebarNav";
+import { MajordomePageRail, MajordomeSidebarAlert } from "./MajordomeSidebarNav";
 
 const state = vi.hoisted(() => ({ attention: null as AttentionCard | null }));
 vi.mock("./useAttention", () => ({ useAttention: () => state.attention }));
@@ -18,42 +19,64 @@ vi.mock("../../state/entities", () => ({
 
 function setup(attention: AttentionCard | null) {
   state.attention = attention;
-  // The test browser is phone-width, where the menu starts as icons.
-  localStorage.setItem("majordome:sidebar-menu-compact", "false");
+  localStorage.removeItem("majordome:sidebar-pinned-pages");
 }
 
-const navLinks = (container: HTMLElement) =>
+const rail = (
+  <SidebarProvider>
+    <MajordomePageRail footer={null} />
+  </SidebarProvider>
+);
+
+const railLinks = (container: HTMLElement) =>
   [...container.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Majordome"] a')].map(
-    (link) => [link.textContent, link.getAttribute("href")],
+    (link) => [link.getAttribute("aria-label"), link.getAttribute("href")],
   );
 
-it("lists only Majordome's own screens", async () => {
+it("keeps the pinned pages in the rail and every page under More", async () => {
   setup(null);
-  await using screen = await render(
-    <SidebarProvider>
-      <MajordomeSidebarNav />
-    </SidebarProvider>,
-  );
-  expect(navLinks(screen.container)).toEqual([
+  {
+    await using screen = await render(rail, { router: "/reminders" });
+    expect(railLinks(screen.container)).toEqual([
+      ["Today", "/"],
+      ["Notes", "/notes"],
+      ["To-dos", "/todos"],
+      ["Reading list", "/reading"],
+      ["Routines", "/routines"],
+    ]);
+    // The open page is not pinned, so More is what shows it.
+    const more = screen.getByRole("button", { name: "More" });
+    await expect.element(more).toHaveAttribute("data-active", "true");
+
+    await more.click();
+    await expect
+      .element(page.getByRole("link", { name: "What it did" }))
+      .toHaveAttribute("href", "/feed");
+    await page.getByRole("button", { name: "Pin Reminders" }).click();
+    await page.getByRole("button", { name: "Unpin Reading list" }).click();
+    await expect.element(page.getByRole("button", { name: "Pin Reading list" })).toBeVisible();
+    expect(railLinks(screen.container)).toEqual([
+      ["Today", "/"],
+      ["Notes", "/notes"],
+      ["To-dos", "/todos"],
+      ["Routines", "/routines"],
+      ["Reminders", "/reminders"],
+    ]);
+    await expect.element(more).toHaveAttribute("data-active", "false");
+    // Unpinned, the page is still one click away.
+    await expect
+      .element(page.getByRole("link", { name: "Reading list" }))
+      .toHaveAttribute("href", "/reading");
+  }
+
+  // A restart reads the same choice back.
+  await using restarted = await render(rail);
+  expect(railLinks(restarted.container)).toEqual([
     ["Today", "/"],
     ["Notes", "/notes"],
     ["To-dos", "/todos"],
-    ["Reading list", "/reading"],
     ["Routines", "/routines"],
     ["Reminders", "/reminders"],
-    ["What it did", "/feed"],
-  ]);
-
-  await screen.getByRole("button", { name: "Show the menu as icons" }).click();
-  await expect.element(screen.getByRole("link", { name: "What it did" })).toBeVisible();
-  expect(navLinks(screen.container)).toEqual([
-    ["", "/"],
-    ["", "/notes"],
-    ["", "/todos"],
-    ["", "/reading"],
-    ["", "/routines"],
-    ["", "/reminders"],
-    ["", "/feed"],
   ]);
 });
 
