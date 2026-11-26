@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.60
+
 **New**
 
 - **The message box is easier to find.** It has a thin warm line along its edge, and it lights
