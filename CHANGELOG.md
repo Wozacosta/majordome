@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.64
+
 **Changed**
 
 - **The iPhone app no longer carries T3 Code's widgets.** They showed a coding agent's activity
