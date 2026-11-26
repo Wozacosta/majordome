@@ -3585,6 +3585,7 @@ export default function ChatView(props: ChatViewProps) {
         )}
         data-chat-column-maximized-away={rightPanelMaximized ? "true" : "false"}
         data-chat-column
+        data-chat-surface
         style={
           {
             "--chat-header-height": embedded ? "0px" : "var(--workspace-topbar-height)",

@@ -83,6 +83,14 @@ test(
       ).toBeVisible({ timeout: 60_000 });
       await app.screenshot("key-on-one-computer");
 
+      // With two computers, the assistant's message box says which one answers.
+      await screen.getByRole("button", "Assistant").tap();
+      await expect(screen.getByRole("img", "Answered on", { exact: false })).toBeVisible({
+        timeout: 30_000,
+      });
+      await app.screenshot("assistant-says-where-it-answers");
+      await screen.getByRole("button", "Back to the page").tap();
+
       await screen.getByRole("button", "Add a key").tap();
       await screen.getByLabel("Name").fill("Garmin API");
       await screen.getByLabel("What it is for (optional)").fill("Read my runs");

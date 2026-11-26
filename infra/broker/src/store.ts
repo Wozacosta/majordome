@@ -1,3 +1,4 @@
+import type { InviteAdminStore } from "./admin.ts";
 import type { AccountPatch, AccountRow, AccountStore, PaidState, Source } from "./billing.ts";
 import type { AddressRow, AddressStore } from "./broker.ts";
 import type { InviteStore } from "./hosting.ts";
@@ -147,6 +148,46 @@ export function makeD1InviteStore(db: D1Database): InviteStore {
           .prepare("INSERT INTO hosted_invite_failures (client_ip, at) VALUES (?, ?)")
           .bind(clientIp, at),
       ]);
+    },
+  };
+}
+
+export function makeD1InviteAdminStore(db: D1Database): InviteAdminStore {
+  return {
+    list: async () => {
+      const { results } = await db
+        .prepare(
+          "SELECT code, note, created_at, claimed_at, app_name, removed_at FROM hosted_invites",
+        )
+        .all<{
+          readonly code: string;
+          readonly note: string | null;
+          readonly created_at: number;
+          readonly claimed_at: number | null;
+          readonly app_name: string | null;
+          readonly removed_at: number | null;
+        }>();
+      return results.map((row) => ({
+        code: row.code,
+        note: row.note,
+        createdAt: row.created_at,
+        claimedAt: row.claimed_at,
+        appName: row.app_name,
+        removedAt: row.removed_at,
+      }));
+    },
+    add: async ({ code, note, at }) => {
+      await db
+        .prepare("INSERT INTO hosted_invites (code, note, created_at) VALUES (?, ?, ?)")
+        .bind(code, note, at)
+        .run();
+    },
+    remove: async (code) => {
+      const result = await db
+        .prepare("DELETE FROM hosted_invites WHERE code = ? AND claimed_at IS NULL")
+        .bind(code)
+        .run();
+      return result.meta.changes === 1;
     },
   };
 }

@@ -38,6 +38,7 @@ import {
   BookOpenIcon,
   CheckIcon,
   ChevronRightIcon,
+  CircleCheckIcon,
   ClockIcon,
   EllipsisIcon,
   FileTextIcon,
@@ -82,7 +83,6 @@ import {
 } from "../ui/alert-dialog";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { Input } from "../ui/input";
 import {
@@ -1535,15 +1535,18 @@ function ReadingRow({
           </Button>
         </Tip>
         <ItemMenu {...actions} snoozed={snoozed} onEditing={setEditing} />
-        {/* The label is the box's tap target, wider than the box itself. */}
-        <label className="-my-1 -me-1.5 flex size-8 items-center justify-center">
-          <Checkbox
+        <Tip label={done ? "Finished. Bring it back" : "Mark as finished"}>
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
             aria-label={`Finished: ${item.title}`}
-            checked={done}
+            aria-pressed={done}
             disabled={!canChange}
-            onCheckedChange={(checked) => (checked ? onFinished() : void onUpdate({ done: false }))}
-          />
-        </label>
+            onClick={() => (done ? void onUpdate({ done: false }) : onFinished())}
+          >
+            <CircleCheckIcon className={done ? "text-success" : undefined} />
+          </Button>
+        </Tip>
       </div>
     </li>
   );

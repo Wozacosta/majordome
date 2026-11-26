@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invites | Majordome</title>
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --accent: #1f7a4d;
+        --accent-soft: #1f7a4d1f;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+          --accent: #6fd3a0;
+          --accent-soft: #6fd3a024;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 38rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      h2 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 36px 0 0;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 0.9rem;
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        flex: none;
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button.quiet {
+        background: none;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      .button.slim {
+        padding: 5px 14px;
+        font-size: 0.9rem;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      form {
+        margin-top: 28px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .field {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      input {
+        flex: 1 1 14rem;
+        min-width: 0;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+      }
+      ul {
+        list-style: none;
+        margin: 10px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li.new {
+        margin: 0 -12px;
+        padding: 14px 12px;
+        border-radius: 12px;
+        border-bottom-color: transparent;
+        background: var(--accent-soft);
+      }
+      li .who {
+        flex: 1 1 12rem;
+        min-width: 0;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      li .what {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      li .invite-link {
+        flex-basis: 100%;
+        font:
+          0.85rem ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+        user-select: all;
+      }
+      .empty {
+        padding: 14px 0;
+      }
+      details {
+        margin-top: 36px;
+      }
+      summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      .foot {
+        margin-top: 36px;
+        font-size: 0.95rem;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>Invites</h1>
+      <p class="muted" id="intro">Sign in to manage invites.</p>
+      <p class="problem" id="problem" role="alert" hidden></p>
+      <div id="sign-in"></div>
+      <div id="admin" hidden>
+        <form id="make">
+          <label for="note">Who is it for?</label>
+          <div class="field">
+            <input id="note" name="note" autocomplete="off" maxlength="120" required />
+            <button class="button" id="go" type="submit">Make an invite</button>
+          </div>
+        </form>
+        <h2>Waiting to be used</h2>
+        <ul id="unused"></ul>
+        <details id="used-box" hidden>
+          <summary id="used-title"></summary>
+          <ul id="used"></ul>
+        </details>
+      </div>
+      <p class="foot">
+        <button class="link" id="sign-out" type="button" hidden>Sign out</button>
+      </p>
+    </main>
+    <script type="module">
+      // The account service's key is public. It only signs in on majord.me and its subdomains.
+      const PUBLISHABLE_KEY = "pk_live_Y2xlcmsubWFqb3JkLm1lJA";
+      const BROKER = "https://broker.majord.link";
+      const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      // On a developer's machine only: another account service and a stand-in for the broker.
+      const query = new URLSearchParams(location.search);
+      const key = (local && query.get("key")) || PUBLISHABLE_KEY;
+      const broker = (local && query.get("broker")) || BROKER;
+
+      const $ = (id) => document.getElementById(id);
+      const showProblem = (message) => {
+        $("problem").textContent = message;
+        $("problem").hidden = message === "";
+      };
+      const element = (tag, properties = {}, children = []) => {
+        const made = Object.assign(document.createElement(tag), properties);
+        made.append(...children);
+        return made;
+      };
+      const day = (ms) =>
+        new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+      const linkFor = (code) => `${location.origin}/start?invite=${encodeURIComponent(code)}`;
+
+      /** Asks the service something as the signed-in account. Throws what it should show. */
+      async function ask(clerk, path, fields = {}) {
+        const accountToken = await clerk.session?.getToken({
+          template: "majordome",
+          skipCache: true,
+        });
+        if (!accountToken) throw new Error("Sign in again, then try once more.");
+        const response = await fetch(`${broker}/v1/admin/${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...fields, accountToken }),
+        }).catch(() => null);
+        if (response === null) {
+          throw new Error("Could not reach Majordome. Check your connection, then try again.");
+        }
+        const answer = response.status === 204 ? {} : await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(
+            answer.message || "That did not work. Try again in a few minutes.",
+          );
+          error.status = response.status;
+          throw error;
+        }
+        return answer;
+      }
+
+      /** Runs what a button asks, with the button off meanwhile and any problem shown. */
+      async function press(button, action) {
+        showProblem("");
+        button.disabled = true;
+        try {
+          await action();
+        } catch (error) {
+          showProblem(error.message);
+        }
+        button.disabled = false;
+      }
+
+      function unusedRow(clerk, invite, isNew) {
+        const copy = element("button", {
+          className: "button slim",
+          type: "button",
+          textContent: "Copy link",
+        });
+        copy.addEventListener("click", async () => {
+          await navigator.clipboard.writeText(linkFor(invite.code));
+          copy.textContent = "Copied";
+          setTimeout(() => (copy.textContent = "Copy link"), 1600);
+        });
+        const revoke = element("button", {
+          className: "button quiet slim",
+          type: "button",
+          textContent: "Take back",
+        });
+        revoke.addEventListener("click", () =>
+          press(revoke, async () => {
+            if (!confirm(`Take back the invite for ${invite.note}? Its link stops working.`)) {
+              return;
+            }
+            await ask(clerk, "invites/revoke", { code: invite.code });
+            await refresh(clerk);
+          }),
+        );
+        return element("li", { className: isNew ? "new" : "" }, [
+          element("span", { className: "who" }, [
+            invite.note ?? "No name",
+            element("span", { className: "what", textContent: `Made ${day(invite.createdAt)}` }),
+          ]),
+          copy,
+          revoke,
+          element("span", { className: "invite-link", textContent: linkFor(invite.code) }),
+        ]);
+      }
+
+      function usedRow(invite) {
+        const what = element("span", { className: "what" });
+        what.append(
+          `Used ${day(invite.claimedAt)}, `,
+          invite.removedAt !== null
+            ? "server removed"
+            : invite.url === null
+              ? invite.appName
+              : element("a", { href: invite.url, textContent: invite.appName }),
+        );
+        return element("li", {}, [
+          element("span", { className: "who" }, [invite.note ?? "No name", what]),
+        ]);
+      }
+
+      async function refresh(clerk, newCode) {
+        const { invites, servers, maxServers } = await ask(clerk, "invites");
+        const left = Math.max(0, maxServers - servers);
+        $("intro").textContent =
+          `${servers} of ${maxServers} servers ${servers === 1 ? "is" : "are"} in use. ` +
+          (left === 0
+            ? "An invite will not work until one is removed."
+            : `${left} more can be made.`);
+        const unused = invites.filter((invite) => invite.claimedAt === null);
+        const used = invites.filter((invite) => invite.claimedAt !== null);
+        $("unused").replaceChildren(
+          ...(unused.length === 0
+            ? [element("li", { className: "empty muted", textContent: "No invite is waiting." })]
+            : unused.map((invite) => unusedRow(clerk, invite, invite.code === newCode))),
+        );
+        $("used-box").hidden = used.length === 0;
+        $("used-title").textContent = `Used (${used.length})`;
+        $("used").replaceChildren(...used.map(usedRow));
+        $("admin").hidden = false;
+      }
+
+      let shown;
+      async function render(clerk) {
+        const signedIn = Boolean(clerk.user);
+        if (signedIn === shown) return;
+        shown = signedIn;
+        $("sign-out").hidden = !signedIn;
+        showProblem("");
+        if (!signedIn) {
+          $("admin").hidden = true;
+          $("intro").textContent = "Sign in to manage invites.";
+          clerk.mountSignIn($("sign-in"), {
+            forceRedirectUrl: location.href,
+            signUpForceRedirectUrl: location.href,
+          });
+          return;
+        }
+        clerk.unmountSignIn($("sign-in"));
+        $("intro").textContent = "";
+        try {
+          await refresh(clerk);
+        } catch (error) {
+          // 404 is a service with no admin set up: said the same way, so nothing is given away.
+          $("intro").textContent =
+            error.status === 403 || error.status === 404
+              ? "This account cannot manage invites."
+              : "";
+          if (error.status !== 403 && error.status !== 404) showProblem(error.message);
+        }
+      }
+
+      try {
+        const frontendApi = atob(key.split("_")[2]).replace(/\$$/, "");
+        // The account service's library, then its sign-in screens, which it ships separately.
+        const load = (name, attributes = {}) =>
+          new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = `https://${frontendApi}/npm/@clerk/${name}`;
+            script.crossOrigin = "anonymous";
+            Object.assign(script.dataset, attributes);
+            script.addEventListener("load", resolve);
+            script.addEventListener("error", reject);
+            document.head.append(script);
+          });
+        await Promise.all([
+          load("clerk-js@6/dist/clerk.browser.js", { clerkPublishableKey: key }),
+          load("ui@1/dist/ui.browser.js"),
+        ]);
+        await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+        $("sign-out").addEventListener("click", () =>
+          window.Clerk.signOut({ redirectUrl: location.href }),
+        );
+        $("make").addEventListener("submit", (event) => {
+          event.preventDefault();
+          return press($("go"), async () => {
+            const { code } = await ask(window.Clerk, "invites/create", {
+              note: $("note").value.trim(),
+            });
+            $("note").value = "";
+            await refresh(window.Clerk, code);
+          });
+        });
+        window.Clerk.addListener(() => render(window.Clerk));
+        render(window.Clerk);
+      } catch {
+        showProblem("Sign-in could not be loaded. Check your connection and reload the page.");
+      }
+    </script>
+  </body>
+</html>

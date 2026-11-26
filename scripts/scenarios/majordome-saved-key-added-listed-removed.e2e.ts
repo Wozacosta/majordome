@@ -18,7 +18,11 @@ test(
   async ({ t3, app, screen }) => {
     await forgetSavedKeys();
     await t3.project("Notes", NOTES_FOLDER);
-    await t3.open("/settings/secrets");
+    // The key icon at the foot of the sidebar opens the page.
+    await t3.open("/");
+    await expect(screen.getByRole("button", "Passwords and keys")).toBeVisible();
+    await app.screenshot("key-icon-in-sidebar");
+    await screen.getByRole("button", "Passwords and keys").tap();
     await expect(screen.getByText("No keys saved yet.")).toBeVisible();
 
     await screen.getByRole("button", "Add a key").tap();

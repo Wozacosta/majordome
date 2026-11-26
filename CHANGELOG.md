@@ -5,6 +5,41 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.59
+
+**New**
+
+- **Chats have their own background.** A chat now sits one step lighter than the pages around it,
+  so you can tell at a glance where the conversation is. The same goes for the Assistant panel
+  beside a page such as Routines. In the light theme, pages are a touch creamier so a chat's
+  white stands out.
+
+**Try this**
+
+- Open Routines with the Assistant panel beside it: the panel is lighter than the page. Then open
+  a chat and compare it with the sidebar and with what is open beside it. Try both themes.
+
+## 0.10.58
+
+**New**
+
+- **A key icon at the bottom of the sidebar opens Passwords and keys**, next to Settings and the
+  phone. The page is also in the command menu: type "keys" or "passwords".
+- **Every chat says which computer answers it.** With more than one computer, the message box
+  of a chat, the assistant panel included, shows a small icon beside the model level: a laptop
+  for this computer, a server for your own server, a cloud for a Majordome server. Hover it to
+  read "Answered on …". Each computer has its own keys, files and sign-ins, so an answer depends
+  on where it is made. With one computer, nothing shows.
+
+**Changed**
+
+- **Finishing something on your reading list is a check mark, not an empty box.** The box at the
+  end of each row looked like a way to select rows. It is now a round check mark:
+  point at it and it says "Mark as finished", and on a finished row it is green and brings the row
+  back.
+
 **Fixed**
 
 - **An answer no longer says it used "T3 Code".** Under an answer, the line naming the services
@@ -13,7 +48,11 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Click the key at the bottom left of the window.
+- Open a topic's chat and the assistant panel in Settings: hover the small icon at the bottom
+  right of the message box.
 - Ask your assistant "which keys do I have saved?": no "T3 Code" line should sit under the answer.
+- On your reading list, select the check mark at the end of a row, then **Undo**.
 
 ## 0.10.57
 

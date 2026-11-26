@@ -44,6 +44,9 @@
     // Majordome's account service and the one site allowed to ask for a server from a browser.
     "ACCOUNT_ISSUER": "https://clerk.majord.me",
     "ACCOUNT_PAGE_ORIGIN": "https://majord.me",
+    // PLACEHOLDER: the account ids (user_...) that may manage invites at majord.me/admin,
+    // comma-separated. Without it that page's routes answer 404.
+    "ADMIN_ACCOUNT_IDS": "REPLACE_WITH_ADMIN_ACCOUNT_IDS",
     // Paid servers (README, "Paid servers"). The website sells once the Stripe secrets are set.
     // PLACEHOLDER: the monthly price's id in Stripe.
     "STRIPE_PRICE_ID": "REPLACE_WITH_STRIPE_PRICE_ID",

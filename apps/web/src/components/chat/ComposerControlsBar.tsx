@@ -31,6 +31,7 @@ import {
 } from "./ComposerModelEffort";
 import type { useComposerProviderModel } from "./useComposerProviderModel";
 import { resolveComposerControlsOwnership } from "./composerControlsOwnership";
+import { AnswersOnIcon } from "../majordome/ChatPlaceIcon";
 import { ModelLevelPicker } from "../majordome/ModelLevelPicker";
 
 /**
@@ -268,6 +269,7 @@ export function ComposerControlsBar(props: {
     </ComposerControl>
   ) : (
     <>
+      {props.modelPickerHidden ? <AnswersOnIcon environmentId={environmentId} /> : null}
       {props.modelPickerHidden ? (
         <ModelLevelPicker
           environmentId={environmentId}
