@@ -9,6 +9,11 @@ The section for a version is also the text of its release on GitHub.
 
 - **A key icon at the bottom of the sidebar opens Passwords and keys**, next to Settings and the
   phone. The page is also in the command menu: type "keys" or "passwords".
+- **Every chat says which computer answers it.** With more than one computer, the message box
+  of a chat, the assistant panel included, shows a small icon beside the model level: a laptop
+  for this computer, a server for your own server, a cloud for a Majordome server. Hover it to
+  read "Answered on …". Each computer has its own keys, files and sign-ins, so an answer depends
+  on where it is made. With one computer, nothing shows.
 
 **Fixed**
 
@@ -19,6 +24,8 @@ The section for a version is also the text of its release on GitHub.
 **Try this**
 
 - Click the key at the bottom left of the window.
+- Open a topic's chat and the assistant panel in Settings: hover the small icon at the bottom
+  right of the message box.
 - Ask your assistant "which keys do I have saved?": no "T3 Code" line should sit under the answer.
 
 ## 0.10.57
