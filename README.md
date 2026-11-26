@@ -52,7 +52,8 @@ sensitive. What it learns goes into a note you can open, edit or delete.
 
 No lock-in.
 
-- **Changed AI plan?** Sign in to the other one. Claude or ChatGPT, the notes are the same.
+- **Changed AI plan?** Sign in to another. Claude, ChatGPT, Gemini (through Google's Antigravity),
+  Cursor, Grok, Copilot and more: the notes are the same.
 - **Don't want our server?** Bring your notes back to your computer, or
   [rent your own](docs/user/always-on-server.md) for about €5 a month.
 - **Done with the app?** The notes are plain markdown: open the folder in Obsidian or any editor.
