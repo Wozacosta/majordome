@@ -500,6 +500,29 @@ Checked on 2026-11-25 by two research agents, from the sources named; not re-rea
 Saving a link to the reading list from a phone waits for the iPhone app's share sheet. See the
 M8 note in `docs/decisions.md`.
 
+## Sharing a chat with a guest
+
+Not asked for yet, noted on 2026-11-26 when the switch was hidden from Labs. T3 Code lets you
+hand someone a link to one chat: they watch it live in a browser and send messages you approve.
+The switch is hidden in Majordome (`guest-links` in `MAJORDOME_HIDDEN_SETTING_IDS`) because the
+link only works through T3 Connect.
+
+It looks doable without T3 Connect. Everything except the address is already in the server and
+does not depend on T3: the link tokens, the approval of guest messages and the guest's page
+(`apps/server/src/guest/`). The one tie is in `GuestShareService.ts`, which asks T3 Connect for
+the public hostname the link is made for and refuses when there is none. Majordome has public
+hostnames of its own: the `majord.link` phone address, and a hosted server's address.
+
+To do:
+
+- Give `GuestShareService` the Majordome address instead of T3 Connect's, and close links when
+  that address is turned off, as it does today when Connect is unlinked.
+- Decide what a guest may reach on that address. Today the phone address serves the whole app
+  behind pairing; a guest link is a second, unpaired way in, so read `SECURITY.md` and
+  `docs/internals/04_environment-auth.md` first.
+- Reword the switch and the "Share with guest" entry in a chat, which name T3 Connect.
+- A computer reached only through Tailscale has no public address, so no guest link.
+
 ## Reading list, from the laterlist comparison
 
 Not asked for yet: a calendar of finished items, images in notes, playlist import, an "action"

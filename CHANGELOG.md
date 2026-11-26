@@ -23,6 +23,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Fixed**
 
+- **Labs no longer offers "Share a chat with a guest".** It needed T3 Connect, which Majordome
+  does not have, so the switch could never work.
 - **On the phone, renaming a computer saves on the first tap.** Save lights up only when you
   changed something.
 - **On the phone, a computer that refuses or doesn't answer says why in plain words,** and what
@@ -42,6 +44,7 @@ The section for a version is also the text of its release on GitHub.
   box.
 - Go to Settings, Computers, Add a computer, tap Address and check the Connect button stays
   above the keyboard. Then open a computer's details, change its name and tap Save once.
+- Open Settings, then Labs: two switches are left, Linked computers and Suggest my next message.
 
 ## 0.10.59
 

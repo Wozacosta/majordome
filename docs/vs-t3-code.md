@@ -130,6 +130,8 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
 - The assistant is not told about pull requests or issues.
 - About 27 settings that only matter when writing code are hidden, and so is the Usage page.
 - No T3 account, T3 Connect, or T3's phone apps. Adding a computer over SSH is not offered.
+- Sharing a chat with a guest is not offered: T3 Code's guest links travel through T3 Connect.
+  A Majordome version is noted in [whatsnext.md](whatsnext.md#sharing-a-chat-with-a-guest).
 - An iPhone app of Majordome's own is being built from upstream's (not in the App Store yet):
   Today, one list of topics and chats, plain words in a conversation, offline capture, and a
   Majordome server bought through Apple from the phone. It has its own links, and a
