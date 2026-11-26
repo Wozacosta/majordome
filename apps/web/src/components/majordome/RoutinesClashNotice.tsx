@@ -51,9 +51,8 @@ export function RoutinesClashNotice() {
     <div key={clash.key} className="mb-4 flex flex-col gap-2">
       <StatusLine tone="warning" className={READING_MEASURE_CLASS}>
         Your routines for {clash.title} run on{" "}
-        {clash.runners.map((runner) => machineInSentence(runner.name)).join(" and ")} at the same
-        time, so each routine runs more than once. Choose the one that should run them; the other
-        stops.
+        {clash.runners.map((runner) => machineInSentence(runner.name)).join(" and ")}, so each runs
+        twice. Keep one:
       </StatusLine>
       <div className="flex flex-wrap gap-2 ps-4">
         {clash.runners.map((runner) => (

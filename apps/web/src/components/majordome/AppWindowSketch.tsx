@@ -108,7 +108,6 @@ export function AppWindowSketch() {
                 Browser
               </Label>
             </div>
-            <p className="text-2xs text-muted-foreground">A page opened beside the chat</p>
             <Lines widths={["90%", "75%", "85%", "50%"]} />
           </div>
         </div>

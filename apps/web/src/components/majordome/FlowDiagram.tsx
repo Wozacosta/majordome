@@ -61,7 +61,7 @@ export function FlowDiagram({
       style={{
         height: layout.height,
         gridTemplateColumns: columns
-          .map((_, index) => (index === 0 ? "minmax(0,5fr)" : "minmax(0,2fr) minmax(0,5fr)"))
+          .map((_, index) => (index === 0 ? "minmax(0,6fr)" : "minmax(1.5rem,1fr) minmax(0,6fr)"))
           .join(" "),
       }}
     >
@@ -109,7 +109,10 @@ export function FlowDiagram({
                 <>
                   <node.icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{node.title}</p>
+                    {/* A name wraps onto more lines before it is ever cut short. */}
+                    <p className="line-clamp-3 text-sm leading-tight font-medium text-foreground">
+                      {node.title}
+                    </p>
                     {node.detail ? (
                       <p className="truncate text-xs text-muted-foreground">{node.detail}</p>
                     ) : null}

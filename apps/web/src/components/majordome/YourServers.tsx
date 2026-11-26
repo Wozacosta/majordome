@@ -143,9 +143,7 @@ export function YourServers({
       }
     >
       {servers.length === 0 ? (
-        <Muted className={READING_MEASURE_CLASS}>
-          None yet. This app is connected to no other computer.
-        </Muted>
+        <Muted className={READING_MEASURE_CLASS}>None yet.</Muted>
       ) : (
         <>
           <RoutinesClashNotice />
@@ -222,8 +220,7 @@ export function YourServers({
               Remove {removing === null ? "it" : machineInSentence(removing.name)} from this app?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This app forgets how to reach it, and its chats leave this app. The server itself
-              keeps running, with everything that is on it. You can add it again later.
+              Its chats leave this app. The server keeps running.
             </AlertDialogDescription>
             {removeError === null ? null : <StatusLine tone="error">{removeError}</StatusLine>}
           </AlertDialogHeader>

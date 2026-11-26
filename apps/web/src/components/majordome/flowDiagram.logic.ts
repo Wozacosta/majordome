@@ -1,4 +1,4 @@
-export const FLOW_NODE_HEIGHT = 56;
+export const FLOW_NODE_HEIGHT = 64;
 export const FLOW_NODE_GAP = 12;
 
 /**

@@ -17,6 +17,7 @@ import {
 } from "../ui/alert-dialog";
 import { isHostedServer, machineInSentence } from "../majordome/brains.logic";
 import { ComputerSwitch, useShownComputer } from "../majordome/ComputerSwitch";
+import { SavedKeysDrawing } from "../majordome/HowItWorksDrawings";
 import { SavedKeysSection } from "../majordome/SavedKeysSection";
 import { useMachineNames } from "../majordome/useMachineNames";
 import { useAssistantEnvironmentId, useMajordomeVaults } from "../majordome/useMajordomeVaults";
@@ -78,6 +79,7 @@ export function SecretsSettingsPanel() {
   }
   return (
     <SettingsPageContainer>
+      {isMajordome ? <SavedKeysDrawing /> : null}
       <SavedKeysSection
         computers={machines.map((machine) => {
           const name = machineOf(machine.environmentId);

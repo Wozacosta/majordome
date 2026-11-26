@@ -38,7 +38,7 @@ describe("serversMap", () => {
       phone: { environmentId: hosted, computerName: "Majordome server", deviceName: "iPhone" },
     });
     expect(map.devices.map((node) => [node.title, node.detail])).toEqual([
-      ["This Mac", "Where you are now"],
+      ["This Mac", null],
       ["iPhone", "Opens your Majordome server"],
     ]);
     expect(map.servers.map((node) => [node.title, node.kind, node.detail, node.main])).toEqual([
@@ -64,7 +64,7 @@ describe("serversMap", () => {
       phone: { environmentId: mac, computerName: "This Mac", deviceName: "iPhone" },
     });
     expect(onMac.devices.map((node) => [node.detail, node.main])).toEqual([
-      ["Where you are now", true],
+      [null, true],
       ["Opens this Mac", false],
     ]);
     expect(onMac.lines).toHaveLength(1);

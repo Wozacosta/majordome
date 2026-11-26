@@ -5,7 +5,28 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Passwords and keys and Private documents each start with a drawing.** Three boxes say how it
+  works: you save a key, it is kept on your computers, the assistant uses it without seeing it;
+  and for a private document, the assistant asks, you say yes each time, it opens for that task
+  only.
+
+**Fixed**
+
+- **Names in the drawings are no longer cut off.** In a narrow window "The assis…" and
+  "Connecti…" were unreadable. A name now wraps onto more lines, and the boxes are a little
+  taller and wider.
+- **Fewer words in Settings.** The overview pages have one line of introduction and no headings
+  over the drawing and the list; the boxes show names only, and the second "Open" link is gone.
+  The line under the window sketch and the one explaining "Main" are removed. A server that is
+  fully set up no longer has a "Setup" section. The warning about routines running twice, the
+  empty list, and the "Remove from this app" question are shorter.
+
+**Try this**
+
+- Open Settings, Files & credentials, then each of its two pages.
+- Open Settings, AI with the Assistant panel open beside it, so the page is narrow.
 
 ## 0.10.67
 

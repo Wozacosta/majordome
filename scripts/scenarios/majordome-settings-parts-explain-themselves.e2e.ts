@@ -22,13 +22,13 @@ test(
     await app.screenshot("settings-ai-explained");
 
     // A box of the drawing that stands for a page opens it.
-    await screen.getByRole("link", "Connections Mail, calendar", { exact: false }).tap();
+    await screen.getByRole("link", "Connections", { exact: true }).first().tap();
     await expect(screen.getByRole("heading", "Connections", { level: 1 })).toBeVisible();
     await screen.getByRole("button", "AI", { exact: true }).tap();
     await expect(screen.getByRole("heading", "AI", { level: 1 })).toBeVisible();
 
     // The page lists the part's pages, and each opens.
-    await screen.getByRole("link", "Open Skills").tap();
+    await screen.getByRole("link", "Skills", { exact: true }).last().tap();
     await expect(screen.getByRole("heading", "Skills", { level: 1 })).toBeVisible();
 
     await screen.getByRole("button", "You and your devices", { exact: true }).tap();

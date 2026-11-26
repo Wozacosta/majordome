@@ -1,3 +1,4 @@
+import { PrivateDocumentsDrawing } from "./HowItWorksDrawings";
 import { useAtomValue } from "@effect/atom-react";
 import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
@@ -72,8 +73,11 @@ export function PrivateDocumentsPage() {
     <MajordomeSettingsPage
       outline={false}
       searchId="majordome-private-documents"
-      intro="For a passport scan, a tax return, a contract: files your assistant can use only after you say yes, each time. They are kept encrypted on one computer, outside your notes and their backups."
+      intro="For a passport scan, a tax return, a contract. Kept encrypted on one computer, outside your notes and their backups."
     >
+      <Section>
+        <PrivateDocumentsDrawing />
+      </Section>
       {machines.length === 0 ? (
         <Section>
           <Skeleton className="h-40 w-full" />

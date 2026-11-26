@@ -94,7 +94,7 @@ export function serverLines(row: ServerRow): ReadonlyArray<ServerLine> {
   if (row.signedIn === false) {
     lines.push({
       tone: "warning",
-      text: "Not signed in to an AI account, so the assistant cannot answer there.",
+      text: "Not signed in to an AI account.",
       signIn: true,
     });
   }

@@ -5,7 +5,6 @@ import { CloudIcon, LaptopIcon, ServerIcon, SmartphoneIcon } from "lucide-react"
 
 import { majordomeEnvironment } from "../../state/majordome";
 import { FlowDiagram } from "./FlowDiagram";
-import { Muted } from "./paper";
 import { phoneWithNotifications } from "./phone.logic";
 import type { ServerRow } from "./servers.logic";
 import {
@@ -112,7 +111,6 @@ function Drawing({
       ? { to: "/settings/always-on" as const }
       : {}),
   });
-  const hasMain = [...map.devices, ...map.servers].some((item) => item.main);
   return (
     <div className="mb-4 hidden sm:block">
       <FlowDiagram
@@ -120,11 +118,6 @@ function Drawing({
         lines={map.lines}
         summary={map.summary}
       />
-      {hasMain ? (
-        <Muted className="mt-2 text-xs">
-          Main is where the assistant answers and your chats are kept.
-        </Muted>
-      ) : null}
     </div>
   );
 }

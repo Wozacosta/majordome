@@ -82,7 +82,7 @@ export function serversMap(input: {
     detail:
       thisDevice.environmentId === null && opened !== undefined
         ? `Opens ${machineInSentence(opened.name)}`
-        : "Where you are now",
+        : null,
     main: thisDevice.environmentId !== null && thisDevice.environmentId === input.mainId,
     faint: false,
   });
@@ -121,7 +121,7 @@ export function serversMap(input: {
     `${serverNodes.length === 1 ? "One server" : `${serverNodes.length} servers`}: ${serverNodes
       .map((node) => node.title)
       .join(", ")}.`,
-    ...devices.map((node) => `${node.title}: ${node.detail}.`),
+    ...devices.map((node) => (node.detail === null ? null : `${node.title}: ${node.detail}.`)),
     main === undefined ? null : `${main.title} is the main one.`,
   ];
   return {

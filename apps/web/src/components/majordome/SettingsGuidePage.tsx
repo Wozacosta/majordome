@@ -28,67 +28,54 @@ import { useServers } from "./YourServers";
 
 interface Guide {
   readonly intro: string;
-  /** The drawing's own heading. */
-  readonly drawing: string;
   /** What each page of the part is for, in a line. A page without one is listed by name alone. */
   readonly pages: Partial<Record<SettingsPath, string>>;
 }
 
 const GUIDES: Record<SettingsGuideTopic, Guide> = {
   app: {
-    intro:
-      "How Majordome looks and behaves on this device: its language and colours, how you write and speak to it, and the pages it opens beside a chat. These choices stay on this device.",
-    drawing: "Where each setting acts",
+    intro: "How Majordome looks and behaves on this device.",
     pages: {
-      "/settings/general":
-        "Language, what opens when the app starts, and how it runs in the background.",
-      "/settings/appearance": "Light or dark, the colours and the size of the text.",
-      "/settings/chat": "How the message box behaves, and what Enter does.",
-      "/settings/voice": "Speaking to Majordome instead of typing, and having answers read out.",
-      "/settings/browser": "The web pages the assistant opens beside a chat.",
-      "/settings/keybindings": "The keys that open, search and move around the app.",
+      "/settings/general": "Language, start-up, running in the background.",
+      "/settings/appearance": "Light or dark, colours, text size.",
+      "/settings/chat": "The message box, and what Enter does.",
+      "/settings/voice": "Speaking instead of typing; answers read out.",
+      "/settings/browser": "Web pages opened beside a chat.",
+      "/settings/keybindings": "The keys that drive the app.",
     },
   },
   notes: {
-    intro:
-      "Your notes are ordinary files in a folder you choose. The assistant reads them and writes to them, and nothing else holds your notes. A backup keeps a second copy somewhere safe.",
-    drawing: "Where your notes are",
+    intro: "Your notes are ordinary files in a folder you choose.",
     pages: {
-      "/settings/projects": "Which folders Majordome keeps your notes in, and what is in each.",
-      "/settings/backup": "A second, encrypted copy of your notes, and how to get them back.",
+      "/settings/projects": "The folders your notes are in.",
+      "/settings/backup": "An encrypted second copy, and getting it back.",
     },
   },
   ai: {
-    intro:
-      "The assistant is three things put together: an AI account that does the thinking, connections to the services you already use, and skills that tell it how you like things done.",
-    drawing: "What the assistant is made of",
+    intro: "What the assistant thinks with, and what it may use.",
     pages: {
-      "/settings/providers": "The AI that answers, signed in with your own plan.",
-      "/settings/connectors": "Your mail, calendar and other services the assistant may use.",
-      "/settings/skills": "Step-by-step ways of doing things that the assistant follows.",
+      "/settings/providers": "The AI that answers, on your own plan.",
+      "/settings/connectors": "Mail, calendar and other services it may use.",
+      "/settings/skills": "How-tos the assistant follows.",
     },
   },
   devices: {
-    intro:
-      "Majordome runs on this computer, and can also run on a server that never sleeps. Your phone opens whichever one is the main one. An account, if you want one, lets a new device find them without a code.",
-    drawing: "What opens what",
+    intro: "Where Majordome runs, and what opens it.",
     pages: {
-      "/settings/phone": "Open Majordome from your phone, and choose what it tells you about.",
-      "/settings/always-on":
-        "The computers that stay on for you, what is on each, and how to get one.",
-      "/settings/account": "Sign in so a new phone or computer finds your servers by itself.",
+      "/settings/phone": "Majordome on your phone, and what it tells you.",
+      "/settings/always-on": "Computers that stay on for you.",
+      "/settings/account": "Lets a new device find your servers.",
     },
   },
 };
 
-/** A box of a drawing. One that stands for a settings page opens it. */
-const node = (
-  id: string,
-  icon: FlowNode["icon"],
-  title: string,
-  detail: string,
-  to?: SettingsPath,
-): FlowNode => ({ id, icon, title, detail, ...(to ? { to } : {}) });
+/** A box of a drawing, by name alone. One that stands for a settings page opens it. */
+const node = (id: string, icon: FlowNode["icon"], title: string, to?: SettingsPath): FlowNode => ({
+  id,
+  icon,
+  title,
+  ...(to ? { to } : {}),
+});
 
 const DRAWINGS: Record<
   Exclude<SettingsGuideTopic, "app" | "devices">,
@@ -100,31 +87,11 @@ const DRAWINGS: Record<
 > = {
   notes: {
     columns: [
-      [node("you", UserRoundIcon, "You and the assistant", "Read and write notes")],
+      [node("you", UserRoundIcon, "You and the assistant")],
+      [node("folder", FolderOpenIcon, "Notes folders", "/settings/projects")],
       [
-        node(
-          "folder",
-          FolderOpenIcon,
-          "Notes folders",
-          "Plain files on this computer",
-          "/settings/projects",
-        ),
-      ],
-      [
-        node(
-          "backup",
-          CloudUploadIcon,
-          "Back up my brain",
-          "An encrypted second copy",
-          "/settings/backup",
-        ),
-        node(
-          "servers",
-          ServerIcon,
-          "Your servers",
-          "A copy that follows this one",
-          "/settings/always-on",
-        ),
+        node("backup", CloudUploadIcon, "Back up my brain", "/settings/backup"),
+        node("servers", ServerIcon, "Your servers", "/settings/always-on"),
       ],
     ],
     lines: [
@@ -133,22 +100,16 @@ const DRAWINGS: Record<
       { from: "folder", to: "servers" },
     ],
     summary:
-      "You and the assistant read and write notes in your notes folders, plain files on this computer. From there a backup keeps an encrypted second copy, and your servers keep a copy that follows this one.",
+      "You and the assistant read and write notes in your notes folders. From there a backup keeps an encrypted second copy, and your servers keep a copy that follows this one.",
   },
   ai: {
     columns: [
-      [node("you", UserRoundIcon, "You", "Ask, or a routine runs")],
-      [node("assistant", ConciergeBellIcon, "The assistant", "Reads your notes, then acts")],
+      [node("you", UserRoundIcon, "You")],
+      [node("assistant", ConciergeBellIcon, "The assistant")],
       [
-        node("account", BotIcon, "AI accounts", "Does the thinking", "/settings/providers"),
-        node(
-          "connections",
-          PlugIcon,
-          "Connections",
-          "Mail, calendar, other services",
-          "/settings/connectors",
-        ),
-        node("skills", GraduationCapIcon, "Skills", "How you like things done", "/settings/skills"),
+        node("account", BotIcon, "AI accounts", "/settings/providers"),
+        node("connections", PlugIcon, "Connections", "/settings/connectors"),
+        node("skills", GraduationCapIcon, "Skills", "/settings/skills"),
       ],
     ],
     lines: [
@@ -158,7 +119,7 @@ const DRAWINGS: Record<
       { from: "assistant", to: "skills" },
     ],
     summary:
-      "You ask the assistant, or a routine runs. The assistant reads your notes and uses three things: an AI account that does the thinking, connections to your mail, calendar and other services, and skills that say how you like things done.",
+      "You ask the assistant. It uses three things: an AI account that does the thinking, connections to your mail, calendar and other services, and skills that say how you like things done.",
   },
 };
 
@@ -189,8 +150,8 @@ export function SettingsGuidePage({ topic }: { readonly topic: SettingsGuideTopi
   return (
     <SettingsPageContainer>
       <PageHeader title={m(group.heading)} intro={guide.intro} />
-      <Section label={guide.drawing}>{drawing}</Section>
-      <Section label="In this part">
+      <Section>{drawing}</Section>
+      <Section>
         <EntryList>
           {group.paths.map((to) => (
             <Entry
@@ -201,15 +162,6 @@ export function SettingsGuidePage({ topic }: { readonly topic: SettingsGuideTopi
                 </Link>
               }
               meta={guide.pages[to]}
-              actions={
-                <Link
-                  to={to}
-                  aria-label={`Open ${m(SETTINGS_NAV_LABELS[to])}`}
-                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                >
-                  Open
-                </Link>
-              }
             />
           ))}
         </EntryList>

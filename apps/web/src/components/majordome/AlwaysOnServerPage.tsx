@@ -137,7 +137,7 @@ const HOSTED_INTRO: Record<ServerMoveView, string> = {
 
 /** With servers already there and none set up from here, the page first says what they are. */
 const SERVERS_INTRO =
-  "A server is a computer that never sleeps: it keeps a copy of your notes, runs your routines on time and answers your phone. These are the ones this app is connected to. Below, Majordome can host one for you, or you can rent your own.";
+  "Computers that never sleep: they keep your notes, run your routines and answer your phone.";
 
 /**
  * Every server this app is connected to, and the way to get one: let Majordome host it, rent one
@@ -923,21 +923,8 @@ function ReadyPanel({
           {hosted ? null : <Muted className="mt-1">{serverSummary(move)}</Muted>}
         </Section>
       )}
-      {/* Setting up is a job with an end: once it is over, one line says so. */}
-      {next === "done" ? (
-        <Section label="Setup">
-          <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
-            Finished: {named ?? "your server"} is in this app, signed in to your AI, and runs your
-            routines.
-          </StatusLine>
-          <Muted className={`mt-1 ${READING_MEASURE_CLASS}`}>
-            Your phone can reach it from anywhere, with nothing to install on it.{" "}
-            <Link to="/settings/phone" className="underline underline-offset-2">
-              Set up your phone
-            </Link>
-          </Muted>
-        </Section>
-      ) : (
+      {/* Setting up is a job with an end: once it is over, the list above says all there is. */}
+      {next === "done" ? null : (
         <Section label={`Finish setting up ${named ?? "your server"}`}>
           <Steps>
             <Step title="Add it to this app">
