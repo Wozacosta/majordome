@@ -52,6 +52,7 @@ import { PHONE_SHORTCUT_LABEL } from "~/components/majordome/phone.logic";
 import { isMajordome } from "~/env";
 import { hasAccountPublicConfig } from "../../cloud/publicConfig";
 import { MajordomeSidebarAlert } from "../majordome/MajordomeSidebarNav";
+import { HelpMenu } from "../majordome/HelpMenu";
 import { MajordomeCloche } from "~/components/MajordomeCloche";
 import { observeResize } from "~/lib/observeResize";
 
@@ -274,6 +275,7 @@ export function SidebarChromeRailItems() {
         onClick={() => void navigate({ to: "/settings/secrets" })}
         tooltipSide="right"
       />
+      <HelpMenu side="right" />
       <SidebarUtilityItem
         icon={<SettingsIcon />}
         label={gt("Settings")}
@@ -364,6 +366,7 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={() => void navigate({ to: "/settings/secrets" })}
             />
           ) : null}
+          {isMajordome ? <HelpMenu side="top" /> : null}
           {isMajordome && hasAccountPublicConfig() ? (
             <Suspense fallback={null}>
               <AccountSidebarItem />

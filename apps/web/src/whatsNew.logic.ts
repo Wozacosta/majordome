@@ -59,3 +59,15 @@ export function splitWhatsNewInline(text: string): ReadonlyArray<WhatsNewInline>
 export function isFirstLaunchAfterUpdate(lastSeenVersion: string | null, version: string) {
   return lastSeenVersion !== null && lastSeenVersion !== version;
 }
+
+/**
+ * The version whose notes were last opened, as it stands when the app starts on `version`. A first
+ * launch has read nothing and has nothing to catch up on, so it counts as having seen its own.
+ */
+export function notesSeenAtLaunch(
+  notesSeenVersion: string | null,
+  lastLaunchedVersion: string | null,
+  version: string,
+) {
+  return notesSeenVersion ?? lastLaunchedVersion ?? version;
+}

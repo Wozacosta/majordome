@@ -387,6 +387,7 @@ export default defineConfig(({ command }) => {
       "import.meta.env.APP_VERSION": JSON.stringify(configuredAppVersion),
       "import.meta.env.MAJORDOME_WHATS_NEW_VERSION": JSON.stringify(whatsNew?.version ?? ""),
       "import.meta.env.MAJORDOME_WHATS_NEW_NOTES": JSON.stringify(whatsNew?.notes ?? ""),
+      "import.meta.env.MAJORDOME_WHATS_NEW_EARLIER": JSON.stringify(whatsNew?.earlier ?? []),
     },
     resolve: {
       tsconfigPaths: true,

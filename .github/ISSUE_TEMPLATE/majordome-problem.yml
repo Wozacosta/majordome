@@ -1,0 +1,37 @@
+name: Report a problem
+description: Something in Majordome did not work as it should.
+labels:
+  - bug
+body:
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you did, and what Majordome did. Leave out anything private from your notes or chats.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Filled in when you come from the app. Otherwise it is in Settings, under About.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Where
+      description: The desktop app or a browser, and on what kind of device.
+      placeholder: Desktop app on macOS
+
+  - type: upload
+    id: attachments
+    attributes:
+      label: Screenshots
+    validations:
+      required: false

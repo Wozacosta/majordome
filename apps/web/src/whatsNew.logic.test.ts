@@ -2,6 +2,7 @@ import { expect, it } from "vite-plus/test";
 
 import {
   isFirstLaunchAfterUpdate,
+  notesSeenAtLaunch,
   parseWhatsNewNotes,
   splitWhatsNewInline,
 } from "./whatsNew.logic";
@@ -40,4 +41,12 @@ it("announces an update once, and never a first launch", () => {
   expect(isFirstLaunchAfterUpdate(null, "0.10.2")).toBe(false);
   expect(isFirstLaunchAfterUpdate("0.10.1", "0.10.2")).toBe(true);
   expect(isFirstLaunchAfterUpdate("0.10.2", "0.10.2")).toBe(false);
+});
+
+it("counts notes as unread after an update until they are opened, never on a first launch", () => {
+  expect(notesSeenAtLaunch(null, null, "0.10.2")).toBe("0.10.2");
+  // Updated from a version that did not record which notes were read.
+  expect(notesSeenAtLaunch(null, "0.10.1", "0.10.2")).toBe("0.10.1");
+  expect(notesSeenAtLaunch("0.10.1", "0.10.2", "0.10.2")).toBe("0.10.1");
+  expect(notesSeenAtLaunch("0.10.2", "0.10.2", "0.10.2")).toBe("0.10.2");
 });

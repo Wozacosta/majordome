@@ -18,6 +18,10 @@ interface ImportMetaEnv {
   readonly APP_VERSION: string;
   readonly MAJORDOME_WHATS_NEW_VERSION: string;
   readonly MAJORDOME_WHATS_NEW_NOTES: string;
+  readonly MAJORDOME_WHATS_NEW_EARLIER: ReadonlyArray<{
+    readonly version: string;
+    readonly notes: string;
+  }>;
 }
 
 interface ImportMeta {

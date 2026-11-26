@@ -149,8 +149,11 @@ The landing page and the README show a short version of this list.
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
 - **What's new, inside the app.** After an update, the app offers that version's notes: what
-  changed and what to try. They stay in Settings, About. T3 Code shows notes only before you
-  update.
+  to try first, then what changed, with the versions before folded underneath. They stay in
+  Settings, About. T3 Code shows notes only before you update.
+- **A "?" for help.** At the foot of the icons: What's new (with a dot until you have read the
+  notes of an update), the guides, and Report a problem, which fills in your version and what you
+  run the app on and nothing else.
 - **An update button that says "Update".** A waiting version shows as a tinted, labelled button
   at the foot of the chat list. T3 Code shows a small icon.
 

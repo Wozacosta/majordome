@@ -13,6 +13,17 @@ The section for a version is also the text of its release on GitHub.
   text. Skills waiting for your yes stay on top. One you stopped using now sits under **Off** with
   **Use again**, apart from the ones your assistant just wrote. Skills is also under the three
   dots, where you can pin it.
+- **A "?" at the foot of the icons.** It opens a short menu: **What's new**, **Guides** and
+  **Report a problem**. After an update it carries a blue dot until you have opened What's new. On
+  a phone it is beside Settings at the foot of the chat list, and all three are also in the
+  command palette.
+- **Report a problem.** It opens a new report on GitHub with your version and what you run the app
+  on already filled in. Nothing from your notes or chats is sent.
+
+**Changed**
+
+- **What's new puts "Try this" first.** The things worth trying are in a box at the top. Below the
+  notes, the five versions before are folded, one click each, and **Full changelog** has the rest.
 
 **Fixed**
 
@@ -23,6 +34,7 @@ The section for a version is also the text of its release on GitHub.
 
 - Open **Skills** from the three dots, type a word in **Search skills**, then click a skill to
   read its steps.
+- Click the **?** above Settings, then **What's new**, and open one of the earlier versions.
 - Open Settings and look at **Search** above the list of pages.
 
 ## 0.10.76

@@ -67,6 +67,7 @@ import {
   BookOpenIcon,
   LibraryIcon,
   BugIcon,
+  GiftIcon,
   ChartNoAxesColumnIcon,
   CalendarClockIcon,
   ListTodoIcon,
@@ -117,7 +118,9 @@ import { useAtomValue } from "@effect/atom-react";
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
 import { isMajordome } from "../env";
+import { openGuides, reportProblem } from "./majordome/HelpMenu";
 import { setTopicSearchOpen } from "./majordome/topicSearchStore";
+import { openWhatsNew, WHATS_NEW_VERSION } from "./WhatsNew";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useOpenPanelPullRequestUrl } from "../hooks/useOpenPanelPullRequestUrl";
 import { copyThreadReference } from "../lib/copyThreadReference";
@@ -1938,6 +1941,32 @@ function OpenCommandPaletteDialog(props: {
       run: async () => {
         await navigate({ to: "/settings/backup" });
       },
+    });
+    if (WHATS_NEW_VERSION !== null) {
+      actionItems.push({
+        kind: "action",
+        value: "action:whats-new",
+        searchTerms: ["what's new", "whats new", "changelog", "release notes", "update", "version"],
+        title: gt("What's new"),
+        icon: <GiftIcon className={ITEM_ICON_CLASS} />,
+        run: async () => openWhatsNew(),
+      });
+    }
+    actionItems.push({
+      kind: "action",
+      value: "action:guides",
+      searchTerms: ["guides", "help", "docs", "documentation", "how to", "manual"],
+      title: gt("Guides"),
+      icon: <BookOpenIcon className={ITEM_ICON_CLASS} />,
+      run: async () => openGuides(),
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:report-problem",
+      searchTerms: ["report a problem", "bug", "issue", "broken", "feedback", "help", "support"],
+      title: gt("Report a problem"),
+      icon: <BugIcon className={ITEM_ICON_CLASS} />,
+      run: async () => reportProblem(),
     });
     actionItems.push({
       kind: "action",
