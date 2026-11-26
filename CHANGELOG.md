@@ -39,11 +39,10 @@ The section for a version is also the text of its release on GitHub.
 
 **Fixed**
 
-- **On the phone, signing out also disconnects the account's computers.** A phone used to
-  stay connected to a computer after you signed out, so the first account's notes and chats
-  were still there, even after signing in as someone else. **Sign out** now disconnects the
-  computers of that account from the phone. Nothing is deleted on them, and computers you
-  added with a code that are not in the account stay.
+- **On the phone, signing out disconnects every computer.** A phone used to stay connected
+  to its computers after you signed out, so the notes and chats were still there, even after
+  signing in as someone else. **Sign out** now leaves a clean phone: every computer is
+  disconnected, whichever way it was added. Nothing is deleted on the computers.
 - **On the phone, a removed computer's notes no longer stay on screen.** The phone keeps a copy
   of today's note and your topics so Today opens with no connection. That copy was kept after
   the computer was removed, in Settings or by signing out, so its topics were still listed. It
@@ -54,8 +53,8 @@ The section for a version is also the text of its release on GitHub.
 - Look at a page with a warning, such as Settings, Your account when your phone cannot reach
   this Mac: the amber dot stands apart from the blue button beside it. Then switch between
   light and dark in Settings, Appearance.
-- On the phone, open **Settings > Your account** and press **Sign out**: Today and Chats no
-  longer show that account's computers. Sign in again and press **Connect** to bring one back.
+- On the phone, open **Settings > Your account** and press **Sign out**: Today and Chats are
+  empty. Sign in again and press **Connect** to bring a computer back.
 
 ## 0.10.60
 

@@ -76,20 +76,6 @@ export const MAJORDOME_ACCOUNT = {
 } as const;
 
 /**
- * The account's computers this phone is connected to. Signing out removes them: a connection is
- * the phone's own and outlives the sign-in, so their notes would stay on screen for whoever
- * signs in next. Computers paired by code and not in the account are not listed.
- */
-export function accountComputersOnThisPhone(
-  servers: ReadonlyArray<{ readonly environmentId: string }>,
-  connections: Readonly<Record<string, unknown>>,
-): ReadonlyArray<string> {
-  return servers
-    .map((server) => server.environmentId)
-    .filter((environmentId) => environmentId in connections);
-}
-
-/**
  * Why connecting through the account failed. The account already holds the address, so there is
  * none for the owner to check.
  */

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-  accountComputersOnThisPhone,
-  accountConnectErrorForOwner,
-  connectErrorForOwner,
-} from "./connectWording";
+import { accountConnectErrorForOwner, connectErrorForOwner } from "./connectWording";
 
 describe("connectErrorForOwner", () => {
   it.each([
@@ -42,26 +38,5 @@ describe("accountConnectErrorForOwner", () => {
     const said = accountConnectErrorForOwner(message, "Studio");
     expect(said).toMatch(expected);
     expect(said).not.toMatch(/Show the code|the address is the one/);
-  });
-});
-
-describe("accountComputersOnThisPhone", () => {
-  const mac = { environmentId: "mac", name: "Samy's Mac" };
-  const server = { environmentId: "server", name: "Majordome server" };
-
-  it("is empty when this phone is connected to none of the account's computers", () => {
-    expect(accountComputersOnThisPhone([mac], {})).toEqual([]);
-    expect(accountComputersOnThisPhone([], { scanned: {} })).toEqual([]);
-  });
-
-  it("leaves out a computer paired by code that is not in the account", () => {
-    expect(accountComputersOnThisPhone([mac, server], { mac: {}, scanned: {} })).toEqual(["mac"]);
-  });
-
-  it("lists every computer of the account this phone is connected to", () => {
-    expect(accountComputersOnThisPhone([mac, server], { mac: {}, server: {} })).toEqual([
-      "mac",
-      "server",
-    ]);
   });
 });

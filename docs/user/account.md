@@ -31,10 +31,10 @@ internet.
 
 ## Sign out on a phone
 
-**Sign out** also disconnects the phone from the computers in your account, so their notes and
-chats do not stay on it for whoever uses it next. Nothing is deleted on the computers: sign in
-again and press **Connect** to bring one back. A computer you added with a code that is not in
-your account stays connected; remove it in **Settings > Computers**.
+**Sign out** also disconnects the phone from every computer, so no notes or chats stay on it
+for whoever uses it next. Nothing is deleted on the computers. Sign in again and press
+**Connect** to bring back a computer in your account; one you had added with a code needs a
+new code.
 
 ## Remove a computer from your account
 

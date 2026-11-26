@@ -30,12 +30,7 @@ import {
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
-import {
-  accountComputersOnThisPhone,
-  accountConnectErrorForOwner,
-  MAJORDOME_ACCOUNT,
-  MAJORDOME_SERVER,
-} from "./connectWording";
+import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
 import { BROKER_URL } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
@@ -111,8 +106,9 @@ function SignedIn() {
 
   const removeEnvironment = useAtomCommand(environmentCatalog.remove, "environment remove");
   const signOut = () => {
-    // Before the sign-out: this screen, and its list of computers, goes with the account.
-    const removing = accountComputersOnThisPhone(servers, connections).map((id) =>
+    // Signing out leaves a clean phone: a connection is the phone's own and outlives the
+    // sign-in, so any computer left would show its notes to whoever signs in next.
+    const removing = Object.keys(connections).map((id) =>
       removeEnvironment(EnvironmentId.make(id)),
     );
     void Promise.allSettled(removing).then(() => clerk.signOut());
