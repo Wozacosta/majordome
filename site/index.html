@@ -1750,6 +1750,105 @@
         text-align: center;
         overflow: hidden;
       }
+      .final .free-for {
+        font: 500 1.25rem/1.3 var(--sans);
+        letter-spacing: 0;
+      }
+      /* The price, as a horizon: dark sky, a green and amber line, dark ground. */
+      .zero {
+        margin: 6px 0 2px;
+        font: 800 clamp(8rem, 26vw, 17rem) / 1 var(--sans);
+        letter-spacing: -0.04em;
+        color: transparent;
+        background: linear-gradient(
+          180deg,
+          #2c303a 0%,
+          #465062 56%,
+          #3ddc84 66%,
+          #f4efe6 70%,
+          #f0a04b 75%,
+          #4a3f36 84%,
+          #2a2d36 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        filter: drop-shadow(0 0 60px #3ddc8433);
+      }
+      .checks {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 34px;
+        font-size: 1.1rem;
+        color: #dcd7ce;
+      }
+      .checks li::before {
+        content: "✓";
+        margin-right: 10px;
+        color: var(--live);
+      }
+
+      .faq {
+        display: grid;
+        grid-template-columns: 1fr 1.4fr;
+        gap: 56px;
+        margin-top: 128px;
+        scroll-margin-top: 90px;
+      }
+      .faq .intro a {
+        display: inline-block;
+        margin-top: 22px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .faq .intro a:hover {
+        text-decoration: underline;
+      }
+      .qa details {
+        border-top: 1px solid var(--line);
+      }
+      .qa details:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+      .qa summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 4px;
+        font-size: 1.12rem;
+        font-weight: 500;
+        cursor: pointer;
+        list-style: none;
+      }
+      .qa summary::-webkit-details-marker {
+        display: none;
+      }
+      .qa summary::after {
+        content: "";
+        flex: none;
+        width: 9px;
+        height: 9px;
+        margin-right: 6px;
+        border-right: 1.5px solid var(--muted);
+        border-bottom: 1.5px solid var(--muted);
+        transform: translateY(-3px) rotate(45deg);
+        transition: transform 0.25s ease;
+      }
+      .qa details[open] summary::after {
+        transform: translateY(2px) rotate(225deg);
+      }
+      .qa summary:hover::after {
+        border-color: var(--ink);
+      }
+      .qa p {
+        padding: 0 40px 22px 4px;
+        color: var(--muted);
+        text-wrap: pretty;
+      }
       .final > p {
         margin-top: 14px;
         color: var(--muted);
@@ -1888,6 +1987,11 @@
         .show {
           grid-template-columns: 1fr;
           gap: 26px;
+        }
+        .faq {
+          grid-template-columns: 1fr;
+          gap: 28px;
+          margin-top: 88px;
         }
         .bento,
         .pair,
@@ -2939,9 +3043,94 @@
             copy is made every night. <a href="/account">How signing in works</a>
           </p>
 
+          <div class="faq" id="questions">
+            <div class="intro">
+              <h2>Questions.</h2>
+              <p>Short answers about price, your AI plan and your data.</p>
+              <a href="https://github.com/Wozacosta/majordome/issues">Ask something else →</a>
+            </div>
+            <div class="qa">
+              <details>
+                <summary>Is Majordome free?</summary>
+                <p>
+                  Yes. The app is free and open source, with every feature. The AI is the plan you
+                  already pay for. The one thing with a price is optional: a server that runs around
+                  the clock, €14 a month hosted for you, or about €5 a month rented in your name.
+                </p>
+              </details>
+              <details>
+                <summary>Which AI can it use?</summary>
+                <p>
+                  Claude or ChatGPT, from the welcome screen. Gemini through Google's Antigravity,
+                  Cursor, Grok, GitHub Copilot and others, from Settings. Each one runs under your
+                  own account with that provider.
+                </p>
+              </details>
+              <details>
+                <summary>Can I change AI later?</summary>
+                <p>
+                  Yes. Sign in to another one. Your notes are a folder of markdown, so nothing in
+                  them belongs to one AI.
+                </p>
+              </details>
+              <details>
+                <summary>What if I stop using it?</summary>
+                <p>
+                  You keep everything. The notes are plain files: open the folder in Obsidian or any
+                  editor. If you had a server, bring your notes back to your computer first. A
+                  Majordome server keeps them for 30 days after a subscription ends.
+                </p>
+              </details>
+              <details>
+                <summary>Where does my data go?</summary>
+                <p>
+                  Your notes, conversations and private documents stay on your Mac. The AI you
+                  signed in to gets your message and the notes it reads. Majordome, the project,
+                  receives none of it, no usage statistics and no crash reports.
+                  <a href="/privacy">Privacy</a>
+                </p>
+              </details>
+              <details>
+                <summary>Do I need an account?</summary>
+                <p>
+                  No. An account is only for linking devices: sign in on your phone and it finds
+                  your computer. <a href="/account">How signing in works</a>
+                </p>
+              </details>
+              <details>
+                <summary>Does it work while my Mac sleeps?</summary>
+                <p>
+                  Routines run while your Mac is awake. For around the clock, add a server: your
+                  conversations move there, so every device shows the same ones.
+                </p>
+              </details>
+              <details>
+                <summary>Is it safe to let it work on my notes?</summary>
+                <p>
+                  Each run leaves one line saying what it changed, with an undo. Your notes keep
+                  their history. Private documents open only after your yes, each time. You can have
+                  a locked copy made every night.
+                </p>
+              </details>
+              <details>
+                <summary>Which computers can run it?</summary>
+                <p>
+                  Macs with Apple silicon today. Linux and Windows are coming:
+                  <a href="#soon">leave your email</a>. On your phone, open
+                  <a href="/open">majord.me/open</a>.
+                </p>
+              </details>
+            </div>
+          </div>
+
           <div class="final rise">
-            <h2>Start on your Mac.</h2>
-            <p>Free and open source. No account needed.</p>
+            <h2 class="free-for">Free and open source</h2>
+            <div class="zero" role="img" aria-label="0 euros">€0</div>
+            <ul class="checks">
+              <li>Every feature</li>
+              <li>Runs on your own computer</li>
+              <li>On the AI plan you already pay for</li>
+            </ul>
             <div class="cta">
               <a class="button" href="/download">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -2949,9 +3138,7 @@
                 </svg>
                 Download for Mac
               </a>
-              <a class="button quiet" href="https://github.com/Wozacosta/majordome"
-                >View on GitHub</a
-              >
+              <a class="button quiet" href="/start">A server, €14 a month →</a>
             </div>
             <p class="fineprint">
               Work in progress, updated often.
