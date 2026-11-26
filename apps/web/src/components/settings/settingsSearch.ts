@@ -227,6 +227,8 @@ const MAJORDOME_HIDDEN_SETTING_IDS: ReadonlySet<string> = new Set([
   // Labs: upstream's coding workflows, and reports that go to T3 Code's own team.
   "workflows-beta",
   "agent-feedback",
+  // Labs: guests arrive through T3 Connect, which this build does not have.
+  "guest-links",
   // About
   "mobile-app",
   "cli-command",

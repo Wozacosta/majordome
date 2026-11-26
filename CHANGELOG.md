@@ -5,7 +5,14 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **Labs no longer offers "Share a chat with a guest".** It needed T3 Connect, which Majordome
+  does not have, so the switch could never work.
+
+**Try this**
+
+- Open Settings, then Labs: two switches are left, Linked computers and Suggest my next message.
 
 ## 0.10.59
 
