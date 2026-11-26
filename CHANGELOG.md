@@ -5,7 +5,17 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Routines shows your week.** Above the list, seven days: what ran and how it went (done,
+  couldn't finish, skipped, stopped), and what is still to come, reminders included. The arrows
+  move a week at a time. Click a run that happened to open its chat, or one still to come to see
+  its routine. On a phone the days are a list. Each server starts keeping its runs with this
+  version, so earlier weeks show only each routine's last run.
+
+**Try this**
+
+- Open **Routines**, press **Run now** on one, and watch it land on today.
 
 ## 0.10.70
 

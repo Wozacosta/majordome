@@ -66,6 +66,8 @@ The landing page and the README show a short version of this list.
 
 - **Routines and reminders in your words,** with ready-made ones (What needs a reply, Prepare
   tomorrow). Built on T3 Code's scheduled tasks. [Routines](./user/routines.md)
+- **A week calendar of your routines:** what ran each day and how it went, and what is still to
+  come. T3 Code keeps only each task's last run.
 - **What it did, with Undo this.** Every change the assistant makes to your notes is listed in
   plain words, with the notes it touched, and one press takes it back.
 - **Skills it writes for itself.** Say "from now on, do it this way" and it writes the skill down.

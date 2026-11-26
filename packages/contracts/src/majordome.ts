@@ -2,8 +2,10 @@ import * as Schema from "effect/Schema";
 
 import {
   EnvironmentId,
+  IsoDateTime,
   PositiveInt,
   ProjectId,
+  ScheduledTaskId,
   ThreadId,
   TrimmedNonEmptyString,
 } from "./baseSchemas.ts";
@@ -144,6 +146,32 @@ export const MajordomeRunRoutinesElsewhereInput = Schema.Struct({
   label: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
 });
 export type MajordomeRunRoutinesElsewhereInput = typeof MajordomeRunRoutinesElsewhereInput.Type;
+
+/**
+ * One run of a routine or reminder. `at` is when it started; for a run that was skipped
+ * (`errorCode` "missed" or "held"), when it was due.
+ */
+export const MajordomeRoutineRun = Schema.Struct({
+  taskId: ScheduledTaskId,
+  at: IsoDateTime,
+  status: Schema.Literals(["running", "succeeded", "failed"]),
+  /** A `ScheduledTaskRunErrorCode` when the cause is a known one. A string so new codes decode. */
+  errorCode: Schema.optional(Schema.String),
+});
+export type MajordomeRoutineRun = typeof MajordomeRoutineRun.Type;
+
+/** A stretch of time, such as the week a calendar shows: from `from` up to `to`. */
+export const MajordomeRoutineRunsInput = Schema.Struct({
+  projectId: ProjectId,
+  from: IsoDateTime,
+  to: IsoDateTime,
+});
+export type MajordomeRoutineRunsInput = typeof MajordomeRoutineRunsInput.Type;
+
+export const MajordomeRoutineRunsResult = Schema.Struct({
+  runs: Schema.Array(MajordomeRoutineRun),
+});
+export type MajordomeRoutineRunsResult = typeof MajordomeRoutineRunsResult.Type;
 
 /** A routine the owner can add in one step. */
 export const MajordomeReadyRoutine = Schema.Struct({

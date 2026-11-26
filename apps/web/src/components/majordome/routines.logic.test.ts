@@ -110,7 +110,7 @@ describe("selectRoutines", () => {
         copies: [{ environmentId: mac, projectId: notes, tasks: null }],
         runner: { environmentId: mac, projectId: notes },
       }),
-    ).toEqual({ routines: [], reminders: [] });
+    ).toEqual({ routines: [], reminders: [], fired: [] });
   });
 });
 

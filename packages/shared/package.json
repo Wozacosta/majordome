@@ -39,6 +39,10 @@
       "types": "./src/topicFolder.ts",
       "import": "./src/topicFolder.ts"
     },
+    "./scheduledTaskSchedule": {
+      "types": "./src/scheduledTaskSchedule.ts",
+      "import": "./src/scheduledTaskSchedule.ts"
+    },
     "./majord": {
       "types": "./src/majord.ts",
       "import": "./src/majord.ts"

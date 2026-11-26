@@ -150,6 +150,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeRunRoutinesHere]: "majordome",
   [WS_METHODS.majordomeRunRoutinesElsewhere]: "majordome",
   [WS_METHODS.majordomeListReadyRoutines]: "majordome",
+  [WS_METHODS.majordomeListRoutineRuns]: "majordome",
   [WS_METHODS.majordomeAddReadyRoutine]: "majordome",
   [WS_METHODS.majordomeSetRoutineLimits]: "majordome",
   [WS_METHODS.majordomeStartNotes]: "majordome",

@@ -1,11 +1,30 @@
 import { createMajordomeEnvironmentAtoms } from "@t3tools/client-runtime/state/majordome";
 import type { EnvironmentId, ProjectId, ThreadId, TurnItemId } from "@t3tools/contracts";
-import { Atom } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { serverEnvironment } from "./server";
 
-export const majordomeEnvironment = createMajordomeEnvironmentAtoms(connectionAtomRuntime);
+/** A server's runs as its live list of routines tells them: who ran last, how, and what is next. */
+const routineRunsSignature = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make((get) => {
+    const list = AsyncResult.getOrElse(
+      get(serverEnvironment.scheduledTasksLive({ environmentId, input: {} })),
+      () => null,
+    );
+    return (list?.tasks ?? [])
+      .map((task) =>
+        [task.id, task.lastRunAt, task.lastRunStatus, task.lastRunErrorCode, task.nextRunAt].join(
+          " ",
+        ),
+      )
+      .join("\n");
+  }).pipe(Atom.withLabel(`majordome:routine-runs-signature:${environmentId}`)),
+);
+
+export const majordomeEnvironment = createMajordomeEnvironmentAtoms(connectionAtomRuntime, {
+  routineRunsChanged: routineRunsSignature,
+});
 
 const FEED_HISTORY_LIMIT = 50;
 
@@ -24,6 +43,23 @@ export const vaultHistoriesAtom = Atom.family((key: string) => {
       ),
     ),
   ).pipe(Atom.withLabel(`majordome:vault-histories:${key}`));
+});
+
+/**
+ * Every listed project's runs from `from` up to `to`, keyed by `JSON.stringify` of
+ * `{ refs, from, to }`.
+ */
+export const vaultRoutineRunsAtom = Atom.family((key: string) => {
+  const { refs, from, to } = JSON.parse(key) as {
+    readonly refs: ReadonlyArray<VaultProjectRef>;
+    readonly from: string;
+    readonly to: string;
+  };
+  return Atom.make((get) =>
+    refs.map(([environmentId, projectId]) =>
+      get(majordomeEnvironment.routineRuns({ environmentId, input: { projectId, from, to } })),
+    ),
+  ).pipe(Atom.withLabel(`majordome:vault-routine-runs:${key}`));
 });
 
 /** Every listed project's backup status, keyed like `vaultHistoriesAtom`. */

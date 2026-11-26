@@ -187,6 +187,7 @@ import * as MajordomeSettings from "./majordome/MajordomeSettings.ts";
 import * as PrivateDocumentsKey from "./majordome/PrivateDocumentsKey.ts";
 import * as RoutineLimits from "./majordome/RoutineLimits.ts";
 import * as RoutineRunLedger from "./majordome/RoutineRunLedger.ts";
+import * as RoutineRunLog from "./majordome/RoutineRunLog.ts";
 import * as VaultCommitReactor from "./majordome/VaultCommitReactor.ts";
 import * as VaultLock from "./majordome/VaultLock.ts";
 import * as VcsAutomaticFetchInterval from "./vcs/VcsAutomaticFetchInterval.ts";
@@ -931,6 +932,12 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provideMerge(layerMajordomePrivateDocuments),
     Layer.provideMerge(MajordomePush.layer),
   ),
+  // provideMerge keeps the log in the context, for the calendar's RPC.
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      yield* (yield* RoutineRunLog.RoutineRunLog).start();
+    }),
+  ).pipe(Layer.provideMerge(RoutineRunLog.layer)),
   // provideMerge keeps both in the context: agents change settings from /mcp, and the owner
   // answers their questions over WebSocket.
   Layer.effectDiscard(

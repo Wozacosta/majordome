@@ -13,7 +13,10 @@ export function RoutineEntry({
   lastRunRemedy,
   place,
   controls,
+  id,
 }: {
+  /** So the calendar can bring this routine into view. */
+  readonly id?: string;
   readonly title: string;
   /** The routine's instructions; their start says what it does. */
   readonly prompt: string;
@@ -29,7 +32,15 @@ export function RoutineEntry({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <Entry title={title} meta={when} actions={controls} data-routine={title}>
+    <Entry
+      title={title}
+      meta={when}
+      actions={controls}
+      data-routine={title}
+      {...(id === undefined
+        ? {}
+        : { id, tabIndex: -1, className: "scroll-mt-4 outline-none focus:bg-accent/40" })}
+    >
       <Muted className={cn("break-words", open ? "whitespace-pre-wrap" : "line-clamp-2")}>
         {prompt}
       </Muted>

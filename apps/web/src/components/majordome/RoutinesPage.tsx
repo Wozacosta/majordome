@@ -38,6 +38,7 @@ import {
   SwitchLabel,
 } from "./paper";
 import { ReadyRoutines } from "./ReadyRoutines";
+import { RoutineCalendar } from "./RoutineCalendar";
 import { ReminderEntry, RoutineEntry } from "./RoutineEntry";
 import { RoutineLimits } from "./RoutineLimits";
 import { RoutinePlace } from "./RoutinePlace";
@@ -90,8 +91,17 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
   const { machineOf, localEnvironmentId } = useMachineNames();
-  const { routines, runner, runnerHistory, runnerUnreachable, loading, routinesFailed, retry } =
-    useVaultRoutines(vault);
+  const {
+    routines,
+    reminders,
+    fired,
+    runner,
+    runnerHistory,
+    runnerUnreachable,
+    loading,
+    routinesFailed,
+    retry,
+  } = useVaultRoutines(vault);
   const canChange = useAtomValue(
     serverEnvironment.upsertScheduledTask.permissionAtom((runner ?? vault).environmentId),
   );
@@ -182,6 +192,22 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
           </div>
         ) : null}
 
+        {runnerUnreachable || routines.length + reminders.length + fired.length === 0 ? null : (
+          <RoutineCalendar
+            vault={vault}
+            routines={routines}
+            reminders={reminders}
+            fired={fired}
+            hold={hold}
+            nowMs={nowMs}
+            onOpenRoutine={(item) => {
+              const row = document.getElementById(routineRowId(item.key));
+              row?.scrollIntoView({ block: "center" });
+              row?.focus({ preventScroll: true });
+            }}
+          />
+        )}
+
         {runnerUnreachable ? null : (
           <Section label="Routines">
             {!canChange && routines.length > 0 ? (
@@ -238,6 +264,8 @@ function VaultRoutines({ vault }: { readonly vault: MajordomeVault }) {
     </ScrollArea>
   );
 }
+
+const routineRowId = (key: string) => `routine-${key}`;
 
 function useTaskAction(item: RoutineItem) {
   const { environmentId, task } = item;
@@ -336,6 +364,7 @@ function RoutineRow({
     "rounded-sm underline underline-offset-2 outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
   return (
     <RoutineEntry
+      id={routineRowId(item.key)}
       title={task.title}
       prompt={task.prompt}
       when={routineWhenLine(task, nowMs, { serverTimeZone: item.timeZone, hold })}

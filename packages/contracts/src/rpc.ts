@@ -104,6 +104,8 @@ import {
   MajordomeRunRoutinesElsewhereInput,
   MajordomeReadyRoutinesInput,
   MajordomeReadyRoutinesResult,
+  MajordomeRoutineRunsInput,
+  MajordomeRoutineRunsResult,
   MajordomeAddReadyRoutineInput,
   MajordomeVaultChangesInput,
   MajordomeSetRoutineLimitsInput,
@@ -932,6 +934,7 @@ export const WS_METHODS = {
   majordomeRunRoutinesHere: "majordome.runRoutinesHere",
   majordomeRunRoutinesElsewhere: "majordome.runRoutinesElsewhere",
   majordomeListReadyRoutines: "majordome.listReadyRoutines",
+  majordomeListRoutineRuns: "majordome.listRoutineRuns",
   majordomeAddReadyRoutine: "majordome.addReadyRoutine",
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeStartNotes: "majordome.startNotes",
@@ -2866,6 +2869,12 @@ const WsMajordomeRunRoutinesElsewhereRpc = Rpc.make(WS_METHODS.majordomeRunRouti
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeListRoutineRunsRpc = Rpc.make(WS_METHODS.majordomeListRoutineRuns, {
+  payload: MajordomeRoutineRunsInput,
+  success: MajordomeRoutineRunsResult,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsMajordomeListReadyRoutinesRpc = Rpc.make(WS_METHODS.majordomeListReadyRoutines, {
   payload: MajordomeReadyRoutinesInput,
   success: MajordomeReadyRoutinesResult,
@@ -3632,6 +3641,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeRunRoutinesHereRpc,
   WsMajordomeRunRoutinesElsewhereRpc,
   WsMajordomeListReadyRoutinesRpc,
+  WsMajordomeListRoutineRunsRpc,
   WsMajordomeAddReadyRoutineRpc,
   WsMajordomeSetRoutineLimitsRpc,
   WsMajordomeStartNotesRpc,

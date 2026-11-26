@@ -38,6 +38,10 @@ const bumpAccount = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRe
 
 export function createMajordomeEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | R, E>,
+  options: {
+    /** Changes whenever a run on that server starts, ends or is skipped. */
+    readonly routineRunsChanged?: (environmentId: EnvironmentId) => Atom.Atom<unknown>;
+  } = {},
 ) {
   return {
     pushConfig: createEnvironmentRpcQueryAtomFamily(runtime, {
@@ -172,6 +176,13 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeListReadyRoutines,
       staleTimeMs: 0,
       refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
+    }),
+    /** A stretch of a notes folder's past runs, such as the week a calendar shows. */
+    routineRuns: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:routine-runs",
+      tag: WS_METHODS.majordomeListRoutineRuns,
+      staleTimeMs: 10_000,
+      refreshTrigger: ({ environmentId }) => options.routineRunsChanged?.(environmentId),
     }),
     addReadyRoutine: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:add-ready-routine",

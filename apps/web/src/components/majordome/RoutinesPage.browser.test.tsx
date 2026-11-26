@@ -86,12 +86,14 @@ vi.mock("./useVaultRoutines", () => ({
         }),
       },
     ],
+    fired: [],
     runner: copy,
     runnerHistory: null,
     runnerUnreachable: false,
     loading: false,
   }),
 }));
+vi.mock("./useRoutineRunLog", () => ({ useRoutineRunLog: () => [] }));
 // The real panel mounts the whole conversation view; this one only takes the words Edit hands it.
 vi.mock("./RoutinesAssistant", () => ({
   RoutinesAssistant: (props: { composerRef: ComposerHandleRef; back: ReactNode }) => {

@@ -141,6 +141,7 @@ import * as MajordomePush from "./majordome/MajordomePush.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeAccount from "./majordome/MajordomeAccount.ts";
 import * as MajordomeRoutines from "./majordome/MajordomeRoutines.ts";
+import * as RoutineRunLog from "./majordome/RoutineRunLog.ts";
 import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MajordomeVaultService from "./majordome/MajordomeVaultService.ts";
 import * as MajordomeDailyNotes from "./majordome/MajordomeDailyNotes.ts";
@@ -1546,6 +1547,7 @@ export const layerWsRpc = (
       const majordomeServerMove = yield* MajordomeServerMove.MajordomeServerMove;
       const majordomeVault = yield* MajordomeVaultService.MajordomeVaultService;
       const majordomeRoutines = yield* MajordomeRoutines.MajordomeRoutines;
+      const routineRunLog = yield* RoutineRunLog.RoutineRunLog;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
@@ -2582,6 +2584,11 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeRoutines.ready(input.projectId)),
             Effect.mapError((cause) => new MajordomeVaultError({ message: cause.message, cause })),
+          ),
+        [WS_METHODS.majordomeListRoutineRuns]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(routineRunLog.read(input)),
+            Effect.map((runs) => ({ runs })),
           ),
         [WS_METHODS.majordomeAddReadyRoutine]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

@@ -63,9 +63,12 @@ export function selectRoutines(input: {
 }): {
   readonly routines: ReadonlyArray<RoutineItem>;
   readonly reminders: ReadonlyArray<RoutineItem>;
+  /** Reminders that went off, which only the calendar still shows. */
+  readonly fired: ReadonlyArray<RoutineItem>;
 } {
   const routines: Array<RoutineItem> = [];
   const reminders: Array<RoutineItem> = [];
+  const fired: Array<RoutineItem> = [];
   for (const copy of input.copies) {
     const isRunner =
       input.runner !== null &&
@@ -81,11 +84,14 @@ export function selectRoutines(input: {
         timeZone: copy.timeZone,
       };
       if (kind === "reminder") reminders.push(item);
-      else if (kind !== "done" && isRunner) routines.push(item);
+      else if (kind === "done") {
+        if (task.lastRunAt !== null) fired.push(item);
+      } else if (isRunner) routines.push(item);
     }
   }
   return {
     routines,
+    fired,
     reminders: reminders.toSorted(
       (left, right) =>
         Date.parse(left.task.nextRunAt ?? "") - Date.parse(right.task.nextRunAt ?? "") ||

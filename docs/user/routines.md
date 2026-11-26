@@ -28,6 +28,20 @@ with a starter note or two and usually a routine that posts in the topic's chat.
 have a folder for the subject, such as `Recipes`, the topic uses it and leaves your notes as they
 are. Removing the topic or the routine later works like any other.
 
+## See the week
+
+Above the list, **Routines** shows the week day by day: the runs that happened and the ones still
+to come, with reminders among them. A tick is a run that went well, a cross one that couldn't
+finish, a struck circle one that was skipped (the computer was asleep, or an earlier run was still
+waiting in its chat), a square one that was stopped, and an empty circle one still to come.
+
+- The arrows move a week at a time, and **Today** comes back.
+- Click a run that happened to open its chat. Click one still to come to see its routine in the
+  list, or the Reminders screen for a reminder.
+- A routine that runs many times a day takes one line a day, with the number of runs.
+- Times are in your own time. Past runs are kept for five weeks, starting from the version that
+  added the calendar.
+
 ## Change, pause, try or delete one
 
 Each routine shows what it does, when it runs next and how its last run went. When none of them
