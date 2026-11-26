@@ -69,6 +69,9 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+// The start-clean check reads the phone's files and the account service as it loads.
+vi.mock("../majordome/freshInstall", () => ({ leftoverComputersCleared: Promise.resolve() }));
+
 vi.mock("expo", () => ({
   requireOptionalNativeModule: () => null,
 }));
