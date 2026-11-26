@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
+- **The message box is easier to find.** It has a thin warm line along its edge, and it lights
+  up with an orange ring while you type in it. Nothing moves or blinks.
 - **The app tells you what changed after an update.** The first time it opens on a new version,
   a note says "Updated to version …" with a **See what's new** button. It opens that version's
   notes from this page: what is new, what was fixed, and what to try. The note shows once per
@@ -43,6 +45,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Open any chat and click in the message box: it should light up, then go quiet again when you
+  click elsewhere. Try it in the Assistant panel and in the light theme too.
 - Swipe a chat to mark it as done and read the notice at the bottom, then tap "Done" to fold
   that section.
 - Touch and hold a routine, choose "Hide this routine from Chats", and tap Undo.

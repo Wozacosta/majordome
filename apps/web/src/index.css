@@ -1415,6 +1415,43 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   background-color: var(--background);
 }
 
+/* The message box carries a faint warm edge so it is easy to find, and lights up while you type
+   in it. Nothing here moves on its own. A box with a banner attached keeps its plain outline,
+   since the two then share one shape. */
+[data-slot="composer-host"]:not(:has([data-composer-banner-surface="attached"])) {
+  --composer-edge: color-mix(in srgb, var(--primary) 60%, transparent);
+  --composer-edge-end: color-mix(in srgb, var(--primary) 30%, transparent);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: box-shadow 160ms ease-out;
+  }
+
+  &::after {
+    border-color: transparent;
+    background: linear-gradient(
+        135deg,
+        var(--composer-edge),
+        var(--chat-composer-outline) 40%,
+        var(--chat-composer-outline) 70%,
+        var(--composer-edge-end)
+      )
+      border-box;
+    mask:
+      linear-gradient(#000 0 0) padding-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  &:focus-within {
+    --composer-edge: var(--primary);
+    --composer-edge-end: color-mix(in srgb, var(--primary) 70%, transparent);
+    --chat-composer-outline: color-mix(in srgb, var(--primary) 35%, var(--border));
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent),
+      0 0 28px color-mix(in srgb, var(--primary) 16%, transparent);
+  }
+}
+
 /* Sections in the provider detail pane sit flat in its card instead of nesting cards inside
    it. Headings and row dividers still separate them. */
 [data-provider-detail] [data-slot="settings-group"] {
