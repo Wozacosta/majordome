@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  accountComputersOnThisPhone,
   accountConnectErrorForOwner,
   connectErrorForOwner,
-  signOutQuestion,
 } from "./connectWording";
 
 describe("connectErrorForOwner", () => {
@@ -45,24 +45,23 @@ describe("accountConnectErrorForOwner", () => {
   });
 });
 
-describe("signOutQuestion", () => {
+describe("accountComputersOnThisPhone", () => {
   const mac = { environmentId: "mac", name: "Samy's Mac" };
   const server = { environmentId: "server", name: "Majordome server" };
 
-  it("asks nothing when this phone is connected to none of the account's computers", () => {
-    expect(signOutQuestion([mac], {})).toBeNull();
-    expect(signOutQuestion([], { other: {} })).toBeNull();
+  it("is empty when this phone is connected to none of the account's computers", () => {
+    expect(accountComputersOnThisPhone([mac], {})).toEqual([]);
+    expect(accountComputersOnThisPhone([], { scanned: {} })).toEqual([]);
   });
 
-  it("names only the account's computers this phone is connected to", () => {
-    const question = signOutQuestion([mac, server], { mac: {}, scanned: {} });
-    expect(question?.environmentIds).toEqual(["mac"]);
-    expect(question?.message).toMatch(/connected to Samy's Mac\. Disconnect it too\?/);
+  it("leaves out a computer paired by code that is not in the account", () => {
+    expect(accountComputersOnThisPhone([mac, server], { mac: {}, scanned: {} })).toEqual(["mac"]);
   });
 
-  it("names several", () => {
-    const question = signOutQuestion([mac, server], { mac: {}, server: {} });
-    expect(question?.environmentIds).toEqual(["mac", "server"]);
-    expect(question?.message).toMatch(/Samy's Mac and Majordome server\. Disconnect them too\?/);
+  it("lists every computer of the account this phone is connected to", () => {
+    expect(accountComputersOnThisPhone([mac, server], { mac: {}, server: {} })).toEqual([
+      "mac",
+      "server",
+    ]);
   });
 });

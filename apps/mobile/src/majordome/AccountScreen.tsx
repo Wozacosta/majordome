@@ -31,10 +31,10 @@ import {
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
 import {
+  accountComputersOnThisPhone,
   accountConnectErrorForOwner,
   MAJORDOME_ACCOUNT,
   MAJORDOME_SERVER,
-  signOutQuestion,
 } from "./connectWording";
 import { BROKER_URL } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
@@ -111,23 +111,11 @@ function SignedIn() {
 
   const removeEnvironment = useAtomCommand(environmentCatalog.remove, "environment remove");
   const signOut = () => {
-    const question = signOutQuestion(servers, connections);
-    if (question === null) return void clerk.signOut();
-    Alert.alert(MAJORDOME_ACCOUNT.signOut, question.message, [
-      { text: "Cancel", style: "cancel" },
-      { text: MAJORDOME_ACCOUNT.signOutOnly, onPress: () => void clerk.signOut() },
-      {
-        text: MAJORDOME_ACCOUNT.signOutAndDisconnect,
-        isPreferred: true,
-        onPress: () => {
-          // Before the sign-out: this screen, and its list of computers, goes with the account.
-          const removing = question.environmentIds.map((id) =>
-            removeEnvironment(EnvironmentId.make(id)),
-          );
-          void Promise.allSettled(removing).then(() => clerk.signOut());
-        },
-      },
-    ]);
+    // Before the sign-out: this screen, and its list of computers, goes with the account.
+    const removing = accountComputersOnThisPhone(servers, connections).map((id) =>
+      removeEnvironment(EnvironmentId.make(id)),
+    );
+    void Promise.allSettled(removing).then(() => clerk.signOut());
   };
 
   // Only said after a check: the card above already says the account is empty.

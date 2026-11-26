@@ -73,32 +73,20 @@ export const MAJORDOME_ACCOUNT = {
   deleteConfirm: "Delete",
   deleteFailed: "The account could not be deleted. Sign out, sign in again, then try once more.",
   signOut: "Sign out",
-  signOutAndDisconnect: "Sign out and disconnect",
-  signOutOnly: "Sign out only",
 } as const;
 
-function listed(names: ReadonlyArray<string>): string {
-  if (names.length <= 2) return names.join(" and ");
-  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-}
-
 /**
- * Asked before signing out while this phone is connected to the account's computers: a connection
- * is the phone's own and outlives the sign-in, so their notes would stay on screen. Null when
- * there is nothing to disconnect.
+ * The account's computers this phone is connected to. Signing out removes them: a connection is
+ * the phone's own and outlives the sign-in, so their notes would stay on screen for whoever
+ * signs in next. Computers paired by code and not in the account are not listed.
  */
-export function signOutQuestion(
-  servers: ReadonlyArray<{ readonly environmentId: string; readonly name: string }>,
+export function accountComputersOnThisPhone(
+  servers: ReadonlyArray<{ readonly environmentId: string }>,
   connections: Readonly<Record<string, unknown>>,
-): { readonly message: string; readonly environmentIds: ReadonlyArray<string> } | null {
-  const connected = servers.filter((server) => server.environmentId in connections);
-  if (connected.length === 0) return null;
-  const names = listed(connected.map((server) => server.name));
-  const them = connected.length === 1 ? "it" : "them";
-  return {
-    message: `This phone is connected to ${names}. Disconnect ${them} too? Otherwise the notes and chats there stay on this phone after you sign out. Nothing is deleted on ${them}.`,
-    environmentIds: connected.map((server) => server.environmentId),
-  };
+): ReadonlyArray<string> {
+  return servers
+    .map((server) => server.environmentId)
+    .filter((environmentId) => environmentId in connections);
 }
 
 /**

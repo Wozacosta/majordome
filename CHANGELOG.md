@@ -15,19 +15,19 @@ The section for a version is also the text of its release on GitHub.
 
 **Fixed**
 
-- **On the phone, signing out can also disconnect the account's computers.** A phone stays
-  connected to a computer until you remove it, so after signing out, and even after signing in
-  as someone else, the first account's notes and chats were still there. **Sign out** now asks
-  whether to disconnect the computers of that account too. Nothing is deleted on them, and
-  computers you added with a code that are not in the account stay.
+- **On the phone, signing out also disconnects the account's computers.** A phone used to
+  stay connected to a computer after you signed out, so the first account's notes and chats
+  were still there, even after signing in as someone else. **Sign out** now disconnects the
+  computers of that account from the phone. Nothing is deleted on them, and computers you
+  added with a code that are not in the account stay.
 
 **Try this**
 
 - Look at a page with a warning, such as Settings, Your account when your phone cannot reach
   this Mac: the amber dot stands apart from the blue button beside it. Then switch between
   light and dark in Settings, Appearance.
-- On the phone, open **Settings > Your account** and press **Sign out**, then **Sign out and
-  disconnect**: Today and Chats no longer show that computer.
+- On the phone, open **Settings > Your account** and press **Sign out**: Today and Chats no
+  longer show that account's computers. Sign in again and press **Connect** to bring one back.
 
 ## 0.10.60
 
