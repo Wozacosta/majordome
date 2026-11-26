@@ -118,7 +118,7 @@ const DRAWINGS: Record<
         },
         {
           ...node("skills", GraduationCapIcon, "Skills", "/settings/skills"),
-          detail: "e.g. your weekly review",
+          detail: "What it knows how to do",
         },
       ],
     ],

@@ -8,7 +8,7 @@ The section for a version is also the text of its release on GitHub.
 **Fixed**
 
 - **The AI drawing says a little more.** AI accounts shows the Claude and ChatGPT logos,
-  Connections says "Gmail, Calendar, MCP", and Skills gives an example. The boxes that carry
+  Connections says "Gmail, Calendar, MCP", and Skills says "What it knows how to do". The boxes that carry
   this get more of the width, so nothing is squeezed in a narrow window.
 
 **Try this**
