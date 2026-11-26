@@ -44,9 +44,9 @@ The switch at the top chooses what you see, and is remembered on this device.
 
 ## Keep it in order
 
-- Tick the box on the right when you have finished something. A **Finished** message offers
-  **Undo** for a few seconds. Finished rows are hidden; turn off **Hide finished** to see them
-  again, and untick one to bring it back.
+- Select the check mark on the right when you have finished something. A **Finished** message
+  offers **Undo** for a few seconds. Finished rows are hidden; turn off **Hide finished** to see
+  them again, and select a green check mark to bring that row back.
 - The search field finds rows by any words in their title, site, tags, summary, notes or link.
 - Drag a row by its handle to put what matters most on top. From the keyboard, go to the handle
   with Tab, press Space, move the row with the up and down arrows, and press Space again to put it

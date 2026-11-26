@@ -15,6 +15,13 @@ The section for a version is also the text of its release on GitHub.
   read "Answered on …". Each computer has its own keys, files and sign-ins, so an answer depends
   on where it is made. With one computer, nothing shows.
 
+**Changed**
+
+- **Finishing something on your reading list is a check mark, not an empty box.** The box at the
+  end of each row looked like a way to select rows. It is now a round check mark:
+  point at it and it says "Mark as finished", and on a finished row it is green and brings the row
+  back.
+
 **Fixed**
 
 - **An answer no longer says it used "T3 Code".** Under an answer, the line naming the services
@@ -27,6 +34,7 @@ The section for a version is also the text of its release on GitHub.
 - Open a topic's chat and the assistant panel in Settings: hover the small icon at the bottom
   right of the message box.
 - Ask your assistant "which keys do I have saved?": no "T3 Code" line should sit under the answer.
+- On your reading list, select the check mark at the end of a row, then **Undo**.
 
 ## 0.10.57
 

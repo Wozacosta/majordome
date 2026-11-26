@@ -84,7 +84,7 @@ const middle = (element: HTMLElement) => {
 const mouse = (type: string, at: { clientX: number; clientY: number }) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, ...at });
 
-it("saves what is typed on Enter, marks a row finished from its checkbox and undoes it", async () => {
+it("saves what is typed on Enter, marks a row finished from its check button and undoes it", async () => {
   setup();
   await using screen = await render(readingPage);
 
@@ -105,7 +105,7 @@ it("saves what is typed on Enter, marks a row finished from its checkbox and und
   );
   await expect.element(field).toHaveValue("");
 
-  await screen.getByRole("checkbox", { name: "Finished: Link b" }).click();
+  await screen.getByRole("button", { name: "Finished: Link b" }).click();
   await vi.waitFor(() =>
     expect(state.commands[2]).toEqual([
       "update",
