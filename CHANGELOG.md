@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **The iPhone app no longer carries T3 Code's widgets.** They showed a coding agent's activity
+  and plan usage, and never worked in Majordome. Sharing something to Majordome from another
+  app is unchanged.
 
 ## 0.10.63
 

@@ -56,7 +56,8 @@ Details are in "The iPhone app" below.
       price with a one-week free offer, the billing grace period, the In-App Purchase key, the
       notice address, a sandbox tester, and a demo account for the reviewer.
 - [ ] A TestFlight link for people outside the team goes through Beta App Review first.
-- [ ] The widget and share-extension targets are upstream's, about coding agents: ship or drop.
+- [ ] The share extension is upstream's: it puts what you share from another app into a new
+      chat. Keep it or drop it. (The widgets, about coding agents, are out of the build.)
 - [ ] "Scan to get the app" on the Welcome page opens T3 Code's app (`MOBILE_APP_URL`).
 - [ ] A chat not named yet shows the stored title "New thread".
 
@@ -648,7 +649,7 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
     simulator. Unit tests cover the requests, the answers and the steps only. If the broker's
     answer is lost on the way back, the code is spent and the phone does not know the server.
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
-  in App Store Connect and a sign-in there), the widget and share-extension targets (upstream's,
-  about coding agents; decide whether to ship them), and the stored title "New thread" on a
+  in App Store Connect and a sign-in there), the share-extension target (upstream's; decide
+  whether to ship it), and the stored title "New thread" on a
   chat not named yet (code compares it, so it needs a display-only mapping like the web's
   `chats.logic.ts`).

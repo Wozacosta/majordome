@@ -21,6 +21,17 @@ const SPLASH = {
   dark: "./assets/majordome-splash-dark.png",
 };
 
+// Upstream's widgets show a coding agent's activity and plan usage, and its Live Activities
+// arrive through upstream's relay, which Majordome does not run. Leaving the plugins out leaves
+// the extension target out of the build, as upstream's own Personal Team builds already do.
+const UPSTREAM_WIDGET_PLUGINS = ["expo-widgets", "./plugins/withWidgetLogoAsset.cjs"];
+
+function withoutUpstreamWidgets(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
+  return plugins?.filter(
+    (plugin) => !UPSTREAM_WIDGET_PLUGINS.includes(Array.isArray(plugin) ? plugin[0] : plugin),
+  );
+}
+
 function withMajordomeSplash(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
   return plugins?.map((plugin) => {
     if (!Array.isArray(plugin) || plugin[0] !== "expo-splash-screen") return plugin;
@@ -53,7 +64,7 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   return {
     ...rest,
     slug: "majordome",
-    plugins: withMajordomeSplash(renamed.plugins),
+    plugins: withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
     ...(renamed.scheme === undefined
       ? {}
       : {

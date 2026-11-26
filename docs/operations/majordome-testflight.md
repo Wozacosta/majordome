@@ -32,8 +32,9 @@ Signing is manual because Apple refuses cloud signing to API keys below Admin:
   its own so `codesign` never prompts. Its password is a generic password in the login
   keychain, named by `DIST_KEYCHAIN_PASSWORD_ITEM`. A keychain locks at restart; the script
   unlocks it.
-- Three **App Store** provisioning profiles, named `Majordome App Store ios`, `sharing` and
-  `widgets`, for the app, its share extension and its widgets. They expire with the
+- Two **App Store** provisioning profiles, named `Majordome App Store ios` and `sharing`,
+  for the app and its share extension. Upstream's widgets are left out of Majordome's build
+  (`apps/mobile/majordome/identity.ts`), so they need none. The profiles expire with the
   certificate, after a year: make new ones in the developer portal, or with
   `POST /v1/profiles`, under the same names.
 

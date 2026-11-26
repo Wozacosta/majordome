@@ -69,7 +69,6 @@ cat >"$WORK/ExportOptions.plist" <<PLIST
   <dict>
     <key>$BUNDLE_ID</key><string>Majordome App Store ios</string>
     <key>$BUNDLE_ID.sharing</key><string>Majordome App Store sharing</string>
-    <key>$BUNDLE_ID.widgets</key><string>Majordome App Store widgets</string>
   </dict>
   <key>uploadSymbols</key><true/>
 </dict>
