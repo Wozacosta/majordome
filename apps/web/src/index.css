@@ -1391,6 +1391,30 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   color: var(--primary);
 }
 
+/* A chat sits one step above the pages around it, so the conversation reads as its own place.
+   Everything inside that paints the page colour follows, and in dark mode its cards and composer
+   step up with it. The steps are read on the root, because the chat redefines the tokens they
+   come from. */
+:root {
+  --chat-surface: var(--card);
+  --chat-card: var(--card);
+  --chat-raised: var(--surface-raised);
+
+  @variant dark {
+    --chat-card: var(--surface-raised);
+    --chat-raised: var(--popover);
+  }
+}
+
+[data-chat-surface] {
+  --background: var(--chat-surface);
+  --card: var(--chat-card);
+  --surface-raised: var(--chat-raised);
+  --app-theme-surface-raised: var(--chat-raised);
+  --toolbar-background: var(--chat-surface);
+  background-color: var(--background);
+}
+
 /* Sections in the provider detail pane sit flat in its card instead of nesting cards inside
    it. Headings and row dividers still separate them. */
 [data-provider-detail] [data-slot="settings-group"] {

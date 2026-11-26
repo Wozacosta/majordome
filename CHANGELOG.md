@@ -5,7 +5,17 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Chats have their own background.** A chat now sits one step lighter than the pages around it,
+  so you can tell at a glance where the conversation is. The same goes for the Assistant panel
+  beside a page such as Routines. In the light theme, pages are a touch creamier so a chat's
+  white stands out.
+
+**Try this**
+
+- Open Routines with the Assistant panel beside it: the panel is lighter than the page. Then open
+  a chat and compare it with the sidebar and with what is open beside it. Try both themes.
 
 ## 0.10.58
 

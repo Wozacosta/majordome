@@ -140,6 +140,7 @@ function VaultAssistant({
       )}
       <aside
         ref={observeRow}
+        data-chat-surface
         style={{ [RESIZABLE_WIDTH_PROPERTY]: `${width}px` } as CSSProperties}
         className={cn(
           "relative h-full min-h-0 min-w-0 flex-1 flex-col bg-background @5xl/assistant:flex @5xl/assistant:w-(--resizable-width) @5xl/assistant:flex-none @5xl/assistant:border-l @5xl/assistant:border-border",
