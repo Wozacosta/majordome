@@ -76,6 +76,8 @@ import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useOpenTopic } from "./useOpenTopic";
 import { useRecentChats } from "./useRecentChats";
+import { capUnread } from "./unread.logic";
+import { useUnreadChats } from "./useUnreadChats";
 import { useVaultRoutines } from "./useVaultRoutines";
 
 const COLLAPSED_TOPICS = Schema.Array(Schema.String);
@@ -93,6 +95,65 @@ const HEADING_CLASS =
 
 /** How many chats the sidebar lists under Chats before it leaves the rest to the page. */
 const CHATS_SHOWN = 8;
+
+/** The chats with a reply the owner has not read, above the topics; nothing while all is read. */
+function UnreadChats() {
+  const unread = useUnreadChats();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const { isMobile, setOpenMobile } = useSidebar();
+  const [expanded, setExpanded] = useState(false);
+  if (unread.length === 0) return null;
+  const { shown, more } = capUnread(unread, expanded);
+  return (
+    <section aria-label="Unread" className="mb-1 flex flex-col gap-px">
+      <div className={HEADING_CLASS}>
+        <h2>Unread</h2>
+        <span className="tabular-nums opacity-70">{unread.length}</span>
+      </div>
+      <ul aria-label="Unread chats" className="flex flex-col gap-px">
+        {shown.map(({ key, thread, title, place }) => {
+          const params = buildThreadRouteParams(scopeThreadRef(thread.environmentId, thread.id));
+          const open = pathname === `/${params.environmentId}/${params.threadId}`;
+          return (
+            <li key={key}>
+              <Link
+                to="/$environmentId/$threadId"
+                params={params}
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false);
+                }}
+                aria-current={open ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground hover:bg-sidebar-row-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  open && "bg-sidebar-row-selected",
+                )}
+              >
+                <span aria-hidden className="size-2 shrink-0 rounded-full bg-primary" />
+                <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+                {place === null ? null : (
+                  <span className="max-w-24 shrink-0 truncate text-xs text-sidebar-muted-foreground">
+                    {place}
+                  </span>
+                )}
+                <ActivityLabel timestamp={thread.latestRun?.completedAt ?? thread.updatedAt} />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {more > 0 || expanded ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+          className={QUIET_ROW_CLASS}
+        >
+          {expanded ? "Show fewer" : `+${more} more`}
+        </button>
+      ) : null}
+    </section>
+  );
+}
 
 /**
  * The chats that belong to no topic: the row opens their page, and its arrow lists the ones still
@@ -218,31 +279,34 @@ export function MajordomeTopicsSection() {
     );
   }
   return (
-    <section aria-label="Topics" className="mb-1 flex flex-col gap-px">
-      {vaults.length > 1 ? (
-        <div className="px-1 pb-1">
-          <Select
-            value={activeVault.key}
-            onValueChange={(key) => {
-              if (typeof key === "string") setActiveVaultKey(key);
-            }}
-          >
-            <SelectTrigger size="sm" aria-label="Notes folder">
-              <SelectValue>{activeVault.title}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              {vaults.map((vault) => (
-                <SelectItem key={vault.key} value={vault.key}>
-                  {vault.title}
-                </SelectItem>
-              ))}
-            </SelectPopup>
-          </Select>
-        </div>
-      ) : null}
-      <VaultTopics key={activeVault.key} vault={activeVault} serverCopies={copies} />
-      <ChatsRow />
-    </section>
+    <>
+      <UnreadChats />
+      <section aria-label="Topics" className="mb-1 flex flex-col gap-px">
+        {vaults.length > 1 ? (
+          <div className="px-1 pb-1">
+            <Select
+              value={activeVault.key}
+              onValueChange={(key) => {
+                if (typeof key === "string") setActiveVaultKey(key);
+              }}
+            >
+              <SelectTrigger size="sm" aria-label="Notes folder">
+                <SelectValue>{activeVault.title}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                {vaults.map((vault) => (
+                  <SelectItem key={vault.key} value={vault.key}>
+                    {vault.title}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
+          </div>
+        ) : null}
+        <VaultTopics key={activeVault.key} vault={activeVault} serverCopies={copies} />
+        <ChatsRow />
+      </section>
+    </>
   );
 }
 

@@ -93,6 +93,7 @@ import {
   timelineTurnFoldRunIdsByEntryId,
   liveAnswerPreview,
   quickRepliesRowId,
+  newSinceRowId,
   type MessagesTimelineRow,
   type TimelineLatestRun,
 } from "./MessagesTimeline.logic";
@@ -150,6 +151,7 @@ import { useClientSettings } from "../../hooks/useSettings";
 import { isMajordome } from "~/env";
 import { TimelineDayDivider } from "../majordome/TimelineDayDivider";
 import { useTimelineDayRows } from "../majordome/TimelineDayRows";
+import { startUnreadLineReveal } from "../majordome/unreadLineReveal";
 
 function timelineListStateFor(identity: string): {
   readonly identity: string;
@@ -886,6 +888,23 @@ const ConversationTimeline = memo(function ConversationTimeline({
     onCitationListLoad();
     setFindListReady(true);
   };
+  const unreadLineRowId = isMajordome ? newSinceRowId(rows) : null;
+  const unreadLineRevealedFor = useRef<string | null>(null);
+  const unreadLineReady =
+    unreadLineRowId !== null &&
+    findListReady &&
+    !restoringThreadPosition &&
+    !findActive &&
+    citationRequest === null;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- moves LegendList's scroll to the "New" line once per opened chat, after the list has placed the chat at its end
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const viewport = viewportRef.current;
+    if (!unreadLineReady || unreadLineRowId === null || !list || !viewport) return;
+    if (unreadLineRevealedFor.current === listIdentityKey) return;
+    unreadLineRevealedFor.current = listIdentityKey;
+    return startUnreadLineReveal({ list, viewport, rowId: unreadLineRowId });
+  }, [listIdentityKey, listRef, unreadLineReady, unreadLineRowId, viewportRef]);
   const [minimapHasPersistentGutter, setMinimapHasPersistentGutter] = useState(false);
   // Every full-screen viewer reports false when it unmounts, so a row that leaves the list
   // while full screen releases its pin too.

@@ -26,6 +26,7 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
+import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { SidebarInset } from "../ui/sidebar";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
@@ -41,6 +42,8 @@ import { Disclosure, Muted, PageHeader } from "./paper";
 import type { MajordomeVault } from "./topics.logic";
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useRecentChats } from "./useRecentChats";
+import type { UnreadChat } from "./unread.logic";
+import { useUnreadChats } from "./useUnreadChats";
 
 const NO_TOPICS: MajordomeVault["topics"] = [];
 
@@ -176,12 +179,50 @@ function ChatListRow({
   );
 }
 
+/** An unread chat, wherever it is listed: a topic's chat says which topic. */
+function UnreadListRow({
+  chat: { thread, title, place, at },
+  nowMs,
+}: {
+  readonly chat: UnreadChat<SidebarThreadSummary>;
+  readonly nowMs: number;
+}) {
+  return (
+    <li className="border-t border-border">
+      <Link
+        to="/$environmentId/$threadId"
+        params={buildThreadRouteParams(scopeThreadRef(thread.environmentId, thread.id))}
+        className="-mx-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-2.5 outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <span aria-hidden className="size-2 shrink-0 rounded-full bg-primary" />
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="min-w-0 truncate text-sm font-medium text-foreground">{title}</span>
+          {place === null ? null : (
+            <span className="max-w-40 shrink-0 truncate text-xs text-muted-foreground">
+              {place}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {formatRelativeTimeLabel(at, nowMs)}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 /** The chats that belong to no topic, in one place, so the sidebar is left to the topics. */
 export function ChatsPage() {
   const { activeVault, copies, loading } = useMajordomeVaults();
   const chats = useRecentChats();
   const handleNewThread = useNewThreadHandler();
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<"all" | "unread">("all");
+  const wanted = query.trim().toLowerCase();
+  const allUnread = useUnreadChats();
+  const unread = allUnread.filter(
+    (chat) => wanted === "" || chat.title.toLowerCase().includes(wanted),
+  );
   const nowMs = Date.parse(`${useNowMinute()}:00.000Z`);
   const { current, done } = splitChats(chats, {
     query,
@@ -254,24 +295,59 @@ export function ChatsPage() {
                     />
                   </div>
                 ) : null}
-                <div className="mt-6">
-                  {current.length > 0 ? (
-                    list(current, "Chats")
-                  ) : (
-                    <Muted className="border-t border-border py-3">
-                      {query !== ""
-                        ? "No chat has that in its title."
-                        : done.length > 0
-                          ? "No chat is open. The ones marked as done are below."
-                          : "No chats yet. Start one with New chat."}
-                    </Muted>
-                  )}
-                </div>
-                {done.length > 0 ? (
-                  <Disclosure summary={`Done (${done.length})`} className="mt-8">
-                    {list(done, "Chats marked as done")}
-                  </Disclosure>
-                ) : null}
+                <ToggleGroup
+                  aria-label="Which chats to list"
+                  className="mt-6"
+                  value={[view]}
+                  onValueChange={(next) => {
+                    const value = next[0];
+                    if (value === "all" || value === "unread") setView(value);
+                  }}
+                >
+                  <Toggle value="all">All</Toggle>
+                  <Toggle value="unread">
+                    Unread
+                    {allUnread.length > 0 ? (
+                      <span className="tabular-nums opacity-70">{allUnread.length}</span>
+                    ) : null}
+                  </Toggle>
+                </ToggleGroup>
+                {view === "unread" ? (
+                  <div className="mt-4">
+                    {unread.length > 0 ? (
+                      <ul aria-label="Unread chats" className="m-0 list-none p-0">
+                        {unread.map((chat) => (
+                          <UnreadListRow key={chat.key} chat={chat} nowMs={nowMs} />
+                        ))}
+                      </ul>
+                    ) : (
+                      <Muted className="border-t border-border py-3">
+                        {query !== "" ? "No chat has that in its title." : "Nothing unread."}
+                      </Muted>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4">
+                      {current.length > 0 ? (
+                        list(current, "Chats")
+                      ) : (
+                        <Muted className="border-t border-border py-3">
+                          {query !== ""
+                            ? "No chat has that in its title."
+                            : done.length > 0
+                              ? "No chat is open. The ones marked as done are below."
+                              : "No chats yet. Start one with New chat."}
+                        </Muted>
+                      )}
+                    </div>
+                    {done.length > 0 ? (
+                      <Disclosure summary={`Done (${done.length})`} className="mt-8">
+                        {list(done, "Chats marked as done")}
+                      </Disclosure>
+                    ) : null}
+                  </>
+                )}
               </>
             )}
           </div>

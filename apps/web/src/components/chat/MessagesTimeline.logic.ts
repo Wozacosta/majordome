@@ -2996,17 +2996,32 @@ function rowStartsWorkLog(row: MessagesTimelineRow): boolean {
   );
 }
 
+/** The id of the "New" line's row, when the rows hold one. */
+export function newSinceRowId(rows: ReadonlyArray<MessagesTimelineRow>): string | null {
+  return rows.find((row) => row.kind === "day-divider" && row.unread)?.id ?? null;
+}
+
 /**
  * Majordome's rows: a divider above the first message of each calendar day in the viewer's local
- * time, and one above the first of the assistant's messages that arrived between the person's last
- * visit and this one. A divider sits above the work that led to the assistant's message.
+ * time, and the "New" line above the first of the assistant's messages that arrived between the
+ * person's last visit and this one. A divider sits above the work that led to the assistant's
+ * message.
  */
 export function withTimelineDayRows(
   rows: ReadonlyArray<MessagesTimelineRow>,
   input: {
     readonly now: Date;
-    /** Both ends of the absence; null when the person has not been here before. */
-    readonly away: { readonly since: number; readonly until: number } | null;
+    /**
+     * Both ends of the absence; null when the person has not been here before. `unread` says the
+     * chat held an unread reply when it was opened: a reply that began before the person left, or
+     * a chat marked as unread, has no message from the absence, so the line goes above the reply
+     * to their last message.
+     */
+    readonly away: {
+      readonly since: number;
+      readonly until: number;
+      readonly unread?: boolean;
+    } | null;
   },
 ): MessagesTimelineRow[] {
   const result: MessagesTimelineRow[] = [];
@@ -3014,6 +3029,16 @@ export function withTimelineDayRows(
   let dayEnd = Number.NaN;
   let workStart = 0;
   let away = input.away;
+  // Where the reply to the last message the person had sent by the opening starts.
+  let lastReply: { readonly index: number; readonly line: MessagesTimelineRow } | null = null;
+  const newLine = (row: { readonly id: string; readonly createdAt: string }) => ({
+    kind: "day-divider" as const,
+    id: `new-since:${row.id}`,
+    createdAt: row.createdAt,
+    // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own copy is plain English
+    label: "New",
+    unread: true,
+  });
   for (const row of rows) {
     const fromAssistant =
       row.kind === "sent-message" || (row.kind === "message" && row.message.role === "assistant");
@@ -3033,22 +3058,24 @@ export function withTimelineDayRows(
           unread: false,
         });
       }
+      if (away !== null && at <= away.until) {
+        if (!fromAssistant) lastReply = null;
+        else if (lastReply === null)
+          lastReply = { index: workStart + dividers.length, line: newLine(row) };
+      }
       if (away !== null && fromAssistant && at > away.since && at <= away.until) {
         away = null;
-        dividers.push({
-          kind: "day-divider",
-          id: `new-since:${row.id}`,
-          createdAt: row.createdAt,
-          // oxlint-disable-next-line t3code/no-untranslated-copy -- Majordome's own copy is plain English
-          label: "New since you were last here",
-          unread: true,
-        });
+        dividers.push(newLine(row));
       }
       if (dividers.length > 0)
         result.splice(fromAssistant ? workStart : result.length, 0, ...dividers);
     }
     result.push(row);
     if (!rowStartsWorkLog(row)) workStart = result.length;
+  }
+  // Later dividers went in below this reply, so its place in the result still holds.
+  if (away?.unread === true && lastReply !== null) {
+    result.splice(lastReply.index, 0, lastReply.line);
   }
   return result;
 }

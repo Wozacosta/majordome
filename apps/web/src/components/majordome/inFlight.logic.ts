@@ -5,6 +5,7 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { chatStatusWords, chatTitle } from "./chats.logic";
 import { buildFeedRunItems, FEED_RUN_STATUS_LABELS, type FeedVault } from "./feed.logic";
 import type { MajordomeVault } from "./topics.logic";
+import { isUnreadChat } from "./unread.logic";
 
 type InFlightThread = Parameters<typeof buildFeedRunItems>[0][number] &
   Parameters<typeof resolveThreadStatusPill>[0]["thread"] & {
@@ -151,11 +152,7 @@ export function selectInFlight(input: {
       });
       continue;
     }
-    // A chat marked as done has been dealt with, read or not.
-    if (mark === "answered") {
-      const key = scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id });
-      if (thread.settledOverride === "settled" || places.get(key)?.routine === true) continue;
-    }
+    if (mark === "answered" && !isUnreadChat(thread, places)) continue;
     unread.push({
       ...row(thread, { mark, state: chatStatusWords(pill.label), alerted: false }),
       at: thread.latestRun?.completedAt ?? thread.updatedAt,

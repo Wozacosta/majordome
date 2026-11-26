@@ -38,6 +38,7 @@ import {
   type MessagesTimelineRow,
   quickRepliesRowId,
   withTimelineDayRows,
+  newSinceRowId,
   workEntryDisplayLabel,
   workEntryReadOutput,
 } from "./MessagesTimeline.logic";
@@ -5339,14 +5340,18 @@ describe("Majordome day dividers and quick replies", () => {
       messageRow("asked-again", "user", local(2026, 11, 22, 8, 10)),
       messageRow("watched", "assistant", local(2026, 11, 22, 8, 11)),
     ];
-    const away = (since: Date, until: Date) => ({ since: since.getTime(), until: until.getTime() });
+    const away = (since: Date, until: Date, unread = false) => ({
+      since: since.getTime(),
+      until: until.getTime(),
+      unread,
+    });
     const marked = (input: ReturnType<typeof away> | null) =>
       shape(withTimelineDayRows(rows, { now, away: input })).filter((id) => id !== "[Today]");
 
     expect(marked(away(local(2026, 11, 22, 7, 20), local(2026, 11, 22, 8)))).toEqual([
       "seen",
       "asked",
-      "[New since you were last here]",
+      "[New]",
       "fold",
       "missed-1",
       "missed-2",
@@ -5358,6 +5363,73 @@ describe("Majordome day dividers and quick replies", () => {
       rows.map((row) => row.id),
     );
     expect(marked(null)).toEqual(rows.map((row) => row.id));
+    // The line is the one row the timeline opens on.
+    expect(
+      newSinceRowId(
+        withTimelineDayRows(rows, {
+          now,
+          away: away(local(2026, 11, 22, 7, 20), local(2026, 11, 22, 8)),
+        }),
+      ),
+    ).toBe("new-since:missed-1");
+    expect(newSinceRowId(withTimelineDayRows(rows, { now, away: null }))).toBeNull();
+  });
+
+  it("marks the reply to the last message when the chat is unread with nothing from the absence", () => {
+    const rows = [
+      messageRow("asked-1", "user", local(2026, 11, 22, 7)),
+      messageRow("seen", "assistant", local(2026, 11, 22, 7, 1)),
+      messageRow("asked-2", "user", local(2026, 11, 22, 7, 30)),
+      otherRow("turn-fold", "fold"),
+      messageRow("began-before-leaving", "assistant", local(2026, 11, 22, 7, 31)),
+      messageRow("then-more", "assistant", local(2026, 11, 22, 7, 32)),
+    ];
+    const opened = local(2026, 11, 22, 8);
+    const marked = (
+      shown: ReadonlyArray<MessagesTimelineRow>,
+      since: Date,
+      unread: boolean,
+    ): Array<string> =>
+      shape(
+        withTimelineDayRows(shown, {
+          now,
+          away: { since: since.getTime(), until: opened.getTime(), unread },
+        }),
+      ).filter((id) => id !== "[Today]");
+    const lineAboveLastReply = [
+      "asked-1",
+      "seen",
+      "asked-2",
+      "[New]",
+      "fold",
+      "began-before-leaving",
+      "then-more",
+    ];
+    // Left while the reply was being written, or marked as unread: the visit is newer than its start.
+    expect(marked(rows, local(2026, 11, 22, 7, 45), true)).toEqual(lineAboveLastReply);
+    // Read: the same visit without an unread reply draws no line.
+    expect(marked(rows, local(2026, 11, 22, 7, 45), false)).toEqual(rows.map((row) => row.id));
+    // The line stays where it is while the person writes and a new reply streams in.
+    const later = [
+      ...rows,
+      messageRow("asked-3", "user", local(2026, 11, 22, 8, 1)),
+      messageRow("streaming", "assistant", local(2026, 11, 22, 8, 2), true),
+    ];
+    expect(marked(later, local(2026, 11, 22, 7, 45), true)).toEqual([
+      ...lineAboveLastReply,
+      "asked-3",
+      "streaming",
+    ]);
+    // Everything is unread: the line sits above the first reply, never above the person's own message.
+    expect(marked(rows, local(2026, 11, 22, 6), true)).toEqual([
+      "asked-1",
+      "[New]",
+      "seen",
+      "asked-2",
+      "fold",
+      "began-before-leaving",
+      "then-more",
+    ]);
   });
 
   it("offers quick replies under the assistant's message only while it is the chat's last", () => {

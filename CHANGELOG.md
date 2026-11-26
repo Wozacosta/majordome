@@ -5,6 +5,19 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **Unread chats, in one place.** A chat with a reply you have not read is listed under **Unread**
+  at the top of the sidebar, with a count. The group is there only while something is unread. The
+  Chats page has an **All / Unread** switch that lists the same chats. Opening a chat takes it out
+  of Unread; **Mark unread** in a chat's menu puts it back.
+- **A "New" line where the unread part starts.** A chat with an unread reply opens on a thin line
+  labelled New, above the first thing you have not read, instead of at the very bottom. It replaces
+  "New since you were last here", stays while you are in the chat, and is gone the next time.
+- **Two more ready-made routines.** **A note worth rereading** brings back one older note each
+  Wednesday and says why it matters now. **To-dos left behind** lists, each Friday, the to-dos
+  that have waited longest and asks which to drop.
+
 **Changed**
 
 - **Ready-made routines are picture cards.** On **Routines**, each ready-made routine is now a
@@ -13,14 +26,10 @@ The section for a version is also the text of its release on GitHub.
   describe in words. With no routine yet, the cards are the page; otherwise they come after your
   list.
 
-**New**
-
-- **Two more ready-made routines.** **A note worth rereading** brings back one older note each
-  Wednesday and says why it matters now. **To-dos left behind** lists, each Friday, the to-dos
-  that have waited longest and asks which to drop.
-
 **Try this**
 
+- Ask something in a chat, then go to Today before the answer is there. When it arrives, open the
+  chat from **Unread** in the sidebar and look for the New line.
 - Open **Routines**, scroll to **Add a routine** and click **To-dos left behind**.
 
 ## 0.10.74

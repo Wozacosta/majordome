@@ -4,19 +4,22 @@ import { useState } from "react";
 import { isMajordome } from "~/env";
 import { useQuietThreadShell } from "../../state/entities";
 import { type MessagesTimelineRow, withTimelineDayRows } from "../chat/MessagesTimeline.logic";
+import { hasUnseenCompletion } from "../Sidebar.logic";
 
 interface TimelineDayRowsState {
   readonly identity: string | null;
   /** Undefined until the chat's shell has loaded, which on a cold start is after the first render. */
   readonly lastVisitedAt: string | null | undefined;
+  /** The chat held an unread reply when it was opened. */
+  readonly unread: boolean;
   readonly openedAt: number;
   readonly source: MessagesTimelineRow[] | null;
   readonly result: MessagesTimelineRow[];
 }
 
 /**
- * The timeline's rows with Majordome's day dividers and its "new since you were last here" marker.
- * The absence is read once per opened chat, before opening it counts as a visit, so the marker
+ * The timeline's rows with Majordome's day dividers and its "New" line.
+ * The absence is read once per opened chat, before opening it counts as a visit, so the line
  * stays where it is while the person reads and the assistant answers. The result keeps its identity
  * until the rows change, as the list compares its data by identity.
  */
@@ -30,18 +33,20 @@ export function useTimelineDayRows(
   const [state, setState] = useState<TimelineDayRowsState>({
     identity: null,
     lastVisitedAt: undefined,
+    unread: false,
     openedAt: 0,
     source: null,
     result: [],
   });
   if (!isMajordome) return rows;
   const reopened = state.identity !== identity;
-  const lastVisitedAt =
-    reopened || state.lastVisitedAt === undefined
-      ? shell === null
-        ? undefined
-        : (shell.lastVisitedAt ?? null)
-      : state.lastVisitedAt;
+  const captures = reopened || state.lastVisitedAt === undefined;
+  const lastVisitedAt = captures
+    ? shell === null
+      ? undefined
+      : (shell.lastVisitedAt ?? null)
+    : state.lastVisitedAt;
+  const unread = captures ? shell !== null && hasUnseenCompletion(shell) : state.unread;
   if (!reopened && state.source === rows && state.lastVisitedAt === lastVisitedAt) {
     return state.result;
   }
@@ -50,8 +55,8 @@ export function useTimelineDayRows(
   const openedAt = reopened ? now : state.openedAt;
   const result = withTimelineDayRows(rows, {
     now: new Date(now),
-    away: lastVisitedAt ? { since: Date.parse(lastVisitedAt), until: openedAt } : null,
+    away: lastVisitedAt ? { since: Date.parse(lastVisitedAt), until: openedAt, unread } : null,
   });
-  setState({ identity, lastVisitedAt, openedAt, source: rows, result });
+  setState({ identity, lastVisitedAt, unread, openedAt, source: rows, result });
   return result;
 }

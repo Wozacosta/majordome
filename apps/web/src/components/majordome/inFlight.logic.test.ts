@@ -4,6 +4,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { buildFeedRunItems } from "./feed.logic";
 import { capInFlight, inFlightPlaces, selectInFlight } from "./inFlight.logic";
 import { needsYouLines } from "./overview.logic";
+import { capUnread, selectUnreadChats } from "./unread.logic";
 
 type Thread = Parameters<typeof selectInFlight>[0]["threads"][number];
 type Run = "failed" | "completed" | "running" | "interrupted";
@@ -221,6 +222,76 @@ describe("selectInFlight", () => {
       "Start my day": "Routine",
       "Find a dentist": null,
     });
+  });
+});
+
+describe("selectUnreadChats", () => {
+  const topics = [
+    {
+      title: "Paris trip",
+      threadId: ThreadId.make("paris"),
+      threadEnvironmentId: MAC,
+      sideChats: [{ environmentId: MAC, threadId: ThreadId.make("hotels") }],
+    },
+  ] as unknown as Parameters<typeof inFlightPlaces>[0]["topics"];
+  const places = inFlightPlaces({ topics }, new Set([`${MAC}:digest`]));
+  const titles = (threads: ReadonlyArray<Thread>) =>
+    selectUnreadChats({ threads, vaults, places }).map((chat) =>
+      chat.place === null ? chat.title : `${chat.title} (${chat.place})`,
+    );
+
+  it("holds the chats with a reply not yet read, newest first, on every server", () => {
+    const threads = [
+      thread("Summarise the meeting", { ...UNREAD, at: "2026-11-26T09:00:00.000Z" }),
+      thread("paris", { ...UNREAD, at: "2026-11-26T09:30:00.000Z" }),
+      thread("hotels", { ...UNREAD, at: "2026-11-26T09:10:00.000Z" }),
+      thread("On the other server", {
+        ...UNREAD,
+        environmentId: HOSTED,
+        at: "2026-11-26T09:20:00.000Z",
+      }),
+      thread("Read yesterday", READ),
+      thread("Never opened", { run: "completed" }),
+      thread("Still going", { run: "running", lastVisitedAt: UNREAD.lastVisitedAt }),
+      thread("Stopped by me", { run: "interrupted", lastVisitedAt: UNREAD.lastVisitedAt }),
+      thread("Done with", { ...UNREAD, settledOverride: "settled" }),
+      thread("digest", UNREAD),
+      thread("Archived", { ...UNREAD, archivedAt: "2026-11-26T09:40:00.000Z" }),
+      thread("Another folder", { ...UNREAD, projectId: ProjectId.make("code") }),
+    ];
+    expect(titles(threads)).toEqual([
+      "Paris trip",
+      "On the other server",
+      "hotels (Paris trip)",
+      "Summarise the meeting",
+    ]);
+    // Today's rows for a reply are these same chats.
+    const answered = selectInFlight({ threads, vaults, places }).needsYou.filter(
+      (row) => row.mark === "answered",
+    );
+    expect(answered.map((row) => row.key).toSorted()).toEqual(
+      selectUnreadChats({ threads, vaults, places })
+        .map((chat) => chat.key)
+        .toSorted(),
+    );
+  });
+
+  it("lets go of a chat once it is read, and takes it back when marked as unread", () => {
+    const completedAt = "2026-11-26T09:00:00.000Z";
+    const chat = (lastVisitedAt: string) => [
+      thread("Summarise the meeting", { run: "completed", at: completedAt, lastVisitedAt }),
+    ];
+    expect(titles(chat("2026-11-26T08:00:00.000Z"))).toEqual(["Summarise the meeting"]);
+    expect(titles(chat(completedAt))).toEqual([]);
+    // Mark as unread rewinds the visit to just before the reply.
+    expect(titles(chat("2026-11-26T08:59:59.999Z"))).toEqual(["Summarise the meeting"]);
+  });
+
+  it("shows a few in the sidebar and counts the rest", () => {
+    const seven = ["a", "b", "c", "d", "e", "f", "g"];
+    expect(capUnread(seven, false)).toEqual({ shown: seven.slice(0, 5), more: 2 });
+    expect(capUnread(seven, true)).toEqual({ shown: seven, more: 0 });
+    expect(capUnread(seven.slice(0, 5), false)).toEqual({ shown: seven.slice(0, 5), more: 0 });
   });
 });
 

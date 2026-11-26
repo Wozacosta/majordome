@@ -47,6 +47,9 @@ The landing page and the README show a short version of this list.
   folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
   when the assistant ends with an offer.
+- **Unread chats in one place:** an Unread group at the top of the sidebar while something is
+  unread, an All / Unread switch on the Chats page, and a "New" line in the chat where the unread
+  part starts. T3 Code marks unread threads one by one in its list.
 - **Key facts** beside every conversation: the links, places, dates and names you mentioned, the
   conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
   facts and a topic's files. [Key facts](./user/key-facts.md)
