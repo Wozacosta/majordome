@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.61
+
 **New**
 
 - **Majordome is blue now, not orange.** In the dark theme, buttons, headings and the selected
