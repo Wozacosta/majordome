@@ -316,6 +316,8 @@ function ThreadListV2Section(props: {
       }}
       className={className}
       disabled={props.disclosure.disabled}
+      // The label is one small line; reach into the margins around it for a 44pt target.
+      hitSlop={{ top: 16, bottom: 12 }}
       onPress={props.disclosure.onToggle}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
@@ -437,7 +439,7 @@ export const ThreadListV2ShowMoreRow = memo(function ThreadListV2ShowMoreRow(pro
       }
       disabled={props.state === "loading"}
       onPress={props.onPress}
-      className="mx-4 mt-2 items-center rounded-lg border border-dashed border-border py-2.5"
+      className="mx-4 mt-2 min-h-[44px] items-center justify-center rounded-lg border border-dashed border-border py-2.5"
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
       <Text
@@ -1389,10 +1391,13 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       props.snoozePresets,
     ],
   );
+  // The title the row shows, derived again beside the memos that read it: React Compiler
+  // cannot keep their memoization when they depend on the one computed further up.
+  const actionTitle = topic?.title ?? (isMajordome ? chatTitle(thread.title) : thread.title);
   const primaryAction = useMemo(() => {
     if (swipeActions.primary === "archive") {
       return {
-        accessibilityLabel: gt("Archive {title}", { title: thread.title }),
+        accessibilityLabel: gt("Archive {title}", { title: actionTitle }),
         icon: "archivebox" as const,
         label: gt("Archive", { $context: "verb, thread action" }),
         swipeHint: gt("Opens the thread. Swipe left to archive."),
@@ -1402,7 +1407,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     }
     if (swipeActions.primary === "unsnooze") {
       return {
-        accessibilityLabel: gt("Wake {title} now", { title: thread.title }),
+        accessibilityLabel: gt("Wake {title} now", { title: actionTitle }),
         icon: "clock" as const,
         label: gt("Wake", { $context: "verb, thread action" }),
         swipeHint: gt("Opens the thread. Swipe left to wake."),
@@ -1412,7 +1417,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     }
     return swipeActions.primary === "unsettle"
       ? {
-          accessibilityLabel: gt("Un-settle {title}", { title: thread.title }),
+          accessibilityLabel: gt("Un-settle {title}", { title: actionTitle }),
           icon: "arrow.uturn.backward" as const,
           label: gt("Un-settle", { $context: "verb, thread action" }),
           swipeHint: gt("Opens the thread. Swipe left to un-settle."),
@@ -1420,7 +1425,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
           onPress: handleUnsettle,
         }
       : {
-          accessibilityLabel: gt("Settle {title}", { title: thread.title }),
+          accessibilityLabel: gt("Settle {title}", { title: actionTitle }),
           icon: "checkmark" as const,
           label: gt("Settle", { $context: "verb, thread action" }),
           swipeHint: gt("Opens the thread. Swipe left to settle."),
@@ -1434,13 +1439,13 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     handleUnsettle,
     handleUnsnooze,
     swipeActions.primary,
-    thread.title,
+    actionTitle,
   ]);
   const secondaryAction = useMemo(
     () =>
       swipeActions.secondary === "snooze"
         ? {
-            accessibilityLabel: gt("Choose when to snooze {title}", { title: thread.title }),
+            accessibilityLabel: gt("Choose when to snooze {title}", { title: actionTitle }),
             icon: "clock" as const,
             label: gt("Snooze", { $context: "verb, thread action" }),
             menu: {
@@ -1451,7 +1456,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
             onPress: () => undefined,
           }
         : null,
-    [gt, handleMenuAction, snoozePresetActions, swipeActions.secondary, thread.title],
+    [gt, handleMenuAction, snoozePresetActions, swipeActions.secondary, actionTitle],
   );
   const canSwipe =
     canOperateThread || (triageOnly && TRIAGE_MENU_ACTION_IDS.has(swipeActions.primary));

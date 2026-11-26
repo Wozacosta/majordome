@@ -29,7 +29,7 @@ const state = vi.hoisted(() => ({
     environmentId: string;
     input: { threadId: string; orderKey?: string; snoozedUntil?: string; reason?: string };
   }[],
-  dialogs: [] as { onConfirm: () => void }[],
+  dialogs: [] as { onConfirm: () => void; message?: string }[],
   alerts: [] as {
     title: string;
     buttons?: { text: string; onPress?: () => void }[];
@@ -55,7 +55,7 @@ vi.mock("expo-haptics", () => ({
 vi.mock("../../components/ui/Dialog", () => ({
   alert: (title: string, _message: string, buttons?: { text: string; onPress?: () => void }[]) =>
     state.alerts.push({ title, buttons }),
-  confirm: (dialog: { onConfirm: () => void }) => state.dialogs.push(dialog),
+  confirm: (dialog: { onConfirm: () => void; message?: string }) => state.dialogs.push(dialog),
 }));
 vi.mock("../archive/useArchivedThreadSnapshots", () => ({
   refreshArchivedThreadsForEnvironment: (environmentId: string) => {
@@ -294,6 +294,12 @@ describe("thread list operation permissions", () => {
 
     expect(state.requests).toEqual([expect.objectContaining({ action: "delete" })]);
     expect(Object.keys(appAtomRegistry.get(composerDraftsAtom))).toEqual(["primary:other"]);
+  });
+
+  it("asks to delete a chat not named yet by the name its row shows", () => {
+    useThreadListActions().confirmDeleteThread(makeThread({ title: "New thread" }));
+
+    expect(state.dialogs[0]?.message).toContain("“New chat”");
   });
 });
 

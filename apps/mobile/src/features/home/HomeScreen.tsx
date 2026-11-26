@@ -893,7 +893,19 @@ export function HomeScreen(props: HomeScreenProps) {
         detail={gt("Choose another environment or create a new task.")}
         variant={Platform.OS === "android" ? "plain" : undefined}
       />
-    ) : hasTopics ? null : (
+    ) : isMajordome ? (
+      // Topics with no chat yet are rows of the header. With none, closed topics or hidden
+      // routines in the footer would be all there is under a blank list.
+      chatTopics.apart.length > 0 ? null : (
+        <EmptyState
+          title={emptyState.title}
+          detail={emptyState.detail}
+          actionLabel={offersFirstChat ? NO_CHATS_YET.action : undefined}
+          onAction={offersFirstChat ? props.onStartNewTask : undefined}
+          variant={Platform.OS === "android" ? "plain" : undefined}
+        />
+      )
+    ) : (
       <EmptyState
         title={gt("No threads yet")}
         detail={gt("Create a task to start a new coding session.")}

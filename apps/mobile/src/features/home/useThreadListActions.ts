@@ -232,7 +232,7 @@ function confirmThreadDeletion(
   const title = m(msg("Delete thread?"));
   const message = m(
     msg("“{title}” will be permanently deleted, including its terminal history.", {
-      title: thread.title,
+      title: isMajordome ? chatTitle(thread.title) : thread.title,
     }),
   );
   Dialog.confirm({

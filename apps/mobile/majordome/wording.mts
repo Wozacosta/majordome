@@ -104,6 +104,55 @@ export const MOBILE_WORDING: Wording = [
     "Start a chat to ask Majordome something.",
   ],
 
+  // The Chats list: what its rows and their actions say.
+  ["Settled thread", "Marked as done"],
+  ["Snoozed thread", "Chat snoozed"],
+  ["Unpinned thread", "Chat unpinned"],
+  ["Could not undo thread action", "Couldn't undo that"],
+  ["Settle {title}", "Mark {title} as done"],
+  ["Opens the thread. Swipe left to settle.", "Opens the chat. Swipe left to mark it as done."],
+  ["Opens the thread. Swipe left to un-settle.", "Opens the chat. Swipe left to bring it back."],
+  [
+    "Opens the thread. Swipe left for settle and snooze actions.",
+    "Opens the chat. Swipe left to mark it as done or snooze it.",
+  ],
+  [
+    "Opens the thread. Swipe left for un-settle and snooze actions.",
+    "Opens the chat. Swipe left to bring it back or snooze it.",
+  ],
+  [
+    "Opens the thread. Swipe left for wake and snooze actions.",
+    "Opens the chat. Swipe left to wake it or snooze it again.",
+  ],
+  [
+    "{count, plural, one {Show more ({count} settled hidden)} other {Show more ({count} settled hidden)}}",
+    "{count, plural, one {Show {count} more done chat} other {Show more done chats ({count} hidden)}}",
+  ],
+  [
+    "This thread is working. Interrupt it first, then try again.",
+    "Majordome is still answering in this chat. Stop it first, then try again.",
+  ],
+  [
+    "This thread is waiting on you. Respond to the pending request before snoozing it.",
+    "This chat is waiting for your answer. Answer it before snoozing it.",
+  ],
+  [
+    "This thread is still starting a turn. Try again once it's running.",
+    "This chat is only just starting. Try again in a moment.",
+  ],
+  ["This connection cannot change threads.", "This phone isn't allowed to change chats there."],
+  [
+    "Sends when the environment reconnects. Opens the task for editing. Swipe left to delete.",
+    "Sends when your computer is back. Opens the message to edit it. Swipe left to delete.",
+  ],
+  ["Delete pending task?", "Delete this waiting message?"],
+  [
+    "“{title}” has not been sent yet and will be removed from the outbox.",
+    "“{title}” has not been sent yet. Deleting it means it never will be.",
+  ],
+  ["Could not delete pending task", "Couldn't delete the message"],
+  ["The pending task could not be removed.", "The waiting message could not be deleted."],
+
   // Adding a computer, and what can go wrong.
   ["Add Environment", "Add a computer"],
   ["No environments connected yet.", "No computer connected yet."],
