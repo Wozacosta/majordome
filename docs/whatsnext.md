@@ -9,6 +9,9 @@ The checklist, made on 2026-11-26. Payment on [majord.me/start](https://majord.m
 and has one customer, the owner; everything here waits until strangers are told. **Bold** items
 block the opening. Tick an item when it is done and remove it once the section is stale.
 
+Not for the opening (the owner, 2026-11-26): Android, Windows and Linux come after it. The
+opening is the Mac app, the iPhone app and hosted servers.
+
 ### The owner's to decide or supply
 
 - [ ] **Roll the live Stripe key** "Majordome broker": its value passed through an agent's
