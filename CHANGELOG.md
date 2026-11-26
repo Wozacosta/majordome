@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
+- **The app tells you what changed after an update.** The first time it opens on a new version,
+  a note says "Updated to version …" with a **See what's new** button. It opens that version's
+  notes from this page: what is new, what was fixed, and what to try. The note shows once per
+  version, and never on a first install.
+- **What's new is also in Settings, About**, so you can read the notes again whenever you want.
+  The command menu finds it too: type "what's new" or "changelog".
 - **On the phone, a chat speaks plainly in more places.** A question from Majordome now says
   "Majordome has a question" and "Send my answer". Messages you write while it is still replying
   are "waiting", not "queued". Stopping a reply that won't stop explains itself without "turns"
@@ -45,6 +51,8 @@ The section for a version is also the text of its release on GitHub.
 - Go to Settings, Computers, Add a computer, tap Address and check the Connect button stays
   above the keyboard. Then open a computer's details, change its name and tap Save once.
 - Open Settings, then Labs: two switches are left, Linked computers and Suggest my next message.
+- Open Settings, About and select **See what's new**.
+- After the next update, look at the top right of the window when the app opens.
 
 ## 0.10.59
 

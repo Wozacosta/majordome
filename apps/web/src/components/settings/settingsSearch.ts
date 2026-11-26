@@ -1154,6 +1154,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: [msg("about check for updates download install upgrade release")],
   },
   {
+    id: "whats-new",
+    title: msg("What's new"),
+    to: "/settings/about",
+    searchTerms: [msg("changelog release notes changes updated latest version")],
+  },
+  {
     id: "update-track",
     title: msg("Update track"),
     to: "/settings/about",

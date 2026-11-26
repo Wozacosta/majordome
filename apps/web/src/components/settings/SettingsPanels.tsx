@@ -38,6 +38,7 @@ import * as Equal from "effect/Equal";
 import * as Schema from "effect/Schema";
 import { APP_VERSION, HOSTED_APP_CHANNEL, HOSTED_APP_CHANNEL_LABEL } from "../../branding";
 import { AboutVersionTitle } from "./AboutVersionTitle";
+import { openWhatsNew, WHATS_NEW_VERSION } from "../WhatsNew";
 import { CliCommandSettingsRow } from "./CliCommandSettingsRow";
 import { MobileAppSettingsRow } from "./MobileAppSettingsRow";
 import {
@@ -2569,6 +2570,19 @@ export function AboutSettingsPanel() {
               description={gt("Current version of the application.")}
             />
           </>
+        )}
+        {WHATS_NEW_VERSION === null ? null : (
+          <SettingsRow
+            {...setting("whats-new")}
+            description={gt("What changed in version {version}, and what is worth trying.", {
+              version: WHATS_NEW_VERSION,
+            })}
+            control={
+              <Button size="sm" variant="outline" onClick={openWhatsNew}>
+                {gt("See what's new")}
+              </Button>
+            }
+          />
         )}
         <MobileAppSettingsRow />
         {primaryEnvironmentId === null ? null : (

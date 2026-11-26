@@ -19,6 +19,7 @@ import { loadRepoEnv } from "../../scripts/lib/public-config";
 import { resolveTaggedSourceVersion } from "../../scripts/lib/tagged-source-version";
 import { thirdPartyLicensesPlugin } from "../../scripts/lib/third-party-licenses";
 import { majordomeBrandPlugin } from "./vite/majordomeBrand";
+import { readWhatsNew } from "./vite/majordomeWhatsNew";
 import { majordomeHiddenAssetsPlugin } from "./vite/majordomeHiddenAssets";
 import { tailwindPlugins } from "./vite/tailwind";
 import { warmBundledDevPlugin } from "./vite/warmBundledDev";
@@ -313,6 +314,7 @@ export default defineConfig(({ command }) => {
     (command === "build" && !builtDev
       ? resolveTaggedSourceVersion(`${import.meta.dirname}/../..`, pkg.version)
       : pkg.version);
+  const whatsNew = readWhatsNew(`${import.meta.dirname}/../../CHANGELOG.md`, configuredAppVersion);
   return {
     run: {
       tasks: {
@@ -383,6 +385,8 @@ export default defineConfig(({ command }) => {
       ),
       "import.meta.env.VITE_RELEASE_CHANNEL": JSON.stringify(configuredReleaseChannel),
       "import.meta.env.APP_VERSION": JSON.stringify(configuredAppVersion),
+      "import.meta.env.MAJORDOME_WHATS_NEW_VERSION": JSON.stringify(whatsNew?.version ?? ""),
+      "import.meta.env.MAJORDOME_WHATS_NEW_NOTES": JSON.stringify(whatsNew?.notes ?? ""),
     },
     resolve: {
       tsconfigPaths: true,

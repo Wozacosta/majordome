@@ -121,6 +121,9 @@ The landing page and the README show a short version of this list.
   none and says so in the app, with [its own privacy page](https://majord.me/privacy).
 - **Its own name, icon and updates.** The `majord` service and its updates come from Majordome's
   releases, never from T3 Code's.
+- **What's new, inside the app.** After an update, the app offers that version's notes: what
+  changed and what to try. They stay in Settings, About. T3 Code shows notes only before you
+  update.
 
 ## What Majordome leaves out
 
