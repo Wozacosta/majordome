@@ -115,7 +115,7 @@ The landing page and the README show a short version of this list.
   what it is for, and messages name pages as the app does.
 - **Chats on their own background.** A chat, and the Assistant panel beside a page, sit one step
   lighter than the pages, so the conversation is easy to find.
-- **A message box that stands out.** A warm line on its edge, and a glow while you type.
+- **A message box that stands out.** A green line on its edge, and a glow while you type.
 - **A jump list on long settings pages.** Under the title, the page's sections are listed on one
   line that stays in view; click one to go there.
 - **One computer at a time.** Pages that say the same things about each computer (Connections,

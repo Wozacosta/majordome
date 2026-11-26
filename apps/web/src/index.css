@@ -1415,7 +1415,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   background-color: var(--background);
 }
 
-/* The message box carries a faint warm edge so it is easy to find, and lights up while you type
+/* The message box carries a faint accent edge so it is easy to find, and lights up while you type
    in it. Nothing here moves on its own. A box with a banner attached keeps its plain outline,
    since the two then share one shape. */
 [data-slot="composer-host"]:not(:has([data-composer-banner-surface="attached"])) {

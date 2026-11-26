@@ -13,8 +13,8 @@
     <meta name="apple-mobile-web-app-title" content="Majordome" />
     <script>
       (() => {
-        const LIGHT_BACKGROUND = "#f9f7f2";
-        const DARK_BACKGROUND = "#141210";
+        const LIGHT_BACKGROUND = "#f6f9f6";
+        const DARK_BACKGROUND = "#121615";
         const CUSTOM_THEMES_STORAGE_KEY = "t3code:themes:v1";
         const ENVIRONMENT_THEMES_STORAGE_KEY = "t3code:environment-themes:v1";
         const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "t3code:theme-follow-system";
@@ -22,14 +22,14 @@
         const THEME_HALVES_STORAGE_KEY = "t3code:theme-halves:v1";
         const SPLASH_COLORS = {
           light: {
-            background: "#f9f7f2",
-            foreground: "#1c1917",
-            accent: "#c2410c",
+            background: "#f6f9f6",
+            foreground: "#151a17",
+            accent: "#17804a",
           },
           dark: {
-            background: "#141210",
-            foreground: "#f5f0e8",
-            accent: "#f08a4b",
+            background: "#121615",
+            foreground: "#eef2ee",
+            accent: "#3ddc84",
           },
         };
         // These are the runtime defaults used to complete a custom palette
@@ -403,15 +403,15 @@
       }
 
       body {
-        background: #f9f7f2;
-        color: #1c1917;
+        background: #f6f9f6;
+        color: #151a17;
         font-family:
           -apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif;
       }
 
       html.dark body {
-        background: #141210;
-        color: #f5f0e8;
+        background: #121615;
+        color: #eef2ee;
       }
 
       #boot-shell {

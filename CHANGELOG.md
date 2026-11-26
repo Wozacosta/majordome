@@ -11,8 +11,12 @@ Not released yet.
 
 **New**
 
-- **The message box is easier to find.** It has a thin warm line along its edge, and it lights
-  up with an orange ring while you type in it. Nothing moves or blinks.
+- **Majordome is green now, not orange.** In the dark theme, buttons, headings and the selected
+  page are the green of the logo's light, on a dark background with a hint of green. In the
+  light theme they are a deeper green on white. Orange sat too close to the amber of a warning;
+  now a warning or an error is the only warm colour on the page, so you see it at once.
+- **The message box is easier to find.** It has a thin green line along its edge, and it lights
+  up with a green ring while you type in it. Nothing moves or blinks.
 - **The app tells you what changed after an update.** The first time it opens on a new version,
   a note says "Updated to version …" with a **See what's new** button. It opens that version's
   notes from this page: what is new, what was fixed, and what to try. The note shows once per
@@ -68,6 +72,9 @@ Not released yet.
 - Open Settings, then Your servers. Each server is there with what is on it, and the sections
   under the list name the server they are about ("What is left on your Majordome server").
 - Open Settings, About and select **See what's new**.
+- Look at a page with a warning, such as Settings, Your account when your phone cannot reach
+  this Mac: the amber dot stands apart from the green button beside it. Then switch between
+  light and dark in Settings, Appearance.
 - After the next update, look at the top right of the window when the app opens.
 
 ## 0.10.59
