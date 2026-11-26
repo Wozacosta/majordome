@@ -1,5 +1,6 @@
 import { useNativeFileDrag } from "../../useNativeFileDrag";
 import { useAssetUrlState } from "../../assets/assetUrls";
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { formatFilePathForClipboard } from "@t3tools/client-runtime/media-actions";
 import {
   isAtomCommandInterrupted,
@@ -13,6 +14,7 @@ import { FolderIcon } from "lucide-react";
 
 import { contextMenuSourceOf, openContextMenuFromKeyboard } from "../../contextMenuSource";
 import { readLocalApi } from "../../localApi";
+import { m } from "../../i18n/messages";
 import { cn } from "../../lib/utils";
 import { shouldOpenMarkdownFileLinkInEditor } from "../../markdown-links";
 import type { markdownFileCopyPaths } from "../../markdownFileHostPath";
@@ -52,6 +54,8 @@ interface MarkdownFileLinkProps {
   onOpenMedia?: (() => void) | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   revealLabel?: string | undefined;
+  /** Saves the file to this device; rejects when it cannot be read. */
+  onDownload?: (() => Promise<void>) | undefined;
 }
 
 const MARKDOWN_FILE_LINK_CLASS_NAME = "chat-markdown-file-link";
@@ -76,6 +80,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   onOpenMedia,
   onReveal,
   revealLabel,
+  onDownload,
   resolveCopyPaths,
   resolveDragPath,
 }: MarkdownFileLinkProps) {
@@ -207,6 +212,19 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
     })();
   };
 
+  const handleDownload = () => {
+    onDownload?.().catch((cause: unknown) => {
+      reportMarkdownActionFailure({ operation: "download-file", target: targetPath }, cause);
+      toastManager.add(
+        stackedThreadToast({
+          type: "error",
+          title: gt("Could not save file"),
+          description: thrownErrorMessage(cause, m) ?? gt("Please try again."),
+        }),
+      );
+    });
+  };
+
   const handleCopy = (resolveValue: () => Promise<string>, title: string) => {
     const failureTitle =
       title === "Relative path"
@@ -265,6 +283,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
             ? ([{ id: "open-in-browser", label: gt("Open in integrated browser") }] as const)
             : []),
           ...(onReveal && revealLabel ? ([{ id: "reveal", label: revealLabel }] as const) : []),
+          ...(onDownload ? ([{ id: "download", label: gt("Download") }] as const) : []),
           ...copyItems.map(({ id, label }) => ({ id, label })),
         ] as const,
         position,
@@ -285,6 +304,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
       }
       if (clicked === "reveal") {
         handleRevealInFileManager();
+        return;
+      }
+      if (clicked === "download") {
+        handleDownload();
         return;
       }
       if (clicked === "copy-relative" || clicked === "copy-full") {
@@ -434,6 +457,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onOpenMedia === next.onOpenMedia &&
     previous.onReveal === next.onReveal &&
+    previous.onDownload === next.onDownload &&
     previous.resolveCopyPaths === next.resolveCopyPaths &&
     previous.resolveDragPath === next.resolveDragPath &&
     previous.revealLabel === next.revealLabel

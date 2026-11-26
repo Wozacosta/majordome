@@ -62,6 +62,8 @@ The landing page and the README show a short version of this list.
   middle and a line out to each thing it read before your first message, can use and can reach:
   instructions, skills, notes, connections, saved keys and private documents. A box opens onto
   what is behind it; a key's value and a private document's text are never shown.
+- **Download a file the assistant names:** the menu of a file in an answer has "Download", which
+  saves a copy on the device you are reading on, wherever the file lives.
 - **Keys your assistant can use:** a list of the API keys, tokens and passwords you saved for it,
   with when each was last used, and tools so it knows which it has and uses one without the key
   appearing in the chat. A key can stay in 1Password or Bitwarden Secrets Manager (a source

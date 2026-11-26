@@ -236,6 +236,8 @@ import {
   nodeToPlainText,
 } from "./chat/MarkdownCodeBlock.logic";
 import { reportMarkdownActionFailure } from "./chat/markdownActionFailure";
+import { resolveAssetUrl } from "../assets/assetUrls";
+import { saveUrlAsFile } from "../assets/saveFile";
 
 const isAssetNotFoundError = Schema.is(AssetWorkspaceAssetNotFoundError);
 
@@ -989,6 +991,28 @@ function useChatMarkdownState(
       openAt(match ?? panelPath);
     })();
   };
+  const downloadWorkspaceFile = async (absolutePath: string) => {
+    if (!threadRef) return;
+    const httpBaseUrl = readPreparedConnection(threadRef.environmentId)?.httpBaseUrl;
+    if (!httpBaseUrl) throw new Error(gt("Reconnect to the environment and try again."));
+    const result = await createAssetUrl({
+      environmentId: threadRef.environmentId,
+      input: {
+        resource: {
+          _tag: "media-file",
+          threadId: threadRef.threadId,
+          path: absolutePath,
+          disposition: "attachment",
+        },
+      },
+    });
+    if (result._tag === "Failure") throw squashAtomCommandFailure(result);
+    const url = resolveAssetUrl(httpBaseUrl, result.value.relativeUrl);
+    const name = absolutePath.split(/[\\/]/).at(-1) || absolutePath;
+    if (!url || !(await saveUrlAsFile(url, name))) {
+      throw new Error(gt("The file could not be loaded. Try again."));
+    }
+  };
   const fileLinkChip = (
     fileLinkMeta: MarkdownFileLinkMeta,
     copyMarkdown: string,
@@ -1075,6 +1099,14 @@ function useChatMarkdownState(
             : undefined
         }
         revealLabel={revealInFileManagerLabel}
+        onDownload={
+          threadRef && !isAppBundle
+            ? async () =>
+                downloadWorkspaceFile(
+                  resolvePathLinkTarget((await resolveHostPath()).absolutePath, cwd ?? ""),
+                )
+            : undefined
+        }
         onOpenInBrowser={
           threadRef &&
           canOperatePreview &&
