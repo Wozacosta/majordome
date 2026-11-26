@@ -1069,6 +1069,11 @@ export const resolvePackageManagedProviderMaintenance = Effect.fn(
   // npm proof outranks a containing Homebrew keg; Homebrew Node globals still belong to npm.
   const npmPrefix = yield* resolveNpmGlobalPrefix(context, packageName);
   if (npmPrefix) {
+    // A global installed by another user, such as root in a container image the server does not
+    // run as root in: npm would fail with EACCES, and whoever installed it updates it.
+    if (!(yield* isNpmGlobalPrefixWritable(npmPrefix))) {
+      return { ...manual, latestVersion: null, lookupLatestVersion: Effect.succeed(null) };
+    }
     npmProviderPackageNames.add(packageName);
     const services = yield* Effect.context<ProviderMaintenanceResolverServices>();
     // npm 12 requires script approval to install native binaries; older npm only warns about the flag.
@@ -1251,6 +1256,22 @@ const isVoltaPackageInstall = Effect.fn("isVoltaPackageInstall")(function* (
     script === "@echo off\nvolta run %~n0 %*" ||
     script === '#!/bin/bash\nvolta run "$(basename $0)" "$@"'
   );
+});
+
+const isNpmGlobalPrefixWritable = Effect.fn("isNpmGlobalPrefixWritable")(function* (
+  npmPrefix: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  for (const root of [path.join(npmPrefix, "lib", "node_modules"), npmPrefix]) {
+    if (yield* fileSystem.exists(root).pipe(Effect.orElseSucceed(() => false))) {
+      return yield* fileSystem.access(root, { writable: true }).pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false),
+      );
+    }
+  }
+  return true;
 });
 
 const resolveNpmGlobalPrefix = Effect.fn("resolveNpmGlobalPrefix")(function* (

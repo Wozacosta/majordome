@@ -863,6 +863,31 @@ it.layer(
       }),
   );
 
+  it.effect.skipIf(!symlinksSupported || process.getuid?.() === 0)(
+    "offers no update for an npm global the server cannot write to",
+    () =>
+      Effect.gen(function* () {
+        const tempDir = yield* makeTempDir("t3-npm-readonly");
+        const link = linkIntoPackage(tempDir, "package-tool", [
+          "lib",
+          "node_modules",
+          "@example",
+          "package-tool",
+        ]);
+        const globals = NodePath.join(tempDir, "lib", "node_modules");
+        NodeFS.chmodSync(globals, 0o555);
+        yield* Effect.addFinalizer(() => Effect.sync(() => NodeFS.chmodSync(globals, 0o755)));
+
+        const capabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(
+          packageToolUpdate,
+          { binaryPath: link, env: {} },
+        ).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn));
+
+        expect(capabilities.update).toBeNull();
+        expect(yield* capabilities.lookupLatestVersion!).toBeNull();
+      }),
+  );
+
   it("derives the npm prefix only from the global lib/node_modules layout", () => {
     expect(
       npmGlobalPrefixFromCommandPath(
