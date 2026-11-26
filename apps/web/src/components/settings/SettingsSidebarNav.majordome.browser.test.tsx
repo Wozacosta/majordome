@@ -25,9 +25,10 @@ function renderNav(pathname: string) {
 }
 
 const sections = (container: HTMLElement) =>
-  [...container.querySelectorAll("[data-settings-section]")].map((row) =>
-    row.getAttribute("data-settings-section"),
-  );
+  // A folded part's rows stay in the page at no height, inert.
+  [...container.querySelectorAll("[data-settings-section]")]
+    .filter((row) => row.closest("[inert]") === null)
+    .map((row) => row.getAttribute("data-settings-section"));
 
 const PARTS = ["This app", "Notes", "Files & credentials", "AI", "You and your devices", "Others"];
 

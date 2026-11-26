@@ -449,7 +449,10 @@ export function SettingsSidebarNav({
                       activePath === to || activePath.startsWith(`${to}/`);
                     const collapsed = group.collapsible && !openGroups.includes(group.heading);
                     // A folded group still shows the page you are on, so you never lose your place.
-                    const paths = collapsed ? group.paths.filter(isPathActive) : group.paths;
+                    const isShown = (to: SettingsPath) => !collapsed || isPathActive(to);
+                    // Majordome keeps a folded part's pages in place at no height, so folding
+                    // and unfolding can slide; T3 leaves them out.
+                    const paths = isMajordome ? group.paths : group.paths.filter(isShown);
                     return (
                       <div
                         key={group.heading}
@@ -503,14 +506,17 @@ export function SettingsSidebarNav({
                               >
                                 <ChevronRightIcon
                                   aria-hidden
-                                  className={cn("size-3.5", !collapsed && "rotate-90")}
+                                  className={cn(
+                                    "size-3.5 transition-transform duration-200 motion-reduce:transition-none",
+                                    !collapsed && "rotate-90",
+                                  )}
                                 />
                               </button>
                             ) : (
                               <ChevronRightIcon
                                 aria-hidden
                                 className={cn(
-                                  "pointer-events-none absolute end-2 top-1/2 size-3.5 -translate-y-1/2 text-sidebar-muted-foreground",
+                                  "pointer-events-none absolute end-2 top-1/2 size-3.5 -translate-y-1/2 text-sidebar-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
                                   !collapsed && "rotate-90",
                                 )}
                               />
@@ -557,24 +563,42 @@ export function SettingsSidebarNav({
                             {paths.map((to) => {
                               const Icon = SETTINGS_SECTION_ICONS[to];
                               const isActive = isPathActive(to);
+                              const row = (
+                                <SidebarMenuButton
+                                  data-settings-section={to}
+                                  aria-current={isActive ? "page" : undefined}
+                                  isActive={isActive}
+                                  size={list ? "lg" : "default"}
+                                  onClick={() => handleSectionClick(to)}
+                                >
+                                  <Icon />
+                                  <span className={cn("truncate", rail && "max-md:sr-only")}>
+                                    {m(SETTINGS_NAV_LABELS[to])}
+                                  </span>
+                                  {list ? (
+                                    <ChevronRightIcon aria-hidden className="ms-auto" />
+                                  ) : null}
+                                </SidebarMenuButton>
+                              );
+                              if (!isMajordome)
+                                return <SidebarMenuItem key={to}>{row}</SidebarMenuItem>;
                               return (
-                                <SidebarMenuItem key={to}>
-                                  <SidebarMenuButton
-                                    data-settings-section={to}
-                                    aria-current={isActive ? "page" : undefined}
-                                    isActive={isActive}
-                                    size={list ? "lg" : "default"}
-                                    onClick={() => handleSectionClick(to)}
-                                  >
-                                    <Icon />
-                                    <span className={cn("truncate", rail && "max-md:sr-only")}>
-                                      {m(SETTINGS_NAV_LABELS[to])}
-                                    </span>
-                                    {list ? (
-                                      <ChevronRightIcon aria-hidden className="ms-auto" />
-                                    ) : null}
-                                  </SidebarMenuButton>
-                                </SidebarMenuItem>
+                                // A plain list item, since the sidebar's own does not animate.
+                                // The row's height runs between none and its own. A folded row is
+                                // inert and invisible, so nothing reaches it, and gives back the
+                                // gap the list leaves after it.
+                                <li
+                                  key={to}
+                                  inert={!isShown(to)}
+                                  className={cn(
+                                    "group/menu-item relative grid transition-[grid-template-rows,margin,visibility] duration-200 ease-out motion-reduce:transition-none",
+                                    isShown(to)
+                                      ? "grid-rows-[1fr]"
+                                      : "invisible -mb-1 grid-rows-[0fr]",
+                                  )}
+                                >
+                                  <div className="min-h-0 overflow-hidden">{row}</div>
+                                </li>
                               );
                             })}
                           </SidebarMenu>

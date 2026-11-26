@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **A part of Settings slides open and shut.** Its pages used to appear and vanish at once. They
+  now slide over a fifth of a second, and the small arrow turns with them. With "Reduce motion"
+  on in your system settings, they still switch at once.
+
+**Try this**
+
+- Open Settings and press the small arrow at the end of "This app" a few times.
 
 ## 0.10.64
 

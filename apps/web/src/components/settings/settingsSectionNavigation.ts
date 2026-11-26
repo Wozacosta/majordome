@@ -13,7 +13,10 @@ export function handleSettingsSectionKeyDown(event: KeyboardEvent<HTMLElement>) 
     !event.target.matches(SECTION)
   )
     return;
-  const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(SECTION));
+  // A folded group keeps its rows in the page, inert; the arrows pass over them.
+  const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(SECTION)).filter(
+    (item) => item.closest("[inert]") === null,
+  );
   const index = items.indexOf(event.target);
   const next =
     event.key === "ArrowDown"
