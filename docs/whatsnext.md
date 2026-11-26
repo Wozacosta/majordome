@@ -61,8 +61,7 @@ Details are in "The iPhone app" below.
 
 - [ ] **Sign up from the phone, run for real.** Making a server from the app has only been unit
       tested.
-- [ ] **The purchase, or hide it.** It is not ready to submit. In the broker: App Review buys in
-      Apple's sandbox, which is switched off (`APPLE_ALLOW_SANDBOX`); placeholder key ids switch
+- [ ] **The purchase, or hide it.** It is not ready to submit. In the broker: placeholder key ids switch
       selling on; a purchase with no account token is dropped; an unknown transaction gets the
       wrong message. In App Store Connect: the Paid Apps agreement, the subscription at the web
       price with a one-week free offer, the billing grace period, the In-App Purchase key, the

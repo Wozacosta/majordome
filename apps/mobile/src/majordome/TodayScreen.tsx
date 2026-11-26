@@ -123,7 +123,9 @@ const MARK = {
 
 /** One of the quieter ways to connect, under the main button. */
 function WayIn(props: {
-  readonly icon: "qrcode.viewfinder" | "server.rack";
+  readonly icon: "person.crop.circle" | "qrcode.viewfinder" | "server.rack";
+  /** The way most people take: drawn in the accent colour. */
+  readonly main?: boolean;
   readonly title: string;
   readonly detail: string;
   readonly onPress: () => void;
@@ -135,14 +137,26 @@ function WayIn(props: {
       onPress={props.onPress}
       className="flex-row items-center gap-4 px-4 py-3.5 active:opacity-70"
     >
-      <SymbolView name={props.icon} size={24} tintColorClassName="accent-foreground" />
+      <SymbolView
+        name={props.icon}
+        size={24}
+        tintColorClassName={props.main ? "accent-primary-text" : "accent-foreground"}
+      />
       <View className="min-w-0 flex-1 gap-0.5">
-        <Text className="font-t3-medium text-foreground">{props.title}</Text>
+        <Text
+          className={props.main ? "font-t3-bold text-foreground" : "font-t3-medium text-foreground"}
+        >
+          {props.title}
+        </Text>
         <Text textRole="footnote" className="text-foreground-muted">
           {props.detail}
         </Text>
       </View>
-      <SymbolView name="chevron.right" size={14} tintColorClassName="accent-foreground-muted" />
+      <SymbolView
+        name="chevron.right"
+        size={14}
+        tintColorClassName={props.main ? "accent-primary-text" : "accent-foreground-muted"}
+      />
     </Pressable>
   );
 }
@@ -188,34 +202,35 @@ function Welcome() {
           {MAJORDOME_WELCOME.what}
         </Text>
       </View>
-      <View className="gap-4">
-        <Button
-          label={hasAccounts ? "Sign in" : "Add a computer"}
-          tone="contrast"
-          fullWidth
-          onPress={() =>
-            openSettings(navigation, hasAccounts ? "SettingsAccount" : "SettingsEnvironmentNew")
-          }
-        />
+      <View className="gap-3">
+        {hasAccounts ? (
+          <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
+            <WayIn
+              main
+              icon="person.crop.circle"
+              title={MAJORDOME_WELCOME.signIn}
+              detail={MAJORDOME_WELCOME.signInDetail}
+              onPress={() => openSettings(navigation, "SettingsAccount")}
+            />
+          </View>
+        ) : null}
         <ListSection>
-          {hasAccounts ? (
-            <WayIn
-              icon="qrcode.viewfinder"
-              title={MAJORDOME_WELCOME.scan}
-              detail={MAJORDOME_WELCOME.scanDetail}
-              onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-            />
-          ) : null}
-          {hasAccounts && serverOffer !== null ? (
-            <View className="ml-[60px] h-px bg-border" />
-          ) : null}
+          <WayIn
+            icon="qrcode.viewfinder"
+            title={MAJORDOME_WELCOME.scan}
+            detail={MAJORDOME_WELCOME.scanDetail}
+            onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+          />
           {serverOffer === null ? null : (
-            <WayIn
-              icon="server.rack"
-              title={MAJORDOME_WELCOME.server}
-              detail={MAJORDOME_WELCOME.serverDetail}
-              onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-            />
+            <>
+              <View className="ml-[60px] h-px bg-border" />
+              <WayIn
+                icon="server.rack"
+                title={MAJORDOME_WELCOME.server}
+                detail={MAJORDOME_WELCOME.serverDetail}
+                onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+              />
+            </>
           )}
         </ListSection>
       </View>

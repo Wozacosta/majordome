@@ -95,6 +95,8 @@ export const MAJORDOME_WELCOME = {
   headlineEnd: "while you are away.",
   spoken: "A second brain that keeps working while you are away.",
   what: "Your notes, plus the AI you already pay for. It reads them, runs your routines, and asks before touching anything sensitive.",
+  signIn: "Sign in",
+  signInDetail: "This phone finds your computers",
   scan: "Scan a code",
   scanDetail: "Majordome on your computer shows one",
   server: "Get a Majordome server",
