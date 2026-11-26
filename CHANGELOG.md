@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.57
+
 **New**
 
 - **A key you save is saved on all your computers.** With a Mac and an always-on server, Settings,
