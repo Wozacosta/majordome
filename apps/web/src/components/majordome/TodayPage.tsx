@@ -23,7 +23,6 @@ import { majordomeEnvironment, vaultHistoriesAtom } from "../../state/majordome"
 import { useAtomCommand } from "../../state/use-atom-command";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
@@ -34,14 +33,8 @@ import { toastManager } from "../ui/toast";
 import { Toggle } from "../ui/toggle";
 import { ToggleGroup } from "../ui/toggle-group";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
-import {
-  FEED_NAME,
-  buildFeedItems,
-  buildFeedRunItems,
-  FEED_RUN_STATUS_LABELS,
-  feedVaultNotes,
-  stoppedRunKeys,
-} from "./feed.logic";
+import { FEED_NAME, buildFeedItems, feedVaultNotes } from "./feed.logic";
+import { TodayInFlight } from "./InFlight";
 import { useNoteSourceLinkOpener } from "./NotePreview";
 import { noteDraftKey, NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
 import { NoteSourceEditor } from "./NoteSourceEditor";
@@ -125,6 +118,7 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
               <>
                 <AssistantSetupLine vault={vault} />
                 <CaptureBox key={vault.key} vault={vault} />
+                <TodayInFlight vault={vault} />
                 <TodayTasks
                   key={`${vault.key}:${today}`}
                   vault={vault}
@@ -673,18 +667,7 @@ function TodayRoutines({
       ? [{ vault: { ...copy, title: vault.title, brainKey: vault.key }, history }]
       : [];
   });
-  const vaults = copies.map((copy) => copy.vault);
   const runs = selectTodayRuns({
-    attention: buildFeedRunItems(
-      threads,
-      vaults,
-      stoppedRunKeys(
-        copies.map((copy) => ({
-          environmentId: copy.vault.environmentId,
-          stoppedRuns: copy.history.stoppedRuns ?? [],
-        })),
-      ),
-    ),
     changes: buildFeedItems(
       copies.map((copy) => ({ vault: copy.vault, entries: copy.history.entries })),
       {
@@ -761,11 +744,6 @@ function RunRow({ run, nowMs }: { readonly run: TodayRun; readonly nowMs: number
     <>
       <span className="flex min-w-0 items-center gap-2">
         <span className="min-w-0 truncate text-sm font-medium text-foreground">{run.title}</span>
-        {run.status !== null ? (
-          <Badge variant={run.status === "waiting" ? "warning" : "error"}>
-            {FEED_RUN_STATUS_LABELS[run.status]}
-          </Badge>
-        ) : null}
         <span className="ms-auto shrink-0 text-xs text-muted-foreground">
           {formatRelativeTimeLabel(run.at, nowMs)}
         </span>
@@ -778,7 +756,7 @@ function RunRow({ run, nowMs }: { readonly run: TodayRun; readonly nowMs: number
     </>
   );
   return (
-    <li className="border-t border-border" data-today-run={run.status ?? "done"}>
+    <li className="border-t border-border" data-today-run>
       {run.threadId === null ? (
         <div className="py-3">{content}</div>
       ) : (

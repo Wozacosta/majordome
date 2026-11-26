@@ -3,8 +3,6 @@ import { type EnvironmentId, type ServerProvider, ThreadId } from "@t3tools/cont
 import {
   classifyFeedEntry,
   type FeedItem,
-  type FeedRunItem,
-  type FeedRunStatus,
   feedRunSummary,
   type FeedVault,
   type FeedVaultNotes,
@@ -111,24 +109,17 @@ export interface TodayRun {
   readonly title: string;
   readonly at: string;
   readonly summary: string | null;
-  /** Set while the run needs the owner. */
-  readonly status: FeedRunStatus | null;
 }
-
-const newestFirst = (left: TodayRun, right: TodayRun) =>
-  Date.parse(right.at) - Date.parse(left.at) || left.key.localeCompare(right.key);
 
 const threadKey = (environmentId: EnvironmentId, threadId: string) =>
   `${environmentId}:${threadId}`;
 
 /**
- * The few runs Today shows: those that need the owner first, then what Majordome's latest runs
- * did, each group newest first. A chat appears once, and a topic's conversation not at all: topics
- * have their own list.
+ * What Majordome's latest runs did, newest first. A chat appears once, and a topic's conversation
+ * not at all: topics have their own list. Runs that need the owner are above, with the chats that
+ * are going on.
  */
 export function selectTodayRuns(input: {
-  /** `buildFeedRunItems`: runs waiting for the owner, failed or stopped. */
-  readonly attention: ReadonlyArray<FeedRunItem>;
   /** `buildFeedItems`: the changes to the notes. */
   readonly changes: ReadonlyArray<FeedItem>;
   readonly notesOf: (vault: FeedVault) => FeedVaultNotes;
@@ -138,21 +129,6 @@ export function selectTodayRuns(input: {
 }): ReadonlyArray<TodayRun> {
   const { topicThreads = new Set<string>(), max = 4 } = input;
   const shownThreads = new Set<string>();
-  const needsOwner: Array<TodayRun> = [];
-  for (const run of input.attention) {
-    const key = threadKey(run.vault.environmentId, run.threadId);
-    if (topicThreads.has(key)) continue;
-    shownThreads.add(key);
-    needsOwner.push({
-      key: `run:${run.key}`,
-      environmentId: run.vault.environmentId,
-      threadId: run.threadId,
-      title: run.title,
-      at: run.at,
-      summary: null,
-      status: run.status,
-    });
-  }
   const results: Array<TodayRun> = [];
   for (const item of input.changes.toSorted(
     (left, right) => Date.parse(right.entry.committedAt) - Date.parse(left.entry.committedAt),
@@ -171,10 +147,9 @@ export function selectTodayRuns(input: {
       title: item.title,
       at: entry.committedAt,
       summary: feedRunSummary(entry, input.notesOf(vault)),
-      status: null,
     });
   }
-  return [...needsOwner.toSorted(newestFirst), ...results].slice(0, max);
+  return results.slice(0, max);
 }
 
 /**
