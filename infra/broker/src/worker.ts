@@ -1,4 +1,5 @@
 import { type AccountKey, accountEmail, makeAccountVerifier } from "./account.ts";
+import { adminAccounts, makeInviteAdmin } from "./admin.ts";
 import { makeAppleClient, noticeTransaction } from "./apple.ts";
 import { type Billing, makeBilling } from "./billing.ts";
 import {
@@ -24,6 +25,7 @@ import {
 import { START_PAGE } from "./startPage.ts";
 import {
   makeD1AccountStore,
+  makeD1InviteAdminStore,
   makeD1InviteStore,
   makeD1Store,
   makeD1WaitlistStore,
@@ -52,6 +54,8 @@ interface Env {
   readonly ACCOUNT_ISSUER?: string;
   /** The one other site allowed to call from a browser: where people sign in and leave an email. */
   readonly ACCOUNT_PAGE_ORIGIN?: string;
+  /** The accounts that may make and take back invites, comma-separated. Nobody when not set. */
+  readonly ADMIN_ACCOUNT_IDS?: string;
   /** Secret. Where a line of text is posted when the hourly pass fails; nothing is sent without it. */
   readonly ALERT_URL?: string;
   /** Paying on the website is offered only when these two secrets and the price are set. */
@@ -118,6 +122,7 @@ const brokerFor = (env: Env): Broker =>
 
 const HOSTED_NAME_PREFIX = "majordome-";
 const WAITLIST_PATH = "/v1/waitlist";
+const ADMIN_PATH = "/v1/admin/";
 
 const hostFor = (env: Env): HostClient | null =>
   env.FLY_API_TOKEN === undefined || env.FLY_ORG_SLUG === undefined
@@ -410,6 +415,10 @@ async function handle(request: Request, env: Env, later: Later): Promise<Respons
     return new Response(null, { status: 204 });
   }
   const host = hostFor(env);
+  if (pathname.startsWith(ADMIN_PATH) && request.method === "POST") {
+    const answer = await handleAdmin(pathname.slice(ADMIN_PATH.length), request, env, host);
+    if (answer !== null) return answer;
+  }
   if (host !== null && pathname === "/start" && request.method === "GET") {
     return new Response(START_PAGE, {
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
@@ -479,6 +488,7 @@ export default {
     const fromSite =
       pathname.startsWith("/v1/hosted") ||
       pathname.startsWith("/v1/billing/") ||
+      pathname.startsWith(ADMIN_PATH) ||
       pathname === WAITLIST_PATH;
     const cors = fromSite
       ? accountPageCors(request.headers.get("origin"), env.ACCOUNT_PAGE_ORIGIN)
@@ -585,6 +595,41 @@ async function handleBilling(
       return new Response(null, { status: 204 });
     case "delete-account":
       await billing.deleteAccount(accountId);
+      return new Response(null, { status: 204 });
+    default:
+      return null;
+  }
+}
+
+/** The owner's page. Null, so a 404, while no account is named as an admin. */
+async function handleAdmin(
+  route: string,
+  request: Request,
+  env: Env,
+  host: HostClient | null,
+): Promise<Response | null> {
+  const admins = adminAccounts(env.ADMIN_ACCOUNT_IDS);
+  if (admins.size === 0 || env.ACCOUNT_ISSUER === undefined) return null;
+  const fields = await readFields(request);
+  if (!admins.has(await accountOf(env, fields))) {
+    throw new BrokerError("not_admin", "This account cannot manage invites.");
+  }
+  const admin = makeInviteAdmin({
+    store: makeD1InviteAdminStore(env.DB),
+    urlFor: host?.urlFor ?? null,
+    servers: async () => (await liveNamesFor(env)()).length,
+    maxServers: limit(env.MAX_HOSTED_SERVERS, 5),
+    now: () => Date.now(),
+    randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
+  });
+  const fresh = { headers: { "cache-control": "no-store" } };
+  switch (route) {
+    case "invites":
+      return Response.json(await admin.list(), fresh);
+    case "invites/create":
+      return Response.json(await admin.create(fields.note), fresh);
+    case "invites/revoke":
+      await admin.revoke(fields.code);
       return new Response(null, { status: 204 });
     default:
       return null;

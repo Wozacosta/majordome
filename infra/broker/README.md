@@ -106,14 +106,20 @@ fly tokens create org -o majordome-hosted --name majordome-broker --expiry 8760h
   | pnpm dlx wrangler secret put FLY_API_TOKEN --config wrangler.deploy.jsonc
 ```
 
-Make an invite, list them, and remove a server. The code is the only thing between a stranger
-and a server on your bill, so it is 128 random bits, not a word you choose:
+Invites are made at <https://majord.me/admin>, by an account named in `ADMIN_ACCOUNT_IDS` (the
+account ids, `user_...`, comma-separated). The page lists every invite, makes one with a note of
+who it is for, gives its link to copy, and takes back one nobody has used. The code is the only
+thing between a stranger and a server on your bill, so the Worker draws it: 128 random bits. Its
+routes take `{ "accountToken": "..." }` like the paid ones, answer 403 to any other account, and
+404 while `ADMIN_ACCOUNT_IDS` is not set:
+
+- `POST /v1/admin/invites`: every invite, and how many servers run out of how many allowed.
+- `POST /v1/admin/invites/create` with `note`: a new invite's `code`.
+- `POST /v1/admin/invites/revoke` with `code`: deletes an invite that was never used.
+
+Removing a server stays a thing done by hand:
 
 ```sh
-pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
-  --command "INSERT INTO hosted_invites (code, note, created_at) VALUES ('$(openssl rand -hex 16)', 'for whom', unixepoch() * 1000)"
-pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
-  --command "SELECT code, note, app_name, claimed_at, removed_at FROM hosted_invites"
 fly apps destroy majordome-xxxxxxxxxx
 pnpm dlx wrangler d1 execute majord-broker --remote --config wrangler.deploy.jsonc \
   --command "UPDATE hosted_invites SET removed_at = unixepoch() * 1000 WHERE app_name = 'majordome-xxxxxxxxxx'"
@@ -135,7 +141,7 @@ fly machine destroy <machine id> --app <app> --force   # the old one, or a reque
 The address stays the same. The old volume is left behind; remove it once the restored server
 is checked (`fly volumes destroy`).
 
-Removing the Fly app deletes the customer's notes with it, so it is done by hand. `removed_at`
+Removing the Fly app deletes the customer's notes with it, which is why no page does it. `removed_at`
 frees the server's place under `MAX_HOSTED_SERVERS`.
 
 ## Paid servers
