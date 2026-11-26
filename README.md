@@ -27,7 +27,7 @@
   <a href="https://majord.me"><img src="assets/readme/tour.gif" width="880" alt="A tour of Majordome: the Today page, ticking a to-do, the reading list, routines, and the Money topic"></a>
 </p>
 
-## What it is made of
+## Your notes, your AI, one app
 
 <p align="center">
   <picture>
@@ -38,8 +38,17 @@
 
 Your memory is a folder of plain markdown (an Obsidian vault works). The assistant reads it before
 you type, files what you drop in, runs routines on a schedule, and asks before it touches anything
-sensitive. It runs on your machines and needs no account; an optional one lets a new device find your
-servers when you sign in.
+sensitive. What it learns goes into a note you can open, edit or delete.
+[Try the live version](https://majord.me/#how).
+
+## One day with it
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/day-dark.png">
+    <img src="assets/readme/day-light.png" width="880" alt="One day: at 08:00 your day is ready on its own, at 09:40 you drop a receipt in and it is filed, at 14:15 it asks on your phone before opening a private document, at 18:00 a routine runs while you are out.">
+  </picture>
+</p>
 
 ## What it does
 
@@ -82,6 +91,18 @@ And when you want them:
 | **[Memory](docs/user/memory.md)**                         | A memory note it reads at the start of every conversation.         |
 | **[Skills](docs/user/skills.md)**                         | Your ways of doing a job, written down, that it follows by name.   |
 | **[Notes search](docs/user/notes-search.md)**             | It looks inside every note, not only at file names.                |
+
+## Pick your setup
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/setups-dark.png">
+    <img src="assets/readme/setups-light.png" width="880" alt="Three setups: just your Mac, free; Mac and phone, free; and always on, with a Majordome server hosted for you at 14 euros a month or a server rented in your name for about 5 euros a month.">
+  </picture>
+</p>
+
+Start on your Mac and add the rest later, without starting over. It runs on your machines and needs
+no account; an optional one lets a new device find your servers when you sign in.
 
 ## What it adds to T3 Code
 
