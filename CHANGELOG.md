@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.73
+
 **New**
 
 - **Ask to see what the assistant has.** In any conversation, ask it to show what it knows, what
