@@ -3,14 +3,17 @@ import type { EnvironmentId, MajordomeBackupStatus, ProviderInstanceId } from "@
 import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import { useState } from "react";
+import { FolderIcon, GithubIcon, PlugIcon } from "lucide-react";
+import { type ReactElement, type ReactNode, useState } from "react";
 
 import { useProjects } from "../../state/entities";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { Badge } from "../ui/badge";
+import { cn } from "../../lib/utils";
+import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
+import { GoogleDriveIcon } from "../Icons";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
@@ -20,12 +23,25 @@ import {
   CLAUDE_CONNECTORS_URL,
   claudeSignInTargets,
   type ConnectionState,
+  connectionAction,
   connectorsView,
   isUnknownRequest,
 } from "./connections.logic";
 import { ComputerSwitch, useShownComputer } from "./ComputerSwitch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
-import { Entry, EntryList, Muted, Section, StatusLine, Step, Steps } from "./paper";
+import {
+  Entry,
+  EntryList,
+  EntryTitle,
+  Muted,
+  Section,
+  StatusLine,
+  Step,
+  Steps,
+  ToneDot,
+} from "./paper";
+import { SERVICE_BRAND_ICONS } from "./ServicesUsed";
+import { serviceBrand } from "./servicesUsed.logic";
 import { useMachineNames } from "./useMachineNames";
 
 /** What the assistant can reach on each computer: its AI accounts, connectors and backups. */
@@ -147,10 +163,13 @@ function Machine({
         label="AI"
         labelAs={labelAs}
         className={sectionClassName}
+        // Each card opens its own account; with none, this is the way to the page that adds one.
         action={
-          <Link to="/settings/providers" className="underline underline-offset-2">
-            AI accounts
-          </Link>
+          ai?.length === 0 ? (
+            <Link to="/settings/providers" className="underline underline-offset-2">
+              AI accounts
+            </Link>
+          ) : undefined
         }
       >
         {ai === null ? (
@@ -158,12 +177,22 @@ function Machine({
         ) : ai.length === 0 ? (
           <Muted>No AI account is turned on here.</Muted>
         ) : (
-          <Rows
-            rows={ai}
-            signIn={(row) => ({
-              to: "/settings/providers",
-              search: { environmentId, instanceId: row.key },
-            })}
+          <ServiceGrid
+            services={ai.map((row) => ({
+              ...row,
+              mark: (
+                <ProviderInstanceIcon
+                  driverKind={row.driver}
+                  displayName={row.name}
+                  accentColor={row.accentColor}
+                  showBadge={false}
+                  iconClassName={MARK_CLASS}
+                />
+              ),
+              place: (
+                <Link to="/settings/providers" search={{ environmentId, instanceId: row.key }} />
+              ),
+            }))}
           />
         )}
       </Section>
@@ -174,9 +203,11 @@ function Machine({
         label="Backups"
         labelAs={labelAs}
         action={
-          <Link to="/settings/backup" className="underline underline-offset-2">
-            Back up my brain
-          </Link>
+          backups?.length === 0 ? (
+            <Link to="/settings/backup" className="underline underline-offset-2">
+              Back up my brain
+            </Link>
+          ) : undefined
         }
       >
         {backups === null ? (
@@ -184,9 +215,12 @@ function Machine({
         ) : backups.length === 0 ? (
           <Muted>No notes folder on this computer.</Muted>
         ) : (
-          <Rows
-            rows={backupRows(backups, { elsewhere })}
-            signIn={() => ({ to: "/settings/backup" })}
+          <ServiceGrid
+            services={backupRows(backups, { elsewhere }).map((row) => ({
+              ...row,
+              mark: BACKUP_MARKS[row.key],
+              place: <Link to="/settings/backup" />,
+            }))}
           />
         )}
       </Section>
@@ -220,7 +254,18 @@ function Connectors({
   const unconnected = targets.filter((target) => target.reason === "no-connectors");
   return (
     <>
-      {view.rows.length > 0 ? <Rows rows={view.rows} /> : null}
+      {view.rows.length > 0 ? (
+        <ServiceGrid
+          services={view.rows.map((row) => ({
+            ...row,
+            mark: connectorMark(row.name),
+            place:
+              row.manageUrl === null ? null : (
+                <a href={row.manageUrl} target="_blank" rel="noreferrer" />
+              ),
+          }))}
+        />
+      ) : null}
       {view.rows.some((row) => row.signInUrl !== null) ? (
         <Muted className="mt-2">After you sign in, come back here and press “Check again”.</Muted>
       ) : null}
@@ -320,71 +365,75 @@ function HowToConnect({
   );
 }
 
-interface Row {
+interface Service {
   readonly key: string;
   readonly name: string;
+  readonly mark: ReactNode;
+  /** The account a connector comes with, where several accounts are listed together. */
   readonly provider?: string | null;
   readonly state: ConnectionState;
-  readonly signInUrl?: string | null;
+  /** The link its button is: where it is signed in to or managed. Null when there is no such place. */
+  readonly place: ReactElement | null;
 }
 
-type SignInTarget =
-  | { readonly to: "/settings/backup" }
-  | {
-      readonly to: "/settings/providers";
-      readonly search: {
-        readonly environmentId: EnvironmentId;
-        readonly instanceId: ProviderInstanceId;
-      };
-    };
-
-function Rows<R extends Row>({
-  rows,
-  signIn,
-}: {
-  readonly rows: ReadonlyArray<R>;
-  /** Where a row that needs a sign-in gets one. */
-  readonly signIn?: (row: R) => SignInTarget;
-}) {
+function ServiceGrid({ services }: { readonly services: ReadonlyArray<Service> }) {
   return (
-    <EntryList>
-      {rows.map((row) => (
-        <Entry
-          key={row.key}
-          title={row.name}
-          meta={[row.provider, row.state.detail].filter(Boolean).join(" · ") || undefined}
-          actions={
-            <>
-              {signIn !== undefined && row.state.needsSignIn ? (
-                <Link {...signIn(row)} className="text-sm underline underline-offset-2">
-                  Sign in
-                </Link>
-              ) : null}
-              {row.signInUrl == null ? null : (
-                <a
-                  href={row.signInUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm underline underline-offset-2"
-                >
-                  Sign in on claude.ai
-                </a>
-              )}
-              <Badge
-                variant={
-                  row.state.tone === "ok"
-                    ? "success"
-                    : row.state.tone === "warning"
-                      ? "warning"
-                      : "outline"
-                }
+    <EntryList className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-2">
+      {services.map((service) => (
+        <li
+          key={service.key}
+          data-connection={service.name}
+          className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              aria-hidden
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60"
+            >
+              {service.mark}
+            </span>
+            <div className="min-w-0 flex-1">
+              <EntryTitle className="truncate">{service.name}</EntryTitle>
+              <p
+                className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
+                data-tone={service.state.tone}
               >
-                {row.state.label}
-              </Badge>
-            </>
-          }
-        />
+                <ToneDot tone={service.state.tone} />
+                <span className="min-w-0 truncate">
+                  {[service.state.label, service.provider].filter(Boolean).join(" · ")}
+                </span>
+              </p>
+            </div>
+            {service.place === null ? null : (
+              <Button
+                size="xs"
+                variant={service.state.needsSignIn ? "default" : "outline"}
+                render={service.place}
+              >
+                {connectionAction(service.state)}
+              </Button>
+            )}
+          </div>
+          {service.state.detail === undefined ? null : (
+            <p className="text-xs text-muted-foreground">{service.state.detail}</p>
+          )}
+        </li>
       ))}
     </EntryList>
   );
+}
+
+const MARK_CLASS = "size-5 shrink-0";
+
+const BACKUP_MARKS: Readonly<Record<string, ReactNode>> = {
+  github: <GithubIcon className={MARK_CLASS} />,
+  "google-drive": <GoogleDriveIcon className={MARK_CLASS} />,
+  folder: <FolderIcon className={cn(MARK_CLASS, "text-muted-foreground")} />,
+};
+
+function connectorMark(name: string): ReactNode {
+  const brand = serviceBrand(name);
+  if (brand === null) return <PlugIcon className={cn(MARK_CLASS, "text-muted-foreground")} />;
+  const Brand = SERVICE_BRAND_ICONS[brand];
+  return <Brand className={MARK_CLASS} />;
 }

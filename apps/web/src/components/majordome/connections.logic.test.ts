@@ -12,6 +12,7 @@ import {
   CLAUDE_CONNECTORS_URL,
   aiRows,
   backupRows,
+  connectionAction,
   connectorName,
   connectorState,
   claudeSignInTargets,
@@ -72,12 +73,12 @@ it("says whether each turned-on provider is signed in, in its own words when it 
       snapshot("cursor", { status: "error", message: "Cursor CLI crashed." } as never),
       snapshot("opencode", { installed: false }),
       snapshot("grok", { enabled: false }),
-    ]).map((row) => [row.name, row.state.label, row.state.detail]),
+    ]).map((row) => [row.name, row.state.label, row.state.detail, connectionAction(row.state)]),
   ).toEqual([
-    ["Claude", "Signed in", undefined],
-    ["Codex", "Not signed in", undefined],
-    ["Cursor", "Not working", "Cursor CLI crashed."],
-    ["OpenCode", "Not installed", undefined],
+    ["Claude", "Signed in", undefined, "Manage"],
+    ["Codex", "Not signed in", undefined, "Sign in"],
+    ["Cursor", "Not working", "Cursor CLI crashed.", "Manage"],
+    ["OpenCode", "Not installed", undefined, "Manage"],
   ]);
 });
 
@@ -99,6 +100,12 @@ it("lists a machine's connectors under their friendly names", () => {
     ["Gmail", null, "Connected", null],
     ["vercel", null, "Needs sign-in", null],
     ["Google Calendar", null, "Needs sign-in", CLAUDE_CONNECTORS_URL],
+  ]);
+  // Only a Claude account's connectors have a page to manage them on.
+  expect(view.rows.map((row) => row.manageUrl)).toEqual([
+    CLAUDE_CONNECTORS_URL,
+    null,
+    CLAUDE_CONNECTORS_URL,
   ]);
   expect(view.warnings).toEqual([]);
   expect(view.notes).toEqual([]);
@@ -271,6 +278,12 @@ it("says where a machine's notes are backed up to", () => {
     "GitHub: Needs sign-in",
     "Google Drive: Needs sign-in",
   ]);
+  // Each card's one button names what is missing.
+  expect(
+    backupRows([{ ...backup, remote: githubRemote, drive: null }], { elsewhere: false }).map(
+      (row) => connectionAction(row.state),
+    ),
+  ).toEqual(["Sign in", "Set up", "Set up"]);
   // One connected notes folder is enough for the machine to count as connected.
   expect(
     states([

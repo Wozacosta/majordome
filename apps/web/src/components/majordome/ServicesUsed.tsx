@@ -27,7 +27,7 @@ export function ServicesUsed(props: { readonly services: ReadonlyArray<ToolActiv
 function ServiceIcon({ service }: { readonly service: ToolActivitySource }) {
   const brand = serviceBrand(service.name);
   if (brand !== null) {
-    const Brand = BRAND_ICONS[brand];
+    const Brand = SERVICE_BRAND_ICONS[brand];
     return <Brand className="size-3.5 shrink-0" aria-hidden />;
   }
   if (service.icon !== undefined) {
@@ -43,7 +43,7 @@ function ServiceIcon({ service }: { readonly service: ToolActivitySource }) {
   return <PlugIcon className="size-3.5 shrink-0" aria-hidden />;
 }
 
-const BRAND_ICONS: Readonly<Record<ServiceBrand, Icon>> = {
+export const SERVICE_BRAND_ICONS: Readonly<Record<ServiceBrand, Icon>> = {
   gmail: GmailIcon,
   "google-calendar": GoogleCalendarIcon,
   "google-drive": GoogleDriveIcon,

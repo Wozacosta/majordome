@@ -71,9 +71,17 @@ function providerState(provider: ServerProvider): ConnectionState {
   };
 }
 
+/** What a service's one button says: what fixes it when something is missing, else "Manage". */
+export function connectionAction(state: ConnectionState): "Sign in" | "Set up" | "Manage" {
+  if (state.needsSignIn) return "Sign in";
+  return state === NOT_SET_UP ? "Set up" : "Manage";
+}
+
 export function aiRows(providers: ReadonlyArray<ServerProvider>): ReadonlyArray<{
   readonly key: ServerProvider["instanceId"];
   readonly name: string;
+  readonly driver: ServerProvider["driver"];
+  readonly accentColor: string | undefined;
   readonly state: ConnectionState;
 }> {
   return providers
@@ -81,6 +89,8 @@ export function aiRows(providers: ReadonlyArray<ServerProvider>): ReadonlyArray<
     .map((provider) => ({
       key: provider.instanceId,
       name: resolveProviderInstanceDisplayName(provider),
+      driver: provider.driver,
+      accentColor: provider.accentColor,
       state: providerState(provider),
     }));
 }
@@ -98,6 +108,8 @@ export interface ConnectorRow {
   readonly state: ConnectionState;
   /** The web page where this connector is signed in to, when it needs that and has one. */
   readonly signInUrl: string | null;
+  /** The web page where this connector is added, signed in to and removed; null when there is none. */
+  readonly manageUrl: string | null;
 }
 
 export interface ConnectorsView {
@@ -135,17 +147,18 @@ export function connectorsView(input: {
   const where = input.machine === null ? "this computer" : machineInSentence(input.machine);
 
   const rows = reporting.flatMap((provider) =>
-    provider.connectors.map((connector) => ({
-      key: `${provider.instanceId}:${connector.name}`,
-      name: connectorName(connector.name),
-      provider: several ? provider.name : null,
-      state: connectorState(connector.status),
-      // Only the connectors of a Claude account are signed in to on the web.
-      signInUrl:
-        connector.status === "needs-auth" && /^claude\.ai\s/i.test(connector.name)
-          ? CLAUDE_CONNECTORS_URL
-          : null,
-    })),
+    provider.connectors.map((connector) => {
+      // Only the connectors of a Claude account are managed on the web.
+      const manageUrl = /^claude\.ai\s/i.test(connector.name) ? CLAUDE_CONNECTORS_URL : null;
+      return {
+        key: `${provider.instanceId}:${connector.name}`,
+        name: connectorName(connector.name),
+        provider: several ? provider.name : null,
+        state: connectorState(connector.status),
+        signInUrl: connector.status === "needs-auth" ? manageUrl : null,
+        manageUrl,
+      };
+    }),
   );
 
   const warnings = reporting.flatMap((provider) => {
