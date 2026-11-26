@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.58
+
 **New**
 
 - **A key icon at the bottom of the sidebar opens Passwords and keys**, next to Settings and the
