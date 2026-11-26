@@ -73,7 +73,8 @@ The landing page and the README show a short version of this list.
 - **Email, calendar and files:** the steps to connect Gmail, Calendar and Drive through your Claude
   account, on one page.
 - **Set it up by asking.** The assistant beside every screen can check how Majordome is set up and
-  change most settings for you. [Setting Majordome up by asking](./user/assistant-settings.md)
+  change most settings for you. For what only you can do, it names the screen as a link that opens
+  it. [Setting Majordome up by asking](./user/assistant-settings.md)
 
 ### Your machines
 

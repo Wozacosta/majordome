@@ -565,7 +565,7 @@ const make = Effect.gen(function* () {
       const rule = SETTING_CHANGE_RULES[input.change.type];
       if (rule.risk === "owner_only") {
         return notPossible(
-          `Only the owner can ${rule.does}, on the app's own screen: ${rule.where}. Tell them where to go; don't ask for a password, key or code here.`,
+          `Only the owner can ${rule.does}, on the app's own screen: ${rule.where}. Tell them where to go, keeping that link so one click takes them there; don't ask for a password, key or code here.`,
         );
       }
       const projectId = yield* vaultOf(input.threadId);

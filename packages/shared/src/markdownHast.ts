@@ -4,6 +4,7 @@ import { defaultSchema, sanitize, type Schema } from "hast-util-sanitize";
 
 import { CODEX_ARTIFACT_TEMPLATE_HAST_PROPERTIES } from "./codexArtifactTemplates.ts";
 import { isWindowsDrivePathHref, normalizeMarkdownLinkDestination } from "./markdownLinks.ts";
+import { APP_SCREEN_LINK_PROTOCOL } from "./appScreenLinks.ts";
 import { THREAD_LINK_PROTOCOL } from "./threadLinks.ts";
 
 type MarkdownImageHastNode = {
@@ -166,6 +167,7 @@ export const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
       "t3-citation",
       "t3-context",
       THREAD_LINK_PROTOCOL,
+      APP_SCREEN_LINK_PROTOCOL,
       // Scheme only: the renderer's URL transform checks the rest of the link shape.
       ...LOCAL_FILE_LINK_SCHEMES,
     ],

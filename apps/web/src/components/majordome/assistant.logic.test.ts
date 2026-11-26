@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  appScreenLinkTarget,
   assistantConversationActivity,
   assistantIntro,
   assistantScreenName,
@@ -27,6 +28,20 @@ describe("assistantScreenName", () => {
     ["/draft/abc", undefined, null],
   ])("names %s %o", (pathname, search, expected) => {
     expect(assistantScreenName({ pathname, ...(search ? { search } : {}) })).toBe(expected);
+  });
+});
+
+describe("appScreenLinkTarget", () => {
+  it.each([
+    ["app://settings/phone", { to: "/settings/phone", label: "Phone & notifications" }],
+    ["app://settings/always-on", { to: "/settings/always-on", label: "Your servers" }],
+    ["app://routines", { to: "/routines", label: "Routines" }],
+    ["app://notes", { to: "/notes", label: "Notes" }],
+    ["app://settings/nowhere", null],
+    ["app://env-1/thread-1", null],
+    ["https://example.com/settings/phone", null],
+  ])("opens %s at %o", (href, expected) => {
+    expect(appScreenLinkTarget(href)).toEqual(expected);
   });
 });
 

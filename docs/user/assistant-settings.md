@@ -30,6 +30,6 @@ nobody answers closes by itself after 24 hours, with nothing changed.
 ## What stays with you
 
 Signing in (GitHub, Google, Claude or another AI), passphrases, adding a private document, setting
-up a phone, your server, and letting a device get notifications. The assistant tells you
-which screen to open. It never asks for a password, a key or a code in the conversation; if it
+up a phone, your server, and letting a device get notifications. The assistant names the
+screen as a link: click it and that screen opens. On a phone, tapping it says the page is on your computer. It never asks for a password, a key or a code in the conversation; if it
 does, don't give one.

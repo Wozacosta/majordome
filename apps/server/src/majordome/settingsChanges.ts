@@ -10,6 +10,7 @@ import {
   MajordomeTopicIcon,
   TrimmedNonEmptyString,
 } from "@t3tools/contracts";
+import { formatAppScreenLink } from "@t3tools/shared/appScreenLinks";
 import * as Schema from "effect/Schema";
 
 /** One struct for every change that is its name alone, which keeps the advertised schema small. */
@@ -86,7 +87,11 @@ export type SettingChangeRule =
   /** Never done by an agent: the answer is that only the owner `does` it, and `where`. */
   | { readonly risk: "owner_only"; readonly does: string; readonly where: string };
 
-const BACKUP = "Settings, then Back up my brain";
+/** Where the owner does it, with a link the app opens that screen from. */
+const inSettings = (label: string, pathname: `/settings/${string}`) =>
+  `Settings, then ${formatAppScreenLink(label, pathname)}`;
+
+const BACKUP = inSettings("Back up my brain", "/settings/backup");
 
 export const SETTING_CHANGE_RULES: {
   readonly [Type in MajordomeSettingChange["type"]]: SettingChangeRule;
@@ -142,7 +147,7 @@ export const SETTING_CHANGE_RULES: {
   sign_in_ai: {
     risk: "owner_only",
     does: "sign in to Claude or another AI",
-    where: "Settings, then Providers",
+    where: inSettings("AI accounts", "/settings/providers"),
   },
   set_backup_passphrase: {
     risk: "owner_only",
@@ -152,28 +157,28 @@ export const SETTING_CHANGE_RULES: {
   add_private_document: {
     risk: "owner_only",
     does: "add a private document",
-    where: "Settings, then Private documents",
+    where: inSettings("Private documents", "/settings/private-documents"),
   },
   pair_phone: {
     risk: "owner_only",
     does: "set up a phone",
-    where: "Settings, then Phone & notifications",
+    where: inSettings("Phone & notifications", "/settings/phone"),
   },
   set_up_always_on_server: {
     risk: "owner_only",
     does: "set up or remove a server of their own",
-    where: "Settings, then Your server",
+    where: inSettings("Your servers", "/settings/always-on"),
   },
   // A skill steers later runs, so an agent never approves its own or drops one.
   keep_or_remove_skill: {
     risk: "owner_only",
     does: "keep or remove a skill",
-    where: "Settings, then Skills",
+    where: inSettings("Skills", "/settings/skills"),
   },
   turn_on_notifications: {
     risk: "owner_only",
     does: "let a device get notifications",
-    where: "Settings, then Phone & notifications, on that device",
+    where: `${inSettings("Phone & notifications", "/settings/phone")}, on that device`,
   },
 };
 

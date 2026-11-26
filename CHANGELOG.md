@@ -5,6 +5,14 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **The assistant links the screen it sends you to.** When something is yours to do, such as
+  pairing a phone or signing in, it used to write "open Settings, then Phone & notifications" and
+  leave you to find the page. The name is now a link: click it and that page opens. It works for
+  the pages of Settings and for Routines, Reminders, To-dos, Reading list and Notes. On a phone,
+  tapping it says the page is on your computer.
+
 **Fixed**
 
 - **The "This app" page shows the window, not a made-up diagram.** Its drawing joined Voice and
@@ -15,6 +23,7 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Ask the assistant "connect my phone", then click **Phone & notifications** in its answer.
 - Open Settings, select **This app**, and click a label in the sketch.
 
 ## 0.10.65

@@ -90,6 +90,8 @@ import React, {
 import { parseAssistantCitationHref } from "@t3tools/shared/assistantCitations";
 import { parseComposerContextHref } from "@t3tools/shared/composerContextReferences";
 import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
+import { parseAppScreenHref } from "@t3tools/shared/appScreenLinks";
+import { MarkdownAppScreenLink } from "./chat/MarkdownAppScreenLink";
 import { AssistantCitationEmbed } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
 import { artifactTemplateFromHastProperties } from "@t3tools/shared/codexArtifactTemplates";
@@ -441,6 +443,7 @@ function markdownUrlTransform(href: string) {
   if (parseAssistantCitationHref(href)) return href;
   if (parseComposerContextHref(href)) return href;
   if (parseThreadLinkHref(href)) return href;
+  if (parseAppScreenHref(href) !== null) return href;
   if (isWindowsDrivePathHref(href)) return href;
   if (isLocalEditorFileHref(href)) return href;
   return rewriteMarkdownFileUriHref(href) ?? safeUrl(href);
@@ -1315,6 +1318,12 @@ const CHAT_MARKDOWN_COMPONENTS = {
       ) : (
         <span>{label ?? gt("Thread")}</span>
       );
+    }
+    if (href && parseAppScreenHref(href) !== null) {
+      // An autolink's text is its own address, which is no label.
+      const written = hastPlainTextDeep(node);
+      const labeled = written !== "" && parseAppScreenHref(written) === null;
+      return <MarkdownAppScreenLink href={href} label={labeled ? children : null} />;
     }
     const contextReference = href ? parseComposerContextHref(href) : null;
     if (contextReference) {

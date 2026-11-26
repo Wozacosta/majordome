@@ -367,6 +367,10 @@
       "types": "./src/threadLinks.ts",
       "import": "./src/threadLinks.ts"
     },
+    "./appScreenLinks": {
+      "types": "./src/appScreenLinks.ts",
+      "import": "./src/appScreenLinks.ts"
+    },
     "./composerContextReferences": {
       "types": "./src/composerContextReferences.ts",
       "import": "./src/composerContextReferences.ts"

@@ -209,6 +209,19 @@ function buttonsLabelled(container: HTMLElement, label: string) {
 
 const USER_MESSAGE = { userMessage: true };
 
+it("links the app's own screens by the name written for them, and leaves an unknown one as text", async () => {
+  setup();
+  await using screen = await renderText(
+    "Open [Phone & notifications](app://settings/phone), or <app://routines>, not [Nowhere](app://settings/nowhere).",
+  );
+  const links = [...screen.container.querySelectorAll<HTMLAnchorElement>("a")];
+  expect(links.map((link) => [link.textContent, link.dataset.appScreenLink])).toEqual([
+    ["Phone & notifications", "/settings/phone"],
+    ["Routines", "/routines"],
+  ]);
+  expect(screen.container.textContent).toContain("not Nowhere.");
+});
+
 it("keeps decimal markers in nested user lists while documents keep their counter styles", async () => {
   setup();
   const text = "1. Outer\n   1. Nested\n   7. Skipped\n      1. Deeper\n      4. Fourth";

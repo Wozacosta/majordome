@@ -6,7 +6,33 @@
 
 import * as DateTime from "effect/DateTime";
 
+import { formatAppScreenLink } from "@t3tools/shared/appScreenLinks";
+
 import { SKILLS_GUIDE } from "./skillsGuide.ts";
+
+const screens = (list: ReadonlyArray<readonly [label: string, pathname: `/${string}`]>) =>
+  list.map(([label, pathname]) => formatAppScreenLink(label, pathname)).join(", ");
+
+const SETTINGS_SCREENS = screens([
+  ["Connections", "/settings/connectors"],
+  ["AI accounts", "/settings/providers"],
+  ["Back up my brain", "/settings/backup"],
+  ["Phone & notifications", "/settings/phone"],
+  ["Your servers", "/settings/always-on"],
+  ["Private documents", "/settings/private-documents"],
+  ["Skills", "/settings/skills"],
+  ["Status", "/settings/overview"],
+  ["Appearance", "/settings/appearance"],
+  ["Voice", "/settings/voice"],
+]);
+
+const OTHER_SCREENS = screens([
+  ["Routines", "/routines"],
+  ["Reminders", "/reminders"],
+  ["To-dos", "/todos"],
+  ["Reading list", "/reading"],
+  ["Notes", "/notes"],
+]);
 
 /** `now` in the server's zone is what "tomorrow at 10" is counted from. */
 export function routinesGuide(now: DateTime.Zoned): string {
@@ -18,7 +44,7 @@ export function routinesGuide(now: DateTime.Zoned): string {
     '- Write its instructions for them: self-contained, following the conventions in AGENTS.md at the vault root, saying what to write and where, and ending with a short summary of what was done, which the feed shows. Give it a short name ("Review my week"). Set `freshSession: true`, so its runs share one conversation of its own, and leave `bindToCurrentThread` unset. Only when this conversation is one of their topics and they want the results in it, set `bindToCurrentThread: true` and leave `freshSession` unset.',
     '- A routine about one of their topics (`get_majordome_status` lists them; fitness, money, a trip) belongs under it. Say so in the read-back ("and I\'ll file it under Fitness"), and once it is created, put it there with `change_majordome_setting`, `move_routine`. Not needed when this conversation is that topic.',
     '- A reminder: a `once` schedule, named as they said it ("Call the bank"), whose instructions are to remind them of it and send a notification with `notify_me`. It posts in this conversation. A clear time needs no confirmation.',
-    '- Then tell them it is on the Routines screen, where a routine can be tried with "Run now".',
+    `- Then tell them it is on the ${formatAppScreenLink("Routines", "/routines")} screen, where a routine can be tried with "Run now".`,
     `Times: \`fixed_time\` is local time here; \`once\` needs the offset. Now: ${DateTime.formatIsoOffset(now).replace(/:\d{2}\.\d{3}(?=[+-Z])/, "")} (${DateTime.zoneToString(now.zone)}).`,
     "</routines>",
     "<app>",
@@ -29,7 +55,8 @@ export function routinesGuide(now: DateTime.Zoned): string {
     "- To-dos are the unticked checkboxes (`- [ ]`) in the notes; the To-dos page lists them. To add one with no obvious note, append `- [ ] …` to `To-dos.md` at the top of the notes folder. To finish one, tick its box in the note.",
     '- The reading list is what they saved to read, watch or listen to later; the Reading list page shows it. Use `list_reading`, `add_reading` and `update_reading` for it, and never edit `.majordome/reading-list.json` by hand. "Save this for later" is `add_reading`. "What should I read next" is the top of `list_reading`, skipping any `snoozedUntil` still ahead. Mark something done only when they say they finished it, and keep their `notes` in their words.',
     "- A topic's documents (a bill, a scan, a contract) live in the topic's folder beside its notes, and the app lists them under Files in that conversation. Read them like any file. \"Keep this with Finances\" means saving the file into that topic's folder, under a name that says what it is; never into `.majordome`.",
-    "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time: Settings, then Connections (email, calendar, other accounts), Back up my brain, Phone & notifications, Your server, Private documents or Status.",
+    `- Whenever you send them to one of the app's screens, write its name as a link, exactly like these, so one click takes them there. In Settings: ${SETTINGS_SCREENS}. Connections is for email, calendar and other accounts. Elsewhere: ${OTHER_SCREENS}. Link no other screen, and never show the address itself.`,
+    "- Sign-ins, passphrases and anything secret stay on the app's own screens. Say in a sentence where to go, one step at a time, with its link.",
     "Never ask for a password, key or code in the conversation; the app's own screens take those.",
     "</app>",
     SKILLS_GUIDE,

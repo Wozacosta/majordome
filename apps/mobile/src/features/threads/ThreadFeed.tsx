@@ -91,6 +91,7 @@ import {
   parseThreadLinkHref,
   threadLinkRefs,
 } from "@t3tools/shared/threadLinks";
+import { parseAppScreenHref } from "@t3tools/shared/appScreenLinks";
 import { PROMPT_LINK_MAX_PROMPT_LENGTH } from "@t3tools/shared/promptLinks";
 import {
   parseComposerContextHref,
@@ -3398,6 +3399,14 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
     if (parseThreadLinkHref(href)) {
       const target = resolveLinkedThread(href);
       if (target) openThreadLink(target);
+      return;
+    }
+    if (parseAppScreenHref(href) !== null) {
+      // The link names a screen of the computer app; this app has other screens.
+      Dialog.alert(
+        gt("This page is on your computer"),
+        gt("Open the app on your computer to find it there."),
+      );
       return;
     }
     const media = resolveMarkdownMediaPreview(href, {

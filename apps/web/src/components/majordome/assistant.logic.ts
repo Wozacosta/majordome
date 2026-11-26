@@ -1,15 +1,15 @@
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import type { ScreenContextRecord } from "@t3tools/contracts";
+import { parseAppScreenHref } from "@t3tools/shared/appScreenLinks";
 import {
   sanitizeComposerContextLabel,
   toComposerContextId,
 } from "@t3tools/shared/composerContextReferences";
 
 import { FEED_NAME } from "./feed.logic";
-import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
+import { SETTINGS_SECTION_LABELS, type SettingsPath } from "../settings/settingsSearch";
 
-const SCREENS: Readonly<Record<string, string>> = {
-  "/": "Today",
+const LINKED_SCREENS = {
   "/feed": FEED_NAME,
   "/reading": "Reading list",
   "/chats": "Chats",
@@ -17,8 +17,34 @@ const SCREENS: Readonly<Record<string, string>> = {
   "/routines": "Routines",
   "/todos": "To-dos",
   "/usage": "Usage",
+  "/notes": "Notes",
+} as const;
+
+const SCREENS: Readonly<Record<string, string>> = {
+  ...LINKED_SCREENS,
+  "/": "Today",
   "/settings/connectors": "Connections",
 };
+
+const names = <Path extends string>(
+  screens: Readonly<Record<Path, string>>,
+  pathname: string,
+): pathname is Path => Object.hasOwn(screens, pathname);
+
+/**
+ * The screen an assistant's `app://` link opens, with the app's own name for it; null when the
+ * link is no such link or names a screen this app does not have.
+ */
+export function appScreenLinkTarget(
+  href: string,
+): { readonly to: SettingsPath | keyof typeof LINKED_SCREENS; readonly label: string } | null {
+  const pathname = parseAppScreenHref(href);
+  if (pathname === null) return null;
+  if (names(SETTINGS_SECTION_LABELS, pathname)) {
+    return { to: pathname, label: SETTINGS_SECTION_LABELS[pathname] };
+  }
+  return names(LINKED_SCREENS, pathname) ? { to: pathname, label: LINKED_SCREENS[pathname] } : null;
+}
 
 const SETTINGS_LABELS: Readonly<Record<string, string>> = SETTINGS_SECTION_LABELS;
 const SCREEN_MAX_CHARS = 2_048;

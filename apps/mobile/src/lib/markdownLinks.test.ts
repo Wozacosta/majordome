@@ -14,6 +14,13 @@ describe("resolveMarkdownLinkPresentation", () => {
     });
   });
 
+  it("keeps a link to one of the computer app's screens from opening anything", () => {
+    expect(resolveMarkdownLinkPresentation("app://settings/phone")).toEqual({
+      kind: "link",
+      href: null,
+    });
+  });
+
   it("treats protocol-relative media as an external URL, not a filesystem path", () => {
     expect(resolveMarkdownLinkPresentation("//cdn.example.com/clip.mp4?sig=a%2fb#t=2")).toEqual({
       kind: "external",
