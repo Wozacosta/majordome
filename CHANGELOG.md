@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.67
+
 **Fixed**
 
 - **A screen the assistant names in bold is a link, in every conversation.** In 0.10.66 the link
