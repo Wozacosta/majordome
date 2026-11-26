@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.66
+
 **New**
 
 - **The assistant links the screen it sends you to.** When something is yours to do, such as
