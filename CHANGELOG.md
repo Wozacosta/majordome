@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.69
+
 **New**
 
 - **Your pages are icons down the left edge.** Today, Notes, To-dos and the rest moved out of
