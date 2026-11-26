@@ -1,5 +1,4 @@
 import { getClerkInstance } from "@clerk/expo";
-import { tokenCache } from "@clerk/expo/token-cache";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import {
   AuthAccessWriteScope,
@@ -154,9 +153,9 @@ const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 
 // The same account the screens sign in to, reached here so a purchase carries on without one open.
 const { publishableKey } = resolveCloudPublicConfig().clerk;
-// Named with the same token cache as the provider, since this may run before it renders.
-const account = () =>
-  publishableKey === null ? null : getClerkInstance({ publishableKey, tokenCache });
+// No token cache named: naming one replaces the provider's, which is what keeps this account
+// and the native sign-in form on one session.
+const account = () => (publishableKey === null ? null : getClerkInstance({ publishableKey }));
 
 async function accountToken(): Promise<string | null> {
   try {

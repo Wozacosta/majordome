@@ -186,7 +186,7 @@ function SignedIn() {
           onPress={() => void confirmDelete()}
         />
         {deleteProblem === null ? null : (
-          <Text accessibilityRole="alert" className="text-danger">
+          <Text accessibilityRole="alert" className="text-danger-foreground">
             {deleteProblem}
           </Text>
         )}
@@ -252,7 +252,11 @@ function ServerCard(props: {
         </Text>
       </View>
       {problem === null ? null : (
-        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" className="text-danger">
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          className="text-danger-foreground"
+        >
           {problem}
         </Text>
       )}

@@ -9,11 +9,13 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppActivityIndicator } from "../components/ui/AppActivityIndicator";
+import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
+import { cn } from "../lib/cn";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
 import { MAJORDOME_SERVER } from "./connectWording";
@@ -44,9 +46,13 @@ function Progress(props: { readonly text: string }) {
   );
 }
 
-function Problem(props: { readonly text: string | null }) {
+function Problem(props: { readonly text: string | null; readonly centered?: boolean }) {
   return props.text === null ? null : (
-    <Text accessibilityRole="alert" accessibilityLiveRegion="polite" className="text-danger">
+    <Text
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      className={cn("text-danger-foreground", props.centered && "text-center")}
+    >
       {props.text}
     </Text>
   );
@@ -94,16 +100,45 @@ function FinishSettingUp(props: { readonly environmentId: string; readonly onDon
 function Note(props: { readonly note: SignupNote | null }) {
   if (props.note === null) return null;
   return props.note.kind === "error" ? (
-    <Problem text={props.note.message} />
+    <Problem text={props.note.message} centered />
   ) : (
-    <Text accessibilityLiveRegion="polite" className="text-foreground">
+    <Text accessibilityLiveRegion="polite" className="text-center text-foreground">
       {props.note.message}
     </Text>
   );
 }
 
-/** What a server is, what it costs in the App Store's own words, and the ways to get one. */
-function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
+/** What a server is. */
+function OfferPitch() {
+  return (
+    <View className="gap-8">
+      <View className="items-center gap-4 pt-6">
+        <View className="size-20 items-center justify-center rounded-[24px] border-continuous bg-primary">
+          <SymbolView name="server.rack" size={36} tintColorClassName="accent-primary-foreground" />
+        </View>
+        <Text
+          accessibilityRole="header"
+          textRole="largeTitle"
+          className="text-center font-t3-bold text-foreground"
+        >
+          {MAJORDOME_SERVER.headline}
+        </Text>
+      </View>
+      <View className="gap-5 rounded-[26px] border-continuous bg-grouped-card p-5">
+        {MAJORDOME_SERVER.points.map((point) => (
+          <View key={point.icon} className="flex-row items-center gap-4">
+            <SymbolView name={point.icon} size={24} tintColorClassName="accent-primary-text" />
+            <Text className="flex-1 text-foreground">{point.text}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** What it costs in the App Store's own words, and the ways to get one. Stays in reach below the pitch. */
+function OfferActions(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
+  const insets = useSafeAreaInsets();
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const offer = useAtomValue(serverOfferAtom);
   const run = (action: () => Promise<void>) => () => {
@@ -112,37 +147,39 @@ function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () 
   };
 
   return (
-    <View className="gap-4">
-      <Text className="text-foreground-muted">{MAJORDOME_SERVER.what}</Text>
-      <Text className="text-foreground-muted">{MAJORDOME_SERVER.ownPlan}</Text>
-      {offer === null ? null : (
-        <View className="gap-2 rounded-[26px] border-continuous bg-grouped-card p-5">
-          <Text textRole="headline" className="font-t3-bold text-foreground">
-            {offer.trial ?? offer.price}
-          </Text>
-          <Text className="text-sm text-foreground-muted">{MAJORDOME_SERVER.renews}</Text>
-        </View>
-      )}
+    <View className="gap-3 px-5 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
       <Note note={props.note} />
-      {!isSignedIn ? (
-        <>
-          <Text className="text-foreground-muted">{MAJORDOME_SERVER.signInHelp}</Text>
-          <Button
-            label={MAJORDOME_SERVER.signIn}
-            tone="primary"
-            icon="person.crop.circle"
-            onPress={props.onSignIn}
-          />
-        </>
-      ) : props.note?.kind === "hasServer" ? (
-        <Button label={MAJORDOME_SERVER.connect} tone="primary" onPress={run(connectToServer)} />
-      ) : offer === null ? null : (
-        <Button label={MAJORDOME_SERVER.buy} tone="primary" onPress={run(buyServer)} />
+      {offer === null ? null : (
+        <Text textRole="headline" className="text-center font-t3-bold text-foreground">
+          {offer.trial ?? offer.price}
+        </Text>
       )}
-      {isSignedIn && offer !== null ? (
-        <Button label={MAJORDOME_SERVER.restore} tone="text" onPress={run(restoreServer)} />
-      ) : null}
-      <View className="flex-row justify-center gap-4">
+      {!isSignedIn ? (
+        <Button label={MAJORDOME_SERVER.signIn} tone="primary" fullWidth onPress={props.onSignIn} />
+      ) : props.note?.kind === "hasServer" ? (
+        <Button
+          label={MAJORDOME_SERVER.connect}
+          tone="primary"
+          fullWidth
+          onPress={run(connectToServer)}
+        />
+      ) : offer === null ? null : (
+        <Button label={MAJORDOME_SERVER.buy} tone="primary" fullWidth onPress={run(buyServer)} />
+      )}
+      {offer === null ? null : (
+        <Text textRole="label" className="text-center text-foreground-muted">
+          {MAJORDOME_SERVER.renews}
+        </Text>
+      )}
+      <View className="flex-row flex-wrap justify-center">
+        {isSignedIn && offer !== null ? (
+          <Button
+            label={MAJORDOME_SERVER.restore}
+            tone="text"
+            size="compact"
+            onPress={run(restoreServer)}
+          />
+        ) : null}
         <Button
           label={MAJORDOME_SERVER.terms}
           tone="text"
@@ -242,9 +279,12 @@ function ConfiguredHostedSignupScreen() {
             />
           </View>
         ) : (
-          <Offer note={state.note} onSignIn={() => setSigningIn(true)} />
+          <OfferPitch />
         )}
       </ScrollView>
+      {state.step === "idle" ? (
+        <OfferActions note={state.note} onSignIn={() => setSigningIn(true)} />
+      ) : null}
     </SettingsScreen>
   );
 }

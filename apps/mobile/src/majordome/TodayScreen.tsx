@@ -433,7 +433,7 @@ export function MajordomeTodayScreen() {
                 accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
                 textRole="footnote"
-                className="text-danger"
+                className="text-danger-foreground"
               >
                 {problem}
               </Text>
@@ -498,7 +498,7 @@ export function MajordomeTodayScreen() {
                 accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
                 textRole="footnote"
-                className="text-danger"
+                className="text-danger-foreground"
               >
                 {problem}
               </Text>

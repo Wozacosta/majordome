@@ -17,6 +17,19 @@ Not released yet.
   now. Click one to open it. When nothing is going on, nothing is shown. Chats on all your
   servers are included.
 
+**Changed**
+
+- **The iPhone page for getting a Majordome server is redrawn.** Three short lines say what a
+  server gives you; the price, the button and the small print stay at the bottom of the screen.
+
+**Fixed**
+
+- **On the iPhone, the app no longer forgets that you are signed in.** After pressing
+  **Subscribe**, or when a purchase was still waiting at launch, the app showed **Sign in to
+  continue** and the sign-in form answered "You're already signed in".
+- **On the iPhone, error messages can be read.** On Today, Your account and the server page they
+  were written in a red so pale it could not be seen.
+
 **Try this**
 
 - Ask something on **Today**, come back to Today while it works, and watch the chat move from

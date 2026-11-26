@@ -94,12 +94,18 @@ export const MAJORDOME_SERVER = {
   getLabel: "Get a Majordome server",
   getDescription:
     "No computer to leave on? A Majordome server is always on, so Majordome keeps working while your computer is off.",
-  what: "A Majordome server is a private server that is always on. Your notes and routines live on it, so Majordome keeps working while your computer is off.",
-  ownPlan: "You sign in to your own Claude plan on it. The price is for the server only.",
-  renews: `The subscription renews by itself until you cancel it, in ${CANCEL_PLACE}.`,
+  headline: "Majordome, always on",
+  points: [
+    { icon: "calendar.badge.clock", text: "Routines run while your computer is off" },
+    { icon: "doc.text", text: "Your notes live on a private server" },
+    {
+      icon: "person.crop.circle",
+      text: "You sign in to your own Claude plan. The price is for the server only.",
+    },
+  ],
+  renews: `Renews by itself until you cancel, in ${CANCEL_PLACE}.`,
   buy: "Subscribe",
   signIn: "Sign in to continue",
-  signInHelp: "A server belongs to a Majordome account. Sign in, or make an account, to get one.",
   restore: "Restore purchases",
   connect: "Connect this phone to it",
   terms: "Terms",
