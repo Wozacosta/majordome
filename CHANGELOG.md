@@ -25,12 +25,21 @@ The section for a version is also the text of its release on GitHub.
   it does. Click a card to add it. The last card, **Your own**, hands the assistant a routine you
   describe in words. With no routine yet, the cards are the page; otherwise they come after your
   list.
+- **Connections shows each service as a card.** Settings > Connections now lays out your AI
+  accounts, Gmail, Calendar, Drive and your backups as cards with their own mark, their state, and
+  one button: "Sign in", "Set up" or "Manage", which opens the place where that is done.
+- **Download a file the assistant names.** Right-click a file in an answer and choose "Download"
+  to save a copy on the device you are reading on, also when the file lives on another computer or
+  on your server.
 
 **Try this**
 
 - Ask something in a chat, then go to Today before the answer is there. When it arrives, open the
   chat from **Unread** in the sidebar and look for the New line.
 - Open **Routines**, scroll to **Add a routine** and click **To-dos left behind**.
+- Open **Settings > Connections** and press "Set up" on Google Drive.
+- Ask the assistant to write a short file, then right-click its name in the answer and choose
+  "Download".
 
 ## 0.10.74
 
@@ -46,20 +55,11 @@ The section for a version is also the text of its release on GitHub.
   where each other topic stands, each connection and whether it needs sign-in, the topic's files,
   and what each saved key and private document is for. Click again to close it. A key's value and
   what a private document says are never shown.
-- **Connections shows each service as a card.** Settings > Connections now lays out your AI
-  accounts, Gmail, Calendar, Drive and your backups as cards with their own mark, their state, and
-  one button: "Sign in", "Set up" or "Manage", which opens the place where that is done.
-- **Download a file the assistant names.** Right-click a file in an answer and choose "Download"
-  to save a copy on the device you are reading on, also when the file lives on another computer or
-  on your server.
 
 **Try this**
 
 - In a topic, write "Show me a diagram of what you know, what you can do and what you have access
   to here." Then click **Memory note**, **Skills** and **Saved keys**.
-- Open **Settings > Connections** and press "Set up" on Google Drive.
-- Ask the assistant to write a short file, then right-click its name in the answer and choose
-  "Download".
 
 ## 0.10.73
 
