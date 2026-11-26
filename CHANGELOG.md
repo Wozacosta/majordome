@@ -5,6 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**New**
+
+- **A key icon at the bottom of the sidebar opens Passwords and keys**, next to Settings and the
+  phone. The page is also in the command menu: type "keys" or "passwords".
+
 **Fixed**
 
 - **An answer no longer says it used "T3 Code".** Under an answer, the line naming the services
@@ -13,6 +18,7 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- Click the key at the bottom left of the window.
 - Ask your assistant "which keys do I have saved?": no "T3 Code" line should sit under the answer.
 
 ## 0.10.57

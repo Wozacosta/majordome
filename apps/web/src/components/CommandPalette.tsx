@@ -72,6 +72,7 @@ import {
   NewspaperIcon,
   HashIcon,
   NotebookTextIcon,
+  KeyRoundIcon,
   SmartphoneIcon,
   CloudUploadIcon,
   CheckIcon,
@@ -1925,6 +1926,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <CloudUploadIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/settings/backup" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:saved-keys",
+      searchTerms: ["passwords", "keys", "api key", "token", "secrets", "credentials"],
+      title: gt("Passwords and keys"),
+      icon: <KeyRoundIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/settings/secrets" });
       },
     });
   }

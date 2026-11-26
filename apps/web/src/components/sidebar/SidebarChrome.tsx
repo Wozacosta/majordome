@@ -3,6 +3,7 @@ import {
   ArrowRightIcon,
   ChartNoAxesColumnIcon,
   SettingsIcon,
+  KeyRoundIcon,
   SmartphoneIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -319,6 +320,13 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               icon={<SmartphoneIcon />}
               label={PHONE_SHORTCUT_LABEL}
               onClick={() => void navigate({ to: "/settings/phone" })}
+            />
+          ) : null}
+          {isMajordome && !isMobile ? (
+            <SidebarUtilityItem
+              icon={<KeyRoundIcon />}
+              label={gt("Passwords and keys")}
+              onClick={() => void navigate({ to: "/settings/secrets" })}
             />
           ) : null}
           {isMajordome && hasAccountPublicConfig() ? (
