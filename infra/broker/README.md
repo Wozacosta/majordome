@@ -76,7 +76,8 @@ The same Worker makes a server for someone who has an invite code. It is switche
   server in `hosted_invites` is looked at; any other name gets `false` twice and Fly is not asked.
 
 A server is one Fly.io app named `majordome-<10 characters>`, holding a 3 GB volume and one
-Machine (2 shared CPUs, 2 GB) that runs the released image with `MAJORDOME_HOSTED=1`. Its
+Machine (2 shared CPUs, 1 GB with 1 GB of swap, in `HOSTED_REGION`; servers made before
+2026-11-26 have 2 GB and are in `cdg`) that runs the released image with `MAJORDOME_HOSTED=1`. Its
 address is the app's `fly.dev` address, over HTTPS only. An invite makes one server; if Fly
 refuses, what was made is removed and the invite is given back.
 
@@ -131,10 +132,10 @@ identity and its sign-ins all came back):
 
 ```sh
 fly volumes snapshots list <volume id> --app <app>
-fly volumes create data --snapshot-id <snapshot id> --app <app> --region cdg --size 3 --yes
+fly volumes create data --snapshot-id <snapshot id> --app <app> --region <region> --size 3 --yes
 fly volumes update <new volume id> --app <app> --snapshot-retention 30   # a restored volume starts at 5
 fly machine stop <machine id> --app <app>
-fly machine clone <machine id> --app <app> --region cdg --attach-volume <new volume id>:/data
+fly machine clone <machine id> --app <app> --region <region> --attach-volume <new volume id>:/data
 fly machine destroy <machine id> --app <app> --force   # the old one, or a request can wake it
 ```
 

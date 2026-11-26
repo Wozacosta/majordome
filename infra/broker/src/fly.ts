@@ -16,6 +16,8 @@ export function makeFlyHost(config: {
   readonly orgSlug: string;
   readonly region: string;
   readonly memoryMb: number;
+  /** Disk used as slow memory, for the minutes a chat and the browser need more than there is. */
+  readonly swapMb: number;
   readonly volumeGb: number;
 }): HostClient {
   // A token from `fly tokens create` already starts with its own scheme.
@@ -97,6 +99,7 @@ export function makeFlyHost(config: {
           image,
           env: { ...env, MAJORDOME_PUBLIC_URL: url },
           guest: { cpu_kind: "shared", cpus: 2, memory_mb: config.memoryMb },
+          init: { swap_size_mb: config.swapMb },
           mounts: [{ volume: volume.id, path: "/data" }],
           restart: { policy: "always" },
           services,

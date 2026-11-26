@@ -130,8 +130,11 @@ const hostFor = (env: Env): HostClient | null =>
     : makeFlyHost({
         apiToken: env.FLY_API_TOKEN,
         orgSlug: env.FLY_ORG_SLUG,
-        region: env.HOSTED_REGION ?? "cdg",
-        memoryMb: 2048,
+        region: env.HOSTED_REGION ?? "ams",
+        // A server rests near 600 MB and reached 934 MB with a chat and the browser open
+        // (measured 2026-11-26), so swap covers the rest.
+        memoryMb: 1024,
+        swapMb: 1024,
         volumeGb: 3,
       });
 

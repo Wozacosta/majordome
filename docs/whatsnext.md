@@ -43,10 +43,15 @@ opening is the Mac app, the iPhone app and hosted servers.
       in its own name and handles the tax. No sale has gone through it yet. To check on the
       first one: the checkout page, the receipt naming Stripe as the seller, and that the
       refund button still gives the money back, since Stripe also takes refund requests itself.
-- [ ] The margin. The price went from 12 to 22 euros on 2026-11-26: a 2 GB server always on
-      in Paris is about $16 a month at Fly's list prices, before Stripe's fee and any VAT. Check
-      it against one Fly invoice. Stopping idle servers (see "Later" under "Hosted Majordome")
-      would bring the cost to a few dollars and was set aside for now.
+- [ ] The margin, and whether 1 GB holds. Since 2026-11-26 a new server has 1 GB of memory
+      with 1 GB of swap, in Amsterdam, and the price is 14 euros (it was 12 on a 2 GB server in
+      Paris, about $16 a month at Fly's prices). At list prices the smaller server is about
+      7.60 euros, which leaves about 2 euros after Stripe's fees and VAT. Measured that day on
+      the owner's 2 GB server: about 610 MB at rest, 934 MB with a chat and one page open in
+      the browser, 1,043 MB at the week's highest. Nobody has yet used a 1 GB server for real:
+      if chats get slow or the server restarts, set `memoryMb` back up in
+      `infra/broker/src/worker.ts` (1.5 GB needs about 18 euros). Check the cost against one
+      Fly invoice. Stopping idle servers would bring it to a few dollars; set aside for now.
 - [ ] `MAX_HOSTED_SERVERS` is 10. It counts servers that are on; raising it raises the most the
       Fly bill can reach.
 - [ ] A new email is a new free trial (`trialFor` in `infra/broker/src/billing.ts`). Decide

@@ -24,8 +24,9 @@ Not released yet.
 
 **Changed**
 
-- **A Majordome server is €22 a month.** It was €12, which did not cover what the server costs
-  to run. The first 7 days are still free. Anyone already subscribed keeps their price.
+- **A Majordome server is €14 a month.** It was €12, which did not cover what the server costs
+  to run. New servers are also smaller and in Amsterdam, which is what keeps the price there.
+  The first 7 days are still free. Anyone already subscribed keeps their price and their server.
 
 **New**
 

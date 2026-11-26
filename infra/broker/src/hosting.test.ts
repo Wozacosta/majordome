@@ -227,8 +227,9 @@ describe("the Fly host", () => {
     const host = makeFlyHost({
       apiToken: "token",
       orgSlug: "majordome-hosted",
-      region: "cdg",
-      memoryMb: 2048,
+      region: "ams",
+      memoryMb: 1024,
+      swapMb: 1024,
       volumeGb: 3,
     });
 
@@ -244,6 +245,8 @@ describe("the Fly host", () => {
     });
     expect(sent.at(-1)?.body.config).toMatchObject({
       image: IMAGE,
+      guest: { cpu_kind: "shared", cpus: 2, memory_mb: 1024 },
+      init: { swap_size_mb: 1024 },
       services: [
         {
           ports: [

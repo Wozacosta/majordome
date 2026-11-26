@@ -38,7 +38,7 @@
     "FLY_ORG_SLUG": "personal",
     // No tag: servers run the digest the latest release names in its image-digest.txt.
     "HOSTED_IMAGE": "ghcr.io/wozacosta/majordome",
-    "HOSTED_REGION": "cdg",
+    "HOSTED_REGION": "ams",
     // Each server is billed to the Fly account, so this bounds the bill.
     "MAX_HOSTED_SERVERS": "10",
     // Majordome's account service and the one site allowed to ask for a server from a browser.
