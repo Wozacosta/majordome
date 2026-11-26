@@ -74,7 +74,9 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   made three lists in boxes that changed with each ask. The assistant adds what only it knows,
   its own tools and the page's few words in the owner's language, and shows the page with
   `html_render`, the one tool every provider adapter knows shows a page; that tool reads a page
-  the server drew whatever the chat itself may read. There is no button for it: it is something
+  the server drew whatever the chat itself may read. A box opens onto what is behind it: the
+  start of a loaded note, what a skill or a key is for. Those texts are in the page only, which
+  is the owner's screen; the assistant's answer from the tool stays names only. There is no button for it: it is something
   to ask.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
   nicotine", "Fitness log"), not chats. A topic is one continuing conversation tied to one folder

@@ -1,7 +1,7 @@
 /**
  * What one chat's assistant has, for the owner to see drawn: what it read before the first
- * message, what it can use, and what it can reach. Names only, never a note's text or a key's
- * value. The assistant asks for it with `describe_setup`, which also draws it.
+ * message, what it can use, and what it can reach. The assistant is given names only; the map adds
+ * the start of the notes it loaded, for the owner. Never a key's value or a private document. The assistant asks for it with `describe_setup`, which also draws it.
  */
 
 import type { OrchestrationV2ThreadShell } from "@t3tools/contracts";
@@ -23,7 +23,9 @@ import * as MajordomeTopics from "./MajordomeTopics.ts";
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
 /** Enough for a drawing; the totals say when there are more. */
 const OTHER_TOPICS_SHOWN = 12;
-const TOPIC_FILES_SHOWN = 8;
+const TOPIC_FILES_SHOWN = 40;
+/** A loaded note as the map shows it when opened: its start. */
+const NOTE_TEXT_SHOWN = 1_500;
 
 export type ChatSetupPart =
   | "skills"
@@ -81,6 +83,24 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
     }
   }
 
+  // What the map shows when a box is opened. It goes to the owner's screen, not to the assistant,
+  // which has these notes already.
+  const texts: Record<string, string> = {};
+  if (folder !== undefined) {
+    const loaded = [
+      ...instructions,
+      ...(knowledge.memory === null ? [] : [knowledge.memory.path]),
+      ...knowledge.dailyNotes.map((note) => note.path),
+    ];
+    for (const name of loaded) {
+      const text = yield* fileSystem.readFileString(path.join(folder, name)).pipe(Effect.option);
+      if (Option.isNone(text) || text.value.trim() === "") continue;
+      const trimmed = text.value.trim();
+      texts[name] =
+        trimmed.length <= NOTE_TEXT_SHOWN ? trimmed : `${trimmed.slice(0, NOTE_TEXT_SHOWN)}…`;
+    }
+  }
+
   const kept = yield* orUnread("skills", skills.list({ projectId: thread.projectId }));
   const reached = (yield* connectors.list({})).providers.find(
     (provider) => provider.instanceId === thread.providerInstanceId,
@@ -97,7 +117,7 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
   const documents = yield* orUnread("private documents", privateDocuments.list());
   const { label } = yield* environment.getDescriptor;
 
-  return {
+  const facts = {
     startsWith: {
       instructions,
       skills: Option.match(kept, {
@@ -142,6 +162,25 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
     },
     ...(unread.length === 0 ? {} : { couldNotRead: unread }),
   };
+  return {
+    facts,
+    opened: {
+      texts,
+      standings: Object.fromEntries(
+        knowledge.otherTopics.flatMap((topic) =>
+          topic.standing === null ? [] : [[topic.title, topic.standing]],
+        ),
+      ),
+      documents: Object.fromEntries(
+        Option.match(documents, {
+          onNone: () => [],
+          onSome: (value) => value.documents.map(({ name, description }) => [name, description]),
+        }),
+      ),
+    },
+  };
 });
 
-export type ChatSetup = Effect.Success<ReturnType<typeof readChatSetup>>;
+type ChatSetupRead = Effect.Success<ReturnType<typeof readChatSetup>>;
+export type ChatSetup = ChatSetupRead["facts"];
+export type ChatSetupOpened = ChatSetupRead["opened"];

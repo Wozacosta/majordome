@@ -4,7 +4,7 @@
  * assistant only shows it, with `html_render`.
  */
 
-import type { ChatSetup, ChatSetupPart } from "./chatSetup.ts";
+import type { ChatSetup, ChatSetupOpened, ChatSetupPart } from "./chatSetup.ts";
 
 /** The page's fixed words. An assistant gives them in the owner's language with `words`. */
 export const CHAT_SETUP_WORDS = [
@@ -31,6 +31,9 @@ export const CHAT_SETUP_WORDS = [
   "Could not be read",
   "Has it now",
   "By name, or asks first",
+  "Connected",
+  "Needs sign-in",
+  "Not in use",
 ] as const;
 type Word = (typeof CHAT_SETUP_WORDS)[number];
 
@@ -71,7 +74,14 @@ const ICONS = {
 interface Chip {
   readonly text: string;
   /** A status dot: `ok` works now, `warn` needs the owner, `off` is not in use. */
-  readonly dot?: "ok" | "warn" | "off";
+  readonly dot?: "ok" | "warn" | "off" | undefined;
+}
+
+/** One line of an opened box. */
+interface Row {
+  readonly name: string;
+  readonly note?: string | undefined;
+  readonly dot?: Chip["dot"];
 }
 
 interface Node {
@@ -81,6 +91,10 @@ interface Node {
   readonly chips?: ReadonlyArray<Chip> | undefined;
   /** How many there are when `chips` holds only the first few. */
   readonly total?: number | undefined;
+  /** Shown when the box is opened, in place of the chips: every one, each with what it is. */
+  readonly rows?: ReadonlyArray<Row> | undefined;
+  /** Shown when the box is opened: the start of each note it stands for, by name. */
+  readonly texts?: ReadonlyArray<readonly [name: string, text: string]> | undefined;
   /** Dotted: the chat has only the names, or must ask the owner first. */
   readonly soft?: boolean;
   /** Faded: there is nothing there. */
@@ -115,6 +129,20 @@ const STYLE = `
 .node.soft{border-style:dashed;border-left-style:solid}
 .left .node.soft{border-left-style:dashed;border-right-style:solid}
 .node.none{opacity:.55}
+details.node{display:block}
+details.node>summary{display:flex;gap:10px;align-items:flex-start;list-style:none;cursor:pointer;border-radius:4px}
+details.node>summary::-webkit-details-marker{display:none}
+details.node>summary:focus-visible{outline:2px solid var(--ring);outline-offset:4px}
+details.node>summary .caret{margin-left:auto;width:14px;height:14px;stroke:var(--muted-foreground);transition:transform .15s}
+details.node[open]>summary .caret{transform:rotate(90deg)}
+details.node[open]>summary .chips{display:none}
+.open{margin:8px 0 2px 26px;display:flex;flex-direction:column;gap:6px}
+.row{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.row b{font-weight:600}.row i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--success)}
+.row i.warn{background:var(--warning)}.row i.off{background:var(--muted-foreground)}
+.row span{display:block;color:var(--muted-foreground);font-size:11.5px}
+.text h3{margin:0 0 3px;font-size:11px;font-weight:600;color:var(--muted-foreground)}
+.text pre{margin:0;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--font-mono);font-size:11px;line-height:1.5;background:var(--code-background);border-radius:calc(var(--radius) - 2px)}
 .node svg{flex:none;width:16px;height:16px;margin-top:1px;stroke:var(--tone);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .body{min-width:0;flex:1}
 .t{font-size:13px;font-weight:600;line-height:1.3}
@@ -157,9 +185,14 @@ function renderNode(node: Node): string {
   const chips = node.chips ?? [];
   const shown = chips.slice(0, CHIPS_SHOWN);
   const more = (node.total ?? chips.length) - shown.length;
-  const classes = ["node", node.soft === true ? "soft" : "", node.none === true ? "none" : ""];
-  return [
-    `<div class="${classes.filter(Boolean).join(" ")}">${icon(node.icon)}<div class="body">`,
+  const classes = ["node", node.soft === true ? "soft" : "", node.none === true ? "none" : ""]
+    .filter(Boolean)
+    .join(" ");
+  const rows = node.rows ?? [];
+  const texts = node.texts ?? [];
+  const opens = rows.length > 0 || texts.length > 0;
+  const face = [
+    `${icon(node.icon)}<div class="body">`,
     `<div class="t">${escapeHtml(node.title)}</div>`,
     node.detail === undefined ? "" : `<div class="s">${escapeHtml(node.detail)}</div>`,
     shown.length === 0
@@ -170,8 +203,20 @@ function renderNode(node: Node): string {
               `<span class="chip">${chip.dot === undefined ? "" : `<i class="${chip.dot}"></i>`}${escapeHtml(chip.text)}</span>`,
           )
           .join("")}${more > 0 ? `<span class="chip more">+${more}</span>` : ""}</div>`,
-    "</div></div>",
+    "</div>",
   ].join("");
+  if (!opens) return `<div class="${classes}">${face}</div>`;
+  const opened = [
+    ...rows.map(
+      (row) =>
+        `<div class="row">${row.dot === undefined ? "" : `<i class="${row.dot}"></i>`}<b>${escapeHtml(row.name)}</b>${row.note === undefined || row.note.trim() === "" ? "" : `<span>${escapeHtml(row.note)}</span>`}</div>`,
+    ),
+    ...texts.map(
+      ([name, text]) =>
+        `<div class="text">${texts.length > 1 ? `<h3>${escapeHtml(name)}</h3>` : ""}<pre>${escapeHtml(text)}</pre></div>`,
+    ),
+  ].join("");
+  return `<details class="${classes}"><summary>${face}<svg class="caret" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></summary><div class="open">${opened}</div></details>`;
 }
 
 const renderBranch = (tone: "k" | "u" | "r", title: string, nodes: ReadonlyArray<Node>) =>
@@ -185,6 +230,8 @@ const names = (values: ReadonlyArray<string>): ReadonlyArray<Chip> =>
 /** The page and the frame height to ask `html_render` for; the frame then fits the page itself. */
 export function renderChatSetupPage(input: {
   readonly setup: ChatSetup;
+  /** What a box shows once opened; without it no box opens. */
+  readonly opened?: ChatSetupOpened | undefined;
   /** The assistant's own kinds of tools, which only it knows. */
   readonly tools?: ReadonlyArray<string> | undefined;
   /** The fixed words in the owner's language, by their English. */
@@ -194,12 +241,39 @@ export function renderChatSetupPage(input: {
   const w = (word: Word) => input.words?.[word]?.trim() || word;
   const unread = new Set<ChatSetupPart>(input.setup.couldNotRead);
   /** A list that may be empty or unread: faded with the reason, never left out. */
-  const list = (part: ChatSetupPart, node: Omit<Node, "none">, values: ReadonlyArray<Chip>): Node =>
+  const list = (
+    part: ChatSetupPart,
+    node: Omit<Node, "none">,
+    rows: ReadonlyArray<Row>,
+    total?: number,
+  ): Node =>
     unread.has(part)
       ? { icon: node.icon, title: node.title, detail: w("Could not be read"), none: true }
-      : values.length === 0
+      : rows.length === 0
         ? { icon: node.icon, title: node.title, detail: w("None"), none: true }
-        : { ...node, chips: values };
+        : {
+            ...node,
+            chips: rows.map((row) => ({ text: row.name, dot: row.dot })),
+            total,
+            // Opening adds something when a row says what it is, or the chips left some out.
+            rows:
+              rows.some((row) => (row.note ?? "").trim() !== "") || rows.length > CHIPS_SHOWN
+                ? total !== undefined && total > rows.length
+                  ? [...rows, { name: `+${total - rows.length}` }]
+                  : rows
+                : undefined,
+          };
+  /** The starts of the loaded notes among `paths`, for a box that opens onto them. */
+  const textsOf = (paths: ReadonlyArray<string>) =>
+    paths.flatMap((name): Array<readonly [string, string]> => {
+      const text = input.opened?.texts[name];
+      return text === undefined ? [] : [[name, text]];
+    });
+  const STATUS_WORDS = {
+    ok: w("Connected"),
+    warn: w("Needs sign-in"),
+    off: w("Not in use"),
+  } as const;
 
   const knows: Array<Node> = [];
   if (startsWith.instructions.length > 0) {
@@ -207,6 +281,7 @@ export function renderChatSetupPage(input: {
       icon: "instructions",
       title: w("Your instructions"),
       detail: startsWith.instructions.join(", "),
+      texts: textsOf(startsWith.instructions),
     });
   }
   if (startsWith.skills.length > 0 || unread.has("skills")) {
@@ -214,18 +289,24 @@ export function renderChatSetupPage(input: {
       list(
         "skills",
         { icon: "skills", title: w("Skills") },
-        names(startsWith.skills.map((skill) => skill.name)),
+        startsWith.skills.map((skill) => ({ name: skill.name, note: skill.description })),
       ),
     );
   }
   if (startsWith.memoryNote !== undefined) {
-    knows.push({ icon: "memory", title: w("Memory note"), detail: startsWith.memoryNote });
+    knows.push({
+      icon: "memory",
+      title: w("Memory note"),
+      detail: startsWith.memoryNote,
+      texts: textsOf([startsWith.memoryNote]),
+    });
   }
   if (startsWith.dailyNotes.length > 0) {
     knows.push({
       icon: "daily",
       title: w("Daily notes"),
       detail: startsWith.dailyNotes.map((note) => note.replace(/^.*\//, "")).join(", "),
+      texts: textsOf(startsWith.dailyNotes),
     });
   }
   if (startsWith.topic !== undefined) {
@@ -238,6 +319,10 @@ export function renderChatSetupPage(input: {
       detail: w("Only where each stands"),
       chips: names(startsWith.otherTopics),
       total: startsWith.otherTopicsTotal,
+      rows: startsWith.otherTopics.map((name) => ({
+        name,
+        note: input.opened?.standings[name],
+      })),
       soft: true,
     });
   }
@@ -248,10 +333,10 @@ export function renderChatSetupPage(input: {
       list(
         "connections",
         { icon: "connections", title: w("Connections") },
-        (canUse.connections ?? []).map((connection) => ({
-          text: connectionName(connection.name),
-          dot: CONNECTION_DOTS[connection.status] ?? "off",
-        })),
+        (canUse.connections ?? []).map((connection) => {
+          const dot = CONNECTION_DOTS[connection.status] ?? "off";
+          return { name: connectionName(connection.name), dot, note: STATUS_WORDS[dot] };
+        }),
       ),
     );
   }
@@ -266,21 +351,24 @@ export function renderChatSetupPage(input: {
       icon: "computer",
       title: w("Notes folder"),
       detail: `${canReach.notesFolder.replace(/^.*\//, "")} · ${canReach.computer}`,
+      rows: [{ name: canReach.notesFolder }],
     });
   }
   if (canReach.topicFiles !== undefined || unread.has("topic files")) {
-    const files = list(
-      "topic files",
-      { icon: "files", title: w("This topic's files") },
-      names(canReach.topicFiles ?? []),
+    reaches.push(
+      list(
+        "topic files",
+        { icon: "files", title: w("This topic's files") },
+        (canReach.topicFiles ?? []).map((name) => ({ name })),
+        canReach.topicFilesTotal,
+      ),
     );
-    reaches.push({ ...files, total: canReach.topicFilesTotal });
   }
   reaches.push(
     list(
       "saved keys",
       { icon: "keys", title: w("Saved keys"), detail: w("By name, never the value") },
-      names(canReach.savedKeys.map((key) => key.name)),
+      canReach.savedKeys,
     ),
     list(
       "private documents",
@@ -290,7 +378,7 @@ export function renderChatSetupPage(input: {
         detail: w("Asks you each time"),
         soft: true,
       },
-      names(canReach.privateDocuments),
+      canReach.privateDocuments.map((name) => ({ name, note: input.opened?.documents[name] })),
     ),
   );
 

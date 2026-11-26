@@ -20,12 +20,13 @@ const handlers = {
           message: "describe_setup describes the chat that calls it: call it from a chat.",
         });
       }
-      const setup = yield* readChatSetup(caller);
+      const { facts: setup, opened } = yield* readChatSetup(caller);
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const { stateDir } = yield* ServerConfig.ServerConfig;
       const { html, height } = renderChatSetupPage({
         setup,
+        opened,
         tools: input.tools,
         words: input.words,
       });

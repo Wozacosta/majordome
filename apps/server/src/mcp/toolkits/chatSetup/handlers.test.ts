@@ -266,7 +266,13 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
         expect(html).toContain("Clés &lt;b&gt;");
         expect(html).not.toContain("claude.ai Gmail");
         expect(html).not.toContain("g_secret_1");
-        expect(html).not.toContain("Lives in Lyon");
+        // A box opens onto what it stands for: the note the chat loaded, what a skill and a key
+        // are for, where another topic stands. The owner sees these; the assistant's answer
+        // above holds none of the note.
+        expect(html).toContain("<details");
+        for (const opened of ["Lives in Lyon", "File a receipt.", "Runs", "Call the bank"]) {
+          expect(html).toContain(opened);
+        }
       }),
   );
 

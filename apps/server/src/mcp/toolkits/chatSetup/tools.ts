@@ -20,7 +20,7 @@ import * as McpInvocationContext from "../../McpInvocationContext.ts";
 const Names = Schema.Array(Schema.String);
 
 const DescribeSetupTool = Tool.make("describe_setup", {
-  description: `Call when the owner asks what you know, can do or have access to in this chat, or asks to see it drawn. Returns the facts and \`page\`, a map of them already drawn: show it by passing \`page\`'s path, title and height to \`html_render\`, unchanged. Don't draw your own. Names only: never a key's value or a note's text.`,
+  description: `Call when the owner asks what you know, can do or have access to in this chat, or asks to see it drawn. Returns the facts and \`page\`, a map of them already drawn: show it by passing \`page\`'s path, title and height to \`html_render\`, unchanged. Don't draw your own.`,
   parameters: Schema.Struct({
     tools: Schema.optionalKey(
       Schema.Array(Schema.String.check(Schema.isMaxLength(40))).check(Schema.isMaxLength(12)),

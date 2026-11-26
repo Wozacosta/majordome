@@ -12,11 +12,16 @@ The section for a version is also the text of its release on GitHub.
   instructions, its skills and notes on one side, its connections and tools and what it can reach
   on the other. A dotted line means it has only the names, or must ask you first. Majordome draws
   the map itself, so it looks the same every time, in your language, on the computer and the phone.
+- **The boxes of the map open.** Click a box with an arrow to see what is behind it: the start of
+  your instructions, the memory note and the daily notes it read, each skill with when it is used,
+  where each other topic stands, each connection and whether it needs sign-in, the topic's files,
+  and what each saved key and private document is for. Click again to close it. A key's value and
+  what a private document says are never shown.
 
 **Try this**
 
 - In a topic, write "Show me a diagram of what you know, what you can do and what you have access
-  to here."
+  to here." Then click **Memory note**, **Skills** and **Saved keys**.
 
 ## 0.10.73
 
