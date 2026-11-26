@@ -38,9 +38,11 @@ opening is the Mac app, the iPhone app and hosted servers.
 
 - [ ] **One real purchase by someone else** on `/start`, the card typed into Stripe's page. That
       step has never been run.
-- [ ] **Tax and seller wording.** The page says "Tax included" and the terms say Stripe may
-      appear as the seller, while Managed Payments is off and Stripe computes no tax. Turn on
-      `STRIPE_MANAGED_PAYMENTS` once Stripe approves the account.
+- [ ] **Managed Payments, seen working.** Switched on in the broker on 2026-11-26
+      (`STRIPE_MANAGED_PAYMENTS`), once Stripe marked the account "Ready to use": Stripe sells
+      in its own name and handles the tax. No sale has gone through it yet. To check on the
+      first one: the checkout page, the receipt naming Stripe as the seller, and that the
+      refund button still gives the money back, since Stripe also takes refund requests itself.
 - [ ] The margin. The price went from 12 to 20 euros on 2026-11-26: a 2 GB server always on
       in Paris is about $16 a month at Fly's list prices, before Stripe's fee and any VAT. Check
       it against one Fly invoice. Stopping idle servers (see "Later" under "Hosted Majordome")
