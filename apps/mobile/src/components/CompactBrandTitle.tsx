@@ -35,8 +35,11 @@ export function CompactBrandTitle(
   const [availableWidth, setAvailableWidth] = useState<number | null>(null);
   // Measured only while the badge shows, so hiding it does not make it look like it fits.
   const [fullWidth, setFullWidth] = useState<number | null>(null);
+  // Majordome's released app is not a beta; the badge stays on development and nightly builds.
+  const released = isMajordome && stageLabel === "Beta";
   const showStage =
-    !props.fit || availableWidth === null || fullWidth === null || fullWidth <= availableWidth;
+    !released &&
+    (!props.fit || availableWidth === null || fullWidth === null || fullWidth <= availableWidth);
 
   const title = (
     <View
