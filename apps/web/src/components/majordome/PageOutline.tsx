@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
+import { observeResize } from "../../lib/observeResize";
 import { cn } from "../../lib/utils";
 import {
   currentHeading,
+  isLongPage,
   type OutlineHeading,
   type OutlineItem,
   outlineGroups,
@@ -43,12 +45,14 @@ function sameHeadings(a: readonly OutlineHeading[], b: readonly OutlineHeading[]
 
 /**
  * The places on a long settings page, under its title and kept in view while the page scrolls.
+ * A page seen whole, or nearly, shows none.
  * It reads them from the page's headings, so a page lists whatever it is showing right now.
  */
 export function PageOutline({ className }: { readonly className?: string }) {
   const navRef = useRef<HTMLElement>(null);
   const [headings, setHeadings] = useState<readonly OutlineHeading[]>([]);
   const [current, setCurrent] = useState(-1);
+  const [long, setLong] = useState(false);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the outline mirrors the headings in the page's DOM, which other components render and change as their data loads
   useEffect(() => {
@@ -64,9 +68,12 @@ export function PageOutline({ className }: { readonly className?: string }) {
     const readHeadings = () => {
       const next = pageHeadings(scroll).map(describeHeading);
       setHeadings((previous) => (sameHeadings(previous, next) ? previous : next));
+      // Without the outline's own height, so showing it never tips the answer back.
+      setLong(isLongPage(scroll.scrollHeight - nav.offsetHeight, scroll.clientHeight));
       readPosition();
     };
     readHeadings();
+    const stopObservingSize = observeResize(scroll, readHeadings);
     const observer = new MutationObserver(readHeadings);
     observer.observe(scroll, {
       childList: true,
@@ -77,6 +84,7 @@ export function PageOutline({ className }: { readonly className?: string }) {
     scroll.addEventListener("scroll", readPosition, { passive: true });
     return () => {
       observer.disconnect();
+      stopObservingSize();
       scroll.removeEventListener("scroll", readPosition);
     };
   }, []);
@@ -127,7 +135,7 @@ export function PageOutline({ className }: { readonly className?: string }) {
       data-page-outline-nav
       className={cn(
         "sticky top-0 z-10 flex flex-wrap items-center gap-x-4 border-b border-border bg-background",
-        groups.length === 0 && "hidden",
+        (groups.length === 0 || !long) && "hidden",
         className,
       )}
     >

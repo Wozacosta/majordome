@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { currentHeading, outlineGroups } from "./pageOutline.logic";
+import { currentHeading, isLongPage, outlineGroups } from "./pageOutline.logic";
 
 describe("outlineGroups", () => {
   it("lists nothing for a page with only a couple of sections", () => {
@@ -36,5 +36,17 @@ describe("currentHeading", () => {
     expect(currentHeading([10, 200, 900], 250, false)).toBe(1);
     expect(currentHeading([300, 600], 250, false)).toBe(0);
     expect(currentHeading([10, 200, 900], 250, true)).toBe(2);
+  });
+});
+
+describe("isLongPage", () => {
+  it("is false for a page seen whole or nearly, and before the page is measured", () => {
+    expect(isLongPage(700, 800)).toBe(false);
+    expect(isLongPage(1100, 800)).toBe(false);
+    expect(isLongPage(0, 0)).toBe(false);
+  });
+
+  it("is true once the page runs well past one screen", () => {
+    expect(isLongPage(1300, 800)).toBe(true);
   });
 });

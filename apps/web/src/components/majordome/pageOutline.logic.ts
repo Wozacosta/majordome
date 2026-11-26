@@ -21,6 +21,14 @@ export interface OutlineGroup {
 /** A page with fewer places than this is read in one look. */
 const FEWEST_WORTH_LISTING = 3;
 
+/** How many screens of content a page needs before a list of its places saves any scrolling. */
+const SCREENS_WORTH_LISTING = 1.5;
+
+/** Whether the page is long enough for an outline: one seen whole, or nearly, needs none. */
+export function isLongPage(contentHeight: number, viewHeight: number): boolean {
+  return viewHeight > 0 && contentHeight > viewHeight * SCREENS_WORTH_LISTING;
+}
+
 /** The page's headings as the lines of its outline: one line per title, or one line in all. */
 export function outlineGroups(headings: readonly OutlineHeading[]): readonly OutlineGroup[] {
   if (headings.length < FEWEST_WORTH_LISTING) return [];

@@ -12,6 +12,9 @@ The section for a version is also the text of its release on GitHub.
   twice with nothing to say so. The page now says which two, and two buttons let you keep one:
   "Only on your Majordome server" or "Only on your server". The other is told directly and
   stops. Both servers need this version.
+- **Short settings pages lost their row of section links.** The links under a page's title
+  ("Your servers · Setup · Bring your notes back") now show only on a page long enough to need
+  them, about a screen and a half or more.
 - **A server Majordome hosts no longer shows where it is hosted.** Its row on Your servers says
   "Majordome looks after it" and no address.
 
