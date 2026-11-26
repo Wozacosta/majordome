@@ -134,6 +134,8 @@ The landing page and the README show a short version of this list.
 - **What's new, inside the app.** After an update, the app offers that version's notes: what
   changed and what to try. They stay in Settings, About. T3 Code shows notes only before you
   update.
+- **An update button that says "Update".** A waiting version shows as a tinted, labelled button
+  at the foot of the chat list. T3 Code shows a small icon.
 
 ## What Majordome leaves out
 

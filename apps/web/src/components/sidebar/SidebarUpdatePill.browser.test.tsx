@@ -126,6 +126,36 @@ describe("SidebarUpdatePill release notes", () => {
   });
 });
 
+describe("SidebarUpdatePill label", () => {
+  it("says what the button does when there is room, and only then", async () => {
+    setup(null, { hasUpdates: true });
+    await using screen = await render(
+      <ul data-testid="row" style={{ display: "flex", width: 240 }}>
+        <SidebarUpdatePill />
+      </ul>,
+    );
+    const label = screen.getByText("Update", { exact: true });
+    await expect.element(label).toBeVisible();
+
+    (screen.getByTestId("row").element() as HTMLElement).style.width = "64px";
+    await expect.element(label).not.toBeVisible();
+  });
+
+  it("offers the restart once the update is downloaded", async () => {
+    setup({
+      ...nightlyUpdate([]),
+      status: "downloaded",
+      downloadedVersion: "0.0.50-nightly.2",
+    });
+    await using screen = await render(
+      <ul style={{ display: "flex", width: 240 }}>
+        <SidebarUpdatePill />
+      </ul>,
+    );
+    await expect.element(screen.getByText("Restart to update")).toBeVisible();
+  });
+});
+
 describe("SidebarUpdatePill update everything", () => {
   it("does not refocus the update button after a pointer cancel", async () => {
     setup(null, { hasUpdates: true });

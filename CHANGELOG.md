@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **An update says so.** When a new version is waiting, the round arrow at the foot of the chat
+  list becomes a tinted button that reads "Update", or "Restart to update" once it is downloaded.
+  In a narrow list it shrinks back to the icon.
+
+**Try this**
+
+- Wait for the next version after this one, then look at the foot of the chat list.
 
 ## 0.10.69
 

@@ -470,6 +470,7 @@ function SidebarUpdateControl() {
     );
   }
 
+  const showLabel = showUpdateIconState && !isDownloading;
   const updateButton = (
     <button
       type="button"
@@ -480,12 +481,13 @@ function SidebarUpdateControl() {
       }
       aria-disabled={isInteractionDisabled || undefined}
       className={cn(
-        "inline-flex size-8 items-center justify-center rounded-full outline-hidden ring-ring transition-colors focus-visible:ring-2 focus-visible:ring-inset",
+        "inline-flex h-8 min-w-8 items-center justify-center rounded-full outline-hidden ring-ring transition-colors focus-visible:ring-2 focus-visible:ring-inset",
         isInteractionDisabled ? "cursor-not-allowed" : "cursor-pointer",
         showUpdateIconState
           ? cn(
-              "bg-sidebar-control-surface text-sidebar-foreground",
-              !isInteractionDisabled && "hover:bg-sidebar-row-hover",
+              "bg-update/15 text-update-foreground",
+              showLabel && "ring-1 ring-update/35 ring-inset",
+              !isInteractionDisabled && "hover:bg-update/25",
             )
           : cn(
               "text-(--sidebar-icon-color)",
@@ -517,12 +519,22 @@ function SidebarUpdateControl() {
         );
       }}
     >
-      {statusIcon}
+      {showLabel ? (
+        <span className="hidden min-w-0 truncate pr-1 pl-3 text-xs font-medium @min-[9rem]/sidebar-update:block">
+          {action === "install" && !runsEverything ? <T>Restart to update</T> : gt("Update")}
+        </span>
+      ) : null}
+      <span className="grid size-8 shrink-0 place-items-center">{statusIcon}</span>
     </button>
   );
 
   return (
-    <SidebarMenuItem className="ml-auto shrink-0">
+    <SidebarMenuItem
+      className={cn(
+        "ml-auto",
+        showLabel ? "@container/sidebar-update flex min-w-8 flex-1 justify-end" : "shrink-0",
+      )}
+    >
       <Popover
         handle={releaseNotesPopoverHandle}
         open={releaseNotesOpen && showReleaseNotesPopover}
