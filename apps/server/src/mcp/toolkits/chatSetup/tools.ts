@@ -4,7 +4,9 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { McpSchema, Tool, Toolkit } from "effect/ai";
 
+import * as ServerConfig from "../../../config.ts";
 import * as ServerEnvironment from "../../../environment/ServerEnvironment.ts";
+import { CHAT_SETUP_WORDS } from "../../../majordome/chatSetupPage.ts";
 import * as MajordomeConnectors from "../../../majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "../../../majordome/MajordomePrivateDocuments.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
@@ -18,9 +20,18 @@ import * as McpInvocationContext from "../../McpInvocationContext.ts";
 const Names = Schema.Array(Schema.String);
 
 const DescribeSetupTool = Tool.make("describe_setup", {
-  description:
-    "Call when the owner asks what you know, can do or have access to in this chat, or asks to see it drawn. Returns the facts: what you read before the first message (`startsWith`), the connections of this AI account (`canUse`), and what you can reach (`canReach`). Then show it with `html_render` as one diagram of three groups, in the owner's language. Draw only what is returned, plus under what you can use the kinds of tools you have yourself (browser, web search, files, routines). Names only: never a key's value or a note's text.",
-  // No `parameters`: Tool.make defaults to Tool.EmptyParams, which serializes as an object schema.
+  description: `Call when the owner asks what you know, can do or have access to in this chat, or asks to see it drawn. Returns the facts and \`page\`, a map of them already drawn: show it by passing \`page\`'s path, title and height to \`html_render\`, unchanged. Don't draw your own. Names only: never a key's value or a note's text.`,
+  parameters: Schema.Struct({
+    tools: Schema.optionalKey(
+      Schema.Array(Schema.String.check(Schema.isMaxLength(40))).check(Schema.isMaxLength(12)),
+    ).annotate({
+      description:
+        "Your own kinds of tools, two words each, in the owner's language: Browser, Web search, Files.",
+    }),
+    words: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)).annotate({
+      description: `Only when the chat is not in English: the page's words, each English one mapped to the owner's language. ${CHAT_SETUP_WORDS.join("; ")}.`,
+    }),
+  }),
   success: Schema.Struct({
     startsWith: Schema.Struct({
       instructions: Names.annotate({ description: "Standing instruction files." }),
@@ -47,8 +58,9 @@ const DescribeSetupTool = Tool.make("describe_setup", {
       privateDocuments: Names.annotate({ description: "The owner allows each read." }),
     }),
     couldNotRead: Schema.optionalKey(Names).annotate({
-      description: "Parts that failed to load: say so, don't draw them as empty.",
+      description: "Parts that failed to load: say so, they are not empty.",
     }),
+    page: Schema.Struct({ path: Schema.String, title: Schema.String, height: Schema.Int }),
   }),
   failure: OrchestratorMcpFailure,
   failureMode: "return",
@@ -56,6 +68,7 @@ const DescribeSetupTool = Tool.make("describe_setup", {
     McpInvocationContext.McpInvocationContext,
     ThreadManagementService.ThreadManagementService,
     ServerEnvironment.ServerEnvironment,
+    ServerConfig.ServerConfig,
     FileSystem.FileSystem,
     Path.Path,
     ProjectStore.ProjectStoreV2,

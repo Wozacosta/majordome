@@ -5,7 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **What the assistant has is drawn as a map.** Asked to show what it knows, can do and can reach,
+  the assistant now shows a map with this chat in the middle and a line out to each thing: your
+  instructions, its skills and notes on one side, its connections and tools and what it can reach
+  on the other. A dotted line means it has only the names, or must ask you first. Majordome draws
+  the map itself, so it looks the same every time, in your language, on the computer and the phone.
+
+**Try this**
+
+- In a topic, write "Show me a diagram of what you know, what you can do and what you have access
+  to here."
 
 ## 0.10.73
 

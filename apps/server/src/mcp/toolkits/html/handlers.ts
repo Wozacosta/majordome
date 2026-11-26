@@ -2,6 +2,7 @@ import { OrchestratorMcpFailure } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 
 import * as HtmlRender from "../../../htmlRender/HtmlRender.ts";
+import { isDrawnPage } from "../../../majordome/chatSetupPage.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { loadCaller } from "../../threadAccess.ts";
@@ -37,6 +38,8 @@ const pageSource = Effect.fn("HtmlToolkit.pageSource")(function* (input: {
       message: "Pass exactly one of html or path.",
     });
   }
+  // A page this server drew itself is no read of the owner's files.
+  if (isDrawnPage(input.path)) return { path: input.path } satisfies HtmlRender.HtmlRenderSource;
   const { limits } = yield* loadCaller();
   if (limits.runtimeMode !== "full-access") {
     return yield* new OrchestratorMcpFailure({

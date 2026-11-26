@@ -1,0 +1,319 @@
+/**
+ * A chat's setup drawn as a map: the chat in the middle, a branch to each thing it knows, can use
+ * and can reach. Majordome draws it, so it looks the same whichever assistant is asked; the
+ * assistant only shows it, with `html_render`.
+ */
+
+import type { ChatSetup, ChatSetupPart } from "./chatSetup.ts";
+
+/** The page's fixed words. An assistant gives them in the owner's language with `words`. */
+export const CHAT_SETUP_WORDS = [
+  "This chat",
+  "Knows",
+  "Can use",
+  "Can reach",
+  "Your instructions",
+  "Skills",
+  "Memory note",
+  "Daily notes",
+  "This topic",
+  "Other topics",
+  "Only where each stands",
+  "Connections",
+  "Its own tools",
+  "Notes folder",
+  "This topic's files",
+  "Saved keys",
+  "By name, never the value",
+  "Private documents",
+  "Asks you each time",
+  "None",
+  "Could not be read",
+  "Has it now",
+  "By name, or asks first",
+] as const;
+type Word = (typeof CHAT_SETUP_WORDS)[number];
+
+const CHIPS_SHOWN = 8;
+
+/** Paths of the pages this server drew, which `html_render` shows whatever the chat may read. */
+const drawnPages = new Set<string>();
+export const rememberDrawnPage = (path: string) => void drawnPages.add(path);
+export const isDrawnPage = (path: string) => drawnPages.has(path);
+
+const escapeHtml = (text: string) =>
+  text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+const ICONS = {
+  hub: '<path d="M4 17a8 8 0 0 1 16 0zM2.5 17h19M12 9V7"/><circle cx="12" cy="6" r="1"/>',
+  instructions: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+  skills: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8z"/>',
+  memory:
+    '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 0V7a3 3 0 0 0-3-3zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 0"/>',
+  daily: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  topic: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  topics:
+    '<circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 11l8-4M8 13l8 4"/>',
+  connections: '<path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/>',
+  tools: '<path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L3 18l3 3 6.2-6.2a4 4 0 0 0 5.3-5.3L15 12l-3-3z"/>',
+  computer: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  files:
+    '<path d="M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/>',
+  keys: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+  documents:
+    '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+} as const;
+
+interface Chip {
+  readonly text: string;
+  /** A status dot: `ok` works now, `warn` needs the owner, `off` is not in use. */
+  readonly dot?: "ok" | "warn" | "off";
+}
+
+interface Node {
+  readonly icon: keyof typeof ICONS;
+  readonly title: string;
+  readonly detail?: string | undefined;
+  readonly chips?: ReadonlyArray<Chip> | undefined;
+  /** How many there are when `chips` holds only the first few. */
+  readonly total?: number | undefined;
+  /** Dotted: the chat has only the names, or must ask the owner first. */
+  readonly soft?: boolean;
+  /** Faded: there is nothing there. */
+  readonly none?: boolean;
+}
+
+const CONNECTION_DOTS: Record<string, Chip["dot"]> = {
+  connected: "ok",
+  "needs-auth": "warn",
+  failed: "warn",
+  pending: "off",
+  disabled: "off",
+};
+
+/** "claude.ai Gmail" and "plugin:vercel:vercel" as the owner would say them. */
+const connectionName = (name: string) =>
+  name.replace(/^claude\.ai /, "").replace(/^plugin:(?:[^:]*:)?/, "");
+
+const STYLE = `
+.map{position:relative;display:grid;grid-template-columns:1fr auto 1fr;column-gap:56px;align-items:center;font-family:var(--font-sans);color:var(--foreground)}
+.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.wires path{fill:none;stroke-width:1.5;stroke-linecap:round;opacity:.75}
+.wires path.soft{stroke-dasharray:2 5}
+.side{display:flex;flex-direction:column;min-width:0;z-index:1}
+.branch{display:flex;flex-direction:column;gap:10px}
+.branch+.branch{margin-top:18px}
+.branch>h2{margin:0;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tone)}
+.k{--tone:var(--chart-1)}.u{--tone:var(--chart-2)}.r{--tone:var(--chart-3)}
+.left .branch>h2{text-align:right}
+.node{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--border);border-left:3px solid var(--tone);border-radius:var(--radius);background:var(--card);min-width:0}
+.left .node{border-left:1px solid var(--border);border-right:3px solid var(--tone)}
+.node.soft{border-style:dashed;border-left-style:solid}
+.left .node.soft{border-left-style:dashed;border-right-style:solid}
+.node.none{opacity:.55}
+.node svg{flex:none;width:16px;height:16px;margin-top:1px;stroke:var(--tone);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.body{min-width:0;flex:1}
+.t{font-size:13px;font-weight:600;line-height:1.3}
+.s{font-size:11.5px;color:var(--muted-foreground);line-height:1.35;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:1px 7px;border-radius:999px;background:var(--secondary);color:var(--secondary-foreground);font-size:11.5px;line-height:1.6;overflow-wrap:anywhere}
+.chip i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--success)}
+.chip i.warn{background:var(--warning)}.chip i.off{background:var(--muted-foreground)}
+.chip.more{background:none;color:var(--muted-foreground);padding-left:2px}
+.hub{z-index:1;width:104px;height:104px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;background:var(--card);border:1.5px solid var(--primary);box-shadow:0 0 0 6px color-mix(in srgb,var(--primary) 12%,transparent)}
+.hub svg{width:26px;height:26px;stroke:var(--primary);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.hub b{font-size:12px;font-weight:600;line-height:1.2;max-width:84px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:18px;font-family:var(--font-sans);font-size:11.5px;color:var(--muted-foreground)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend em{width:22px;border-top:1.5px solid var(--muted-foreground)}
+.legend em.soft{border-top-style:dotted;border-top-width:2px}
+@media (max-width:560px){
+.map{grid-template-columns:1fr;row-gap:18px}
+.hub{order:1;width:84px;height:84px;justify-self:start}
+.side{padding-left:34px}
+.left{order:2}.right{order:3}
+.left .branch>h2{text-align:left}
+.left .node,.left .node.soft{border-right:1px solid var(--border);border-left:3px solid var(--tone)}
+.left .node.soft{border-right-style:dashed}
+}`;
+
+// Each wire runs from the hub to its node: a curve on a wide page, a trunk with elbows on a phone.
+const SCRIPT = `(function(){var map=document.getElementById("map"),svg=document.getElementById("wires"),hub=document.getElementById("hub");
+function draw(){var m=map.getBoundingClientRect(),h=hub.getBoundingClientRect(),narrow=getComputedStyle(map).gridTemplateColumns.split(" ").length<3,out="";
+map.querySelectorAll(".node").forEach(function(node){var n=node.getBoundingClientRect(),tone=getComputedStyle(node).getPropertyValue("--tone"),y=n.top-m.top+Math.min(n.height/2,22),d,x0,x1;
+if(narrow){x0=h.left-m.left+16;x1=n.left-m.left;d="M"+x0+" "+(h.bottom-m.top-4)+" V"+(y-10)+" Q"+x0+" "+y+" "+(x0+10)+" "+y+" H"+x1}
+else{var left=n.right<h.left,cy=h.top-m.top+h.height/2;x1=(left?n.right:n.left)-m.left;x0=h.left-m.left+h.width/2+(left?-1:1)*(h.width/2+6);var mid=(x0+x1)/2;d="M"+x0+" "+cy+" C"+mid+" "+cy+" "+mid+" "+y+" "+x1+" "+y}
+out+='<path d="'+d+'" stroke="'+tone+'"'+(node.classList.contains("soft")?' class="soft"':"")+"/>"});
+svg.innerHTML=out}
+draw();new ResizeObserver(draw).observe(map)})();`;
+
+const icon = (name: keyof typeof ICONS) => `<svg viewBox="0 0 24 24">${ICONS[name]}</svg>`;
+
+function renderNode(node: Node): string {
+  const chips = node.chips ?? [];
+  const shown = chips.slice(0, CHIPS_SHOWN);
+  const more = (node.total ?? chips.length) - shown.length;
+  const classes = ["node", node.soft === true ? "soft" : "", node.none === true ? "none" : ""];
+  return [
+    `<div class="${classes.filter(Boolean).join(" ")}">${icon(node.icon)}<div class="body">`,
+    `<div class="t">${escapeHtml(node.title)}</div>`,
+    node.detail === undefined ? "" : `<div class="s">${escapeHtml(node.detail)}</div>`,
+    shown.length === 0
+      ? ""
+      : `<div class="chips">${shown
+          .map(
+            (chip) =>
+              `<span class="chip">${chip.dot === undefined ? "" : `<i class="${chip.dot}"></i>`}${escapeHtml(chip.text)}</span>`,
+          )
+          .join("")}${more > 0 ? `<span class="chip more">+${more}</span>` : ""}</div>`,
+    "</div></div>",
+  ].join("");
+}
+
+const renderBranch = (tone: "k" | "u" | "r", title: string, nodes: ReadonlyArray<Node>) =>
+  nodes.length === 0
+    ? ""
+    : `<div class="branch ${tone}"><h2>${escapeHtml(title)}</h2>${nodes.map(renderNode).join("")}</div>`;
+
+const names = (values: ReadonlyArray<string>): ReadonlyArray<Chip> =>
+  values.map((text) => ({ text }));
+
+/** The page and the frame height to ask `html_render` for; the frame then fits the page itself. */
+export function renderChatSetupPage(input: {
+  readonly setup: ChatSetup;
+  /** The assistant's own kinds of tools, which only it knows. */
+  readonly tools?: ReadonlyArray<string> | undefined;
+  /** The fixed words in the owner's language, by their English. */
+  readonly words?: Readonly<Record<string, string>> | undefined;
+}): { readonly html: string; readonly height: number } {
+  const { startsWith, canUse, canReach } = input.setup;
+  const w = (word: Word) => input.words?.[word]?.trim() || word;
+  const unread = new Set<ChatSetupPart>(input.setup.couldNotRead);
+  /** A list that may be empty or unread: faded with the reason, never left out. */
+  const list = (part: ChatSetupPart, node: Omit<Node, "none">, values: ReadonlyArray<Chip>): Node =>
+    unread.has(part)
+      ? { icon: node.icon, title: node.title, detail: w("Could not be read"), none: true }
+      : values.length === 0
+        ? { icon: node.icon, title: node.title, detail: w("None"), none: true }
+        : { ...node, chips: values };
+
+  const knows: Array<Node> = [];
+  if (startsWith.instructions.length > 0) {
+    knows.push({
+      icon: "instructions",
+      title: w("Your instructions"),
+      detail: startsWith.instructions.join(", "),
+    });
+  }
+  if (startsWith.skills.length > 0 || unread.has("skills")) {
+    knows.push(
+      list(
+        "skills",
+        { icon: "skills", title: w("Skills") },
+        names(startsWith.skills.map((skill) => skill.name)),
+      ),
+    );
+  }
+  if (startsWith.memoryNote !== undefined) {
+    knows.push({ icon: "memory", title: w("Memory note"), detail: startsWith.memoryNote });
+  }
+  if (startsWith.dailyNotes.length > 0) {
+    knows.push({
+      icon: "daily",
+      title: w("Daily notes"),
+      detail: startsWith.dailyNotes.map((note) => note.replace(/^.*\//, "")).join(", "),
+    });
+  }
+  if (startsWith.topic !== undefined) {
+    knows.push({ icon: "topic", title: w("This topic"), detail: startsWith.topic.title });
+  }
+  if (startsWith.otherTopics.length > 0) {
+    knows.push({
+      icon: "topics",
+      title: w("Other topics"),
+      detail: w("Only where each stands"),
+      chips: names(startsWith.otherTopics),
+      total: startsWith.otherTopicsTotal,
+      soft: true,
+    });
+  }
+
+  const uses: Array<Node> = [];
+  if (canUse.connections !== undefined || unread.has("connections")) {
+    uses.push(
+      list(
+        "connections",
+        { icon: "connections", title: w("Connections") },
+        (canUse.connections ?? []).map((connection) => ({
+          text: connectionName(connection.name),
+          dot: CONNECTION_DOTS[connection.status] ?? "off",
+        })),
+      ),
+    );
+  }
+  const tools = (input.tools ?? []).map((tool) => tool.trim()).filter((tool) => tool !== "");
+  if (tools.length > 0) {
+    uses.push({ icon: "tools", title: w("Its own tools"), chips: names(tools) });
+  }
+
+  const reaches: Array<Node> = [];
+  if (canReach.notesFolder !== undefined) {
+    reaches.push({
+      icon: "computer",
+      title: w("Notes folder"),
+      detail: `${canReach.notesFolder.replace(/^.*\//, "")} · ${canReach.computer}`,
+    });
+  }
+  if (canReach.topicFiles !== undefined || unread.has("topic files")) {
+    const files = list(
+      "topic files",
+      { icon: "files", title: w("This topic's files") },
+      names(canReach.topicFiles ?? []),
+    );
+    reaches.push({ ...files, total: canReach.topicFilesTotal });
+  }
+  reaches.push(
+    list(
+      "saved keys",
+      { icon: "keys", title: w("Saved keys"), detail: w("By name, never the value") },
+      names(canReach.savedKeys.map((key) => key.name)),
+    ),
+    list(
+      "private documents",
+      {
+        icon: "documents",
+        title: w("Private documents"),
+        detail: w("Asks you each time"),
+        soft: true,
+      },
+      names(canReach.privateDocuments),
+    ),
+  );
+
+  const html = [
+    `<!doctype html><html><head><meta charset="utf-8"><style>${STYLE}</style></head><body>`,
+    '<div class="map" id="map"><svg class="wires" id="wires" aria-hidden="true"></svg>',
+    `<div class="side left">${renderBranch("k", w("Knows"), knows)}</div>`,
+    `<div class="hub" id="hub">${icon("hub")}<b>${escapeHtml(startsWith.topic?.title ?? w("This chat"))}</b></div>`,
+    `<div class="side right">${renderBranch("u", w("Can use"), uses)}${renderBranch("r", w("Can reach"), reaches)}</div>`,
+    "</div>",
+    `<div class="legend"><span><em></em>${escapeHtml(w("Has it now"))}</span><span><em class="soft"></em>${escapeHtml(w("By name, or asks first"))}</span></div>`,
+    `<script>${SCRIPT}</script></body></html>`,
+  ].join("");
+
+  // About what the wide page comes to: a node is some 50px, 26px more for each row of chips.
+  const tall = (nodes: ReadonlyArray<Node>) =>
+    nodes.reduce(
+      (sum, node) =>
+        sum +
+        60 +
+        (node.detail === undefined ? 0 : 16) +
+        Math.ceil(Math.min(node.chips?.length ?? 0, CHIPS_SHOWN) / 3) * 26,
+      28,
+    );
+  return { html, height: Math.max(tall(knows), tall(uses) + tall(reaches) + 18) + 60 };
+}

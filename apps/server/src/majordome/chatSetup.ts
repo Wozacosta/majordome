@@ -1,7 +1,7 @@
 /**
  * What one chat's assistant has, for the owner to see drawn: what it read before the first
  * message, what it can use, and what it can reach. Names only, never a note's text or a key's
- * value. The assistant asks for it with `describe_setup` and draws it.
+ * value. The assistant asks for it with `describe_setup`, which also draws it.
  */
 
 import type { OrchestrationV2ThreadShell } from "@t3tools/contracts";
@@ -143,3 +143,5 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
     ...(unread.length === 0 ? {} : { couldNotRead: unread }),
   };
 });
+
+export type ChatSetup = Effect.Success<ReturnType<typeof readChatSetup>>;

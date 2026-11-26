@@ -26,6 +26,7 @@ import { layerSavedKeysForTest } from "../../../majordome/MajordomeSavedKeys.tes
 import * as MajordomeSkills from "../../../majordome/MajordomeSkills.ts";
 import * as MajordomeTopicFiles from "../../../majordome/MajordomeTopicFiles.ts";
 import * as MajordomeTopics from "../../../majordome/MajordomeTopics.ts";
+import { isDrawnPage } from "../../../majordome/chatSetupPage.ts";
 import { localIsoDate, readChatKnowledge } from "../../../majordome/vaultContext.ts";
 import { readVaultSkills } from "../../../majordome/vaultSkills.ts";
 import * as ProjectStore from "../../../orchestration-v2/ProjectStore.ts";
@@ -60,13 +61,25 @@ const layerAgent = Layer.mergeAll(
   }),
 );
 
-const describe = Effect.gen(function* () {
+const describe = Effect.fn("test.describe")(function* (
+  params: { readonly tools?: ReadonlyArray<string>; readonly words?: Record<string, string> } = {},
+) {
   const toolkit = yield* ChatSetupToolkit;
-  return yield* toolkit.handle("describe_setup", {}).pipe(
+  return yield* toolkit.handle("describe_setup", params).pipe(
     Stream.unwrap,
     Stream.runCollect,
     Effect.map((parts) => parts.at(-1)?.result),
   );
+});
+
+/** The answer and the page it names, read while the server's own folder is still there. */
+const describeWithPage = Effect.fn("test.describeWithPage")(function* (
+  params?: Parameters<typeof describe>[0],
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const result = yield* describe(params);
+  const { page } = result as { readonly page: { readonly path: string } };
+  return { result, path: page.path, html: yield* fs.readFileString(page.path) };
 });
 
 const skill = (name: string, description: string) =>
@@ -197,10 +210,13 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
             accessLog: [],
           } as unknown as MajordomePrivateDocumentsResult),
         });
-        const result = yield* Effect.gen(function* () {
+        const { result, path, html } = yield* Effect.gen(function* () {
           const savedKeys = yield* MajordomeSavedKeys.MajordomeSavedKeys;
           yield* savedKeys.save({ name: "garmin", note: "Runs", value: "g_secret_1" });
-          return yield* describe;
+          return yield* describeWithPage({
+            tools: ["Navigateur"],
+            words: { "Saved keys": "Clés <b>" },
+          });
         }).pipe(
           Effect.provide(
             layerHandlers.pipe(
@@ -210,7 +226,7 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
           ),
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           startsWith: {
             instructions: ["AGENTS.md"],
             // A skill the assistant wrote and the owner has not kept is not one it uses.
@@ -238,6 +254,19 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
         });
         expect(JSON.stringify(result)).not.toContain("g_secret_1");
         expect(JSON.stringify(result)).not.toContain("Lives in Lyon");
+
+        // The map is drawn for the assistant to show as it is, whatever the chat may read.
+        expect(result).toHaveProperty("page.title", "Accounting");
+        expect(isDrawnPage(path)).toBe(true);
+        for (const drawn of ["file-receipts", "Gmail", "garmin", "Passport", "Garden"]) {
+          expect(html).toContain(drawn);
+        }
+        // Its own tools and the owner's language come from the assistant; nothing it sends is markup.
+        expect(html).toContain("Navigateur");
+        expect(html).toContain("Clés &lt;b&gt;");
+        expect(html).not.toContain("claude.ai Gmail");
+        expect(html).not.toContain("g_secret_1");
+        expect(html).not.toContain("Lives in Lyon");
       }),
   );
 
@@ -254,7 +283,7 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
             new MajordomePrivateDocumentError({ reason: "key_unavailable" }),
           ),
         });
-        const result = yield* describe.pipe(
+        const { result, html } = yield* describeWithPage().pipe(
           Effect.provide(
             layerHandlers.pipe(
               Layer.provideMerge(setup),
@@ -262,7 +291,7 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
             ),
           ),
         );
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           startsWith: {
             instructions: [],
             skills: [],
@@ -275,6 +304,11 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
           canReach: { computer: "Home Mac", savedKeys: [], privateDocuments: [] },
           couldNotRead: ["private documents"],
         });
+        expect(result).not.toHaveProperty("canUse.connections");
+        // What failed to load is said, not drawn as nothing; what is merely empty says so too.
+        expect(html).toContain("Could not be read");
+        expect(html).toContain("None");
+        expect(html).not.toContain("Connections");
       }),
   );
 });
