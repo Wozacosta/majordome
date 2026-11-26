@@ -27,9 +27,10 @@ const SPLASH = {
 const UPSTREAM_WIDGET_PLUGINS = ["expo-widgets", "./plugins/withWidgetLogoAsset.cjs"];
 
 function withoutUpstreamWidgets(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
-  return plugins?.filter(
-    (plugin) => !UPSTREAM_WIDGET_PLUGINS.includes(Array.isArray(plugin) ? plugin[0] : plugin),
-  );
+  return plugins?.filter((plugin) => {
+    const name = Array.isArray(plugin) ? plugin[0] : plugin;
+    return typeof name !== "string" || !UPSTREAM_WIDGET_PLUGINS.includes(name);
+  });
 }
 
 function withMajordomeSplash(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
