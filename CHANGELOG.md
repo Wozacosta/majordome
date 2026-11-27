@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.85
+
 **New**
 
 - **Manage subscription, on the iPhone.** Your account page and the server page have a
@@ -50,6 +54,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- On the computer, open a PDF kept on your Majordome server: there is no VS Code button
+  beside the path any more. A file on this computer still has it.
 - On the iPhone, open Settings, then Your account, and press "Manage subscription".
 - On an iPhone with no account, open "Get a Majordome server", press "1. Sign in" and sign
   up, then press Subscribe.
