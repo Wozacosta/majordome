@@ -12,6 +12,7 @@ const audio = vi.hoisted(() => ({
   setMode: vi.fn(async (_mode: unknown) => {}),
   setActive: vi.fn(async (_active: boolean) => {}),
 }));
+vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 vi.mock("expo-audio", () => ({
   AudioModule: {},
   setAudioModeAsync: audio.setMode,

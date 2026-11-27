@@ -7,10 +7,10 @@ version = '0.0.0'
 def vendor = file('../Vendor/android')
 
 // sherpa-onnx's classes and native libraries are fetched, not committed (see the README).
+// No declared outputs: the folder sits inside the app, which the release JS bundle task
+// takes as an input, and Gradle refuses that overlap. The script skips when up to date.
 def fetchSherpaOnnx = tasks.register('fetchSherpaOnnx', Exec) {
   commandLine file('../scripts/fetch-android.sh')
-  inputs.files('../scripts/fetch-android.sh', '../scripts/versions.sh')
-  outputs.dir(vendor)
 }
 
 android {
