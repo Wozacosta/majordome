@@ -1,4 +1,4 @@
-import type { MajordomeTopicIcon } from "@t3tools/contracts";
+import type { MajordomeReadyTopic, MajordomeTopicIcon } from "@t3tools/contracts";
 import type { TopicTone } from "@t3tools/shared/majordomeTopicIcons";
 import type { SFSymbol } from "expo-symbols";
 
@@ -53,6 +53,9 @@ export interface ChatTopics {
   /** Every topic's id, in the topics' own order. */
   readonly order: ReadonlyArray<string>;
   readonly finished: ReadonlyArray<FinishedTopic>;
+  /** The ready-made topics that can be added now: none offline, or where this phone may not. */
+  readonly ready: ReadonlyArray<MajordomeReadyTopic>;
+  readonly addReady: (ready: MajordomeReadyTopic) => void;
   /** How many topics there are in all, whatever a search keeps. */
   readonly total: number;
   /** The topic being opened or changed, which waits for the server. */

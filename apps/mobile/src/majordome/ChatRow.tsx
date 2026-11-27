@@ -8,7 +8,8 @@ import { cn } from "../lib/cn";
 import { chatWantsAttention, type ChatLine, type ChatLineTone } from "./chat.logic";
 
 // The shared symbol component only takes the names upstream uses; topics wear others.
-const SymbolView = withUniwind(ExpoSymbolView);
+export const TopicSymbolView = withUniwind(ExpoSymbolView);
+const SymbolView = TopicSymbolView;
 
 const LINE_TONES: Record<ChatLineTone, string> = {
   plain: "text-foreground-muted",

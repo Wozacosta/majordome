@@ -1,4 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
+import type { MajordomeReadyTopic } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useEffect, useMemo } from "react";
 
@@ -19,6 +20,8 @@ export function useVault(store: TodayStore | null): {
   readonly vault: TodayStore["vault"];
   readonly topics: ReadonlyArray<TopicRow>;
   readonly finished: ReadonlyArray<FinishedTopic>;
+  /** The ready-made topics not added yet; none while the server cannot be reached. */
+  readonly readyTopics: ReadonlyArray<MajordomeReadyTopic>;
 } {
   const projects = useProjects().filter((project) => !project.archivedAt && !project.isScratch);
   const key = JSON.stringify(projects.map((project) => [project.environmentId, project.id]));
@@ -30,6 +33,7 @@ export function useVault(store: TodayStore | null): {
   const listed = index === -1 ? null : AsyncResult.getOrElse(results[index]!, () => null);
   const topics = listed ? topicRows(listed.topics) : null;
   const finishedKey = JSON.stringify(listed ? finishedTopics(listed.topics) : []);
+  const readyKey = JSON.stringify(listed?.readyTopics ?? []);
   const foundEnvironmentId = found?.environmentId;
   const foundProjectId = found?.id;
   const topicsKey = topics === null ? null : JSON.stringify(topics);
@@ -62,5 +66,9 @@ export function useVault(store: TodayStore | null): {
     found ? { environmentId: found.environmentId, projectId: found.id } : (store?.vault ?? null),
   );
   const vault = useMemo(() => JSON.parse(vaultKey) as TodayStore["vault"], [vaultKey]);
-  return { vault, topics: shown, finished };
+  const readyTopics = useMemo(
+    () => JSON.parse(readyKey) as ReadonlyArray<MajordomeReadyTopic>,
+    [readyKey],
+  );
+  return { vault, topics: shown, finished, readyTopics };
 }

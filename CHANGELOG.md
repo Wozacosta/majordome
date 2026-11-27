@@ -7,6 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Start a topic from the iPhone.** An empty Chats tab now says what a topic is and offers the
+  ready-made ones: Meals, Money, Health, Trips, Home and paperwork, Job search, People. One touch
+  adds it, with its folder and starter notes. Once you have chats, the ones not added yet are
+  under **Add a topic** at the bottom of the list. The routine that comes with some of them is
+  still added from the computer.
+
+**Try this**
+
+- On the iPhone, open Chats and touch **Money**, then open it and say what you pay each month.
+
 **Fixed**
 
 - **The iPhone welcome no longer asks you to sign in when you already are.** Its first row is now

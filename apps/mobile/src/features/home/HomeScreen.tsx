@@ -113,6 +113,8 @@ import {
 } from "../../majordome/chat.logic";
 import {
   MajordomeDoneTopics,
+  MajordomeFirstTopics,
+  MajordomeMoreTopics,
   MajordomeTopicRows,
   MajordomeHiddenRoutines,
   MajordomeTopicsSection,
@@ -804,6 +806,7 @@ export function HomeScreen(props: HomeScreenProps) {
                 }
                 variant="plain"
               />
+              {offersFirstChat ? <MajordomeFirstTopics topics={chatTopics} /> : null}
               {emptyState.loading ? (
                 <View className="mt-4 items-center">
                   <AppActivityIndicator colorClassName="accent-icon-muted" />
@@ -976,6 +979,7 @@ export function HomeScreen(props: HomeScreenProps) {
                         {unopenedTopics !== null && firstRecentKey === null ? (
                           <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
                         ) : null}
+                        <MajordomeMoreTopics topics={chatTopics} />
                         <MajordomeDoneTopics topics={chatTopics} />
                         <MajordomeHiddenRoutines topics={chatTopics} />
                       </>

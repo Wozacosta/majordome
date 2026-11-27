@@ -1,9 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import { ProjectId } from "@t3tools/contracts";
+import { type MajordomeReadyTopic, ProjectId } from "@t3tools/contracts";
+import * as Haptics from "expo-haptics";
 import { msg } from "gt-react-native";
 import { useMemo, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
@@ -18,7 +19,7 @@ import { useEnvironmentQuery } from "../state/query";
 import { serverEnvironment } from "../state/server";
 import { useAtomCommand } from "../state/use-atom-command";
 import { chatRowLabel, topicLine, topicMenuActions } from "./chat.logic";
-import { ChatListLabel, ChatRowContent } from "./ChatRow";
+import { ChatListLabel, ChatRowContent, TopicSymbolView } from "./ChatRow";
 import { majordomeEnvironment } from "./state";
 import type { TopicRow } from "./today.logic";
 import { routineChats } from "./routine.logic";
@@ -34,6 +35,7 @@ export function useDoneTopicThreadIds(): ReadonlySet<string> {
 }
 
 const NO_ROUTINES: ReadonlyArray<string> = [];
+const NO_READY_TOPICS: ReadonlyArray<MajordomeReadyTopic> = [];
 
 /**
  * The topics for the Chats list: which ride on a chat's row, which are listed apart, which are
@@ -44,7 +46,7 @@ export function useChatListTopics(
   searchQuery: string,
 ): ChatTopics {
   const store = useAtomValue(todayStoreAtom);
-  const { vault, topics, finished } = useVault(store);
+  const { vault, topics, finished, readyTopics } = useVault(store);
   const tasks = useEnvironmentQuery(
     vault === null
       ? null
@@ -68,6 +70,10 @@ export function useChatListTopics(
   const selectDetail = useSelectWorkspaceDetail();
   const openTopic = useAtomCommand(majordomeEnvironment.openTopic);
   const updateTopic = useAtomCommand(majordomeEnvironment.updateTopic, { reportFailure: false });
+  const createTopic = useAtomCommand(majordomeEnvironment.createTopic, { reportFailure: false });
+  const canCreate = useAtomValue(
+    majordomeEnvironment.createTopic.permissionAtom(vault?.environmentId ?? null),
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(new Set());
   const toggleSideChats = (topicId: string) =>
@@ -141,6 +147,30 @@ export function useChatListTopics(
     );
   };
 
+  const addReady = async (ready: MajordomeReadyTopic) => {
+    if (vault === null || busy !== null) return;
+    setBusy(ready.id);
+    const result = await createTopic({
+      environmentId: vault.environmentId,
+      input: {
+        projectId: ProjectId.make(vault.projectId),
+        title: ready.title,
+        folder: ready.folder,
+        createFolder: !ready.existing,
+        readyMade: ready.id,
+      },
+    });
+    setBusy(null);
+    if (result._tag === "Success") {
+      void Haptics.selectionAsync();
+      return;
+    }
+    Dialog.alert(
+      `Could not add ${ready.title}`,
+      "Check that your computer can be reached, then try again.",
+    );
+  };
+
   const setRoutineHidden: ChatTopics["setRoutineHidden"] = (title, hidden) => {
     updateTodayStore((current) => {
       const others = (current.hiddenRoutines ?? []).filter((name) => name !== title);
@@ -167,6 +197,8 @@ export function useChatListTopics(
     apart,
     order: orderKey === "" ? NO_ROUTINES : orderKey.split("\n"),
     finished,
+    ready: canCreate ? readyTopics : NO_READY_TOPICS,
+    addReady: (ready) => void addReady(ready),
     total: topics.length + finished.length,
     busy,
     unfolded,
@@ -344,6 +376,87 @@ export function MajordomeHiddenRoutines(props: { readonly topics: ChatTopics }) 
             </View>
           ))
         : null}
+    </View>
+  );
+}
+
+/** What a topic is, for someone who has none: said once, over the ready-made ones. */
+export const TOPICS_INTRO =
+  "A topic keeps one ongoing subject in a single chat, with its own notes.";
+
+function ReadyTopicChips(props: { readonly topics: ChatTopics; readonly centered?: boolean }) {
+  const { topics } = props;
+  return (
+    <View className={cn("flex-row flex-wrap gap-2", props.centered && "justify-center")}>
+      {topics.ready.map((ready) => (
+        <Pressable
+          key={ready.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Add the topic ${ready.title}`}
+          accessibilityHint={ready.description}
+          accessibilityState={{ busy: topics.busy === ready.id, disabled: topics.busy !== null }}
+          disabled={topics.busy !== null}
+          onPress={() => topics.addReady(ready)}
+          className={cn(
+            "min-h-[40px] flex-row items-center gap-2 rounded-full border border-border bg-grouped-card px-3.5 active:opacity-60",
+            topics.busy !== null && topics.busy !== ready.id && "opacity-50",
+          )}
+        >
+          <TopicSymbolView
+            name={topics.busy === ready.id ? "ellipsis" : TOPIC_SYMBOLS[ready.icon]}
+            size={15}
+            tintColorClassName="accent-icon-muted"
+          />
+          <Text className="text-[15px] text-foreground">{ready.title}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/** Under "No chats yet": what a topic is, and the ready-made ones to start from. */
+export function MajordomeFirstTopics(props: { readonly topics: ChatTopics }) {
+  if (props.topics.ready.length === 0) return null;
+  return (
+    <View className="mt-10 gap-3">
+      <Text accessibilityRole="header" className="text-center font-t3-bold text-foreground">
+        Or start a topic
+      </Text>
+      <Text className="text-center text-foreground-muted">{TOPICS_INTRO}</Text>
+      <View className="pt-1">
+        <ReadyTopicChips topics={props.topics} centered />
+      </View>
+    </View>
+  );
+}
+
+/** Under the chats: the ready-made topics not added yet, folded away until asked for. */
+export function MajordomeMoreTopics(props: { readonly topics: ChatTopics }) {
+  const { topics } = props;
+  const [expanded, setExpanded] = useState(false);
+  if (topics.ready.length === 0) return null;
+  return (
+    <View>
+      <RowPressable
+        accessibilityRole="button"
+        accessibilityLabel="Add a topic"
+        accessibilityState={{ expanded }}
+        className="bg-screen"
+        onPress={() => setExpanded((value) => !value)}
+      >
+        <View className="min-h-[44px] flex-row items-center gap-2.5 px-5">
+          <Text className="text-xs font-t3-medium text-foreground-tertiary">Add a topic</Text>
+          <View className="h-px flex-1 bg-border" />
+          <Text className="text-xs font-t3-medium text-foreground-tertiary">
+            {expanded ? "Hide" : "Show"}
+          </Text>
+        </View>
+      </RowPressable>
+      {expanded ? (
+        <View className="px-5 pb-3 pt-1">
+          <ReadyTopicChips topics={topics} />
+        </View>
+      ) : null}
     </View>
   );
 }
