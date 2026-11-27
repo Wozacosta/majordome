@@ -9,14 +9,16 @@ Not released yet.
 
 **Fixed**
 
-- **On the iPhone, Claude's sign-in opens in Safari.** It opened as a sheet inside Majordome,
-  which knows none of your accounts, so you had to sign in to Google or Claude from scratch.
-  Safari already has them. The box for the code stays in Majordome.
+- **On the phone, Claude's sign-in opens in your browser.** It opened as a sheet inside
+  Majordome, which knows none of your accounts, so you had to sign in to Google or Claude from
+  scratch. Your browser already has them. The box for the code stays in Majordome.
+- **On Android, the payment page and "Manage subscription" open in your browser** too, for the
+  same reason.
 
 **Try this**
 
-- On the iPhone, with a server where Claude is not signed in, press **Sign in** on Today's
-  Claude card: Safari opens. Approve, copy the code, come back to Majordome and press
+- On the phone, with a server where Claude is not signed in, press **Sign in** on Today's
+  Claude card: your browser opens. Approve, copy the code, come back to Majordome and press
   **Paste code**.
 
 ## 0.10.85

@@ -369,18 +369,13 @@ function backFromBrowser(): Promise<void> {
   });
 }
 
-/** Pays on the website in a browser tab, then makes the server once the payment is in. */
+/** Pays on the website in the phone's browser, then makes the server once the payment is in. */
 async function buyOnWeb(token: string): Promise<void> {
   const checkout = await serverCheckout(fetch, BROKER_URL, token);
   if ("note" in checkout) return stop(checkout.note);
   dispatch({ type: "pay", doing: "buying" });
   const returned = backFromBrowser();
-  try {
-    const WebBrowser = await import("expo-web-browser");
-    await WebBrowser.openBrowserAsync(checkout.url);
-  } catch {
-    return stop(checkoutFailedNote);
-  }
+  if (!(await tryOpenExternalUrl(checkout.url))) return stop(checkoutFailedNote);
   await returned;
   dispatch({ type: "pay", doing: "confirming" });
   // The sign-in may have been renewed while the payment page was open.
@@ -441,9 +436,7 @@ export async function restoreServer(): Promise<void> {
 /** Where the subscription is cancelled: Apple's own sheet, or majord.me for one paid on the web. */
 export function manageSubscription(): void {
   if (SOLD_ON_WEB) {
-    void import("expo-web-browser")
-      .then((browser) => browser.openBrowserAsync("https://majord.me/server"))
-      .catch(() => undefined);
+    void tryOpenExternalUrl("https://majord.me/server");
     return;
   }
   void majordomeStore?.manage().catch(() => undefined);

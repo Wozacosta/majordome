@@ -690,7 +690,7 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   `majordome-hosted-signup.json` on the phone until its setup is finished, so a failed
   connection is tried again without the spent code. The rules are in `hostedSignup.logic.ts`.
   - Setup ends on the phone (`src/majordome/FinishSetup.tsx`): Claude's sign-in opens in
-    Safari (a tab over the app on Android) and its code is pasted back, and "Start new notes" makes the folder.
+    the phone's browser and its code is pasted back, and "Start new notes" makes the folder.
     Today shows the same for any connected computer with no notes folder, and the sign-in
     card alone when Claude is signed out later. Restoring a backup or using notes already
     there still opens the server's `/pair#token=…` page with a one-time code.

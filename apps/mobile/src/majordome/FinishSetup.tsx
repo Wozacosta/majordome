@@ -13,9 +13,8 @@ import { claudeSignInFailure, getOnboardingProviderState } from "@t3tools/shared
 import * as Redacted from "effect/Redacted";
 import { AsyncResult } from "effect/reactivity";
 import * as Clipboard from "expo-clipboard";
-import * as WebBrowser from "expo-web-browser";
 import { type ReactNode, useState } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 
 import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text, AppTextInput as TextInput } from "../components/ui/AppText";
@@ -97,17 +96,9 @@ export function ClaudeSignInCard(props: {
   );
   if (props.onlyWhenNeeded && row.kind !== "signIn" && step.kind === "idle") return null;
 
-  // iOS keeps the in-app browser's cookies apart from Safari's, so the owner would sign in to
-  // Google or Claude again there. Android's in-app tab shares Chrome's.
+  // The phone's own browser, not a tab inside the app: that one starts with none of the owner's
+  // sign-ins, so Google or Claude would ask for them again.
   const openPage = async (url: string) => {
-    if (Platform.OS !== "ios") {
-      try {
-        await WebBrowser.openBrowserAsync(url);
-        return;
-      } catch {
-        // Falls through to the phone's own browser.
-      }
-    }
     if (!(await tryOpenExternalUrl(url, "provider-auth"))) {
       setProblem("Claude's sign-in page couldn't be opened. Try again.");
     }
