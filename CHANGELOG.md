@@ -12,6 +12,9 @@ The section for a version is also the text of its release on GitHub.
   to your Tailscale network, and ends with a link. Paste the link in **Add a computer**, then
   press **Move my notes to your server**: your notes are copied with their history and the two
   copies stay in step.
+- **Pick a topic from a new chat on the iPhone.** Your topics are listed under "What's on your
+  mind?". Touching one opens that topic's own chat, with what you had typed waiting in its
+  message box.
 
 **Changed**
 
@@ -20,12 +23,15 @@ The section for a version is also the text of its release on GitHub.
   page with its steps, and a link back. Once your notes are on a server, only the last line stays.
 - **Settings has more room.** Its window is a little wider and taller on a large screen, and the
   assistant beside it starts narrower. Drag its edge to widen it; the app remembers.
+- **New chat on the iPhone is a softer blue.** The button is washed with the accent colour rather
+  than filled with it.
 
 **Try this**
 
 - Open **Settings > Your servers** and click each of the three lines under **Add a server**.
 - On a server you rent, paste the line from **Use a server I already have**, then add it with the
   link it prints.
+- On the iPhone, touch New chat, type a line, then touch a topic and send.
 
 ## 0.10.79
 

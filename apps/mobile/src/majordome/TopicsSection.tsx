@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import { type MajordomeReadyTopic, ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, type MajordomeReadyTopic, ProjectId, ThreadId } from "@t3tools/contracts";
 import * as Haptics from "expo-haptics";
 import { msg } from "gt-react-native";
 import { useMemo, useState } from "react";
@@ -15,6 +15,9 @@ import { useSelectWorkspaceDetail } from "../features/layout/workspace/useSelect
 import { THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME } from "../features/threads/thread-list-v2-row-appearance";
 import { m } from "../i18n/messages";
 import { cn } from "../lib/cn";
+import { scopedThreadKey } from "../lib/scopedEntities";
+import { getComposerDraftSnapshot, setComposerDraftText } from "../state/use-composer-drafts";
+import { useThreadShells } from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { serverEnvironment } from "../state/server";
 import { useAtomCommand } from "../state/use-atom-command";
@@ -102,19 +105,29 @@ export function useChatListTopics(
     return { byThread: new Map(parsed.byThread), apart: parsed.apart };
   }, [placedKey]);
 
-  const show = (threadId: string) => {
+  const show = (threadId: string, carry?: string) => {
     if (vault === null) return;
+    const words = carry === undefined ? "" : getComposerDraftSnapshot(carry).text.trim();
+    if (carry !== undefined && words !== "") {
+      const key = scopedThreadKey(
+        EnvironmentId.make(String(vault.environmentId)),
+        ThreadId.make(threadId),
+      );
+      const waiting = getComposerDraftSnapshot(key).text.trimEnd();
+      setComposerDraftText(key, waiting === "" ? words : `${waiting}\n${words}`);
+      setComposerDraftText(carry, "");
+    }
     selectDetail({
       name: "Thread",
       params: { environmentId: String(vault.environmentId), threadId },
     });
   };
   // A topic never opened on this server has no conversation yet; the server starts it.
-  const start = async (topicId: string, sideChat: boolean) => {
+  const start = async (topicId: string, sideChat: boolean, carry?: string) => {
     if (vault === null || busy !== null) return;
-    await startNow(topicId, sideChat);
+    await startNow(topicId, sideChat, carry);
   };
-  const startNow = async (topicId: string, sideChat: boolean) => {
+  const startNow = async (topicId: string, sideChat: boolean, carry?: string) => {
     if (vault === null) return;
     setBusy(topicId);
     const result = await openTopic({
@@ -126,7 +139,7 @@ export function useChatListTopics(
       },
     });
     setBusy(null);
-    if (result._tag === "Success") show(String(result.value.threadId));
+    if (result._tag === "Success") show(String(result.value.threadId), carry);
   };
   const setFinished: ChatTopics["setFinished"] = async (topic, done) => {
     if (vault === null || busy !== null) return;
@@ -212,7 +225,9 @@ export function useChatListTopics(
     routineOf: routineOfStable,
     hiddenRoutines,
     setRoutineHidden,
-    open: (topic) => (topic.threadId === null ? void start(topic.id, false) : show(topic.threadId)),
+    rows: topics,
+    open: (topic, carry) =>
+      topic.threadId === null ? void start(topic.id, false, carry) : show(topic.threadId, carry),
     startSideChat: (topic) => void start(topic.id, true),
     setFinished: (topic, done) => void setFinished(topic, done),
   };
@@ -449,6 +464,38 @@ export function MajordomeFirstTopics(props: {
       <View className="mt-3">
         <Button label={props.chat.action} onPress={props.onStartChat} />
       </View>
+    </View>
+  );
+}
+
+/** Under a new chat's heading: the topics, each taking what was typed into its own conversation. */
+export function MajordomeNewChatTopics(props: { readonly draftKey: string | null }) {
+  const topics = useChatListTopics(useThreadShells(), "");
+  if (topics.rows.length === 0) return null;
+  return (
+    <View className="flex-row flex-wrap justify-center gap-2 pt-4">
+      {topics.rows.map((topic) => (
+        <Pressable
+          key={topic.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Continue in ${topic.title}`}
+          accessibilityState={{ busy: topics.busy === topic.id, disabled: topics.busy !== null }}
+          disabled={topics.busy !== null}
+          onPress={() => topics.open(topic, props.draftKey ?? undefined)}
+          className={cn(
+            "min-h-[40px] flex-row items-center gap-2 rounded-full border border-border bg-grouped-card px-3.5 active:opacity-60",
+            topics.busy !== null && topics.busy !== topic.id && "opacity-50",
+          )}
+        >
+          <TopicSymbolView
+            name={topics.busy === topic.id ? "ellipsis" : TOPIC_SYMBOLS[topic.icon ?? "hash"]}
+            size={15}
+            tintColor={topic.tone ? TONE_COLORS[topic.tone] : undefined}
+            tintColorClassName={topic.tone ? undefined : "accent-icon-muted"}
+          />
+          <Text className="text-[15px] text-foreground">{topic.title}</Text>
+        </Pressable>
+      ))}
     </View>
   );
 }

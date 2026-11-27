@@ -57,6 +57,8 @@ export interface ChatTopics {
   readonly ready: ReadonlyArray<MajordomeReadyTopic>;
   /** Adds it; `opens` also goes to its chat. */
   readonly addReady: (ready: MajordomeReadyTopic, opens?: boolean) => void;
+  /** Every open topic, in the topics' own order, whatever a search keeps. */
+  readonly rows: ReadonlyArray<TopicRow>;
   /** How many topics there are in all, whatever a search keeps. */
   readonly total: number;
   /** The topic being opened or changed, which waits for the server. */
@@ -68,7 +70,11 @@ export interface ChatTopics {
   readonly routineOf: ReadonlyMap<string, string>;
   readonly hiddenRoutines: ReadonlyArray<string>;
   readonly setRoutineHidden: (title: string, hidden: boolean) => void;
-  readonly open: (topic: { readonly id: string; readonly threadId: string | null }) => void;
+  /** Shows the topic's conversation. `carry` names a draft whose words move into it. */
+  readonly open: (
+    topic: { readonly id: string; readonly threadId: string | null },
+    carry?: string,
+  ) => void;
   readonly startSideChat: (topic: { readonly id: string }) => void;
   readonly setFinished: (
     topic: { readonly id: string; readonly title: string },

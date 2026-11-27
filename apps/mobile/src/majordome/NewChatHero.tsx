@@ -6,6 +6,7 @@ import { AppText as Text } from "../components/ui/AppText";
 import { useWorkspaceState } from "../state/workspace";
 import { newChatStart, type NewChatStart } from "./newChat.logic";
 import { loadTodayStore, todayStoreAtom } from "./todayStore";
+import { MajordomeNewChatTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 
 /** Where a new chat starts, from the notes folder this phone knows or last saw. */
@@ -35,6 +36,8 @@ export function MajordomeNewChatHero(props: {
   /** The computer picker, when there is more than one computer to choose from. */
   readonly computerChoice: ReactNode;
   readonly notice: ReactNode;
+  /** The draft being written, whose words follow into a topic touched here. */
+  readonly draftKey: string | null;
 }) {
   return (
     <View className="items-center gap-2 px-8" testID="new-task-hero">
@@ -52,6 +55,7 @@ export function MajordomeNewChatHero(props: {
         </Text>
       )}
       {props.notice}
+      {props.connected ? <MajordomeNewChatTopics draftKey={props.draftKey} /> : null}
     </View>
   );
 }

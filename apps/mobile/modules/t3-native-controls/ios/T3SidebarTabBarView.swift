@@ -101,7 +101,7 @@ final class T3SidebarTabBarView: ExpoView, UITabBarDelegate {
   }
 
   private func configureCompose() {
-    // The one action beside the places to go: it alone carries the accent colour.
+    // The one action beside the places to go: it alone is washed with the accent colour.
     var configuration: UIButton.Configuration
     if #available(iOS 26.0, *) {
       configuration = .prominentGlass()
@@ -109,8 +109,8 @@ final class T3SidebarTabBarView: ExpoView, UITabBarDelegate {
       configuration = .filled()
     }
     configuration.cornerStyle = .capsule
-    configuration.baseBackgroundColor = selectedColor
-    configuration.baseForegroundColor = .white
+    configuration.baseBackgroundColor = selectedColor.withAlphaComponent(0.22)
+    configuration.baseForegroundColor = selectedColor
     configuration.image = tabIcon(UIImage(systemName: "square.and.pencil"))
     composeButton.configuration = configuration
   }

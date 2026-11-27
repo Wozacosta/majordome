@@ -816,6 +816,7 @@ export function NewTaskDraftScreen(props: {
       connected={environmentConnected}
       computerChoice={offersComputerChoice ? environmentControl : null}
       notice={shareUnavailableNotice}
+      draftKey={flow.draftKey}
     />
   ) : flow.isScratchDraft ? (
     <View className="items-center gap-2 px-6" testID="new-task-hero">
