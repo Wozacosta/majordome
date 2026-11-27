@@ -660,7 +660,10 @@ function TopicRow(props: {
 }) {
   const { topic, thread, actions } = props;
   const nestedRowClass = (environmentId: EnvironmentId, threadId: ThreadId, quiet: boolean) => {
-    const open = scopedThreadKey(scopeThreadRef(environmentId, threadId)) === props.routeThreadKey;
+    // A routine runs in its topic's own chat: there the topic's row is the one lit, not both.
+    const open =
+      !props.isActive &&
+      scopedThreadKey(scopeThreadRef(environmentId, threadId)) === props.routeThreadKey;
     return {
       "aria-current": open ? ("page" as const) : undefined,
       className: cn(

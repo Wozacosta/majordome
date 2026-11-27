@@ -7,6 +7,8 @@ import { MajordomeTopicsSection } from "./MajordomeTopics";
 const state = vi.hoisted(() => ({
   reordered: [] as unknown[],
   opened: [] as string[],
+  routines: [] as unknown[],
+  route: null as unknown,
 }));
 const topic = (id: string) => ({
   id,
@@ -50,7 +52,7 @@ vi.mock("./useOpenTopic", () => ({
     return true;
   },
 }));
-vi.mock("./useVaultRoutines", () => ({ useVaultRoutines: () => ({ routines: [] }) }));
+vi.mock("./useVaultRoutines", () => ({ useVaultRoutines: () => ({ routines: state.routines }) }));
 vi.mock("./TopicDialog", () => ({ TopicDialog: () => null }));
 vi.mock("../../state/entities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../state/entities")>()),
@@ -67,11 +69,14 @@ vi.mock("../../state/use-atom-command", () => ({
     return { _tag: "Success" };
   },
 }));
-vi.mock("../../hooks/useThreadRouteTarget", () => ({ useThreadRouteTarget: () => null }));
+vi.mock("../../hooks/useThreadRouteTarget", () => ({ useThreadRouteTarget: () => state.route }));
 
 function setup() {
   state.reordered = [];
   state.opened = [];
+  state.routines = [];
+  state.route = null;
+  vault.topics[0] = topic("a");
 }
 
 const row = (container: HTMLElement, id: string) => {
@@ -137,4 +142,32 @@ it("still opens a topic on a plain click", async () => {
   await screen.getByRole("button", { name: /^Topic b/ }).click();
   await vi.waitFor(() => expect(state.opened).toEqual(["b"]));
   expect(state.reordered).toEqual([]);
+});
+
+it("lights the topic alone when its chat, where its routine also runs, is on screen", async () => {
+  setup();
+  vault.topics[0] = { ...topic("a"), threadId: "thread-a" as never };
+  state.routines = [
+    {
+      key: "env:task",
+      environmentId: "env",
+      timeZone: "UTC",
+      task: {
+        threadId: "thread-a",
+        title: "Bills due soon",
+        enabled: true,
+        schedule: { type: "interval", everyMs: 3_600_000 },
+      },
+    },
+  ];
+  state.route = { kind: "server", threadRef: { environmentId: "env", threadId: "thread-a" } };
+  await using screen = await render(
+    <SidebarProvider>
+      <MajordomeTopicsSection />
+    </SidebarProvider>,
+  );
+  await expect.element(screen.getByRole("link", { name: /Bills due soon/ })).toBeVisible();
+  expect(
+    [...screen.container.querySelectorAll('[aria-current="page"]')].map((item) => item.tagName),
+  ).toEqual(["BUTTON"]);
 });
