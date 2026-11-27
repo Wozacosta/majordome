@@ -187,6 +187,7 @@ import {
   connectionProblemInPlainWords,
 } from "../../majordome/conversation.logic";
 import { DEFAULT_TOOL_CALL_VISIBILITY, isMajordome } from "../../majordome/env";
+import { SendOnOpen } from "../../majordome/sendOnOpen";
 import { useVoiceModeActive, VoiceModeDock } from "../../majordome/voice-mode/VoiceModeDock";
 import { ComposerErrorNotice } from "./ComposerErrorNotice";
 import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
@@ -1902,6 +1903,12 @@ function ThreadDetailBody(
                   </ComposerPanels>
                 </View>
 
+                <SendOnOpen
+                  ready={
+                    props.draftMode !== undefined && props.draftMode.sendBlockedReason === null
+                  }
+                  onSend={() => void handleSendMessage()}
+                />
                 <VoiceModeDock
                   environmentId={props.environmentId}
                   threadId={props.selectedThread.id}

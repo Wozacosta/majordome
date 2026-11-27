@@ -500,22 +500,6 @@ export function MajordomeNewChatTopics(props: { readonly draftKey: string | null
   );
 }
 
-/** On an empty Today, for someone with no chats yet: the ready-made topics, each opening its chat. */
-export function MajordomeTodayTopics(props: { readonly topics: ChatTopics }) {
-  if (props.topics.ready.length === 0) return null;
-  return (
-    <View className="gap-2">
-      <Text accessibilityRole="header" className="font-t3-bold text-foreground">
-        Start a topic
-      </Text>
-      <Text className="text-foreground-muted">{TOPICS_INTRO}</Text>
-      <View className="pt-1">
-        <ReadyTopicChips topics={props.topics} opens />
-      </View>
-    </View>
-  );
-}
-
 /** Under the chats: the ready-made topics not added yet, folded away until asked for. */
 export function MajordomeMoreTopics(props: { readonly topics: ChatTopics }) {
   const { topics } = props;

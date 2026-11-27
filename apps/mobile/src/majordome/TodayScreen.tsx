@@ -1,6 +1,7 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
 import { readAccountServers } from "@t3tools/shared/majordomeAccount";
+import { greetingForHour } from "@t3tools/shared/majordomeToday";
 import * as Cause from "effect/Cause";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -17,22 +18,21 @@ import { IconButton } from "../components/ui/IconButton";
 import { ListSection } from "../components/ui/ListSection";
 import { RefreshControl } from "../components/ui/RefreshControl";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
+import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
-import { useAdaptiveWorkspaceLayout } from "../features/layout/adaptive-workspace-context";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
 import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
-import { useThreadShells } from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
 import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
+import { TodayAsk } from "./TodayAsk";
 import { TodayWelcome } from "./TodayWelcome";
-import { MajordomeTodayTopics, useChatListTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 import {
   localDate,
@@ -44,15 +44,7 @@ import {
 } from "./today.logic";
 import { useTodaySetup } from "./todaySetup";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
-import {
-  dayFromToday,
-  dayTitle,
-  FIRST_LINES,
-  isFirstToday,
-  noteStatus,
-  shiftDay,
-  todoProgress,
-} from "./todayView.logic";
+import { dayFromToday, dayTitle, noteStatus, shiftDay, todoProgress } from "./todayView.logic";
 
 // Fixed for a build: whether it has Majordome accounts to sign in to.
 const hasAccounts = hasAccountPublicConfig();
@@ -313,17 +305,27 @@ export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const store = useAtomValue(todayStoreAtom);
-  const { startNewTask } = useAdaptiveWorkspaceLayout();
   const [today, setToday] = useState(() => localDate(new Date()));
   // Null follows the calendar, so a screen left open overnight moves on to the new day.
   const [picked, setPicked] = useState<string | null>(null);
-  const day = picked ?? today;
+  // Overview is the box that talks to the assistant; Journal is the day's own lines.
+  const [view, setView] = useState<"overview" | "journal">("overview");
+  const day = view === "overview" ? today : (picked ?? today);
   const isToday = day === today;
   const [draft, setDraft] = useState("");
   const [pulled, setPulled] = useState(false);
   const { vault } = useVault(store);
-  const threads = useThreadShells();
-  const chatTopics = useChatListTopics(threads, "");
+  const welcome = useEnvironmentQuery(
+    vault === null
+      ? null
+      : majordomeEnvironment.welcome({
+          environmentId: vault.environmentId,
+          input: { projectId: vault.projectId },
+        }),
+  );
+  const ownerName = welcome.isSuccess ? (welcome.data?.name ?? null) : null;
+  const [hour, setHour] = useState(() => new Date().getHours());
+  const greeting = greetingForHour(hour);
   const { setup, reach, connectedComputer, reconnect } = useTodaySetup(store, vault);
   const [settingUp, setSettingUp] = useState(false);
   const note = useEnvironmentQuery(
@@ -374,6 +376,7 @@ export function MajordomeTodayScreen() {
     () =>
       subscribeAppActive(() => {
         setToday(localDate(new Date()));
+        setHour(new Date().getHours());
         flush();
       }),
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `flush` is new each render and only reads the store and stable commands
@@ -419,11 +422,6 @@ export function MajordomeTodayScreen() {
         : "failed",
     hasNote: kept !== null,
   });
-  const first = isFirstToday({
-    isToday,
-    noteEmpty: sections.length === 0 && waiting.length === 0 && status.empty === "nothing",
-    chats: threads.length,
-  });
   const progress = todoProgress(sections);
   const away = dayFromToday(day, today);
   const canAdd = draft.trim().length > 0 && vault !== null;
@@ -447,9 +445,9 @@ export function MajordomeTodayScreen() {
     flush();
   };
 
-  const add = () => {
+  const keep = (words: string) => {
     // One line in the note: a pasted line break would start a second, untimed one.
-    const text = draft.trim().replace(/\s*\n\s*/g, " ");
+    const text = words.trim().replace(/\s*\n\s*/g, " ");
     if (text.length === 0 || vault === null) return;
     const now = new Date();
     updateTodayStore((current) => ({
@@ -459,11 +457,14 @@ export function MajordomeTodayScreen() {
         { id: uuidv4(), ...vault, date: localDate(now), time: localTime(now), text },
       ],
     }));
-    setDraft("");
     setProblem(null);
     setToday(localDate(now));
-    void Haptics.selectionAsync();
     flush();
+  };
+  const add = () => {
+    keep(draft);
+    setDraft("");
+    void Haptics.selectionAsync();
   };
 
   const finishSettingUp = async () => {
@@ -528,7 +529,16 @@ export function MajordomeTodayScreen() {
           />
         }
       >
-        {setup === "noComputer" ? null : (
+        {setup === "noComputer" ? null : setup === "ready" && view === "overview" ? (
+          <View className="gap-1">
+            <Text textRole="footnote" className="text-foreground-secondary">
+              {dayTitle(today, today)}
+            </Text>
+            <Text accessibilityRole="header" textRole="largeTitle" className="font-t3-bold">
+              {ownerName === null ? greeting : `${greeting}, ${ownerName}`}
+            </Text>
+          </View>
+        ) : (
           <View className="gap-1">
             <View className="flex-row items-center gap-1">
               <Text
@@ -573,6 +583,16 @@ export function MajordomeTodayScreen() {
             ) : null}
           </View>
         )}
+        {setup === "ready" ? (
+          <SegmentedControl
+            options={[
+              { value: "overview", label: "Overview" },
+              { value: "journal", label: "Journal" },
+            ]}
+            selected={view}
+            onSelect={setView}
+          />
+        ) : null}
 
         {setup === "starting" ? null : setup === "noComputer" ? (
           <Welcome />
@@ -637,18 +657,26 @@ export function MajordomeTodayScreen() {
           </>
         ) : (
           <>
-            {isToday && vault !== null ? (
+            {vault !== null && welcome.isSuccess && welcome.data?.pending && ownerName === null ? (
               <TodayWelcome
                 key={`${vault.environmentId}:${vault.projectId}`}
                 environmentId={vault.environmentId}
                 projectId={vault.projectId}
               />
             ) : null}
-            {isToday ? (
+            {view === "overview" && vault !== null ? (
+              <TodayAsk
+                environmentId={vault.environmentId}
+                projectId={vault.projectId}
+                connected={reach === "connected"}
+                onKeep={keep}
+              />
+            ) : null}
+            {view === "journal" && isToday ? (
               <View className="gap-2">
                 <TextInput
-                  accessibilityLabel="Add a line to today's note"
-                  placeholder="Add a line to today's note…"
+                  accessibilityLabel="Write a line"
+                  placeholder="Write a line…"
                   multiline
                   // Return adds the line and puts the keyboard away; a line break has no place in one line.
                   submitBehavior="blurAndSubmit"
@@ -657,125 +685,98 @@ export function MajordomeTodayScreen() {
                   onChangeText={setDraft}
                   onSubmitEditing={add}
                 />
-                <View className="flex-row flex-wrap items-center justify-between gap-2">
-                  <Button
-                    label="Add to note"
-                    accessibilityLabel="Add to today's note"
-                    tone="primary"
-                    onPress={add}
-                    disabled={!canAdd}
-                  />
-                  <Button
-                    label="Ask Majordome"
-                    accessibilityHint="Starts a new chat"
-                    tone="text"
-                    onPress={startNewTask}
-                  />
-                </View>
+                <Button label="Add" tone="primary" onPress={add} disabled={!canAdd} />
               </View>
             ) : null}
 
-            {status.notice !== null ? (
-              <View className="gap-2">
-                <View className="flex-row gap-2" accessibilityRole="text">
-                  <SymbolView
-                    name={status.notice === "failed" ? "exclamationmark.triangle" : "wifi.slash"}
-                    size={16}
-                    tintColorClassName="accent-icon-muted"
-                  />
-                  <Text textRole="footnote" className="flex-1 text-foreground-secondary">
-                    {NOTICES[status.notice]}
-                    {status.notice !== "failed" && isToday
-                      ? " What you add is kept on this phone and sent when it can."
-                      : ""}
-                  </Text>
-                </View>
-                {status.notice === "connecting" ? null : (
-                  <Button label="Try again" icon="arrow.clockwise" onPress={tryAgain} />
-                )}
-              </View>
-            ) : null}
-
-            {problem !== null ? (
-              <Text
-                accessibilityRole="alert"
-                accessibilityLiveRegion="polite"
-                textRole="footnote"
-                className="text-danger-foreground"
-              >
-                {problem}
-              </Text>
-            ) : null}
-
-            {waiting.length > 0 ? (
-              <ListSection title="Waiting to send">
-                <View className="px-4 py-2">
-                  {waiting.map((capture) => (
-                    <View key={capture.id} className="flex-row gap-3 py-1.5">
-                      <Text className="text-foreground-muted">{capture.time}</Text>
-                      <Text className="flex-1 text-foreground">{capture.text}</Text>
-                    </View>
-                  ))}
-                </View>
-              </ListSection>
-            ) : null}
-
-            {first ? (
+            {view === "journal" ? (
               <>
-                <ListSection title="Try a line">
-                  {FIRST_LINES.map((line, index) => (
-                    <View key={line}>
-                      {index === 0 ? null : <View className="ml-4 h-px bg-border" />}
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityHint="Writes it in the box"
-                        onPress={() => setDraft(line)}
-                        className="min-h-11 justify-center px-4 py-2.5 active:opacity-60"
-                      >
-                        <Text className="text-foreground">{line}</Text>
-                      </Pressable>
-                    </View>
-                  ))}
-                </ListSection>
-                <MajordomeTodayTopics topics={chatTopics} />
-              </>
-            ) : sections.length === 0 && waiting.length === 0 && status.empty !== null ? (
-              <Text className="text-foreground-muted">
-                {status.empty === "getting"
-                  ? "Getting the note…"
-                  : status.empty === "later"
-                    ? "The note will show here once your computer is reachable."
-                    : isToday
-                      ? "Nothing in today's note yet. Add a line above to start it."
-                      : "Nothing written for this day yet."}
-              </Text>
-            ) : null}
-
-            {sections.map((section) =>
-              section.lines.length === 0 ? (
-                <Text
-                  key={section.index}
-                  accessibilityRole="header"
-                  textRole="footnote"
-                  className="px-2 font-t3-medium text-foreground-muted"
-                >
-                  {section.title}
-                </Text>
-              ) : (
-                <ListSection key={section.index} title={section.title ?? undefined}>
-                  <View className="px-4 py-2">
-                    {section.lines.map((line) => (
-                      <NoteLineRow
-                        key={line.index}
-                        line={line}
-                        canTick={status.canTick}
-                        onTick={tick}
+                {status.notice !== null ? (
+                  <View className="gap-2">
+                    <View className="flex-row gap-2" accessibilityRole="text">
+                      <SymbolView
+                        name={
+                          status.notice === "failed" ? "exclamationmark.triangle" : "wifi.slash"
+                        }
+                        size={16}
+                        tintColorClassName="accent-icon-muted"
                       />
-                    ))}
+                      <Text textRole="footnote" className="flex-1 text-foreground-secondary">
+                        {NOTICES[status.notice]}
+                        {status.notice !== "failed" && isToday
+                          ? " What you add is kept on this phone and sent when it can."
+                          : ""}
+                      </Text>
+                    </View>
+                    {status.notice === "connecting" ? null : (
+                      <Button label="Try again" icon="arrow.clockwise" onPress={tryAgain} />
+                    )}
                   </View>
-                </ListSection>
-              ),
-            )}
+                ) : null}
+
+                {problem !== null ? (
+                  <Text
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite"
+                    textRole="footnote"
+                    className="text-danger-foreground"
+                  >
+                    {problem}
+                  </Text>
+                ) : null}
+
+                {waiting.length > 0 ? (
+                  <ListSection title="Waiting to send">
+                    <View className="px-4 py-2">
+                      {waiting.map((capture) => (
+                        <View key={capture.id} className="flex-row gap-3 py-1.5">
+                          <Text className="text-foreground-muted">{capture.time}</Text>
+                          <Text className="flex-1 text-foreground">{capture.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </ListSection>
+                ) : null}
+
+                {sections.length === 0 && waiting.length === 0 && status.empty !== null ? (
+                  <Text className="text-foreground-muted">
+                    {status.empty === "getting"
+                      ? "Getting your lines…"
+                      : status.empty === "later"
+                        ? "Your lines will show here once your computer is reachable."
+                        : isToday
+                          ? "Nothing written today yet."
+                          : "Nothing written for this day yet."}
+                  </Text>
+                ) : null}
+
+                {sections.map((section) =>
+                  section.lines.length === 0 ? (
+                    <Text
+                      key={section.index}
+                      accessibilityRole="header"
+                      textRole="footnote"
+                      className="px-2 font-t3-medium text-foreground-muted"
+                    >
+                      {section.title}
+                    </Text>
+                  ) : (
+                    <ListSection key={section.index} title={section.title ?? undefined}>
+                      <View className="px-4 py-2">
+                        {section.lines.map((line) => (
+                          <NoteLineRow
+                            key={line.index}
+                            line={line}
+                            canTick={status.canTick}
+                            onTick={tick}
+                          />
+                        ))}
+                      </View>
+                    </ListSection>
+                  ),
+                )}
+              </>
+            ) : null}
           </>
         )}
       </ScrollView>

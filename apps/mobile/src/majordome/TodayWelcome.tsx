@@ -1,99 +1,83 @@
-import {
-  WELCOME_DONE_LABEL,
-  WELCOME_NAME_PLACEHOLDER,
-  WELCOME_NEXT_LABEL,
-  WELCOME_SKIP_LABEL,
-  welcomeCards,
-} from "@t3tools/shared/majordomeWelcome";
 import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import {
+  NAME_CARD,
+  WELCOME_SHEET_TITLE,
+  WELCOME_CONTINUE_LABEL,
+  WELCOME_NAME_PLACEHOLDER,
+  WELCOME_NOT_NOW_LABEL,
+} from "@t3tools/shared/majordomeWelcome";
 import { useState } from "react";
-import { View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text, AppTextInput as TextInput } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
-import { cn } from "../lib/cn";
-import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
 import { majordomeEnvironment } from "./state";
 
 /**
- * The welcome of a new notes folder, at the top of Today: what to call its owner, then three
- * cards on how Majordome works. Shown once per folder, whichever device finishes it.
+ * The welcome of a new notes folder on the phone: a sheet over Today that asks what to call its
+ * owner. Answered or put off, it is gone for good, on every device that opens the folder.
  */
 export function TodayWelcome(props: {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
 }) {
   const { environmentId, projectId } = props;
-  const welcome = useEnvironmentQuery(
-    majordomeEnvironment.welcome({ environmentId, input: { projectId } }),
-  );
+  const insets = useSafeAreaInsets();
   const finish = useAtomCommand(majordomeEnvironment.finishWelcome, { reportFailure: false });
-  const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [left, setLeft] = useState(false);
-  if (left || !welcome.isSuccess || welcome.data?.pending !== true) return null;
-
-  const cards = welcomeCards(welcome.data.name);
-  const card = cards[Math.min(step, cards.length - 1)];
-  if (card === undefined) return null;
-  const last = step >= cards.length - 1;
-  const end = () => {
+  const end = (given: string | null) => {
     setLeft(true);
-    void finish({ environmentId, input: { projectId, name: name.trim() === "" ? null : name } });
+    void finish({ environmentId, input: { projectId, name: given } });
   };
-  const next = () => (last ? end() : setStep(step + 1));
+  const answer = () => end(name.trim() === "" ? null : name);
 
   return (
-    <View
-      accessibilityLabel="Welcome"
-      className="gap-3 rounded-2xl border border-border bg-card p-4"
+    <Modal
+      visible={!left}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={() => end(null)}
     >
-      <View className="gap-1">
-        <Text textRole="headline" className="text-foreground">
-          {card.title}
-        </Text>
-        <Text className="text-foreground-secondary">{card.body}</Text>
-      </View>
-      {card.key === "name" ? (
-        <TextInput
-          accessibilityLabel={card.title}
-          placeholder={WELCOME_NAME_PLACEHOLDER}
-          autoCapitalize="words"
-          autoComplete="given-name"
-          textContentType="givenName"
-          returnKeyType="next"
-          maxLength={80}
-          value={name}
-          onChangeText={setName}
-          onSubmitEditing={next}
-        />
-      ) : null}
-      <View className="flex-row items-center gap-2">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        className="flex-1 justify-end bg-black/50"
+      >
         <View
-          className="flex-1 flex-row items-center gap-1.5"
-          accessibilityLabel={`Step ${step + 1} of ${cards.length}`}
+          accessibilityViewIsModal
+          accessibilityLabel="Welcome"
+          className="gap-4 rounded-t-3xl border-t border-border bg-screen px-5 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 18) + 6 }}
         >
-          {cards.map((each, index) => (
-            <View
-              key={each.key}
-              className={cn(
-                "size-1.5 rounded-full",
-                index === step ? "bg-primary" : "bg-foreground-muted opacity-40",
-              )}
-            />
-          ))}
+          <View className="h-1 w-9 self-center rounded-full bg-border" />
+          <View className="gap-1">
+            <Text accessibilityRole="header" textRole="title" className="font-t3-bold">
+              {WELCOME_SHEET_TITLE}
+            </Text>
+            <Text className="text-foreground-secondary">{NAME_CARD.body}</Text>
+          </View>
+          <TextInput
+            autoFocus
+            accessibilityLabel={WELCOME_SHEET_TITLE}
+            placeholder={WELCOME_NAME_PLACEHOLDER}
+            autoCapitalize="words"
+            autoComplete="given-name"
+            textContentType="givenName"
+            returnKeyType="done"
+            maxLength={80}
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={answer}
+          />
+          <View className="gap-1">
+            <Button label={WELCOME_CONTINUE_LABEL} tone="primary" fullWidth onPress={answer} />
+            <Button label={WELCOME_NOT_NOW_LABEL} tone="text" fullWidth onPress={() => end(null)} />
+          </View>
         </View>
-        {last ? null : (
-          <Button label={WELCOME_SKIP_LABEL} tone="text" size="compact" onPress={end} />
-        )}
-        <Button
-          label={last ? WELCOME_DONE_LABEL : WELCOME_NEXT_LABEL}
-          tone="primary"
-          size="compact"
-          onPress={next}
-        />
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }

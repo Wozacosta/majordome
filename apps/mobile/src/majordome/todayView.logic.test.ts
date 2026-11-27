@@ -5,7 +5,6 @@ import {
   computerReach,
   dayFromToday,
   dayTitle,
-  isFirstToday,
   noteStatus,
   shiftDay,
   todaySetup,
@@ -106,12 +105,4 @@ it("says why a note is missing instead of waiting for ever", () => {
     notice: "failed",
     empty: "nothing",
   });
-});
-
-it("offers the first lines only on an empty today with no chat behind it", () => {
-  const first = { isToday: true, noteEmpty: true, chats: 0 };
-  expect(isFirstToday(first)).toBe(true);
-  expect(isFirstToday({ ...first, chats: 1 })).toBe(false);
-  expect(isFirstToday({ ...first, noteEmpty: false })).toBe(false);
-  expect(isFirstToday({ ...first, isToday: false })).toBe(false);
 });

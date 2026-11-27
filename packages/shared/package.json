@@ -27,6 +27,10 @@
       "types": "./src/majordomeChatKnowledge.ts",
       "import": "./src/majordomeChatKnowledge.ts"
     },
+    "./majordomeToday": {
+      "types": "./src/majordomeToday.ts",
+      "import": "./src/majordomeToday.ts"
+    },
     "./majordomeWelcome": {
       "types": "./src/majordomeWelcome.ts",
       "import": "./src/majordomeWelcome.ts"

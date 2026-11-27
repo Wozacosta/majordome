@@ -67,7 +67,16 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
     card on Today, on web and phone alike, followed by three cards on how Majordome works. The
     folder's config carries `welcome: pending` from the day it is started until the card is
     finished or skipped, so it shows once per folder whichever device ends it, and never on a
-    folder older than the card. The words are shared (`majordomeWelcome.ts`).
+    folder older than the card. The words are shared (`majordomeWelcome.ts`). On the phone it is
+    a sheet that asks the name alone (2026-11-27): the card stacked on Today's own hints read as
+    clutter.
+  - The phone's Today talks to the assistant (2026-11-27). Its box used to add a line to the
+    daily note, with the assistant as a side link, which a new owner could not make sense of.
+    Overview is now the computer's box and starters at phone size, and a send opens a chat with
+    the message sent (`sendOnOpen.ts`). The day's lines live in a Journal tab. With no
+    connection the box keeps the words as a journal line. Designs where the assistant decides,
+    line by line, whether an answer is wanted were drawn and put off until that guess can be
+    measured.
   - No setup interview. The welcome page has two optional fields, what to call the owner and
     what they want help with first: the name, language and time zone start `me.md` with no model
     call, and the second is sent as the first chat. After that the assistant saves what it is

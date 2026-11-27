@@ -28,6 +28,21 @@ The section for a version is also the text of its release on GitHub.
 - On an iPhone with no account, open "Get a Majordome server", press "1. Sign in" and sign
   up, then press Subscribe.
 
+**Changed**
+
+- **The iPhone's Today is one box that talks to your assistant.** "Ask anything, or tell me what
+  to remember", with the same four starters as on the computer. Sending opens a chat with your
+  message already sent. Your lines for the day, the day arrows and "Write a line" moved to a
+  **Journal** tab beside **Overview**. With no connection, what you send is kept as a journal
+  line and reaches your assistant later.
+- **On the iPhone, new notes ask your name in a sheet,** and nothing else. The three "how it
+  works" steps, "Try a line" and the topic suggestions are gone from Today; topics start from
+  **Chats**.
+
+**Try this**
+
+- On the iPhone, press **Plan my day** on Today, then go back and open **Journal**.
+
 ## 0.10.84
 
 **Changed**

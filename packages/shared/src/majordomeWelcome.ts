@@ -13,8 +13,12 @@ export const WELCOME_NAME_PLACEHOLDER = "A name or a nickname";
 export const WELCOME_SKIP_LABEL = "Skip";
 export const WELCOME_NEXT_LABEL = "Next";
 export const WELCOME_DONE_LABEL = "Got it";
+/** The phone asks the name alone, in a sheet: Today itself shows how Majordome works. */
+export const WELCOME_CONTINUE_LABEL = "Continue";
+export const WELCOME_NOT_NOW_LABEL = "Not now";
+export const WELCOME_SHEET_TITLE = "What should I call you?";
 
-const NAME_CARD: WelcomeCard = {
+export const NAME_CARD: WelcomeCard = {
   key: "name",
   title: "Welcome. What should I call you?",
   body: "I'm your assistant. I keep your notes and work from them.",
