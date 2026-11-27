@@ -10,6 +10,7 @@ config, [`first-run.e2e.config.ts`](../../scripts/first-run.e2e.config.ts), beca
 vp run first-run first-run/claude-installs-and-sign-in-starts.e2e.ts
 vp run first-run first-run/owner-says-who-they-are.e2e.ts
 FIRST_RUN_REPLAY=1 vp run first-run first-run/first-ask-starts-a-chat.e2e.ts
+FIRST_RUN_REPLAY=1 vp run first-run first-run/today-offers-first-topics.e2e.ts
 CLAUDE_CODE_OAUTH_TOKEN=... vp run first-run first-run/signed-in-claude-answers.e2e.ts
 ```
 

@@ -123,6 +123,12 @@ const TONES: Record<TopicTone, { readonly tile: string; readonly row: string }> 
   },
 };
 
+/** A topic's icon alone, sized by the button or row around it. */
+export function TopicGlyph({ icon }: { readonly icon: MajordomeTopicIcon }) {
+  const { Icon } = ICONS[icon];
+  return <Icon aria-hidden />;
+}
+
 export function topicRowTint(topic: MajordomeTopic): string {
   return TONES[topicTone(topic)].row;
 }

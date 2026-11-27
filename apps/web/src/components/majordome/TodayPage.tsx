@@ -40,6 +40,7 @@ import { noteDraftKey, NoteSaveProblem, NoteSaveStatus, useNoteEditing } from ".
 import { NoteSourceEditor } from "./NoteSourceEditor";
 import { notesLink } from "./notes.logic";
 import { requestDraftSend, takeFirstAsk } from "./pendingDraftSend";
+import { TodayFirstTopics } from "./TodayFirstTopics";
 import { TodayWelcome } from "./TodayWelcome";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
@@ -120,6 +121,7 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
               <>
                 <AssistantSetupLine vault={vault} />
                 <CaptureBox key={vault.key} vault={vault} />
+                <TodayFirstTopics vault={vault} />
                 <TodayInFlight vault={vault} />
                 <TodayTasks
                   key={`${vault.key}:${today}`}

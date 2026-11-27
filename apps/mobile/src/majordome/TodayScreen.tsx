@@ -34,6 +34,7 @@ import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
 import { TodayAsk } from "./TodayAsk";
 import { TodayWelcome } from "./TodayWelcome";
+import { MajordomeTodayFirstTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 import {
   localDate,
@@ -658,6 +659,9 @@ export function MajordomeTodayScreen() {
                 connected={reach === "connected"}
                 onKeep={keep}
               />
+            ) : null}
+            {view === "overview" && vault !== null && reach === "connected" ? (
+              <MajordomeTodayFirstTopics />
             ) : null}
             {view === "journal" && isToday ? (
               <View className="gap-2">

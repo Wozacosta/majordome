@@ -7,6 +7,13 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Today offers your first topic.** While your notes have no topic, Today shows "Start a
+  topic" under the box, with the ready-made ones: Meals, Money, Health and others. On the
+  computer, picking one asks you to confirm; on the phone it opens the topic's chat. The row
+  is gone once you have a topic.
+
 **Fixed**
 
 - **On the phone, Claude's sign-in opens in your browser.** It opened as a sheet inside
@@ -17,6 +24,7 @@ Not released yet.
 
 **Try this**
 
+- With new notes, open Today and press **Health** under "Start a topic".
 - On the phone, with a server where Claude is not signed in, press **Sign in** on Today's
   Claude card: your browser opens. Approve, copy the code, come back to Majordome and press
   **Paste code**.

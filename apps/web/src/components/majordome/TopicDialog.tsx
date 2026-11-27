@@ -48,6 +48,8 @@ export type TopicDialogRequest =
       readonly title?: string;
       readonly folder?: string;
       readonly threadId?: ThreadId;
+      /** The id of a ready-made topic to start from, already picked. */
+      readonly readyMade?: string;
     }
   | { readonly kind: "rename"; readonly topic: MajordomeTopic }
   | { readonly kind: "folder"; readonly topic: MajordomeTopic };
@@ -91,26 +93,41 @@ export function TopicDialog({
   // Routines run on one of the owner's computers, which is where a topic's routine is added.
   const { runner } = useVaultRoutines(vault);
   /** The ready-made topic the owner picked; null for one of their own. */
-  const [ready, setReady] = useState<MajordomeReadyTopic | null>(null);
+  const [ready, setReady] = useState<MajordomeReadyTopic | null>(
+    () =>
+      (request.kind === "create"
+        ? vault.readyTopics?.find((candidate) => candidate.id === request.readyMade)
+        : undefined) ?? null,
+  );
   const current = request.kind === "create" ? null : request.topic;
   const showTitle = request.kind !== "folder";
   const showFolder = request.kind !== "rename";
   const [title, setTitle] = useState(
-    current?.title ?? (request.kind === "create" ? (request.title ?? "") : ""),
+    current?.title ?? ready?.title ?? (request.kind === "create" ? (request.title ?? "") : ""),
   );
   const presetFolder = request.kind === "create" ? request.folder : current?.folder;
   // A new topic with no folder given gets one suggested; null is a choice the owner has not made.
   const canSuggest = request.kind === "create" && presetFolder === undefined;
   const [mode, setMode] = useState<TopicFolderMode | null>(
-    canSuggest
-      ? null
-      : presetFolder !== undefined && vault.folders.includes(presetFolder)
+    ready !== null
+      ? ready.existing
         ? "existing"
-        : "new",
+        : "new"
+      : canSuggest
+        ? null
+        : presetFolder !== undefined && vault.folders.includes(presetFolder)
+          ? "existing"
+          : "new",
   );
-  const [newFolder, setNewFolder] = useState<string | null>(null);
+  const [newFolder, setNewFolder] = useState<string | null>(
+    ready !== null && !ready.existing ? ready.folder : null,
+  );
   const [existingFolder, setExistingFolder] = useState<string | null>(
-    presetFolder !== undefined && vault.folders.includes(presetFolder) ? presetFolder : null,
+    ready?.existing
+      ? ready.folder
+      : presetFolder !== undefined && vault.folders.includes(presetFolder)
+        ? presetFolder
+        : null,
   );
   const [query, setQuery] = useState("");
   // A new topic needs only its name: the folder is picked for it and can be changed on request.

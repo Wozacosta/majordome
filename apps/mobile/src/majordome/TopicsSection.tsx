@@ -468,6 +468,18 @@ export function MajordomeFirstTopics(props: {
   );
 }
 
+/** On Today while the notes have no topic at all: the ready-made ones, each opening its chat. */
+export function MajordomeTodayFirstTopics() {
+  const topics = useChatListTopics(useThreadShells(), "");
+  if (topics.total > 0 || topics.ready.length === 0) return null;
+  return (
+    <View className="gap-2.5">
+      <Text className="text-xs font-t3-medium text-foreground-tertiary">Start a topic</Text>
+      <ReadyTopicChips topics={topics} opens />
+    </View>
+  );
+}
+
 /** Under a new chat's heading: the topics, each taking what was typed into its own conversation. */
 export function MajordomeNewChatTopics(props: { readonly draftKey: string | null }) {
   const topics = useChatListTopics(useThreadShells(), "");

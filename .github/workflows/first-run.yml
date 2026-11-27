@@ -65,6 +65,11 @@ jobs:
           FIRST_RUN_REPLAY: "1"
         run: vp run first-run first-run/first-ask-starts-a-chat.e2e.ts
 
+      - name: Start a first topic from Today
+        env:
+          FIRST_RUN_REPLAY: "1"
+        run: vp run first-run first-run/today-offers-first-topics.e2e.ts
+
       - name: Upload the install run
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

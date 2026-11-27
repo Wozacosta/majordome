@@ -28,7 +28,8 @@ connection first (your email or calendar), and say so. The last card, **Your own
 **New topic** offers ready-made topics the same way: Meals, Money, Health and others. One comes
 with a starter note or two and usually a routine that posts in the topic's chat. If you already
 have a folder for the subject, such as `Recipes`, the topic uses it and leaves your notes as they
-are. Removing the topic or the routine later works like any other.
+are. Removing the topic or the routine later works like any other. While you have no topic
+at all, Today offers the same ready-made ones.
 
 ## See the week
 

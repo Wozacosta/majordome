@@ -54,7 +54,8 @@ The landing page and the README show a short version of this list.
   Majordome's also says what each routine and each topic used, sets apart what was used outside
   Majordome, and shows the plan's limits as gauges above the totals. [Usage](./user/usage.md)
 - **Topics:** one continuing conversation per part of life (Money, Meals, Trips), tied to its own
-  folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
+  folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from,
+  offered on Today while there is none.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
   when the assistant ends with an offer.
 - **Unread chats in one place:** an Unread group at the top of the sidebar while something is
