@@ -8,12 +8,13 @@ your household, who to call in an emergency. One fact per line, under a heading,
 Every conversation starts knowing the lines under **Me** and **Contact**. The rest (Work, Identity
 documents, Money, Household, Emergency contact) stays in the note, and your assistant reads it when
 a task needs it. **What this chat knows**, in a chat's side panel, has an **About you** row that
-opens the note.
+opens the note, and the map of what the assistant has shows it under **Knows**.
 
 ## Filling it in
 
-You do not have to. When you start your notes, the welcome page asks what to call you; that, your
-language and your time zone are the first three lines. After that your assistant fills the note as
+You do not have to. New notes greet you on Today with a small card that asks what to call you,
+on the computer or the iPhone, and your answer is the first line. On the computer the setup page
+asks the same before your notes exist, and adds your language and time zone. After that your assistant fills the note as
 it goes:
 
 - Say a fact, such as "my new number is 06 12 34 56 78", and it writes the line, replacing the old
@@ -21,7 +22,12 @@ it goes:
 - When a task needs a fact that is not there, it searches your notes before it asks you.
 - "Tidy my memory" moves such facts from your daily notes into `me.md` at night.
 
-If you already had notes before `me.md` existed, ask once: "Fill in me.md from my notes."
+If you already had notes before `me.md` existed, press **Start it from my notes**, on the **About
+you** row of a chat's side panel or at the top of the map. Your assistant searches your notes,
+writes the note and tells you what is still missing. If you do nothing, it happens anyway: the first night after
+you update, "Tidy my memory" searches your notes for these facts, starts the note with what it
+finds, and lists each line in your feed with the note it came from, so you can correct one. It
+does this once.
 
 ## Passport, tax and bank numbers
 
@@ -34,6 +40,11 @@ wherever your notes are backed up. Tell your assistant the number, or add it you
 ## Identity documents
 - Passport: saved key passport-number, expires 2031-04-02
 ```
+
+So your notes say that the number exists and what it is called, and the number itself is in one
+place only. Your assistant finds it by that name: it reads `me.md`, sees the passport is the saved
+key `passport-number`, and takes the value from the encrypted list. The same names are what you
+see in **Settings → Passwords and keys**.
 
 Give the day a document expires and you are reminded in its last month, as for any saved key.
 When a form needs the number, your assistant takes it from there without asking you again. It has

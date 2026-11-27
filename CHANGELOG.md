@@ -7,6 +7,82 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.83
+
+**New**
+
+- **Start your note about you in one click.** While your notes have no `me.md`, the **About
+  you** row in a chat's side panel and the top of the map have a **Start it from my notes**
+  button. It opens a chat where your assistant searches your notes, writes the note and tells
+  you what is still missing. On the iPhone the row says "Nothing yet"; the nightly tidy still
+  starts the note for you.
+- **New notes welcome you.** The first time you open Today on a new notes folder, on the
+  computer or the iPhone, a small card asks what to call you, then shows in three steps how
+  Majordome works. Your name goes into `me.md`. It shows once per notes folder, whichever device
+  you finish or skip it on; notes you already had are not asked.
+- **Talk with your assistant on the Mac and in the browser.** When the message box is empty, the
+  round button where Send sits starts a conversation in that chat: you speak, it answers aloud,
+  and it listens again. Stop talking and your words are sent, or press Send. Click the panel, or
+  press `Space` or `Esc`, to cut an answer short. Answers come as a few short sentences, with the
+  detail left on screen. When the assistant needs your approval or an answer, it says so and waits
+  for you to answer the card; it never approves by voice. Closing the panel, leaving the chat or
+  30 seconds of silence end the conversation, and words not yet sent stay in the message box.
+  `Cmd+Option+V`, or **Start voice chat** in the command palette, does the same. It uses the voice
+  that reads replies aloud, and transcribes wherever your dictation does.
+
+**Changed**
+
+- **A key saved on one computer says which one lacks it.** In Settings, Passwords and keys, the
+  line under such a key now reads "Save it again to have it on this Mac too" instead of "to have
+  it everywhere".
+- **The iPhone's server screen offers your own server first.** "An always-on server" now shows
+  two choices: your own server, recommended, with a guide at
+  [majord.me/own-server](https://majord.me/own-server), and a Majordome server, as before.
+- **The map's About you line is quieter:** a tinted line with the note's name set apart, in
+  place of a sentence and a loud button.
+- **"Saved to your notes" is one line.** Under a reply it says how many notes were saved; press
+  it to see which ones.
+- **The phone's first screen asks where you stand.** "Let's connect to your brain" is for someone
+  who already has Majordome: sign in, or scan a code. "I'm new here" is for everyone else: use
+  your computer, or get a Majordome server.
+- **"Use your computer" tells you where to get Majordome for your Mac:** the address to open, a
+  button that sends the link to your Mac, and the code to scan once it is installed.
+
+**Fixed**
+
+- **A new chat started by talking gets short spoken answers from its first message.** The first
+  answer of a chat begun with **Talk** was written as if for reading.
+
+**Try this**
+
+- On the iPhone, open the server screen and press **Read the guide**.
+- In any chat, look at **What this chat knows** on the right and press **Start it from my
+  notes**.
+- To see the welcome, start a second notes folder on a spare computer, or ask me for a test
+  server: it only shows on notes that are new.
+- Open a chat, leave the message box empty and click the round button: ask what is on today, then
+  press `Space` while it answers and ask something else.
+- On a phone with no computer yet, press **Use your computer** and send yourself the link.
+
+## 0.10.82
+
+**New**
+
+- **Your note about you fills itself.** If you had notes before `me.md` existed, tonight's "Tidy
+  my memory" searches them for your name, address, phone, email, employer and household, starts
+  the note, and lists each line in your feed with the note it came from. It does this once.
+- **About you is on the map,** under Knows, as "Nothing yet" until the note has been started.
+
+**Changed**
+
+- **The map has a plainer name:** "What your assistant can see and do", in place of "What the
+  assistant has here".
+
+**Try this**
+
+- Open the map from a chat (the three linked dots): **About you** is under Knows.
+- Tomorrow morning, look for "Tidy my memory" in your feed and open `me.md`.
+
 ## 0.10.81
 
 **New**

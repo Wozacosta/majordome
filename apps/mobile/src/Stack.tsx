@@ -153,6 +153,7 @@ import { SavedKeysScreen } from "./majordome/SavedKeysScreen";
 import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
 import { VoiceDownloadSheet } from "./majordome/speaking/VoiceDownloadSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
+import { UseComputerScreen } from "./majordome/UseComputerScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
 import {
@@ -325,6 +326,10 @@ const SETTINGS_SCREENS = {
   }),
   SettingsHostedSignup: createNativeStackScreen({
     screen: HostedSignupScreen,
+    options: settingsPage(),
+  }),
+  SettingsUseComputer: createNativeStackScreen({
+    screen: UseComputerScreen,
     options: settingsPage(),
   }),
   SettingsAccount: createNativeStackScreen({

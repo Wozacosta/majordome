@@ -9,7 +9,7 @@ import * as Option from "effect/Option";
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { planMemoryPass } from "./memoryPass.ts";
-import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
+import { MEMORY_CHAR_LIMIT, memoryPassSection } from "./memoryPassPrompt.ts";
 import type { MemoryPassState } from "./memoryPassState.ts";
 import { commitVaultRun } from "./VaultCommitReactor.ts";
 import { commitAll, gitIn, makeVault } from "./vaultTestRepos.ts";
@@ -39,12 +39,23 @@ const setUp = Effect.fn("test.setUp")(function* () {
   const previous: MemoryPassState = {
     head: yield* gitIn(root, ["rev-parse", "HEAD"]),
     brief: { since: null, preparedAt: LAST_PASS, files: [], more: 0, memoryChars: 11 },
+    // Most tests are about changed notes: the one-time start of me.md is already behind them.
+    aboutYouAsked: true,
   };
-  const plan = (options?: { readonly passTitle?: string; readonly first?: boolean }) =>
+  const plan = (options?: {
+    readonly passTitle?: string;
+    readonly first?: boolean;
+    /** A vault whose passes all ran before me.md existed. */
+    readonly neverAsked?: boolean;
+  }) =>
     planMemoryPass({
       vaultRoot: root,
       layout,
-      previous: options?.first ? Option.none() : Option.some(previous),
+      previous: options?.first
+        ? Option.none()
+        : Option.some(
+            options?.neverAsked ? { head: previous.head, brief: previous.brief } : previous,
+          ),
       passTitle: options?.passTitle ?? "Tidy my memory",
       now: DateTime.makeUnsafe("2026-11-16T02:30:00.000Z"),
     });
@@ -53,6 +64,27 @@ const setUp = Effect.fn("test.setUp")(function* () {
 });
 
 it.layer(testLayer)("planMemoryPass", (it) => {
+  it.effect("starts the note about the owner once, on a night with nothing else to do", () =>
+    Effect.gen(function* () {
+      const { write, plan } = yield* setUp();
+      // Notes kept before me.md existed: no note changed, and the pass still has this to do.
+      const first = yield* plan({ neverAsked: true });
+      assert.deepEqual(first?.brief.files, []);
+      assert.isTrue(first?.brief.aboutYou);
+      assert.isTrue(first?.aboutYouAsked);
+      // It is asked once: the next night is quiet again, whatever the pass found.
+      assert.isNull(yield* plan());
+
+      // A note that already has contact details is never searched for.
+      yield* write("me.md", "## Me\n- Name: Ana\n\n## Contact\n- Phone: +351 900 000 001\n");
+      const filled = yield* plan({ neverAsked: true });
+      assert.isUndefined(filled?.brief.aboutYou);
+      // A new, empty vault has nothing to search: its first night stays quiet.
+      const { plan: planEmpty } = yield* setUp();
+      assert.isNull(yield* planEmpty({ first: true }));
+    }),
+  );
+
   it.effect("lists the notes that changed since the last pass, newest first", () =>
     Effect.gen(function* () {
       const { root, fs, write, plan, run } = yield* setUp();
@@ -113,5 +145,21 @@ it.layer(testLayer)("planMemoryPass", (it) => {
       assert.deepEqual(first?.brief.files, ["daily/2026-11-15.md"]);
       assert.isNull(first?.brief.since);
     }),
+  );
+});
+
+it("tells that one pass where to look and what to write", () => {
+  const brief = { since: LAST_PASS, preparedAt: LAST_PASS, files: [], more: 0, memoryChars: 11 };
+  const asked = memoryPassSection({
+    brief: { ...brief, aboutYou: true },
+    memoryPath: "memory.md",
+    mePath: "me.md",
+  });
+  assert.include(asked, "me.md has no contact details yet");
+  assert.include(asked, "search every note (`search_notes`)");
+  assert.isTrue(asked.endsWith("</memory_pass>"));
+  assert.notInclude(
+    memoryPassSection({ brief, memoryPath: "memory.md", mePath: "me.md" }),
+    "contact details",
   );
 });

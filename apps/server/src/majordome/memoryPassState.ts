@@ -19,7 +19,11 @@ const MemoryPassState = Schema.Struct({
     files: Schema.Array(Schema.String),
     more: Schema.Number,
     memoryChars: Schema.Number,
+    /** This pass is also asked to start the note about the owner from what the notes hold. */
+    aboutYou: Schema.optionalKey(Schema.Boolean),
   }),
+  /** A pass was asked that once; no later pass is, whatever it found. */
+  aboutYouAsked: Schema.optionalKey(Schema.Boolean),
 });
 export type MemoryPassState = typeof MemoryPassState.Type;
 const MemoryPassStateJson = Schema.fromJsonString(MemoryPassState);

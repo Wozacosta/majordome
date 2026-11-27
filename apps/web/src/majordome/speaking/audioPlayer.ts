@@ -22,7 +22,8 @@ export function createAudioPlayer(output: () => AudioOutput, onIdle: () => void)
     get busy() {
       return playing.size > 0;
     },
-    play(samples: Float32Array<ArrayBuffer>, sampleRate: number): void {
+    /** Queues one sentence and returns how many seconds from now it starts to sound. */
+    play(samples: Float32Array<ArrayBuffer>, sampleRate: number): number {
       const context = output();
       const buffer = context.createBuffer(1, samples.length, sampleRate);
       buffer.copyToChannel(samples, 0);
@@ -36,6 +37,7 @@ export function createAudioPlayer(output: () => AudioOutput, onIdle: () => void)
         if (playing.delete(source) && playing.size === 0) onIdle();
       });
       source.start(startAt);
+      return startAt - context.currentTime;
     },
     /** Silences at once. */
     stop(): void {

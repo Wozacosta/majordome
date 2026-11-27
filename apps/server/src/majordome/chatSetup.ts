@@ -101,6 +101,7 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
     const loaded = [
       ...instructions,
       ...(knowledge.memory === null ? [] : [knowledge.memory.path]),
+      ...(knowledge.me == null ? [] : [knowledge.me.path]),
       ...knowledge.dailyNotes.map((note) => note.path),
     ];
     for (const name of loaded) {
@@ -136,6 +137,10 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
         onSome: (value) => value.skills.map(({ name, description }) => ({ name, description })),
       }),
       ...(knowledge.memory === null ? {} : { memoryNote: knowledge.memory.path }),
+      // Named in every notes folder, so the owner sees there is such a note before it has a line.
+      ...(knowledge.isVault
+        ? { aboutYou: knowledge.me == null ? {} : { note: knowledge.me.path } }
+        : {}),
       dailyNotes: knowledge.dailyNotes.map((note) => note.path),
       ...(knowledge.topic === null
         ? {}

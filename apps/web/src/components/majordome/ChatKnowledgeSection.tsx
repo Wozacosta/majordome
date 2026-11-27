@@ -1,6 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { START_ABOUT_YOU_LABEL } from "@t3tools/shared/majordome";
 import {
   CHAT_KNOWLEDGE_OTHERS_LINE,
   CHAT_KNOWLEDGE_OTHERS_TITLE,
@@ -25,6 +27,7 @@ import { useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { useQuietThreadShell } from "../../state/entities";
+import { useStartAboutYou } from "./useStartAboutYou";
 import { majordomeEnvironment } from "../../state/majordome";
 import { ThreadDetailsControl } from "../chat/ThreadDetailsControl";
 import {
@@ -66,6 +69,7 @@ export function ChatKnowledgeSection({
   const [othersOpen, setOthersOpen] = useState(false);
   const [restOpen, setRestOpen] = useState(false);
   const view = chatKnowledgeView(AsyncResult.getOrElse(result, () => null));
+  const startAboutYou = useStartAboutYou();
   if (view === null || projectId === undefined) return null;
   const row = (item: ChatKnowledgeRow) => {
     const Icon = ICONS[item.kind];
@@ -84,7 +88,21 @@ export function ChatKnowledgeSection({
     );
     return (
       <li key={item.key} className="flex min-w-0">
-        {item.path === null ? (
+        {item.canStart ? (
+          <ThreadDetailsControl
+            size="xs"
+            variant="ghost"
+            part="row"
+            panel
+            multiline
+            onClick={() => void startAboutYou(scopeProjectRef(environmentId, projectId))}
+          >
+            {body}
+            <span className="shrink-0 text-xs font-medium text-primary">
+              {START_ABOUT_YOU_LABEL}
+            </span>
+          </ThreadDetailsControl>
+        ) : item.path === null ? (
           <div className={LOCKED_ROW_CLASS}>{body}</div>
         ) : (
           <ThreadDetailsControl

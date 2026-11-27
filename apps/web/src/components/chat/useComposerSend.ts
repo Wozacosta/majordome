@@ -112,6 +112,7 @@ import { ScreenContextReader } from "./screenContext";
 import { useMultipleModelSend } from "./useMultipleModelSend";
 import type { SideChatMessage } from "./useSideChat";
 import { type ComposerDispatchMode } from "@t3tools/client-runtime/state/composer-dispatch";
+import { spokenSend, spokenSendSettled } from "~/majordome/voice-mode/spokenSend";
 import {
   getUploadedAttachments,
   refreshExpiredAttachmentUploads,
@@ -1601,6 +1602,7 @@ export function useComposerSend(input: ComposerSendInput) {
           runtimeMode,
           interactionMode: DEFAULT_INTERACTION_MODE,
           dispatchMode: turnDispatchMode,
+          ...spokenSend(routeThreadKey, messageIdForSend),
           ...(freshArm === undefined ? {} : { freshContext: true }),
           ...(bootstrap ? { bootstrap } : {}),
           createdAt: messageCreatedAt,
@@ -1630,6 +1632,7 @@ export function useComposerSend(input: ComposerSendInput) {
         }
       }
       const startResult = await startPromise;
+      spokenSendSettled(messageIdForSend, startResult._tag !== "Failure");
       if (startResult._tag === "Failure") {
         failure = startResult;
       } else {

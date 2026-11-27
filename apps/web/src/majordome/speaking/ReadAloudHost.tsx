@@ -9,6 +9,7 @@ import { isTerminalFocused } from "~/lib/terminalFocus";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 
+import { VoiceModeShortcut } from "../voice-mode/useVoiceModeCommand";
 import { setReadAloudAppLanguage } from "./appLanguage";
 import type { ReadAloudRuntime } from "./runtime";
 import { useReadAloud } from "./useReadAloud";
@@ -53,8 +54,11 @@ function Host({ runtime }: { readonly runtime: ReadAloudRuntime }) {
   }, [runtime, locale]);
 
   return (
-    <Suspense fallback={null}>
-      <VoiceDownloadDialog runtime={runtime} />
-    </Suspense>
+    <>
+      <VoiceModeShortcut />
+      <Suspense fallback={null}>
+        <VoiceDownloadDialog runtime={runtime} />
+      </Suspense>
+    </>
   );
 }

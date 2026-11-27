@@ -180,7 +180,8 @@ export function savedKeyPlaceLine<Id extends string>(
   const where = key.on.length === 1 ? `Only on ${list(key.on)}.` : `Not on ${list(key.missing)}.`;
   // A source lives on one computer, and a sign-in key is not the assistant's: neither can be copied.
   if (key.source !== undefined || key.signsInTo !== undefined) return where;
+  const there = list(key.missing);
   return answers !== null && key.missing.includes(answers)
-    ? `${where} Chats answered on ${nameOf(answers)} can't use it: save it again to have it everywhere.`
-    : `${where} Save it again to have it everywhere.`;
+    ? `${where} Chats answered on ${nameOf(answers)} can't use it: save it again to have it on ${there} too.`
+    : `${where} Save it again to have it on ${there} too.`;
 }

@@ -211,6 +211,19 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       label: "environment-data:majordome:start-notes",
       tag: WS_METHODS.majordomeStartNotes,
     }),
+    /** Whether a notes folder's owner is still to be welcomed. */
+    welcome: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:welcome",
+      tag: WS_METHODS.majordomeGetWelcome,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => historyRevision(environmentId),
+    }),
+    finishWelcome: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:finish-welcome",
+      tag: WS_METHODS.majordomeFinishWelcome,
+      onSettled: ({ environmentId }, registry) =>
+        Effect.sync(() => registry.update(historyRevision(environmentId), (value) => value + 1)),
+    }),
     restoreNotes: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:restore-notes",
       tag: WS_METHODS.majordomeRestoreNotes,

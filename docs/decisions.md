@@ -57,10 +57,18 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
     runs of digits and long unbroken strings (`withoutNumbers`).
   - Named `me.md`, shown as "About you". `personal` already means life admin in many vaults,
     `profile` reads as preferences (memory's job), and "key facts" is the per-conversation list.
+  - New notes welcome their owner once (2026-11-27). The setup page's fields only exist on the
+    computer, and a phone owner is sent to a browser for setup, so the name is also asked by a
+    card on Today, on web and phone alike, followed by three cards on how Majordome works. The
+    folder's config carries `welcome: pending` from the day it is started until the card is
+    finished or skipped, so it shows once per folder whichever device ends it, and never on a
+    folder older than the card. The words are shared (`majordomeWelcome.ts`).
   - No setup interview. The welcome page has two optional fields, what to call the owner and
     what they want help with first: the name, language and time zone start `me.md` with no model
     call, and the second is sent as the first chat. After that the assistant saves what it is
-    told and searches the notes before it asks. obrain's `brain-setup` skill and its "Owner
+    told and searches the notes before it asks. A vault older than `me.md` is not left to the
+    owner to fill by asking: the first memory pass after the update is told, once, to start the
+    note from what the vault holds, and runs for that even on a night with no changed note. obrain's `brain-setup` skill and its "Owner
     Profile" placeholder are left out of Majordome's starter notes (the npm package keeps them):
     nothing in the app ran it, and it rewrites `AGENTS.md` and opens Obsidian.
 - Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in

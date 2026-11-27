@@ -21,7 +21,9 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
 import * as MajordomeVaultService from "./MajordomeVaultService.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
+import { setUpNotesFolder } from "./starterNotes.ts";
 import * as VaultLock from "./VaultLock.ts";
+import { gitIn } from "./vaultTestRepos.ts";
 import { commitVaultRun, vaultCommitMessage } from "./VaultCommitReactor.ts";
 import { createVaultBundle, encryptFile } from "./vaultFolderBackup.ts";
 
@@ -360,6 +362,43 @@ it.layer(testLayer)("MajordomeVaultService", (it) => {
       assert.equal(first.folder, `${home}/Majordome`);
       assert.isTrue(yield* fs.exists(`${home}/Majordome/.majordome/config.json`));
       assert.deepEqual(yield* start(first.folder), first);
+    }),
+  );
+
+  it.effect("welcomes the owner of new notes once, and keeps the name they give", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-home-" });
+      const folder = `${home}/Majordome`;
+      yield* setUpNotesFolder(folder);
+      const projectId = ProjectId.make("notes");
+      const service = yield* makeService({ [projectId]: folder });
+      const config = `${folder}/.majordome/config.json`;
+
+      // New notes ask for the welcome, wherever they are opened from.
+      assert.deepEqual(yield* service.welcome({ projectId }), { pending: true, name: null });
+      assert.equal(JSON.parse(yield* fs.readFileString(config)).welcome, "pending");
+
+      assert.deepEqual(yield* service.finishWelcome({ projectId, name: "  Ana  Costa " }), {
+        pending: false,
+        name: "Ana Costa",
+      });
+      assert.deepEqual(yield* service.welcome({ projectId }), {
+        pending: false,
+        name: "Ana Costa",
+      });
+      assert.include(yield* fs.readFileString(`${folder}/me.md`), "## Me\n- Name: Ana Costa\n");
+      assert.isUndefined(JSON.parse(yield* fs.readFileString(config)).welcome);
+      // Saved at once as the owner's, so the next run's save does not take it for its own.
+      assert.equal(yield* gitIn(folder, ["status", "--porcelain"]), "");
+      assert.equal(yield* gitIn(folder, ["log", "-1", "--format=%s"]), "Said hello");
+
+      // Skipped with no name: the welcome ends and the name stays as it was.
+      assert.deepEqual(yield* service.finishWelcome({ projectId, name: null }), {
+        pending: false,
+        name: "Ana Costa",
+      });
+      assert.equal(yield* gitIn(folder, ["log", "-1", "--format=%s"]), "Said hello");
     }),
   );
 

@@ -43,6 +43,7 @@ import { TopicStanding } from "./majordome/TopicStanding";
 import { useTopicChat } from "./majordome/TopicStarters";
 import { TopicTabs } from "./majordome/TopicTabs";
 import { TopicWelcome } from "./majordome/TopicWelcome";
+import { VoiceModeDock } from "~/majordome/voice-mode/VoiceModeDock";
 import { useComposerResume } from "./chat/useComposerResume";
 import { ThreadFind, ThreadFindCanvas } from "./chat/ThreadFindProvider";
 import { closeThreadFind, openThreadFind, useThreadFindOpen } from "./chat/threadFindStore";
@@ -3907,6 +3908,13 @@ export default function ChatView(props: ChatViewProps) {
                                 }
                               />
                             ) : null}
+                            <VoiceModeDock
+                              chatKey={routeThreadKey}
+                              composerRef={composerRef}
+                              promptRef={promptRef}
+                              onSend={onComposerSendStable}
+                              onStop={onInterruptStable}
+                            />
                             {!composerMounted ? null : (
                               <ChatComposer
                                 canOperateThread={canOperateThread}

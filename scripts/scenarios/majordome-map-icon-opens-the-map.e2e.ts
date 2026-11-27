@@ -16,6 +16,7 @@ test(
         ],
       }),
       "memory.md": "- Lives in Lyon\n- No meetings 14:30 to 16:00\n",
+      "me.md": "## Me\n- Name: Ana Costa\n\n## Contact\n- Phone: +351 900 000 001\n",
       "accounting/log.md": "## Where things stand\nVAT return is due 15 December.\n",
       "garden/plan.md": "Tomatoes along the south wall.\n",
     });
@@ -26,8 +27,8 @@ test(
     });
     await t3.open(thread);
 
-    await screen.getByLabel("What the assistant has here").tap();
-    await expect(screen.getByRole("heading", "What the assistant has here")).toBeVisible();
+    await screen.getByLabel("What your assistant can see and do").tap();
+    await expect(screen.getByRole("heading", "What your assistant can see and do")).toBeVisible();
     const map = browser.frameLocator('iframe[title="This chat"]');
     await expect(map.getByText("Memory note")).toBeVisible();
     await expect(map.getByText("Other topics")).toBeVisible();
@@ -38,6 +39,10 @@ test(
     await app.screenshot("memory-note-open");
     await map.getByText("Memory note").click();
     await expect(map.getByText("Lives in Lyon", { exact: false })).toBeHidden();
+    // The note about the owner is on the map too, and opens onto its lines.
+    await map.getByText("About you").click();
+    await expect(map.getByText("Name: Ana Costa", { exact: false })).toBeVisible();
+    await app.screenshot("about-you-open");
     // Nothing was sent to the assistant for it.
     await expect(screen.getByText("Show me a diagram", { exact: false })).toBeHidden();
   },

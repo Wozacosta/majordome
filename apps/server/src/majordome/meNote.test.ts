@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 
-import { aboutUserSection, meTemplate } from "./meNote.ts";
+import { aboutUserSection, meTemplate, ownerName, withOwnerName } from "./meNote.ts";
 
 describe("the note about the owner", () => {
   it("starts with every heading and no fact when nothing was said at setup", () => {
@@ -40,5 +40,26 @@ describe("the note about the owner", () => {
     assert.notInclude(section, "Not loaded");
     assert.include(section, "[Cut here: read the file for the rest.]");
     assert.isBelow(section.length, 3_500);
+  });
+
+  it("reads and writes the owner's name, whatever state the note is in", () => {
+    assert.isNull(ownerName(null));
+    assert.isNull(ownerName(meTemplate()));
+    // No note yet: the template, with the name in it.
+    const started = withOwnerName(null, "  Ana   Costa ");
+    assert.include(started, "## Me\n- Name: Ana Costa\n\n## Contact");
+    assert.equal(ownerName(started), "Ana Costa");
+    // A name already there is replaced, and nothing else moves.
+    assert.equal(withOwnerName(started, "Ana"), started.replace("Ana Costa", "Ana"));
+    // A note with lines but no name gets it first under Me.
+    assert.equal(
+      withOwnerName("# About me\n\n## Me\n- Language: French\n\n## Contact\n", "Ana"),
+      "# About me\n\n## Me\n- Name: Ana\n- Language: French\n\n## Contact\n",
+    );
+    // A hand-written note without the heading keeps its text.
+    assert.equal(
+      withOwnerName("I live in Lyon.\n", "Ana"),
+      "I live in Lyon.\n\n## Me\n- Name: Ana\n",
+    );
   });
 });

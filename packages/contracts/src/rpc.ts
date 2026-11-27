@@ -109,6 +109,9 @@ import {
   MajordomeAddReadyRoutineInput,
   MajordomeVaultChangesInput,
   MajordomeSetRoutineLimitsInput,
+  MajordomeWelcomeInput,
+  MajordomeWelcomeResult,
+  MajordomeFinishWelcomeInput,
   MajordomeStartNotesInput,
   MajordomeStartNotesResult,
   MajordomeVaultError,
@@ -945,6 +948,8 @@ export const WS_METHODS = {
   majordomeAddReadyRoutine: "majordome.addReadyRoutine",
   majordomeSetRoutineLimits: "majordome.setRoutineLimits",
   majordomeStartNotes: "majordome.startNotes",
+  majordomeGetWelcome: "majordome.getWelcome",
+  majordomeFinishWelcome: "majordome.finishWelcome",
   majordomeRestoreNotes: "majordome.restoreNotes",
   majordomeGetBackupStatus: "majordome.getBackupStatus",
   majordomeListConnectors: "majordome.listConnectors",
@@ -2902,6 +2907,18 @@ const WsMajordomeSetRoutineLimitsRpc = Rpc.make(WS_METHODS.majordomeSetRoutineLi
   error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeGetWelcomeRpc = Rpc.make(WS_METHODS.majordomeGetWelcome, {
+  payload: MajordomeWelcomeInput,
+  success: MajordomeWelcomeResult,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
+const WsMajordomeFinishWelcomeRpc = Rpc.make(WS_METHODS.majordomeFinishWelcome, {
+  payload: MajordomeFinishWelcomeInput,
+  success: MajordomeWelcomeResult,
+  error: Schema.Union([MajordomeVaultError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeStartNotesRpc = Rpc.make(WS_METHODS.majordomeStartNotes, {
   payload: MajordomeStartNotesInput,
   success: MajordomeStartNotesResult,
@@ -3672,6 +3689,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListRoutineRunsRpc,
   WsMajordomeAddReadyRoutineRpc,
   WsMajordomeSetRoutineLimitsRpc,
+  WsMajordomeGetWelcomeRpc,
+  WsMajordomeFinishWelcomeRpc,
   WsMajordomeStartNotesRpc,
   WsMajordomeRestoreNotesRpc,
   WsMajordomeGetBackupStatusRpc,

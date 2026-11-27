@@ -62,6 +62,7 @@ import {
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
+  AudioLinesIcon,
   ArrowLeftIcon,
   BellIcon,
   BookOpenIcon,
@@ -120,6 +121,7 @@ import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
 import { isMajordome } from "../env";
 import { useReadAloudCommand } from "../majordome/speaking/useReadAloudCommand";
+import { useVoiceModeCommand } from "../majordome/voice-mode/useVoiceModeCommand";
 import { openGuides, reportProblem } from "./majordome/HelpMenu";
 import { setTopicSearchOpen } from "./majordome/topicSearchStore";
 import { openWhatsNew, WHATS_NEW_VERSION } from "./WhatsNew";
@@ -765,6 +767,7 @@ function OpenCommandPaletteDialog(props: {
 
   const { projectByKey } = useProjectLookups();
   const readAloudCommand = useReadAloudCommand();
+  const voiceModeCommand = useVoiceModeCommand();
 
   const activeThreadKey = activeThread
     ? scopedThreadKey(scopeThreadRef(activeThread.environmentId, activeThread.id))
@@ -1483,6 +1486,18 @@ function OpenCommandPaletteDialog(props: {
       icon: <Volume2Icon className={ITEM_ICON_CLASS} />,
       shortcutCommand: "chat.readAloud",
       run: readAloudCommand.run,
+    });
+  }
+
+  if (voiceModeCommand) {
+    actionItems.push({
+      kind: "action",
+      value: "action:voice-mode",
+      title: voiceModeCommand.title,
+      searchTerms: ["voice", "talk", "speak", "conversation", "microphone"],
+      icon: <AudioLinesIcon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: "chat.voiceMode",
+      run: async () => voiceModeCommand.run(),
     });
   }
 

@@ -121,6 +121,43 @@ export const writeVaultLimits = Effect.fn("majordome.writeVaultLimits")(function
   );
 });
 
+/** A notes folder asks for the welcome with this in its config, from the day it is started. */
+const WELCOME_PENDING = "pending";
+
+/** True while the folder's owner has yet to finish or skip the welcome. */
+export const readWelcomePending = Effect.fn("majordome.readWelcomePending")(function* (
+  vaultRoot: string,
+) {
+  const text = yield* readConfigText(vaultRoot);
+  if (Option.isNone(text)) return false;
+  const config = yield* decodeConfigObject(text.value).pipe(Effect.option);
+  return Option.isSome(config) && config.value["welcome"] === WELCOME_PENDING;
+});
+
+/** The config text with the welcome asked for, keeping everything else. */
+export const withWelcomePending = (config: string) =>
+  decodeConfigObject(config).pipe(
+    Effect.flatMap((value) => encodeConfigObject({ ...value, welcome: WELCOME_PENDING })),
+    Effect.map((text) => `${text}\n`),
+  );
+
+/** Takes the welcome out of the config, keeping everything else. True when it was there. */
+export const clearWelcomePending = Effect.fn("majordome.clearWelcomePending")(function* (
+  vaultRoot: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const text = yield* readConfigText(vaultRoot);
+  if (Option.isNone(text)) return false;
+  const { welcome, ...kept } = yield* decodeConfigObject(text.value);
+  if (welcome === undefined) return false;
+  yield* fileSystem.writeFileString(
+    path.join(vaultRoot, VAULT_CONFIG_DIRNAME, VAULT_CONFIG_FILENAME),
+    `${yield* encodeConfigObject(kept)}\n`,
+  );
+  return true;
+});
+
 /** None when `vaultRoot` is not a vault. A missing or unreadable config gives the defaults. */
 export const readVaultLayout = Effect.fn("majordome.readVaultLayout")(function* (
   vaultRoot: string,

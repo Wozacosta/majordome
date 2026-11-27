@@ -240,6 +240,8 @@ it.layer(NodeServices.layer)("describe_setup", (it) => {
             // A skill the assistant wrote and the owner has not kept is not one it uses.
             skills: [{ name: "file-receipts", description: "File a receipt." }],
             memoryNote: "memory.md",
+            // The folder has no me.md yet: the map still names the note, as not started.
+            aboutYou: {},
             dailyNotes: [`daily/${today}.md`],
             topic: { title: "Accounting", folder: "accounting" },
             otherTopics: ["Garden"],

@@ -4,7 +4,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { EnvironmentId } from "@t3tools/contracts";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,6 +12,7 @@ import { AppActivityIndicator } from "../components/ui/AppActivityIndicator";
 import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
+import { Chip } from "../components/ui/Chip";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
@@ -108,14 +109,69 @@ function Note(props: { readonly note: SignupNote | null }) {
   );
 }
 
-/** What a server is. */
-function OfferPitch() {
+function ServerCard(props: {
+  readonly icon: "server.rack" | "internaldrive";
+  readonly main: boolean;
+  readonly name: string;
+  readonly recommended?: string;
+  readonly price: string | null;
+  readonly what: string;
+  readonly children: ReactNode;
+}) {
   return (
-    <View className="gap-8">
-      <View className="items-center gap-4 pt-6">
-        <View className="size-20 items-center justify-center rounded-[24px] border-continuous bg-primary">
-          <SymbolView name="server.rack" size={36} tintColorClassName="accent-primary-foreground" />
+    <View className="gap-4 rounded-[26px] border-continuous bg-grouped-card p-5">
+      <View className="flex-row items-center gap-3">
+        <View
+          className={cn(
+            "size-11 items-center justify-center rounded-[14px] border-continuous",
+            props.main ? "bg-primary" : "bg-subtle",
+          )}
+        >
+          <SymbolView
+            name={props.icon}
+            size={22}
+            tintColorClassName={props.main ? "accent-primary-foreground" : "accent-primary-text"}
+          />
         </View>
+        <View className="flex-1 gap-0.5">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text
+              accessibilityRole="header"
+              textRole="headline"
+              className="font-t3-bold text-foreground"
+            >
+              {props.name}
+            </Text>
+            {props.recommended === undefined ? null : (
+              <Chip label={props.recommended} selected size="small" />
+            )}
+          </View>
+          {props.price === null ? null : (
+            <Text textRole="footnote" className="text-foreground-muted">
+              {props.price}
+            </Text>
+          )}
+        </View>
+      </View>
+      <Text className="text-foreground">{props.what}</Text>
+      {props.children}
+    </View>
+  );
+}
+
+/** The two ways to have a server: your own first, then the one Majordome sells here. */
+function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
+  const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const offer = useAtomValue(serverOfferAtom);
+  const run = (action: () => Promise<void>) => () => {
+    void Haptics.selectionAsync();
+    void action();
+  };
+  const { own, hosted } = MAJORDOME_SERVER;
+
+  return (
+    <View className="gap-4">
+      <View className="gap-2 pb-2 pt-4">
         <Text
           accessibilityRole="header"
           textRole="largeTitle"
@@ -123,49 +179,50 @@ function OfferPitch() {
         >
           {MAJORDOME_SERVER.headline}
         </Text>
+        <Text className="text-center text-foreground-muted">{MAJORDOME_SERVER.what}</Text>
       </View>
-      <View className="gap-5 rounded-[26px] border-continuous bg-grouped-card p-5">
-        {MAJORDOME_SERVER.points.map((point) => (
-          <View key={point.icon} className="flex-row items-center gap-4">
-            <SymbolView name={point.icon} size={24} tintColorClassName="accent-primary-text" />
-            <Text className="flex-1 text-foreground">{point.text}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/** What it costs in the App Store's own words, and the ways to get one. Stays in reach below the pitch. */
-function OfferActions(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
-  const insets = useSafeAreaInsets();
-  const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
-  const offer = useAtomValue(serverOfferAtom);
-  const run = (action: () => Promise<void>) => () => {
-    void Haptics.selectionAsync();
-    void action();
-  };
-
-  return (
-    <View className="gap-3 px-5 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-      <Note note={props.note} />
-      {offer === null ? null : (
-        <Text textRole="headline" className="text-center font-t3-bold text-foreground">
-          {offer.trial ?? offer.price}
-        </Text>
-      )}
-      {!isSignedIn ? (
-        <Button label={MAJORDOME_SERVER.signIn} tone="primary" fullWidth onPress={props.onSignIn} />
-      ) : props.note?.kind === "hasServer" ? (
+      <ServerCard
+        icon="internaldrive"
+        main={false}
+        name={own.name}
+        recommended={own.recommended}
+        price={own.price}
+        what={own.what}
+      >
         <Button
-          label={MAJORDOME_SERVER.connect}
-          tone="primary"
+          label={own.guide}
+          tone="secondary"
+          icon="safari"
           fullWidth
-          onPress={run(connectToServer)}
+          onPress={() => void tryOpenExternalUrl(own.guideUrl)}
         />
-      ) : offer === null ? null : (
-        <Button label={MAJORDOME_SERVER.buy} tone="primary" fullWidth onPress={run(buyServer)} />
-      )}
+      </ServerCard>
+      <ServerCard
+        icon="server.rack"
+        main
+        name={hosted.name}
+        price={offer === null ? null : (offer.trial ?? offer.price)}
+        what={hosted.what}
+      >
+        <Note note={props.note} />
+        {!isSignedIn ? (
+          <Button
+            label={MAJORDOME_SERVER.signIn}
+            tone="primary"
+            fullWidth
+            onPress={props.onSignIn}
+          />
+        ) : props.note?.kind === "hasServer" ? (
+          <Button
+            label={MAJORDOME_SERVER.connect}
+            tone="primary"
+            fullWidth
+            onPress={run(connectToServer)}
+          />
+        ) : offer === null ? null : (
+          <Button label={MAJORDOME_SERVER.buy} tone="primary" fullWidth onPress={run(buyServer)} />
+        )}
+      </ServerCard>
       {offer === null ? null : (
         <Text textRole="label" className="text-center text-foreground-muted">
           {MAJORDOME_SERVER.renews}
@@ -230,7 +287,7 @@ function ConfiguredHostedSignupScreen() {
   }
 
   return (
-    <SettingsScreen title="A Majordome server">
+    <SettingsScreen title={MAJORDOME_SERVER.title}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -279,12 +336,9 @@ function ConfiguredHostedSignupScreen() {
             />
           </View>
         ) : (
-          <OfferPitch />
+          <Offer note={state.note} onSignIn={() => setSigningIn(true)} />
         )}
       </ScrollView>
-      {state.step === "idle" ? (
-        <OfferActions note={state.note} onSignIn={() => setSigningIn(true)} />
-      ) : null}
     </SettingsScreen>
   );
 }

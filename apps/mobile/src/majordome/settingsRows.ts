@@ -14,6 +14,7 @@ export const MAJORDOME_SETTINGS_LABELS = {
   SettingsEnvironmentAgentBehavior: "New chat defaults",
   SettingsArchive: "Archived chats",
   SettingsHostedSignup: "A Majordome server",
+  SettingsUseComputer: "Use your computer",
   SettingsAccount: "Your account",
 } as const;
 

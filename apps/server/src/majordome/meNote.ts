@@ -93,6 +93,30 @@ function loadedParts(text: string): string {
     : `${loaded.slice(0, LOADED_CHAR_LIMIT)}\n[Cut here: read the file for the rest.]`;
 }
 
+const NAME_LINE = /^- Name:[ \t]*(.*)$/m;
+
+/** The name the note gives its owner, or null when it has none. */
+export function ownerName(text: string | null): string | null {
+  const name = text === null ? "" : (NAME_LINE.exec(text)?.[1]?.trim() ?? "");
+  return name === "" ? null : name;
+}
+
+/** The note with its owner called `name`: the line is replaced, or added first under `## Me`. */
+export function withOwnerName(text: string | null, name: string): string {
+  const line = `- Name: ${oneLine(name)}`;
+  if (text === null || text.trim() === "") return meTemplate({ name });
+  if (NAME_LINE.test(text)) return text.replace(NAME_LINE, line);
+  const heading = /^## Me[ \t]*$/m.exec(text);
+  if (heading === null) return `${text.trimEnd()}\n\n## Me\n${line}\n`;
+  const after = heading.index + heading[0].length;
+  return `${text.slice(0, after)}\n${line}${text.slice(after)}`;
+}
+
+/** True once the note has a line under `## Contact`: an address, a phone number or an email. */
+export function hasContact(text: string | null): boolean {
+  return text !== null && /^## Contact\n\S/m.test(loadedParts(text));
+}
+
 /** Model-facing: what the note holds, when to read the rest, and where a new fact goes. */
 export function aboutUserSection(input: {
   readonly path: string;

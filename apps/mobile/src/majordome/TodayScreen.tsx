@@ -31,6 +31,7 @@ import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
+import { TodayWelcome } from "./TodayWelcome";
 import { MajordomeTodayTopics, useChatListTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 import {
@@ -133,9 +134,9 @@ const MARK = {
   dark: require("../../assets/majordome-splash-dark.png"),
 };
 
-/** One of the quieter ways to connect, under the main button. */
+/** One way to connect. */
 function WayIn(props: {
-  readonly icon: "person.crop.circle" | "qrcode.viewfinder" | "server.rack";
+  readonly icon: "person.crop.circle" | "qrcode.viewfinder" | "server.rack" | "desktopcomputer";
   /** The way most people take: drawn in the accent colour. */
   readonly main?: boolean;
   readonly title: string;
@@ -175,11 +176,23 @@ function WayIn(props: {
 
 const SEPARATOR = <View className="ml-[60px] h-px bg-border" />;
 
+/** A few ways in under the sentence that says who they are for. */
+function WaysGroup(props: { readonly title: string; readonly children: ReactNode }) {
+  return (
+    <View className="gap-2.5">
+      <Text accessibilityRole="header" textRole="headline" className="px-1 font-t3-bold">
+        {props.title}
+      </Text>
+      {props.children}
+    </View>
+  );
+}
+
 /**
- * The ways in, led by the account's. Rendered only in a build with accounts: the hooks need its
- * provider.
+ * The account's way in, above the code's. Rendered only in a build with accounts: the hooks need
+ * its provider.
  */
-function WaysInWithAccount(props: { readonly children: ReactNode }) {
+function AccountWayIn(props: { readonly children: ReactNode }) {
   const navigation = useNavigation();
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user } = useUser();
@@ -225,29 +238,16 @@ function Welcome() {
   const navigation = useNavigation();
   const { themeAppearance } = useAppearancePreferences();
   const serverOffer = useAtomValue(serverOfferAtom);
-  const ways = (
-    <>
-      <WayIn
-        icon="qrcode.viewfinder"
-        title={MAJORDOME_WELCOME.scan}
-        detail={MAJORDOME_WELCOME.scanDetail}
-        onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-      />
-      {serverOffer === null ? null : (
-        <>
-          {SEPARATOR}
-          <WayIn
-            icon="server.rack"
-            title={MAJORDOME_WELCOME.server}
-            detail={MAJORDOME_WELCOME.serverDetail}
-            onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-          />
-        </>
-      )}
-    </>
+  const scan = (
+    <WayIn
+      icon="qrcode.viewfinder"
+      title={MAJORDOME_WELCOME.scan}
+      detail={MAJORDOME_WELCOME.scanDetail}
+      onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+    />
   );
   return (
-    <View className="gap-10 pt-4">
+    <View className="gap-8 pt-4">
       <View className="flex-row items-center gap-2">
         <Image
           accessibilityIgnoresInvertColors
@@ -279,12 +279,31 @@ function Welcome() {
           {MAJORDOME_WELCOME.what}
         </Text>
       </View>
-      <View className="gap-3">
-        {hasAccounts ? (
-          <WaysInWithAccount>{ways}</WaysInWithAccount>
-        ) : (
-          <ListSection>{ways}</ListSection>
-        )}
+      <View className="gap-6">
+        <WaysGroup title={MAJORDOME_WELCOME.returning}>
+          {hasAccounts ? <AccountWayIn>{scan}</AccountWayIn> : <ListSection>{scan}</ListSection>}
+        </WaysGroup>
+        <WaysGroup title={MAJORDOME_WELCOME.newHere}>
+          <ListSection>
+            <WayIn
+              icon="desktopcomputer"
+              title={MAJORDOME_WELCOME.computer}
+              detail={MAJORDOME_WELCOME.computerDetail}
+              onPress={() => openSettings(navigation, "SettingsUseComputer")}
+            />
+            {serverOffer === null ? null : (
+              <>
+                {SEPARATOR}
+                <WayIn
+                  icon="server.rack"
+                  title={MAJORDOME_WELCOME.server}
+                  detail={MAJORDOME_WELCOME.serverDetail}
+                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+                />
+              </>
+            )}
+          </ListSection>
+        </WaysGroup>
       </View>
     </View>
   );
@@ -618,6 +637,13 @@ export function MajordomeTodayScreen() {
           </>
         ) : (
           <>
+            {isToday && vault !== null ? (
+              <TodayWelcome
+                key={`${vault.environmentId}:${vault.projectId}`}
+                environmentId={vault.environmentId}
+                projectId={vault.projectId}
+              />
+            ) : null}
             {isToday ? (
               <View className="gap-2">
                 <TextInput

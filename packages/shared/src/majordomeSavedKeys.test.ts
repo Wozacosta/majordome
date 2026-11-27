@@ -97,9 +97,9 @@ describe("the keys of several computers as one list", () => {
       );
     expect(rows.map((row) => row.name)).toEqual(["myage", "notion", "stripe"]);
     expect(line("myage")).toBe(
-      "Only on this Mac. Chats answered on your server can't use it: save it again to have it everywhere.",
+      "Only on this Mac. Chats answered on your server can't use it: save it again to have it on your server too.",
     );
-    expect(line("stripe")).toBe("Only on your server. Save it again to have it everywhere.");
+    expect(line("stripe")).toBe("Only on your server. Save it again to have it on this Mac too.");
     // A key kept in a source cannot be copied, so nothing is asked of the owner.
     expect(line("notion")).toBe("Only on this Mac.");
   });

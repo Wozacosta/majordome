@@ -119,6 +119,8 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeRunRoutinesElsewhere]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeAddReadyRoutine]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetRoutineLimits]: AuthSettingsWriteScope,
+  // Writes the owner's name into their notes, as a chat they send would.
+  [WS_METHODS.majordomeFinishWelcome]: AuthOrchestrationOperateScope,
   // Writes files and a git history into a folder on the server and opens it as a project.
   [WS_METHODS.majordomeStartNotes]: AuthOrchestrationOperateScope,
   // Like starting notes: it only ever makes a new folder, and keeps no passphrase.

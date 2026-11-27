@@ -17,6 +17,8 @@ export interface ReadAloudPlatform {
   readonly wakeAudio: () => void;
   /** Lets the audio output rest while nothing is read. */
   readonly restAudio: () => void;
+  /** Plays a short sound on the audio output: a message was sent, or the assistant is still working. */
+  readonly cue: (kind: "sent" | "thinking") => void;
   readonly onDictationStarted: (listener: () => void) => () => void;
   /** How many voices the downloaded voice file holds. */
   readonly voiceCount: () => Promise<number>;
@@ -68,6 +70,14 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
   const sounding = createSignal(false);
   const replies = createSignal<ReadonlyArray<ReadableReply>>([]);
   let pending: ReadAloudRequest | null = null;
+  /** What a conversation asked to do once the voice is on this computer. */
+  let pendingAction: (() => void) | null = null;
+  /** A conversation holds the voice and the audio output; `takenFromConversation` ends it. */
+  let conversations = 0;
+  let takenFromConversation: (() => void) | null = null;
+  const restAudio = () => {
+    if (conversations === 0) platform.restAudio();
+  };
 
   const controller = new ReadAloudController({
     engine,
@@ -85,7 +95,7 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
   });
   engine.onSounding(sounding.set);
   controller.subscribe(() => {
-    if (controller.getState().status === "idle") platform.restAudio();
+    if (controller.getState().status === "idle") restAudio();
   });
 
   /** The chat of the reply being read; null for a voice sampled in Settings. */
@@ -94,6 +104,8 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
 
   const toggle = (request: ReadAloudRequest, chat: string | null = null) => {
     const starting = !controller.isActive(request.key);
+    // One voice: reading a reply ends the conversation that was using it.
+    if (starting) takenFromConversation?.();
     const done = controller.toggle(request);
     if (starting) {
       readingChat = chat;
@@ -134,23 +146,29 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
     /** Downloads the voice, then reads the reply that asked for it. */
     download: async () => {
       // The click that starts a download is the one that allows the reply's sound.
-      if (pending) platform.wakeAudio();
+      if (pending || pendingAction) platform.wakeAudio();
       const state = await store.download();
       const request = pending;
+      const action = pendingAction;
       // A failed download can be tried again from the same dialog, for the same reply.
-      if (state.status !== "failed") pending = null;
+      if (state.status !== "failed") {
+        pending = null;
+        pendingAction = null;
+      }
       if (state.status === "ready") {
         downloadOffered.set(false);
         if (request) void controller.start(request);
+        action?.();
       }
       return state;
     },
     /** The dialog closed: stops the download, keeps what arrived, forgets the waiting reply. */
     dismissDownload: () => {
       pending = null;
+      pendingAction = null;
       store.cancel();
       downloadOffered.set(false);
-      if (controller.getState().status === "idle") platform.restAudio();
+      if (controller.getState().status === "idle") restAudio();
     },
     remove: async () => {
       controller.stop();
@@ -159,6 +177,56 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
       await platform.removeLeftovers();
     },
     voiceCount: platform.voiceCount,
+    /** Talking with the assistant: the voice says sentences as they arrive, turn after turn. */
+    conversation: {
+      /**
+       * Runs `action` with the voice on this computer, offering the download first when it is
+       * not. Call from a click or key press: it is what allows the sound.
+       */
+      whenVoiceReady: async (action: () => void) => {
+        platform.wakeAudio();
+        if ((await store.refresh()).status === "ready") return action();
+        pending = null;
+        pendingAction = action;
+        downloadOffered.set(true);
+      },
+      /**
+       * Loads the voice and keeps it and the audio output until the returned function is
+       * called. `onTaken` fires when a reply is asked to be read instead.
+       */
+      hold: async (onTaken: () => void) => {
+        conversations += 1;
+        const letGo = engine.hold();
+        let held = true;
+        const release = () => {
+          if (!held) return;
+          held = false;
+          conversations -= 1;
+          if (takenFromConversation === onTaken) takenFromConversation = null;
+          letGo();
+          if (controller.getState().status === "idle") restAudio();
+        };
+        try {
+          controller.stop();
+          takenFromConversation = onTaken;
+          platform.wakeAudio();
+          await engine.prepare();
+        } catch (error) {
+          release();
+          throw error;
+        }
+        return release;
+      },
+      speak: (sentence: string, lang: string) =>
+        engine.speak(sentence, { voice: voice.get(), lang }),
+      stop: engine.stop,
+      onDrained: engine.onDrained,
+      onSentence: engine.onSentence,
+      onError: engine.onError,
+      cue: platform.cue,
+      languages: platform.catalog.languages,
+      placeholders: platform.placeholders,
+    },
     voice: {
       get: voice.get,
       subscribe: voice.subscribe,

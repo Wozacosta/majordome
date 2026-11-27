@@ -33,6 +33,7 @@ const { html } = renderChatSetupPage({
         { name: "book-a-table", description: "Finds a table and holds it until you confirm." },
       ],
       memoryNote: "memory.md",
+      aboutYou: { note: "me.md" },
       dailyNotes: ["daily/2026-11-27.md", "daily/2026-11-26.md"],
       topic: { title: "Accounting", folder: "accounting" },
       otherTopics: ["Garden", "Fitness log", "Lisbon move"],
@@ -80,7 +81,7 @@ const formatted = await format(
   html
     .replace(
       "<head>",
-      '<head><title>What the assistant has</title><meta name="robots" content="noindex">',
+      '<head><title>What your assistant can see and do</title><meta name="robots" content="noindex">',
     )
     .replace("</head>", `<style>${THEME}</style></head>`)
     .replace("</body>", `<script>${REPORT_HEIGHT}</script></body>`),

@@ -34,8 +34,8 @@ The landing page and the README show a short version of this list.
 - **A note about you** (`me.md`): your name, contact details, work and household, for forms,
   bookings and letters. Every conversation starts with your name and contact details, the
   assistant fills the note as you mention things, and passport, tax and bank numbers stay out of
-  it, encrypted with your saved keys. The welcome page asks what to call you and what you want
-  help with first. [About you](./user/about-you.md)
+  it, encrypted with your saved keys. New notes greet you on Today, on the computer or the phone, ask what
+  to call you and show how Majordome works in three steps. [About you](./user/about-you.md)
 - **The notes layout and skills from [obrain](../packages/obrain)**, which lives in this
   repository and is published to npm as `obrain`.
 
@@ -68,7 +68,7 @@ The landing page and the README show a short version of this list.
   starts with and the topics it only knows the standing of. A conversation kept for days is given
   them again with its first message of each new day, and the list of topics as soon as it
   changes. [Memory](./user/memory.md)
-- **What the assistant has, drawn:** click the icon at the top of any conversation and a map opens at once, without a turn of the assistant (or ask for it in the chat): a map with the chat in the
+- **What your assistant can see and do, drawn:** click the icon at the top of any conversation and a map opens at once, without a turn of the assistant (or ask for it in the chat): a map with the chat in the
   middle and a line out to each thing it read before your first message, can use and can reach:
   instructions, skills, notes, connections, saved keys and private documents. A box opens onto
   what is behind it; a key's value and a private document's text are never shown.
@@ -84,9 +84,10 @@ The landing page and the README show a short version of this list.
 - **Replies read aloud by a free voice**, on the iPhone, in the Mac app and in a browser. The speech
   is made on the device, with no key and no account; the voice is downloaded once.
   [Reading replies aloud](./user/voice-input.md#reading-replies-aloud)
-- **A spoken conversation with Claude and your notes, on the iPhone.** You talk, the assistant
-  answers aloud in short sentences and listens again, in the same chat with the same notes and
-  tools. The voice is free and made on the phone. T3 Code has no voice conversation.
+- **A spoken conversation with Claude and your notes**, on the iPhone, in the Mac app and in a
+  browser. You talk, the assistant answers aloud in short sentences and listens again, in the same
+  chat with the same notes and tools. The voice is free and made on the device. T3 Code has no
+  voice conversation.
   [Talking with the assistant](./user/voice-input.md#talking-with-the-assistant)
 
 ### An assistant that works without you
@@ -117,6 +118,9 @@ The landing page and the README show a short version of this list.
   [Phone and notifications](./user/phone-and-notifications.md)
 - **A reinstalled iPhone app starts clean:** it forgets the computers and the sign-in iOS kept
   from the deleted copy, and opens on a welcome.
+- **A phone app that takes in someone with nothing yet:** its first screen has a way for people
+  new to Majordome, which says where to get it for a Mac and sends the link there, or offers a
+  server.
 - **Two kinds of server, told apart by name and icon:** "Your server" for one you run and
   "Majordome server", with a cloud, for one Majordome hosts for you.
 - **A server Majordome hosts for you, by invitation:** one code, half a minute, no terminal,

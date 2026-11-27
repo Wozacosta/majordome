@@ -95,10 +95,14 @@ export const MAJORDOME_WELCOME = {
   headlineEnd: "while you are away.",
   spoken: "A second brain that keeps working while you are away.",
   what: "Your notes, plus the AI you already pay for. It reads them, runs your routines, and asks before touching anything sensitive.",
+  returning: "Let's connect to your brain",
   signIn: "Sign in",
   signInDetail: "This phone finds your computers",
   scan: "Scan a code",
   scanDetail: "Majordome on your computer shows one",
+  newHere: "I'm new here",
+  computer: "Use your computer",
+  computerDetail: "Free app for Mac",
   server: "Get a Majordome server",
   serverDetail: "Always on, no computer needed",
 } as const;
@@ -126,21 +130,41 @@ export function welcomeAccountRow(account: {
   };
 }
 
+/** Starting from nothing with a computer: where to get Majordome for it, then its code. */
+export const MAJORDOME_USE_COMPUTER = {
+  title: "Use your computer",
+  site: "majord.me",
+  url: "https://majord.me/download",
+  steps: [
+    "On your Mac, open",
+    "Download Majordome and open it.",
+    "In its Settings, open Phone & notifications and press “Show the code”.",
+  ],
+  send: "Send the link to your Mac",
+  scan: "Scan the code",
+} as const;
+
 /** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */
 export const MAJORDOME_SERVER = {
   getLabel: "Get a Majordome server",
   getDescription:
     "No computer to leave on? A Majordome server is always on, so Majordome keeps working while your computer is off.",
+  title: "An always-on server",
   headline: "Majordome, always on",
-  points: [
-    { icon: "calendar.badge.clock", text: "Routines run while your computer is off" },
-    { icon: "doc.text", text: "Your notes live on a private server" },
-    {
-      icon: "person.crop.circle",
-      text: "You sign in to your own Claude plan. The price is for the server only.",
-    },
-  ],
-  renews: `Renews by itself until you cancel, in ${CANCEL_PLACE}.`,
+  what: "Routines run while your computer is off. You sign in to your own Claude plan.",
+  own: {
+    name: "Your own server",
+    recommended: "Recommended",
+    price: "About €5 a month, paid to whoever you rent from",
+    what: "You rent any Linux server and run one command. It is yours, and private to your devices.",
+    guide: "Read the guide",
+    guideUrl: "https://majord.me/own-server",
+  },
+  hosted: {
+    name: "A Majordome server",
+    what: "Nothing to rent or install. Ready in half a minute.",
+  },
+  renews: `A Majordome server renews by itself until you cancel, in ${CANCEL_PLACE}.`,
   buy: "Subscribe",
   signIn: "Sign in to continue",
   restore: "Restore purchases",
