@@ -72,6 +72,9 @@ class T3WorkspaceNavigationModule : Module() {
       Prop("tabTitles") { view: T3WorkspaceNavigationView, value: Map<String, String> ->
         view.tabTitles = value
       }
+      Prop("tabIcons") { view: T3WorkspaceNavigationView, value: Map<String, String> ->
+        view.tabIcons = value
+      }
       Prop("expandedTabTitles") { view: T3WorkspaceNavigationView, value: Map<String, String> ->
         view.expandedTabTitles = value
       }
@@ -138,6 +141,7 @@ class T3WorkspaceNavigationView(
   var tabs by mutableStateOf(listOf("threads", "pullRequests", "issues", "usage", "settings"))
   var tabTitles by mutableStateOf(emptyMap<String, String>())
   var expandedTabTitles by mutableStateOf(emptyMap<String, String>())
+  var tabIcons by mutableStateOf(emptyMap<String, String>())
   var newThreadTitle by mutableStateOf("New thread")
   var selectedTab by mutableStateOf("threads")
   var rail by mutableStateOf(false)
@@ -438,7 +442,8 @@ class T3WorkspaceNavigationView(
 
   @Composable
   private fun tabIconPainter(tab: String) = painterResource(
-    when (tab) {
+    when (tabIcons[tab] ?: tab) {
+      "today" -> R.drawable.majordome_today
       "threads" -> R.drawable.t3_chats
       "pullRequests" -> R.drawable.t3_pull_requests
       "issues" -> R.drawable.t3_issues

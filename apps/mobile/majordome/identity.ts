@@ -144,6 +144,8 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
       // person's own server, and opening it in the app needs a signed release to vouch for.
       intentFilters: [],
     },
-    extra,
+    // Upstream's build project is left out, but on Android the crash reporter refuses to start
+    // without one. It sends nothing here (observe.ts turns it off), so an empty id serves.
+    extra: { ...extra, eas: { projectId: "00000000-0000-0000-0000-000000000000" } },
   };
 }

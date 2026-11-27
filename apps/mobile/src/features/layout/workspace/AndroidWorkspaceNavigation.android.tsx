@@ -31,6 +31,7 @@ import { useAdaptiveWorkspaceLayout } from "../adaptive-workspace-context";
 import { useAndroidWorkspaceRoot } from "./AndroidWorkspaceTabsProvider";
 import { useNavigationTabOrder, useHiddenNavigationTabs } from "./navigation-tabs";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
+import { isMajordome } from "../../../majordome/env";
 import { FLOATING_TABS, floatingTabsMetrics } from "./floating-workspace-tabs";
 
 // Matches RAIL_WIDTH in the native rail.
@@ -41,6 +42,7 @@ interface NativeNavigationProps extends ViewProps {
   readonly floating: boolean;
   readonly tabs: readonly string[];
   readonly tabTitles: Readonly<Record<string, string>>;
+  readonly tabIcons: Readonly<Record<string, string>>;
   readonly expandedTabTitles: Readonly<Record<string, string>>;
   readonly newThreadTitle: string;
   readonly selectedTab: AndroidWorkspaceNavigationTab;
@@ -67,7 +69,10 @@ const TAB_TITLES = {
   ...NAVIGATION_TAB_LABELS,
   threads: msg("Chats", { $context: "navigation tab, list of chat threads" }),
   settings: msg("Settings"),
+  ...(isMajordome ? { usage: msg("Today", { $context: "navigation tab, the day's page" }) } : {}),
 };
+// Majordome's Today page takes the usage tab, so that tab wears another icon.
+const TAB_ICONS: Readonly<Record<string, string>> = isMajordome ? { usage: "today" } : {};
 
 const NativeNavigation = requireNativeView<NativeNavigationProps>("T3WorkspaceNavigation");
 
@@ -138,7 +143,8 @@ export function AndroidWorkspaceNavigation(props: {
         tabs={tabs}
         tabTitles={Object.fromEntries(tabs.map((tab) => [tab, m(TAB_TITLES[tab])]))}
         expandedTabTitles={{ pullRequests: gt("Pull requests") }}
-        newThreadTitle={gt("New thread")}
+        tabIcons={TAB_ICONS}
+        newThreadTitle={isMajordome ? gt("New chat") : gt("New thread")}
         selectedTab={selectedTab}
         dark={themeAppearance === "dark"}
         textScale={scale}

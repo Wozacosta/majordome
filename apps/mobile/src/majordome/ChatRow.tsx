@@ -1,14 +1,12 @@
-import { SymbolView as ExpoSymbolView, type SFSymbol } from "expo-symbols";
+import type { SFSymbol } from "expo-symbols";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { withUniwind } from "uniwind";
-
 import { AppText as Text } from "../components/ui/AppText";
 import { cn } from "../lib/cn";
 import { chatWantsAttention, type ChatLine, type ChatLineTone } from "./chat.logic";
+import { TopicSymbolView } from "./TopicSymbol";
 
-// The shared symbol component only takes the names upstream uses; topics wear others.
-export const TopicSymbolView = withUniwind(ExpoSymbolView);
+export { TopicSymbolView };
 const SymbolView = TopicSymbolView;
 
 const LINE_TONES: Record<ChatLineTone, string> = {
