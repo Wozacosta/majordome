@@ -211,6 +211,22 @@
       "types": "./src/speaking/index.ts",
       "default": "./src/speaking/index.ts"
     },
+    "./speaking/voice-catalog": {
+      "types": "./src/speaking/voiceCatalog.ts",
+      "default": "./src/speaking/voiceCatalog.ts"
+    },
+    "./speaking/voice-store": {
+      "types": "./src/speaking/voiceStore.ts",
+      "default": "./src/speaking/voiceStore.ts"
+    },
+    "./speaking/language": {
+      "types": "./src/speaking/language.ts",
+      "default": "./src/speaking/language.ts"
+    },
+    "./speaking/read-aloud": {
+      "types": "./src/speaking/readAloud.ts",
+      "default": "./src/speaking/readAloud.ts"
+    },
     "./t3ToolSummary": {
       "types": "./src/t3ToolSummary.ts",
       "default": "./src/t3ToolSummary.ts"

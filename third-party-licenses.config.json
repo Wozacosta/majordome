@@ -253,6 +253,37 @@
           ]
         }
       ]
+    },
+    {
+      "bundles": ["ios", "mobile"],
+      "license": "BigScience-OpenRAIL-M",
+      "name": "Supertonic 3 voice model (int8)",
+      "noticeFiles": [
+        "apps/mobile/modules/majordome-speech/licenses/supertonic-3-NOTICE.txt",
+        "apps/mobile/modules/majordome-speech/licenses/supertonic-3-OPENRAIL-M.txt"
+      ],
+      "sourceUrl": "https://huggingface.co/supertone-oss-archive"
+    },
+    {
+      "bundles": ["ios", "mobile"],
+      "license": "Apache-2.0",
+      "name": "sherpa-onnx",
+      "version": "2.0.3",
+      "noticeFile": "apps/mobile/modules/majordome-speech/licenses/sherpa-onnx-LICENSE.txt",
+      "sourceUrl": "https://github.com/k2-fsa/sherpa-onnx"
+    },
+    {
+      "bundles": ["ios", "mobile"],
+      "license": "MIT",
+      "name": "ONNX Runtime",
+      "version": "1.28.2",
+      "sourceUrl": "https://github.com/csukuangfj/onnxruntime-libs",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) Microsoft Corporation"]
+        }
+      ]
     }
   ],
   "packageOverrides": [

@@ -7,6 +7,20 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Replies read aloud on the iPhone.** Under each answer, next to Copy, a speaker button reads it
+  to you. Touch it again to stop. Code and tables are skipped, and a French answer is read in
+  French. The voice is free and needs no key: it is made on the phone. The first time, Majordome
+  asks to download it (145 MB, fetched once from GitHub). Choose among its voices, or remove the
+  download, in **Settings > Voice > Speaking**. Not on Android yet.
+
+**Try this**
+
+- On the iPhone, ask for something in French, then touch the speaker under the answer. Start
+  dictating while it reads: it stops.
+- In **Settings > Voice > Speaking**, press play beside a few voices and keep the one you like.
+
 ## 0.10.80
 
 **New**

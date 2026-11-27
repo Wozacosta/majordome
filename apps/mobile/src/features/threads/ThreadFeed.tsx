@@ -2,6 +2,11 @@ import { CollapsibleUserMessageBody } from "./CollapsibleUserMessageBody";
 import { msg, T, useGT, useLocale, useMessages } from "gt-react-native";
 import { m } from "../../i18n/messages";
 import { isMajordome } from "../../majordome/env";
+import {
+  ReadAloudButton,
+  readAloudReplyKey,
+  useStopReadAloudOnLeave,
+} from "../../majordome/speaking/ReadAloudButton";
 import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import { toServerClock } from "@t3tools/client-runtime/clock";
 import { formatDuration } from "@t3tools/shared/orchestrationTimingCopy";
@@ -2714,6 +2719,13 @@ function renderFeedEntry(
               buttonSize={props.replyActionSize.button}
               iconSize={props.replyActionSize.icon}
             />
+            <ReadAloudButton
+              replyKey={readAloudReplyKey(`${props.environmentId}:${props.threadId}`, message.id)}
+              markdown={renderedText}
+              tintColor={iconSubtleColor}
+              buttonSize={props.replyActionSize.button}
+              iconSize={props.replyActionSize.icon}
+            />
             {message.projectedItem && !isMajordome ? (
               <AssistantForkButton
                 environmentId={props.environmentId}
@@ -3102,6 +3114,7 @@ function DisclosureRow(props: {
 let lastSplitViewport: { windowWidth: number; width: number; height: number } | null = null;
 
 export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
+  useStopReadAloudOnLeave(`${props.environmentId}:${props.threadId}`);
   const gt = useGT();
   const m = useMessages();
   const formatMessageTime = useMessageTimeFormatter();

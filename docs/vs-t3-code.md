@@ -76,6 +76,8 @@ The landing page and the README show a short version of this list.
   are told in its last month. With several computers the keys are one list: a key is saved on
   each and removed from each. [Secrets](./user/secrets.md)
 - **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
+- **Replies read aloud by a free voice on the iPhone.** The speech is made on the phone, with no key
+  and no account; the voice is downloaded once. [Reading replies aloud](./user/voice-input.md#reading-replies-aloud)
 
 ### An assistant that works without you
 

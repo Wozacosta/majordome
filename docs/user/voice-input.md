@@ -156,6 +156,27 @@ word or phrase you say to flag a correction, such as "scratch that". Cleanup
 applies the correction only where the context shows one and drops the cue, and
 the model hears the cue as a dictionary hint.
 
+## Reading replies aloud
+
+On the iPhone, the speaker button under an answer reads it aloud. Touch it again to stop. Reading
+also stops when you leave the chat, start dictating, or ask for another answer to be read.
+
+The voice costs nothing and needs no key or account. The first time, Majordome asks to download it:
+145 MB, fetched once from GitHub and kept on the phone. On mobile data the button says so. After
+that the speech is made on the phone. The answer itself still comes from your AI provider, as
+before.
+
+Code blocks and tables are not read; you hear that there is code or a table on screen. The answer
+is read in its own language when that is clear, otherwise in the app's. The voice speaks 31
+languages, French and English among them.
+
+In **Settings → Voice → Speaking**, play each voice and pick one, or remove the download. Reading
+aloud asks for it again the next time.
+
+The voice is Supertonic 3, used under the BigScience OpenRAIL-M licence. Its use restrictions are
+in **Settings → About → Open source licenses**. Reading aloud is not available on Android or in the
+desktop app yet.
+
 ## Test and troubleshoot
 
 In **Settings → Voice**, voice input uses the first connected microphone in the

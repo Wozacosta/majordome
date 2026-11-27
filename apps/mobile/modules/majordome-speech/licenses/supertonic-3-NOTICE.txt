@@ -1,0 +1,11 @@
+Supertonic 3 voice model
+
+Copyright (c) 2026 Supertone Inc.
+
+The files Majordome downloads are the int8 conversion of the model made by
+k2-fsa/sherpa-onnx (https://github.com/k2-fsa/sherpa-onnx); the weights are
+otherwise unchanged. They are fetched from
+https://github.com/Wozacosta/majordome/releases/tag/voice-supertonic-3-int8-1
+and are used under the BigScience Open RAIL-M License below. The use
+restrictions in its Attachment A apply to everyone who uses the voice.
+Supertone Inc. does not endorse Majordome.

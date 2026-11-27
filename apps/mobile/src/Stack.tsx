@@ -151,6 +151,7 @@ import { isMajordome } from "./majordome/env";
 import { AccountScreen } from "./majordome/AccountScreen";
 import { SavedKeysScreen } from "./majordome/SavedKeysScreen";
 import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
+import { VoiceDownloadSheet } from "./majordome/speaking/VoiceDownloadSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
@@ -822,6 +823,10 @@ const RootStackConfig = createWorkspaceStackNavigator({
     ThreadChatDetails: createNativeStackScreen({
       screen: ChatDetailsSheet,
       options: sheetRoute({ detent: 0.65, androidMaxDetent: 0.95 }),
+    }),
+    VoiceDownload: createNativeStackScreen({
+      screen: VoiceDownloadSheet,
+      options: sheetRoute({ detent: 0.25, androidMaxDetent: 0.5 }),
     }),
     ThreadAgents: createNativeStackScreen({
       screen: ThreadAgentsSheet,

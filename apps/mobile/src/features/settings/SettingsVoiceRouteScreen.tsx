@@ -41,6 +41,7 @@ import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActi
 import { SettingsDragHandle } from "./components/SettingsDragHandle";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
+import { SpeakingSettings } from "../../majordome/speaking/SpeakingSettings";
 import {
   deviceMicrophoneOrder,
   localVoiceTranscriberAtom,
@@ -363,6 +364,7 @@ export function SettingsVoiceRouteScreen() {
             </Text>
           </>
         ) : null}
+        <SpeakingSettings />
         <SettingsSection title={gt("Preferred order")}>
           {entries.map((entry, index) => {
             const key = microphoneEntryKey(entry);

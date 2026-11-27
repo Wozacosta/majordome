@@ -24,6 +24,7 @@ import {
 import { crashReportingAvailable, setCrashReportsEnabled } from "../observability/observe";
 import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActionRow";
 import { SettingsScreen } from "../settings/components/SettingsScreen";
+import { SpeechDiagnostics } from "../../majordome/speaking/SpeechDiagnostics";
 import { SettingsSection } from "../settings/components/SettingsSection";
 import { SettingsSwitchRow } from "../settings/components/SettingsSwitchRow";
 import {
@@ -109,6 +110,7 @@ export function SettingsDiagnosticsRouteScreen() {
       >
         {crashReportingAvailable ? <CrashReportsSetting /> : null}
         {connectionTracesAvailable ? <ConnectionTracesSetting /> : null}
+        <SpeechDiagnostics />
 
         <SettingsSection title={gt("Startup crashes")}>
           {state.status === "loading" ? (
