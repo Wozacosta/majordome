@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native-components";
 import { useAtomValue } from "@effect/atom-react";
 import { StackActions, useNavigation } from "@react-navigation/native";
@@ -21,7 +21,6 @@ import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
 import { MAJORDOME_SERVER } from "./connectWording";
 import {
-  buyOnceSignedIn,
   buyServer,
   connectToServer,
   finishHostedSignup,
@@ -164,6 +163,7 @@ function ServerCard(props: {
 function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const offer = useAtomValue(serverOfferAtom);
+  const email = useUser().user?.primaryEmailAddress?.emailAddress;
   const run = (action: () => Promise<void>) => () => {
     void Haptics.selectionAsync();
     void action();
@@ -206,22 +206,48 @@ function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () 
         what={hosted.what}
       >
         <Note note={props.note} />
-        {!isSignedIn ? (
-          <Button
-            label={MAJORDOME_SERVER.signIn}
-            tone="primary"
-            fullWidth
-            onPress={props.onSignIn}
-          />
-        ) : props.note?.kind === "hasServer" ? (
+        {props.note?.kind === "hasServer" && isSignedIn ? (
           <Button
             label={MAJORDOME_SERVER.connect}
             tone="primary"
             fullWidth
             onPress={run(connectToServer)}
           />
-        ) : offer === null ? null : (
-          <Button label={MAJORDOME_SERVER.buy} tone="primary" fullWidth onPress={run(buyServer)} />
+        ) : offer === null ? null : isSignedIn ? (
+          <>
+            <View className="flex-row items-center justify-center gap-2">
+              <SymbolView
+                name="checkmark.circle.fill"
+                size={16}
+                tintColorClassName="accent-primary-text"
+              />
+              <Text textRole="footnote" numberOfLines={1} className="shrink text-foreground-muted">
+                {email ?? MAJORDOME_SERVER.signedIn}
+              </Text>
+            </View>
+            <Button
+              label={MAJORDOME_SERVER.buy}
+              tone="primary"
+              fullWidth
+              onPress={run(buyServer)}
+            />
+          </>
+        ) : (
+          <>
+            <Button
+              label={`1. ${MAJORDOME_SERVER.signIn}`}
+              tone="primary"
+              fullWidth
+              onPress={props.onSignIn}
+            />
+            <Button
+              label={`2. ${MAJORDOME_SERVER.buy}`}
+              tone="secondary"
+              fullWidth
+              disabled
+              onPress={run(buyServer)}
+            />
+          </>
         )}
       </ServerCard>
       {offer === null ? null : (
@@ -337,13 +363,7 @@ function ConfiguredHostedSignupScreen() {
             />
           </View>
         ) : (
-          <Offer
-            note={state.note}
-            onSignIn={() => {
-              setSigningIn(true);
-              buyOnceSignedIn();
-            }}
-          />
+          <Offer note={state.note} onSignIn={() => setSigningIn(true)} />
         )}
       </ScrollView>
     </SettingsScreen>

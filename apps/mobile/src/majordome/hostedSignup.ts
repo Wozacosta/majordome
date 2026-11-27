@@ -341,27 +341,6 @@ export async function buyServer(): Promise<void> {
   if (state().step === "paying") stop(storeFailedNote);
 }
 
-let stopAwaitingSignIn: (() => void) | null = null;
-
-/**
- * Carries on to the purchase once the person has an account: they pressed the button to get a
- * server, and signing in was only the step in between.
- */
-export function buyOnceSignedIn(): void {
-  stopAwaitingSignIn?.();
-  let waiting = true;
-  const stopListening = account()?.addListener(({ session }) => {
-    if (!waiting || session === null || session === undefined) return;
-    stopAwaitingSignIn?.();
-    void buyServer();
-  });
-  stopAwaitingSignIn = () => {
-    waiting = false;
-    stopListening?.();
-    stopAwaitingSignIn = null;
-  };
-}
-
 /** Finds a server subscription this Apple account already pays for and connects to its server. */
 export async function restoreServer(): Promise<void> {
   if (state().step !== "idle") return;
@@ -399,7 +378,6 @@ export function finishHostedSignup(): void {
 
 /** Starts over once the screen is left with nothing under way. */
 export function resetHostedSignup(): void {
-  stopAwaitingSignIn?.();
   const { step } = appAtomRegistry.get(hostedSignupAtom);
   if (step === "done" || step === "idle") appAtomRegistry.set(hostedSignupAtom, SIGNUP_IDLE);
 }
