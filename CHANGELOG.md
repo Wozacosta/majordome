@@ -19,10 +19,10 @@ Not released yet.
 - **On the phone, Claude's sign-in opens in your browser.** It opened as a sheet inside
   Majordome, which knows none of your accounts, so you had to sign in to Google or Claude from
   scratch. Your browser already has them. The box for the code stays in Majordome.
-- **A topic's routine is no longer lit along with the topic.** With a topic open, the sidebar
-  highlighted both its row and the routine under it, as if you were somewhere else.
 - **On Android, the payment page and "Manage subscription" open in your browser** too, for the
   same reason.
+- **A topic's routine is no longer lit along with the topic.** With a topic open, the sidebar
+  highlighted both its row and the routine under it, as if you were somewhere else.
 
 **Try this**
 
