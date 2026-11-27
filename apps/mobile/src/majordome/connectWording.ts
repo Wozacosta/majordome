@@ -193,3 +193,12 @@ export const MAJORDOME_SERVER = {
   signedOut: "Your sign-in ended. Sign in again, then try once more.",
   signInToConnect: "Sign in to your Majordome account, then try again.",
 } as const;
+
+/** What the Android app says instead: there the server is paid for on Majordome's own page. */
+export const MAJORDOME_SERVER_ON_WEB = {
+  renews: "A Majordome server renews by itself until you cancel, on majord.me/server.",
+  buying: "Finish paying in your browser, then come back here.",
+  notPaid:
+    "No payment was found yet. If you paid, wait a minute and press Subscribe again: your server will be there to connect to.",
+  checkoutFailed: "The payment page couldn't be opened. Try again in a few minutes.",
+} as const;

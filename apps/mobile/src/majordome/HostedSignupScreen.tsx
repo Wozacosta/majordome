@@ -20,7 +20,7 @@ import { openSettings } from "../features/settings/settings-navigation";
 import { cn } from "../lib/cn";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
-import { MAJORDOME_SERVER } from "./connectWording";
+import { MAJORDOME_SERVER, MAJORDOME_SERVER_ON_WEB } from "./connectWording";
 import { FinishSetup } from "./FinishSetup";
 import {
   buyServer,
@@ -32,6 +32,7 @@ import {
   resetHostedSignup,
   restoreServer,
   retryPairing,
+  SOLD_ON_WEB,
 } from "./hostedSignup";
 import type { SignupNote } from "./hostedSignup.logic";
 import { serverOfferAtom } from "./serverOffer";
@@ -231,11 +232,11 @@ function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () 
       </ServerCard>
       {offer === null ? null : (
         <Text textRole="label" className="text-center text-foreground-muted">
-          {MAJORDOME_SERVER.renews}
+          {SOLD_ON_WEB ? MAJORDOME_SERVER_ON_WEB.renews : MAJORDOME_SERVER.renews}
         </Text>
       )}
       <View className="flex-row flex-wrap justify-center">
-        {isSignedIn && offer !== null ? (
+        {isSignedIn && offer !== null && !SOLD_ON_WEB ? (
           <Button
             label={MAJORDOME_SERVER.restore}
             tone="text"
@@ -323,7 +324,13 @@ function ConfiguredHostedSignupScreen() {
         {state.step === "finishing" ? (
           <FinishSettingUp environmentId={state.environmentId} onDone={done} />
         ) : state.step === "paying" ? (
-          <Progress text={MAJORDOME_SERVER[state.doing]} />
+          <Progress
+            text={
+              SOLD_ON_WEB && state.doing === "buying"
+                ? MAJORDOME_SERVER_ON_WEB.buying
+                : MAJORDOME_SERVER[state.doing]
+            }
+          />
         ) : state.step === "making" ? (
           <Progress text={MAJORDOME_SERVER.making} />
         ) : state.step === "waiting" || state.step === "pairing" || state.step === "done" ? (

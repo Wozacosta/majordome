@@ -31,11 +31,20 @@ both somewhere that is not this Mac.
 
 - The on-device voice (replies read aloud, talking with the assistant): the speech module is a
   placeholder (`apps/mobile/modules/majordome-speech/android`).
-- Buying a server from the app. The add-a-computer screen offers sign-in only.
 - Opening a `majord.link` address in the app. It needs the broker to serve
   `/.well-known/assetlinks.json` with the release key's SHA-256, and an intent filter in
   `apps/mobile/majordome/identity.ts`.
 - A store listing. The APK is installed by hand.
+
+## Buying a server
+
+Google's billing only runs in an app installed from the Play Store, so the Android app sells
+the server on Majordome's own page: it asks the broker for the account's Stripe checkout
+(`/v1/billing/checkout`, `startedOn: "phone"`), opens it in a browser tab, and when the person
+comes back asks the broker whether the payment is in before making the server
+(`buyOnWeb` in `apps/mobile/src/majordome/hostedSignup.ts`). Google Pay shows on that page when
+it is on in the Stripe account and the phone has a card. If the app is ever listed on the Play
+Store, check Google's rules on outside payment first.
 
 ## Looking at a change
 

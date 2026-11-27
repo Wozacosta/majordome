@@ -615,7 +615,11 @@ it lacks are in `docs/operations/majordome-android.md`.
       closed test with 12 testers for 14 days before it can be public.
 - [ ] **Back up the signing key** (`~/.majordome/android/release.jks` and its password in
       `~/.majordome/android.env`). Without it no update installs over the app.
-- [ ] The on-device voice, buying a server, and `majord.link` addresses opening in the app.
+- [ ] **Buy a server from the Android app, for real.** The app opens the website's Stripe
+      checkout and makes the server when the payment is in (2026-11-27). Only the logic is
+      tested: no payment has gone through it, and whether Google Pay shows depends on the
+      Stripe account's payment methods.
+- [ ] The on-device voice, and `majord.link` addresses opening in the app.
 - [ ] Notifications: not built for either phone app.
 - A symbol that exists only on the iPhone draws nothing on Android. Majordome's own screens
   use the shared `SymbolView`, or `TopicSymbolView` for topic icons, which has an Android list

@@ -603,7 +603,10 @@
         $("sign-out").hidden = !signedIn;
         if (!signedIn) {
           for (const id of ["ask", "offer", "manage"]) $(id).hidden = true;
-          $("intro").textContent = "Sign in to make your server. It will belong to your account.";
+          // Paid from the phone app, whose browser tab knows no sign-in: the app carries on.
+          $("intro").textContent = query.has("paid")
+            ? "Thank you, your payment is in. If you paid from the Majordome app, close this page: the app makes your server. Otherwise sign in here to make it."
+            : "Sign in to make your server. It will belong to your account.";
           clerk.mountSignIn($("sign-in"), {
             forceRedirectUrl: location.href,
             signUpForceRedirectUrl: location.href,

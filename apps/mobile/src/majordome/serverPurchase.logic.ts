@@ -1,4 +1,4 @@
-import { MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
+import { MAJORDOME_ACCOUNT, MAJORDOME_SERVER, MAJORDOME_SERVER_ON_WEB } from "./connectWording";
 import {
   askBroker,
   NO_ANSWER_ERROR,
@@ -38,7 +38,8 @@ function period(count: string | null | undefined, unit: string | null | undefine
 
 /** The price as shown beside the button. */
 export interface ServerOffer {
-  readonly price: string;
+  /** Null on Android until the account is known: the service names its price to an account. */
+  readonly price: string | null;
   /** Said in place of the price while a free trial comes first. */
   readonly trial: string | null;
 }
@@ -71,6 +72,32 @@ export function serverOffer(
       free === null
         ? null
         : `Free for ${free.count} ${free.unit}${free.count === 1 ? "" : "s"}, then ${price}`,
+  };
+}
+
+/** What the service charges on its own page, in the smallest unit of the currency. */
+export interface WebPrice {
+  readonly amount: number;
+  readonly currency: string;
+  readonly interval: string;
+  readonly trialDays: number;
+}
+
+/** The website's price as the Android app shows it; no price while the account is unknown. */
+export function webServerOffer(web: WebPrice | null, locale?: string): ServerOffer {
+  if (web === null) return { price: null, trial: null };
+  const amount = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: web.currency.toUpperCase(),
+    minimumFractionDigits: web.amount % 100 === 0 ? 0 : 2,
+  }).format(web.amount / 100);
+  const price = `${amount} per ${web.interval}`;
+  return {
+    price,
+    trial:
+      web.trialDays > 0
+        ? `Free for ${web.trialDays} day${web.trialDays === 1 ? "" : "s"}, then ${price}`
+        : null,
   };
 }
 
@@ -122,6 +149,16 @@ interface BillingStatus {
   readonly canBuy: boolean;
   /** Given to Apple with the purchase, so the service can tell whose it is. */
   readonly appToken: string;
+  /** What paying on the website costs this account; null where the website sells none. */
+  readonly web: WebPrice | null;
+}
+
+function readWebPrice(offer: unknown): WebPrice | null {
+  if (typeof offer !== "object" || offer === null) return null;
+  const { amount, currency, interval, trialDays } = offer as Record<string, unknown>;
+  return typeof amount === "number" && typeof currency === "string" && typeof interval === "string"
+    ? { amount, currency, interval, trialDays: typeof trialDays === "number" ? trialDays : 0 }
+    : null;
 }
 
 export type BillingStatusResult =
@@ -155,6 +192,7 @@ export async function readBillingStatus(
       hasServer: typeof body.server === "object" && body.server !== null,
       canBuy: body.canBuy === true,
       appToken,
+      web: readWebPrice(body.offer),
     },
   };
 }
@@ -167,6 +205,56 @@ export async function readBillingStatus(
 export async function payingOffered(fetch: Fetch, broker: string): Promise<boolean> {
   const answer = await askBroker(fetch, broker, "/v1/billing/apple", {});
   return answer !== null && answer.status !== 404;
+}
+
+/**
+ * Whether the service sells servers on its own page, asked without an account: it then refuses
+ * the account, or is not there.
+ */
+export async function webPayingOffered(fetch: Fetch, broker: string): Promise<boolean> {
+  const answer = await askBroker(fetch, broker, "/v1/billing/status", {});
+  return answer !== null && answer.status !== 404;
+}
+
+/** The page where this account pays for its server, or what to say when there is none. */
+export async function serverCheckout(
+  fetch: Fetch,
+  broker: string,
+  accountToken: string,
+): Promise<{ readonly url: string } | { readonly note: SignupNote }> {
+  const answer = await askBroker(fetch, broker, "/v1/billing/checkout", {
+    accountToken,
+    startedOn: "phone",
+  });
+  if (answer === null) return { note: error(NO_ANSWER_ERROR) };
+  if (answer.status === 409) {
+    return { note: { kind: "hasServer", message: MAJORDOME_SERVER.hasServer } };
+  }
+  const url =
+    typeof answer.body === "object" && answer.body !== null
+      ? (answer.body as { url?: unknown }).url
+      : undefined;
+  if (answer.status >= 400 || typeof url !== "string") {
+    return { note: error(signupErrorMessage(answer.body)) };
+  }
+  return { url };
+}
+
+/**
+ * Whether the account's payment has reached the service. Stripe tells the service a moment
+ * after the payment page closes, so this asks a few times before saying no.
+ */
+export async function paymentArrived(
+  read: () => Promise<BillingStatusResult>,
+  wait: (ms: number) => Promise<void>,
+  pauses: ReadonlyArray<number> = [0, 2000, 3000, 5000],
+): Promise<boolean> {
+  for (const pause of pauses) {
+    if (pause > 0) await wait(pause);
+    const answer = await read();
+    if (answer.kind === "status" && answer.status.live) return true;
+  }
+  return false;
 }
 
 type BuyDecision =
@@ -238,3 +326,5 @@ export const nothingToRestoreNote = info(MAJORDOME_SERVER.nothingToRestore);
 export const awaitingApprovalNote = info(MAJORDOME_SERVER.awaitingApproval);
 export const storeFailedNote = error(MAJORDOME_SERVER.storeFailed);
 export const signedOutNote = error(MAJORDOME_SERVER.signedOut);
+export const notPaidNote = info(MAJORDOME_SERVER_ON_WEB.notPaid);
+export const checkoutFailedNote = error(MAJORDOME_SERVER_ON_WEB.checkoutFailed);

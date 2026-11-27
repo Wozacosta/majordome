@@ -12,7 +12,7 @@ import {
   signInToAccountServer,
 } from "@t3tools/shared/majordomeAccount";
 import { AsyncResult, Atom } from "effect/reactivity";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 import { hasAccountPublicConfig, resolveCloudPublicConfig } from "../features/cloud/publicConfig";
 import { buildPairingUrl, parsePairingUrl } from "../features/connection/pairing";
@@ -54,18 +54,24 @@ import {
   alreadyConnectedNote,
   awaitingApprovalNote,
   buyDecision,
+  checkoutFailedNote,
   confirmApplePurchase,
   isFirstPurchase,
   nothingToRestoreNote,
+  notPaidNote,
   paidTransaction,
   payingOffered,
+  paymentArrived,
   purchaseFailure,
   readBillingStatus,
+  serverCheckout,
   serverOffer,
   serverProductId,
   signedOutNote,
   storeFailedNote,
   type StorePurchase,
+  webPayingOffered,
+  webServerOffer,
 } from "./serverPurchase.logic";
 
 // Spelled out in full: Expo only inlines `process.env.EXPO_PUBLIC_*` written this way.
@@ -74,6 +80,11 @@ const PRODUCT_ID = serverProductId(process.env.EXPO_PUBLIC_MAJORDOME_SERVER_PROD
 /** Servers are sold through Apple only, to a Majordome account. */
 const SOLD_HERE =
   isMajordome && Platform.OS === "ios" && majordomeStore !== null && hasAccountPublicConfig();
+/**
+ * On Android the server is paid for on Majordome's own page, opened from the app: Google's
+ * billing only runs in an app installed from its store, which this one is not.
+ */
+export const SOLD_ON_WEB = isMajordome && Platform.OS === "android" && hasAccountPublicConfig();
 const FILE_NAME = "majordome-hosted-signup.json";
 // The link makes its holder the server's owner, so it stays out of the file, which backups copy.
 const PAIRING_URL_KEY = "majordome.hosted-signup.pairing-url";
@@ -283,6 +294,7 @@ async function settleUnfinished(): Promise<void> {
  * at launch. Does nothing where servers are not sold.
  */
 export function installServerPurchases(): () => void {
+  if (SOLD_ON_WEB) return installWebOffer();
   const store = majordomeStore;
   if (!SOLD_HERE || store === null) return () => undefined;
   let signedInAs: string | null = null;
@@ -312,7 +324,76 @@ export function installServerPurchases(): () => void {
   };
 }
 
-/** Opens Apple's sheet for the signed-in account, unless it has a server or none can be made. */
+/** Shows the website's offer, with its price once someone is signed in. */
+function installWebOffer(): () => void {
+  let signedInAs: string | null = null;
+  const showPrice = async () => {
+    const token = await accountToken();
+    if (token === null) return;
+    const read = await readBillingStatus(fetch, BROKER_URL, token);
+    if (read.kind === "status" && read.status.web !== null) {
+      appAtomRegistry.set(serverOfferAtom, webServerOffer(read.status.web));
+    }
+  };
+  const stopWatchingAccount = account()?.addListener(({ session }) => {
+    const id = session?.id ?? null;
+    if (id === signedInAs) return;
+    signedInAs = id;
+    if (id !== null) void showPrice();
+  });
+  void (async () => {
+    if (!(await webPayingOffered(fetch, BROKER_URL))) return;
+    if (appAtomRegistry.get(serverOfferAtom) === null) {
+      appAtomRegistry.set(serverOfferAtom, webServerOffer(null));
+    }
+    await showPrice();
+  })();
+  return () => stopWatchingAccount?.();
+}
+
+/** Resolves when the person is back in the app after leaving it for the payment page. */
+function backFromBrowser(): Promise<void> {
+  return new Promise((done) => {
+    let left = AppState.currentState !== "active";
+    const finish = () => {
+      clearTimeout(neverLeft);
+      watching.remove();
+      done();
+    };
+    const watching = AppState.addEventListener("change", (next) => {
+      if (next !== "active") left = true;
+      else if (left) finish();
+    });
+    // A browser that never took the screen leaves nothing to wait for.
+    const neverLeft = setTimeout(() => (left ? undefined : finish()), 8000);
+  });
+}
+
+/** Pays on the website in a browser tab, then makes the server once the payment is in. */
+async function buyOnWeb(token: string): Promise<void> {
+  const checkout = await serverCheckout(fetch, BROKER_URL, token);
+  if ("note" in checkout) return stop(checkout.note);
+  dispatch({ type: "pay", doing: "buying" });
+  const returned = backFromBrowser();
+  try {
+    const WebBrowser = await import("expo-web-browser");
+    await WebBrowser.openBrowserAsync(checkout.url);
+  } catch {
+    return stop(checkoutFailedNote);
+  }
+  await returned;
+  dispatch({ type: "pay", doing: "confirming" });
+  // The sign-in may have been renewed while the payment page was open.
+  const fresh = (await accountToken()) ?? token;
+  const paid = await paymentArrived(() => readBillingStatus(fetch, BROKER_URL, fresh), wait);
+  if (!paid) return stop(notPaidNote);
+  await makeAndConnect(fresh, alreadyConnectedNote);
+}
+
+/**
+ * Sells the signed-in account a server, unless it has one or none can be made: through Apple's
+ * sheet on the iPhone, on Majordome's own page on Android.
+ */
 export async function buyServer(): Promise<void> {
   // Only the first of two presses gets past here: the state changes before anything is awaited.
   if (state().step !== "idle") return;
@@ -321,6 +402,7 @@ export async function buyServer(): Promise<void> {
   if (token === null) return stop(signedOutNote);
   const decision = buyDecision(await readBillingStatus(fetch, BROKER_URL, token));
   if (!decision.buy) return stop(decision.note);
+  if (SOLD_ON_WEB) return buyOnWeb(token);
   // An Apple account pays for one server at most. Apple's sheet would only say "already
   // subscribed" and hand the same purchase back, so the service is asked whose it is instead.
   const owned = (await majordomeStore?.owned(false).catch(() => [])) ?? [];
@@ -356,8 +438,14 @@ export async function restoreServer(): Promise<void> {
   await settle(purchase);
 }
 
-/** Apple's own sheet for the subscription, where it is cancelled. */
+/** Where the subscription is cancelled: Apple's own sheet, or majord.me for one paid on the web. */
 export function manageSubscription(): void {
+  if (SOLD_ON_WEB) {
+    void import("expo-web-browser")
+      .then((browser) => browser.openBrowserAsync("https://majord.me/server"))
+      .catch(() => undefined);
+    return;
+  }
   void majordomeStore?.manage().catch(() => undefined);
 }
 

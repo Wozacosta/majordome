@@ -10,10 +10,14 @@ import {
   isFirstPurchase,
   paidTransaction,
   payingOffered,
+  paymentArrived,
   purchaseFailure,
   readBillingStatus,
+  serverCheckout,
   serverOffer,
   serverProductId,
+  webPayingOffered,
+  webServerOffer,
   type BillingStatusResult,
 } from "./serverPurchase.logic";
 
@@ -215,4 +219,60 @@ it("says what deleting the account takes with it", async () => {
   expect(MAJORDOME_ACCOUNT.deleteWithAppleServer).toMatch(
     /Settings, under your name, then Subscriptions/,
   );
+});
+
+const webPrice = { amount: 1400, currency: "eur", interval: "month", trialDays: 0 };
+
+it("says the website's price on Android once the account is known", async () => {
+  expect(webServerOffer(null)).toEqual({ price: null, trial: null });
+  expect(webServerOffer(webPrice, "en")).toEqual({ price: "€14 per month", trial: null });
+  expect(webServerOffer({ ...webPrice, amount: 1450, trialDays: 7 }, "en")).toEqual({
+    price: "€14.50 per month",
+    trial: "Free for 7 days, then €14.50 per month",
+  });
+  const withOffer = await read({ offer: webPrice });
+  expect(withOffer.kind === "status" && withOffer.status.web).toEqual(webPrice);
+  const without = await read({ offer: null });
+  expect(without.kind === "status" && without.status.web).toBeNull();
+});
+
+it("offers paying on the website only while the service sells there", async () => {
+  expect(await webPayingOffered(answering(401, { error: "invalid_account" }).fetch, "b")).toBe(
+    true,
+  );
+  expect(await webPayingOffered(answering(404, { error: "invalid_request" }).fetch, "b")).toBe(
+    false,
+  );
+  expect(await webPayingOffered(unreachable, "b")).toBe(false);
+});
+
+it("asks the service for this account's payment page", async () => {
+  const { fetch, calls } = answering(200, { url: "https://checkout.stripe.com/c/pay/1" });
+  expect(await serverCheckout(fetch, "https://broker.test", "token-1")).toEqual({
+    url: "https://checkout.stripe.com/c/pay/1",
+  });
+  expect(calls).toEqual([
+    ["https://broker.test/v1/billing/checkout", { accountToken: "token-1", startedOn: "phone" }],
+  ]);
+  expect(
+    await serverCheckout(answering(409, { error: "already_subscribed" }).fetch, "b", "t"),
+  ).toEqual({ note: { kind: "hasServer", message: MAJORDOME_SERVER.hasServer } });
+  expect(await serverCheckout(answering(503, { error: "full" }).fetch, "b", "t")).toMatchObject({
+    note: { kind: "error" },
+  });
+  expect(await serverCheckout(answering(200, {}).fetch, "b", "t")).toMatchObject({
+    note: { kind: "error" },
+  });
+  expect(await serverCheckout(unreachable, "b", "t")).toEqual({
+    note: { kind: "error", message: NO_ANSWER_ERROR },
+  });
+});
+
+it("waits a moment for a payment before saying none was found", async () => {
+  const waits: number[] = [];
+  const wait = async (ms: number) => void waits.push(ms);
+  const answers = [read({}), read({}), read({ state: "active", source: "web" })];
+  expect(await paymentArrived(() => answers.shift()!, wait)).toBe(true);
+  expect(waits).toEqual([2000, 3000]);
+  expect(await paymentArrived(() => read({}), wait, [0, 10])).toBe(false);
 });

@@ -10,6 +10,11 @@ The section for a version is also the text of its release on GitHub.
 - **Manage subscription, on the iPhone.** Your account page and the server page have a
   "Manage subscription" link that opens Apple's own sheet, where a Majordome server's
   subscription is seen and cancelled without leaving the app.
+- **Get a Majordome server from the Android app.** Under **Add a computer > No computer to
+  leave on?**, sign in and press **Subscribe**. The payment page opens in a browser tab, with
+  Google Pay when your phone has it; close it when you have paid, and the app makes your
+  server and connects to it. It is the same subscription as on majord.me, cancelled on
+  majord.me/server.
 
 **Changed**
 
@@ -49,6 +54,9 @@ The section for a version is also the text of its release on GitHub.
 - On the iPhone, press **Plan my day** on Today, then go back and open **Journal**.
 - On the phone, with a server where Claude is not signed in, open Today, press **Sign in** on
   the Claude card, approve, copy the code, close the sheet and press **Paste code**.
+- On Android, open **Settings > Computers > Add a computer > No computer to leave on?** and
+  sign in: the price appears on the card. **Subscribe** opens the payment page; closing it
+  without paying brings you back with "No payment was found yet".
 
 ## 0.10.84
 
