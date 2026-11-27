@@ -5,6 +5,7 @@ import { toastManager } from "~/components/ui/toast";
 import { m } from "~/i18n/messages";
 
 import { onDictationStarted } from "./dictationBus";
+import { playCue } from "./cues";
 import { createSpeechEngine, type SpeechEngine, type SpeechTiming } from "./engine";
 import { createOpfsVoiceFiles } from "./opfsVoiceFiles";
 import { createReadAloudRuntime, type ReadAloudRuntime } from "./runtime";
@@ -76,6 +77,7 @@ export function createRuntime(
       }),
     wakeAudio: () => void audio().resume(),
     restAudio: () => void context?.suspend(),
+    cue: (kind) => playCue(audio(), kind),
     onDictationStarted,
     voiceCount: async () => {
       const file = await (

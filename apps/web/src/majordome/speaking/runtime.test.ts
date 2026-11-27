@@ -38,6 +38,12 @@ function fakeEngine() {
     speak: (text, options) => {
       said.push({ text, ...options });
       for (const listener of sounding) listener(true);
+      return said.length;
+    },
+    onSentence: () => () => {},
+    hold: () => {
+      calls.push("hold");
+      return () => void calls.push("release");
     },
     stop: () => {
       calls.push("stop");
@@ -100,6 +106,7 @@ function setup(options: { installed?: boolean; served?: string } = {}) {
     engine: fake.engine,
     wakeAudio: () => void audio.push("wake"),
     restAudio: () => void audio.push("rest"),
+    cue: (kind) => void audio.push(kind),
     onDictationStarted: (listener) => {
       dictation.add(listener);
       return () => dictation.delete(listener);
@@ -330,5 +337,41 @@ describe("read aloud in the window", () => {
     fail("out of memory");
     expect(errors).toEqual([1]);
     expect(runtime.controller.getState()).toEqual({ status: "idle" });
+  });
+  it("keeps the voice and the sound for a conversation, until a reply is read instead", async () => {
+    const { runtime, said, calls, audio, reply, chat } = setup();
+    let started = 0;
+    await runtime.conversation.whenVoiceReady(() => (started += 1));
+    expect(started).toBe(1);
+    let taken = 0;
+    const release = await runtime.conversation.hold(() => (taken += 1));
+    expect(calls).toEqual(["hold", "prepare"]);
+    runtime.conversation.speak("Hello there.", "en");
+    expect(said).toEqual([{ text: "Hello there.", voice: 0, lang: "en" }]);
+    // Nothing rests the output while the conversation goes on.
+    runtime.dismissDownload();
+    expect(audio).not.toContain("rest");
+
+    await runtime.toggle(reply("m1"), chat);
+    expect(taken).toBe(1);
+    release();
+    release();
+    expect(calls.filter((call) => call === "release")).toEqual(["release"]);
+  });
+
+  it("offers the download before a first conversation and starts it once the voice arrived", async () => {
+    const { runtime, audio } = setup({ installed: false });
+    let started = 0;
+    await runtime.conversation.whenVoiceReady(() => (started += 1));
+    expect(started).toBe(0);
+    expect(runtime.downloadOffered.get()).toBe(true);
+    await runtime.download();
+    expect(started).toBe(1);
+    expect(runtime.downloadOffered.get()).toBe(false);
+    expect(audio.filter((call) => call === "wake").length).toBeGreaterThan(0);
+
+    runtime.conversation.whenVoiceReady(() => (started += 1));
+    await settled();
+    expect(started).toBe(2);
   });
 });

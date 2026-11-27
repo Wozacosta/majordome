@@ -40,6 +40,8 @@ interface PendingActionState {
 interface ComposerPrimaryActionsProps {
   /** Footer controls (dictation) that always sit right before the primary button. */
   children?: ReactNode;
+  /** Shown where Send sits while there is nothing to send. */
+  emptyAction?: ReactNode;
   compact: boolean;
   canOperateThread: boolean;
   pendingAction: PendingActionState | null;
@@ -235,6 +237,7 @@ export function CollapsedComposerStopAction({
 
 export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   children,
+  emptyAction,
   compact,
   canOperateThread,
   pendingAction,
@@ -499,11 +502,13 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
       <TooltipPopup>{submitTooltip}</TooltipPopup>
     </Tooltip>
   );
+  const primary =
+    emptyAction && !hasSendableContent && !showResume && !isBusyOrHeld ? emptyAction : submit;
   if (compactTokens === null || hideCompactToggle) {
     return withStopButton(
       <>
         {children}
-        {submit}
+        {primary}
       </>,
     );
   }
@@ -546,7 +551,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         </TooltipPopup>
       </Tooltip>
       {children}
-      {submit}
+      {primary}
     </div>,
   );
 });

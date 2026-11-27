@@ -228,4 +228,38 @@ describe("speech engine", () => {
     worker().handlers.onError("script failed");
     await expect(prepared).rejects.toThrow("script failed");
   });
+  it("keeps the worker through silence while a conversation holds it", async () => {
+    const { engine, audio, audioFor, ready, worker, events } = setup();
+    await ready();
+    const release = engine.hold();
+    const first = engine.speak("One.", { voice: 0, lang: "en" });
+    audioFor(0, first);
+    audio.started[0]!.end();
+    expect(events.drained).toBe(1);
+    vi.advanceTimersByTime(120_000);
+    expect(worker().terminated).toBe(false);
+    engine.stop();
+    vi.advanceTimersByTime(120_000);
+    expect(worker().terminated).toBe(false);
+
+    release();
+    vi.advanceTimersByTime(5_000);
+    expect(worker().terminated).toBe(true);
+  });
+
+  it("says which sentence starts to sound, and not one that was stopped first", async () => {
+    const { engine, audioFor, ready } = setup();
+    await ready();
+    const sounded: number[] = [];
+    engine.onSentence((id) => sounded.push(id));
+    const first = engine.speak("One.", { voice: 0, lang: "en" });
+    const second = engine.speak("Two.", { voice: 0, lang: "en" });
+    audioFor(0, first);
+    audioFor(0, second);
+    vi.advanceTimersByTime(100);
+    expect(sounded).toEqual([first]);
+    engine.stop();
+    vi.advanceTimersByTime(10_000);
+    expect(sounded).toEqual([first]);
+  });
 });

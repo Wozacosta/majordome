@@ -190,34 +190,53 @@ in **Settings → About → Open source licenses**. Reading aloud is not availab
 
 ## Talking with the assistant
 
-On the iPhone you can talk instead of typing. When the message box is empty, the round button where
-Send sits starts a conversation in that chat: you speak, the assistant answers aloud, and it
-listens again. **Talk**, on the app icon's menu on the Home Screen, opens a new chat that listens
-at once.
+You can talk instead of typing, on the iPhone, in the Mac app and in a browser. When the message
+box is empty, the round button where Send sits starts a conversation in that chat: you speak, the
+assistant answers aloud, and it listens again.
 
-- **Your turn ends** about two seconds after you stop talking. Touch Send to end it yourself.
-- **To cut an answer short,** touch the panel or press play/pause on your headset. The assistant
-  stops, on your computer too, and listens. Talking over it does not interrupt it: the phone does
-  not listen while it speaks.
+- **Your turn ends** about two seconds after you stop talking. Send ends it yourself.
+- **To cut an answer short,** touch or click the panel. The assistant stops, on your computer too,
+  and listens. Talking over it does not interrupt it: nothing listens while it speaks.
 - **Answers are shorter.** While you talk, the assistant is asked for a few spoken sentences with no
   tables, lists or code, and to say that the detail is on screen when there is more. What you said
   appears in the chat as a normal message.
-- **Approvals and questions.** The assistant says it needs your answer on screen and waits. Touch
-  the card to answer; the conversation goes on from there. Nothing you say approves anything.
-- **It ends** when you close the panel, leave the chat, take a call, switch apps, or say nothing for
-  30 seconds. Words not yet sent stay in the message box. If the connection drops during an answer,
-  you hear what had arrived, then that the connection was lost.
+- **Approvals and questions.** The assistant says it needs your answer on screen and waits. Answer
+  the card; the conversation goes on from there. Nothing you say approves anything.
+- **It ends** when you close the panel, leave the chat, or say nothing for 30 seconds. Words not yet
+  sent stay in the message box. If the connection drops during an answer, you hear what had
+  arrived, then that the connection was lost.
 
-The screen stays awake while the panel is open. A soft sound marks your message being sent, and a
-quieter one repeats while the assistant is thinking.
+A soft sound marks your message being sent, and a quieter one repeats while the assistant is
+thinking.
 
-What goes where: the assistant's voice is made on the phone, as for reading aloud, and asks for the
-same one-time download. What you say is transcribed wherever your voice input is set to: on the
-phone by default (iOS 26 or later), or on the computer or cloud model you chose under **Settings →
-Voice**. The words then go to your AI provider like any message you type.
+What goes where: the assistant's voice is made on the device, as for reading aloud, and asks for
+the same one-time download. What you say is transcribed wherever your voice input is set to. The
+words then go to your AI provider like any message you type.
 
-Talking needs iOS 26, or a computer or cloud model chosen for voice input on an earlier iPhone;
-without either, the button is not shown. It is not available on Android or in the desktop app yet.
+### On the iPhone
+
+**Talk**, on the app icon's menu on the Home Screen, opens a new chat that listens at once.
+Play/pause on your headset cuts an answer short. A call or switching apps ends the conversation,
+and the screen stays awake while the panel is open.
+
+What you say is transcribed on the phone by default (iOS 26 or later), or on the computer or cloud
+model you chose under **Settings → Voice**. An earlier iPhone needs one of those; without either,
+the button is not shown. Not on Android yet.
+
+### On the Mac and in a browser
+
+`mod+alt+v`, or **Start voice chat** in the command palette, starts and ends a conversation in
+the chat on screen. `Space` or `Esc` cuts an answer short, `Enter` sends what you said, and `Esc`
+otherwise ends it. Starting dictation or asking for a reply to be read aloud ends it too.
+
+What you say is transcribed where your dictation is: the model on your computer, Apple Speech
+(macOS 26 or later, in the Mac app), or a cloud key. If you have not chosen yet, the button opens
+that choice first. Each turn is transcribed once you stop talking, so the words appear when the
+message is sent, not while you speak.
+
+The button is shown where Read aloud is: it needs WebGPU, a microphone, and a connection you can
+write messages on. Safari asks for a click before it plays or records sound more strictly than
+other browsers; if it will not listen again after an answer, the conversation ends and says so.
 
 ## Test and troubleshoot
 

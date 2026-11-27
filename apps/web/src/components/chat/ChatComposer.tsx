@@ -92,6 +92,7 @@ import {
 import { DEFAULT_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
 import { isMajordome } from "../../env";
 import { TopicStarterChips, useTopicChat } from "../majordome/TopicStarters";
+import { useVoiceModeEntry } from "~/majordome/voice-mode/useVoiceModeEntry";
 import { topicChipsState, topicComposerPlaceholder } from "../majordome/TopicStarters.logic";
 import { deriveComposerSendState, getAntigravitySendBlockReason } from "../ChatView.logic";
 import { threadHasStarted } from "../../lib/chatThreadActions";
@@ -2053,6 +2054,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     modelPickerOpen: isComposerModelPickerOpen,
     ...(backgroundThread ? { targetRef: composerFormRef } : {}),
   });
+  const voiceModeEntry = useVoiceModeEntry({
+    chatKey: scopedThreadKey(routeThreadRef),
+    dictation: speechInput,
+    disabled: dictationDisabled || isEditingQueuedMessage || pendingUserInputs.length > 0,
+    hasContent: hasMessageToSend || voiceInputActive,
+    shortcutLabel: shortcutLabelForCommand(keybindings, "chat.voiceMode"),
+  });
 
   const resolveActiveComposerTrigger = (): {
     snapshot: { value: string; cursor: number; expandedCursor: number };
@@ -3649,6 +3657,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   return (
     <form
       ref={composerFormRef}
+      hidden={voiceModeEntry.covers}
       onSubmit={submitComposerStable}
       onKeyDown={(event) => {
         if (
@@ -4154,6 +4163,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     hideCompactToggle={dictationTakesFooter}
                     keepFullHistory={props.keepFullHistory}
                     onToggleKeepFullHistory={props.onToggleKeepFullHistory}
+                    emptyAction={voiceModeEntry.button}
                   >
                     {speechInput.available ? (
                       <>

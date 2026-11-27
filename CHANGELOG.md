@@ -7,6 +7,28 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Talk with your assistant on the Mac and in the browser.** When the message box is empty, the
+  round button where Send sits starts a conversation in that chat: you speak, it answers aloud,
+  and it listens again. Stop talking and your words are sent, or press Send. Click the panel, or
+  press `Space` or `Esc`, to cut an answer short. Answers come as a few short sentences, with the
+  detail left on screen. When the assistant needs your approval or an answer, it says so and waits
+  for you to answer the card; it never approves by voice. Closing the panel, leaving the chat or
+  30 seconds of silence end the conversation, and words not yet sent stay in the message box.
+  `Cmd+Option+V`, or **Start voice chat** in the command palette, does the same. It uses the voice
+  that reads replies aloud, and transcribes wherever your dictation does.
+
+**Fixed**
+
+- **A new chat started by talking gets short spoken answers from its first message.** The first
+  answer of a chat begun with **Talk** was written as if for reading.
+
+**Try this**
+
+- Open a chat, leave the message box empty and click the round button: ask what is on today, then
+  press `Space` while it answers and ask something else.
+
 ## 0.10.82
 
 **New**

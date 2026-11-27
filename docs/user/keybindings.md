@@ -17,6 +17,11 @@ Dictation**, and the hold or toggle behavior in **Settings → Voice**. See
 Change the chord under **Chat: Read the Latest Reply Aloud or Stop**. See
 [Reading replies aloud](./voice-input.md#reading-replies-aloud).
 
+`mod+alt+v` starts a voice chat in the chat on screen, and ends it on the next press. While it is
+on, `Space` or `Esc` cuts an answer short, `Enter` sends what you said, and `Esc` otherwise ends it.
+Change the chord under **Chat: Start or End a Voice Chat**. See
+[Talking with the assistant](./voice-input.md#talking-with-the-assistant).
+
 In **Settings → Chat → Send shortcut**, choose whether Enter sends, requires
 `mod+Enter` for multiline prompts, or always requires `mod+Enter`. `Shift+Enter`
 inserts a new line. This applies to the web and desktop composer at desktop widths.

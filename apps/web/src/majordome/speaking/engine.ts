@@ -36,6 +36,15 @@ export type SpeechTiming =
   | { readonly event: "ended" };
 
 export interface SpeechEngine extends ReadAloudEngine {
+  /** Queues one sentence and returns the number its `onSentence` call carries. */
+  readonly speak: (
+    text: string,
+    options: { readonly voice: number; readonly lang: string },
+  ) => number;
+  /** Fires when a queued sentence starts to sound. */
+  readonly onSentence: (listener: (id: number) => void) => () => void;
+  /** Keeps the voice loaded, through silence too, until the returned function is called. */
+  readonly hold: () => () => void;
   /** Fires when the first sentence of a reply starts to sound, and when the reply ends. */
   readonly onSounding: (listener: (sounding: boolean) => void) => () => void;
   /** Ends the worker now and frees what it holds. */
@@ -65,6 +74,7 @@ export function createSpeechEngine(options: {
   const drained = new Set<() => void>();
   const failed = new Set<(message: string) => void>();
   const sounding = new Set<(sounding: boolean) => void>();
+  const started = new Set<(id: number) => void>();
   const emit = <A>(listeners: Set<(value: A) => void>, value: A) => {
     for (const listener of listeners) listener(value);
   };
@@ -78,6 +88,7 @@ export function createSpeechEngine(options: {
   const waiting = new Map<number, string>();
   let askedAt: number | null = null;
   let isSounding = false;
+  let holds = 0;
 
   const setSounding = (value: boolean) => {
     if (isSounding === value) return;
@@ -104,7 +115,7 @@ export function createSpeechEngine(options: {
   };
   function endLater(ms: number) {
     if (endTimer) clearTimeout(endTimer);
-    endTimer = setTimeout(end, ms);
+    endTimer = holds > 0 ? null : setTimeout(end, ms);
   }
   const fail = (message: string) => {
     waiting.clear();
@@ -146,8 +157,14 @@ export function createSpeechEngine(options: {
       return;
     }
     // The buffer was transferred from the worker, so it is this side's own.
-    player.play(event.samples as Float32Array<ArrayBuffer>, event.sampleRate);
+    const startsIn = player.play(event.samples as Float32Array<ArrayBuffer>, event.sampleRate);
     setSounding(true);
+    if (started.size === 0) return;
+    const { id } = event;
+    const ownTurn = turn;
+    setTimeout(() => {
+      if (ownTurn === turn) emit(started, id);
+    }, startsIn * 1000);
   };
 
   return {
@@ -183,13 +200,14 @@ export function createSpeechEngine(options: {
       return loading.promise;
     },
     speak: (text, { voice, lang }) => {
-      if (!worker) return;
+      nextId += 1;
+      if (!worker) return nextId;
       if (endTimer) clearTimeout(endTimer);
       endTimer = null;
       if (waiting.size === 0 && !player.busy) askedAt = now();
-      nextId += 1;
       waiting.set(nextId, lang);
       worker.post({ type: "speak", turn, id: nextId, text, voice, lang });
+      return nextId;
     },
     stop: () => {
       turn += 1;
@@ -212,6 +230,22 @@ export function createSpeechEngine(options: {
     onSounding: (listener) => {
       sounding.add(listener);
       return () => sounding.delete(listener);
+    },
+    onSentence: (listener) => {
+      started.add(listener);
+      return () => started.delete(listener);
+    },
+    hold: () => {
+      holds += 1;
+      if (endTimer) clearTimeout(endTimer);
+      endTimer = null;
+      let held = true;
+      return () => {
+        if (!held) return;
+        held = false;
+        holds -= 1;
+        if (holds === 0 && worker) endLater(END_AFTER_STOP_MS);
+      };
     },
     end,
   };
