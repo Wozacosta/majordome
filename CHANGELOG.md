@@ -37,6 +37,10 @@ Not released yet.
 - **A new chat started by talking gets short spoken answers from its first message.** The first
   answer of a chat begun with **Talk** was written as if for reading.
 
+**Changed**
+
+- **"Saved to your notes" is one line.** Under a reply it says how many notes were saved; press
+  it to see which ones.
 **Try this**
 
 - Open a chat, leave the message box empty and click the round button: ask what is on today, then
