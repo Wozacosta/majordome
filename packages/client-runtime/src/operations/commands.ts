@@ -209,6 +209,8 @@ export interface StartThreadTurnInput extends ThreadCommandInput {
   readonly dispatchMode?: "auto" | "queue" | "steer" | "restart" | "start";
   /** Start a new provider session; needs the server's `freshContext` capability. */
   readonly freshContext?: boolean;
+  /** The answer is read aloud: the server asks the provider for short spoken sentences. */
+  readonly replyStyle?: import("@t3tools/contracts").OrchestrationV2ReplyStyle;
   /** Defaults to true. Callers with their own retry queue opt out so a dead socket fails fast. */
   readonly resendAfterSocketLoss?: boolean;
 }
@@ -842,6 +844,7 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
         text: input.message.text,
         ...(context ? { context } : {}),
         attachments,
+        ...(input.replyStyle === undefined ? {} : { replyStyle: input.replyStyle }),
       },
     });
     return yield* resend ? resendAfterSocketLoss(launch) : launch;
@@ -876,6 +879,7 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
           ? {}
           : { sourcePlanRef: input.sourceProposedPlan }),
         ...(input.freshContext ? { freshContext: true } : {}),
+        ...(input.replyStyle === undefined ? {} : { replyStyle: input.replyStyle }),
         dispatchMode: { type: "start_immediately" },
       },
       resend,
@@ -906,6 +910,7 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
         ? {}
         : { sourcePlanRef: input.sourceProposedPlan }),
       ...(input.freshContext ? { freshContext: true } : {}),
+      ...(input.replyStyle === undefined ? {} : { replyStyle: input.replyStyle }),
       ...(requestedMode !== "queue" ? { deliveryIntent: requestedMode } : {}),
       dispatchMode,
     },

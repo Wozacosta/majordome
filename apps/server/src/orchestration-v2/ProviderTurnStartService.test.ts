@@ -85,6 +85,7 @@ import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
 import * as ProviderTurnStart from "./ProviderTurnStartService.ts";
+import { SPOKEN_REPLY_INSTRUCTIONS } from "./spokenReply.ts";
 import * as RunExecutionService from "./RunExecutionService.ts";
 import * as ProviderUsageAnalytics from "../telemetry/ProviderUsageAnalytics.ts";
 import * as RuntimePolicy from "./RuntimePolicy.ts";
@@ -2380,6 +2381,40 @@ it("finds abandoned turns in a long history reading each record a bounded number
   const records = runs.length + attempts.length + providerTurns.length;
   expect(reads).toBeLessThanOrEqual(4 * records);
 });
+
+effectIt.effect.each([
+  { text: "What is on today?", spoken: true },
+  { text: "What is on today?", spoken: false },
+  { text: "/goal all tests pass", spoken: true },
+])("tells the provider a turn is spoken, and only the provider: %o", ({ text, spoken }) =>
+  Effect.gen(function* () {
+    const harness = makeLocalCommandHarness({
+      text,
+      sideChat: { contextRun: "failed", switchedProvider: true },
+    });
+    if (spoken) {
+      const projection = harness.projection();
+      harness.setProjection({
+        ...projection,
+        runs: projection.runs.map((run) => ({ ...run, replyStyle: "spoken" as const })),
+      });
+    }
+    harness.tryHandlePromptCommand.mockReturnValue(Effect.succeed(false));
+    yield* harness.start;
+    // The harness carries context ahead of the user's words; the instruction comes after them.
+    const sent = harness.startTurn.mock.calls[0]?.[0].message.text ?? "";
+    const tail = sent.slice(sent.indexOf(text));
+    expect(tail).toBe(
+      spoken && !text.startsWith("/") ? `${text}\n\n${SPOKEN_REPLY_INSTRUCTIONS}` : text,
+    );
+    expect(
+      harness
+        .projection()
+        .messages.filter((message) => message.role === "user")
+        .map((message) => message.text),
+    ).toEqual([text]);
+  }),
+);
 
 effectIt.effect("sends new steering text when restarting a manual continuation", () =>
   Effect.gen(function* () {

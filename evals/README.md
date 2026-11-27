@@ -13,6 +13,7 @@ Write or run an eval when a change affects what a model sees or does: agent inst
 | [test-signal](test-signal/)               | Whether a cheap model running the test-signal check flags low-signal tests.                          |
 | [workflow-authoring](workflow-authoring/) | Whether a model writes a working workflow file from the `t3-workflows` skill alone.                  |
 | [memory-pass](memory-pass/)               | Whether the nightly memory pass keeps durable facts, skips chatter and secrets, and stays in size.   |
+| [voice-replies](voice-replies/)           | Whether a reply that will be read aloud comes back as short spoken sentences, not tables or code.    |
 
 ## Run an eval
 

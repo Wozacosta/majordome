@@ -816,6 +816,10 @@ export const OrchestrationV2RunOutput = Schema.Struct({
 });
 export type OrchestrationV2RunOutput = typeof OrchestrationV2RunOutput.Type;
 
+/** How a turn's answer is delivered: "spoken" is read aloud to someone who is not reading. */
+export const OrchestrationV2ReplyStyle = Schema.Literal("spoken");
+export type OrchestrationV2ReplyStyle = typeof OrchestrationV2ReplyStyle.Type;
+
 export const OrchestrationV2Run = Schema.Struct({
   id: RunId,
   threadId: ThreadId,
@@ -855,6 +859,8 @@ export const OrchestrationV2Run = Schema.Struct({
   freshContext: Schema.optional(Schema.Boolean),
   /** The JSON Schema of the result this run was asked to return as data. */
   outputSchema: Schema.optional(Schema.Record(Schema.String, Schema.Json)),
+  /** Set for a turn whose answer is read aloud; the provider is told so, the transcript is not. */
+  replyStyle: Schema.optional(OrchestrationV2ReplyStyle),
   /**
    * Its own field, written by its own event: lifecycle writers hold a copy of the run from when
    * the turn started, and their updates must not put an unanswered run back.
@@ -3367,6 +3373,7 @@ export const OrchestrationV2Command = Schema.Union([
         scheduledTaskId: Schema.optional(ScheduledTaskId),
         senderThreadId: Schema.optional(ThreadId),
         outputSchema: Schema.optional(Schema.Record(Schema.String, Schema.Json)),
+        replyStyle: Schema.optional(OrchestrationV2ReplyStyle),
         workspaceStrategy: Schema.optional(OrchestrationV2ThreadLaunchWorkspaceStrategy),
       }),
     ),
@@ -3624,6 +3631,8 @@ export const OrchestrationV2Command = Schema.Union([
     freshContext: Schema.optional(Schema.Boolean),
     /** Asks the run for a result as data matching this JSON Schema. Never steers. */
     outputSchema: Schema.optional(Schema.Record(Schema.String, Schema.Json)),
+    /** The answer to this message is read aloud. Never steers. */
+    replyStyle: Schema.optional(OrchestrationV2ReplyStyle),
     commandId: CommandId,
     threadId: ThreadId,
     messageId: MessageId,
@@ -4194,6 +4203,7 @@ export const OrchestrationV2ThreadLaunchInput = Schema.Struct({
       text: Schema.String,
       context: Schema.optional(OrchestrationMessageContext),
       attachments: Schema.Array(ChatAttachment),
+      replyStyle: Schema.optional(OrchestrationV2ReplyStyle),
     }),
   ),
 });

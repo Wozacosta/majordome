@@ -13,6 +13,7 @@ import {
   type OrchestrationV2WorkflowOrigin,
   type OrchestrationV2LinkOrigin,
   type OrchestrationV2ProviderThreadNativeMetadata,
+  type OrchestrationV2ReplyStyle,
   type OrchestrationV2ThreadProjection,
   type ProviderDriverKind,
   type ProviderInteractionMode,
@@ -95,6 +96,7 @@ export interface ThreadLaunchInitialMessage {
   readonly context?: import("@t3tools/contracts").OrchestrationMessageContext | undefined;
   /** Ask the first run for a result as data matching this JSON Schema. */
   readonly outputSchema?: Readonly<Record<string, Schema.Json>> | undefined;
+  readonly replyStyle?: OrchestrationV2ReplyStyle | undefined;
 }
 
 export interface ThreadLaunchInput {
@@ -1513,6 +1515,9 @@ const make = Effect.gen(function* () {
                 ...(input.initialMessage.outputSchema === undefined
                   ? {}
                   : { outputSchema: input.initialMessage.outputSchema }),
+                ...(input.initialMessage.replyStyle === undefined
+                  ? {}
+                  : { replyStyle: input.initialMessage.replyStyle }),
                 ...(input.generateTitle === true ? { titleSeed: input.title } : {}),
               };
         const claimDispatch =
@@ -1789,6 +1794,7 @@ const make = Effect.gen(function* () {
                 attachments: message.attachments,
                 ...(message.context ? { context: message.context } : {}),
                 ...(run.outputSchema === undefined ? {} : { outputSchema: run.outputSchema }),
+                ...(run.replyStyle === undefined ? {} : { replyStyle: run.replyStyle }),
               },
             }),
       },

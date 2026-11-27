@@ -7724,9 +7724,13 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         cause: schemaProblem,
       });
     }
-    const output = outputSchema === undefined ? {} : { outputSchema };
+    const output = {
+      ...(outputSchema === undefined ? {} : { outputSchema }),
+      ...(command.replyStyle === undefined ? {} : { replyStyle: command.replyStyle }),
+    };
+    // A spoken answer belongs to a turn of its own: a steered message carries no instruction.
     if (
-      (freshContext || command.outputSchema !== undefined) &&
+      (freshContext || command.outputSchema !== undefined || command.replyStyle !== undefined) &&
       (dispatchMode.type === "steer_active" || dispatchMode.type === "restart_active")
     ) {
       dispatchMode = { type: "queue_after_active" };

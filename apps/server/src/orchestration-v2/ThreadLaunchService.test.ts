@@ -731,6 +731,63 @@ it.effect("a run asked for a result stores what its agent submits once it fits t
   }).pipe(Effect.provide(harness.layer));
 });
 
+it.effect("a spoken turn keeps its flag on the run and out of the transcript", () => {
+  const harness = makeHarness({ runSetup: () => Effect.never });
+  return Effect.gen(function* () {
+    const launches = yield* ThreadLaunch.ThreadLaunchService;
+    const threads = yield* ThreadManagement.ThreadManagementService;
+    const input = launchInput({
+      command: "command:spoken:launch",
+      thread: "thread:spoken",
+      message: "What is on today?",
+      workspace: { type: "worktree", baseRef: "main" },
+    });
+    const launched = yield* launches.launch({
+      ...input,
+      initialMessage: { ...input.initialMessage!, replyStyle: "spoken" },
+    });
+    // A spoken answer is a turn of its own, so a send that asks to steer waits its turn.
+    const steerTarget = (yield* threads.getThreadProjection(launched.threadId)).runs[0]!;
+    yield* threads.dispatch({
+      type: "message.dispatch",
+      commandId: CommandId.make("command:spoken:next"),
+      threadId: launched.threadId,
+      messageId: MessageId.make("message:spoken:next"),
+      text: "And tomorrow?",
+      attachments: [],
+      replyStyle: "spoken",
+      dispatchMode: { type: "steer_active", targetRunId: steerTarget.id },
+      createdBy: "user",
+      creationSource: "mobile",
+    });
+    yield* threads.dispatch({
+      type: "message.dispatch",
+      commandId: CommandId.make("command:spoken:typed"),
+      threadId: launched.threadId,
+      messageId: MessageId.make("message:spoken:typed"),
+      text: "Typed this one",
+      attachments: [],
+      dispatchMode: { type: "queue_after_active" },
+      createdBy: "user",
+      creationSource: "mobile",
+    });
+
+    const projection = yield* threads.getThreadProjection(launched.threadId);
+    assert.deepStrictEqual(
+      projection.runs.map((run) => [run.status === "queued", run.replyStyle]),
+      [
+        [false, "spoken"],
+        [true, "spoken"],
+        [true, undefined],
+      ],
+    );
+    assert.deepStrictEqual(
+      projection.messages.filter((message) => message.role === "user").map(({ text }) => text),
+      ["What is on today?", "And tomorrow?", "Typed this one"],
+    );
+  }).pipe(Effect.provide(harness.layer));
+});
+
 it.effect("a run that was not asked for a result rejects a submission", () => {
   const harness = makeHarness({ runSetup: () => Effect.never });
   return Effect.gen(function* () {
