@@ -173,7 +173,7 @@ export function createVoiceModeRuntime(platform: VoiceModePlatform) {
           } finally {
             disarm();
           }
-          if (messageId === null) throw new Error("The message could not be sent.");
+          if (messageId === null) throw new Error("voice-mode: send returned no id");
           if (session !== own) return;
           own.unwatch?.();
           own.unwatch = platform.watchTurn(
