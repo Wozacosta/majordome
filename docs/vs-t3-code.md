@@ -118,6 +118,9 @@ The landing page and the README show a short version of this list.
   [Phone and notifications](./user/phone-and-notifications.md)
 - **A reinstalled iPhone app starts clean:** it forgets the computers and the sign-in iOS kept
   from the deleted copy, and opens on a welcome.
+- **A phone app that takes in someone with nothing yet:** its first screen has a way for people
+  new to Majordome, which says where to get it for a Mac and sends the link there, or offers a
+  server.
 - **Two kinds of server, told apart by name and icon:** "Your server" for one you run and
   "Majordome server", with a cloud, for one Majordome hosts for you.
 - **A server Majordome hosts for you, by invitation:** one code, half a minute, no terminal,

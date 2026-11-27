@@ -61,6 +61,18 @@ The section for a version is also the text of its release on GitHub.
 - Open a chat, leave the message box empty and click the round button: ask what is on today, then
   press `Space` while it answers and ask something else.
 
+**Changed**
+
+- **The phone's first screen asks where you stand.** "Let's connect to your brain" is for someone
+  who already has Majordome: sign in, or scan a code. "I'm new here" is for everyone else: use
+  your computer, or get a Majordome server.
+- **"Use your computer" tells you where to get Majordome for your Mac:** the address to open, a
+  button that sends the link to your Mac, and the code to scan once it is installed.
+
+**Try this**
+
+- On a phone with no computer yet, press **Use your computer** and send yourself the link.
+
 ## 0.10.82
 
 **New**
