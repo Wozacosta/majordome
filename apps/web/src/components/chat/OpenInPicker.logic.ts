@@ -2,6 +2,23 @@ import type { EnvironmentId } from "@t3tools/contracts";
 
 import type { RemoteOpenMode } from "../../remoteOpen";
 
+/**
+ * Whether an app on this computer can open a path kept in `environmentId`. A server with no
+ * SSH route has none, so its button is left out instead of shown disabled.
+ */
+export function canOpenInLocalApp(input: {
+  readonly environmentId: EnvironmentId;
+  readonly primaryEnvironmentId: EnvironmentId | null;
+  readonly hostEnvironmentId: string | null;
+  readonly remoteOpenMode: RemoteOpenMode;
+}): boolean {
+  return (
+    input.environmentId === input.primaryEnvironmentId ||
+    input.environmentId === input.hostEnvironmentId ||
+    input.remoteOpenMode === "remote-links"
+  );
+}
+
 export function shouldShowOpenInPicker(input: {
   readonly activeProjectName: string | undefined;
   readonly activeThreadEnvironmentId: EnvironmentId;
@@ -10,13 +27,7 @@ export function shouldShowOpenInPicker(input: {
   readonly remoteOpenMode: RemoteOpenMode;
 }): boolean {
   if (!input.activeProjectName) return false;
-  if (
-    input.activeThreadEnvironmentId === input.primaryEnvironmentId ||
-    input.activeThreadEnvironmentId === input.hostEnvironmentId
-  ) {
-    return true;
-  }
-  return input.remoteOpenMode !== "local-exec";
+  return canOpenInLocalApp({ ...input, environmentId: input.activeThreadEnvironmentId });
 }
 
 export type FileManagerAction = "open" | "reveal" | "unavailable";

@@ -42,6 +42,8 @@ The section for a version is also the text of its release on GitHub.
   Subscribing from a second Majordome account went through Apple's sheet and then said the
   purchase belonged to another account. The app now says, without the sheet, that this Apple
   account already pays for a server on another Majordome account.
+- **A file on a server your computer cannot open has no "Open in" button.** A PDF or note on
+  a Majordome server showed a VS Code button that did nothing but say "No SSH route".
 - **Connecting an iPhone to the server you already have ends on your list of servers.** It
   used to stop on a nearly empty page saying "This phone is connected to your server", with
   a Done button to press.

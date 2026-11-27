@@ -1,7 +1,11 @@
 import { EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { fileManagerActionForPath, shouldShowOpenInPicker } from "./OpenInPicker.logic";
+import {
+  canOpenInLocalApp,
+  fileManagerActionForPath,
+  shouldShowOpenInPicker,
+} from "./OpenInPicker.logic";
 
 describe("shouldShowOpenInPicker", () => {
   it("shows both local environments when the primary has a separate WSL home", () => {
@@ -19,6 +23,25 @@ describe("shouldShowOpenInPicker", () => {
           primaryEnvironmentId,
           hostEnvironmentId,
           remoteOpenMode: "local-exec",
+        }),
+      ).toBe(visible);
+    }
+  });
+});
+
+describe("canOpenInLocalApp", () => {
+  it("leaves the button out for a server this computer cannot reach over SSH", () => {
+    for (const [remoteOpenMode, visible] of [
+      ["remote-links", true],
+      ["remote-unavailable", false],
+      ["local-exec", false],
+    ] as const) {
+      expect(
+        canOpenInLocalApp({
+          environmentId: EnvironmentId.make("hosted"),
+          primaryEnvironmentId: EnvironmentId.make("primary"),
+          hostEnvironmentId: null,
+          remoteOpenMode,
         }),
       ).toBe(visible);
     }

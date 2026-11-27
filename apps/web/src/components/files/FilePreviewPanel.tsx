@@ -64,7 +64,7 @@ import {
 import { isBrowserPreviewFile, openFileInPreview } from "~/browser/openFileInPreview";
 import { useAssetUrlRefresh, useAssetUrlState } from "~/assets/assetUrls";
 import { OpenInPicker } from "~/components/chat/OpenInPicker";
-import { fileManagerActionForPath } from "~/components/chat/OpenInPicker.logic";
+import { canOpenInLocalApp, fileManagerActionForPath } from "~/components/chat/OpenInPicker.logic";
 import { MediaVideoPlayer } from "~/components/media/MediaVideoPlayer";
 import { MediaActions, type MediaActionSource } from "~/components/media/MediaActions";
 import { useRemoteOpenState } from "~/remoteOpen";
@@ -1606,9 +1606,12 @@ export default function FilePreviewPanel({
             </div>
           </ScrollArea>
           {absolutePath &&
-          (environmentId === primaryEnvironmentId ||
-            environmentId === hostEnvironmentId ||
-            remoteOpenState.mode !== "local-exec") ? (
+          canOpenInLocalApp({
+            environmentId,
+            primaryEnvironmentId,
+            hostEnvironmentId,
+            remoteOpenMode: remoteOpenState.mode,
+          }) ? (
             <OpenInPicker
               environmentId={environmentId}
               keybindings={keybindings}
