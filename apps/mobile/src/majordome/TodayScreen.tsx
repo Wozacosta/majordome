@@ -24,12 +24,14 @@ import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
 import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
+import { useThreadShells } from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
 import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
+import { MajordomeTodayTopics, useChatListTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 import {
   localDate,
@@ -41,7 +43,15 @@ import {
 } from "./today.logic";
 import { useTodaySetup } from "./todaySetup";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
-import { dayFromToday, dayTitle, noteStatus, shiftDay, todoProgress } from "./todayView.logic";
+import {
+  dayFromToday,
+  dayTitle,
+  FIRST_LINES,
+  isFirstToday,
+  noteStatus,
+  shiftDay,
+  todoProgress,
+} from "./todayView.logic";
 
 // Fixed for a build: whether it has Majordome accounts to sign in to.
 const hasAccounts = hasAccountPublicConfig();
@@ -293,6 +303,8 @@ export function MajordomeTodayScreen() {
   const [draft, setDraft] = useState("");
   const [pulled, setPulled] = useState(false);
   const { vault } = useVault(store);
+  const threads = useThreadShells();
+  const chatTopics = useChatListTopics(threads, "");
   const { setup, reach, connectedComputer, reconnect } = useTodaySetup(store, vault);
   const [settingUp, setSettingUp] = useState(false);
   const note = useEnvironmentQuery(
@@ -387,6 +399,11 @@ export function MajordomeTodayScreen() {
         ? "waiting"
         : "failed",
     hasNote: kept !== null,
+  });
+  const first = isFirstToday({
+    isToday,
+    noteEmpty: sections.length === 0 && waiting.length === 0 && status.empty === "nothing",
+    chats: threads.length,
   });
   const progress = todoProgress(sections);
   const away = dayFromToday(day, today);
@@ -677,7 +694,26 @@ export function MajordomeTodayScreen() {
               </ListSection>
             ) : null}
 
-            {sections.length === 0 && waiting.length === 0 && status.empty !== null ? (
+            {first ? (
+              <>
+                <ListSection title="Try a line">
+                  {FIRST_LINES.map((line, index) => (
+                    <View key={line}>
+                      {index === 0 ? null : <View className="ml-4 h-px bg-border" />}
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityHint="Writes it in the box"
+                        onPress={() => setDraft(line)}
+                        className="min-h-11 justify-center px-4 py-2.5 active:opacity-60"
+                      >
+                        <Text className="text-foreground">{line}</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </ListSection>
+                <MajordomeTodayTopics topics={chatTopics} />
+              </>
+            ) : sections.length === 0 && waiting.length === 0 && status.empty !== null ? (
               <Text className="text-foreground-muted">
                 {status.empty === "getting"
                   ? "Getting the note…"

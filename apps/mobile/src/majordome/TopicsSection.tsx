@@ -112,6 +112,10 @@ export function useChatListTopics(
   // A topic never opened on this server has no conversation yet; the server starts it.
   const start = async (topicId: string, sideChat: boolean) => {
     if (vault === null || busy !== null) return;
+    await startNow(topicId, sideChat);
+  };
+  const startNow = async (topicId: string, sideChat: boolean) => {
+    if (vault === null) return;
     setBusy(topicId);
     const result = await openTopic({
       environmentId: vault.environmentId,
@@ -147,7 +151,7 @@ export function useChatListTopics(
     );
   };
 
-  const addReady = async (ready: MajordomeReadyTopic) => {
+  const addReady = async (ready: MajordomeReadyTopic, opens: boolean) => {
     if (vault === null || busy !== null) return;
     setBusy(ready.id);
     const result = await createTopic({
@@ -160,11 +164,13 @@ export function useChatListTopics(
         readyMade: ready.id,
       },
     });
-    setBusy(null);
     if (result._tag === "Success") {
       void Haptics.selectionAsync();
+      if (opens) await startNow(result.value.id, false);
+      else setBusy(null);
       return;
     }
+    setBusy(null);
     Dialog.alert(
       `Could not add ${ready.title}`,
       "Check that your computer can be reached, then try again.",
@@ -198,7 +204,7 @@ export function useChatListTopics(
     order: orderKey === "" ? NO_ROUTINES : orderKey.split("\n"),
     finished,
     ready: canCreate ? readyTopics : NO_READY_TOPICS,
-    addReady: (ready) => void addReady(ready),
+    addReady: (ready, opens = false) => void addReady(ready, opens),
     total: topics.length + finished.length,
     busy,
     unfolded,
@@ -384,7 +390,12 @@ export function MajordomeHiddenRoutines(props: { readonly topics: ChatTopics }) 
 export const TOPICS_INTRO =
   "A topic keeps one ongoing subject in a single chat, with its own notes.";
 
-function ReadyTopicChips(props: { readonly topics: ChatTopics; readonly centered?: boolean }) {
+function ReadyTopicChips(props: {
+  readonly topics: ChatTopics;
+  readonly centered?: boolean;
+  /** Go to the topic's chat once it is added, where no list would show it arrive. */
+  readonly opens?: boolean;
+}) {
   const { topics } = props;
   return (
     <View className={cn("flex-row flex-wrap gap-2", props.centered && "justify-center")}>
@@ -396,7 +407,7 @@ function ReadyTopicChips(props: { readonly topics: ChatTopics; readonly centered
           accessibilityHint={ready.description}
           accessibilityState={{ busy: topics.busy === ready.id, disabled: topics.busy !== null }}
           disabled={topics.busy !== null}
-          onPress={() => topics.addReady(ready)}
+          onPress={() => topics.addReady(ready, props.opens)}
           className={cn(
             "min-h-[40px] flex-row items-center gap-2 rounded-full border border-border bg-grouped-card px-3.5 active:opacity-60",
             topics.busy !== null && topics.busy !== ready.id && "opacity-50",
@@ -437,6 +448,22 @@ export function MajordomeFirstTopics(props: {
       <Text className="mt-12 text-center text-foreground-muted">{props.chat.detail}</Text>
       <View className="mt-3">
         <Button label={props.chat.action} onPress={props.onStartChat} />
+      </View>
+    </View>
+  );
+}
+
+/** On an empty Today, for someone with no chats yet: the ready-made topics, each opening its chat. */
+export function MajordomeTodayTopics(props: { readonly topics: ChatTopics }) {
+  if (props.topics.ready.length === 0) return null;
+  return (
+    <View className="gap-2">
+      <Text accessibilityRole="header" className="font-t3-bold text-foreground">
+        Start a topic
+      </Text>
+      <Text className="text-foreground-muted">{TOPICS_INTRO}</Text>
+      <View className="pt-1">
+        <ReadyTopicChips topics={props.topics} opens />
       </View>
     </View>
   );

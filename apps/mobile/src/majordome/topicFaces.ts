@@ -55,7 +55,8 @@ export interface ChatTopics {
   readonly finished: ReadonlyArray<FinishedTopic>;
   /** The ready-made topics that can be added now: none offline, or where this phone may not. */
   readonly ready: ReadonlyArray<MajordomeReadyTopic>;
-  readonly addReady: (ready: MajordomeReadyTopic) => void;
+  /** Adds it; `opens` also goes to its chat. */
+  readonly addReady: (ready: MajordomeReadyTopic, opens?: boolean) => void;
   /** How many topics there are in all, whatever a search keeps. */
   readonly total: number;
   /** The topic being opened or changed, which waits for the server. */

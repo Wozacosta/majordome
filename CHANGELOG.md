@@ -11,6 +11,9 @@ Not released yet.
 
 - **On the iPhone, an empty Chats tab opens on Start a topic.** The ready-made topics come first,
   and **Start a chat** is underneath.
+- **A first Today on the iPhone is no longer blank.** Until you have a chat, an empty Today offers
+  three lines to try (a touch writes one in the box) and the ready-made topics. Touching a topic
+  adds it and opens its chat.
 
 ## 0.10.78
 

@@ -118,3 +118,19 @@ export function noteStatus(input: {
           : "later";
   return { notice, canTick, empty };
 }
+
+/** Lines offered on a first, empty Today: touching one writes it in the box. */
+export const FIRST_LINES = [
+  "Call the dentist before Friday",
+  "Idea: a long weekend in Lisbon",
+  "Slept badly, skipped the gym",
+] as const;
+
+/** True on a Today with nothing at all behind it: no note for today and no chat yet. */
+export function isFirstToday(input: {
+  readonly isToday: boolean;
+  readonly noteEmpty: boolean;
+  readonly chats: number;
+}): boolean {
+  return input.isToday && input.noteEmpty && input.chats === 0;
+}
