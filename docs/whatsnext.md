@@ -21,9 +21,6 @@ opening is the Mac app, the iPhone app and hosted servers.
 - [ ] **Read `site/terms/index.html` and `site/trust/index.html` line by line.** Both carry
       commitments written by an agent and not reviewed: a 14-day refund, a month refunded after
       a day's outage, 30 days' notice.
-- [ ] **Anthropic's terms.** A customer signing their own Claude plan in on a hosted server is
-      not confirmed as allowed (see "Hosted Majordome" below). The risk was accepted for a demo
-      and the first few users, not for a public opening: decide again, or get their answer.
 - [ ] **Say it is a beta.** No page says so today. Where a person decides: beside the price on
       the landing page and `/start`, and a short section in the terms (one person runs it, it
       may break or change, keep a backup you own, how to leave). It sets expectations; it does
@@ -308,7 +305,7 @@ so it is not looked up twice:
 in on the hosted server and pays for the server only. It needs no credential of ours, no cap
 and no metering, so the capped credential per customer below is set aside until AI is included
 in the price. The risk is in the quotes that follow and was accepted for a demo and the first
-few users. What it asks of the work: the sign-in page tells the customer that Anthropic has not
+few users, then on 2026-11-27 for the public opening too: OpenBot does the same in the open. What it asks of the work: the sign-in page tells the customer that Anthropic has not
 confirmed this use and that their plan's limits are meant for ordinary individual use, and an
 API key of their own stays possible. The price is then the server plus a margin.
 
