@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.78
+
 **New**
 
 - **The map of what the assistant has opens at once.** The three linked dots at the top of a chat
