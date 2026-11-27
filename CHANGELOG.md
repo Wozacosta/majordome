@@ -11,6 +11,17 @@ The section for a version is also the text of its release on GitHub.
   "Manage subscription" link that opens Apple's own sheet, where a Majordome server's
   subscription is seen and cancelled without leaving the app.
 
+**Changed**
+
+- **The iPhone's Today is one box that talks to your assistant.** "Ask anything, or tell me what
+  to remember", with the same four starters as on the computer. Sending opens a chat with your
+  message already sent. Your lines for the day, the day arrows and "Write a line" moved to a
+  **Journal** tab beside **Overview**. With no connection, what you send is kept as a journal
+  line and reaches your assistant later.
+- **On the iPhone, new notes ask your name in a sheet,** and nothing else. The three "how it
+  works" steps, "Try a line" and the topic suggestions are gone from Today; topics start from
+  **Chats**.
+
 **Fixed**
 
 - **On the iPhone's server page, signing in and subscribing are two steps you can see.** A
@@ -27,23 +38,17 @@ The section for a version is also the text of its release on GitHub.
 - On the iPhone, open Settings, then Your account, and press "Manage subscription".
 - On an iPhone with no account, open "Get a Majordome server", press "1. Sign in" and sign
   up, then press Subscribe.
-
-**Changed**
-
-- **The iPhone's Today is one box that talks to your assistant.** "Ask anything, or tell me what
-  to remember", with the same four starters as on the computer. Sending opens a chat with your
-  message already sent. Your lines for the day, the day arrows and "Write a line" moved to a
-  **Journal** tab beside **Overview**. With no connection, what you send is kept as a journal
-  line and reaches your assistant later.
-- **On the iPhone, new notes ask your name in a sheet,** and nothing else. The three "how it
-  works" steps, "Try a line" and the topic suggestions are gone from Today; topics start from
-  **Chats**.
-
-**Try this**
-
 - On the iPhone, press **Plan my day** on Today, then go back and open **Journal**.
 
 ## 0.10.84
+
+**New**
+
+- **Majordome on Android, a first build.** The phone app now builds for Android as Majordome,
+  with its own icon: Today with to-dos you can tick and a line you can add, your chats and
+  topics, new chats, and the same Settings as the iPhone. It is an APK you install by hand,
+  not a Play Store app. Not on Android yet: replies read aloud, talking with your assistant,
+  and buying a server from the phone.
 
 **Changed**
 
@@ -58,16 +63,6 @@ The section for a version is also the text of its release on GitHub.
 - Ask "what's my passport id?", then "give me all of it".
 
 Not released yet.
-
-**New**
-
-- **Majordome on Android, a first build.** The phone app now builds for Android as Majordome,
-  with its own icon: Today with to-dos you can tick and a line you can add, your chats and
-  topics, new chats, and the same Settings as the iPhone. It is an APK you install by hand,
-  not a Play Store app. Not on Android yet: replies read aloud, talking with your assistant,
-  and buying a server from the phone.
-
-**Try this**
 
 - On the Mac, run `vp run mobile:apk`, then put `release/Majordome.apk` on an Android phone
   (`adb install release/Majordome.apk`, or send yourself the file and open it). In
