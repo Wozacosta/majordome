@@ -34,6 +34,7 @@ import { runEnvironmentSpeech } from "./runEnvironmentSpeech";
 import { bindAudioGrant, readCleanupGrant } from "./voiceConsent";
 import { msg } from "gt-react";
 import { m } from "../i18n/messages";
+import { notifyDictationStarted } from "../majordome/speaking/dictationBus";
 
 const isEnvironmentInternalError = Schema.is(EnvironmentInternalError);
 
@@ -306,6 +307,7 @@ export class VoiceInputSession {
     this.onSpeechStatus = onSpeechStatus;
     this.publishActivity(SILENT_ACTIVITY);
     this.publish({ ...this.snapshot, target });
+    notifyDictationStarted();
     return this.controller.start();
   }
 

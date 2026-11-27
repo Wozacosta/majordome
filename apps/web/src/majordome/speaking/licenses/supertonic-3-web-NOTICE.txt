@@ -1,0 +1,16 @@
+Supertonic 3 voice model
+
+Copyright (c) 2026 Supertone Inc.
+
+The Mac app and the web app download the model's files on first use, through
+https://majord.link/voice/. Where the graphics card has 16-bit floats, the
+vector estimator and the vocoder are files Majordome converted to 16-bit
+floating point from the ones Supertone Inc. published at
+https://huggingface.co/supertone-oss-archive/supertonic-3 (release
+https://github.com/Wozacosta/majordome/releases/tag/voice-supertonic-3-web-1);
+elsewhere they are the int8 conversion made by k2-fsa/sherpa-onnx
+(https://github.com/k2-fsa/sherpa-onnx, release
+https://github.com/Wozacosta/majordome/releases/tag/voice-supertonic-3-int8-1).
+The weights are otherwise unchanged. They are used under the BigScience Open
+RAIL-M License below. The use restrictions in its Attachment A apply to
+everyone who uses the voice. Supertone Inc. does not endorse Majordome.

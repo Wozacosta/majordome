@@ -812,6 +812,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "voice-speaking",
+    title: msg("Speaking"),
+    to: "/settings/voice",
+    majordomeOnly: true,
+    searchTerms: [msg("read aloud voice speak listen text to speech tts download remove")],
+  },
+  {
     id: "voice-microphone",
     title: msg("Microphone"),
     to: "/settings/voice",

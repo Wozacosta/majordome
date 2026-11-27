@@ -96,6 +96,7 @@ import {
   PlugIcon,
   SquarePenIcon,
   TextSearchIcon,
+  Volume2Icon,
   UserPlusIcon,
   WorkflowIcon,
 } from "lucide-react";
@@ -118,6 +119,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
 import { isMajordome } from "../env";
+import { useReadAloudCommand } from "../majordome/speaking/useReadAloudCommand";
 import { openGuides, reportProblem } from "./majordome/HelpMenu";
 import { setTopicSearchOpen } from "./majordome/topicSearchStore";
 import { openWhatsNew, WHATS_NEW_VERSION } from "./WhatsNew";
@@ -762,6 +764,7 @@ function OpenCommandPaletteDialog(props: {
   };
 
   const { projectByKey } = useProjectLookups();
+  const readAloudCommand = useReadAloudCommand();
 
   const activeThreadKey = activeThread
     ? scopedThreadKey(scopeThreadRef(activeThread.environmentId, activeThread.id))
@@ -1468,6 +1471,18 @@ function OpenCommandPaletteDialog(props: {
       run: async () => {
         openThreadFind(activeThreadKey);
       },
+    });
+  }
+
+  if (readAloudCommand) {
+    actionItems.push({
+      kind: "action",
+      value: "action:read-aloud",
+      title: readAloudCommand.title,
+      searchTerms: ["read aloud", "speak", "listen", "voice", "stop"],
+      icon: <Volume2Icon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: "chat.readAloud",
+      run: readAloudCommand.run,
     });
   }
 

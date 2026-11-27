@@ -158,13 +158,25 @@ the model hears the cue as a dictionary hint.
 
 ## Reading replies aloud
 
-On the iPhone, the speaker button under an answer reads it aloud. Touch it again to stop. Reading
-also stops when you leave the chat, start dictating, or ask for another answer to be read.
+The speaker button under an answer reads it aloud, on the iPhone, in the Mac app and in a browser.
+Press it again to stop. Reading also stops when you leave the chat, start dictating, or ask for
+another answer to be read.
 
-The voice costs nothing and needs no key or account. The first time, Majordome asks to download it:
-145 MB, fetched once from GitHub and kept on the phone. On mobile data the button says so. After
-that the speech is made on the phone. The answer itself still comes from your AI provider, as
-before.
+The voice costs nothing and needs no key or account. The first time, Majordome asks to download it,
+once, and keeps it on the device. After that the speech is made on the device. The answer itself
+still comes from your AI provider, as before.
+
+- **iPhone:** 145 MB, fetched from GitHub. On mobile data the button says so.
+- **Mac app and browser:** 220 MB on most computers (145 MB where the graphics card lacks 16-bit
+  floats), fetched through majord.link. The speech is made by the graphics card, so the button is
+  shown only where the browser has WebGPU: the Mac app, Chrome, Edge, and Safari 26 or later. The
+  first sentence takes two or three seconds while the voice gets ready; the button shows three dots
+  until sound starts. A browser may empty its storage when the disk runs short; Majordome then asks
+  for the download again.
+
+In the Mac app and the browser, `mod+shift+u` reads the newest answer on screen, or stops the
+reading; so does **Read the latest reply aloud** in the command palette. Change the chord under
+**Chat: Read the Latest Reply Aloud or Stop** in the keyboard shortcuts.
 
 Code blocks and tables are not read; you hear that there is code or a table on screen. The answer
 is read in its own language when that is clear, otherwise in the app's. The voice speaks 31
@@ -174,8 +186,7 @@ In **Settings → Voice → Speaking**, play each voice and pick one, or remove 
 aloud asks for it again the next time.
 
 The voice is Supertonic 3, used under the BigScience OpenRAIL-M licence. Its use restrictions are
-in **Settings → About → Open source licenses**. Reading aloud is not available on Android or in the
-desktop app yet.
+in **Settings → About → Open source licenses**. Reading aloud is not available on Android yet.
 
 ## Test and troubleshoot
 

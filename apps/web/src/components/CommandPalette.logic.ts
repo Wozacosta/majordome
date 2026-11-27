@@ -842,6 +842,7 @@ export function buildRootGroups(
 const MAJORDOME_ACTIONS: ReadonlyArray<readonly [value: string, title: string | null]> = [
   ["action:new-thread", "New chat"],
   ["find-current-thread", "Find in this chat"],
+  ["action:read-aloud", null],
   ["action:open-file-picker", "Find a note"],
   ["action:search-project-contents", "Search my notes"],
   ["action:go-to-topic", null],

@@ -20,6 +20,7 @@ import { SavedNotes } from "../majordome/SavedNotes";
 import { splitQuickReplies } from "../majordome/QuickReplies.logic";
 import { readResponseSubagents, useAssistantMessageText } from "../../state/entities";
 import { MessageCopyButton } from "./MessageCopyButton";
+import { ReadAloudButton } from "~/majordome/speaking/ReadAloudButton";
 import { AssistantCitationSource } from "./AssistantCitationSource";
 import { resolveAssistantMessageCopyState } from "./MessagesTimeline.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -348,7 +349,16 @@ function AssistantCopyButton({
     return null;
   }
 
-  return <MessageCopyButton text={assistantCopyState.text ?? ""} variant="ghost" />;
+  return (
+    <>
+      <MessageCopyButton text={assistantCopyState.text ?? ""} variant="ghost" />
+      <ReadAloudButton
+        replyId={message.id}
+        markdown={assistantCopyState.text ?? ""}
+        at={message.createdAt}
+      />
+    </>
+  );
 }
 
 export function ProposedPlanTimelineRow({

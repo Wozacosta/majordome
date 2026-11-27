@@ -13,6 +13,10 @@ actions menu. **Reset to default** brings it back.
 Dictation**, and the hold or toggle behavior in **Settings → Voice**. See
 [Voice input](./voice-input.md).
 
+`mod+shift+u` reads the newest answer on screen aloud, and stops the reading on the next press.
+Change the chord under **Chat: Read the Latest Reply Aloud or Stop**. See
+[Reading replies aloud](./voice-input.md#reading-replies-aloud).
+
 In **Settings → Chat → Send shortcut**, choose whether Enter sends, requires
 `mod+Enter` for multiline prompts, or always requires `mod+Enter`. `Shift+Enter`
 inserts a new line. This applies to the web and desktop composer at desktop widths.

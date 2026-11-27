@@ -73,5 +73,25 @@
       "size": 8253,
       "sha256": "42078d3aef1cd43ab43021f3c54f47d2d75ceb4e75f627f118890128b06a0d09"
     }
-  ]
+  ],
+  "web": {
+    "baseUrl": "https://majord.link/voice/voice-supertonic-3-int8-1",
+    "fp16": {
+      "id": "supertonic-3-web-1",
+      "baseUrl": "https://majord.link/voice/voice-supertonic-3-web-1",
+      "replaces": ["vector_estimator.int8.onnx", "vocoder.int8.onnx"],
+      "files": [
+        {
+          "name": "vector_estimator.fp16.onnx",
+          "size": 128517269,
+          "sha256": "a1e4899fb6294b3cd7d30e23bba08468b9b9c2b89d4a47fe65cf993df4e374fb"
+        },
+        {
+          "name": "vocoder.fp16.onnx",
+          "size": 50773459,
+          "sha256": "f409960b6e74ef6e51c32b2cc77047ffbd426179f341214f42efb2a61aa91e57"
+        }
+      ]
+    }
+  }
 }

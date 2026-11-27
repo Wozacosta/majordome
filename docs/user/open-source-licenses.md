@@ -12,7 +12,7 @@ or use the item. This also covers optional device tools that T3 Code installs on
 bundling. Select a row to read the complete notice text. Use the search field to find a package,
 version, license, or app component.
 
-The voice that reads replies aloud on the iPhone is not part of the app: it is downloaded on first
-use. Its license (BigScience OpenRAIL-M, with use restrictions in Attachment A) is on the same
-page, under **Supertonic 3 voice model**, with the licenses of the code that runs it (sherpa-onnx
-and ONNX Runtime).
+The voice that reads replies aloud is not part of the app: it is downloaded on first use. Its
+license (BigScience OpenRAIL-M, with use restrictions in Attachment A) is on the same page, under
+**Supertonic 3 voice model**, with the licenses of the code that runs it (sherpa-onnx and ONNX
+Runtime on the iPhone, onnxruntime-web in the Mac app and the browser).

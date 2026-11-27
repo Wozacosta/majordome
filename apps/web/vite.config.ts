@@ -360,6 +360,7 @@ export default defineConfig(({ command }) => {
         "@pierre/diffs/worker/worker.js",
         "effect/Array",
         "effect/Order",
+        "onnxruntime-web/webgpu",
         "react-dom/client",
       ],
     },

@@ -79,7 +79,7 @@ export function createVoiceStore(catalog: VoiceCatalog, files: VoiceFiles): Voic
       if (offset < file.size) {
         try {
           const { status } = await files.fetchInto({
-            url: `${catalog.baseUrl}/${file.name}`,
+            url: `${file.baseUrl ?? catalog.baseUrl}/${file.name}`,
             name: part,
             offset,
             signal,

@@ -144,6 +144,7 @@ import {
   SettingsSection,
 } from "./settingsLayout";
 import { useSearchableSetting } from "./settingsSearch";
+import { SpeakingSettings } from "~/majordome/speaking/SpeakingSettings";
 import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
 import { useScopedModelDisabledReason } from "./useScopedModelAvailability";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
@@ -1919,6 +1920,7 @@ export function VoiceSettingsPanel() {
           />
         ) : null}
       </SettingsSection>
+      <SpeakingSettings />
     </SettingsPageContainer>
   );
 }
