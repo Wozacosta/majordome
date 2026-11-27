@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **The iPhone's server screen offers your own server first.** "An always-on server" now shows
+  two choices: your own server, recommended, with a guide at
+  [majord.me/own-server](https://majord.me/own-server), and a Majordome server, as before.
+
+**Try this**
+
+- On the iPhone, open the server screen and press **Read the guide**.
 
 **New**
 

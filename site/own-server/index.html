@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your own server | Majordome</title>
+    <meta
+      name="description"
+      content="Run Majordome on a Linux server you rent, so it keeps working while your computer is off."
+    />
+    <link rel="canonical" href="https://majord.me/own-server" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4efe6;
+        --surface: #fbf8f2;
+        --ink: #14161c;
+        --muted: #5d5f66;
+        --line: #14161c1f;
+        --button: #14161c;
+        --button-text: #f4efe6;
+        --problem: #a3261a;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161c;
+          --surface: #1c1f27;
+          --ink: #f4efe6;
+          --muted: #a9a59c;
+          --line: #f4efe624;
+          --button: #f4efe6;
+          --button-text: #14161c;
+          --problem: #ff9d8f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+      .mark {
+        display: block;
+        height: 30px;
+        width: auto;
+        margin-bottom: 40px;
+      }
+      .mark.dark {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .mark.light {
+          display: none;
+        }
+        .mark.dark {
+          display: block;
+        }
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 2.2rem;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .problem {
+        color: var(--problem);
+        margin-top: 12px;
+      }
+      #sign-in {
+        margin-top: 28px;
+      }
+      ul {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      li .name {
+        flex: 1 1 10rem;
+        min-width: 0;
+        font-weight: 600;
+      }
+      li .host {
+        display: block;
+        font-weight: 400;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+      li .problem {
+        flex-basis: 100%;
+        margin-top: 0;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .button {
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        border: 1px solid var(--button);
+      }
+      .button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .link {
+        margin-top: 28px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 1.45rem;
+        letter-spacing: -0.01em;
+        margin: 40px 0 10px;
+      }
+      h3 {
+        font-size: 1.02rem;
+        margin: 22px 0 4px;
+      }
+      main p + p {
+        margin-top: 12px;
+      }
+      main ul {
+        display: block;
+        border: 0;
+        list-style: disc;
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      main li {
+        display: list-item;
+        padding: 3px 0;
+        border: 0;
+      }
+      main ol {
+        margin: 10px 0 0;
+        padding-left: 24px;
+      }
+      main ol li {
+        padding: 6px 0;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        font:
+          0.82rem/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+    <script defer src="/analytics.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body>
+    <main>
+      <a href="/"
+        ><img class="mark light" src="/wordmark-light.svg" alt="Majordome" /><img
+          class="mark dark"
+          src="/wordmark-dark.svg"
+          alt="Majordome"
+      /></a>
+      <h1>Your own server</h1>
+      <p class="muted">
+        Majordome on a Linux server you rent, so it keeps working while your computer is off.
+      </p>
+
+      <h2>What you need</h2>
+      <ul>
+        <li>
+          A Linux server with at least 2 GB of memory, from any company that rents them. The
+          smallest one that fits costs about €5 a month, paid to that company. Majordome charges
+          nothing.
+        </li>
+        <li>
+          A free <a href="https://tailscale.com">Tailscale</a> account. Tailscale keeps the server
+          private: nothing on it is reachable from the internet, only from your own devices.
+        </li>
+        <li>Your own Claude plan. You sign in to it on the server.</li>
+      </ul>
+
+      <h2>Set it up</h2>
+      <ol>
+        <li>
+          <strong>Make a Tailscale key</strong> on
+          <a href="https://login.tailscale.com/admin/settings/keys">Tailscale's keys page</a>, and
+          turn on HTTPS Certificates on its
+          <a href="https://login.tailscale.com/admin/dns">DNS page</a>.
+        </li>
+        <li>
+          <strong>Run one command on the server</strong>, as root, with your own time zone so
+          routines follow your clock:
+          <pre>
+curl -fsSL https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install.sh | TZ=Europe/Paris sh</pre>
+          It asks for the key, installs what is missing, starts Majordome, makes it update itself
+          every night, and ends with a link. Running it again is safe, and gives a new link.
+        </li>
+        <li>
+          <strong>Connect.</strong> In Majordome on your computer, open Settings, then Your servers,
+          press Add a computer and paste the link. Then press Move my notes to your server.
+        </li>
+        <li>
+          <strong>Sign in to Claude on the server</strong>, in its Settings, under AI accounts: open
+          the link it shows, approve, and paste back the code Claude gives you.
+        </li>
+        <li>
+          <strong>Set up your phone</strong> from Phone &amp; notifications on your computer, with
+          nothing to install on the phone.
+        </li>
+      </ol>
+
+      <h2>With a phone and no computer</h2>
+      <p>It works, but it was built for someone who also has a computer:</p>
+      <ul>
+        <li>
+          Install the Tailscale app on the phone and sign in to the same account, so the phone can
+          reach the server.
+        </li>
+        <li>
+          Open the link the command prints on the phone, or paste it in Add a computer in the
+          Majordome app.
+        </li>
+        <li>There are no notes to move. The server starts with an empty notes folder.</li>
+        <li>Sign in to Claude from the phone, in the server's Settings, under AI accounts.</li>
+      </ul>
+
+      <h2>More</h2>
+      <p>
+        The
+        <a
+          href="https://github.com/Wozacosta/majordome/blob/main/docs/user/always-on-server.md#use-a-server-you-already-have"
+          >full guide</a
+        >
+        covers doing each step by hand, keeping your computer and the server in step, updates, and
+        what to do when something goes wrong.
+      </p>
+    </main>
+  </body>
+</html>
