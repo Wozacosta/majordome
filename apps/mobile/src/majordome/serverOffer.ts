@@ -10,3 +10,9 @@ export const serverOfferAtom = Atom.make<ServerOffer | null>(null).pipe(
   Atom.keepAlive,
   Atom.withLabel("majordome:server-offer"),
 );
+
+/** Whether the signed-in account already has a Majordome server, which is offered instead of a sale. */
+export const accountHasServerAtom = Atom.make(false).pipe(
+  Atom.keepAlive,
+  Atom.withLabel("majordome:account-has-server"),
+);

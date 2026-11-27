@@ -32,7 +32,7 @@ import {
   MAJORDOME_SERVER,
 } from "./connectWording";
 import { isMajordome } from "./env";
-import { serverOfferAtom } from "./serverOffer";
+import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
 import {
   alreadyConnected,
   brokerUrl,
@@ -63,6 +63,7 @@ import {
   payingOffered,
   paymentArrived,
   purchaseFailure,
+  type BillingStatusResult,
   readBillingStatus,
   serverCheckout,
   serverOffer,
@@ -302,7 +303,9 @@ export function installServerPurchases(): () => void {
     const id = session?.id ?? null;
     if (id === signedInAs) return;
     signedInAs = id;
-    if (id !== null) void settleUnfinished();
+    if (id === null) return appAtomRegistry.set(accountHasServerAtom, false);
+    void settleUnfinished();
+    void readAccountStatus();
   });
   const listening = store.addListener("purchase", (purchase) => void settle(purchase));
   void settleUnfinished();
@@ -324,14 +327,23 @@ export function installServerPurchases(): () => void {
   };
 }
 
+/** Reads what the signed-in account has, so a screen offers its server before selling one. */
+async function readAccountStatus(): Promise<BillingStatusResult | null> {
+  const token = await accountToken();
+  const read = token === null ? null : await readBillingStatus(fetch, BROKER_URL, token);
+  appAtomRegistry.set(
+    accountHasServerAtom,
+    read?.kind === "status" && (read.status.live || read.status.hasServer),
+  );
+  return read;
+}
+
 /** Shows the website's offer, with its price once someone is signed in. */
 function installWebOffer(): () => void {
   let signedInAs: string | null = null;
   const showPrice = async () => {
-    const token = await accountToken();
-    if (token === null) return;
-    const read = await readBillingStatus(fetch, BROKER_URL, token);
-    if (read.kind === "status" && read.status.web !== null) {
+    const read = await readAccountStatus();
+    if (read?.kind === "status" && read.status.web !== null) {
       appAtomRegistry.set(serverOfferAtom, webServerOffer(read.status.web));
     }
   };
@@ -339,7 +351,8 @@ function installWebOffer(): () => void {
     const id = session?.id ?? null;
     if (id === signedInAs) return;
     signedInAs = id;
-    if (id !== null) void showPrice();
+    if (id === null) appAtomRegistry.set(accountHasServerAtom, false);
+    else void showPrice();
   });
   void (async () => {
     if (!(await webPayingOffered(fetch, BROKER_URL))) return;

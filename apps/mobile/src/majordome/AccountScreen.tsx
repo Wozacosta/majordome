@@ -31,8 +31,8 @@ import {
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
 import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
-import { BROKER_URL, manageSubscription } from "./hostedSignup";
-import { serverOfferAtom } from "./serverOffer";
+import { BROKER_URL, connectToServer, manageSubscription } from "./hostedSignup";
+import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
 // A build with no account service has no way in here.
@@ -61,6 +61,7 @@ function SignedIn() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const serverOffer = useAtomValue(serverOfferAtom);
+  const ownsServer = useAtomValue(accountHasServerAtom);
   const connections = useAtomValue(savedConnectionsByIdAtom);
   const servers = readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ });
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
@@ -137,7 +138,21 @@ function SignedIn() {
             Signed in as {email}
           </Text>
         )}
-        {servers.length === 0 ? (
+        {servers.length === 0 && ownsServer ? (
+          <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-5">
+            <Text textRole="headline" className="font-t3-bold text-foreground">
+              {MAJORDOME_ACCOUNT.yourServer}
+            </Text>
+            <Button
+              label={MAJORDOME_SERVER.connect}
+              tone="primary"
+              onPress={() => {
+                openSettings(navigation, "SettingsHostedSignup");
+                void connectToServer();
+              }}
+            />
+          </View>
+        ) : servers.length === 0 ? (
           <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-5">
             <Text textRole="headline" className="font-t3-bold text-foreground">
               {MAJORDOME_ACCOUNT.noComputerTitle}

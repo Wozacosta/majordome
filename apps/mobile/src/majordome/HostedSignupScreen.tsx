@@ -35,7 +35,7 @@ import {
   SOLD_ON_WEB,
 } from "./hostedSignup";
 import type { SignupNote } from "./hostedSignup.logic";
-import { serverOfferAtom } from "./serverOffer";
+import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
 
 function Progress(props: { readonly text: string }) {
   return (
@@ -143,6 +143,10 @@ function ServerCard(props: {
 function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () => void }) {
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const offer = useAtomValue(serverOfferAtom);
+  const ownsServer = useAtomValue(accountHasServerAtom);
+  const note: SignupNote | null =
+    props.note ??
+    (ownsServer && isSignedIn ? { kind: "hasServer", message: MAJORDOME_SERVER.hasServer } : null);
   const email = useUser().user?.primaryEmailAddress?.emailAddress;
   const run = (action: () => Promise<void>) => () => {
     void Haptics.selectionAsync();
@@ -185,8 +189,8 @@ function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () 
         price={offer === null ? null : (offer.trial ?? offer.price)}
         what={hosted.what}
       >
-        <Note note={props.note} />
-        {props.note?.kind === "hasServer" && isSignedIn ? (
+        <Note note={note} />
+        {note?.kind === "hasServer" && isSignedIn ? (
           <Button
             label={MAJORDOME_SERVER.connect}
             tone="primary"

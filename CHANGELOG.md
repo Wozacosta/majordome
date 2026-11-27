@@ -65,6 +65,10 @@ Not released yet.
 - **Connecting an iPhone to the server you already have ends on your list of servers.** It
   used to stop on a nearly empty page saying "This phone is connected to your server", with
   a Done button to press.
+- **Signing in on the phone finds the Majordome server your account already has.** The
+  account page used to say "Your account has no computer yet", and the server page offered
+  Subscribe; the server only appeared after pressing it. Both now show **Connect this phone
+  to it** as soon as you are signed in.
 
 **Try this**
 

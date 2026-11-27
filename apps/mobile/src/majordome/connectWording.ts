@@ -53,6 +53,7 @@ export function connectErrorForOwner(message: string): string {
 
 /** The Majordome account screen, for someone who signed in and expects their computer to be there. */
 export const MAJORDOME_ACCOUNT = {
+  yourServer: "Your Majordome server",
   noComputerTitle: "Your account has no computer yet",
   noComputer:
     "On your computer, open Majordome and go to Settings, then Your account. Sign in there with this same account and follow what it says. Then come back here.",
