@@ -38,6 +38,9 @@ export const CHAT_SETUP_WORDS = [
 type Word = (typeof CHAT_SETUP_WORDS)[number];
 
 const CHIPS_SHOWN = 8;
+/** A list with a note longer than this shows names only; a name opens onto its note. */
+const NOTE_SHOWN = 60;
+const CARET = '<svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 
 /** Paths of the pages this server drew, which `html_render` shows whatever the chat may read. */
 const drawnPages = new Set<string>();
@@ -132,13 +135,13 @@ const STYLE = `
 .node.soft{border-style:dashed}
 .node.none{opacity:.55}
 .face{display:flex;gap:10px;align-items:flex-start}
-summary.face{list-style:none;cursor:pointer;border-radius:4px}
-summary.face::-webkit-details-marker{display:none}
-summary.face:focus-visible{outline:2px solid var(--ring);outline-offset:6px}
+summary{list-style:none;cursor:pointer;outline:none}
+summary::-webkit-details-marker{display:none}
+details.node:has(>summary:focus-visible){border-color:var(--tone)}
 details.node:hover,details.node[open]{border-color:color-mix(in srgb,var(--tone) 50%,var(--border))}
 .caret{flex:none;margin:7px 0 0 auto;width:14px;height:14px;stroke:var(--muted-foreground);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s cubic-bezier(.2,0,0,1)}
-details.node.on .caret{transform:rotate(180deg)}
-details.node.on .chips{display:none}
+details.on>summary .caret{transform:rotate(180deg)}
+details.node.on>summary .chips{display:none}
 .ic{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:color-mix(in srgb,var(--tone) 14%,transparent)}
 .ic svg{width:16px;height:16px;stroke:var(--tone);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .body{min-width:0;flex:1;padding-top:1px}
@@ -150,12 +153,17 @@ details.node.on .chips{display:none}
 .chip i.warn{background:var(--warning)}.chip i.off{background:var(--muted-foreground)}
 .chip.more{background:none;color:var(--muted-foreground);padding-left:2px}
 .open{margin:10px 0 2px 38px;display:flex;flex-direction:column}
-details.node.on .open{animation:fade .22s ease-out}
+details.node.on>.open,details.row.on>span{animation:fade .22s ease-out}
 .row{padding:6px 0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .row+.row{border-top:1px solid var(--border)}
 .row b{font-weight:600}.row i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--success)}
 .row i.warn{background:var(--warning)}.row i.off{background:var(--muted-foreground)}
 .row span{display:block;color:var(--muted-foreground);font-size:11.5px}
+details.row{box-sizing:border-box}
+details.row>summary{display:flex;align-items:center}
+details.row>summary .caret{margin-top:0;width:12px;height:12px}
+details.row>summary:hover b,details.row>summary:focus-visible b{color:var(--tone)}
+details.row>span{padding-top:3px}
 .text+.text{margin-top:8px}
 .text h3{margin:0 0 3px;font-size:11px;font-weight:600;color:var(--muted-foreground)}
 .text pre{margin:0;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--font-mono);font-size:11px;line-height:1.5;background:var(--code-background);border-radius:calc(var(--radius) - 2px)}
@@ -173,7 +181,7 @@ details.node.on .open{animation:fade .22s ease-out}
 .left{order:2}.right{order:3}
 .left .branch>h2{text-align:left}
 }
-@media (prefers-reduced-motion:reduce){.wires.intro path,.wires.intro circle,details.node.on .open{animation:none!important;stroke-dasharray:none}.wires.intro path.soft{stroke-dasharray:2 5}.caret{transition:none}}`;
+@media (prefers-reduced-motion:reduce){.wires.intro path,.wires.intro circle,details.node.on>.open,details.row.on>span{animation:none!important;stroke-dasharray:none}.wires.intro path.soft{stroke-dasharray:2 5}.caret{transition:none}}`;
 
 // Each wire runs from the hub to its node: a curve on a wide page, a trunk with elbows on a phone.
 // A box opens and closes over 220ms; the wires follow it, redrawn as the map changes height.
@@ -186,8 +194,8 @@ out+='<path d="'+d+'" stroke="'+tone+'"'+(soft?' class="soft"':' pathLength="1"'
 svg.innerHTML=out}
 if(!still){svg.classList.add("intro");setTimeout(function(){svg.classList.remove("intro")},900)}
 draw();new ResizeObserver(draw).observe(map);
-map.querySelectorAll("details.node").forEach(function(box){var run=null,closing=false;
-box.querySelector("summary").addEventListener("click",function(event){event.preventDefault();
+map.querySelectorAll("details").forEach(function(box){var run=null,closing=false;
+box.querySelector("summary").addEventListener("click",function(event){event.preventDefault();event.stopPropagation();
 var from=box.getBoundingClientRect().height,open=box.open&&!closing;
 if(run){run.onfinish=null;run.cancel()}
 closing=open;box.open=!open;box.classList.toggle("on",!open);
@@ -225,17 +233,23 @@ function renderNode(node: Node): string {
     "</div>",
   ].join("");
   if (!opens) return `<div class="${classes}"><div class="face">${face}</div></div>`;
+  const foldsNotes = rows.some((row) => (row.note ?? "").length > NOTE_SHOWN);
   const opened = [
-    ...rows.map(
-      (row) =>
-        `<div class="row">${row.dot === undefined ? "" : `<i class="${row.dot}"></i>`}<b>${escapeHtml(row.name)}</b>${row.note === undefined || row.note.trim() === "" ? "" : `<span>${escapeHtml(row.note)}</span>`}</div>`,
-    ),
+    ...rows.map((row) => {
+      const name = `${row.dot === undefined ? "" : `<i class="${row.dot}"></i>`}<b>${escapeHtml(row.name)}</b>`;
+      const note = row.note === undefined || row.note.trim() === "" ? "" : escapeHtml(row.note);
+      if (note === "") return `<div class="row">${name}</div>`;
+      // Long notes stay behind their name, so a long list reads as a list.
+      return foldsNotes
+        ? `<details class="row"><summary>${name}${CARET}</summary><span>${note}</span></details>`
+        : `<div class="row">${name}<span>${note}</span></div>`;
+    }),
     ...texts.map(
       ([name, text]) =>
         `<div class="text">${texts.length > 1 ? `<h3>${escapeHtml(name)}</h3>` : ""}<pre>${escapeHtml(text)}</pre></div>`,
     ),
   ].join("");
-  return `<details class="${classes}"><summary class="face">${face}<svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></summary><div class="open">${opened}</div></details>`;
+  return `<details class="${classes}"><summary class="face">${face}${CARET}</summary><div class="open">${opened}</div></details>`;
 }
 
 const renderBranch = (tone: "k" | "u" | "r", title: string, nodes: ReadonlyArray<Node>) =>

@@ -103,17 +103,16 @@
         gap: 10px;
         align-items: flex-start;
       }
-      summary.face {
+      summary {
         list-style: none;
         cursor: pointer;
-        border-radius: 4px;
+        outline: none;
       }
-      summary.face::-webkit-details-marker {
+      summary::-webkit-details-marker {
         display: none;
       }
-      summary.face:focus-visible {
-        outline: 2px solid var(--ring);
-        outline-offset: 6px;
+      details.node:has(> summary:focus-visible) {
+        border-color: var(--tone);
       }
       details.node:hover,
       details.node[open] {
@@ -131,10 +130,10 @@
         stroke-linejoin: round;
         transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1);
       }
-      details.node.on .caret {
+      details.on > summary .caret {
         transform: rotate(180deg);
       }
-      details.node.on .chips {
+      details.node.on > summary .chips {
         display: none;
       }
       .ic {
@@ -213,7 +212,8 @@
         display: flex;
         flex-direction: column;
       }
-      details.node.on .open {
+      details.node.on > .open,
+      details.row.on > span {
         animation: fade 0.22s ease-out;
       }
       .row {
@@ -247,6 +247,25 @@
         display: block;
         color: var(--muted-foreground);
         font-size: 11.5px;
+      }
+      details.row {
+        box-sizing: border-box;
+      }
+      details.row > summary {
+        display: flex;
+        align-items: center;
+      }
+      details.row > summary .caret {
+        margin-top: 0;
+        width: 12px;
+        height: 12px;
+      }
+      details.row > summary:hover b,
+      details.row > summary:focus-visible b {
+        color: var(--tone);
+      }
+      details.row > span {
+        padding-top: 3px;
       }
       .text + .text {
         margin-top: 8px;
@@ -356,7 +375,8 @@
       @media (prefers-reduced-motion: reduce) {
         .wires.intro path,
         .wires.intro circle,
-        details.node.on .open {
+        details.node.on > .open,
+        details.row.on > span {
           animation: none !important;
           stroke-dasharray: none;
         }
@@ -460,16 +480,27 @@ Keep the ledger in euros.</pre>
               <svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
             </summary>
             <div class="open">
-              <div class="row">
-                <b>file-receipts</b
-                ><span>Files a receipt under the right month and adds it to the ledger.</span>
-              </div>
-              <div class="row">
-                <b>weekly-recap</b><span>Writes Friday's recap from the week's daily notes.</span>
-              </div>
-              <div class="row">
-                <b>book-a-table</b><span>Finds a table and holds it until you confirm.</span>
-              </div>
+              <details class="row">
+                <summary>
+                  <b>file-receipts</b
+                  ><svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+                </summary>
+                <span>Files a receipt under the right month and adds it to the ledger.</span>
+              </details>
+              <details class="row">
+                <summary>
+                  <b>weekly-recap</b
+                  ><svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+                </summary>
+                <span>Writes Friday's recap from the week's daily notes.</span>
+              </details>
+              <details class="row">
+                <summary>
+                  <b>book-a-table</b
+                  ><svg class="caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+                </summary>
+                <span>Finds a table and holds it until you confirm.</span>
+              </details>
             </div>
           </details>
           <details class="node">
@@ -784,11 +815,12 @@ Called the bank about the transfer.</pre>
         }
         draw();
         new ResizeObserver(draw).observe(map);
-        map.querySelectorAll("details.node").forEach(function (box) {
+        map.querySelectorAll("details").forEach(function (box) {
           var run = null,
             closing = false;
           box.querySelector("summary").addEventListener("click", function (event) {
             event.preventDefault();
+            event.stopPropagation();
             var from = box.getBoundingClientRect().height,
               open = box.open && !closing;
             if (run) {

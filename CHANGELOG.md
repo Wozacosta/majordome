@@ -5,7 +5,11 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **The map lists skills by name.** An opened **Skills** box used to show every description at
+  once. It now shows the names; click one to read what it does. The same goes for any box whose
+  lines carry long notes.
 
 **Changed**
 
