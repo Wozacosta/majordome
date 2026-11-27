@@ -44,7 +44,14 @@ final class T3SidebarTabBarView: ExpoView, UITabBarDelegate {
     didSet { if tabs != oldValue { updateItems() } }
   }
   var selectedTab = "threads" { didSet { updateSelection() } }
-  var selectedColor: UIColor = .systemBlue { didSet { tabBar.tintColor = selectedColor } }
+  var selectedColor: UIColor = .systemBlue {
+    didSet {
+      tabBar.tintColor = selectedColor
+      configureCompose()
+    }
+  }
+  /** The words under the icons, by tab, in the app's language. */
+  var labels: [String: String] = [:] { didSet { if labels != oldValue { updateTitles() } } }
   var compact = false {
     didSet {
       tabBarTrailing.constant = showsCompose ? (compact ? -64 : -76) : 0
@@ -94,14 +101,16 @@ final class T3SidebarTabBarView: ExpoView, UITabBarDelegate {
   }
 
   private func configureCompose() {
+    // The one action beside the places to go: it alone carries the accent colour.
     var configuration: UIButton.Configuration
     if #available(iOS 26.0, *) {
-      configuration = .glass()
+      configuration = .prominentGlass()
     } else {
-      configuration = .gray()
+      configuration = .filled()
     }
     configuration.cornerStyle = .capsule
-    configuration.baseForegroundColor = .label
+    configuration.baseBackgroundColor = selectedColor
+    configuration.baseForegroundColor = .white
     configuration.image = tabIcon(UIImage(systemName: "square.and.pencil"))
     composeButton.configuration = configuration
   }
@@ -118,13 +127,21 @@ final class T3SidebarTabBarView: ExpoView, UITabBarDelegate {
       "threads": "text.bubble", "workflows": "point.3.connected.trianglepath.dotted",
       "usage": "sun.max", "settings": "gearshape",
     ]
+    let selectedSymbols = ["threads": "text.bubble.fill", "usage": "sun.max.fill", "settings": "gearshape.fill"]
     for (tab, label) in labels {
       let icon = tab == "pullRequests" ? pullRequestIcon : tab == "issues" ? issueIcon : UIImage(systemName: symbols[tab] ?? "circle")
-      let item = UITabBarItem(title: nil, image: tabIcon(icon), tag: 0)
+      let item = UITabBarItem(title: label, image: tabIcon(icon), tag: 0)
       item.accessibilityLabel = label
       item.accessibilityIdentifier = "workspace-tab-\(tab)"
-      if tab == "threads" { item.selectedImage = tabIcon(UIImage(systemName: "text.bubble.fill")) }
+      if let selected = selectedSymbols[tab] { item.selectedImage = tabIcon(UIImage(systemName: selected)) }
       itemsByTab[tab] = item
+    }
+  }
+
+  private func updateTitles() {
+    for (tab, label) in labels {
+      itemsByTab[tab]?.title = label
+      itemsByTab[tab]?.accessibilityLabel = label
     }
   }
 

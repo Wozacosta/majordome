@@ -4,7 +4,12 @@ import { View, useWindowDimensions, type NativeSyntheticEvent, type ViewProps } 
 import { useControlTheme } from "../../../components/ui/useControlTheme";
 import { nativeSidebarColumnWidth } from "../../../lib/layout";
 import { useDeviceType } from "../../../native/native-layout-metrics";
-import { useNavigationTabOrder, useHiddenNavigationTabs } from "./navigation-tabs";
+import { useGT, useMessages } from "gt-react-native";
+import {
+  WORKSPACE_TAB_LABELS,
+  useNavigationTabOrder,
+  useHiddenNavigationTabs,
+} from "./navigation-tabs";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
 import { useSelectWorkspaceTab } from "./useSelectWorkspaceTab";
 import { useFloatingWorkspaceTabs } from "./useSystemWorkspaceTabBar";
@@ -14,6 +19,7 @@ import { useAdaptiveWorkspaceLayout } from "../adaptive-workspace-context";
 const NativeSidebarTabBar = requireNativeView<
   ViewProps & {
     tabs: readonly string[];
+    labels: Readonly<Record<string, string>>;
     selectedTab: string;
     selectedColor: string;
     appearance: string;
@@ -30,6 +36,8 @@ const NativeSidebarTabBar = requireNativeView<
  */
 export function WorkspaceTabDock(props: { readonly placement: "column" | "window" }) {
   const workspace = useWorkspaceTabs()!;
+  const gt = useGT();
+  const m = useMessages();
   const { layout } = useAdaptiveWorkspaceLayout();
   const deviceType = useDeviceType();
   const { width: windowWidth } = useWindowDimensions();
@@ -52,6 +60,9 @@ export function WorkspaceTabDock(props: { readonly placement: "column" | "window
           : windowWidth;
   // UIKit loses accessible names when updating nil-titled items in place.
   const tabBarKey = tabs.join(":");
+  const labels = Object.fromEntries(
+    tabs.map((tab) => [tab, tab === "settings" ? gt("Settings") : m(WORKSPACE_TAB_LABELS[tab])]),
+  );
   return (
     <View
       pointerEvents="box-none"
@@ -66,6 +77,7 @@ export function WorkspaceTabDock(props: { readonly placement: "column" | "window
       <NativeSidebarTabBar
         key={tabBarKey}
         tabs={tabs}
+        labels={labels}
         selectedTab={selectedNavigationTab(
           order,
           workspace.state.selectedTab,

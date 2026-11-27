@@ -18,6 +18,8 @@ The section for a version is also the text of its release on GitHub.
 - **A first Today on the iPhone is no longer blank.** Until you have a chat, an empty Today offers
   three lines to try (a touch writes one in the box) and the ready-made topics. Touching a topic
   adds it and opens its chat.
+- **The iPhone's bottom bar has words.** Today, Chats and Settings are written under their icons,
+  the one you are on has a filled icon, and New chat is the one coloured button.
 
 ## 0.10.78
 
