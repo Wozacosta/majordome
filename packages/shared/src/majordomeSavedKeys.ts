@@ -185,3 +185,13 @@ export function savedKeyPlaceLine<Id extends string>(
     ? `${where} Chats answered on ${nameOf(answers)} can't use it: save it again to have it on ${there} too.`
     : `${where} Save it again to have it on ${there} too.`;
 }
+
+/**
+ * A saved value as it may be shown: its first and last characters around stars, so the owner can
+ * tell which one it is. A short value shows none of its characters.
+ */
+export function maskedSavedKey(value: string): string {
+  const characters = Array.from(value.trim());
+  if (characters.length < 8) return "*".repeat(characters.length);
+  return `${characters[0]}${"*".repeat(Math.min(characters.length - 2, 12))}${characters.at(-1)}`;
+}

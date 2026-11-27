@@ -34,7 +34,7 @@ The landing page and the README show a short version of this list.
 - **A note about you** (`me.md`): your name, contact details, work and household, for forms,
   bookings and letters. Every conversation starts with your name and contact details, the
   assistant fills the note as you mention things, and passport, tax and bank numbers stay out of
-  it, encrypted with your saved keys. New notes greet you on Today, on the computer or the phone, ask what
+  it, encrypted with your saved keys, and are answered masked (`2*******7`) unless you ask for all of one. New notes greet you on Today, on the computer or the phone, ask what
   to call you and show how Majordome works in three steps. [About you](./user/about-you.md)
 - **The notes layout and skills from [obrain](../packages/obrain)**, which lives in this
   repository and is published to npm as `obrain`.

@@ -52,6 +52,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
     filled by a routine would otherwise wait), Settings saves one on every computer, and the
     last-day reminder fits a passport. Unlike an API key, such a number has to be read to be
     typed into a form, so it reaches the model for that turn; the tools say it goes nowhere else.
+  - Asked "what's my passport id?", the assistant read the file and wrote the number in its
+    reply, which left it in the chat history (2026-11-27). `use_saved_key` now also returns the
+    value masked to its first and last characters: the assistant answers with that and leaves
+    the file unread, and says the whole number only when the owner has to type it themselves
+    or asks for all of it.
   - A run's commit subject is the chat's title, which starts as the owner's first words. A real
     run put the passport number in the notes' history that way, so the subject leaves out long
     runs of digits and long unbroken strings (`withoutNumbers`).

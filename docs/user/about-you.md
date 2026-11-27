@@ -50,6 +50,10 @@ Give the day a document expires and you are reminded in its last month, as for a
 When a form needs the number, your assistant takes it from there without asking you again. It has
 to read the number to type it, so for that one task the number does reach the AI service you use.
 
+Ask "what's my passport number?" and it answers with the first and last characters only, such as
+`2*******7`, so the number is not left in the chat. Ask for all of it when you need to type it
+somewhere yourself.
+
 Each of your computers keeps its own saved keys. **Settings → Passwords and keys** saves a number
 on every computer that holds your notes, and says when one of them is missing it.
 

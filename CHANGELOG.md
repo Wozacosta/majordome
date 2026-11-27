@@ -5,6 +5,18 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+**Changed**
+
+- **Your assistant no longer writes a saved number in full when you ask what it is.** Ask
+  "what's my passport number?" and it answers with the first and last characters, such as
+  `2*******7`, without reading the number, so it stays out of the chat history. It gives all of
+  it when you say you need to type it yourself. It also uses the masked form whenever it
+  mentions a saved key.
+
+**Try this**
+
+- Ask "what's my passport id?", then "give me all of it".
+
 Not released yet.
 
 **New**

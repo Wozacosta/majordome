@@ -12,7 +12,7 @@ import { SavedKeysToolkit } from "./tools.ts";
 /** What the agent reads with each answer. Model-facing: evals/mcp-tool-use covers it. */
 const SAVED_KEY_NOTES = {
   ready:
-    "Read the file only inside the command that needs the key. Never print it, say it in chat or write it in the notes folder. The one exception is an identity or bank number: read it to fill the form or letter that needs it, or to tell the owner who asks for it, and repeat it nowhere else.",
+    "Read the file only inside the command that needs the key, so the value never shows in your output. Never print it, say it in chat or write it in the notes folder. To mention it, use `masked`. When the owner asks what an identity or bank number is, answer with `masked` and leave the file unread. Give such a number in full only when they need to type it themselves or ask for all of it: then read the file, say it once and repeat it nowhere else.",
   saved:
     "Saved on this computer. The owner sees it in Settings, Passwords and keys, and can remove it there.",
   dated: "Saved the day it stops working. Near that day you are told when you take the key.",
@@ -69,6 +69,7 @@ const handlers = {
         return {
           status: "ready" as const,
           file: taken.value.file,
+          masked: taken.value.masked,
           note: SAVED_KEY_NOTES.ready + endingNote(expiresOn, yield* Clock.currentTimeMillis),
         };
       }

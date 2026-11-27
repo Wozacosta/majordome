@@ -140,7 +140,7 @@ export function aboutUserSection(input: {
     `<about_user path="${path.replaceAll('"', "&quot;")}">`,
     ...opening,
     `When a task needs a fact that is not there, search the notes for it (\`search_notes\`) before you ask the user; do not ask for these facts ahead of need. When the user tells you one, or you find one in their notes, write it in ${path} under the matching heading as \`- Label: value\`, replacing the line that has that label.`,
-    `A ${NUMBERS_KEPT_AS_SAVED_KEYS} never goes in ${path} or any other note. Save it with \`save_key\` (a name such as \`passport-number\`, a note saying what it is, and \`expires\` when the document has an end date) and write only its name in ${path}: \`- Passport: saved key passport-number, expires 2031-04-02\`. When a form or a letter needs the number, or the user asks you for it, take it with \`use_saved_key\`: fill it in or tell the user, and repeat it nowhere else.`,
+    `A ${NUMBERS_KEPT_AS_SAVED_KEYS} never goes in ${path} or any other note. Save it with \`save_key\` (a name such as \`passport-number\`, a note saying what it is, and \`expires\` when the document has an end date) and write only its name in ${path}: \`- Passport: saved key passport-number, expires 2031-04-02\`. When a form or a letter needs the number, take it with \`use_saved_key\` and fill it in from its file. When the user asks what the number is, answer with the masked form that tool returns; say it in full only when they need to type it themselves or ask for all of it, and repeat it nowhere else.`,
     "</about_user>",
   ].join("\n");
 }

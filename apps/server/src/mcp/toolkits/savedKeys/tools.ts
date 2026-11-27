@@ -52,11 +52,14 @@ const ListSavedKeysTool = Tool.make("list_saved_keys", {
 
 const UseSavedKeyTool = Tool.make("use_saved_key", {
   description:
-    'Take one saved key for a command, by its `list_saved_keys` name. Returns `file`: read it only inside the command that needs it, e.g. `curl -H "Authorization: Bearer $(cat <file>)" <url>`. Never print the key, say it in chat or write it in the notes folder. The one exception is a saved identity or bank number (passport, tax, IBAN): when a form or a letter needs it, or the owner asks you for it, read the file and fill it in or tell the owner, and repeat it nowhere else.',
+    'Take one saved key for a command, by its `list_saved_keys` name. Returns `file`: read it only inside the command that needs it, e.g. `curl -H "Authorization: Bearer $(cat <file>)" <url>`. Never print the key, say it in chat or write it in the notes folder. Also returns `masked`, its first and last characters: use that whenever you mention the value. When the owner asks what a saved identity or bank number is (passport, tax, IBAN), answer with `masked` and leave the file unread. Give such a number in full only when the owner needs to type it themselves or asks for all of it: then read the file, say it once and repeat it nowhere else. A form or a letter you fill in yourself takes the number from the file.',
   parameters: Schema.Struct({ name: Schema.String.check(Schema.isMinLength(1)) }),
   success: Schema.Struct({
     status: Schema.Literals(["ready", "unknown_key"]),
     file: Schema.optional(Schema.String),
+    masked: Schema.optional(Schema.String).annotate({
+      description: "The value with all but its first and last characters hidden.",
+    }),
     note: Schema.String,
   }),
   failure: OrchestratorMcpFailure,

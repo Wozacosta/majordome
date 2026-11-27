@@ -6,6 +6,7 @@ import {
   savedKeyDayFrom,
   savedKeyLine,
   savedKeyNameFrom,
+  maskedSavedKey,
   savedKeyPlaceLine,
   savedKeyStanding,
 } from "./majordomeSavedKeys.ts";
@@ -111,5 +112,12 @@ describe("the keys of several computers as one list", () => {
     ]);
     expect(rows[0]).toMatchObject({ on: ["mac"], missing: [] });
     expect(savedKeyPlaceLine(rows[0]!, nameOf, "server")).toBeNull();
+  });
+
+  it("masks a value down to its first and last characters", () => {
+    expect(maskedSavedKey("25AB12345\n")).toBe("2*******5");
+    expect(maskedSavedKey("sk_live_" + "a".repeat(40))).toBe("s************a");
+    // Too short to give two characters away.
+    expect(maskedSavedKey("1234")).toBe("****");
   });
 });

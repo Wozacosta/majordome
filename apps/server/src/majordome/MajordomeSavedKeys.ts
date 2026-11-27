@@ -20,6 +20,7 @@ import {
   removeSecret,
   setSecret,
 } from "@t3tools/secret-provider-encrypted-file/server/store";
+import { maskedSavedKey } from "@t3tools/shared/majordomeSavedKeys";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as DateTime from "effect/DateTime";
@@ -70,7 +71,10 @@ export class MajordomeSavedKeys extends Context.Service<
      */
     readonly use: (input: {
       readonly name: string;
-    }) => Effect.Effect<Option.Option<{ readonly file: string }>, MajordomeSavedKeysError>;
+    }) => Effect.Effect<
+      Option.Option<{ readonly file: string; readonly masked: string }>,
+      MajordomeSavedKeysError
+    >;
   }
 >()("t3/majordome/MajordomeSavedKeys") {}
 
@@ -299,7 +303,7 @@ const make = Effect.gen(function* () {
       ...notes,
       [input.name]: { note: "", ...notes[input.name], lastUsedAt: yield* now },
     });
-    return Option.some({ file });
+    return Option.some({ file, masked: maskedSavedKey(value) });
   }, lock.withPermits(1));
 
   return MajordomeSavedKeys.of({ list, save, setExpiry, remove, use });

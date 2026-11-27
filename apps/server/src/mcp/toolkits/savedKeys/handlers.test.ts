@@ -64,7 +64,9 @@ it.effect(
             }),
           use: ({ name }) =>
             Effect.succeed(
-              name === "strava" ? Option.none() : Option.some({ file: "/state/secrets/files/abc" }),
+              name === "strava"
+                ? Option.none()
+                : Option.some({ file: "/state/secrets/files/abc", masked: "g********n" }),
             ),
           setExpiry: (input) => {
             saved.push(input);
@@ -253,11 +255,12 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
           expect(yield* fileSystem.readFileString(path)).not.toContain(number);
         }
 
-        // A form needs it: the reply says where it is, and that it goes in the form only.
+        // The reply carries the number masked, and says to answer the owner with that.
         const taken = yield* result("use_saved_key", { name: "passport-number" });
         expect(taken).toMatchObject({
           status: "ready",
-          note: expect.stringContaining("to fill the form or letter that needs it"),
+          masked: `${number[0]}${"*".repeat(number.length - 2)}${number.at(-1)}`,
+          note: expect.stringContaining("answer with `masked` and leave the file unread"),
         });
         expect(JSON.stringify(taken)).not.toContain(number);
         expect(yield* fileSystem.readFileString((taken as { readonly file: string }).file)).toBe(
