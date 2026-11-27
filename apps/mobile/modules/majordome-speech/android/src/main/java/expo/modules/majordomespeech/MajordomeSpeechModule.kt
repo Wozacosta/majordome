@@ -5,7 +5,11 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 private class SpeechUnavailable :
-  CodedException("ERR_SPEECH_UNAVAILABLE", "The on-device voice is not available on Android yet.", null)
+  CodedException(
+    "ERR_SPEECH_UNAVAILABLE",
+    "The on-device voice is not available on Android yet.",
+    null,
+  )
 
 /**
  * The same surface as the iPhone module, answering "not available": the app

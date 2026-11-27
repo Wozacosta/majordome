@@ -109,6 +109,11 @@ vi.mock("react-native", () => ({
       props.children,
     ),
 }));
+vi.mock("../majordome/speaking/ReadAloudButton", () => ({
+  ReadAloudButton: () => null,
+  readAloudReplyKey: () => "",
+  useStopReadAloudOnLeave: () => {},
+}));
 vi.mock("../components/PierreEntryIcon", () => ({ PierreEntryIcon: () => null }));
 vi.mock("../components/ui/AppText", () => ({
   AppText: ({ children }: { children?: ReactNode }) => createElement("span", null, children),
