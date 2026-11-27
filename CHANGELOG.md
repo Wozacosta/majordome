@@ -7,6 +7,12 @@ The section for a version is also the text of its release on GitHub.
 
 **Changed**
 
+- **A key saved on one computer says which one lacks it.** In Settings, Passwords and keys, the
+  line under such a key now reads "Save it again to have it on this Mac too" instead of "to have
+  it everywhere".
+
+**Changed**
+
 - **The iPhone's server screen offers your own server first.** "An always-on server" now shows
   two choices: your own server, recommended, with a guide at
   [majord.me/own-server](https://majord.me/own-server), and a Majordome server, as before.

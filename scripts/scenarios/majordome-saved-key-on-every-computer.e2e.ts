@@ -79,7 +79,7 @@ test(
       // One list for both computers; the older key says where it is missing.
       await t3.open("/settings/secrets");
       await expect(
-        screen.getByText("Save it again to have it everywhere", { exact: false }),
+        screen.getByText("Save it again to have it on", { exact: false }),
       ).toBeVisible({ timeout: 60_000 });
       await app.screenshot("key-on-one-computer");
 
@@ -110,7 +110,7 @@ test(
       await screen.getByLabel("The key").fill("age_on_both");
       await screen.getByRole("button", "Replace key").tap();
       await expect(
-        screen.getByText("Save it again to have it everywhere", { exact: false }),
+        screen.getByText("Save it again to have it on", { exact: false }),
       ).toBeHidden();
       expect(await savedNames(SECOND_HOME)).toContain("myage");
 
