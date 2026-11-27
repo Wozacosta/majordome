@@ -5433,6 +5433,8 @@
   "c849c4014bea3bd5": "Hämta rösten först.",
   "4733de0c647ba0df": "Mät rösten",
   "fc55b1e4d03f6f2b": "Hämtar rösten",
+  "9247efc04c825fcd": "{received} av {megabytes} MB",
+  "7e6d9186ea77f0b0": "{megabytes} MB, hämtas en gång.",
   "10909d616cad2863": "Hämtningen var skadad. Försök igen.",
   "33668507c56accb9": "Hämtningen avbröts. Försök igen.",
   "039bf87bcc7ba2de": "Hämta med mobildata",

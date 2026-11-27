@@ -236,7 +236,8 @@ describe("Read aloud on a reply", () => {
     expect(fake.said).toEqual([]);
 
     await act(async () => root.render(<VoiceDownloadSheet />));
-    expect(container.querySelector("h1")?.textContent).toBe("Download the voice (145 MB)");
+    expect(container.querySelector("h1")?.textContent).toBe("Voice");
+    expect(container.textContent).toContain("145 MB, downloaded once.");
     await press("Download on mobile data");
 
     expect(readAloud!.store.getState()).toEqual({ status: "ready" });

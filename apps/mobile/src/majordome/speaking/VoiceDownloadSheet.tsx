@@ -37,7 +37,7 @@ export function VoiceDownloadSheet() {
     <FitSheet
       header={
         <SheetHeader
-          title={gt("Download the voice ({megabytes} MB)", { megabytes })}
+          title={gt("Voice")}
           onClose={() => {
             readAloud?.store.cancel();
             navigation.goBack();
@@ -46,20 +46,34 @@ export function VoiceDownloadSheet() {
       }
     >
       {state.status === "downloading" ? (
-        <Progress
-          value={state.received / state.total}
-          label={gt("Downloading the voice")}
-          className="py-4"
-        />
+        <>
+          <Progress
+            value={state.received / state.total}
+            label={gt("Downloading the voice")}
+            className="pt-2"
+          />
+          <Text className="text-sm text-foreground-muted">
+            {gt("{received} of {megabytes} MB", {
+              received: Math.floor((megabytes * state.received) / state.total),
+              megabytes,
+            })}
+          </Text>
+        </>
       ) : (
         <>
-          {state.status === "failed" ? (
-            <Text className="text-sm text-danger-foreground">
-              {state.reason === "verification"
+          <Text
+            className={
+              state.status === "failed"
+                ? "text-sm text-danger-foreground"
+                : "text-sm text-foreground-muted"
+            }
+          >
+            {state.status !== "failed"
+              ? gt("{megabytes} MB, downloaded once.", { megabytes })
+              : state.reason === "verification"
                 ? gt("The download was damaged. Try again.")
                 : gt("The download stopped. Try again.")}
-            </Text>
-          ) : null}
+          </Text>
           <Button
             fullWidth
             tone="primary"

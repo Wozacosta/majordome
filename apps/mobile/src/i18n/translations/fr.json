@@ -5427,6 +5427,8 @@
   "c849c4014bea3bd5": "Téléchargez d’abord la voix.",
   "4733de0c647ba0df": "Mesurer la voix",
   "fc55b1e4d03f6f2b": "Téléchargement de la voix",
+  "9247efc04c825fcd": "{received} sur {megabytes} Mo",
+  "7e6d9186ea77f0b0": "{megabytes} Mo, téléchargés une seule fois.",
   "10909d616cad2863": "Le téléchargement est endommagé. Réessayez.",
   "33668507c56accb9": "Le téléchargement s’est arrêté. Réessayez.",
   "039bf87bcc7ba2de": "Télécharger avec les données mobiles",
