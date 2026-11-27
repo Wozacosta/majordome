@@ -11,6 +11,9 @@ private class SpeechUnavailable :
     null,
   )
 
+// A lambda that only throws returns Nothing, which Expo's function builders cannot take.
+private fun unavailable(): Any? = throw SpeechUnavailable()
+
 /**
  * The same surface as the iPhone module, answering "not available": the app
  * hides Read aloud when `isAvailable()` is false. The sherpa-onnx AAR and an
@@ -24,18 +27,18 @@ class MajordomeSpeechModule : Module() {
 
     Function("isAvailable") { false }
 
-    AsyncFunction("load") { _: String, _: Map<String, Any?> -> throw SpeechUnavailable() }
+    AsyncFunction("load") { _: String, _: Map<String, Any?> -> unavailable() }
 
     AsyncFunction("unload") { }
 
-    Function("speak") { _: String, _: Map<String, Any?> -> throw SpeechUnavailable() }
+    Function("speak") { _: String, _: Map<String, Any?> -> unavailable() }
 
     Function("stop") { }
 
     Function("listenForHeadsetButton") { _: Boolean -> }
 
-    AsyncFunction("measure") { _: String, _: Map<String, Any?> -> throw SpeechUnavailable() }
+    AsyncFunction("measure") { _: String, _: Map<String, Any?> -> unavailable() }
 
-    AsyncFunction("sha256") { _: String -> throw SpeechUnavailable() }
+    AsyncFunction("sha256") { _: String -> unavailable() }
   }
 }

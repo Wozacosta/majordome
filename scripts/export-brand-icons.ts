@@ -313,6 +313,51 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
   ]);
 });
 
+// The phone app's Android pieces, drawn on a clear canvas: the launcher masks and tints them.
+const ANDROID_ASSETS = "apps/mobile/assets";
+const WHITE = { ink: "#ffffff", live: "#ffffff", highlight: null } as const;
+
+const bareMarkSvg = (
+  marks: MasterMarks,
+  colors: { readonly ink: string; readonly live: string; readonly highlight: string | null },
+  options: { readonly size: number; readonly scale: number; readonly small?: boolean },
+) => {
+  const master = options.small ? marks.clocheSmall : marks.cloche;
+  const viewBox = options.small ? 16 : 40;
+  const inset = (options.size * (1 - options.scale)) / 2;
+  const box = options.size * options.scale;
+  let body = svgBody(master)
+    .replaceAll(MASTER_INK, colors.ink)
+    .replaceAll(MASTER_LIVE, colors.live);
+  body =
+    colors.highlight === null
+      ? body.replace(/<path id="highlight"[^>]*\/>/, "")
+      : body.replaceAll(MASTER_HIGHLIGHT, colors.highlight);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${options.size}" height="${options.size}"><svg x="${inset}" y="${inset}" width="${box}" height="${box}" viewBox="0 0 ${viewBox} ${viewBox}">${body}</svg></svg>`;
+};
+
+const renderAndroid = Effect.fn("iconExport.renderAndroid")(function* (marks: MasterMarks) {
+  const cream = { ink: PALETTE.cream, live: PALETTE.live, highlight: PALETTE.ink };
+  const ink = { ink: PALETTE.ink, live: PALETTE.live, highlight: "#ffffff" };
+  // An adaptive icon shows the middle 66 of its 108 units; a launch icon the middle two thirds.
+  const outputs = [
+    ["majordome-android-foreground.png", bareMarkSvg(marks, cream, { size: 432, scale: 0.52 })],
+    ["majordome-android-monochrome.png", bareMarkSvg(marks, WHITE, { size: 432, scale: 0.52 })],
+    [
+      "majordome-android-notification.png",
+      bareMarkSvg(marks, WHITE, { size: 96, scale: 1, small: true }),
+    ],
+    ["majordome-android-splash-light.png", bareMarkSvg(marks, ink, { size: 1152, scale: 0.44 })],
+    ["majordome-android-splash-dark.png", bareMarkSvg(marks, cream, { size: 1152, scale: 0.44 })],
+  ] as const;
+  return yield* Effect.forEach(outputs, ([name, svg]) => {
+    const output = `${ANDROID_ASSETS}/${name}`;
+    return rasterize(svg, output, false).pipe(
+      Effect.map((contents) => [output, contents] as const),
+    );
+  });
+});
+
 export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOnly: boolean) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -337,6 +382,9 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
     for (const [relativePath, contents] of yield* renderVariant(marks, variant)) {
       generated.set(relativePath, contents);
     }
+  }
+  for (const [relativePath, contents] of yield* renderAndroid(marks)) {
+    generated.set(relativePath, contents);
   }
   // The project favicon resolver shows this vector tile at sidebar size, so it uses the small mark.
   generated.set(

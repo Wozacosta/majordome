@@ -46,7 +46,12 @@ it.each([
   // Upstream's domains and update server only know upstream's app.
   expect(config.ios?.associatedDomains).toEqual(["applinks:*.majord.link"]);
   expect(config.updates).toEqual({ enabled: false });
-  expect(config.android?.package).toBe(`com.t3tools.t3code${suffix}`);
-  const { android: _android, ...shown } = config;
-  expect(JSON.stringify(shown)).not.toMatch(/T3 Code|t3tools/);
+  expect(config.android?.package).toBe(`io.github.wozacosta.majordome${suffix}`);
+  expect(config.android?.adaptiveIcon).toEqual({
+    foregroundImage: "./assets/majordome-android-foreground.png",
+    monochromeImage: "./assets/majordome-android-monochrome.png",
+    backgroundColor: "#14161c",
+  });
+  expect(config.android?.intentFilters).toEqual([]);
+  expect(JSON.stringify(config)).not.toMatch(/T3 Code|t3tools|assets\/android-/);
 });

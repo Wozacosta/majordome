@@ -8,6 +8,8 @@ import { BRAND_ASSET_PATHS } from "../../../scripts/lib/brand-assets.ts";
 const UPSTREAM_BUNDLE_ID = "com.t3tools.t3code";
 const MAJORDOME_BUNDLE_ID = "io.github.wozacosta.majordome.ios";
 const MAJORDOME_APPLE_TEAM_ID = "5RDKJ8PDGZ";
+// The Android name has no platform in it; the suffix a variant adds (.dev, .preview) stays.
+const androidPackage = (iosBundleId: string) => iosBundleId.replace(".ios", "");
 
 // Every variant wears the cloche; upstream's dev and nightly icons are upstream's logo.
 const ICONS = [
@@ -49,14 +51,58 @@ function withMajordomeSplash(plugins: ExpoConfig["plugins"]): ExpoConfig["plugin
   });
 }
 
+// Rendered by `vp run icons:export`. Android masks and tints these, so they are the cloche on a
+// clear canvas; upstream's are upstream's logo.
+const ANDROID_ICON_BACKGROUND = "#14161c";
+const ANDROID_ASSETS = [
+  ["./assets/android-icon-foreground.png", "./assets/majordome-android-foreground.png"],
+  ["./assets/android-icon-mark.png", "./assets/majordome-android-monochrome.png"],
+  ["./assets/android-notification-icon.png", "./assets/majordome-android-notification.png"],
+] as const;
+
+function withMajordomeAndroidPlugins(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
+  return plugins?.map((plugin) => {
+    if (!Array.isArray(plugin)) return plugin;
+    const [name, options] = plugin;
+    if (name === "expo-splash-screen") {
+      return [
+        name,
+        {
+          ...options,
+          android: {
+            image: "./assets/majordome-android-splash-light.png",
+            imageWidth: 288,
+            dark: { image: "./assets/majordome-android-splash-dark.png" },
+          },
+        },
+      ];
+    }
+    if (name === "expo-notifications") return [name, { ...options, color: "#3ddc84" }];
+    if (name === "expo-quick-actions") {
+      const foregroundImage = options?.androidIcons?.shortcut_icon?.foregroundImage;
+      return [
+        name,
+        {
+          ...options,
+          androidIcons: {
+            shortcut_icon: { foregroundImage, backgroundColor: ANDROID_ICON_BACKGROUND },
+          },
+        },
+      ];
+    }
+    return plugin;
+  });
+}
+
 const majordomeScheme = (scheme: string) => scheme.replace(/^t3code/, "majordome");
 
 export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   const renamed = JSON.parse(
-    ICONS.reduce(
-      (text, [upstream, majordome]) => text.replaceAll(upstream, majordome),
-      JSON.stringify(config),
-    )
+    [...ICONS, ...ANDROID_ASSETS]
+      .reduce(
+        (text, [upstream, majordome]) => text.replaceAll(upstream, majordome),
+        JSON.stringify(config),
+      )
       .replaceAll(UPSTREAM_BUNDLE_ID, MAJORDOME_BUNDLE_ID)
       .replaceAll("T3 Code", "Majordome"),
   ) as ExpoConfig;
@@ -65,7 +111,9 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   return {
     ...rest,
     slug: "majordome",
-    plugins: withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
+    plugins: withMajordomeAndroidPlugins(
+      withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
+    ),
     ...(renamed.scheme === undefined
       ? {}
       : {
@@ -84,8 +132,18 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
       // root names this app (infra/broker), so a server's pairing code opens the app.
       associatedDomains: ["applinks:*.majord.link"],
     },
-    // Android is not built; its identifiers stay upstream's.
-    ...(config.android ? { android: config.android } : {}),
+    android: {
+      ...renamed.android,
+      ...(renamed.android?.package ? { package: androidPackage(renamed.android.package) } : {}),
+      adaptiveIcon: {
+        foregroundImage: renamed.android?.adaptiveIcon?.foregroundImage,
+        monochromeImage: renamed.android?.adaptiveIcon?.monochromeImage,
+        backgroundColor: ANDROID_ICON_BACKGROUND,
+      },
+      // Upstream's filter opens links to upstream's hosted app. A Majordome address is a
+      // person's own server, and opening it in the app needs a signed release to vouch for.
+      intentFilters: [],
+    },
     extra,
   };
 }

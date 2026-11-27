@@ -135,7 +135,10 @@ export const hashBundle = Effect.fn("hashBundle")(function* (root: string) {
 });
 type FileSystemError = import("effect/PlatformError").PlatformError;
 
-const bundleId = "io.github.wozacosta.majordome.ios.dev";
+const appIds = {
+  ios: "io.github.wozacosta.majordome.ios.dev",
+  android: "io.github.wozacosta.majordome.dev",
+} as const;
 const roots = Effect.gen(function* () {
   const path = yield* Path.Path;
   const repo = yield* path.fromFileUrl(new URL("../", import.meta.url));
@@ -372,14 +375,23 @@ export const installedBinary = Effect.fn("installedBinary")(function* (
 ) {
   if (platform === "ios") {
     const apps = yield* run("xcrun", ["simctl", "listapps", device]);
-    if (!apps.includes(`"${bundleId}"`)) return null;
+    if (!apps.includes(`"${appIds.ios}"`)) return null;
     return yield* hashBundle(
-      yield* run("xcrun", ["simctl", "get_app_container", device, bundleId, "app"]),
+      yield* run("xcrun", ["simctl", "get_app_container", device, appIds.ios, "app"]),
     );
   }
-  const installed = yield* run("adb", ["-s", device, "shell", "pm", "list", "packages", bundleId]);
-  if (!installed.split("\n").some((line) => line.trim() === `package:${bundleId}`)) return null;
-  const packages = yield* run("adb", ["-s", device, "shell", "pm", "path", bundleId]);
+  const installed = yield* run("adb", [
+    "-s",
+    device,
+    "shell",
+    "pm",
+    "list",
+    "packages",
+    appIds.android,
+  ]);
+  if (!installed.split("\n").some((line) => line.trim() === `package:${appIds.android}`))
+    return null;
+  const packages = yield* run("adb", ["-s", device, "shell", "pm", "path", appIds.android]);
   const apks = packages
     .split("\n")
     .filter((line) => line.startsWith("package:"))
@@ -1061,7 +1073,7 @@ const install = Effect.fn("nativeClient.install")(function* (
         Effect.fail(
           error.message.includes("INSTALL_FAILED_UPDATE_INCOMPATIBLE")
             ? new NativeClientError({
-                message: `The installed client has a different signature. Remove it with adb -s ${device} uninstall ${bundleId} (this clears its pairings), then run ensure again.`,
+                message: `The installed client has a different signature. Remove it with adb -s ${device} uninstall ${appIds.android} (this clears its pairings), then run ensure again.`,
               })
             : error,
         ),
@@ -1178,7 +1190,7 @@ const installIntoSession = Effect.fn("nativeClient.installIntoSession")(function
         yield* Console.error(`Installing into agent-device session ${session}...`);
         yield* command(
           node,
-          [agentDevice, "install", bundleId, local.file, ...target],
+          [agentDevice, "install", appIds[platform], local.file, ...target],
           true,
           workspace,
           agentDeviceEnvironment,
@@ -1192,7 +1204,7 @@ const installIntoSession = Effect.fn("nativeClient.installIntoSession")(function
       [
         agentDevice,
         "open",
-        bundleId,
+        appIds[platform],
         `majordome-dev://expo-development-client/?url=${url}&disableOnboarding=1&disableFab=1&disableAutoLaunch=1`,
         ...target,
       ],
