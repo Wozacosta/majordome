@@ -4,6 +4,7 @@ import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScroll
 import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
+import { useNavigation } from "@react-navigation/native";
 import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText as Text } from "../../components/ui/AppText";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { useDeadlinePassed } from "../../lib/clock";
+import { isMajordome } from "../../majordome/env";
 import {
   type AppUpdateCheckState,
   isAppUpdateCheckAvailable,
@@ -42,6 +44,7 @@ export function SettingsAboutRouteScreen() {
 
 function AppSettingsSection() {
   const gt = useGT();
+  const navigation = useNavigation();
   const [checkState, setCheckState] = useState<{
     readonly state: AppUpdateCheckState;
     // "Up to date" is a confirmation that fades back to idle.
@@ -141,12 +144,13 @@ function AppSettingsSection() {
         target="SettingsOpenSourceLicenses"
       />
       <SettingsRow icon="doc.text" label={gt("Legal")} fullScreenTarget="SettingsLegal" />
-      {updateCheckAvailable ? (
+      {updateCheckAvailable || isMajordome ? (
         <Pressable
           accessibilityLabel={gt("Version {version}", { version: versionLabel })}
           accessibilityRole="text"
           disabled={busy}
           onPress={handleVersionPress}
+          onLongPress={isMajordome ? () => navigation.navigate("SettingsTesting") : undefined}
         >
           {versionRow}
         </Pressable>

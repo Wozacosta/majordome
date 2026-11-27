@@ -11,8 +11,11 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as SecureRandom from "effect/crypto/SecureRandom";
+import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import * as Scope from "effect/Scope";
 import { Argument, Command, Flag } from "effect/cli";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import { start } from "../scenarios/start-app.ts";
 
@@ -32,6 +35,8 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
   readonly webPort: string;
   /** Keeps the free replay assistant, for looking at screens rather than testing a first run. */
   readonly replay: boolean;
+  /** Shows the copy in this machine's browser, for a person rather than a test. */
+  readonly open: boolean;
 }) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -39,6 +44,8 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
   const node = yield* HostProcess.ExecutablePath;
   const checkout = yield* HostProcess.WorkingDirectory;
   const hostEnvironment = yield* HostProcess.Environment;
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const opener = (yield* HostProcess.Platform) === "darwin" ? "/usr/bin/open" : "xdg-open";
 
   const ownerHome = path.join(input.home, "owner");
   const bin = path.join(input.home, "bin");
@@ -69,6 +76,7 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
     if (entry !== "" && !(yield* fs.exists(path.join(entry, "claude")))) pathEntries.push(entry);
   }
   const origin = `http://${input.host}:${input.webPort}`;
+  const scope = yield* Effect.scope;
   const serverPort = String(yield* net.reserveLoopbackPort());
   const token = yield* (yield* SecureRandom.SecureRandom).uuidV4();
   const env = {
@@ -92,6 +100,16 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
     origin,
     ...args,
   ];
+  const show = (pairingPath: string) =>
+    net.hasListenerOnHost(Number(input.webPort), input.host).pipe(
+      Effect.filterOrFail((listening) => listening),
+      Effect.retry({ schedule: Schedule.spaced("500 millis"), times: 600 }),
+      Effect.andThen(spawner.spawn(ChildProcess.make(opener, [`${origin}${pairingPath}`]))),
+      Effect.andThen(Console.log(`A new owner's copy is open at ${origin}. Ctrl-C ends it.`)),
+      Effect.ignore,
+      Scope.provide(scope),
+      Effect.forkIn(scope),
+    );
   const server = yield* start({
     cwd: checkout,
     command: node,
@@ -106,9 +124,10 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
       if (url === undefined) return Console.log(line);
       // The link is a credential: it goes to a file the tests read, never to the log.
       const { pathname, search, hash } = new URL(url);
+      const pairingPath = `${pathname}${search}${hash}`;
       return fs
-        .writeFileString(path.join(input.home, "pairing-path"), `${pathname}${search}${hash}`)
-        .pipe(Effect.ignore);
+        .writeFileString(path.join(input.home, "pairing-path"), pairingPath)
+        .pipe(Effect.ignore, Effect.andThen(input.open ? show(pairingPath) : Effect.void));
     },
   });
   const web = yield* start({
@@ -132,6 +151,10 @@ const command = Command.make(
       Flag.withDescription(
         "Keep the free replay assistant, to look at screens with a chat in them.",
       ),
+    ),
+    open: Flag.Boolean("open").pipe(
+      Flag.withDefault(false),
+      Flag.withDescription("Open the copy in this machine's browser once it is up."),
     ),
   },
   (input) =>

@@ -49,6 +49,7 @@
     "mobile:e2e": "node scripts/mobile-e2e.ts",
     "scenarios": "vp run --filter @t3tools/scripts scenarios",
     "first-run": "vp run --filter @t3tools/scripts first-run",
+    "new-owner": "node scripts/first-run/start.ts --open \"${TMPDIR:-/tmp}/majordome-new-owner\" 127.0.0.1 5811",
     "scenarios:prove": "node scripts/prove-scenario.ts",
     "test": "vp run -r test",
     "bench": "vp run -r bench",

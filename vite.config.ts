@@ -376,6 +376,7 @@ export default defineConfig({
         files: [
           "apps/web/src/components/settings/AuthorizedClientsSettings.tsx",
           "apps/mobile/src/features/updates/app-updates.ts",
+          "apps/mobile/src/majordome/TestingScreen.tsx",
           "apps/web/src/components/device/DevicePhoneViewport.tsx",
           "apps/web/src/components/device/DeviceDuoViewport.tsx",
         ],

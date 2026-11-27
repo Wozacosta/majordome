@@ -481,6 +481,18 @@ export function resetHostedSignup(): void {
   if (step === "done" || step === "idle") appAtomRegistry.set(hostedSignupAtom, SIGNUP_IDLE);
 }
 
+/** Drops a signup wherever it stands, with what the phone kept of it. For starting over. */
+export function forgetHostedSignup(): void {
+  appAtomRegistry.set(hostedSignupAtom, SIGNUP_IDLE);
+  writing = writing
+    .then(async () => {
+      await keepPairingUrl(null);
+      const file = await progressFile();
+      if (file.exists) file.delete();
+    })
+    .catch(() => undefined);
+}
+
 export type OpenSetupResult = "opened" | "notAllowed" | "failed";
 
 export const SETUP_NOT_ALLOWED =

@@ -7,6 +7,16 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **A Testing screen on the phone, out of sight.** Hold the version number in Settings, About.
+  **Start over as new** signs you out and forgets every computer, so the app opens on its
+  welcome again. Your notes and your account are not touched.
+
+**Try this**
+
+- In Settings, About, hold **Version**, then press **Start over as new**.
+
 ## 0.10.87
 
 **New**

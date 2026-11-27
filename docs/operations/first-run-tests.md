@@ -14,6 +14,15 @@ FIRST_RUN_REPLAY=1 vp run first-run first-run/today-offers-first-topics.e2e.ts
 CLAUDE_CODE_OAUTH_TOKEN=... vp run first-run first-run/signed-in-claude-answers.e2e.ts
 ```
 
+To click through a new owner's copy yourself, `vp run new-owner` starts the same stack and opens
+it in your browser; Ctrl-C ends it. Add `--replay` (`vp run new-owner --replay`) for a ready
+assistant. It uses its own home under `$TMPDIR` and never touches the installed app.
+
+On the phone, hold the version in Settings, About, for the Testing screen: **Start over as new**
+signs out and forgets every computer. A build with the development account key also lists test
+accounts to sign in as with one tap (`+clerk_test` addresses, which production does not have):
+a new one each time, and three kept ones that stay as you left them.
+
 Run one file per run: the app command recreates the home, and each test starts from nothing.
 Results land in `scripts/.e2e-first-run`.
 
