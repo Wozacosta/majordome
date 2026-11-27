@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.87
+
 **New**
 
 - **The voice, on Android.** The speaker button under an answer reads it aloud, and the round
