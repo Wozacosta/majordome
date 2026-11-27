@@ -84,6 +84,16 @@ export const SCENARIOS = [
     name: "Table and a file",
     file: "./dev-replay/table_and_file_transcript.ndjson",
   },
+  {
+    id: "read-aloud",
+    name: "Prose around a code block",
+    file: "./dev-replay/read_aloud_transcript.ndjson",
+  },
+  {
+    id: "read-aloud-french",
+    name: "Prose in French",
+    file: "./dev-replay/read_aloud_french_transcript.ndjson",
+  },
 ] as const;
 
 // Session setup and vendor state stay out: they would replace the replay agent's own models.
