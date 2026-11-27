@@ -116,8 +116,8 @@ The landing page and the README show a short version of this list.
 - **Your phone with nothing to install:** scan a code, add the app to your Home Screen, get
   notifications. It works away from home over a private address.
   [Phone and notifications](./user/phone-and-notifications.md)
-- **Claude's sign-in from the phone app:** Claude's page opens as a sheet over the app and the
-  code is pasted back, for a server with no screen; new notes start from the same card.
+- **Claude's sign-in from the phone app:** Claude's page opens in the phone's browser and the
+  code is pasted back in the app, for a server with no screen; new notes start from the same card.
 - **A reinstalled iPhone app starts clean:** it forgets the computers and the sign-in iOS kept
   from the deleted copy, and opens on a welcome.
 - **A phone app that takes in someone with nothing yet:** its first screen has a way for people

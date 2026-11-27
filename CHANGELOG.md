@@ -7,6 +7,18 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **On the iPhone, Claude's sign-in opens in Safari.** It opened as a sheet inside Majordome,
+  which knows none of your accounts, so you had to sign in to Google or Claude from scratch.
+  Safari already has them. The box for the code stays in Majordome.
+
+**Try this**
+
+- On the iPhone, with a server where Claude is not signed in, press **Sign in** on Today's
+  Claude card: Safari opens. Approve, copy the code, come back to Majordome and press
+  **Paste code**.
+
 ## 0.10.85
 
 **New**

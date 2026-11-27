@@ -15,7 +15,7 @@ import { AsyncResult } from "effect/reactivity";
 import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
 import { type ReactNode, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 
 import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text, AppTextInput as TextInput } from "../components/ui/AppText";
@@ -68,7 +68,7 @@ function useMachineName(environmentId: EnvironmentId): string {
 }
 
 /**
- * Claude's sign-in for the computer, done on the phone: its page opens as a sheet over the app
+ * Claude's sign-in for the computer, done on the phone: its page opens in the phone's browser
  * and the code it shows is pasted back. With `onlyWhenNeeded` nothing shows unless Claude is
  * waiting for a sign-in.
  */
@@ -97,15 +97,19 @@ export function ClaudeSignInCard(props: {
   );
   if (props.onlyWhenNeeded && row.kind !== "signIn" && step.kind === "idle") return null;
 
+  // iOS keeps the in-app browser's cookies apart from Safari's, so the owner would sign in to
+  // Google or Claude again there. Android's in-app tab shares Chrome's.
   const openPage = async (url: string) => {
-    try {
-      await WebBrowser.openBrowserAsync(url, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-      });
-    } catch {
-      if (!(await tryOpenExternalUrl(url, "provider-auth"))) {
-        setProblem("Claude's sign-in page couldn't be opened. Try again.");
+    if (Platform.OS !== "ios") {
+      try {
+        await WebBrowser.openBrowserAsync(url);
+        return;
+      } catch {
+        // Falls through to the phone's own browser.
       }
+    }
+    if (!(await tryOpenExternalUrl(url, "provider-auth"))) {
+      setProblem("Claude's sign-in page couldn't be opened. Try again.");
     }
   };
 
@@ -201,7 +205,7 @@ export function ClaudeSignInCard(props: {
       {step.kind === "link" ? (
         <>
           <Text className="text-foreground">
-            Approve on Claude's page, copy the code it shows, then paste it here.
+            Approve on Claude's page, copy the code it shows, then come back and paste it here.
           </Text>
           <TextInput
             accessibilityLabel="Code from Claude"
