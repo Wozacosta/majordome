@@ -9,6 +9,16 @@ Not released yet.
 
 **New**
 
+- **Talk with your assistant on the iPhone.** When the message box is empty, the round button
+  where Send sits starts a conversation: you speak, it answers aloud, and it listens again. Stop
+  talking and your words are sent, or touch Send. Touch the panel, or press play/pause on your
+  headset, to cut an answer short. While you talk, answers come as a few short sentences, with the
+  detail left on screen. When the assistant needs your approval or an answer, it says so and waits
+  for you to touch the card; it never approves by voice. Closing the panel, leaving the chat, a
+  phone call or 30 seconds of silence end the conversation, and words not yet sent stay in the
+  message box. **Talk**, on the app icon's menu, opens a new chat that listens at once. It uses
+  the same free voice as reading aloud, and needs iOS 26, or a computer or cloud model chosen for
+  voice input. Not on Android yet.
 - **Replies read aloud on the iPhone.** Under each answer, next to Copy, a speaker button reads it
   to you. Touch it again to stop. Code and tables are skipped, and a French answer is read in
   French. The voice is free and needs no key: it is made on the phone. The first time, Majordome
@@ -41,17 +51,6 @@ Not released yet.
 - **A number you type in a chat no longer ends up in your notes' history.** A chat's first words
   name the save of what it changed, so a passport number, an IBAN or a key typed there was kept
   in the history and in every backup. Long numbers and long unbroken strings are now left out.
-
-- **Talk with your assistant on the iPhone.** When the message box is empty, the round button
-  where Send sits starts a conversation: you speak, it answers aloud, and it listens again. Stop
-  talking and your words are sent, or touch Send. Touch the panel, or press play/pause on your
-  headset, to cut an answer short. While you talk, answers come as a few short sentences, with the
-  detail left on screen. When the assistant needs your approval or an answer, it says so and waits
-  for you to touch the card; it never approves by voice. Closing the panel, leaving the chat, a
-  phone call or 30 seconds of silence end the conversation, and words not yet sent stay in the
-  message box. **Talk**, on the app icon's menu, opens a new chat that listens at once. It uses
-  the same free voice as reading aloud, and needs iOS 26, or a computer or cloud model chosen for
-  voice input. Not on Android yet.
 
 **Try this**
 
