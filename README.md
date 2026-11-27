@@ -153,7 +153,7 @@ points the same engine at your notes.
 Majordome's own: Today, To-dos, Reading list, Topics, Key facts, a map of what the assistant has, routines in your words, an undo for
 what the assistant did, skills the
 assistant writes for itself, private documents, passwords and keys, backup and restore, a phone with nothing to install,
-and a server of your own set up for you. Coding stays in T3 Code.
+a spoken conversation with a free voice on the iPhone, and a server of your own set up for you. Coding stays in T3 Code.
 **[The full list](docs/vs-t3-code.md)**
 
 ## Install

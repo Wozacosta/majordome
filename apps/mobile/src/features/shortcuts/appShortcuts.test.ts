@@ -6,6 +6,7 @@ import {
   activeThreadRef,
   buildShortcutActions,
   shortcutHref,
+  talkShortcutAction,
   withRecentThreadShortcut,
 } from "./appShortcuts";
 
@@ -43,6 +44,7 @@ describe("buildShortcutActions", () => {
 describe("shortcutHref", () => {
   it("accepts exactly the destinations shortcuts can produce", () => {
     expect(shortcutHref({ id: "x", title: "x", params: { href: "/new" } })).toBe("/new");
+    expect(shortcutHref(talkShortcutAction())).toBe("/new?voice=1");
     expect(shortcutHref({ id: "x", title: "x", params: { href: "/threads/env-1/thread-2" } })).toBe(
       "/threads/env-1/thread-2",
     );
@@ -56,6 +58,7 @@ describe("shortcutHref", () => {
       "https://evil.example",
       "//evil.example",
       "/settings",
+      "/new?voice=1&x=1",
       "/threads/only-one-segment",
       "/threads/a/b/c",
       "/threads//x",

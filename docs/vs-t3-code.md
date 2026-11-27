@@ -84,6 +84,10 @@ The landing page and the README show a short version of this list.
 - **Replies read aloud by a free voice**, on the iPhone, in the Mac app and in a browser. The speech
   is made on the device, with no key and no account; the voice is downloaded once.
   [Reading replies aloud](./user/voice-input.md#reading-replies-aloud)
+- **A spoken conversation with Claude and your notes, on the iPhone.** You talk, the assistant
+  answers aloud in short sentences and listens again, in the same chat with the same notes and
+  tools. The voice is free and made on the phone. T3 Code has no voice conversation.
+  [Talking with the assistant](./user/voice-input.md#talking-with-the-assistant)
 
 ### An assistant that works without you
 

@@ -10,12 +10,14 @@ import {
   saveRecentThreadShortcuts,
   type RecentThreadShortcut,
 } from "../../persistence/imperative";
+import { noteTalkShortcut } from "../../majordome/voice-mode/newChatIntent";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentThreadShells } from "../../state/threads";
 import {
   activeThreadRef,
   buildShortcutActions,
   shortcutHref,
+  TALK_SHORTCUT_HREF,
   withRecentThreadShortcut,
 } from "./appShortcuts";
 
@@ -148,7 +150,11 @@ export function recordAppShortcutNavigationState(state: NavigationState): void {
  * a cold-start shortcut arrives as the launch action, and pushing it over the
  * initial Home route makes back return home instead of exiting the app.
  */
-export function installAppShortcuts(navigate: (href: string) => void): () => void {
+export function installAppShortcuts(open: (href: string) => void): () => void {
+  const navigate = (href: string) => {
+    noteTalkShortcut(href, TALK_SHORTCUT_HREF);
+    open(href);
+  };
   const initialHref = QuickActions.initial ? shortcutHref(QuickActions.initial) : null;
   if (initialHref !== null) navigate(initialHref);
   const subscription = QuickActions.addListener((action) => {

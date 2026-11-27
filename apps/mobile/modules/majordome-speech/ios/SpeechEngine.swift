@@ -30,6 +30,8 @@ final class SpeechEngine {
   var onSentenceStarted: ((Int) -> Void)?
   var onDrained: (() -> Void)?
   var onError: ((String) -> Void)?
+  /// Another app, or a phone call, took the audio session.
+  var onInterrupted: (() -> Void)?
 
   /// Synthesis runs here, one sentence at a time. Never block it on `state`.
   private let work = DispatchQueue(label: "majordome.speech.synthesis", qos: .userInitiated)
@@ -60,6 +62,7 @@ final class SpeechEngine {
       let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
       guard raw == AVAudioSession.InterruptionType.began.rawValue else { return }
       self?.interrupt()
+      self?.onInterrupted?()
     })
     // A route change (headphones pulled) stops the engine and drops what was scheduled.
     observers.append(center.addObserver(

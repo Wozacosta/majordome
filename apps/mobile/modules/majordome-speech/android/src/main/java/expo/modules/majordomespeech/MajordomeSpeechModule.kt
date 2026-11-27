@@ -20,7 +20,7 @@ class MajordomeSpeechModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("MajordomeSpeech")
 
-    Events("sentenceStarted", "drained", "error")
+    Events("sentenceStarted", "drained", "error", "interrupted", "headsetButton")
 
     Function("isAvailable") { false }
 
@@ -31,6 +31,8 @@ class MajordomeSpeechModule : Module() {
     Function("speak") { _: String, _: Map<String, Any?> -> throw SpeechUnavailable() }
 
     Function("stop") { }
+
+    Function("listenForHeadsetButton") { _: Boolean -> }
 
     AsyncFunction("measure") { _: String, _: Map<String, Any?> -> throw SpeechUnavailable() }
 

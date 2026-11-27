@@ -49,11 +49,10 @@ async function takeAudio(onTaken: () => void) {
   return null;
 }
 
-/** With VoiceOver on, says so first and waits, so two voices never overlap. */
-async function settle() {
+/** With VoiceOver on, says `announcement` first and waits, so two voices never overlap. */
+export async function announceAndWait(announcement: string) {
   if (!(await AccessibilityInfo.isScreenReaderEnabled())) return;
   await new Promise<void>((resolve) => {
-    const announcement = m(msg("Reading aloud"));
     const finish = () => {
       subscription?.remove();
       clearTimeout(timer);
@@ -79,7 +78,7 @@ function create(): ReadAloudRuntime | null {
     files: createVoiceFiles(directory, majordomeSpeech.sha256),
     directoryUri: directory.uri,
     takeAudio,
-    settle,
+    settle: () => announceAndWait(m(msg("Reading aloud"))),
     openDownload: () => {
       if (rootNavigationRef.isReady()) rootNavigationRef.navigate("VoiceDownload");
     },

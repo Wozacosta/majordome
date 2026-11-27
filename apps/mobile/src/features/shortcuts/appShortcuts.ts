@@ -11,6 +11,9 @@ const MAX_RECENT_THREAD_SHORTCUTS = 3;
 const NEW_TASK_SHORTCUT_ID = "new-task";
 const NEW_TASK_SHORTCUT_HREF = "/new";
 
+/** Opens a new chat that starts in voice mode. */
+export const TALK_SHORTCUT_HREF = "/new?voice=1";
+
 const SHORTCUT_ICON = "shortcut_icon";
 
 const THREAD_SHORTCUT_HREF_PATTERN = /^\/threads\/[^/?#]+\/[^/?#]+$/;
@@ -70,7 +73,11 @@ export function shortcutHref(action: Action): string | null {
     return null;
   }
 
-  return href === NEW_TASK_SHORTCUT_HREF || THREAD_SHORTCUT_HREF_PATTERN.test(href) ? href : null;
+  return href === NEW_TASK_SHORTCUT_HREF ||
+    href === TALK_SHORTCUT_HREF ||
+    THREAD_SHORTCUT_HREF_PATTERN.test(href)
+    ? href
+    : null;
 }
 
 export function withRecentThreadShortcut(
@@ -108,4 +115,14 @@ export function buildShortcutActions(recents: ReadonlyArray<RecentThreadShortcut
       params: { href: threadShortcutHref(thread) },
     })),
   ];
+}
+
+/** "Talk": a new chat that listens at once. Only where the phone can talk with the assistant. */
+export function talkShortcutAction(): Action {
+  return {
+    id: "talk",
+    title: m(msg("Talk", { $context: "verb, start talking with the assistant" })),
+    icon: "symbol:waveform",
+    params: { href: TALK_SHORTCUT_HREF },
+  };
 }

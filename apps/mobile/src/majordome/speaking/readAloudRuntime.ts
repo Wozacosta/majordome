@@ -53,7 +53,9 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
   let loaded: Promise<{ readonly voices: number }> | null = null;
   let unloadTimer: ReturnType<typeof setTimeout> | null = null;
   let voice = platform.readVoice();
-  let pending: ReadAloudRequest | null = null;
+  /** What the download was asked for: runs once the voice is on the phone. */
+  let pending: (() => void) | null = null;
+  let holds = 0;
   const voiceListeners = new Set<() => void>();
 
   const load = () => {
@@ -86,8 +88,8 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
       },
     },
     voiceReady: async () => (await store.refresh()).status === "ready",
-    offerDownload: (request) => {
-      pending = request;
+    offerDownload: (request: ReadAloudRequest) => {
+      pending = () => void controller.start(request);
       platform.openDownload();
     },
     takeAudio: platform.takeAudio,
@@ -99,25 +101,51 @@ export function createReadAloudRuntime(platform: ReadAloudPlatform) {
     onError: platform.reportError,
   });
 
-  controller.subscribe(() => {
+  const scheduleUnload = () => {
     if (unloadTimer) clearTimeout(unloadTimer);
     unloadTimer =
-      controller.getState().status === "idle"
+      holds === 0 && controller.getState().status === "idle"
         ? setTimeout(() => void unload(), UNLOAD_AFTER_MS)
         : null;
-  });
+  };
+  controller.subscribe(scheduleUnload);
 
   return {
     store,
     controller,
-    /** Downloads the voice, then reads the reply that asked for it. */
+    /** Downloads the voice, then does what asked for it. */
     download: async () => {
       const state = await store.download();
-      const request = pending;
-      // A failed download can be tried again from the same sheet, for the same reply.
+      const action = pending;
+      // A failed download can be tried again from the same sheet, for the same request.
       if (state.status !== "failed") pending = null;
-      if (state.status === "ready" && request) void controller.start(request);
+      if (state.status === "ready") action?.();
       return state;
+    },
+    /** Runs `action` with the voice on the phone, offering the download first when it is not. */
+    whenVoiceReady: async (action: () => void) => {
+      if ((await store.refresh()).status === "ready") return action();
+      pending = action;
+      platform.openDownload();
+    },
+    /** Loads the voice and keeps it loaded until the returned function is called. */
+    hold: async () => {
+      holds += 1;
+      scheduleUnload();
+      let held = true;
+      const release = () => {
+        if (!held) return;
+        held = false;
+        holds -= 1;
+        scheduleUnload();
+      };
+      try {
+        await load();
+      } catch (error) {
+        release();
+        throw error;
+      }
+      return release;
     },
     /** The sheet closed: forgets the waiting reply, unless its download is what closed it. */
     dismissDownload: () => {

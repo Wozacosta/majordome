@@ -15,6 +15,7 @@ import {
   MessageId,
   ModelSelection,
   OrchestrationMessageContext,
+  OrchestrationV2ReplyStyle,
   ProjectId,
   ProviderInteractionMode,
   RuntimeMode,
@@ -67,6 +68,7 @@ export const QueuedThreadMessageSchema = Schema.Struct({
   freshContext: Schema.optional(Schema.Boolean),
   runtimeMode: Schema.optional(RuntimeMode),
   interactionMode: Schema.optional(ProviderInteractionMode),
+  replyStyle: Schema.optional(OrchestrationV2ReplyStyle),
   creation: Schema.optional(QueuedThreadCreationSchema),
   createdAt: IsoDateTime,
 });
@@ -101,6 +103,8 @@ export interface QueuedThreadMessage {
   readonly modelSelection?: ModelSelectionType;
   readonly runtimeMode?: RuntimeModeType;
   readonly interactionMode?: ProviderInteractionModeType;
+  /** Said in voice mode: the answer is asked for as short spoken sentences. */
+  readonly replyStyle?: OrchestrationV2ReplyStyle;
   /** Captured at enqueue because draining may occur long after the tap. */
   readonly dispatchMode?: ComposerDispatchMode;
   /** Sends "When you return"'s `/compact` ahead of the message, which queues behind it. */

@@ -37,7 +37,12 @@ interface MajordomeSpeech {
     event: "sentenceStarted",
     listener: (event: { readonly id: number }) => void,
   ): { remove(): void };
-  addListener(event: "drained", listener: () => void): { remove(): void };
+  /** While on, the headset's play/pause button raises `headsetButton`. */
+  listenForHeadsetButton(enabled: boolean): void;
+  addListener(
+    event: "drained" | "interrupted" | "headsetButton",
+    listener: () => void,
+  ): { remove(): void };
   addListener(
     event: "error",
     listener: (event: { readonly message: string }) => void,

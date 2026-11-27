@@ -111,6 +111,7 @@ import IconPinnedOff from "@tabler/icons-react-native/IconPinnedOff";
 import IconPlayerPause from "@tabler/icons-react-native/IconPlayerPause";
 import IconPlayerPlay from "@tabler/icons-react-native/IconPlayerPlay";
 import IconPlayerStopFilled from "@tabler/icons-react-native/IconPlayerStopFilled";
+import IconWaveSine from "@tabler/icons-react-native/IconWaveSine";
 import IconVolume from "@tabler/icons-react-native/IconVolume";
 import IconPlus from "@tabler/icons-react-native/IconPlus";
 import IconQrcode from "@tabler/icons-react-native/IconQrcode";
@@ -286,6 +287,7 @@ const ANDROID_ICON_BY_SF_SYMBOL = {
   "sun.max": IconSun,
   "stop.fill": IconPlayerStopFilled,
   "speaker.wave.2": IconVolume,
+  waveform: IconWaveSine,
   target: IconTarget,
   terminal: IconTerminal2,
   "text.alignleft": IconAlignLeft,

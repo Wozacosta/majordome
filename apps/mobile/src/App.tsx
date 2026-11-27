@@ -111,6 +111,7 @@ import { pruneNewTaskBranchCheckouts } from "./features/threads/NewTaskDraftRout
 import { installAppUpdateChecks } from "./features/updates/app-updates";
 
 import { isMajordome } from "./majordome/env";
+import { installTalkShortcut } from "./majordome/voice-mode/talkShortcut";
 import { installFreshStart } from "./majordome/freshInstall";
 import { installServerPurchases } from "./majordome/hostedSignup";
 import { pairLinkAsAppLink } from "./majordome/pairLink";
@@ -237,6 +238,7 @@ const appServiceDisposers = [
   startIncomingShareInbox(),
   installAgentNotificationNavigation(linkToAppPath),
   installAppShortcuts(linkToAppPath),
+  installTalkShortcut(),
   installAppUpdateChecks(),
   installServerPurchases(),
   installFreshStart(),

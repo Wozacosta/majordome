@@ -1,7 +1,8 @@
 import { AudioModule, setAudioModeAsync, setIsAudioActiveAsync } from "expo-audio";
 
 type AudioSessionToken = {
-  readonly kind: "playback" | "recording";
+  /** "conversation" plays and records for a whole spoken exchange, so the route never jumps. */
+  readonly kind: "playback" | "recording" | "conversation";
   readonly onCancel?: () => void;
   readonly onRelease?: () => void;
   released: boolean;
@@ -47,7 +48,7 @@ export function acquireAudioSession(
   onRelease?: () => void,
 ) {
   const token: AudioSessionToken = { kind, onCancel, onRelease, released: false };
-  if (kind === "playback" && owner?.kind === "recording" && !owner.released) return token;
+  if (kind === "playback" && owner && owner.kind !== "playback" && !owner.released) return token;
   const previous = owner;
   // Publish before cancelling the old player, including callbacks already queued by Expo.
   AudioModule.setAudioSessionOwner?.(true);
@@ -69,8 +70,8 @@ export function activateAudioSession(
     // Video configures and activates its own native session, including moviePlayback on iOS.
     if (options.nativePlayback) return true;
     await setAudioModeAsync({
-      allowsRecording: token.kind === "recording",
-      ...(token.kind === "recording" && options.allowBluetoothRecording === false
+      allowsRecording: token.kind !== "playback",
+      ...(token.kind !== "playback" && options.allowBluetoothRecording === false
         ? { allowBluetoothRecording: false }
         : {}),
       interruptionMode: "doNotMix",
@@ -88,10 +89,10 @@ export function releaseAudioSession(token: AudioSessionToken): Promise<void> {
   return enqueue(async () => {
     if (owner !== token) return;
     try {
-      if (token.kind === "recording") await setAudioModeAsync({ allowsRecording: false });
+      if (token.kind !== "playback") await setAudioModeAsync({ allowsRecording: false });
     } finally {
       if (owner === token) {
-        if (token.kind === "recording") await setIsAudioActiveAsync(false);
+        if (token.kind !== "playback") await setIsAudioActiveAsync(false);
         // Expo pause releases the native session without disabling its global playback gate.
         // Repeat it after any pending activation, even if playback never started.
         token.onRelease?.();

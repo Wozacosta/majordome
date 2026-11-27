@@ -96,6 +96,7 @@ import { useComposerTextRole } from "../settings/appearance/useScaledTextRole";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 import { Menu } from "../../components/ui/Menu";
 import { isMajordome } from "../../majordome/env";
+import { useVoiceModeAvailable, VoiceModeButton } from "../../majordome/voice-mode/VoiceModeDock";
 import {
   composerRunsDraftLocally,
   type ActiveTurnComposerAction,
@@ -499,6 +500,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     props.sendBlockedReason ??
     (pendingPastedTextAttachmentCount > 0 ? gt("Attaching pasted text") : null) ??
     attachmentBlockReason;
+  const offersVoiceMode = useVoiceModeAvailable() && !hasContent && queuedEdit === null;
   const canSend =
     (props.canOperateThread || props.connectionState !== "connected") &&
     hasContent &&
@@ -1068,6 +1070,13 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
                     icon="play"
                     disabled={!props.canOperateThread || resumingQueue}
                     onPress={() => void handleResumeQueue()}
+                  />
+                ) : offersVoiceMode ? (
+                  <VoiceModeButton
+                    size={usesLargeControls ? "large" : "regular"}
+                    environmentId={props.environmentId}
+                    threadId={props.selectedThread.id}
+                    disabled={isSubmissionLocked || sendBlockedReason !== null}
                   />
                 ) : (
                   <SendActionButton

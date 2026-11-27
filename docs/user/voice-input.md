@@ -188,6 +188,37 @@ aloud asks for it again the next time.
 The voice is Supertonic 3, used under the BigScience OpenRAIL-M licence. Its use restrictions are
 in **Settings → About → Open source licenses**. Reading aloud is not available on Android yet.
 
+## Talking with the assistant
+
+On the iPhone you can talk instead of typing. When the message box is empty, the round button where
+Send sits starts a conversation in that chat: you speak, the assistant answers aloud, and it
+listens again. **Talk**, on the app icon's menu on the Home Screen, opens a new chat that listens
+at once.
+
+- **Your turn ends** about two seconds after you stop talking. Touch Send to end it yourself.
+- **To cut an answer short,** touch the panel or press play/pause on your headset. The assistant
+  stops, on your computer too, and listens. Talking over it does not interrupt it: the phone does
+  not listen while it speaks.
+- **Answers are shorter.** While you talk, the assistant is asked for a few spoken sentences with no
+  tables, lists or code, and to say that the detail is on screen when there is more. What you said
+  appears in the chat as a normal message.
+- **Approvals and questions.** The assistant says it needs your answer on screen and waits. Touch
+  the card to answer; the conversation goes on from there. Nothing you say approves anything.
+- **It ends** when you close the panel, leave the chat, take a call, switch apps, or say nothing for
+  30 seconds. Words not yet sent stay in the message box. If the connection drops during an answer,
+  you hear what had arrived, then that the connection was lost.
+
+The screen stays awake while the panel is open. A soft sound marks your message being sent, and a
+quieter one repeats while the assistant is thinking.
+
+What goes where: the assistant's voice is made on the phone, as for reading aloud, and asks for the
+same one-time download. What you say is transcribed wherever your voice input is set to: on the
+phone by default (iOS 26 or later), or on the computer or cloud model you chose under **Settings →
+Voice**. The words then go to your AI provider like any message you type.
+
+Talking needs iOS 26, or a computer or cloud model chosen for voice input on an earlier iPhone;
+without either, the button is not shown. It is not available on Android or in the desktop app yet.
+
 ## Test and troubleshoot
 
 In **Settings → Voice**, voice input uses the first connected microphone in the

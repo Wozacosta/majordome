@@ -187,6 +187,7 @@ import {
   connectionProblemInPlainWords,
 } from "../../majordome/conversation.logic";
 import { DEFAULT_TOOL_CALL_VISIBILITY, isMajordome } from "../../majordome/env";
+import { useVoiceModeActive, VoiceModeDock } from "../../majordome/voice-mode/VoiceModeDock";
 import { ComposerErrorNotice } from "./ComposerErrorNotice";
 import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
 import { FreshSessionNotice } from "./FreshSessionNotice";
@@ -512,6 +513,7 @@ function ThreadDetailBody(
   const nativeMetrics = usesNativeWorkspaceColumns ? columnMetrics : screenMetrics;
   const controlInsets = deriveBottomControlInsets(nativeMetrics);
   const selectedThreadKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
+  const talking = useVoiceModeActive(props.environmentId, props.selectedThread.id);
   const childThreadInputs = useChildThreadInputs({
     environmentId: props.environmentId,
     threadId: props.selectedThread.id,
@@ -1900,7 +1902,16 @@ function ThreadDetailBody(
                   </ComposerPanels>
                 </View>
 
-                <View style={composerSlotHidden ? { display: "none" } : undefined}>
+                <VoiceModeDock
+                  environmentId={props.environmentId}
+                  threadId={props.selectedThread.id}
+                  isDraft={Boolean(props.draftMode)}
+                  bottomInset={composerBottomInset}
+                  onChangeDraft={props.onChangeDraftMessage}
+                  onSend={() => handleSendMessage()}
+                  onStop={props.onStopThread}
+                />
+                <View style={composerSlotHidden || talking ? { display: "none" } : undefined}>
                   {isProviderSubagent ? (
                     <View
                       className="self-center px-3 pt-1.5"

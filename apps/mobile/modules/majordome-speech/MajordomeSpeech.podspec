@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
   # Neither framework has an Intel simulator slice.
   s.pod_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'x86_64' }
   s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'x86_64' }
-  s.frameworks = 'AVFoundation', 'CryptoKit'
+  s.frameworks = 'AVFoundation', 'CryptoKit', 'MediaPlayer'
   s.libraries = 'c++'
   s.swift_version = '5.9'
 end
