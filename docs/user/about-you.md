@@ -8,7 +8,7 @@ your household, who to call in an emergency. One fact per line, under a heading,
 Every conversation starts knowing the lines under **Me** and **Contact**. The rest (Work, Identity
 documents, Money, Household, Emergency contact) stays in the note, and your assistant reads it when
 a task needs it. **What this chat knows**, in a chat's side panel, has an **About you** row that
-opens the note.
+opens the note, and the map of what the assistant has shows it under **Knows**.
 
 ## Filling it in
 
@@ -21,7 +21,10 @@ it goes:
 - When a task needs a fact that is not there, it searches your notes before it asks you.
 - "Tidy my memory" moves such facts from your daily notes into `me.md` at night.
 
-If you already had notes before `me.md` existed, ask once: "Fill in me.md from my notes."
+If you already had notes before `me.md` existed, there is nothing to do. The first night after
+you update, "Tidy my memory" searches your notes for these facts, starts the note with what it
+finds, and lists each line in your feed with the note it came from, so you can correct one. It
+does this once.
 
 ## Passport, tax and bank numbers
 
@@ -34,6 +37,11 @@ wherever your notes are backed up. Tell your assistant the number, or add it you
 ## Identity documents
 - Passport: saved key passport-number, expires 2031-04-02
 ```
+
+So your notes say that the number exists and what it is called, and the number itself is in one
+place only. Your assistant finds it by that name: it reads `me.md`, sees the passport is the saved
+key `passport-number`, and takes the value from the encrypted list. The same names are what you
+see in **Settings → Passwords and keys**.
 
 Give the day a document expires and you are reminded in its last month, as for any saved key.
 When a form needs the number, your assistant takes it from there without asking you again. It has

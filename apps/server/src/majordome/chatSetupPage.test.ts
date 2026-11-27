@@ -34,3 +34,13 @@ it("keeps short notes beside their names", () => {
   });
   expect(html).toContain('<div class="row"><b>recap</b><span>Writes Friday\'s recap.</span></div>');
 });
+
+it("names the note about the owner, and says so when it has not been started", () => {
+  const withNote = (aboutYou: { note?: string }) =>
+    renderChatSetupPage({
+      setup: { ...setup([]), startsWith: { ...setup([]).startsWith, aboutYou } },
+    }).html;
+  expect(withNote({ note: "me.md" })).toMatch(/About you[^]{0,200}me\.md/);
+  expect(withNote({})).toMatch(/About you[^]{0,200}Nothing yet/);
+  expect(renderChatSetupPage({ setup: setup([]) }).html).not.toContain("About you");
+});

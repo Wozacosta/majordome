@@ -30,6 +30,8 @@ export interface MemoryPassBrief {
   /** Changed notes left out of `files`. */
   readonly more: number;
   readonly memoryChars: number;
+  /** Set for the one pass that starts the note about the owner from the notes already there. */
+  readonly aboutYou?: boolean | undefined;
 }
 
 const count = (value: number) => value.toLocaleString("en-US");
@@ -38,6 +40,7 @@ const count = (value: number) => value.toLocaleString("en-US");
 export function memoryPassSection(input: {
   readonly brief: MemoryPassBrief;
   readonly memoryPath: string;
+  readonly mePath: string;
 }): string {
   const { brief } = input;
   const lines = [
@@ -52,8 +55,13 @@ export function memoryPassSection(input: {
   if (brief.more > 0) lines.push(`- …and ${count(brief.more)} more`);
   lines.push(
     `${input.memoryPath} is ${count(brief.memoryChars)} characters; its limit is ${count(MEMORY_CHAR_LIMIT)}.`,
-    "</memory_pass>",
   );
+  if (brief.aboutYou === true) {
+    lines.push(
+      `${input.mePath} has no contact details yet. In this pass, also start it from what the vault already holds: search every note (\`search_notes\`), and read ${input.memoryPath}, for the user's name, address, phone numbers, email addresses, employer, the people in their household and their emergency contact. Write what you find in ${input.mePath} under its headings, one \`- Label: value\` line each, the value alone with no date and no link. When two notes disagree, take the newer; write nothing you would have to guess. In your summary, list each line you wrote with the note it came from, so the user can correct it.`,
+    );
+  }
+  lines.push("</memory_pass>");
   return lines.join("\n");
 }
 
@@ -79,7 +87,7 @@ export function memoryPassPrompt(input: {
     "Where each thing goes",
     `- Write each item as one short line: the date I said it or it was decided, the fact, and a link to the note it came from, linked the way this vault's notes link. For example: \`- 2026-11-14: My accountant is Ana; she prefers email. ([daily note](${dailyFolder}/2026-11-14.md))\``,
     `- \`${memory}\` is loaded into every conversation, so it only gets what you should know whatever we talk about.`,
-    `- A fact about me that stays true and that a form would ask for (my name, birth date, address, phone, email, employer, the people in my household, my emergency contact) goes in \`${me}\`, not in \`${memory}\`: under the matching heading, as \`- Label: value\`, replacing the line that has that label. Create \`${me}\` with the headings \`## Me\`, \`## Contact\`, \`## Work\`, \`## Identity documents\`, \`## Money\`, \`## Household\` and \`## Emergency contact\` when it is missing. Never merge, shorten or drop its lines.`,
+    `- A fact about me that stays true and that a form would ask for (my name, birth date, address, phone, email, employer, the people in my household, my emergency contact) goes in \`${me}\`, not in \`${memory}\`: under the matching heading, as \`- Label: value\` with no date and no link, replacing the line that has that label. Create \`${me}\` with the headings \`## Me\`, \`## Contact\`, \`## Work\`, \`## Identity documents\`, \`## Money\`, \`## Household\` and \`## Emergency contact\` when it is missing. Never merge, shorten or drop its lines.`,
     "- What belongs to one topic or project goes in that subject's own note: the `log.md` of the topic's folder (newest last), or the project's note. Create `log.md` in a topic's folder when it is missing; do not create folders or topics.",
     "- When a new fact replaces an old one, replace the old line and keep the new fact with its date.",
     `- Keep the headings, order and language \`${memory}\` already has.`,

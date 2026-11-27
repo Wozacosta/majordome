@@ -62,4 +62,4 @@ export function majordomeMachineKind<Detected>(input: {
 export const SHOW_SETUP_REQUEST =
   "Show me a diagram of what you know, what you can do and what you have access to here.";
 
-export const SHOW_SETUP_LABEL = "What the assistant has here";
+export const SHOW_SETUP_LABEL = "What your assistant can see and do";

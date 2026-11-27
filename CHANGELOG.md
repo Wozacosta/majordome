@@ -7,6 +7,23 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Your note about you fills itself.** If you had notes before `me.md` existed, tonight's "Tidy
+  my memory" searches them for your name, address, phone, email, employer and household, starts
+  the note, and lists each line in your feed with the note it came from. It does this once.
+- **About you is on the map,** under Knows, as "Nothing yet" until the note has been started.
+
+**Changed**
+
+- **The map has a plainer name:** "What your assistant can see and do", in place of "What the
+  assistant has here".
+
+**Try this**
+
+- Open the map from a chat (the three linked dots): **About you** is under Knows.
+- Tomorrow morning, look for "Tidy my memory" in your feed and open `me.md`.
+
 ## 0.10.81
 
 **New**

@@ -11,6 +11,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import { hasContact } from "./meNote.ts";
 import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import type { MemoryPassState } from "./memoryPassState.ts";
 import type { VaultLayout } from "./vaultConfig.ts";
@@ -126,10 +127,21 @@ export const planMemoryPass = Effect.fn("majordome.planMemoryPass")(function* (i
     vaultRoot: input.vaultRoot,
     memoryPath: input.layout.memory,
   });
-  if (notes.length === 0 && memoryChars <= MEMORY_CHAR_LIMIT) return null;
+  // Once per vault, the pass starts the note about the owner from the notes already there. A vault
+  // that never had a pass and has nothing new is a new, empty one: there is nothing to search.
+  const me = yield* fileSystem
+    .readFileString(path.join(input.vaultRoot, input.layout.me))
+    .pipe(Effect.option);
+  const startAboutYou =
+    previous?.aboutYouAsked !== true &&
+    !hasContact(Option.getOrNull(me)) &&
+    (previous !== undefined || notes.length > 0);
+  if (notes.length === 0 && memoryChars <= MEMORY_CHAR_LIMIT && !startAboutYou) return null;
   return {
     head,
+    ...(startAboutYou || previous?.aboutYouAsked === true ? { aboutYouAsked: true } : {}),
     brief: {
+      ...(startAboutYou ? { aboutYou: true } : {}),
       since: previousKnown ? previous.brief.preparedAt : null,
       preparedAt: DateTime.formatIso(input.now),
       files: notes.slice(0, FILES_LISTED),

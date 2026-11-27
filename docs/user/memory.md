@@ -31,7 +31,7 @@ To see it drawn, with what the assistant can use (your connections and its own t
 can reach (your notes folder, saved keys and private documents), click the icon of three linked
 dots at the top of the chat. The map opens at once, without asking the assistant. Click a box to
 open it. You can also ask in the chat: "Show me a diagram of what you know, what you can do and
-what you have access to." On the iPhone it is **What the assistant has here** in the chat's menu.
+what you have access to." On the iPhone it is **What your assistant can see and do** in the chat's menu.
 
 ## Tidy my memory
 

@@ -37,6 +37,12 @@ const DescribeSetupTool = Tool.make("describe_setup", {
       instructions: Names.annotate({ description: "Standing instruction files." }),
       skills: Schema.Array(Schema.Struct({ name: Schema.String, description: Schema.String })),
       memoryNote: Schema.optionalKey(Schema.String),
+      aboutYou: Schema.optionalKey(
+        Schema.Struct({ note: Schema.optionalKey(Schema.String) }),
+      ).annotate({
+        description:
+          "The note of the owner's own facts (name, contact, work, household). No `note`: it has not been started.",
+      }),
       dailyNotes: Names,
       topic: Schema.optionalKey(Schema.Struct({ title: Schema.String, folder: Schema.String })),
       otherTopics: Names.annotate({

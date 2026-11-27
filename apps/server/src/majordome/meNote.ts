@@ -93,6 +93,11 @@ function loadedParts(text: string): string {
     : `${loaded.slice(0, LOADED_CHAR_LIMIT)}\n[Cut here: read the file for the rest.]`;
 }
 
+/** True once the note has a line under `## Contact`: an address, a phone number or an email. */
+export function hasContact(text: string | null): boolean {
+  return text !== null && /^## Contact\n\S/m.test(loadedParts(text));
+}
+
 /** Model-facing: what the note holds, when to read the rest, and where a new fact goes. */
 export function aboutUserSection(input: {
   readonly path: string;

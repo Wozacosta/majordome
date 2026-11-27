@@ -15,6 +15,8 @@ export const CHAT_SETUP_WORDS = [
   "Your instructions",
   "Skills",
   "Memory note",
+  "About you",
+  "Nothing yet",
   "Daily notes",
   "This topic",
   "Other topics",
@@ -60,6 +62,7 @@ const ICONS = {
   skills: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8z"/>',
   memory:
     '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 0V7a3 3 0 0 0-3-3zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 0"/>',
+  person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   daily: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
   topic: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   topics:
@@ -332,6 +335,15 @@ export function renderChatSetupPage(input: {
       title: w("Memory note"),
       detail: startsWith.memoryNote,
       texts: textsOf([startsWith.memoryNote]),
+    });
+  }
+  if (startsWith.aboutYou !== undefined) {
+    const note = startsWith.aboutYou.note;
+    knows.push({
+      icon: "person",
+      title: w("About you"),
+      detail: note ?? w("Nothing yet"),
+      ...(note === undefined ? {} : { texts: textsOf([note]) }),
     });
   }
   if (startsWith.dailyNotes.length > 0) {

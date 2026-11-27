@@ -150,7 +150,7 @@ points the same engine at your notes.
 | Words on screen   | Git, pull requests, terminals, worktrees | History, Undo this, Back up, Your phone            |
 | On your phone     | T3's phone apps, via T3 Connect          | The same app on your Home Screen                   |
 
-Majordome's own: Today, To-dos, Reading list, Topics, Key facts, a map of what the assistant has, routines in your words, an undo for
+Majordome's own: Today, To-dos, Reading list, Topics, Key facts, a note about you, a map of what the assistant can see and do, routines in your words, an undo for
 what the assistant did, skills the
 assistant writes for itself, private documents, passwords and keys, backup and restore, a phone with nothing to install,
 a spoken conversation with a free voice on the iPhone, and a server of your own set up for you. Coding stays in T3 Code.

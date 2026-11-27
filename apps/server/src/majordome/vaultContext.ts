@@ -286,7 +286,7 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
       Option.isSome(brief) &&
       Math.abs(input.nowMillis - Date.parse(brief.value.preparedAt)) <= MEMORY_PASS_BRIEF_MAX_AGE_MS
     ) {
-      sections.push(memoryPassSection({ brief: brief.value, memoryPath }));
+      sections.push(memoryPassSection({ brief: brief.value, memoryPath, mePath }));
     }
   }
   if (otherTopics.length > 0) {
