@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.80
+
 **New**
 
 - **A server you already have, in one command.** In **Settings > Your servers**, **Use a server I
