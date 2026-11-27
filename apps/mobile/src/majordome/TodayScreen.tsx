@@ -1,9 +1,11 @@
+import { useAuth, useUser } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
+import { readAccountServers } from "@t3tools/shared/majordomeAccount";
 import * as Cause from "effect/Cause";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -24,7 +26,7 @@ import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { MAJORDOME_WELCOME } from "./connectWording";
+import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
@@ -161,6 +163,50 @@ function WayIn(props: {
   );
 }
 
+const SEPARATOR = <View className="ml-[60px] h-px bg-border" />;
+
+/**
+ * The ways in, led by the account's. Rendered only in a build with accounts: the hooks need its
+ * provider.
+ */
+function WaysInWithAccount(props: { readonly children: ReactNode }) {
+  const navigation = useNavigation();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const { user } = useUser();
+  // No account row until the sign-in is known, so nobody signed in sees "Sign in" flash by.
+  if (!isLoaded) return <ListSection>{props.children}</ListSection>;
+  const row = welcomeAccountRow({
+    signedIn: isSignedIn,
+    email: user?.primaryEmailAddress?.emailAddress ?? null,
+    computers: readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ }).map(
+      (server) => server.name,
+    ),
+  });
+  const wayIn = (
+    <WayIn
+      main={row.main}
+      icon="person.crop.circle"
+      title={row.title}
+      detail={row.detail}
+      onPress={() => openSettings(navigation, "SettingsAccount")}
+    />
+  );
+  return row.main ? (
+    <>
+      <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
+        {wayIn}
+      </View>
+      <ListSection>{props.children}</ListSection>
+    </>
+  ) : (
+    <ListSection>
+      {wayIn}
+      {SEPARATOR}
+      {props.children}
+    </ListSection>
+  );
+}
+
 // The site's heading face, which iOS carries; Android has no match and falls back to its serif.
 const SERIF = Platform.select({ ios: "Iowan Old Style", default: "serif" });
 
@@ -169,6 +215,27 @@ function Welcome() {
   const navigation = useNavigation();
   const { themeAppearance } = useAppearancePreferences();
   const serverOffer = useAtomValue(serverOfferAtom);
+  const ways = (
+    <>
+      <WayIn
+        icon="qrcode.viewfinder"
+        title={MAJORDOME_WELCOME.scan}
+        detail={MAJORDOME_WELCOME.scanDetail}
+        onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+      />
+      {serverOffer === null ? null : (
+        <>
+          {SEPARATOR}
+          <WayIn
+            icon="server.rack"
+            title={MAJORDOME_WELCOME.server}
+            detail={MAJORDOME_WELCOME.serverDetail}
+            onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+          />
+        </>
+      )}
+    </>
+  );
   return (
     <View className="gap-10 pt-4">
       <View className="flex-row items-center gap-2">
@@ -204,35 +271,10 @@ function Welcome() {
       </View>
       <View className="gap-3">
         {hasAccounts ? (
-          <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
-            <WayIn
-              main
-              icon="person.crop.circle"
-              title={MAJORDOME_WELCOME.signIn}
-              detail={MAJORDOME_WELCOME.signInDetail}
-              onPress={() => openSettings(navigation, "SettingsAccount")}
-            />
-          </View>
-        ) : null}
-        <ListSection>
-          <WayIn
-            icon="qrcode.viewfinder"
-            title={MAJORDOME_WELCOME.scan}
-            detail={MAJORDOME_WELCOME.scanDetail}
-            onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-          />
-          {serverOffer === null ? null : (
-            <>
-              <View className="ml-[60px] h-px bg-border" />
-              <WayIn
-                icon="server.rack"
-                title={MAJORDOME_WELCOME.server}
-                detail={MAJORDOME_WELCOME.serverDetail}
-                onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-              />
-            </>
-          )}
-        </ListSection>
+          <WaysInWithAccount>{ways}</WaysInWithAccount>
+        ) : (
+          <ListSection>{ways}</ListSection>
+        )}
       </View>
     </View>
   );

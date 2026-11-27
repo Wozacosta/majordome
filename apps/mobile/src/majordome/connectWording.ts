@@ -103,6 +103,29 @@ export const MAJORDOME_WELCOME = {
   serverDetail: "Always on, no computer needed",
 } as const;
 
+/**
+ * The welcome's account row. Someone signed in is never asked to sign in: the row names their
+ * account, and offers the computer it lists when there is one.
+ */
+export function welcomeAccountRow(account: {
+  readonly signedIn: boolean;
+  readonly email: string | null;
+  /** The names of the computers the account lists. */
+  readonly computers: ReadonlyArray<string>;
+}): { readonly title: string; readonly detail: string; readonly main: boolean } {
+  if (!account.signedIn) {
+    return { title: MAJORDOME_WELCOME.signIn, detail: MAJORDOME_WELCOME.signInDetail, main: true };
+  }
+  const detail = account.email ?? "Signed in";
+  const [first] = account.computers;
+  if (first === undefined) return { title: "Your account", detail, main: false };
+  return {
+    title: account.computers.length === 1 ? `Connect to ${first}` : "Connect your computers",
+    detail,
+    main: true,
+  };
+}
+
 /** Getting a Majordome server from the iPhone app. Shown only where Apple sells it. */
 export const MAJORDOME_SERVER = {
   getLabel: "Get a Majordome server",

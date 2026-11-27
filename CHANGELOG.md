@@ -7,6 +7,15 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Fixed**
+
+- **The iPhone welcome no longer asks you to sign in when you already are.** Its first row is now
+  **Your account** with your email, or **Connect to** your computer when your account lists one.
+- **Subscribing on a TestFlight build makes the server.** The purchase went through at Apple, then
+  the app said "Apple took the purchase, but Majordome could not confirm it yet", every time. Test
+  purchases are now found. One made before this is picked up when you next open the app, or with
+  **Restore purchases**.
+
 ## 0.10.77
 
 **New**

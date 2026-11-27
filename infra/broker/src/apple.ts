@@ -135,7 +135,10 @@ export function makeAppleClient(config: {
     subscription: async (transactionId) => {
       if (!/^\d{1,32}$/u.test(transactionId)) return null;
       const authorization = `Bearer ${await bearer()}`;
-      // A transaction lives in one of Apple's two worlds and the other answers 404 for it.
+      // A transaction lives in one of Apple's two worlds and the other answers 404 for it. Until
+      // the app is on the store, production refuses the key outright (401) instead: with test
+      // purchases allowed, a refusal there still leaves the sandbox to ask.
+      let refused: HostError | null = null;
       for (const host of config.allowSandbox
         ? [HOSTS.Production, HOSTS.Sandbox]
         : [HOSTS.Production]) {
@@ -145,13 +148,15 @@ export function makeAppleClient(config: {
         });
         if (response.status === 404) continue;
         if (!response.ok) {
-          throw new HostError(
+          refused ??= new HostError(
             response.status,
             `Apple answered ${response.status} for a subscription.`,
           );
+          continue;
         }
         return appleFacts((await response.json()) as StatusResponse, config);
       }
+      if (refused !== null) throw refused;
       return null;
     },
   };

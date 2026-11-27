@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { accountConnectErrorForOwner, connectErrorForOwner } from "./connectWording";
+import {
+  accountConnectErrorForOwner,
+  connectErrorForOwner,
+  welcomeAccountRow,
+} from "./connectWording";
 
 describe("connectErrorForOwner", () => {
   it.each([
@@ -38,5 +42,34 @@ describe("accountConnectErrorForOwner", () => {
     const said = accountConnectErrorForOwner(message, "Studio");
     expect(said).toMatch(expected);
     expect(said).not.toMatch(/Show the code|the address is the one/);
+  });
+});
+
+describe("welcomeAccountRow", () => {
+  it("asks only someone signed out to sign in", () => {
+    expect(welcomeAccountRow({ signedIn: false, email: null, computers: [] }).title).toBe(
+      "Sign in",
+    );
+    for (const computers of [[], ["Studio"], ["Studio", "Den"]]) {
+      const row = welcomeAccountRow({ signedIn: true, email: "ada@example.com", computers });
+      expect(row.title).not.toMatch(/sign in/i);
+      expect(row.detail).toBe("ada@example.com");
+    }
+  });
+
+  it("offers the computer the account lists, and stays quiet when it lists none", () => {
+    const signedIn = { signedIn: true, email: null };
+    expect(welcomeAccountRow({ ...signedIn, computers: [] })).toEqual({
+      title: "Your account",
+      detail: "Signed in",
+      main: false,
+    });
+    expect(welcomeAccountRow({ ...signedIn, computers: ["Studio"] })).toMatchObject({
+      title: "Connect to Studio",
+      main: true,
+    });
+    expect(welcomeAccountRow({ ...signedIn, computers: ["Studio", "Den"] }).title).toBe(
+      "Connect your computers",
+    );
   });
 });

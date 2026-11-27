@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { appleFacts, noticeTransaction } from "./apple.ts";
+import { appleFacts, makeAppleClient, noticeTransaction } from "./apple.ts";
 import {
   type AccountRow,
   type AccountStore,
@@ -668,6 +668,49 @@ describe("paying in the iPhone app", () => {
   it("reads nothing from an answer about another app or another product", () => {
     expect(appleFacts(statusResponse(1), { ...ours, bundleId: "com.example.other" })).toBeNull();
     expect(appleFacts(statusResponse(1), { ...ours, productId: "other" })).toBeNull();
+  });
+
+  /** An Apple that answers each of its two hosts with a set status. */
+  const askApple = async (
+    answers: { readonly production: number; readonly sandbox: number },
+    allowSandbox: boolean,
+  ) => {
+    const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+      "sign",
+    ]);
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", pair.privateKey));
+    const asked: Array<string> = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      const host = new URL(url).host;
+      asked.push(host);
+      const status = host.includes("sandbox") ? answers.sandbox : answers.production;
+      return Response.json(status === 200 ? statusResponse(1) : {}, { status });
+    });
+    const client = makeAppleClient({
+      privateKey: btoa(String.fromCharCode(...pkcs8)),
+      keyId: "KEY",
+      issuerId: "ISSUER",
+      ...ours,
+      allowSandbox,
+      now: () => START,
+    });
+    return { asked, answer: client.subscription("2000000111") };
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("finds a test purchase in the sandbox when production refuses the key", async () => {
+    // What Apple answers until the app is on the store: 401 from production, not 404.
+    const { asked, answer } = await askApple({ production: 401, sandbox: 200 }, true);
+    expect(await answer).toMatchObject({ subscriptionId: "2000000111", state: "active" });
+    expect(asked).toEqual(["api.storekit.apple.com", "api.storekit-sandbox.apple.com"]);
+  });
+
+  it("still reports a refusal no host made up for, and never asks the sandbox unasked", async () => {
+    const both = await askApple({ production: 401, sandbox: 404 }, true);
+    await expect(both.answer).rejects.toMatchObject({ status: 401 });
+    const live = await askApple({ production: 404, sandbox: 200 }, false);
+    expect(await live.answer).toBeNull();
+    expect(live.asked).toEqual(["api.storekit.apple.com"]);
   });
 
   it("takes only the transaction from a notice", () => {
