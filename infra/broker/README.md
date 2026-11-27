@@ -47,6 +47,16 @@ Set as vars in `wrangler.jsonc`:
 Claims by a computer that already has an address never count. Over the first two the caller
 gets `rate_limited`; at the ceiling it gets `full`.
 
+## Voice files
+
+`GET /voice/<release-tag>/<file>` on `majord.link` passes one file of the voice that reads replies
+aloud through from this repository's GitHub releases, which send no CORS header, so the Mac app and
+the web app can download it from a page. It forwards `Range`, answers `OPTIONS`, allows any origin
+and caches for a year: a release's files never change, and a new set gets a new tag. Only the tags
+and file names listed in `src/voice.ts` are served (a test holds that list to the voice catalog in
+`packages/client-runtime/src/speaking/voiceCatalog.json`); anything else is a 404, so it is not a
+proxy. Nothing is stored and no secret is involved.
+
 ## Linux and Windows list
 
 `POST /v1/waitlist` with `{ "email": "...", "platforms": ["linux", "windows"] }` keeps an email

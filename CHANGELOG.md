@@ -47,16 +47,13 @@ Not released yet.
 - On the iPhone, ask for something in French, then touch the speaker under the answer. Start
   dictating while it reads: it stops.
 - In **Settings > Voice > Speaking**, press play beside a few voices and keep the one you like.
-<<<<<<< HEAD
+- On the Mac, press `Cmd+Shift+U` after an answer arrives and listen while you do something else.
+  Open another chat: it stops.
 - In a chat, say "My phone number is 06 12 34 56 78 and I live at 12 rue des Lilas, Lyon", then
   open `me.md`: both are under Contact. Start a new chat and ask "What's my address?".
 - Say "My passport number is 19AB12345, it expires on 2 April 2031". Check that **Settings >
   Passwords and keys** lists `passport-number` with its last day, and that `me.md` has no number.
 - If your notes are older than this version, ask "Fill in me.md from my notes."
-=======
-- On the Mac, press `Cmd+Shift+U` after an answer arrives and listen while you do something else.
-  Open another chat: it stops.
->>>>>>> 07eb61a38a (feat(web): replies read aloud in the Mac app and the browser)
 
 ## 0.10.80
 

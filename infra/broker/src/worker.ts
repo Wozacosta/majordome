@@ -31,6 +31,7 @@ import {
   makeD1WaitlistStore,
 } from "./store.ts";
 import { makeStripeClient } from "./stripe.ts";
+import { handleVoice } from "./voice.ts";
 import { makeWaitlist } from "./waitlist.ts";
 
 interface Env {
@@ -487,6 +488,8 @@ async function handle(request: Request, env: Env, later: Later): Promise<Respons
 
 export default {
   async fetch(request, env, context) {
+    const voice = await handleVoice(request);
+    if (voice !== null) return voice;
     const { pathname } = new URL(request.url);
     const fromSite =
       pathname.startsWith("/v1/hosted") ||
