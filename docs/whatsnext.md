@@ -14,8 +14,10 @@ opening is the Mac app, the iPhone app and hosted servers.
 
 ### The owner's to decide or supply
 
-- [ ] **Seller details on the terms page:** the SIRET, the seller's address before purchase, a
-      consumer mediator and a withdrawal form.
+- [ ] **Seller details on the terms page:** the name, sole-trader status, SIRET and a withdrawal
+      form are there since 2026-11-27. Left out by the owner's choice that day: a postal address
+      and a phone number (he will not publish his home; a domiciliation address would settle
+      it). Still missing: a consumer mediator, which he has to sign up with.
 - [ ] **Read `site/terms/index.html` and `site/trust/index.html` line by line.** Both carry
       commitments written by an agent and not reviewed: a 14-day refund, a month refunded after
       a day's outage, 30 days' notice.
