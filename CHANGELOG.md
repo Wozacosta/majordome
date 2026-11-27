@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.84
+
 **Changed**
 
 - **Your assistant no longer writes a saved number in full when you ask what it is.** Ask
