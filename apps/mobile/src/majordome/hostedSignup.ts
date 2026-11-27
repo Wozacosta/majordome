@@ -321,19 +321,45 @@ export async function buyServer(): Promise<void> {
   if (token === null) return stop(signedOutNote);
   const decision = buyDecision(await readBillingStatus(fetch, BROKER_URL, token));
   if (!decision.buy) return stop(decision.note);
-  dispatch({ type: "pay", doing: "buying" });
-  let bought: StorePurchase;
-  try {
-    const answer = await majordomeStore?.buy(PRODUCT_ID, decision.appToken);
-    if (answer === undefined || answer.outcome === "cancelled") return stop(null);
-    if (answer.outcome !== "purchased") return stop(awaitingApprovalNote);
-    bought = answer.purchase;
-  } catch (cause) {
-    return stop(purchaseFailure(cause));
+  // An Apple account pays for one server at most. Apple's sheet would only say "already
+  // subscribed" and hand the same purchase back, so the service is asked whose it is instead.
+  const owned = (await majordomeStore?.owned(false).catch(() => [])) ?? [];
+  let bought = owned.find((candidate) => paidTransaction(candidate, PRODUCT_ID) !== null);
+  if (bought === undefined) {
+    dispatch({ type: "pay", doing: "buying" });
+    try {
+      const answer = await majordomeStore?.buy(PRODUCT_ID, decision.appToken);
+      if (answer === undefined || answer.outcome === "cancelled") return stop(null);
+      if (answer.outcome !== "purchased") return stop(awaitingApprovalNote);
+      bought = answer.purchase;
+    } catch (cause) {
+      return stop(purchaseFailure(cause));
+    }
   }
   // The listener may have the same purchase: whichever comes first carries it, the other waits.
   await settle(bought);
   if (state().step === "paying") stop(storeFailedNote);
+}
+
+let stopAwaitingSignIn: (() => void) | null = null;
+
+/**
+ * Carries on to the purchase once the person has an account: they pressed the button to get a
+ * server, and signing in was only the step in between.
+ */
+export function buyOnceSignedIn(): void {
+  stopAwaitingSignIn?.();
+  let waiting = true;
+  const stopListening = account()?.addListener(({ session }) => {
+    if (!waiting || session === null || session === undefined) return;
+    stopAwaitingSignIn?.();
+    void buyServer();
+  });
+  stopAwaitingSignIn = () => {
+    waiting = false;
+    stopListening?.();
+    stopAwaitingSignIn = null;
+  };
 }
 
 /** Finds a server subscription this Apple account already pays for and connects to its server. */
@@ -373,6 +399,7 @@ export function finishHostedSignup(): void {
 
 /** Starts over once the screen is left with nothing under way. */
 export function resetHostedSignup(): void {
+  stopAwaitingSignIn?.();
   const { step } = appAtomRegistry.get(hostedSignupAtom);
   if (step === "done" || step === "idle") appAtomRegistry.set(hostedSignupAtom, SIGNUP_IDLE);
 }

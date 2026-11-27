@@ -182,7 +182,7 @@ export const MAJORDOME_SERVER = {
     "The purchase is waiting to be approved. Your server is made once it is: open Majordome again then.",
   nothingToRestore: "This Apple account has no Majordome server subscription to restore.",
   otherAccount:
-    "This purchase belongs to another Majordome account. Sign in with that account, then press Restore purchases.",
+    "This Apple account already pays for a server on another Majordome account. Sign in with that one to use it.",
   alreadySubscribed: `This account already has a server and a subscription for it, so this purchase was not added. You can cancel it in ${CANCEL_PLACE}.`,
   alreadyConnected: "This phone is already connected to your server.",
   notConfirmed:

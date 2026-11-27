@@ -21,6 +21,7 @@ import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
 import { MAJORDOME_SERVER } from "./connectWording";
 import {
+  buyOnceSignedIn,
   buyServer,
   connectToServer,
   finishHostedSignup,
@@ -336,7 +337,13 @@ function ConfiguredHostedSignupScreen() {
             />
           </View>
         ) : (
-          <Offer note={state.note} onSignIn={() => setSigningIn(true)} />
+          <Offer
+            note={state.note}
+            onSignIn={() => {
+              setSigningIn(true);
+              buyOnceSignedIn();
+            }}
+          />
         )}
       </ScrollView>
     </SettingsScreen>

@@ -5,7 +5,20 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Fixed**
+
+- **On the iPhone, signing up on the way to a server carries on to the purchase.** Pressing
+  "Sign in to continue" and making an account used to bring you back to the same page, with
+  nothing saying what came next. It now checks the account and opens Apple's sheet by itself.
+- **An Apple account that already pays for a server is told so before Apple's sheet.**
+  Subscribing from a second Majordome account went through Apple's sheet and then said the
+  purchase belonged to another account. The app now says, without the sheet, that this Apple
+  account already pays for a server on another Majordome account.
+
+**Try this**
+
+- On an iPhone with no account, open "Get a Majordome server", press "Sign in to continue"
+  and sign up.
 
 ## 0.10.84
 
