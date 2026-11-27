@@ -11,6 +11,9 @@ Separate from the above: an API key, a token or a password you want your assista
 example to read your runs from a sports service. **Settings → Passwords and keys** lists them under
 **Keys your assistant can use**, on the computer and in the iPhone app.
 
+The same list keeps your passport, ID, tax and bank account numbers, which are never written in a
+note: see [About you](./about-you.md).
+
 With several computers, for example a Mac and an always-on server, the list on the computer is one
 list for all of them. A key you add is saved on each computer that holds your notes and is
 connected, and a key you remove is removed from each. A key that is on one computer only says so

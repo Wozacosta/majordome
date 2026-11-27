@@ -22,7 +22,7 @@ const dependencies = [
 
 const ListSavedKeysTool = Tool.make("list_saved_keys", {
   description:
-    "List the API keys, tokens and passwords the owner saved for you on this computer, by name with what each is for. Check here before you say you cannot reach a service, and before you ask for a key. Never shows a value.",
+    "List the API keys, tokens, passwords and identity or bank numbers (passport, ID card, tax, IBAN) the owner saved for you on this computer, by name with what each is for. Check here before you say you cannot reach a service, and before you ask for a key or a number. Never shows a value.",
   // No `parameters`: Tool.make defaults to Tool.EmptyParams, which serializes as an object schema.
   success: Schema.Struct({
     keys: Schema.Array(
@@ -52,7 +52,7 @@ const ListSavedKeysTool = Tool.make("list_saved_keys", {
 
 const UseSavedKeyTool = Tool.make("use_saved_key", {
   description:
-    'Take one saved key for a command, by its `list_saved_keys` name. Returns `file`: read it only inside the command that needs it, e.g. `curl -H "Authorization: Bearer $(cat <file>)" <url>`. Never print the key, say it in chat or write it in the notes folder.',
+    'Take one saved key for a command, by its `list_saved_keys` name. Returns `file`: read it only inside the command that needs it, e.g. `curl -H "Authorization: Bearer $(cat <file>)" <url>`. Never print the key, say it in chat or write it in the notes folder. The one exception is a saved identity or bank number (passport, tax, IBAN): when a form or a letter needs it, or the owner asks you for it, read the file and fill it in or tell the owner, and repeat it nowhere else.',
   parameters: Schema.Struct({ name: Schema.String.check(Schema.isMinLength(1)) }),
   success: Schema.Struct({
     status: Schema.Literals(["ready", "unknown_key"]),
@@ -72,7 +72,7 @@ const UseSavedKeyTool = Tool.make("use_saved_key", {
 
 const SaveKeyTool = Tool.make("save_key", {
   description:
-    'Save an API key, token or password the owner gives you, so later chats can use it with `use_saved_key`. `name`: short, e.g. `garmin`. `note`: what it is for. The owner pasted it in chat: pass `value`. Otherwise get it with `request_secret` (`delivery: "file"`) and pass that `file`. Replaces a key with the same name. `expires`: its last day, when the owner or the service says how long it lasts; with no `value` or `file`, sets that day on a key already saved. Never write a key in the notes folder instead.',
+    'Save an API key, token or password the owner gives you, or one of their identity or bank numbers (passport, ID card, driving licence, tax, social security, IBAN), so later chats can use it with `use_saved_key`. `name`: short, e.g. `garmin` or `passport-number`. `note`: what it is for. The owner pasted it in chat: pass `value`. Otherwise get it with `request_secret` (`delivery: "file"`) and pass that `file`. Replaces a key with the same name. `expires`: its last day, when the owner or the service says how long it lasts; with no `value` or `file`, sets that day on a key already saved. Never write a key or such a number in the notes folder instead.',
   parameters: Schema.Struct({
     name: MajordomeSavedKeyName,
     note: Schema.String.check(Schema.isMaxLength(MAJORDOME_SAVED_KEY_NOTE_MAX)),

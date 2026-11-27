@@ -21,6 +21,7 @@ describe("chatKnowledgeView", () => {
     const view = chatKnowledgeView({
       isVault: true,
       memory: { path: "memory.md", cut: true },
+      me: { path: "me.md" },
       dailyNotes: [{ day: "today", path: "daily/2026-11-25.md" }],
       topic: { id: "fitness", title: "Fitness", folder: "personal/fitness" },
       otherTopics: [
@@ -36,6 +37,7 @@ describe("chatKnowledgeView", () => {
     expect(view?.starts.map((row) => [row.label, row.path])).toEqual([
       ["Notes of Fitness", null],
       ["Memory note", "memory.md"],
+      ["About you", "me.md"],
       ["Today's note", "daily/2026-11-25.md"],
     ]);
     expect(view?.starts[1]?.detail).toContain("its end is left out");

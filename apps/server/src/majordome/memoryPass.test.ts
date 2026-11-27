@@ -21,6 +21,7 @@ const testLayer = GitVcsDriver.layer.pipe(
 
 const layout = {
   memory: "memory.md",
+  me: "me.md",
   dailyFolder: "daily",
   inboxFolder: "inbox",
   projectsFolder: "projects",

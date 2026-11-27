@@ -19,6 +19,7 @@ import {
   FolderIcon,
   HashIcon,
   type LucideIcon,
+  UserIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -41,6 +42,7 @@ const LOCKED_ROW_CLASS = cn(
 
 const ICONS: Record<ChatKnowledgeRow["kind"], LucideIcon> = {
   memory: BrainIcon,
+  me: UserIcon,
   daily: CalendarIcon,
   topic: FolderIcon,
   "other-topic": HashIcon,

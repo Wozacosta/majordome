@@ -56,6 +56,15 @@ jobs:
       - name: Install Claude and start its sign-in
         run: vp run first-run first-run/claude-installs-and-sign-in-starts.e2e.ts
 
+      # Run before the upload below, each on a home of its own: neither needs Claude.
+      - name: Say who the owner is, with no assistant yet
+        run: vp run first-run first-run/owner-says-who-they-are.e2e.ts
+
+      - name: Start a first chat from the welcome page
+        env:
+          FIRST_RUN_REPLAY: "1"
+        run: vp run first-run first-run/first-ask-starts-a-chat.e2e.ts
+
       - name: Upload the install run
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

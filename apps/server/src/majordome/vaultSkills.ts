@@ -30,7 +30,11 @@ const SKILL_TEXT_MAX = 20_000;
 const KEPT = "Kept a skill";
 const STOPPED = "Stopped using a skill";
 const DELETED = "Deleted a skill";
-const STARTER_SKILLS: ReadonlySet<string> = new Set(Object.keys(starter.skills));
+// `brain-setup` came with notes folders started before Majordome asked for the owner itself.
+const STARTER_SKILLS: ReadonlySet<string> = new Set([
+  ...Object.keys(starter.skills),
+  "brain-setup",
+]);
 /** Far more decisions and runs than a vault's skills see; older history is not read. */
 const HISTORY_MAX = 1_000;
 

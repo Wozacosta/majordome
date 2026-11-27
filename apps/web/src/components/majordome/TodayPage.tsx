@@ -39,7 +39,7 @@ import { useNoteSourceLinkOpener } from "./NotePreview";
 import { noteDraftKey, NoteSaveProblem, NoteSaveStatus, useNoteEditing } from "./noteEditing";
 import { NoteSourceEditor } from "./NoteSourceEditor";
 import { notesLink } from "./notes.logic";
-import { requestDraftSend } from "./pendingDraftSend";
+import { requestDraftSend, takeFirstAsk } from "./pendingDraftSend";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
 import {
@@ -464,7 +464,7 @@ function DailyNoteCard({
 /** Starts a conversation in the notes folder with what was typed, as the new-thread page does. */
 function CaptureBox({ vault }: { readonly vault: MajordomeVault }) {
   const handleNewThread = useNewThreadHandler();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(takeFirstAsk);
   const [sending, setSending] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);

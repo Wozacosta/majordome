@@ -40,6 +40,7 @@ it.layer(testLayer)("starter notes", (it) => {
 
       assert.deepStrictEqual(Option.getOrThrow(yield* readVaultLayout(root)), {
         memory: "memory.md",
+        me: "me.md",
         dailyFolder: "daily",
         inboxFolder: "drop",
         projectsFolder: "projects",
@@ -52,6 +53,42 @@ it.layer(testLayer)("starter notes", (it) => {
         (yield* gitIn(root, ["ls-files"])).split("\n").toSorted(),
         added.toSorted(),
       );
+    }),
+  );
+
+  it.effect("starts the note about the owner with what they said at setup", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const parent = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-starter-" });
+      const root = `${parent}/Majordome`;
+
+      const { added } = yield* setUpNotesFolder(root, {
+        name: "  Ana\nCosta ",
+        language: "fr-FR",
+        timeZone: "Europe/Lisbon",
+      });
+
+      assert.include(added, "me.md");
+      const me = yield* fs.readFileString(`${root}/me.md`);
+      assert.include(
+        me,
+        "## Me\n- Name: Ana Costa\n- Language: French (France)\n- Time zone: Europe/Lisbon\n\n## Contact\n\n## Work\n",
+      );
+      assert.include(
+        me,
+        "## Identity documents\n\n## Money\n\n## Household\n\n## Emergency contact\n",
+      );
+      assert.include(me, "kept encrypted in Passwords and keys");
+      // Majordome asks for the owner itself, so obrain's own setup command is not part of it.
+      assert.isFalse(yield* fs.exists(`${root}/.agents/skills/brain-setup`));
+      const instructions = yield* fs.readFileString(`${root}/AGENTS.md`);
+      assert.notInclude(instructions, "brain-setup");
+      assert.include(instructions, "are in me.md");
+
+      // A second setup, as when the folder is picked again, keeps what the note has become.
+      yield* fs.writeFileString(`${root}/me.md`, `${me}\n- Phone: +351 900 000 001\n`);
+      yield* setUpNotesFolder(root, { name: "Someone else" });
+      assert.include(yield* fs.readFileString(`${root}/me.md`), "- Name: Ana Costa");
     }),
   );
 

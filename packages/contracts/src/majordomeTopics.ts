@@ -281,6 +281,8 @@ export const MajordomeChatKnowledgeResult = Schema.Struct({
       cut: Schema.Boolean,
     }),
   ),
+  /** The note of the owner's own facts, whose first parts every chat starts with; absent from an older server. */
+  me: Schema.optional(Schema.NullOr(Schema.Struct({ path: Schema.String }))),
   /** The daily notes that exist, today's first. */
   dailyNotes: Schema.Array(
     Schema.Struct({ day: Schema.Literals(["today", "yesterday"]), path: Schema.String }),

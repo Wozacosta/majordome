@@ -11,6 +11,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import { ME_DEFAULT_PATH, type MeAbout, meTemplate } from "./meNote.ts";
 import { SKILLS_DIR } from "./skillsGuide.ts";
 import starter from "./starterNotes.json" with { type: "json" };
 import { identityEnv, ownerIdentity } from "./vaultAutosave.ts";
@@ -50,7 +51,10 @@ export function isTooBroadForNotes(input: {
   return SHARED_HOME_FOLDERS.some((name) => path.join(home, name) === folder);
 }
 
-export const setUpNotesFolder = Effect.fn("majordome.setUpNotesFolder")(function* (root: string) {
+export const setUpNotesFolder = Effect.fn("majordome.setUpNotesFolder")(function* (
+  root: string,
+  about?: MeAbout,
+) {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const git = yield* GitVcsDriver.GitVcsDriver;
@@ -85,6 +89,7 @@ export const setUpNotesFolder = Effect.fn("majordome.setUpNotesFolder")(function
   }
   yield* writeIfMissing(starter.memoryFile, starter.memory);
   yield* writeIfMissing(`${VAULT_CONFIG_DIRNAME}/config.json`, starter.config);
+  yield* writeIfMissing(ME_DEFAULT_PATH, meTemplate(about));
   // Instructions the owner already wrote, under either name, stay theirs.
   if (!(yield* exists("AGENTS.md")) && !(yield* exists("CLAUDE.md"))) {
     yield* writeIfMissing("AGENTS.md", starter.instructions);

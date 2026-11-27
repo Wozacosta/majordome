@@ -20,6 +20,8 @@ export interface FirstRun {
   readonly open: () => Promise<void>;
   /** The addresses this machine was asked to open in a browser, oldest first. */
   readonly openedInBrowser: () => Promise<ReadonlyArray<string>>;
+  /** A note of the notes folder the owner started, by its path inside it. */
+  readonly note: (name: string) => Promise<string>;
 }
 
 export const test = base.extend<{ firstRun: FirstRun }>({
@@ -29,6 +31,7 @@ export const test = base.extend<{ firstRun: FirstRun }>({
         await app.open(await Effect.runPromise(readHomeFile("pairing-path")));
         await expect(browser).not.toHaveURL(/\/pair(?:[?#]|$)/, { timeout: 60_000 });
       },
+      note: (name) => Effect.runPromise(readHomeFile(`owner/Majordome/${name}`)),
       openedInBrowser: () =>
         Effect.runPromise(
           readHomeFile("opened.txt").pipe(

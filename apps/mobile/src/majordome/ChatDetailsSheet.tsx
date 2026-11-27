@@ -277,6 +277,7 @@ function KeyFacts({ environmentId, threadId }: ChatTarget) {
 
 const KNOWLEDGE_ICONS: Record<ChatKnowledgeRow["kind"], AppSymbolName> = {
   memory: "brain",
+  me: "person",
   daily: "calendar",
   topic: "folder",
   "other-topic": "bubble.left",

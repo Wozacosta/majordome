@@ -213,8 +213,19 @@ export const MajordomeSetRoutineLimitsInput = Schema.Struct({
 export type MajordomeSetRoutineLimitsInput = typeof MajordomeSetRoutineLimitsInput.Type;
 
 /** `folder` null means a new folder in the default place; otherwise an absolute path on the server. */
+export const MAJORDOME_OWNER_NAME_MAX = 80;
+
 export const MajordomeStartNotesInput = Schema.Struct({
   folder: Schema.NullOr(TrimmedNonEmptyString),
+  /** What the owner said about themselves at setup, for the note of their own facts. */
+  about: Schema.optional(
+    Schema.Struct({
+      name: Schema.optional(Schema.String.check(Schema.isMaxLength(MAJORDOME_OWNER_NAME_MAX))),
+      /** The app's language, as a BCP 47 tag. */
+      language: Schema.optional(Schema.String.check(Schema.isMaxLength(35))),
+      timeZone: Schema.optional(Schema.String.check(Schema.isMaxLength(64))),
+    }),
+  ),
 });
 export type MajordomeStartNotesInput = typeof MajordomeStartNotesInput.Type;
 

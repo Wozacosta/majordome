@@ -20,6 +20,9 @@ next message you send there.
 So there is one place for a fact every conversation should know, whatever the topic: your memory
 note. Say "remember this for everything" and it goes there.
 
+Facts about you that never change with the subject, such as your address or phone number, have a
+note of their own, which every conversation also starts with: see [About you](./about-you.md).
+
 **What this chat knows**, in a chat's side panel, lists exactly this: the notes the chat starts
 with, and the topics it only knows the standing of. A row opens its note. On the iPhone it is under
 the **i** at the top right of a chat.
@@ -39,13 +42,15 @@ with their dates, and how you do things that come back.
 
 - What is worth knowing in every conversation goes into your memory note, as one short dated line
   with a link to the note it came from.
+- A fact a form would ask for, such as your address or your employer, goes into
+  [`me.md`](./about-you.md), where it is never merged or dropped.
 - What belongs to one topic or project goes into that topic's own notes, such as its `log.md`.
 - A way of doing something that keeps coming back is written down as a [skill](./skills.md),
   which waits for your yes.
 - It only adds to your memory note, to topic notes and to the skills that wait. It does not rewrite
   your daily notes, and it never edits `CLAUDE.md` or `AGENTS.md`.
-- It does not copy passwords, card numbers or keys. When it finds one in a note, it leaves it there
-  and tells you which note.
+- It does not copy passwords, card numbers or keys, nor passport, tax or bank account numbers. When
+  it finds one in a note, it leaves it there and tells you which note.
 
 It works from your notes, not from the text of your conversations: something you only said in a
 chat is remembered when the assistant wrote it down then.

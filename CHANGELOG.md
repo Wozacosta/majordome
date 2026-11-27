@@ -14,12 +14,39 @@ Not released yet.
   French. The voice is free and needs no key: it is made on the phone. The first time, Majordome
   asks to download it (145 MB, fetched once from GitHub). Choose among its voices, or remove the
   download, in **Settings > Voice > Speaking**. Not on Android yet.
+- **A note about you.** `me.md` in your notes folder holds what forms, bookings and letters ask
+  for: your name, address, phone, work, household and emergency contact. Every chat starts
+  knowing your name and contact details and reads the rest when a task needs it. Your assistant
+  fills it as you mention things, and looks in your notes before it asks you.
+  [About you](docs/user/about-you.md)
+- **Passport, tax and bank numbers are kept encrypted.** They go in **Settings > Passwords and
+  keys**, not in a note, and `me.md` only names them. Give a passport's last day and you are
+  reminded before it expires.
+- **The welcome page asks what to call you** and what you want help with first. Both are
+  optional. Your name starts `me.md`, and what you want help with is sent as your first chat.
+
+**Changed**
+
+- **New notes folders start lighter.** The "run /brain-setup" placeholder and its command are
+  gone, and the memory note starts with two headings instead of a template. Notes folders you
+  already have are not touched.
+
+**Fixed**
+
+- **A number you type in a chat no longer ends up in your notes' history.** A chat's first words
+  name the save of what it changed, so a passport number, an IBAN or a key typed there was kept
+  in the history and in every backup. Long numbers and long unbroken strings are now left out.
 
 **Try this**
 
 - On the iPhone, ask for something in French, then touch the speaker under the answer. Start
   dictating while it reads: it stops.
 - In **Settings > Voice > Speaking**, press play beside a few voices and keep the one you like.
+- In a chat, say "My phone number is 06 12 34 56 78 and I live at 12 rue des Lilas, Lyon", then
+  open `me.md`: both are under Contact. Start a new chat and ask "What's my address?".
+- Say "My passport number is 19AB12345, it expires on 2 April 2031". Check that **Settings >
+  Passwords and keys** lists `passport-number` with its last day, and that `me.md` has no number.
+- If your notes are older than this version, ask "Fill in me.md from my notes."
 
 ## 0.10.80
 

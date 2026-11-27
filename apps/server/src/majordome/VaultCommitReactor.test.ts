@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer";
 
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { commitVaultRun, vaultCommitMessage } from "./VaultCommitReactor.ts";
+import { commitVaultRun, vaultCommitMessage, withoutNumbers } from "./VaultCommitReactor.ts";
 
 const testLayer = GitVcsDriver.layer.pipe(
   Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "majordome-commit-" })),
@@ -112,5 +112,30 @@ it("names an untitled thread", () => {
   assert.equal(
     vaultCommitMessage({ threadTitle: "  ", runOrdinal: 1, threadId: "thread-1" }),
     "majordome: Untitled thread\n\nRun 1 of this thread.\n\nMajordome-Thread: thread-1",
+  );
+});
+
+it("keeps numbers and keys the owner typed out of the notes' history", () => {
+  // The first words of a chat become its title, and the title the subject of its commits.
+  assert.equal(
+    withoutNumbers("For later: my passport number is 19AB12345, it expires on 2 April 2031"),
+    "For later: my passport number is … it expires on 2 April 2031",
+  );
+  assert.equal(
+    withoutNumbers("My IBAN is FR76 3000 6000 0112 3456 7890 189 for the rent"),
+    "My IBAN is … for the rent",
+  );
+  assert.equal(withoutNumbers("Save this key sk-ant-abcdefghijklmnopqrstuvwx"), "Save this key …");
+  assert.equal(withoutNumbers("Call +351 900 000 001 tomorrow"), "Call … tomorrow");
+  // Ordinary titles are left as they are.
+  assert.equal(withoutNumbers("Plan 2027 with 3 goals"), "Plan 2027 with 3 goals");
+  assert.equal(withoutNumbers("Notes for 2026-11-20"), "Notes for 2026-11-20");
+  assert.equal(
+    withoutNumbers("Read projects/lisbon-move/handover.md"),
+    "Read projects/lisbon-move/handover.md",
+  );
+  assert.include(
+    vaultCommitMessage({ threadTitle: "Passport 19AB12345", runOrdinal: 1, threadId: "t" }),
+    "majordome: Passport …\n",
   );
 });

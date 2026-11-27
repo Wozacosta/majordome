@@ -31,11 +31,38 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
 - Any vault works: folder roles (inbox, daily, projects…) come from config in `.majordome/`.
 - Memory layers:
   - Always loaded: `CLAUDE.md` and `memory.md` (size-capped; when full, the agent merges entries).
+  - Always loaded, in part: `me.md`, the owner's facts that stay true (2026-11-27; see "The owner's
+    own facts" below).
   - Loaded when recent: today's and yesterday's daily notes.
   - Loaded by name only: the other open topics, each with the "Where things stand" lines of its
     log (2026-11-25; see "What one topic knows of the others" under Milestones).
   - Searched: everything else, through a SQLite full-text index the server rebuilds. Not in git.
   - Nightly dreaming: a routine moves anything worth keeping into `memory.md` or project notes.
+- **The owner's own facts (2026-11-27).** Name, address, phone, employer and household had no
+  home: an address sat in one dated memory line, exposed to the nightly merge-or-drop. They go in
+  `me.md` at the vault root (`me` in the config), one `- Label: value` line under fixed headings.
+  - It is not a section of `memory.md`: memory is dated lines the pass may merge and drop under
+    a size cap; these are undated, have one home each and are never tidied away.
+  - Only "Me" and "Contact" are loaded into every conversation, with one sentence saying the rest
+    is in the file. A note read only on demand gets forgotten and the city guessed; a note loaded
+    whole sends a household's details with every routine.
+  - Passport, ID, tax, social security and bank account numbers are never in a note. The owner
+    refused plain text in a git-synced folder, so they are saved keys, which `me.md` names.
+    Saved keys were chosen over private documents because they need no approval card (a form
+    filled by a routine would otherwise wait), Settings saves one on every computer, and the
+    last-day reminder fits a passport. Unlike an API key, such a number has to be read to be
+    typed into a form, so it reaches the model for that turn; the tools say it goes nowhere else.
+  - A run's commit subject is the chat's title, which starts as the owner's first words. A real
+    run put the passport number in the notes' history that way, so the subject leaves out long
+    runs of digits and long unbroken strings (`withoutNumbers`).
+  - Named `me.md`, shown as "About you". `personal` already means life admin in many vaults,
+    `profile` reads as preferences (memory's job), and "key facts" is the per-conversation list.
+  - No setup interview. The welcome page has two optional fields, what to call the owner and
+    what they want help with first: the name, language and time zone start `me.md` with no model
+    call, and the second is sent as the first chat. After that the assistant saves what it is
+    told and searches the notes before it asks. obrain's `brain-setup` skill and its "Owner
+    Profile" placeholder are left out of Majordome's starter notes (the npm package keeps them):
+    nothing in the app ran it, and it rewrites `AGENTS.md` and opens Obsidian.
 - Standard markdown links, and Obsidian's `[[wiki links]]` resolve the way Obsidian does. Images in
   `attachments/` next to the note.
 - **A topic's documents live in its folder, in git like notes** (a bill, a lease scan), up to 25 MB
@@ -441,7 +468,8 @@ takes over.
       topic in its answer. No central topic was added: `memory.md` already is the one note every
       conversation starts with, so the prompt and the guide name it as the place for a fact that
       concerns several topics. A second shared place would have had to be loaded everywhere too,
-      and would have competed with it. A chat's side panel, and the phone's sheet, show "What
+      and would have competed with it. (`me.md`, added 2026-11-27, holds a different kind of
+      thing: see "The owner's own facts".) A chat's side panel, and the phone's sheet, show "What
       this chat knows": the notes it starts with and the topics it only knows the standing of.
       It is read when the panel opens, so it shows what a conversation started now would get. A
       long-running one is given the same notes again with its first message of a later day

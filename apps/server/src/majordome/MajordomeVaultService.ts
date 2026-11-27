@@ -144,6 +144,7 @@ const make = Effect.gen(function* () {
         ),
         () => ({
           memory: "memory.md",
+          me: "me.md",
           dailyFolder: "daily",
           inboxFolder: "inbox",
           projectsFolder: "projects",
@@ -288,7 +289,7 @@ const make = Effect.gen(function* () {
       }
       yield* vaultLock.withLock(
         folder,
-        setUpNotesFolder(folder).pipe(
+        setUpNotesFolder(folder, input.about).pipe(
           Effect.provide(services),
           Effect.provideService(FileSystem.FileSystem, fileSystem),
           Effect.provideService(Path.Path, path),

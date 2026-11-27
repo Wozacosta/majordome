@@ -23,3 +23,17 @@ export function consumeDraftSend(draftId: DraftId): ReadonlyArray<File> | null {
   usePendingDraftSendStore.setState({ draftId: null, files: [] });
   return files;
 }
+
+const usePendingFirstAskStore = create<{ readonly text: string }>()(() => ({ text: "" }));
+
+/** What the owner asked for at setup, kept for Today's box when no chat could be started yet. */
+export function keepFirstAsk(text: string): void {
+  usePendingFirstAskStore.setState({ text });
+}
+
+/** That text, once. */
+export function takeFirstAsk(): string {
+  const { text } = usePendingFirstAskStore.getState();
+  if (text !== "") usePendingFirstAskStore.setState({ text: "" });
+  return text;
+}

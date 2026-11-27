@@ -11,11 +11,14 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
+import { ME_DEFAULT_PATH } from "./meNote.ts";
+
 export const VAULT_CONFIG_DIRNAME = ".majordome";
 const VAULT_CONFIG_FILENAME = "config.json";
 
 const VaultConfig = Schema.Struct({
   memory: Schema.optional(Schema.String),
+  me: Schema.optional(Schema.String),
   folders: Schema.optional(
     Schema.Struct({
       daily: Schema.optional(Schema.String),
@@ -43,6 +46,8 @@ const DEFAULT_ROUTINE_LIMITS: MajordomeRoutineLimits = { runMinutes: 20, runsPer
 
 export interface VaultLayout {
   readonly memory: string;
+  /** The note of the owner's stable facts. */
+  readonly me: string;
   readonly dailyFolder: string;
   readonly inboxFolder: string;
   /** Where new topic folders go. */
@@ -68,6 +73,7 @@ function layoutOf(config: VaultConfig): VaultLayout {
     (value === undefined ? null : normalizeTopicFolder(value)) ?? fallback;
   return {
     memory: inVault(config.memory, "memory.md"),
+    me: inVault(config.me, ME_DEFAULT_PATH),
     dailyFolder: inVault(config.folders?.daily, "daily"),
     inboxFolder: inVault(config.folders?.inbox, "inbox"),
     projectsFolder: inVault(config.folders?.projects, "projects"),

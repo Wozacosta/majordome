@@ -27,12 +27,43 @@ export const MAJORDOME_AUTHOR = { name: "Majordome", email: "majordome@localhost
 /** Git trailer that links a run's commit back to its thread. */
 export const MAJORDOME_THREAD_TRAILER = "Majordome-Thread";
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}\W*$/;
+const digitsIn = (text: string) => text.replaceAll(/\D/g, "").length;
+
+/**
+ * A title is often the owner's first words, which may be a passport number, an IBAN or a key
+ * they asked to have saved. A commit subject is kept in the notes' history and copied with every
+ * backup, so long runs of digits and long unbroken strings are left out of it.
+ */
+export function withoutNumbers(title: string): string {
+  const kept: Array<string> = [];
+  let run: Array<string> = [];
+  const close = () => {
+    const digits = digitsIn(run.join(""));
+    const day = run.length === 1 && ISO_DAY.test(run[0] ?? "");
+    if (digits >= 5 && !day) kept.push("…");
+    else kept.push(...run);
+    run = [];
+  };
+  for (const word of title.split(" ")) {
+    if (/\d/.test(word)) {
+      run.push(word);
+      continue;
+    }
+    close();
+    kept.push(word.length >= 20 && !word.includes("/") ? "…" : word);
+  }
+  close();
+  return kept.join(" ");
+}
+
 export function vaultCommitMessage(input: {
   readonly threadTitle: string;
   readonly runOrdinal: number;
   readonly threadId: string;
 }): string {
-  const title = input.threadTitle.replaceAll(/\s+/g, " ").trim() || "Untitled thread";
+  const title =
+    withoutNumbers(input.threadTitle.replaceAll(/\s+/g, " ").trim()) || "Untitled thread";
   return `majordome: ${title}\n\nRun ${input.runOrdinal} of this thread.\n\n${MAJORDOME_THREAD_TRAILER}: ${input.threadId}`;
 }
 

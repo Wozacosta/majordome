@@ -2,13 +2,22 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { EnvironmentId } from "@t3tools/contracts";
+import { scopeProjectRef } from "@t3tools/client-runtime/environment";
+import {
+  type EnvironmentId,
+  MAJORDOME_OWNER_NAME_MAX,
+  type MajordomeStartNotesInput,
+  type ProjectId,
+} from "@t3tools/contracts";
 import { CheckIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
+import { useComposerDraftStore } from "../../composerDraftStore";
 import { isElectron } from "../../env";
+import { useNewThreadHandler } from "../../hooks/useHandleNewThread";
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import { ensureLocalApi } from "../../localApi";
+import { waitForProject } from "../../state/entities";
 import { useEnvironments, usePrimaryEnvironmentId } from "../../state/environments";
 import { majordomeEnvironment } from "../../state/majordome";
 import { isHostedServer } from "./brains.logic";
@@ -21,10 +30,13 @@ import {
   WelcomeSection,
 } from "../onboarding/WelcomePage";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { SidebarInset } from "../ui/sidebar";
+import { Textarea } from "../ui/textarea";
 import { toastManager } from "../ui/toast";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { FolderBrowser } from "./FolderBrowser";
+import { keepFirstAsk, requestDraftSend } from "./pendingDraftSend";
 import { RestoreNotes } from "./RestoreNotes";
 
 /**
@@ -44,7 +56,35 @@ export function MajordomeWelcomePage({
 }) {
   const environmentId = usePrimaryEnvironmentId();
   const { environments } = useEnvironments();
+  const handleNewThread = useNewThreadHandler();
+  const [name, setName] = useState("");
+  const [firstAsk, setFirstAsk] = useState("");
+  /** The notes folder started here while the assistant was not ready, whose first chat waits. */
+  const [waitingProject, setWaitingProject] = useState<ProjectId | null>(null);
   if (environmentId === null) return null;
+
+  /** Sends what the owner wants help with as the first chat; Today's box takes it otherwise. */
+  const askFirst = async (projectId: ProjectId) => {
+    const prompt = firstAsk.trim();
+    if (prompt === "") return;
+    const projectRef = scopeProjectRef(environmentId, projectId);
+    // The folder was made a moment ago: a chat cannot be sent in a project this page has not heard of.
+    const opened = await waitForProject(projectRef)
+      .then(() => handleNewThread(projectRef, { prompt }))
+      .catch(() => null);
+    if (opened === null) {
+      keepFirstAsk(prompt);
+    } else if (
+      useComposerDraftStore.getState().getComposerDraft(opened.draftId)?.prompt === prompt
+    ) {
+      requestDraftSend(opened.draftId);
+    }
+  };
+  const about: MajordomeStartNotesInput["about"] = {
+    ...(name.trim() === "" ? {} : { name: name.trim() }),
+    language: navigator.language,
+    timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
   const label =
     environments.find((environment) => environment.environmentId === environmentId)?.label ??
     "this computer";
@@ -74,17 +114,52 @@ export function MajordomeWelcomePage({
                 claudeOnly={isHostedServer(label)}
                 onImportSourceEnabled={() => undefined}
               />
+              {notesFolder === null ? (
+                <WelcomeSection title="You">
+                  <div className="flex flex-col gap-2 py-2">
+                    <Input
+                      aria-label="What should I call you?"
+                      placeholder="What should I call you?"
+                      autoComplete="given-name"
+                      maxLength={MAJORDOME_OWNER_NAME_MAX}
+                      value={name}
+                      onChange={(event) => setName(event.currentTarget.value)}
+                    />
+                    <Textarea
+                      aria-label="What do you want help with first?"
+                      placeholder="What do you want help with first?"
+                      rows={2}
+                      maxLength={2000}
+                      value={firstAsk}
+                      onChange={(event) => setFirstAsk(event.target.value)}
+                    />
+                  </div>
+                </WelcomeSection>
+              ) : null}
               <WelcomeSection title="Notes">
                 <NotesFolderSetup
                   environmentId={environmentId}
                   notesFolder={notesFolder}
                   hosted={isHostedServer(label)}
+                  about={about}
                   onStay={onStay}
+                  onStarted={(projectId, settled) => {
+                    if (settled) void askFirst(projectId);
+                    else setWaitingProject(projectId);
+                  }}
                 />
               </WelcomeSection>
             </div>
             {notesFolder === null ? null : (
-              <SetupEnd environmentId={environmentId} onLeave={onLeave} />
+              <SetupEnd
+                environmentId={environmentId}
+                onLeave={(ready) => {
+                  onLeave();
+                  if (waitingProject === null) return;
+                  if (ready) void askFirst(waitingProject);
+                  else keepFirstAsk(firstAsk.trim());
+                }}
+              />
             )}
           </div>
         </div>
@@ -107,19 +182,20 @@ function SetupEnd({
   onLeave,
 }: {
   readonly environmentId: EnvironmentId;
-  readonly onLeave: () => void;
+  /** Told whether the assistant is ready to take a first message. */
+  readonly onLeave: (ready: boolean) => void;
 }) {
   const { ready } = useAssistantSettled(environmentId);
   return (
     <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
       {ready ? (
-        <Button onClick={onLeave}>Go to Today</Button>
+        <Button onClick={() => onLeave(true)}>Go to Today</Button>
       ) : (
         <>
           <span className="text-xs text-muted-foreground">
             The assistant is not ready yet. Finish its step above.
           </span>
-          <Button variant="ghost-muted" onClick={onLeave}>
+          <Button variant="ghost-muted" onClick={() => onLeave(false)}>
             Continue without the assistant
           </Button>
         </>
@@ -132,13 +208,18 @@ function NotesFolderSetup({
   environmentId,
   notesFolder,
   hosted,
+  about,
   onStay,
+  onStarted,
 }: {
   readonly environmentId: EnvironmentId;
   readonly notesFolder: string | null;
   /** A server Majordome hosts, where the owner has no home folder to speak of. */
   readonly hosted: boolean;
+  readonly about: MajordomeStartNotesInput["about"];
   readonly onStay: () => void;
+  /** The folder is a notes folder now; `settled` when the assistant was ready as it started. */
+  readonly onStarted: (projectId: ProjectId, settled: boolean) => void;
 }) {
   const startNotes = useAtomCommand(majordomeEnvironment.startNotes, {
     reportFailure: false,
@@ -152,9 +233,10 @@ function NotesFolderSetup({
   const start = async (folder: string | null) => {
     if (!settled) onStay();
     setBusy(true);
-    const result = await startNotes({ environmentId, input: { folder } });
+    const result = await startNotes({ environmentId, input: { folder, about } });
     setBusy(false);
     if (result._tag === "Success") {
+      onStarted(result.value.projectId, settled);
       toastManager.add({
         type: "success",
         title: "Your notes folder is ready",

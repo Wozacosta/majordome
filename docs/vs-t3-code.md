@@ -31,6 +31,11 @@ The landing page and the README show a short version of this list.
 - **A memory note** the assistant reads at the start of every conversation, with today's and
   yesterday's daily notes, and a nightly "Tidy my memory" routine that keeps what will still matter.
   [Memory](./user/memory.md)
+- **A note about you** (`me.md`): your name, contact details, work and household, for forms,
+  bookings and letters. Every conversation starts with your name and contact details, the
+  assistant fills the note as you mention things, and passport, tax and bank numbers stay out of
+  it, encrypted with your saved keys. The welcome page asks what to call you and what you want
+  help with first. [About you](./user/about-you.md)
 - **The notes layout and skills from [obrain](../packages/obrain)**, which lives in this
   repository and is published to npm as `obrain`.
 

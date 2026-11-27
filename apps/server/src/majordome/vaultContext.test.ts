@@ -82,7 +82,10 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       const linked = yield* makeVault({ ".majordome/config.json": "{}" });
       yield* fs.symlink(`${outside}/secret.md`, `${linked}/memory.md`);
       yield* fs.symlink(outside, `${linked}/daily`);
-      assert.equal(yield* readVaultContext({ vaultRoot: linked, nowMillis: NOW }), "");
+      yield* fs.symlink(`${outside}/secret.md`, `${linked}/me.md`);
+      const followed = yield* readVaultContext({ vaultRoot: linked, nowMillis: NOW });
+      assert.notInclude(followed, "code is");
+      assert.notInclude(followed, "<memory");
     }),
   );
 
@@ -276,6 +279,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
         {
           isVault: true,
           memory: { path: "memory.md", cut: false },
+          me: null,
           dailyNotes: [],
           topic: { id: "fitness", title: "Fitness", folder: "personal/fitness" },
           otherTopics: [
@@ -335,13 +339,13 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
 
       // A vault with no notes to load still gets the guide.
       const empty = yield* makeVault({ ".majordome/config.json": "{}" });
-      const guideOnly = yield* readVaultContext({
+      const guideToo = yield* readVaultContext({
         vaultRoot: empty,
         nowMillis: NOW,
         startedBy: { ...startedBy, scheduledTaskId: undefined },
       });
-      assert.isTrue(guideOnly.startsWith("<routines>"));
-      assert.include(guideOnly, "<app>");
+      assert.match(guideToo, /<\/vault_context>\n\n<routines>\n/);
+      assert.include(guideToo, "<app>");
     }),
   );
 
@@ -395,10 +399,68 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
     }),
   );
 
-  it.effect("returns nothing for an empty vault", () =>
+  it.effect("gives every chat the owner's name and contact, and leaves the rest in the note", () =>
     Effect.gen(function* () {
-      const root = yield* makeVault({ ".majordome/config.json": "{}" });
-      assert.equal(yield* readVaultContext({ vaultRoot: root, nowMillis: NOW }), "");
+      const root = yield* makeVault({
+        ".majordome/config.json": "{}",
+        "me.md": [
+          "# About me",
+          "",
+          "## Me",
+          "- Name: Ana Costa",
+          "",
+          "## Contact",
+          "- Address: 12 Rua das Flores, Lisboa",
+          "- Phone: +351 900 000 001",
+          "",
+          "## Identity documents",
+          "- Passport: saved key passport-number, expires 2031-04-02",
+          "",
+          "## Household",
+          "- Partner: Rui",
+          "",
+        ].join("\n"),
+      });
+      const context = yield* readVaultContext({ vaultRoot: root, nowMillis: NOW });
+      assert.include(context, '<about_user path="me.md">');
+      assert.include(
+        context,
+        "## Me\n- Name: Ana Costa\n## Contact\n- Address: 12 Rua das Flores, Lisboa\n- Phone: +351 900 000 001\n",
+      );
+      assert.notInclude(context, "Rui");
+      assert.notInclude(context, "- Passport: saved key passport-number, expires 2031-04-02\n");
+      assert.include(context, "Read me.md before you fill in a form");
+      assert.include(context, "never goes in me.md or any other note");
+
+      const knowledge = yield* readChatKnowledge({
+        vaultRoot: root,
+        nowMillis: NOW,
+        topicOf: { threadId: "thread-1", stateDir: root },
+      });
+      assert.deepStrictEqual(knowledge.me, { path: "me.md" });
+    }),
+  );
+
+  it.effect("follows the note's path in the config, and says when there is no note yet", () =>
+    Effect.gen(function* () {
+      const moved = yield* makeVault({
+        ".majordome/config.json": JSON.stringify({ me: "personal/about.md" }),
+        "personal/about.md": "## Contact\n- Email: ana@example.com\n",
+      });
+      const context = yield* readVaultContext({ vaultRoot: moved, nowMillis: NOW });
+      assert.include(context, '<about_user path="personal/about.md">');
+      assert.include(context, "- Email: ana@example.com");
+
+      const none = yield* makeVault({ ".majordome/config.json": "{}" });
+      const missing = yield* readVaultContext({ vaultRoot: none, nowMillis: NOW });
+      assert.include(missing, "It does not exist yet: create it the first time");
+      assert.include(missing, "`## Me`, `## Contact`, `## Work`");
+      const knowledge = yield* readChatKnowledge({
+        vaultRoot: none,
+        nowMillis: NOW,
+        topicOf: { threadId: "thread-1", stateDir: none },
+      });
+      assert.isNull(knowledge.me);
     }),
   );
 });

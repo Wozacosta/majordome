@@ -63,7 +63,7 @@ function defaultRoutines(input: {
   readonly modelSelection: ModelSelection;
   readonly autoMode: RuntimeMode;
 }): ReadonlyArray<ScheduledTaskUpsertInput> {
-  const { dailyFolder, inboxFolder, memory } = input.layout;
+  const { dailyFolder, inboxFolder, memory, me } = input.layout;
   const common = {
     projectId: input.projectId,
     // One conversation per routine: each run adds to it, starting from a clean session.
@@ -139,7 +139,7 @@ function defaultRoutines(input: {
       enabled: true,
       // After the day's last notes and clear of the hour clocks skip or repeat.
       schedule: { type: "fixed_time", timeOfDay: "03:30" },
-      prompt: memoryPassPrompt({ memory, dailyFolder }),
+      prompt: memoryPassPrompt({ memory, me, dailyFolder }),
     },
   ];
 }

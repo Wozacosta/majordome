@@ -14,6 +14,7 @@ import * as Path from "effect/Path";
 
 import { isMemoryPassTask, MEMORY_CHAR_LIMIT, memoryPassSection } from "./memoryPassPrompt.ts";
 import { readMemoryPassBrief } from "./memoryPassState.ts";
+import { aboutUserSection } from "./meNote.ts";
 import { resolveInVault } from "./noteFile.ts";
 import { findThreadTopic, readTopicThreadsState, topicThreadsStatePath } from "./topicThreads.ts";
 import { routinesGuide } from "./routinesGuide.ts";
@@ -155,6 +156,8 @@ const readLayers = Effect.fn("majordome.readVaultLayers")(function* (input: {
   return Option.some({
     memoryPath,
     memory: yield* readText(memoryPath),
+    mePath: layout.value.me,
+    me: yield* readText(layout.value.me),
     dailyNotes,
     topic,
     otherTopics,
@@ -172,13 +175,14 @@ export const readChatKnowledge = Effect.fn("majordome.readChatKnowledge")(functi
 }) {
   const layers = yield* readLayers(input);
   if (Option.isNone(layers)) return NOT_A_VAULT_KNOWLEDGE;
-  const { memory, memoryPath, dailyNotes, topic, otherTopics } = layers.value;
+  const { memory, memoryPath, me, mePath, dailyNotes, topic, otherTopics } = layers.value;
   return {
     isVault: true,
     memory: Option.match(memory, {
       onNone: () => null,
       onSome: (text) => ({ path: memoryPath, cut: text.trim().length > MEMORY_CHAR_LIMIT }),
     }),
+    me: Option.isSome(me) ? { path: mePath } : null,
     dailyNotes: dailyNotes.map(({ day, path }) => ({ day, path })),
     topic: topic ? { id: topic.id, title: topic.title, folder: topic.folder } : null,
     otherTopics,
@@ -188,6 +192,7 @@ export const readChatKnowledge = Effect.fn("majordome.readChatKnowledge")(functi
 export const NOT_A_VAULT_KNOWLEDGE: MajordomeChatKnowledgeResult = {
   isVault: false,
   memory: null,
+  me: null,
   dailyNotes: [],
   topic: null,
   otherTopics: [],
@@ -205,7 +210,7 @@ export function otherTopicsSection(input: {
   });
   return [
     "<other_topics>",
-    `${input.inTopic ? "The user's other topics" : "The user's topics"}: each is a folder of these notes with a conversation of its own. Only where each one stands is loaded here, not its notes. When what the user asks touches one of them, look inside it before you answer: read its log (log.md in its folder), or search it with \`search_notes\` and its \`folder\`. Then name the topic you looked in, in your answer, so the user knows where it came from. A fact that matters in several topics, or about the user in general, belongs in ${input.memoryPath}: it is the one note every conversation starts with.`,
+    `${input.inTopic ? "The user's other topics" : "The user's topics"}: each is a folder of these notes with a conversation of its own. Only where each one stands is loaded here, not its notes. When what the user asks touches one of them, look inside it before you answer: read its log (log.md in its folder), or search it with \`search_notes\` and its \`folder\`. Then name the topic you looked in, in your answer, so the user knows where it came from. A fact that matters in several topics, or about how the user likes things done, belongs in ${input.memoryPath}: it is the one note every conversation starts with.`,
     ...lines,
     "</other_topics>",
   ].join("\n");
@@ -260,7 +265,7 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
 }) {
   const layers = yield* readLayers(input);
   if (Option.isNone(layers)) return "";
-  const { memory, memoryPath, dailyNotes, topic, otherTopics } = layers.value;
+  const { memory, memoryPath, me, mePath, dailyNotes, topic, otherTopics } = layers.value;
 
   const sections: Array<string> = [];
   if (Option.isSome(memory)) {
@@ -268,6 +273,7 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
       `<memory path="${escapeAttribute(memoryPath)}">\n${loadedMemory(memory.value, memoryPath)}\n</memory>`,
     );
   }
+  sections.push(aboutUserSection({ path: mePath, text: Option.getOrNull(me) }));
   for (const note of dailyNotes) {
     sections.push(
       `<daily_note day="${note.day}" date="${note.date}" path="${escapeAttribute(note.path)}">\n${truncate(note.text, DAILY_NOTE_CHAR_LIMIT)}\n</daily_note>`,
@@ -298,8 +304,6 @@ export const readVaultContext = Effect.fn("majordome.readVaultContext")(function
     startedBy !== undefined && startedBy.scheduledTaskId === undefined && input.refresh !== true
       ? routinesGuide(now)
       : "";
-  if (sections.length === 0) return guide;
-
   const loaded =
     input.refresh === true
       ? `read again now (${DateTime.formatIsoDate(now)}), because a day or more has passed since the last message here. They replace the notes loaded earlier in this conversation: where the two differ, these are right`

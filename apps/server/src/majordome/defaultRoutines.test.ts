@@ -43,6 +43,7 @@ const testLayer = ScheduledTaskService.layer.pipe(
 const model: ModelSelection = { instanceId: "codex", model: "gpt-5.4" } as ModelSelection;
 const layout = {
   memory: "memory.md",
+  me: "me.md",
   dailyFolder: "daily",
   inboxFolder: "drop",
   projectsFolder: "projects",

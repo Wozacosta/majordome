@@ -3,7 +3,7 @@ import type { MajordomeChatKnowledgeResult } from "@t3tools/contracts";
 /** A note or folder a chat starts with, or a topic it only knows the standing of. */
 export interface ChatKnowledgeRow {
   readonly key: string;
-  readonly kind: "memory" | "daily" | "topic" | "other-topic";
+  readonly kind: "memory" | "me" | "daily" | "topic" | "other-topic";
   readonly label: string;
   readonly detail: string | null;
   /** The note to open for it, relative to the notes folder; null when there is none to show. */
@@ -54,6 +54,15 @@ export function chatKnowledgeView(
           : "Shared by every chat",
     path: knowledge.memory?.path ?? null,
   });
+  if (knowledge.me != null) {
+    starts.push({
+      key: "me",
+      kind: "me",
+      label: "About you",
+      detail: "Your name and contact details",
+      path: knowledge.me.path,
+    });
+  }
   for (const note of knowledge.dailyNotes) {
     starts.push({
       key: note.day,

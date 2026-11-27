@@ -81,6 +81,7 @@ import { SavedKeysToolkit } from "../../apps/server/src/mcp/toolkits/savedKeys/t
 import { NotesSearchToolkit } from "../../apps/server/src/mcp/toolkits/notesSearch/tools.ts";
 import { ChatSetupToolkit } from "../../apps/server/src/mcp/toolkits/chatSetup/tools.ts";
 import { routinesGuide } from "../../apps/server/src/majordome/routinesGuide.ts";
+import { aboutUserSection } from "../../apps/server/src/majordome/meNote.ts";
 import { otherTopicsSection } from "../../apps/server/src/majordome/vaultContext.ts";
 import { PreviewControlsToolkit } from "../../apps/server/src/mcp/toolkits/previewControls/tools.ts";
 import { ProjectToolkit } from "../../apps/server/src/mcp/toolkits/project/tools.ts";
@@ -388,6 +389,13 @@ export const McpToolUseCase = Schema.Struct({
           }),
         ),
       }),
+    ),
+    /**
+     * A Majordome notes-folder conversation: adds what the vault context carries of the note of
+     * the owner's own facts. `text` is the note, or null when the notes have none yet.
+     */
+    aboutUser: Schema.optional(
+      Schema.Struct({ path: Schema.String, text: Schema.NullOr(Schema.String) }),
     ),
     priorTurns: Schema.optional(
       Schema.Array(
@@ -1239,6 +1247,7 @@ export const buildMessages = (sample: Sample) => {
     priorTurns = [],
     routinesGuideAt,
     otherTopics,
+    aboutUser,
   } = testCase.setup;
   const sideChat = testCase.setup.sideChat;
   if (testCase.prompt === "" && (role !== "top" || sideChat !== undefined)) {
@@ -1265,6 +1274,7 @@ export const buildMessages = (sample: Sample) => {
           ...otherTopics,
           topics: otherTopics.topics.map((topic) => ({ ...topic, id: topic.folder })),
         }),
+    aboutUser === undefined ? undefined : aboutUserSection(aboutUser),
     routinesGuideAt === undefined
       ? undefined
       : routinesGuide(

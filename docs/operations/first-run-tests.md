@@ -8,6 +8,8 @@ config, [`first-run.e2e.config.ts`](../../scripts/first-run.e2e.config.ts), beca
 
 ```sh
 vp run first-run first-run/claude-installs-and-sign-in-starts.e2e.ts
+vp run first-run first-run/owner-says-who-they-are.e2e.ts
+FIRST_RUN_REPLAY=1 vp run first-run first-run/first-ask-starts-a-chat.e2e.ts
 CLAUDE_CODE_OAUTH_TOKEN=... vp run first-run first-run/signed-in-claude-answers.e2e.ts
 ```
 
@@ -17,6 +19,10 @@ Results land in `scripts/.e2e-first-run`.
 - **Install and sign-in start.** Runs Claude's real installer from the welcome page, then starts
   sign-in. The sign-in page is Anthropic's and no test drives it: the run sets `BROWSER` to a shim
   that records the address, and the test stops once Claude has asked for its authorize page.
+- **Who the owner is.** Types a name and a first ask on the welcome page with no assistant
+  installed, then checks the name is in the new folder's `me.md` and the ask waits in Today's box.
+- **First chat.** The same with `FIRST_RUN_REPLAY=1`, which keeps the free replay assistant ready
+  the way Claude is once signed in: the ask is sent as the first chat.
 - **First answer.** Needs a token from `claude setup-token`, which the server accepts in place of
   the browser sign-in. It asks the cheapest Claude model one question on that account's plan.
 

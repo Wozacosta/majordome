@@ -38,7 +38,7 @@ if (!values.out) throw new Error("Use --out <directory> [--model <id>] [--case <
 const outDirectory = values.out;
 const models = values.model ?? ["gpt-6.1-terra", "gpt-6-luna"];
 const selected = values.case ? cases.filter((entry) => values.case!.includes(entry.id)) : cases;
-const prompt = memoryPassPrompt({ memory: "memory.md", dailyFolder: "daily" });
+const prompt = memoryPassPrompt({ memory: "memory.md", me: "me.md", dailyFolder: "daily" });
 const promptHash = NodeCrypto.createHash("sha256").update(prompt).digest("hex").slice(0, 12);
 // The fixture's small hours in whatever zone the eval runs in, as the server names daily notes.
 const now = DateTime.makeZonedUnsafe(NOW, {

@@ -12,6 +12,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
+import * as ServerConfig from "../../../config.ts";
 import * as ServerEnvironment from "../../../environment/ServerEnvironment.ts";
 import * as MajordomeSavedKeys from "../../../majordome/MajordomeSavedKeys.ts";
 import { layerSavedKeysForTest } from "../../../majordome/MajordomeSavedKeys.testkit.ts";
@@ -208,6 +209,65 @@ it.layer(NodeServices.layer)("with the server's own key file", (it) => {
           McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(
             Layer.provideMerge(layerAgent),
             Layer.provideMerge(layerSavedKeysForTest("majordome-saved-keys-tools-")),
+          ),
+        ),
+      ),
+  );
+
+  it.effect(
+    "an agent saves a passport number with its last day, and it is on disk only encrypted",
+    () =>
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const config = yield* ServerConfig.ServerConfig;
+        const toolkit = yield* SavedKeysToolkit;
+        const result = <Name extends "list_saved_keys" | "use_saved_key" | "save_key">(
+          name: Name,
+          params: Parameters<typeof toolkit.handle<Name>>[1],
+        ) =>
+          toolkit.handle(name, params).pipe(
+            Stream.unwrap,
+            Stream.runCollect,
+            Effect.map((parts) => parts.at(-1)?.result),
+          );
+        const number = "19AB12345";
+
+        expect(
+          yield* result("save_key", {
+            name: "passport-number",
+            note: "French passport",
+            value: number,
+            expires: "2031-04-02",
+          }),
+        ).toMatchObject({ status: "saved" });
+        expect(yield* result("list_saved_keys", {})).toEqual({
+          keys: [{ name: "passport-number", note: "French passport", expires: "2031-04-02" }],
+        });
+
+        // Nothing the server keeps holds the number in the clear.
+        const kept = yield* fileSystem.readDirectory(config.stateDir, { recursive: true });
+        expect(kept.some((file) => file.endsWith(".age"))).toBe(true);
+        for (const file of kept) {
+          const path = `${config.stateDir}/${file}`;
+          if ((yield* fileSystem.stat(path)).type !== "File" || file.endsWith(".agekey")) continue;
+          expect(yield* fileSystem.readFileString(path)).not.toContain(number);
+        }
+
+        // A form needs it: the reply says where it is, and that it goes in the form only.
+        const taken = yield* result("use_saved_key", { name: "passport-number" });
+        expect(taken).toMatchObject({
+          status: "ready",
+          note: expect.stringContaining("to fill the form or letter that needs it"),
+        });
+        expect(JSON.stringify(taken)).not.toContain(number);
+        expect(yield* fileSystem.readFileString((taken as { readonly file: string }).file)).toBe(
+          number,
+        );
+      }).pipe(
+        Effect.provide(
+          McpToolAccess.HandlersLayer.layer(SavedKeysHandlers.layer).pipe(
+            Layer.provideMerge(layerAgent),
+            Layer.provideMerge(layerSavedKeysForTest("majordome-saved-number-tools-")),
           ),
         ),
       ),

@@ -17,6 +17,8 @@ const resolved = await Effect.gen(function* () {
     // Outside the checkout: notes cannot be started in a folder that is part of a repository.
     home: path.join(env.RUNNER_TEMP ?? env.TMPDIR ?? "/tmp", "majordome-first-run"),
     start: path.join(scripts, "first-run/start.ts"),
+    // The free replay assistant stands in for Claude, for what happens once an assistant is ready.
+    replay: env.FIRST_RUN_REPLAY === "1",
   };
 }).pipe(Effect.provide(NodeServices.layer), Effect.runPromise);
 
@@ -36,7 +38,13 @@ export default {
         readyUrl: `http://${LOOPBACK}:{port}/.well-known/t3/environment`,
         command: {
           executable: resolved.node,
-          args: [resolved.start, FIRST_RUN_HOME, LOOPBACK, "{port}"],
+          args: [
+            resolved.start,
+            ...(resolved.replay ? ["--replay"] : []),
+            FIRST_RUN_HOME,
+            LOOPBACK,
+            "{port}",
+          ],
           cwd: resolved.appDir,
           // Set, Claude counts as signed in without the browser page no test can drive.
           inheritEnv: ["CLAUDE_CODE_OAUTH_TOKEN"],
