@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.82
+
 **New**
 
 - **Your note about you fills itself.** If you had notes before `me.md` existed, tonight's "Tidy
