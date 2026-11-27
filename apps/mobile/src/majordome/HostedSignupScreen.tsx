@@ -21,6 +21,7 @@ import { cn } from "../lib/cn";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
 import { MAJORDOME_SERVER } from "./connectWording";
+import { FinishSetup } from "./FinishSetup";
 import {
   buyServer,
   connectToServer,
@@ -28,12 +29,9 @@ import {
   hostedSignupAtom,
   loadHostedSignup,
   manageSubscription,
-  openSetupPage,
   resetHostedSignup,
   restoreServer,
   retryPairing,
-  SETUP_FAILED,
-  SETUP_NOT_ALLOWED,
 } from "./hostedSignup";
 import type { SignupNote } from "./hostedSignup.logic";
 import { serverOfferAtom } from "./serverOffer";
@@ -62,40 +60,19 @@ function Problem(props: { readonly text: string | null; readonly centered?: bool
 }
 
 function FinishSettingUp(props: { readonly environmentId: string; readonly onDone: () => void }) {
-  const connected = useAtomValue(environmentConnectedAtom(EnvironmentId.make(props.environmentId)));
-  const [opening, setOpening] = useState(false);
-  const [opened, setOpened] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  const open = async () => {
-    setOpening(true);
-    setProblem(null);
-    const result = await openSetupPage(props.environmentId);
-    setOpening(false);
-    if (result === "opened") setOpened(true);
-    else setProblem(result === "notAllowed" ? SETUP_NOT_ALLOWED : SETUP_FAILED);
-  };
+  const environmentId = EnvironmentId.make(props.environmentId);
+  const connected = useAtomValue(environmentConnectedAtom(environmentId));
 
   return (
     <View className="gap-4">
       <Text accessibilityRole="header" textRole="headline" className="font-t3-bold text-foreground">
         Your server is ready
       </Text>
-      <Text className="text-foreground-muted">
-        This phone is connected to it. One step is left, in your browser: sign in to Claude and
-        start your notes there, then come back.
-      </Text>
-      {connected ? null : <Progress text="Connecting to your server…" />}
-      <Problem text={problem} />
-      <Button
-        label={opened ? "Open it again" : "Finish setting up"}
-        tone={opened ? "secondary" : "primary"}
-        icon="safari"
-        loading={opening}
-        disabled={!connected}
-        onPress={() => void open()}
-      />
-      {opened ? <Button label="Done" tone="primary" onPress={props.onDone} /> : null}
+      {connected ? (
+        <FinishSetup environmentId={environmentId} onDone={props.onDone} />
+      ) : (
+        <Progress text="Connecting to your server…" />
+      )}
     </View>
   );
 }

@@ -8,6 +8,8 @@ import {
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
+export { getOnboardingProviderState } from "@t3tools/shared/claudeSignIn";
+
 const decodeClaudeSettings = Schema.decodeUnknownOption(ClaudeSettings);
 const decodeCodexSettings = Schema.decodeUnknownOption(CodexSettings);
 const SAFE_SHELL_BINARY_PATTERN = /^[A-Za-z0-9_./:\\-]+$/;
@@ -31,17 +33,6 @@ function quoteProviderBinary(
     return `'${binaryPath.replaceAll("'", `'"'"'`)}'`;
   }
   return fallback;
-}
-
-export function getOnboardingProviderState(provider: ServerProvider | undefined) {
-  if (provider === undefined) return "checking";
-  if (!provider.enabled || provider.status === "disabled") return "disabled";
-  if (!provider.installed && provider.status === "warning" && provider.auth.status === "unknown")
-    return "checking";
-  if (!provider.installed) return "install";
-  if (provider.auth.status === "unauthenticated") return "signIn";
-  if (provider.status === "ready") return "ready";
-  return "attention";
 }
 
 // These need no Node/npm and install where provider maintenance recognizes native binaries.

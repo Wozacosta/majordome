@@ -42,7 +42,7 @@ export type SignupEvent =
   | { readonly type: "stopped"; readonly note: SignupNote | null }
   | { readonly type: "ready" }
   | { readonly type: "retryPairing" }
-  /** `fresh` is a server made just now, which still has its setup to finish in the browser. */
+  /** `fresh` is a server made just now, which still has its setup to finish. */
   | { readonly type: "paired"; readonly environmentId: string; readonly fresh: boolean }
   | { readonly type: "pairingFailed"; readonly message: string }
   | { readonly type: "finished" }

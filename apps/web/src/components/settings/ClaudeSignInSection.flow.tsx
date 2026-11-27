@@ -20,7 +20,7 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { claudeSignInFailure } from "./ClaudeSignInSection.logic";
+import { claudeSignInFailure } from "@t3tools/shared/claudeSignIn";
 
 export type ClaudeSignInStep =
   | { readonly kind: "idle" }

@@ -1,23 +1,4 @@
-import { ClaudeSignInError, type ClaudeSignInResult } from "@t3tools/contracts";
-import * as Schema from "effect/Schema";
-
-const isClaudeSignInError = Schema.is(ClaudeSignInError);
-
-export interface ClaudeSignInFailure {
-  readonly message: string;
-  /** Whether the same link and attempt still take a code, so the owner need not start over. */
-  readonly attemptOpen: boolean;
-}
-
-export function claudeSignInFailure(error: unknown, machine: string): ClaudeSignInFailure {
-  if (isClaudeSignInError(error)) {
-    return { message: error.message, attemptOpen: error.reason === "codeIncomplete" };
-  }
-  return {
-    message: `Majordome couldn't reach ${machine} to sign in. Check the connection, then start over.`,
-    attemptOpen: false,
-  };
-}
+import type { ClaudeSignInResult } from "@t3tools/contracts";
 
 export interface ClaudeSignInNote {
   readonly tone: "ok" | "warning";

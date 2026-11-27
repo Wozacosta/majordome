@@ -1,6 +1,7 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
 import { readAccountServers } from "@t3tools/shared/majordomeAccount";
+import { EnvironmentId } from "@t3tools/contracts";
 import { greetingForHour } from "@t3tools/shared/majordomeToday";
 import * as Cause from "effect/Cause";
 import { useNavigation } from "@react-navigation/native";
@@ -28,7 +29,7 @@ import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
 import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
-import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
+import { ClaudeSignInCard, FinishSetup } from "./FinishSetup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
 import { TodayAsk } from "./TodayAsk";
@@ -327,7 +328,6 @@ export function MajordomeTodayScreen() {
   const [hour, setHour] = useState(() => new Date().getHours());
   const greeting = greetingForHour(hour);
   const { setup, reach, connectedComputer, reconnect } = useTodaySetup(store, vault);
-  const [settingUp, setSettingUp] = useState(false);
   const note = useEnvironmentQuery(
     vault === null
       ? null
@@ -465,15 +465,6 @@ export function MajordomeTodayScreen() {
     keep(draft);
     setDraft("");
     void Haptics.selectionAsync();
-  };
-
-  const finishSettingUp = async () => {
-    if (connectedComputer === null) return;
-    setSettingUp(true);
-    setProblem(null);
-    const result = await openSetupPage(connectedComputer);
-    setSettingUp(false);
-    if (result !== "opened") setProblem(result === "notAllowed" ? SETUP_NOT_ALLOWED : SETUP_FAILED);
   };
 
   const tick = (index: number) => {
@@ -631,19 +622,12 @@ export function MajordomeTodayScreen() {
           <Text className="text-foreground-muted">Looking for your notes…</Text>
         ) : setup === "noFolder" ? (
           <>
-            <EmptyState
-              title="No notes folder yet"
-              detail="Finish setting up in your browser: sign in to Claude and start your notes there, then come back. If Majordome is on your computer, you can also choose a notes folder there."
-              action={
-                <Button
-                  label="Finish setting up"
-                  tone="primary"
-                  icon="safari"
-                  loading={settingUp}
-                  onPress={() => void finishSettingUp()}
-                />
-              }
-            />
+            <Text textRole="headline" className="font-t3-bold text-foreground">
+              Finish setting up
+            </Text>
+            {connectedComputer === null ? null : (
+              <FinishSetup environmentId={EnvironmentId.make(connectedComputer)} />
+            )}
             {problem !== null ? (
               <Text
                 accessibilityRole="alert"
@@ -657,6 +641,9 @@ export function MajordomeTodayScreen() {
           </>
         ) : (
           <>
+            {vault !== null && reach === "connected" ? (
+              <ClaudeSignInCard environmentId={vault.environmentId} onlyWhenNeeded />
+            ) : null}
             {vault !== null && welcome.isSuccess && welcome.data?.pending && ownerName === null ? (
               <TodayWelcome
                 key={`${vault.environmentId}:${vault.projectId}`}

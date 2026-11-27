@@ -31,6 +31,10 @@
       "types": "./src/majordomeToday.ts",
       "import": "./src/majordomeToday.ts"
     },
+    "./claudeSignIn": {
+      "types": "./src/claudeSignIn.ts",
+      "import": "./src/claudeSignIn.ts"
+    },
     "./majordomeWelcome": {
       "types": "./src/majordomeWelcome.ts",
       "import": "./src/majordomeWelcome.ts"

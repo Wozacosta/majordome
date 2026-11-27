@@ -13,6 +13,11 @@ The section for a version is also the text of its release on GitHub.
 
 **Changed**
 
+- **A new server is finished in the phone app, not in your browser.** Signing in to Claude opens
+  Claude's page as a sheet over Majordome; close it and the box for the code is right there,
+  with a "Paste code" button. "Start new notes" is a button on the same screen. Before, both
+  happened on a web page in another browser tab. If Claude is signed out later, Today shows
+  the same card.
 - **The iPhone's Today is one box that talks to your assistant.** "Ask anything, or tell me what
   to remember", with the same four starters as on the computer. Sending opens a chat with your
   message already sent. Your lines for the day, the day arrows and "Write a line" moved to a
@@ -42,6 +47,8 @@ The section for a version is also the text of its release on GitHub.
 - On an iPhone with no account, open "Get a Majordome server", press "1. Sign in" and sign
   up, then press Subscribe.
 - On the iPhone, press **Plan my day** on Today, then go back and open **Journal**.
+- On the phone, with a server where Claude is not signed in, open Today, press **Sign in** on
+  the Claude card, approve, copy the code, close the sheet and press **Paste code**.
 
 ## 0.10.84
 

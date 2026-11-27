@@ -395,8 +395,8 @@ export const SETUP_FAILED =
   "The setup page couldn't be opened. Check that Majordome is connected, then try again.";
 
 /**
- * Opens the computer's own welcome page in the browser, signed in with a one-time code. Signing
- * in to the AI and starting the notes happen there: the phone has no screens for them.
+ * Opens the computer's own welcome page in the browser, signed in with a one-time code, for the
+ * setup the phone has no screen for: restoring a backup or using notes already there.
  */
 export async function openSetupPage(environmentId: string): Promise<OpenSetupResult> {
   const id = EnvironmentId.make(environmentId);

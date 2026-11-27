@@ -1,7 +1,8 @@
 import { ClaudeSignInError, ProviderInstanceId } from "@t3tools/contracts";
+import { claudeSignInFailure } from "@t3tools/shared/claudeSignIn";
 import { expect, it } from "vite-plus/test";
 
-import { claudeSignInFailure, claudeSignInNotes } from "./ClaudeSignInSection.logic";
+import { claudeSignInNotes } from "./ClaudeSignInSection.logic";
 
 const instanceId = ProviderInstanceId.make("claudeAgent");
 
