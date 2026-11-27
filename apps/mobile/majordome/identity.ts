@@ -111,9 +111,12 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
   return {
     ...rest,
     slug: "majordome",
-    plugins: withMajordomeAndroidPlugins(
-      withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
-    ),
+    plugins: [
+      ...(withMajordomeAndroidPlugins(
+        withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
+      ) ?? []),
+      "./plugins/withMajordomeAndroidSigning.cjs",
+    ],
     ...(renamed.scheme === undefined
       ? {}
       : {
@@ -135,6 +138,10 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     android: {
       ...renamed.android,
       ...(renamed.android?.package ? { package: androidPackage(renamed.android.package) } : {}),
+      // Android only installs over an app with a lower number; the release script counts up.
+      ...(process.env.MAJORDOME_ANDROID_VERSION_CODE
+        ? { versionCode: Number(process.env.MAJORDOME_ANDROID_VERSION_CODE) }
+        : {}),
       adaptiveIcon: {
         foregroundImage: renamed.android?.adaptiveIcon?.foregroundImage,
         monochromeImage: renamed.android?.adaptiveIcon?.monochromeImage,

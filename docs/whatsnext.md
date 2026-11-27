@@ -601,6 +601,26 @@ To do:
 Not asked for yet: a calendar of finished items, images in notes, playlist import, an "action"
 kind, publishing a list, filing one item under several subjects, and Empty Trash.
 
+## The Android app
+
+Started 2026-11-27. It is the iPhone app's code; `apps/mobile/majordome/identity.ts` gives it
+its package (`io.github.wozacosta.majordome`), icons and launch screen. How to build it and what
+it lacks are in `docs/operations/majordome-android.md`.
+
+- [ ] **Run it on a real phone.** It has only run on an emulator: pairing, Today, a chat and
+      Settings were walked there, in the development app and in the signed release build.
+- [ ] **Decide how people get it.** Today the APK is built on the owner's Mac and can be
+      attached to a GitHub Release (`vp run mobile:apk --release v1.2.3`). The Play Store needs
+      a developer account (25 dollars, identity check) and, for a new personal account, a
+      closed test with 12 testers for 14 days before it can be public.
+- [ ] **Back up the signing key** (`~/.majordome/android/release.jks` and its password in
+      `~/.majordome/android.env`). Without it no update installs over the app.
+- [ ] The on-device voice, buying a server, and `majord.link` addresses opening in the app.
+- [ ] Notifications: not built for either phone app.
+- A symbol that exists only on the iPhone draws nothing on Android. Majordome's own screens
+  use the shared `SymbolView`, or `TopicSymbolView` for topic icons, which has an Android list
+  to extend when a topic gets a new icon (`src/majordome/TopicSymbol.android.tsx`).
+
 ## The iPhone app
 
 Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to know:

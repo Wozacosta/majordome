@@ -7,6 +7,20 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Majordome on Android, a first build.** The phone app now builds for Android as Majordome,
+  with its own icon: Today with to-dos you can tick and a line you can add, your chats and
+  topics, new chats, and the same Settings as the iPhone. It is an APK you install by hand,
+  not a Play Store app. Not on Android yet: replies read aloud, talking with your assistant,
+  and buying a server from the phone.
+
+**Try this**
+
+- On the Mac, run `vp run mobile:apk`, then put `release/Majordome.apk` on an Android phone
+  (`adb install release/Majordome.apk`, or send yourself the file and open it). In
+  **Settings > Phone & notifications** on the computer, show the code and scan it from the app.
+
 ## 0.10.83
 
 **New**
