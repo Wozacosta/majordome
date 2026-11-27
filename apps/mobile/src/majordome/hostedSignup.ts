@@ -356,6 +356,11 @@ export async function restoreServer(): Promise<void> {
   await settle(purchase);
 }
 
+/** Apple's own sheet for the subscription, where it is cancelled. */
+export function manageSubscription(): void {
+  void majordomeStore?.manage().catch(() => undefined);
+}
+
 /** Connects this phone to the server the account already has. */
 export async function connectToServer(): Promise<void> {
   if (state().step !== "idle") return;

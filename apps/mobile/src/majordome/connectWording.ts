@@ -169,6 +169,7 @@ export const MAJORDOME_SERVER = {
   signIn: "Sign in",
   signedIn: "Signed in",
   restore: "Restore purchases",
+  manage: "Manage subscription",
   connect: "Connect this phone to it",
   terms: "Terms",
   privacy: "Privacy",

@@ -26,6 +26,7 @@ import {
   finishHostedSignup,
   hostedSignupAtom,
   loadHostedSignup,
+  manageSubscription,
   openSetupPage,
   resetHostedSignup,
   restoreServer,
@@ -264,6 +265,14 @@ function Offer(props: { readonly note: SignupNote | null; readonly onSignIn: () 
             onPress={run(restoreServer)}
           />
         ) : null}
+        {offer === null ? null : (
+          <Button
+            label={MAJORDOME_SERVER.manage}
+            tone="text"
+            size="compact"
+            onPress={manageSubscription}
+          />
+        )}
         <Button
           label={MAJORDOME_SERVER.terms}
           tone="text"

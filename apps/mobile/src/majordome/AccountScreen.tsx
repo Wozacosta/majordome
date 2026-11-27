@@ -31,7 +31,7 @@ import {
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
 import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
-import { BROKER_URL } from "./hostedSignup";
+import { BROKER_URL, manageSubscription } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
@@ -177,6 +177,9 @@ function SignedIn() {
               onConnected={leaveOnceConnected}
             />
           ))
+        )}
+        {serverOffer === null ? null : (
+          <Button label={MAJORDOME_SERVER.manage} tone="text" onPress={manageSubscription} />
         )}
         <Button label={MAJORDOME_ACCOUNT.signOut} tone="text" onPress={signOut} />
         <Button

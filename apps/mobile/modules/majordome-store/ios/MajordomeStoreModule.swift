@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import StoreKit
+import UIKit
 
 private struct StoreProblem: LocalizedError {
   let errorDescription: String?
@@ -78,6 +79,17 @@ public final class MajordomeStoreModule: Module {
         if case .verified(let transaction) = entry { found.append(Self.describe(transaction)) }
       }
       return found
+    }
+
+    // Apple's own sheet for the subscription: the one place a TestFlight purchase can be cancelled.
+    AsyncFunction("manage") { () in
+      let scene = await MainActor.run {
+        UIApplication.shared.connectedScenes
+          .compactMap { $0 as? UIWindowScene }
+          .first { $0.activationState == .foregroundActive }
+      }
+      guard let scene else { throw StoreProblem(errorDescription: "No window to show it in.") }
+      try await AppStore.showManageSubscriptions(in: scene)
     }
 
     AsyncFunction("finish") { (transactionId: String) in

@@ -18,6 +18,8 @@ interface MajordomeStore {
   /** What the Apple account pays for now. `askAppStore` asks afresh, which may ask to sign in. */
   owned(askAppStore: boolean): Promise<ReadonlyArray<StorePurchase>>;
   finish(transactionId: string): Promise<void>;
+  /** Opens Apple's sheet for seeing and cancelling the Apple account's subscriptions. */
+  manage(): Promise<void>;
   addListener(event: "purchase", listener: (purchase: StorePurchase) => void): { remove(): void };
 }
 
