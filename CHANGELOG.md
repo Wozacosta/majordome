@@ -69,6 +69,9 @@ Not released yet.
   account page used to say "Your account has no computer yet", and the server page offered
   Subscribe; the server only appeared after pressing it. Both now show **Connect this phone
   to it** as soon as you are signed in.
+- **The box for Claude's code is still there when you come back from the browser.** If the
+  phone lost its connection while you were on Claude's page, the card was back to its **Sign
+  in** button with nowhere to paste the code. The card now keeps its place.
 
 **Try this**
 

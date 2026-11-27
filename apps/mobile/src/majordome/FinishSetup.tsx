@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect/atom-react";
+import { useAtom, useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -11,7 +11,7 @@ import {
 } from "@t3tools/contracts";
 import { claudeSignInFailure, getOnboardingProviderState } from "@t3tools/shared/claudeSignIn";
 import * as Redacted from "effect/Redacted";
-import { AsyncResult } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import * as Clipboard from "expo-clipboard";
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
@@ -38,6 +38,12 @@ type SignInStep =
       readonly attempt: ClaudeSignInAttempt;
       readonly finishing: boolean;
     };
+
+// Kept outside the card: Claude's page takes the screen, the connection drops meanwhile and the
+// card is drawn anew on return, when the code still has to be pasted.
+const signInStepAtom = Atom.family((_environmentId: EnvironmentId) =>
+  Atom.make<SignInStep>({ kind: "idle" }).pipe(Atom.keepAlive),
+);
 
 function Card(props: { readonly children: ReactNode }) {
   return (
@@ -84,7 +90,7 @@ export function ClaudeSignInCard(props: {
   const submit = useAtomCommand(serverEnvironment.submitClaudeSignIn, commands);
   const cancel = useAtomCommand(serverEnvironment.cancelClaudeSignIn, commands);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, commands);
-  const [step, setStep] = useState<SignInStep>({ kind: "idle" });
+  const [step, setStep] = useAtom(signInStepAtom(environmentId));
   const [code, setCode] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
 
