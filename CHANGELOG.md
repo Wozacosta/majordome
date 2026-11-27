@@ -42,6 +42,11 @@ The section for a version is also the text of its release on GitHub.
 - **The iPhone's bottom bar has words.** Today, Chats and Settings are written under their icons,
   the one you are on has a filled icon, and New chat is the one coloured button.
 
+**Try this**
+
+- Click the three linked dots at the top of a chat, open **Skills**, then click a name.
+- On the iPhone, look at the bottom bar: each icon has its word under it.
+
 ## 0.10.78
 
 **New**
