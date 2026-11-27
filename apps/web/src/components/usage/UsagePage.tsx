@@ -12,7 +12,7 @@ import {
 } from "@t3tools/contracts";
 import { CircleAlertIcon, ChevronDownIcon, InfoIcon, SlidersHorizontalIcon } from "lucide-react";
 import { T, useGT, useLocale, useMessages, Var } from "gt-react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Cause from "effect/Cause";
@@ -31,6 +31,7 @@ import {
   type MergedUsage,
 } from "@t3tools/shared/usageMerge";
 
+import { isMajordome } from "~/env";
 import { cn } from "../../lib/utils";
 import { usePrimarySettings } from "../../hooks/useSettings";
 import { resolveHour12 } from "../../timestampFormat";
@@ -102,6 +103,10 @@ import {
   providersWithUsage,
   rankProvidersByMetric,
 } from "./usageProviders";
+import { UsageByUse, usageByUseRequest } from "../majordome/UsageByUse";
+import { UsageLimitGauges } from "../majordome/UsageLimitGauges";
+import { isUsageUseCut, USAGE_USE_CUTS, type UsageUseCut } from "../majordome/usage.logic";
+import { refreshUsageByUse } from "../../state/majordome";
 import {
   readUsagePagePreferences,
   saveUsagePagePreferences,
@@ -329,6 +334,7 @@ export function UsagePage() {
     }
     refreshingRef.current = true;
     setIsRefreshing(true);
+    if (isMajordome) refreshUsageByUse(usageByUseRequest(selectedEnvironments, nextWindow));
     void refresh(nextWindow).finally(() => {
       refreshingRef.current = false;
       setIsRefreshing(false);
@@ -349,7 +355,8 @@ export function UsagePage() {
   });
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- refreshes provider limits from the server when the connected environment set changes
   useEffect(() => {
-    if (showingLimits && connectedLimitsEnvironments) autoRefreshLimits();
+    // Majordome shows the limits as gauges above the totals too.
+    if ((showingLimits || isMajordome) && connectedLimitsEnvironments) autoRefreshLimits();
   }, [showingLimits, connectedLimitsEnvironments]);
 
   const days = enumerateDays(shownWindow.sinceDay, shownWindow.untilDay);
@@ -574,6 +581,15 @@ export function UsagePage() {
                 refreshingUsage={refreshingUsage}
                 showChatGptSharing={showChatGptSharing}
                 onSelectModel={selectUsageModel}
+                limitGauges={
+                  isMajordome ? (
+                    <UsageLimitGauges
+                      selectedEnvironmentIds={selectedEnvironmentIds}
+                      hiddenProviders={hiddenProviders}
+                      onOpenLimits={() => selectMetric("limits")}
+                    />
+                  ) : null
+                }
               />
             )}
           </WorkspacePageContainer>
@@ -622,6 +638,7 @@ function UsageOverview({
   refreshingUsage,
   showChatGptSharing,
   onSelectModel,
+  limitGauges,
 }: {
   readonly merged: MergedUsage;
   readonly shownWindow: UsageSummaryInput;
@@ -635,11 +652,12 @@ function UsageOverview({
   readonly refreshingUsage: boolean;
   readonly showChatGptSharing: boolean;
   readonly onSelectModel: (key: string) => void;
+  readonly limitGauges: ReactNode;
 }) {
   const gt = useGT();
   const locale = useLocale();
   const m = useMessages();
-  const [breakdown, setBreakdown] = useState<"model" | "time">("model");
+  const [breakdown, setBreakdown] = useState<"model" | "time" | UsageUseCut>("model");
   const shownHourly = shownWindow.resolution === "hour";
   const loading = usageLoading(showingKept, selectedEnvironments, refreshingUsage, hiddenProviders);
   // Copy the primitive; JSX reads of loading.partial would merge all derivations into one compiler cache
@@ -728,6 +746,8 @@ function UsageOverview({
               )}
             </p>
           </div>
+
+          {limitGauges}
 
           {showChatGptSharing ? (
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -908,15 +928,16 @@ function UsageOverview({
             value={[breakdown]}
             onValueChange={(next) => {
               const value = next[0];
-              if (value === "model" || value === "time") setBreakdown(value);
+              if (value === "model" || value === "time" || isUsageUseCut(value)) {
+                setBreakdown(value);
+              }
             }}
           >
-            {(
-              [
-                { value: "model", label: gt("Model") },
-                { value: "time", label: shownHourly ? gt("Hour") : gt("Day") },
-              ] as const
-            ).map((option) => (
+            {[
+              { value: "model", label: gt("Model") },
+              { value: "time", label: shownHourly ? gt("Hour") : gt("Day") },
+              ...(isMajordome ? USAGE_USE_CUTS : []),
+            ].map((option) => (
               <Toggle key={option.value} value={option.value}>
                 {option.label}
               </Toggle>
@@ -924,7 +945,15 @@ function UsageOverview({
           </ToggleGroup>
         </div>
 
-        {breakdown === "model" ? (
+        {isUsageUseCut(breakdown) ? (
+          <UsageByUse
+            cut={breakdown}
+            window={shownWindow}
+            environments={selectedEnvironments}
+            hiddenProviders={hiddenProviders}
+            metric={metric}
+          />
+        ) : breakdown === "model" ? (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-right text-xs text-muted-foreground">

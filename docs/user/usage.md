@@ -64,6 +64,21 @@ saved totals first, then updates them when Cursor's API responds.
 If recent work is missing or a new model shows no cost, refresh to rescan session history and
 update model pricing.
 
+## By routine and by topic
+
+In Majordome, **Usage** is under the three dots in the rail, and **Breakdown** has two more cuts.
+**Routine** lists each routine and reminder with the times it ran in the period. **Topic** lists
+each topic, counting its conversation and its other chats, then **Other chats** for the chats in no
+topic. A routine that runs inside a topic's conversation counts as the routine. Each cut ends with
+what it is not about, so its rows add up to the total.
+
+**Outside Majordome** is what the same AI used on that computer without a chat here: a terminal
+session, another app. It is part of the total because the AI keeps one history per computer, and
+it counts against the same plan. A chat deleted for good moves there too.
+
+The gauges above the list of AIs are the plan's own limits, the session and the week, as on
+**Limits**. They are missing when no signed-in plan reports a limit.
+
 ## Set custom model prices
 
 On web or desktop, open the environment dropdown on **Usage**, then choose **Model prices** to add,

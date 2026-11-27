@@ -1,8 +1,16 @@
 import { createMajordomeEnvironmentAtoms } from "@t3tools/client-runtime/state/majordome";
-import type { EnvironmentId, ProjectId, ThreadId, TurnItemId } from "@t3tools/contracts";
+import { usageSummaryInput } from "@t3tools/client-runtime/state/usage";
+import type {
+  EnvironmentId,
+  ProjectId,
+  ThreadId,
+  TurnItemId,
+  UsageSummaryInput,
+} from "@t3tools/contracts";
 import { AsyncResult, Atom } from "effect/reactivity";
 
 import { connectionAtomRuntime } from "../connection/runtime";
+import { appAtomRegistry } from "../rpc/atomRegistry";
 import { serverEnvironment } from "./server";
 
 /** A server's runs as its live list of routines tells them: who ran last, how, and what is next. */
@@ -100,6 +108,39 @@ export const vaultLibrariesAtom = Atom.family((key: string) => {
     ),
   ).pipe(Atom.withLabel(`majordome:vault-libraries:${key}`));
 });
+
+export interface UsageByUseRequest {
+  readonly environmentIds: ReadonlyArray<EnvironmentId>;
+  readonly window: UsageSummaryInput;
+}
+
+const usageByUseQuery = (
+  environmentId: EnvironmentId,
+  window: UsageSummaryInput,
+  get: <A>(atom: Atom.Atom<A>) => A,
+) =>
+  majordomeEnvironment.usageByUse({
+    environmentId,
+    // The same models as the summary beside it, which leaves out what the server is set to.
+    input: usageSummaryInput(window, get(serverEnvironment.usageModelFilterAtom(environmentId))),
+  });
+
+/** Each listed server's usage by use for one window, keyed by `JSON.stringify` of the request. */
+export const usageByUseAtom = Atom.family((key: string) => {
+  const { environmentIds, window } = JSON.parse(key) as UsageByUseRequest;
+  return Atom.make((get) =>
+    environmentIds.map((environmentId) => get(usageByUseQuery(environmentId, window, get))),
+  ).pipe(Atom.withLabel(`majordome:usage-by-use:${key}`));
+});
+
+/** Asks again, for the page's refresh button. */
+export function refreshUsageByUse({ environmentIds, window }: UsageByUseRequest): void {
+  for (const environmentId of environmentIds) {
+    appAtomRegistry.refresh(
+      usageByUseQuery(environmentId, window, (atom) => appAtomRegistry.get(atom)),
+    );
+  }
+}
 
 /** Every listed vault's notes search status, keyed like `vaultHistoriesAtom`. */
 export const vaultNotesIndexStatusesAtom = Atom.family((key: string) => {

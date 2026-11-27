@@ -2390,6 +2390,46 @@ describe("UsageService", () => {
     }),
   );
 
+  it.effect("files each record under what a caller says it is from, with the same totals", () =>
+    Effect.gen(function* () {
+      const { settings, home, transcript } = yield* setup;
+      yield* Effect.promise(() =>
+        NodeFSP.writeFile(
+          transcript,
+          claudeLine(1, 5, "claude-fable-5", "session-a") +
+            claudeLine(2, 7, "claude-fable-5", "session-b") +
+            claudeLine(3, 11, "claude-fable-5", "session-a"),
+        ),
+      );
+      const service = yield* UsageService.make.pipe(
+        Effect.provide(
+          layerService({
+            prefix: "usage-service-by-source",
+            home,
+            settings,
+            ratesDocument: COPY_RATES,
+          }),
+        ),
+      );
+      const bySession = yield* service.readBySource(WINDOW, (record) => record.sessionId);
+      const summary = yield* service.readSummary(WINDOW);
+
+      assert.deepEqual(
+        bySession.map((bucket) => [bucket.sourcePath, bucket.totals.outputTokens]),
+        [
+          ["session-a", 16],
+          ["session-b", 7],
+        ],
+      );
+      assert.strictEqual(totalOutputTokens({ buckets: bySession }), totalOutputTokens(summary));
+      assert.strictEqual(
+        bySession.reduce((sum, bucket) => sum + bucket.costUsd, 0),
+        summary.buckets.reduce((sum, bucket) => sum + bucket.costUsd, 0),
+      );
+      assert.isAbove(summary.buckets[0]?.costUsd ?? 0, 0);
+    }),
+  );
+
   it.effect("includes host and merged OpenCode instance histories once across list aliases", () =>
     Effect.gen(function* () {
       const { settings, home } = yield* setup;

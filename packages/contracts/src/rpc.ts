@@ -585,6 +585,7 @@ import {
   ProviderConsumeResetCreditResult,
 } from "./providerUsageLimits.ts";
 import { UsagePricing, UsageReadError, UsageSummary, UsageSummaryInput } from "./usage.ts";
+import { MajordomeUsageByUse } from "./majordomeUsage.ts";
 import {
   StorageCleanupReport,
   DatabaseReclaimError,
@@ -1002,6 +1003,7 @@ export const WS_METHODS = {
   majordomeAddToDailyNote: "majordome.addToDailyNote",
   majordomeListTopicFiles: "majordome.listTopicFiles",
   majordomeListLibrary: "majordome.listLibrary",
+  majordomeGetUsageByUse: "majordome.getUsageByUse",
   majordomeGetKeyFacts: "majordome.getKeyFacts",
   majordomeDrawConversation: "majordome.drawConversation",
   majordomeAddTopicFile: "majordome.addTopicFile",
@@ -3211,6 +3213,12 @@ const WsMajordomeListLibraryRpc = Rpc.make(WS_METHODS.majordomeListLibrary, {
   error: Schema.Union([MajordomeLibraryError, EnvironmentAuthorizationError]),
 });
 
+const WsMajordomeGetUsageByUseRpc = Rpc.make(WS_METHODS.majordomeGetUsageByUse, {
+  payload: UsageSummaryInput,
+  success: MajordomeUsageByUse,
+  error: Schema.Union([EnvironmentAuthorizationError, UsageReadError]),
+});
+
 const WsMajordomeAddTopicFileRpc = Rpc.make(WS_METHODS.majordomeAddTopicFile, {
   payload: MajordomeAddTopicFileInput,
   success: MajordomeTopicFile,
@@ -3726,6 +3734,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeAddToDailyNoteRpc,
   WsMajordomeListTopicFilesRpc,
   WsMajordomeListLibraryRpc,
+  WsMajordomeGetUsageByUseRpc,
   WsMajordomeGetKeyFactsRpc,
   WsMajordomeDrawConversationRpc,
   WsMajordomeAddTopicFileRpc,

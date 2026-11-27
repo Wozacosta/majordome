@@ -168,6 +168,7 @@ import * as MajordomeKeyFacts from "./majordome/MajordomeKeyFacts.ts";
 import * as ModelLevelTableRefresh from "./majordome/modelLevelTable.ts";
 import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
 import * as MajordomeLibrary from "./majordome/MajordomeLibrary.ts";
+import * as MajordomeUsage from "./majordome/MajordomeUsage.ts";
 import * as MajordomeTopicFiles from "./majordome/MajordomeTopicFiles.ts";
 import * as MajordomeReadingList from "./majordome/MajordomeReadingList.ts";
 import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
@@ -910,6 +911,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   MajordomeNotes.layer.pipe(Layer.provide(VaultLock.layer)),
   MajordomeTopicFiles.layer.pipe(Layer.provide(Layer.merge(VaultLock.layer, ProcessRunner.layer))),
   MajordomeLibrary.layer,
+  MajordomeUsage.layer,
   MajordomeKeyFacts.layer,
   ModelLevelTableRefresh.layerRefresh,
   MajordomeSavedKeys.layer.pipe(Layer.provide(SecretResolver.layer)),

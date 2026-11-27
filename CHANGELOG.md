@@ -7,6 +7,15 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
+- **Usage: what your assistant used, and on what.** A page under the three dots (pin it to keep it
+  in the rail), also in the command palette. It opens on the last 30 days: the total, a chart by
+  day and the split by AI and model. Under **Breakdown**, **Routine** says what each routine and
+  reminder used and how many times it ran, and **Topic** says what each topic used, with the other
+  chats in a row of their own. **Outside Majordome** is the same AI used elsewhere on that computer,
+  such as in a terminal. When your plan reports its limits, small gauges above the list show how
+  much of the session and of the week is used; click them for the detail. Money is an estimate at
+  API prices, not a bill. Usage from before this version is cut the same way, as far back as the
+  chats still exist.
 - **Skills you can browse.** The Skills page is now one short line per skill: its name, when it is
   used, and whether your assistant wrote it or it came from Majordome. A search finds one by name,
   tabs narrow to one origin with a count each, and clicking a skill shows its steps as readable
@@ -35,6 +44,8 @@ The section for a version is also the text of its release on GitHub.
 - Open **Skills** from the three dots, type a word in **Search skills**, then click a skill to
   read its steps.
 - Click the **?** above Settings, then **What's new**, and open one of the earlier versions.
+- Click the three dots in the rail, open **Usage**, then **Routine** under Breakdown to see what
+  "Start my day" costs you.
 - Open Settings and look at **Search** above the list of pages.
 
 ## 0.10.76

@@ -440,6 +440,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 0,
       refreshTrigger: ({ environmentId }) => topicFilesRevision(environmentId),
     }),
+    /** Usage cut by routine, topic and other chats; kept as long as the summary it is shown with. */
+    usageByUse: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:usage-by-use",
+      tag: WS_METHODS.majordomeGetUsageByUse,
+      staleTimeMs: 60_000,
+    }),
     addTopicFile: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:add-topic-file",
       tag: WS_METHODS.majordomeAddTopicFile,

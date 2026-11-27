@@ -213,6 +213,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeAddToDailyNote]: "majordome",
   [WS_METHODS.majordomeListTopicFiles]: "majordome",
   [WS_METHODS.majordomeListLibrary]: "majordome",
+  [WS_METHODS.majordomeGetUsageByUse]: "majordome",
   [WS_METHODS.majordomeGetKeyFacts]: "majordome",
   [WS_METHODS.majordomeDrawConversation]: "majordome",
   [WS_METHODS.majordomeAddTopicFile]: "majordome",

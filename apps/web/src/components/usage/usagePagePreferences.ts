@@ -1,6 +1,7 @@
 import { UsageProviderKind } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
+import { isMajordome } from "../../env";
 import { getLocalStorageItem, setLocalStorageItem } from "../../hooks/useLocalStorage";
 
 const STORAGE_KEY = "t3code:usage-page-preferences:v1";
@@ -11,7 +12,11 @@ const UsagePagePreferencesSchema = Schema.Struct({
 });
 export type UsagePagePreferences = typeof UsagePagePreferencesSchema.Type;
 
-const DEFAULT_PREFERENCES: UsagePagePreferences = { metric: "limits", windowDays: 30 };
+// Majordome opens on the month's total, with the limits as gauges above it.
+const DEFAULT_PREFERENCES: UsagePagePreferences = {
+  metric: isMajordome ? "cost" : "limits",
+  windowDays: 30,
+};
 
 export function readUsagePagePreferences(): UsagePagePreferences {
   try {

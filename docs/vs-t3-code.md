@@ -45,6 +45,9 @@ The landing page and the README show a short version of this list.
   subjects, and tags and a summary written for you. [Reading list](./user/reading-list.md)
 - **Library:** every file kept with your notes and every file attached in a chat on one page, by
   kind and by topic, with pictures shown as themselves.
+- **Usage by routine and by topic:** T3 Code's usage page says what each AI and model used.
+  Majordome's also says what each routine and each topic used, sets apart what was used outside
+  Majordome, and shows the plan's limits as gauges above the totals. [Usage](./user/usage.md)
 - **Topics:** one continuing conversation per part of life (Money, Meals, Trips), tied to its own
   folder of notes, with its files, to-dos and routines beside it. Ready-made topics to start from.
 - **Chats under a topic are tabs,** with a "Where things stand" strip above them and one-tap replies
@@ -163,7 +166,7 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
 
 - Projects, worktrees, pull requests, the terminal and source control are not shown.
 - The assistant is not told about pull requests or issues.
-- About 27 settings that only matter when writing code are hidden, and so is the Usage page.
+- About 27 settings that only matter when writing code are hidden.
 - No T3 account, T3 Connect, or T3's phone apps. Adding a computer over SSH is not offered.
 - Sharing a chat with a guest is not offered: T3 Code's guest links travel through T3 Connect.
   A Majordome version is noted in [whatsnext.md](whatsnext.md#sharing-a-chat-with-a-guest).

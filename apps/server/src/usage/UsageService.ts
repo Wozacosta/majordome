@@ -165,6 +165,14 @@ export class UsageService extends Context.Service<
   UsageService,
   {
     readonly readSummary: (input: UsageSummaryInput) => Effect.Effect<UsageSummary, UsageReadError>;
+    /**
+     * The window's buckets with `sourcePath` set to `sourceOf(record)` in place of the transcript
+     * directory, for a caller that cuts usage by something only it knows of.
+     */
+    readonly readBySource: (
+      input: UsageSummaryInput,
+      sourceOf: (record: UsageRecord) => string,
+    ) => Effect.Effect<UsageSummary["buckets"], UsageReadError>;
     readonly refreshRates: Effect.Effect<UsagePricing>;
   }
 >()("t3/usage/UsageService") {}
@@ -832,6 +840,7 @@ export const make = Effect.gen(function* () {
     input: UsageSummaryInput,
     settings: ServerSettingsValue,
     provisional: boolean,
+    sourceOf?: (record: UsageRecord) => string,
   ) {
     if (input.sinceDay > input.untilDay) {
       return yield* new UsageReadError({
@@ -1120,7 +1129,7 @@ export const make = Effect.gen(function* () {
             eventOccurrences.set(key, occurrence);
             usageRecord = { ...record, dedupeKey: key + ":" + occurrence };
           }
-          if (aggregator.add(usageRecord, dir)) {
+          if (aggregator.add(usageRecord, sourceOf?.(usageRecord) ?? dir)) {
             counted = true;
             if (record.sessionId.length > 0) sessionIds.add(record.sessionId);
           }
@@ -1269,7 +1278,19 @@ export const make = Effect.gen(function* () {
     return yield* Deferred.await(deferred);
   });
 
-  return { readSummary, refreshRates, awaitPersisted } as const;
+  const readBySource = Effect.fn("UsageService.readBySource")(function* (
+    requested: UsageSummaryInput,
+    sourceOf: (record: UsageRecord) => string,
+  ) {
+    const { modelFilter: requestedFilter, ...unfiltered } = requested;
+    const modelFilter = canonicalModelFilter(requestedFilter);
+    const input = modelFilter === undefined ? unfiltered : { ...unfiltered, modelFilter };
+    // Not shared with `readSummary`'s scans: the files it parsed are, so this only aggregates again.
+    const { summary } = yield* scanSummary(input, yield* readSettings, false, sourceOf);
+    return summary.buckets;
+  });
+
+  return { readSummary, readBySource, refreshRates, awaitPersisted } as const;
 });
 
 export const layer = Layer.effect(UsageService, make);
