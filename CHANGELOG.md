@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.86
+
 **New**
 
 - **Today offers your first topic.** While your notes have no topic, Today shows "Start a
