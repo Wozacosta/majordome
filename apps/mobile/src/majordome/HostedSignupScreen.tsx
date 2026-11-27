@@ -16,6 +16,7 @@ import { Chip } from "../components/ui/Chip";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
+import { openSettings } from "../features/settings/settings-navigation";
 import { cn } from "../lib/cn";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
@@ -313,6 +314,16 @@ function ConfiguredHostedSignupScreen() {
     navigation.dispatch(StackActions.popToTop());
   };
 
+  // A server that needed no setup has nothing left to say here: it shows on the list of servers.
+  // Pressing Done after a setup also ends on "done", but has left this page by then.
+  const connected = state.step === "done";
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the connection ends outside React, whichever action started it, and the navigator is what has to follow
+  useEffect(() => {
+    if (!connected || !navigation.isFocused()) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    openSettings(navigation, "SettingsEnvironments");
+  }, [connected, navigation]);
+
   // Signing in ends this by itself: the offer is back the moment the account is.
   if (signingIn && !isSignedIn) {
     return (
@@ -334,16 +345,11 @@ function ConfiguredHostedSignupScreen() {
       >
         {state.step === "finishing" ? (
           <FinishSettingUp environmentId={state.environmentId} onDone={done} />
-        ) : state.step === "done" ? (
-          <View className="gap-4">
-            <Text className="text-foreground">This phone is connected to your server.</Text>
-            <Button label="Done" tone="primary" onPress={done} />
-          </View>
         ) : state.step === "paying" ? (
           <Progress text={MAJORDOME_SERVER[state.doing]} />
         ) : state.step === "making" ? (
           <Progress text={MAJORDOME_SERVER.making} />
-        ) : state.step === "waiting" || state.step === "pairing" ? (
+        ) : state.step === "waiting" || state.step === "pairing" || state.step === "done" ? (
           <Progress
             text={
               state.step === "waiting"
