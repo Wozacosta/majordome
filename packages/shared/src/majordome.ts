@@ -62,4 +62,9 @@ export function majordomeMachineKind<Detected>(input: {
 export const SHOW_SETUP_REQUEST =
   "Show me a diagram of what you know, what you can do and what you have access to here.";
 
+/** The button shown while the notes have no note about the owner, and what it sends. */
+export const START_ABOUT_YOU_LABEL = "Start it from my notes";
+export const START_ABOUT_YOU_REQUEST =
+  "Start my About you note: search my notes for my name, address, phone, email, where I work, the people in my household and my emergency contact. Write what you find, then tell me what you wrote and what is still missing.";
+
 export const SHOW_SETUP_LABEL = "What your assistant can see and do";

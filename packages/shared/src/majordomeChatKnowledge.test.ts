@@ -51,6 +51,18 @@ describe("chatKnowledgeView", () => {
     expect(view?.rest.map((row) => row.label)).toEqual(["Topic 7", "Topic 8"]);
   });
 
+  it("offers to start the note about the owner when the notes have none", () => {
+    const view = chatKnowledgeView({ ...NOTHING, me: null });
+    expect(view?.starts[1]).toEqual({
+      key: "me",
+      kind: "me",
+      label: "About you",
+      detail: "Nothing yet",
+      path: null,
+      canStart: true,
+    });
+  });
+
   it("says the memory note is empty rather than leaving it out", () => {
     const view = chatKnowledgeView(NOTHING);
     expect(view?.starts).toHaveLength(1);

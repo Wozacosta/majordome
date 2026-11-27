@@ -9,6 +9,19 @@ Not released yet.
 
 **New**
 
+- **Start your note about you in one click.** While your notes have no `me.md`, the **About
+  you** row in a chat's side panel and the top of the map have a **Start it from my notes**
+  button. It opens a chat where your assistant searches your notes, writes the note and tells
+  you what is still missing. On the iPhone the row says "Nothing yet"; the nightly tidy still
+  starts the note for you.
+
+**Try this**
+
+- In any chat, look at **What this chat knows** on the right and press **Start it from my
+  notes**.
+
+**New**
+
 - **Talk with your assistant on the Mac and in the browser.** When the message box is empty, the
   round button where Send sits starts a conversation in that chat: you speak, it answers aloud,
   and it listens again. Stop talking and your words are sent, or press Send. Click the panel, or

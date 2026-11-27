@@ -8,6 +8,8 @@ export interface ChatKnowledgeRow {
   readonly detail: string | null;
   /** The note to open for it, relative to the notes folder; null when there is none to show. */
   readonly path: string | null;
+  /** Set on the note about the owner while it does not exist: the row offers to start it. */
+  readonly canStart?: true;
 }
 
 export interface ChatKnowledgeView {
@@ -54,14 +56,26 @@ export function chatKnowledgeView(
           : "Shared by every chat",
     path: knowledge.memory?.path ?? null,
   });
-  if (knowledge.me != null) {
-    starts.push({
-      key: "me",
-      kind: "me",
-      label: "About you",
-      detail: "Your name and contact details",
-      path: knowledge.me.path,
-    });
+  // Absent from a server older than the note; null once a server knows of it and finds none.
+  if (knowledge.me !== undefined) {
+    starts.push(
+      knowledge.me === null
+        ? {
+            key: "me",
+            kind: "me",
+            label: "About you",
+            detail: "Nothing yet",
+            path: null,
+            canStart: true,
+          }
+        : {
+            key: "me",
+            kind: "me",
+            label: "About you",
+            detail: "Your name and contact details",
+            path: knowledge.me.path,
+          },
+    );
   }
   for (const note of knowledge.dailyNotes) {
     starts.push({

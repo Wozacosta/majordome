@@ -21,7 +21,9 @@ it goes:
 - When a task needs a fact that is not there, it searches your notes before it asks you.
 - "Tidy my memory" moves such facts from your daily notes into `me.md` at night.
 
-If you already had notes before `me.md` existed, there is nothing to do. The first night after
+If you already had notes before `me.md` existed, press **Start it from my notes**, on the **About
+you** row of a chat's side panel or at the top of the map. Your assistant searches your notes,
+writes the note and tells you what is still missing. If you do nothing, it happens anyway: the first night after
 you update, "Tidy my memory" searches your notes for these facts, starts the note with what it
 finds, and lists each line in your feed with the note it came from, so you can correct one. It
 does this once.
