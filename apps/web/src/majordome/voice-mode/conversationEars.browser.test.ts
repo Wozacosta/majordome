@@ -27,7 +27,7 @@ it("hears turn after turn through the real capture, with no click between them",
   const context = new AudioContext();
   using microphone = vi
     .spyOn(navigator.mediaDevices, "getUserMedia")
-    .mockImplementation(async () => fakeMicrophone(context, 700));
+    .mockImplementation(async () => fakeMicrophone(context, 1500));
   const recordings: number[] = [];
   const ears = createConversationEars({
     open: (events) =>
@@ -55,7 +55,7 @@ it("hears turn after turn through the real capture, with no click between them",
     // Listening again opens the microphone and a new audio graph without a new gesture.
     expect(await ears.listen(new AbortController().signal)).toEqual({ text: "turn 2" });
     expect(microphone).toHaveBeenCalledTimes(2);
-    // About 1.3 s of 16 kHz samples each: the tone and the quiet that ended the turn.
+    // At least 0.9 s of 16 kHz samples each: the tone and the quiet that ended the turn.
     for (const bytes of recordings) expect(bytes).toBeGreaterThan(16_000 * 4 * 0.9);
   } finally {
     await context.close();
