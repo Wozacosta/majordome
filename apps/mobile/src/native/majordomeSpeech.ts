@@ -37,6 +37,11 @@ interface MajordomeSpeech {
     event: "sentenceStarted",
     listener: (event: { readonly id: number }) => void,
   ): { remove(): void };
+  /**
+   * Android only: keeps other apps' sound away between sentences, for a conversation. False
+   * when the system refuses, as during a phone call. The iPhone's audio session does this.
+   */
+  holdAudio?(enabled: boolean): boolean;
   /** While on, the headset's play/pause button raises `headsetButton`. */
   listenForHeadsetButton(enabled: boolean): void;
   addListener(

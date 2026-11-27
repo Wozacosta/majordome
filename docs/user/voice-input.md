@@ -158,7 +158,8 @@ the model hears the cue as a dictionary hint.
 
 ## Reading replies aloud
 
-The speaker button under an answer reads it aloud, on the iPhone, in the Mac app and in a browser.
+The speaker button under an answer reads it aloud, on the iPhone, on Android, in the Mac app and in
+a browser.
 Press it again to stop. Reading also stops when you leave the chat, start dictating, or ask for
 another answer to be read.
 
@@ -166,7 +167,7 @@ The voice costs nothing and needs no key or account. The first time, Majordome a
 once, and keeps it on the device. After that the speech is made on the device. The answer itself
 still comes from your AI provider, as before.
 
-- **iPhone:** 145 MB, fetched from GitHub. On mobile data the button says so.
+- **iPhone and Android:** 145 MB, fetched from GitHub. On mobile data the button says so.
 - **Mac app and browser:** 220 MB on most computers (145 MB where the graphics card lacks 16-bit
   floats), fetched through majord.link. The speech is made by the graphics card, so the button is
   shown only where the browser has WebGPU: the Mac app, Chrome, Edge, and Safari 26 or later. The
@@ -186,12 +187,12 @@ In **Settings → Voice → Speaking**, play each voice and pick one, or remove 
 aloud asks for it again the next time.
 
 The voice is Supertonic 3, used under the BigScience OpenRAIL-M licence. Its use restrictions are
-in **Settings → About → Open source licenses**. Reading aloud is not available on Android yet.
+in **Settings → About → Open source licenses**.
 
 ## Talking with the assistant
 
-You can talk instead of typing, on the iPhone, in the Mac app and in a browser. When the message
-box is empty, the round button where Send sits starts a conversation in that chat: you speak, the
+You can talk instead of typing, on the iPhone, on Android, in the Mac app and in a browser. When the
+message box is empty, the round button where Send sits starts a conversation in that chat: you speak, the
 assistant answers aloud, and it listens again.
 
 - **Your turn ends** about two seconds after you stop talking. Send ends it yourself.
@@ -213,15 +214,15 @@ What goes where: the assistant's voice is made on the device, as for reading alo
 the same one-time download. What you say is transcribed wherever your voice input is set to. The
 words then go to your AI provider like any message you type.
 
-### On the iPhone
+### On the phone
 
 **Talk**, on the app icon's menu on the Home Screen, opens a new chat that listens at once.
 Play/pause on your headset cuts an answer short. A call or switching apps ends the conversation,
 and the screen stays awake while the panel is open.
 
-What you say is transcribed on the phone by default (iOS 26 or later), or on the computer or cloud
-model you chose under **Settings → Voice**. An earlier iPhone needs one of those; without either,
-the button is not shown. Not on Android yet.
+What you say is transcribed on the phone by default (iOS 26 or later; Android 12 or later with
+Google's on-device speech), or on the computer or cloud model you chose under
+**Settings → Voice**. Another phone needs one of those; without either, the button is not shown.
 
 ### On the Mac and in a browser
 

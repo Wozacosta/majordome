@@ -99,7 +99,11 @@ export function withRecentThreadShortcut(
   ].slice(0, MAX_RECENT_THREAD_SHORTCUTS);
 }
 
-export function buildShortcutActions(recents: ReadonlyArray<RecentThreadShortcut>): Action[] {
+/** Android's launcher list. `talk` puts "Talk" second; launchers show four, so a recent chat goes. */
+export function buildShortcutActions(
+  recents: ReadonlyArray<RecentThreadShortcut>,
+  talk = false,
+): Action[] {
   return [
     {
       id: NEW_TASK_SHORTCUT_ID,
@@ -107,7 +111,8 @@ export function buildShortcutActions(recents: ReadonlyArray<RecentThreadShortcut
       icon: SHORTCUT_ICON,
       params: { href: NEW_TASK_SHORTCUT_HREF },
     },
-    ...recents.slice(0, MAX_RECENT_THREAD_SHORTCUTS).map((thread): Action => ({
+    ...(talk ? [talkShortcutAction(SHORTCUT_ICON)] : []),
+    ...recents.slice(0, MAX_RECENT_THREAD_SHORTCUTS - (talk ? 1 : 0)).map((thread): Action => ({
       // URI-encoded hrefs avoid env/thread id collisions that plain hyphen joins allow.
       id: `thread:${threadShortcutHref(thread)}`,
       title: threadShortcutLabel(thread),
@@ -118,11 +123,11 @@ export function buildShortcutActions(recents: ReadonlyArray<RecentThreadShortcut
 }
 
 /** "Talk": a new chat that listens at once. Only where the phone can talk with the assistant. */
-export function talkShortcutAction(): Action {
+export function talkShortcutAction(icon = "symbol:waveform"): Action {
   return {
     id: "talk",
     title: m(msg("Talk", { $context: "verb, start talking with the assistant" })),
-    icon: "symbol:waveform",
+    icon,
     params: { href: TALK_SHORTCUT_HREF },
   };
 }

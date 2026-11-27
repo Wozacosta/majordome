@@ -255,7 +255,7 @@
       ]
     },
     {
-      "bundles": ["ios", "mobile"],
+      "bundles": ["ios", "android", "mobile"],
       "license": "BigScience-OpenRAIL-M",
       "name": "Supertonic 3 voice model (int8)",
       "noticeFiles": [
@@ -265,7 +265,7 @@
       "sourceUrl": "https://huggingface.co/supertone-oss-archive"
     },
     {
-      "bundles": ["ios", "mobile"],
+      "bundles": ["ios", "android", "mobile"],
       "license": "Apache-2.0",
       "name": "sherpa-onnx",
       "version": "2.0.3",
@@ -283,7 +283,7 @@
       "sourceUrl": "https://huggingface.co/supertone-oss-archive"
     },
     {
-      "bundles": ["ios", "mobile"],
+      "bundles": ["ios", "android", "mobile"],
       "license": "MIT",
       "name": "ONNX Runtime",
       "version": "1.28.2",

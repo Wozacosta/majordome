@@ -82,10 +82,10 @@ The landing page and the README show a short version of this list.
   are told in its last month. With several computers the keys are one list: a key is saved on
   each and removed from each. [Secrets](./user/secrets.md)
 - **The services an answer used,** such as Gmail or Google Calendar, shown under it with their logos.
-- **Replies read aloud by a free voice**, on the iPhone, in the Mac app and in a browser. The speech
+- **Replies read aloud by a free voice**, on the phone, in the Mac app and in a browser. The speech
   is made on the device, with no key and no account; the voice is downloaded once.
   [Reading replies aloud](./user/voice-input.md#reading-replies-aloud)
-- **A spoken conversation with Claude and your notes**, on the iPhone, in the Mac app and in a
+- **A spoken conversation with Claude and your notes**, on the phone, in the Mac app and in a
   browser. You talk, the assistant answers aloud in short sentences and listens again, in the same
   chat with the same notes and tools. The voice is free and made on the device. T3 Code has no
   voice conversation.

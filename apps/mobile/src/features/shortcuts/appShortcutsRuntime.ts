@@ -111,6 +111,15 @@ export function republishAppShortcuts(): void {
   installedRecents?.republish();
 }
 
+let talkOffered = false;
+
+/** Android: whether "Talk" sits in the launcher list beside the recent chats. */
+export function offerTalkShortcut(offered: boolean): void {
+  if (talkOffered === offered) return;
+  talkOffered = offered;
+  installedRecents?.republish();
+}
+
 const activeThreadRefAtom = Atom.make<ScopedThreadRef | null>(null).pipe(
   Atom.keepAlive,
   Atom.withLabel("mobile:app-shortcuts-active-thread-ref"),
@@ -166,7 +175,7 @@ export function installAppShortcuts(open: (href: string) => void): () => void {
   const recents = createRecentThreadShortcuts({
     load: loadRecentThreadShortcuts,
     save: saveRecentThreadShortcuts,
-    publish: (list) => QuickActions.setItems(buildShortcutActions(list)),
+    publish: (list) => QuickActions.setItems(buildShortcutActions(list, talkOffered)),
   });
   installedRecents = recents;
   const unsubscribe = appAtomRegistry.subscribe(

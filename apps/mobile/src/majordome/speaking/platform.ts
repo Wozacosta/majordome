@@ -2,7 +2,7 @@ import { VOICE_CATALOG } from "@t3tools/client-runtime/speaking/voice-catalog";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { File, Paths } from "expo-file-system";
 import { msg } from "gt-react-native";
-import { AccessibilityInfo, AppState, Platform } from "react-native";
+import { AccessibilityInfo, Platform } from "react-native";
 
 import * as Dialog from "../../components/ui/Dialog";
 import { m } from "../../i18n/messages";
@@ -14,6 +14,7 @@ import {
 } from "../../lib/audioSession";
 import { rootNavigationRef } from "../../lib/rootNavigation";
 import { majordomeSpeech } from "../../native/majordomeSpeech";
+import { watchLeftApp } from "./leftApp";
 import { createReadAloudRuntime, type ReadAloudRuntime } from "./readAloudRuntime";
 import { createVoiceFiles, voiceDirectory } from "./voiceFiles";
 
@@ -98,10 +99,8 @@ function create(): ReadAloudRuntime | null {
       } catch {}
     },
   });
-  // iOS silences an app that leaves the screen, and ends one that keeps 300 MB there.
-  AppState.addEventListener("change", (state) => {
-    if (state === "background") void runtime.suspend();
-  });
+  // iOS silences an app that leaves the screen; both systems end one that keeps 300 MB there.
+  watchLeftApp(() => void runtime.suspend());
   return runtime;
 }
 

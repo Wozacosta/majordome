@@ -8,3 +8,8 @@ IOS_ARCHIVE_NAME="sherpa-onnx-ios-v2.0.3-ort1.28.2-1.tar.xz"
 # Printed by build-sherpa-onnx-ios.sh; the archive is uploaded to this release by hand.
 IOS_ARCHIVE_SHA256="59c2c03d9ba189d5edb1a1a7c96500f26815d885dd5233e06c2648e10c888806"
 IOS_ARCHIVE_BASE_URL="https://github.com/Wozacosta/majordome/releases/download/voice-engine-ios-1"
+# sherpa-onnx's own Android build of the same tag; fetch-android.sh keeps two of its ABIs.
+ANDROID_AAR_NAME="sherpa-onnx-2.0.3.aar"
+ANDROID_AAR_SHA256="4c766e2e74c9d33d595338c21fe3b305c73ba45d47e96a235675c33142a2ec50"
+ANDROID_AAR_BASE_URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3"
+ANDROID_ABIS="arm64-v8a armeabi-v7a"

@@ -7,6 +7,20 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **The voice, on Android.** The speaker button under an answer reads it aloud, and the round
+  button in an empty message box starts a spoken conversation: you talk, the assistant answers
+  aloud and listens again. It is the same free voice as on the iPhone, made on the phone after a
+  one-time 145 MB download. Music pauses while it speaks and comes back after; a call or another
+  app taking the sound stops it. Play/pause on a headset cuts an answer short, and **Talk** on
+  the app icon's menu opens a new chat that listens at once.
+
+**Try this**
+
+- On Android, press the speaker under an answer, accept the download, and listen.
+- Press the round button in an empty message box and ask something out loud.
+
 ## 0.10.86
 
 **New**

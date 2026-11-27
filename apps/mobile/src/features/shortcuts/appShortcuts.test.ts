@@ -39,6 +39,26 @@ describe("buildShortcutActions", () => {
     expect(actions[1]?.params?.href).toBe("/threads/env%201/thread%2F2");
     expect(actions[1]?.title).toBe("Spaced out");
   });
+
+  it("puts Talk second and gives it a recent chat's place", () => {
+    const recents = [thread("a"), thread("b"), thread("c")];
+    expect(buildShortcutActions(recents).map((action) => action.id)).toEqual([
+      "new-task",
+      "thread:/threads/env-a/thread-a",
+      "thread:/threads/env-b/thread-b",
+      "thread:/threads/env-c/thread-c",
+    ]);
+    const withTalk = buildShortcutActions(recents, true);
+    expect(withTalk.map((action) => action.id)).toEqual([
+      "new-task",
+      "talk",
+      "thread:/threads/env-a/thread-a",
+      "thread:/threads/env-b/thread-b",
+    ]);
+    // Android draws a resource by name; the iPhone's symbol would leave the row without an icon.
+    expect(withTalk[1]?.icon).toBe(withTalk[0]?.icon);
+    expect(shortcutHref(withTalk[1]!)).toBe("/new?voice=1");
+  });
 });
 
 describe("shortcutHref", () => {

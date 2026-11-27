@@ -35,6 +35,8 @@ export function VoiceDownloadSheet() {
   const megabytes = voiceDownloadMegabytes();
   return (
     <FitSheet
+      // Android's default suits rows that bring their own padding; this sheet is plain text.
+      contentContainerClassName="gap-4 px-5 pt-2"
       header={
         <SheetHeader
           title={gt("Voice")}

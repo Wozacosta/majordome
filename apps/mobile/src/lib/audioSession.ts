@@ -1,4 +1,5 @@
 import { AudioModule, setAudioModeAsync, setIsAudioActiveAsync } from "expo-audio";
+import { Platform } from "react-native";
 
 type AudioSessionToken = {
   /** "conversation" plays and records for a whole spoken exchange, so the route never jumps. */
@@ -74,7 +75,10 @@ export function activateAudioSession(
       ...(token.kind !== "playback" && options.allowBluetoothRecording === false
         ? { allowBluetoothRecording: false }
         : {}),
-      interruptionMode: "doNotMix",
+      // On Android the conversation's voice holds the audio focus itself; a cue played through
+      // Expo would take it back and end the conversation.
+      interruptionMode:
+        Platform.OS === "android" && token.kind === "conversation" ? "mixWithOthers" : "doNotMix",
       playsInSilentMode: true,
       shouldPlayInBackground: false,
     });

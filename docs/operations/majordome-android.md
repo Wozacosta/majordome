@@ -27,10 +27,16 @@ CLERK_PUBLISHABLE_KEY=...   # the account service's public key
 losing `release.jks` or its password means everyone reinstalls and pairs again. Keep a copy of
 both somewhere that is not this Mac.
 
+## The voice
+
+Replies read aloud and talking with the assistant use sherpa-onnx's own Android build. Gradle
+fetches it before each build and checks its SHA-256
+(`apps/mobile/modules/majordome-speech/scripts/fetch-android.sh`, 52 MB, kept in
+`~/.cache/majordome/sherpa-onnx/`), so the first build needs the network. Only the two ABIs the
+APK ships are kept; an x86 emulator has no voice and the app hides it there.
+
 ## What Android does not have yet
 
-- The on-device voice (replies read aloud, talking with the assistant): the speech module is a
-  placeholder (`apps/mobile/modules/majordome-speech/android`).
 - Opening a `majord.link` address in the app. It needs the broker to serve
   `/.well-known/assetlinks.json` with the release key's SHA-256, and an intent filter in
   `apps/mobile/majordome/identity.ts`.

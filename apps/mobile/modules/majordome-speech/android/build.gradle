@@ -4,6 +4,15 @@ apply plugin: 'org.jetbrains.kotlin.android'
 group = 'me.majord.speech'
 version = '0.0.0'
 
+def vendor = file('../Vendor/android')
+
+// sherpa-onnx's classes and native libraries are fetched, not committed (see the README).
+def fetchSherpaOnnx = tasks.register('fetchSherpaOnnx', Exec) {
+  commandLine file('../scripts/fetch-android.sh')
+  inputs.files('../scripts/fetch-android.sh', '../scripts/versions.sh')
+  outputs.dir(vendor)
+}
+
 android {
   namespace 'expo.modules.majordomespeech'
   compileSdk rootProject.ext.compileSdkVersion
@@ -11,9 +20,15 @@ android {
   defaultConfig {
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
+    consumerProguardFiles 'proguard-rules.pro'
   }
+
+  sourceSets.main.jniLibs.srcDirs += new File(vendor, 'jniLibs')
 }
+
+tasks.named('preBuild') { dependsOn fetchSherpaOnnx }
 
 dependencies {
   implementation project(':expo-modules-core')
+  implementation files(new File(vendor, 'sherpa-onnx.jar')).builtBy(fetchSherpaOnnx)
 }

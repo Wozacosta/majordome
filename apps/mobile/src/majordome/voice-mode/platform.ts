@@ -12,7 +12,7 @@ import { File } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { decodeOptions, msg } from "gt-react-native";
-import { AppState, Linking } from "react-native";
+import { Linking } from "react-native";
 
 import * as Dialog from "../../components/ui/Dialog";
 import { createLazyVoiceRecorder } from "../../features/voice-input/lazyVoiceRecorder";
@@ -33,6 +33,7 @@ import { createVoiceRecorder } from "../../native/voiceRecorder";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentPresentations } from "../../state/presentation";
 import { environmentThreadDetails } from "../../state/threads";
+import { watchLeftApp } from "../speaking/leftApp";
 import { announceAndWait, readAloud } from "../speaking/platform";
 import { DEV_EARS } from "./availability";
 import { createConversationEars } from "./conversationEars";
@@ -84,10 +85,15 @@ function create(): VoiceModeRuntime | null {
   const voice = readAloud;
   const registry = appAtomRegistry;
 
+  const hasLocalTranscriber = () => {
+    const local = registry.get(localVoiceTranscriberAtom);
+    return local !== null && local !== "checking";
+  };
   const recorder = createLazyVoiceRecorder({
     getDestination: () => (registry.get(voiceRouteAtom) === null ? "local" : "environment"),
     create: (destination) =>
-      destination === "local"
+      // Android's live recorder feeds the phone's recogniser and stalls with nobody reading it.
+      destination === "local" && hasLocalTranscriber()
         ? createVoiceRecorder(VOICE_RECORDING_OPTIONS)
         : new AudioModule.AudioRecorder(VOICE_RECORDING_OPTIONS),
     onStatus: (status: RecordingStatus) => {
@@ -173,9 +179,15 @@ function create(): VoiceModeRuntime | null {
       const token = acquireAudioSession("conversation", onTaken);
       const release = () => {
         recorder.release();
+        speech.holdAudio?.(false);
         void releaseAudioSession(token).catch(() => {});
       };
-      if (await activateAudioSession(token).catch(() => false)) return release;
+      if (
+        (await activateAudioSession(token).catch(() => false)) &&
+        (speech.holdAudio?.(true) ?? true)
+      ) {
+        return release;
+      }
       release();
       return null;
     },
@@ -274,13 +286,12 @@ function create(): VoiceModeRuntime | null {
     },
     onTakenAway: (callback) => {
       const subscriptions = [
-        AppState.addEventListener("change", (state) => {
-          if (state === "background") callback();
-        }),
         speech.addListener("interrupted", callback),
         speech.addListener("error", callback),
       ];
+      const stopWatching = watchLeftApp(callback);
       return () => {
+        stopWatching();
         for (const subscription of subscriptions) subscription.remove();
       };
     },

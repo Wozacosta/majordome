@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-const audio = vi.hoisted(() => ({ calls: [] as Array<string> }));
+const audio = vi.hoisted(() => ({ calls: [] as Array<string>, modes: [] as Array<unknown> }));
+const platform = vi.hoisted(() => ({ OS: "ios" }));
+
+vi.mock("react-native", () => ({ Platform: platform }));
 
 vi.mock("expo-audio", () => ({
   AudioModule: {
     setAudioSessionOwner: (owned: boolean) => void audio.calls.push(`owner ${owned}`),
   },
-  setAudioModeAsync: async (mode: { allowsRecording?: boolean }) =>
-    void audio.calls.push(`mode recording=${mode.allowsRecording}`),
+  setAudioModeAsync: async (mode: { allowsRecording?: boolean; interruptionMode?: string }) => {
+    audio.calls.push(`mode recording=${mode.allowsRecording}`);
+    if (mode.interruptionMode) audio.modes.push(mode.interruptionMode);
+  },
   setIsAudioActiveAsync: async (active: boolean) => void audio.calls.push(`active ${active}`),
 }));
 
@@ -20,6 +25,8 @@ import {
 
 beforeEach(() => {
   audio.calls.length = 0;
+  audio.modes.length = 0;
+  platform.OS = "ios";
 });
 
 describe("the conversation's audio session", () => {
@@ -31,6 +38,24 @@ describe("the conversation's audio session", () => {
     audio.calls.length = 0;
     await releaseAudioSession(conversation);
     expect(audio.calls).toEqual(["mode recording=false", "active false", "owner false"]);
+  });
+
+  it("leaves Android's audio focus to the voice, and takes it for anything else", async () => {
+    platform.OS = "android";
+    const conversation = acquireAudioSession("conversation");
+    await activateAudioSession(conversation);
+    await releaseAudioSession(conversation);
+    const dictation = acquireAudioSession("recording");
+    await activateAudioSession(dictation);
+    await releaseAudioSession(dictation);
+    expect(audio.modes).toEqual(["mixWithOthers", "doNotMix"]);
+
+    audio.modes.length = 0;
+    platform.OS = "ios";
+    const onPhone = acquireAudioSession("conversation");
+    await activateAudioSession(onPhone);
+    await releaseAudioSession(onPhone);
+    expect(audio.modes).toEqual(["doNotMix"]);
   });
 
   it("stops a reply being read aloud when it starts", async () => {
