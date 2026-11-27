@@ -62,7 +62,9 @@ export function serverMoveStepRows(move: MajordomeServerMove): ReadonlyArray<Ser
     id: step.id,
     label:
       move.hosted === true && step.id === "start"
-        ? "Find your Majordome server"
+        ? move.own === true
+          ? "Find your server"
+          : "Find your Majordome server"
         : MAJORDOME_SERVER_MOVE_STEP_LABELS[step.id],
     state: step.state,
     tone: STEP_TONE[step.state],

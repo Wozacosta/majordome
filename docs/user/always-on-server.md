@@ -26,9 +26,19 @@ If two of your computers both run the routines of the same notes, the page says 
 and asks which one should. This happens when routines were moved and one server never received
 the news, for example because it could not reach your backup. The one you do not choose stops.
 
-Under the list, the page starts with the way that needs the least: with an invite code,
-[Majordome hosts the server](#let-majordome-host-it), with nothing to rent or install. The rest
-of the page rents one in your name. For that you need:
+Under the list, **Add a server** has three lines, and each opens its own page:
+
+- **Let Majordome host it**: with an invite code, [Majordome hosts the server](#let-majordome-host-it),
+  with nothing to rent or install.
+- **Rent one for me**: Majordome [rents a server in your name](#set-up-a-server-for-me) at Hetzner
+  and sets it up.
+- **Use a server I already have**: [one command](#use-a-server-you-already-have) on any Linux
+  server.
+
+Your notes go to one server at a time. Once they are on one, the page keeps only the last line,
+to add a server you already have.
+
+To have one rented for you, you need:
 
 - an account at [Hetzner](https://www.hetzner.com/cloud), the company the server is rented from,
   with a payment card. The account is free; the server is not ([below](#what-it-costs)).
@@ -37,8 +47,8 @@ of the page rents one in your name. For that you need:
 
 ## Set up a server for me
 
-You copy one key from each account and paste it in Majordome, press one button, and sign in to
-Claude on the new server. It takes about ten minutes.
+Open **Rent one for me**. You copy one key from each account and paste it in Majordome, press one
+button, and sign in to Claude on the new server. It takes about ten minutes.
 
 The screen shows one key at a time: the steps for the Hetzner key first, then, once it is saved,
 the steps for the Tailscale one. **Change** beside a saved key lets you paste another.
@@ -141,10 +151,39 @@ it did. Hetzner stops billing it. Majordome only ever deletes the server it crea
 If the server can't be reached, Majordome asks before removing it: notes changed there since the
 move would be lost.
 
+## Use a server you already have
+
+For a Linux server you rent anywhere, with at least 2 GB of memory. In the app, these steps are
+under **Use a server I already have**.
+
+1. **Make a Tailscale key** on [Tailscale's keys page](https://login.tailscale.com/admin/settings/keys),
+   with the account your computer is on, and turn on HTTPS Certificates on its
+   [DNS page](https://login.tailscale.com/admin/dns). Tailscale keeps the server private: nothing
+   on it is reachable from the internet, only from your own devices.
+2. **Run one command on the server**, as root. The app shows it with your time zone in it, so
+   routines follow your clock:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/Wozacosta/majordome/main/deploy/install.sh | TZ=Europe/Paris sh
+   ```
+
+   It asks for the key, installs Docker if the server has none, starts Majordome in
+   `/opt/majordome`, makes it [update itself](#update) every night, and ends with a link. Running
+   it again is safe, and gives a new link.
+
+3. **Add it to the app.** Press **Add a computer** and paste the link.
+4. **Move your notes to it.** Press **Move my notes to your server**. Majordome copies them with
+   their history, then keeps the two copies [in step](#your-computer-and-the-server-stay-in-step).
+   Nothing on your computer is removed. The page then lists what is left: sign in to Claude on the
+   server, and move your routines to it.
+
+**Bring my notes back** undoes the last step: the notes changed on the server come back to your
+computer, routines run here again, and the server is left as it is.
+
 ## Do it by hand
 
-For any other provider, or if you prefer a terminal. In the app, these steps are at the bottom of
-**Settings > Your servers**.
+The same, one command at a time. In the app, these steps are under **Use a server I already
+have**, in **Do each step by hand instead**.
 
 1. **Rent a server.** Any provider works. Choose Ubuntu with at least 2 GB of memory. Open its
    console, or connect from a terminal with `ssh root@<server address>`.

@@ -112,6 +112,9 @@ The landing page and the README show a short version of this list.
 - **A server of your own, set up for you:** a small rented computer that keeps your conversations
   and runs routines while your Mac sleeps, and updates itself every night.
   [Your servers](./user/always-on-server.md)
+- **A server you already have, in one command:** paste one line on any Linux server; it installs
+  Majordome behind Tailscale and ends with a link. The app then moves your notes to it and keeps
+  the two copies in step.
 - **One page for your servers, in plain words:** a drawing of this computer, your phone and your
   servers with the main one marked, then each server with what is on it (your notes, your
   routines, an AI account), a way to add one, to remove one, and to make another one the main.

@@ -69,6 +69,8 @@ export const MajordomeServerMove = Schema.Struct({
    * Nothing was made at Hetzner or on Tailscale, and removing leaves the server as it is.
    */
   hosted: Schema.optionalKey(Schema.Boolean),
+  /** With `hosted`: the server that existed is the owner's own, not one Majordome looks after. */
+  own: Schema.optionalKey(Schema.Boolean),
 });
 export type MajordomeServerMove = typeof MajordomeServerMove.Type;
 
@@ -80,6 +82,8 @@ export const MajordomeServerMoveRemoval = Schema.Struct({
   problems: Schema.Array(Schema.String),
   /** The server was one Majordome hosts: the notes came back and the server was left alone. */
   hosted: Schema.optionalKey(Schema.Boolean),
+  /** With `hosted`: that server is the owner's own. */
+  own: Schema.optionalKey(Schema.Boolean),
 });
 export type MajordomeServerMoveRemoval = typeof MajordomeServerMoveRemoval.Type;
 
@@ -137,11 +141,13 @@ export const MajordomeServerMoveStartInput = Schema.Struct({
   /**
    * Move the notes to a server that exists already, such as one Majordome hosts, instead of
    * making one: its address, and a one-time credential that server issued. `location` is unused.
+   * `own` when it is the owner's own server, so the words about it do not say Majordome's.
    */
   existing: Schema.optionalKey(
     Schema.Struct({
       url: TrimmedNonEmptyString.check(Schema.isMaxLength(512)),
       credential: TrimmedNonEmptyString.check(Schema.isMaxLength(512)),
+      own: Schema.optionalKey(Schema.Boolean),
     }),
   ),
 });

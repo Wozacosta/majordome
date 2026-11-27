@@ -10,6 +10,8 @@ import { PageHeader } from "./paper";
 export function MajordomeSettingsPage({
   searchId,
   width,
+  title,
+  back,
   intro,
   action,
   outline = true,
@@ -17,6 +19,9 @@ export function MajordomeSettingsPage({
 }: {
   readonly searchId: SettingsSearchItemId;
   readonly width?: WorkspacePageWidth;
+  /** For a page under the one the search knows: its own title, and the way back above it. */
+  readonly title?: ReactNode;
+  readonly back?: ReactNode;
   /** One sentence under the title, only where it helps a decision. */
   readonly intro?: ReactNode;
   readonly action?: ReactNode;
@@ -31,7 +36,8 @@ export function MajordomeSettingsPage({
       <SettingsSearchTarget {...target} className="outline-none">
         {/* Without it, a search jump would center the whole page instead of its top. */}
         <span data-settings-scroll-target aria-hidden className="block" />
-        <PageHeader title={target.title} intro={intro} action={action} />
+        {back ? <div className="mb-3 text-sm text-muted-foreground">{back}</div> : null}
+        <PageHeader title={title ?? target.title} intro={intro} action={action} />
         {outline ? <PageOutline className="mt-4" /> : null}
         {children}
       </SettingsSearchTarget>

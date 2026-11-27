@@ -184,11 +184,17 @@ const MoveRecord = Schema.Struct({
   serverLabel: Schema.optional(Schema.String),
   /** The server existed already, so nothing here was made at Hetzner or on Tailscale. */
   hosted: Schema.optional(Schema.Boolean),
+  /** With `hosted`: the owner's own server, not one Majordome looks after. */
+  own: Schema.optional(Schema.Boolean),
 });
 type MoveRecord = typeof MoveRecord.Type;
 
 /** Moving to a server that exists: reach it, pair with the credential it issued, send the notes. */
 const HOSTED_STEPS: ReadonlyArray<MajordomeServerMoveStepId> = ["start", "pair", "notes"];
+
+/** What to call a server that existed before the move: the owner's own, or one Majordome hosts. */
+const existingServer = (move: { readonly own?: boolean | undefined }, sentenceStart = false) =>
+  `${sentenceStart ? "Your" : "your"} ${move.own === true ? "server" : "Majordome server"}`;
 
 const Ledger = Schema.Struct({
   move: Schema.NullOr(MoveRecord),
@@ -244,6 +250,7 @@ function toStatus(state: State): MajordomeServerMoveStatus {
             steps: move.steps,
             routinesOnServer: move.routinesOnServer,
             ...(move.hosted === true ? { hosted: true } : {}),
+            ...(move.own === true ? { own: true } : {}),
             server:
               move.serverName === undefined
                 ? null
@@ -899,8 +906,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
     const answering = move.url === undefined ? Option.none() : yield* fetchEnvironment(move.url);
     if (Option.isNone(answering)) {
       return yield* new MoveStepError({
-        message:
-          "Your Majordome server did not answer. Check that it opens in a browser, then try again.",
+        message: `${existingServer(move, true)} did not answer. Check that it opens in a browser, then try again.`,
       });
     }
     yield* patchMove({
@@ -973,7 +979,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
         return yield* new MoveStepError({
           message:
             move.hosted === true
-              ? "The one-time code for your Majordome server is gone from this computer. Stop, then start again."
+              ? `The one-time code for ${existingServer(move)} is gone from this computer. Stop, then start again.`
               : "The server's one-time setup code is gone from this computer. Stop to remove the server, then start again.",
         });
       }
@@ -986,7 +992,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
             ? new MoveStepError({
                 message:
                   move.hosted === true
-                    ? "Your Majordome server did not accept the one-time code: it had expired or was already used. Stop, then start again."
+                    ? `${existingServer(move, true)} did not accept the one-time code: it had expired or was already used. Stop, then start again.`
                     : "The server did not accept its one-time setup code: it had expired or was already used. Stop to remove the server, then start again.",
               })
             : error,
@@ -1301,7 +1307,9 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       }
       if (move.hosted === true) {
         // Not this computer's to delete: it was there before, and Majordome looks after it.
-        did.push("Your Majordome server was left as it is, with the copy of your notes it has.");
+        did.push(
+          `${existingServer(move, true)} was left as it is, with the copy of your notes it has.`,
+        );
       } else {
         yield* removeFromHetzner(move, did);
         const tailscale = yield* removeFromTailscale(move, did).pipe(Effect.result);
@@ -1321,7 +1329,13 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
       const at = isoTime(yield* Clock.currentTimeMillis);
       yield* updateLedger(() => ({
         move: null,
-        removal: { at, did, problems, ...(move.hosted === true ? { hosted: true } : {}) },
+        removal: {
+          at,
+          did,
+          problems,
+          ...(move.hosted === true ? { hosted: true } : {}),
+          ...(move.own === true ? { own: true } : {}),
+        },
       }));
     }).pipe(Effect.provide(services));
     return yield* removal.pipe(
@@ -1442,6 +1456,7 @@ export const make = Effect.fn("MajordomeServerMove.make")(function* (options?: {
           })),
           routinesOnServer: false,
           ...(existingUrl == null ? {} : { hosted: true, url: existingUrl.origin }),
+          ...(existing?.own === true ? { own: true } : {}),
         };
         yield* Effect.forEach([AUTH_KEY_SECRET, SETUP_SECRET, SESSION_SECRET], dropSecret, {
           discard: true,

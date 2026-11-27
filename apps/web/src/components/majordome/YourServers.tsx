@@ -10,7 +10,6 @@ import { useProjects } from "../../state/entities";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { vaultHistoriesAtom } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { AddEnvironmentDialog } from "../settings/AddEnvironmentDialog";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -23,6 +22,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
+import { AddComputerButton } from "./AddComputerButton";
 import { machineInSentence } from "./brains.logic";
 import { MakeMainButton, MakeMainDialog } from "./MakeMainDialog";
 import { RoutinesClashNotice } from "./RoutinesClashNotice";
@@ -101,11 +101,8 @@ export function YourServers({
   readonly servers: ReadonlyArray<ServerRow>;
   readonly managedId: EnvironmentId | null;
 }) {
-  const { environments } = useEnvironments();
   const mainId = useAssistantEnvironmentId();
   const remove = useAtomCommand(environmentCatalog.remove, { reportFailure: false });
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<ServerRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
@@ -124,24 +121,7 @@ export function YourServers({
   };
 
   return (
-    <Section
-      label="Your servers"
-      action={
-        <AddEnvironmentDialog
-          open={adding}
-          routeTarget={null}
-          error={addError}
-          savedEnvironments={environments.filter(
-            (environment) => environment.entry.target._tag !== "PrimaryConnectionTarget",
-          )}
-          onOpenChange={(open) => {
-            setAdding(open);
-            if (!open) setAddError(null);
-          }}
-          onErrorChange={setAddError}
-        />
-      }
-    >
+    <Section label="Your servers" action={<AddComputerButton />}>
       {servers.length === 0 ? (
         <Muted className={READING_MEASURE_CLASS}>None yet.</Muted>
       ) : (

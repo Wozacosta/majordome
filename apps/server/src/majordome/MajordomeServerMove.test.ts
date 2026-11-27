@@ -718,6 +718,36 @@ it.layer(baseLayer)("MajordomeServerMove", (it) => {
       }).pipe(Effect.provide(computer())),
   );
 
+  it.effect("calls a server of the owner's own theirs, not Majordome's", () =>
+    Effect.gen(function* () {
+      const { vault, world, service } = yield* ready();
+      world.server.existing = { credential: HOSTED_CODE, label: "Your server" };
+      yield* service.begin({
+        projectId,
+        location: "hosted",
+        existing: { url: `https://${HOSTED_HOST}`, credential: HOSTED_CODE, own: true },
+      });
+      const done = yield* awaitPhase(service, "ready");
+      assert.isTrue(done.move?.hosted);
+      assert.isTrue(done.move?.own);
+      assert.strictEqual(world.server.uploads.length, 1);
+
+      const fs = yield* FileSystem.FileSystem;
+      const out = yield* fs.makeTempDirectoryScoped({ prefix: "majordome-own-bundle-" });
+      yield* createVaultBundle({ cwd: vault.root, bundlePath: `${out}/server.bundle` });
+      world.server.bundle = yield* fs.readFile(`${out}/server.bundle`);
+      const removed = yield* service.remove({ force: false });
+      assert.isTrue(removed.removal?.own);
+      assert.strictEqual(
+        removed.removal?.did.at(-1),
+        "Your server was left as it is, with the copy of your notes it has.",
+      );
+      // The server is the owner's to keep: nothing is deleted anywhere.
+      assert.deepStrictEqual(world.hetzner.deleted, []);
+      assert.deepStrictEqual(world.tailscale.deletedDevices, []);
+    }).pipe(Effect.provide(computer())),
+  );
+
   it.effect("sends the GitHub sign-in and remote along when the notes are backed up there", () =>
     Effect.gen(function* () {
       const { vault, world, service } = yield* ready({ remote: true });

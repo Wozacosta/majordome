@@ -5,7 +5,25 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **A server you already have, in one command.** In **Settings > Your servers**, **Use a server I
+  already have** gives one line to paste on any Linux server. It installs Majordome there, private
+  to your Tailscale network, and ends with a link. Paste the link in **Add a computer**, then
+  press **Move my notes to your server**: your notes are copied with their history and the two
+  copies stay in step.
+
+**Changed**
+
+- **Your servers is short again.** Under the list, **Add a server** has three lines: **Let
+  Majordome host it**, **Rent one for me** and **Use a server I already have**. Each opens its own
+  page with its steps, and a link back. Once your notes are on a server, only the last line stays.
+
+**Try this**
+
+- Open **Settings > Your servers** and click each of the three lines under **Add a server**.
+- On a server you rent, paste the line from **Use a server I already have**, then add it with the
+  link it prints.
 
 ## 0.10.79
 

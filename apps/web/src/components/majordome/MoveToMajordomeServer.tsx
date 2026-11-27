@@ -15,7 +15,8 @@ import { readEnvironmentScope, readPreparedConnection } from "../../state/sessio
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
-import { isHostedServer } from "./brains.logic";
+import { AddComputerButton } from "./AddComputerButton";
+import { isHostedServer, machineInSentence } from "./brains.logic";
 import { Muted, READING_MEASURE_CLASS, StatusLine } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 import { useMajordomeVaults } from "./useMajordomeVaults";
@@ -25,16 +26,10 @@ export const HOSTED_START_ADDRESS = "majord.me/start";
 export const HOSTED_START_URL = `https://${HOSTED_START_ADDRESS}`;
 
 /**
- * Sends this computer's notes to a server Majordome hosts for the owner. The server has to be in
- * this app already: the app asks it for a one-time code and hands that to this computer, so the
- * owner types nothing.
+ * Sends this computer's notes to a server that exists already. The server has to be in this app:
+ * the app asks it for a one-time code and hands that to this computer, so the owner types nothing.
  */
-export function MoveToMajordomeServer({
-  environmentId,
-}: {
-  readonly environmentId: EnvironmentId;
-}) {
-  const { environments } = useEnvironments();
+export function useMoveNotesToServer(environmentId: EnvironmentId) {
   const { machineOf } = useMachineNames();
   const { activeVault } = useMajordomeVaults();
   const projectId: ProjectId | null =
@@ -46,17 +41,15 @@ export function MoveToMajordomeServer({
   const canStart = useAtomValue(majordomeEnvironment.serverMoveStart.permissionAtom(environmentId));
   const [busy, setBusy] = useState<EnvironmentId | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const servers = environments.filter(
-    (environment) =>
-      environment.environmentId !== environmentId && isHostedServer(environment.label),
-  );
 
   const move = async (server: EnvironmentId) => {
     if (projectId === null) return;
+    const name = machineInSentence(machineOf(server));
+    const own = !isHostedServer(machineOf(server));
     const connection = readPreparedConnection(server);
     if (connection === null || !readEnvironmentScope(server, AuthAccessWriteScope)) {
       setError(
-        "This app is not allowed to do this on your Majordome server. Remove it from this app at the top of this page, add it again with a new code, then try again.",
+        `This app is not allowed to do this on ${name}. Remove it from this app in the list of your servers, add it again with a new code, then try again.`,
       );
       return;
     }
@@ -84,7 +77,11 @@ export function MoveToMajordomeServer({
       input: {
         projectId,
         location: "hosted",
-        existing: { url: connection.httpBaseUrl, credential: pairing.value.credential },
+        existing: {
+          url: connection.httpBaseUrl,
+          credential: pairing.value.credential,
+          ...(own ? { own: true } : {}),
+        },
       },
     });
     setBusy(null);
@@ -92,6 +89,28 @@ export function MoveToMajordomeServer({
       setError(failure(started));
     }
   };
+
+  return {
+    move,
+    busy,
+    error,
+    canStart: canStart && projectId !== null,
+    hasNotes: projectId !== null,
+  };
+}
+
+/** The way to a server Majordome hosts: where to get one, then the button that moves the notes. */
+export function MoveToMajordomeServer({
+  environmentId,
+}: {
+  readonly environmentId: EnvironmentId;
+}) {
+  const { environments } = useEnvironments();
+  const { move, busy, error, canStart, hasNotes } = useMoveNotesToServer(environmentId);
+  const servers = environments.filter(
+    (environment) =>
+      environment.environmentId !== environmentId && isHostedServer(environment.label),
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -121,9 +140,14 @@ export function MoveToMajordomeServer({
               here, sign in with the same account and connect the server listed there
             </>
           ) : (
-            <>add the server to this app with Add a computer, at the top of this page</>
+            <>add the server to this app with the button below</>
           )}
           . This page then offers to move your notes.
+          {hasAccountPublicConfig() ? null : (
+            <span className="mt-2 block">
+              <AddComputerButton />
+            </span>
+          )}
         </Muted>
       ) : (
         <>
@@ -135,7 +159,7 @@ export function MoveToMajordomeServer({
             <div key={server.environmentId} className="flex flex-wrap items-center gap-3">
               <Button
                 size="sm"
-                disabled={!canStart || projectId === null || busy !== null}
+                disabled={!canStart || busy !== null}
                 onClick={() => void move(server.environmentId)}
               >
                 {busy === server.environmentId ? <Spinner size="sm" /> : null}
@@ -146,7 +170,7 @@ export function MoveToMajordomeServer({
               </span>
             </div>
           ))}
-          {projectId === null ? <Muted>Open a notes folder on this computer first.</Muted> : null}
+          {hasNotes ? null : <Muted>Open a notes folder on this computer first.</Muted>}
         </>
       )}
       {error === null ? null : <StatusLine tone="error">{error}</StatusLine>}

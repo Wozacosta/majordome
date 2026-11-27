@@ -12,9 +12,10 @@ import type {
   MajordomeServerMoveStatus,
   ProjectId,
 } from "@t3tools/contracts";
-import { Link } from "@tanstack/react-router";
+import { Link, Navigate, useSearch } from "@tanstack/react-router";
 import { AsyncResult } from "effect/reactivity";
 import { useMessages } from "gt-react";
+import { ArrowLeftIcon } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { environmentCatalog } from "../../connection/catalog";
@@ -39,7 +40,7 @@ import { Label } from "../ui/label";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
-import { AlwaysOnManualGuide } from "./AlwaysOnManualGuide";
+import { AddServerChoices, OwnServerGuide } from "./AddServer";
 import {
   HOSTED_START_ADDRESS,
   HOSTED_START_URL,
@@ -50,7 +51,6 @@ import { useMachineNames } from "./useMachineNames";
 import { SETTINGS_SECTION_LABELS } from "../settings/settingsSearch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
 import {
-  Disclosure,
   Entry,
   EntryList,
   Muted,
@@ -78,7 +78,10 @@ import {
 import { useMajordomeVaults } from "./useMajordomeVaults";
 import { useServers, YourServers } from "./YourServers";
 import type { ServerRow } from "./servers.logic";
+import { type ServerWay, serverWayRows } from "./serverWays.logic";
 
+const HETZNER_URL = "https://www.hetzner.com/cloud";
+const TAILSCALE_URL = "https://tailscale.com";
 const HETZNER_CONSOLE_URL = "https://console.hetzner.com/";
 const TAILSCALE_TAGS_URL = "https://login.tailscale.com/admin/acls";
 const TAILSCALE_CREDENTIALS_URL = "https://login.tailscale.com/admin/settings/trust-credentials";
@@ -124,29 +127,68 @@ const INTRO: Record<ServerMoveView, string> = {
     "Majordome is removing your server. Your notes and routines come back to this computer.",
 };
 
-/** The same views when the server is one Majordome hosts, which nobody here rented or set up. */
-const HOSTED_INTRO: Record<ServerMoveView, string> = {
-  setup: INTRO.setup,
-  progress:
-    "Majordome is copying your notes to your Majordome server, which never sleeps, so your routines can run while this computer is off.",
-  ready:
-    "Your notes are on your Majordome server too, and the two copies follow each other. This page shows what is left to do, and how to bring your notes back.",
-  removing:
-    "Majordome is bringing your notes and routines back to this computer. Your Majordome server is left as it is.",
-};
+/** The same views when the server existed already: one Majordome hosts, or the owner's own. */
+function existingIntro(view: ServerMoveView, own: boolean): string {
+  const server = existingServerName(own);
+  switch (view) {
+    case "setup":
+      return INTRO.setup;
+    case "progress":
+      return `Majordome is copying your notes to ${server}, which never sleeps, so your routines can run while this computer is off.`;
+    case "ready":
+      return `Your notes are on ${server} too, and the two copies follow each other. This page shows what is left to do, and how to bring your notes back.`;
+    case "removing":
+      return `Majordome is bringing your notes and routines back to this computer. ${sentence(server)} is left as it is.`;
+  }
+}
+
+/** What to call a server that existed before the move. */
+const existingServerName = (own: boolean) => (own ? "your server" : "your Majordome server");
+const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** With servers already there and none set up from here, the page first says what they are. */
 const SERVERS_INTRO =
   "Computers that never sleep: they keep your notes, run your routines and answer your phone.";
 
+const WAY_PAGE_TITLES: Record<ServerWay, string> = {
+  hosted: "Let Majordome host it",
+  rent: "Rent a server",
+  own: "A server you already have",
+};
+
+/** One way to get a server, on a page of its own with the way back to the list. */
+function WayPage({ way, children }: { readonly way: ServerWay; readonly children: ReactNode }) {
+  return (
+    <MajordomeSettingsPage
+      searchId="majordome-always-on"
+      title={WAY_PAGE_TITLES[way]}
+      back={
+        <Link
+          to="/settings/always-on"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          <ArrowLeftIcon aria-hidden className="size-3.5" />
+          Your servers
+        </Link>
+      }
+    >
+      {children}
+    </MajordomeSettingsPage>
+  );
+}
+
 /**
- * Every server this app is connected to, and the way to get one: let Majordome host it, rent one
- * from here, or follow the guide to do it by hand.
+ * Every server this app is connected to, and the ways to get one, each on a page of its own:
+ * let Majordome host it, rent one from here, or use one the owner has already.
  */
 export function AlwaysOnServerPage() {
   const environmentId = useAtomValue(primaryEnvironmentIdAtom);
   const { machineOf } = useMachineNames();
   const servers = useServers();
+  const way = useSearch({
+    from: "/_chat/settings/always-on",
+    select: (search) => search.add ?? null,
+  });
   // Someone on a server Majordome hosts already has what this page sets up.
   if (environmentId !== null && isHostedServer(machineOf(environmentId))) {
     return (
@@ -158,51 +200,48 @@ export function AlwaysOnServerPage() {
       </MajordomeSettingsPage>
     );
   }
-  return environmentId === null ? (
+  if (environmentId !== null) {
+    return <ServerMovePage environmentId={environmentId} servers={servers} way={way} />;
+  }
+  // A window with no computer of its own has no notes to move and nothing to rent from.
+  const rows = serverWayRows({ view: "setup", canManage: false });
+  if (way === "hosted") {
+    return (
+      <WayPage way={way}>
+        <Section>
+          <Muted className={READING_MEASURE_CLASS}>
+            With an invite code, Majordome makes a server for you and looks after it: nothing to
+            rent and nothing to install. Open{" "}
+            <ExternalLink href={HOSTED_START_URL}>{HOSTED_START_ADDRESS}</ExternalLink>, sign in and
+            enter your code.
+          </Muted>
+        </Section>
+      </WayPage>
+    );
+  }
+  if (way === "own") {
+    return (
+      <WayPage way={way}>
+        <OwnServerGuide environmentId={null} servers={servers} notesElsewhere={false} />
+      </WayPage>
+    );
+  }
+  return (
     <MajordomeSettingsPage searchId="majordome-always-on" intro={INTRO.setup}>
       <YourServers servers={servers} managedId={null} />
-      <HostedWay environmentId={null} />
-      <ManualGuide />
+      <AddServerChoices rows={rows} another={false} />
     </MajordomeSettingsPage>
-  ) : (
-    <ServerMovePage environmentId={environmentId} servers={servers} />
-  );
-}
-
-/** The way with nothing to rent or install, so it comes before renting a server of one's own. */
-function HostedWay({ environmentId }: { readonly environmentId: EnvironmentId | null }) {
-  return (
-    <Section label="Let Majordome host it">
-      {environmentId === null ? (
-        <Muted className={READING_MEASURE_CLASS}>
-          With an invite code, Majordome makes a server for you and looks after it: nothing to rent
-          and nothing to install. Open{" "}
-          <ExternalLink href={HOSTED_START_URL}>{HOSTED_START_ADDRESS}</ExternalLink>, sign in and
-          enter your code.
-        </Muted>
-      ) : (
-        <MoveToMajordomeServer environmentId={environmentId} />
-      )}
-    </Section>
-  );
-}
-
-function ManualGuide() {
-  return (
-    <Section>
-      <Disclosure summary="Rent your own and set it up by hand, in a terminal">
-        <AlwaysOnManualGuide />
-      </Disclosure>
-    </Section>
   );
 }
 
 function ServerMovePage({
   environmentId,
   servers,
+  way,
 }: {
   readonly environmentId: EnvironmentId;
   readonly servers: ReadonlyArray<ServerRow>;
+  readonly way: ServerWay | null;
 }) {
   const result = useAtomValue(majordomeEnvironment.serverMove({ environmentId, input: {} }));
   const canManage = useAtomValue(
@@ -210,12 +249,44 @@ function ServerMovePage({
   );
   const status = AsyncResult.getOrElse(result, () => null);
   const view = status === null ? "setup" : serverMoveView(status);
+  const rows = serverWayRows({ view, canManage });
+  if (way !== null) {
+    // A way that is no longer on offer, such as renting once a server is being made.
+    if (!rows.some((row) => row.way === way)) return <Navigate to="/settings/always-on" replace />;
+    return (
+      <WayPage way={way}>
+        {way === "own" ? (
+          <OwnServerGuide
+            environmentId={environmentId}
+            servers={servers}
+            notesElsewhere={view !== "setup"}
+          />
+        ) : way === "hosted" ? (
+          <Section>
+            <MoveToMajordomeServer environmentId={environmentId} />
+          </Section>
+        ) : status === null ? (
+          <Section>
+            {result._tag === "Failure" ? (
+              <p className="text-sm text-destructive-foreground">
+                {formatEnvironmentQueryError(result.cause)}
+              </p>
+            ) : (
+              <Skeleton className="h-24 w-full" />
+            )}
+          </Section>
+        ) : (
+          <SetupPanel environmentId={environmentId} status={status} />
+        )}
+      </WayPage>
+    );
+  }
   return (
     <MajordomeSettingsPage
       searchId="majordome-always-on"
       intro={
         status?.move?.hosted === true
-          ? HOSTED_INTRO[view]
+          ? existingIntro(view, status.move.own === true)
           : view === "setup" && servers.length > 0
             ? SERVERS_INTRO
             : INTRO[view]
@@ -226,25 +297,21 @@ function ServerMovePage({
         <RemovalSummary removal={status.removal} />
       ) : null}
       <YourServers servers={servers} managedId={status?.move?.server?.environmentId ?? null} />
-      {view === "setup" ? <HostedWay environmentId={environmentId} /> : null}
-      {!canManage ? (
+      {view === "setup" ? null : !canManage ? (
         <Section>
-          <Muted>Open this screen on the computer where Majordome runs to set up a server.</Muted>
+          <Muted>Open this screen on the computer where Majordome runs to change this.</Muted>
         </Section>
-      ) : status === null ? (
-        <Section>
-          {result._tag === "Failure" ? (
-            <p className="text-sm text-destructive-foreground">
-              {formatEnvironmentQueryError(result.cause)}
-            </p>
-          ) : (
-            <Skeleton className="h-24 w-full" />
-          )}
-        </Section>
-      ) : (
+      ) : status === null ? null : (
         <ServerMove environmentId={environmentId} status={status} />
       )}
-      {view === "setup" ? <ManualGuide /> : null}
+      {result._tag === "Failure" ? (
+        <Section>
+          <p className="text-sm text-destructive-foreground">
+            {formatEnvironmentQueryError(result.cause)}
+          </p>
+        </Section>
+      ) : null}
+      <AddServerChoices rows={rows} another={view !== "setup"} />
     </MajordomeSettingsPage>
   );
 }
@@ -258,7 +325,7 @@ function ServerMove({
 }) {
   switch (serverMoveView(status)) {
     case "setup":
-      return <SetupPanel environmentId={environmentId} status={status} />;
+      return null;
     case "progress":
       return <ProgressPanel environmentId={environmentId} move={status.move!} />;
     case "ready":
@@ -530,16 +597,17 @@ function SetupPanel({
 
   return (
     <>
-      <Section label="Or rent your own: what you need">
+      <Section label="What you need">
         <EntryList>
           <Entry title="A Hetzner account, with a payment card">
-            Hetzner is the company that rents you the server. The account is free; the server costs
-            about €5 a month, billed by Hetzner to your card. Majordome charges nothing, and shows
-            the exact price before anything is rented.
+            <ExternalLink href={HETZNER_URL}>Hetzner</ExternalLink> is the company that rents you
+            the server. The account is free; the server costs about €5 a month, billed by Hetzner to
+            your card. Majordome charges nothing, and shows the exact price before anything is
+            rented.
           </Entry>
           <Entry title="A Tailscale account">
-            Tailscale is a free service that keeps the server private, so only your own devices can
-            reach it.
+            <ExternalLink href={TAILSCALE_URL}>Tailscale</ExternalLink> is a free service that keeps
+            the server private, so only your own devices can reach it.
           </Entry>
           <Entry title="About ten minutes">
             You copy one key from each account and paste it here. Majordome then rents the server,
@@ -703,6 +771,7 @@ function ProgressPanel({
   const [error, setError] = useState<string | null>(null);
   const failed = move.phase === "failed";
   const hosted = move.hosted === true;
+  const server = existingServerName(move.own === true);
 
   const act = async (action: () => Promise<AtomCommandResult<unknown, unknown>>) => {
     setBusy(true);
@@ -719,7 +788,7 @@ function ProgressPanel({
         failed
           ? "The setup stopped"
           : hosted
-            ? "Moving your notes to your Majordome server"
+            ? `Moving your notes to ${server}`
             : "Setting up your server"
       }
     >
@@ -769,7 +838,7 @@ function ProgressPanel({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {hosted
-                ? "Your notes on this computer are not touched, and your Majordome server stays as it is. You can start again at any time."
+                ? `Your notes on this computer are not touched, and ${server} stays as it is. You can start again at any time.`
                 : `Majordome removes what it made at Hetzner and on your Tailscale network, so nothing is billed. Your notes on this computer are not touched.${
                     failed
                       ? ""
@@ -816,6 +885,7 @@ function ReadyPanel({
 }) {
   const serverId = move.server?.environmentId ?? null;
   const hosted = move.hosted === true;
+  const server = existingServerName(move.own === true);
   const { environments, isReady } = useEnvironments();
   const { machineOf } = useMachineNames();
   const providers = useEnvironmentProviders();
@@ -912,7 +982,11 @@ function ReadyPanel({
         <Section label={named === null ? "Your server" : `About ${named}`}>
           <StatusLine tone="ok" className={READING_MEASURE_CLASS}>
             {hosted ? (
-              "Running, with your notes on it. Majordome looks after it for you."
+              move.own === true ? (
+                "Running, with your notes on it."
+              ) : (
+                "Running, with your notes on it. Majordome looks after it for you."
+              )
             ) : (
               <>
                 Running at <span className="font-medium break-all">{move.server?.url}</span>, with
@@ -999,7 +1073,7 @@ function ReadyPanel({
       <Section label={hosted ? "Bring your notes back" : "Remove this server"}>
         <Muted className={READING_MEASURE_CLASS}>
           {hosted
-            ? "Majordome copies the notes changed on the server back to this computer and moves routines back here. Your Majordome server is left as it is, with the copy of your notes it has."
+            ? `Majordome copies the notes changed on the server back to this computer and moves routines back here. ${sentence(server)} is left as it is, with the copy of your notes it has.`
             : "Majordome copies the notes changed on the server back to this computer, moves routines back here, then deletes the server at Hetzner and its entry in Tailscale. Hetzner stops billing it. Removing needs both keys: Majordome keeps them on this computer until you choose Forget these keys, and asks for them again if you have."}
         </Muted>
         {removeError === null ? null : (
@@ -1044,7 +1118,7 @@ function ReadyPanel({
               <AlertDialogDescription>
                 {removing?.problem ??
                   (hosted
-                    ? "Your notes and routines come back to this computer, and the two copies stop following each other. Your Majordome server is not deleted."
+                    ? `Your notes and routines come back to this computer, and the two copies stop following each other. ${sentence(server)} is not deleted.`
                     : "Your notes and routines come back to this computer first. The server, its firewall and its Tailscale entry are then deleted for good.")}
               </AlertDialogDescription>
             </AlertDialogHeader>
