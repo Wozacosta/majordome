@@ -120,7 +120,7 @@ function VaultAssistant({
   }, [askRef, ask]);
   const { width, handlers, observeRow } = usePreviewPanelInlineSize({
     widthStorageKey: "majordome:assistant-width",
-    defaultWidth: 448,
+    defaultWidth: 360,
   });
   if (
     runner === null ||

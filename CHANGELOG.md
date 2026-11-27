@@ -18,6 +18,8 @@ The section for a version is also the text of its release on GitHub.
 - **Your servers is short again.** Under the list, **Add a server** has three lines: **Let
   Majordome host it**, **Rent one for me** and **Use a server I already have**. Each opens its own
   page with its steps, and a link back. Once your notes are on a server, only the last line stays.
+- **Settings has more room.** Its window is a little wider and taller on a large screen, and the
+  assistant beside it starts narrower. Drag its edge to widen it; the app remembers.
 
 **Try this**
 
