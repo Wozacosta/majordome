@@ -31,6 +31,7 @@ import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { openSetupPage, SETUP_FAILED, SETUP_NOT_ALLOWED } from "./hostedSignup";
 import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
+import { TodayWelcome } from "./TodayWelcome";
 import { MajordomeTodayTopics, useChatListTopics } from "./TopicsSection";
 import { useVault } from "./useVault";
 import {
@@ -636,6 +637,13 @@ export function MajordomeTodayScreen() {
           </>
         ) : (
           <>
+            {isToday && vault !== null ? (
+              <TodayWelcome
+                key={`${vault.environmentId}:${vault.projectId}`}
+                environmentId={vault.environmentId}
+                projectId={vault.projectId}
+              />
+            ) : null}
             {isToday ? (
               <View className="gap-2">
                 <TextInput

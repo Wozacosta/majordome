@@ -38,7 +38,10 @@ test(
     await app.screenshot("map-offers-to-start");
     await screen.getByRole("button", "Start it from my notes").tap();
 
-    await expect(screen.getByText(REQUEST, { exact: false })).toBeVisible({ timeout: 60_000 });
+    // The request shows as the message and, once the chat is named, as its title.
+    await expect(screen.getByText(REQUEST, { exact: false }).first()).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(screen.getByRole("heading", "What your assistant can see and do")).toBeHidden();
     await app.screenshot("chat-started");
   },

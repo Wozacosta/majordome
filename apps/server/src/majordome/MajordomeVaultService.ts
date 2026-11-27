@@ -7,7 +7,10 @@
 import {
   type MajordomeVaultChangesInput,
   type MajordomeRoutineLimits,
+  type MajordomeFinishWelcomeInput,
   type MajordomeSetRoutineLimitsInput,
+  type MajordomeWelcomeInput,
+  type MajordomeWelcomeResult,
   type MajordomeRestoreNotesInput,
   type MajordomeRestoreNotesResult,
   type MajordomeStartNotesInput,
@@ -42,13 +45,16 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { VAULT_CHANGES_QUIET_PERIOD, vaultChangeRevisions } from "./vaultChanges.ts";
 import { routineLedgerPath, routineTaskId } from "./defaultRoutines.ts";
 import * as MajordomeNotesSearch from "./MajordomeNotesSearch.ts";
+import { ME_DEFAULT_PATH, ownerName, withOwnerName } from "./meNote.ts";
 import { MEMORY_CHAR_LIMIT } from "./memoryPassPrompt.ts";
 import * as RoutineRunLedger from "./RoutineRunLedger.ts";
 import { readRoutinesStatus } from "./routinesStatus.ts";
 import { isTooBroadForNotes, NotesFolderError, setUpNotesFolder } from "./starterNotes.ts";
 import { findBackupFile, FolderBackupError, restoreFolderBackup } from "./vaultFolderBackup.ts";
 import {
+  clearWelcomePending,
   readVaultLayout,
+  readWelcomePending,
   readVaultLimits,
   VAULT_CONFIG_DIRNAME,
   writeVaultLimits,
@@ -83,6 +89,14 @@ export class MajordomeVaultService extends Context.Service<
     readonly setRoutineLimits: (
       input: MajordomeSetRoutineLimitsInput,
     ) => Effect.Effect<MajordomeRoutineLimits, MajordomeVaultError>;
+    /** Whether the folder's owner is still to be welcomed, and the name their notes give them. */
+    readonly welcome: (
+      input: MajordomeWelcomeInput,
+    ) => Effect.Effect<MajordomeWelcomeResult, MajordomeVaultError>;
+    /** Ends the welcome, writing the name the owner gave into the note about them. */
+    readonly finishWelcome: (
+      input: MajordomeFinishWelcomeInput,
+    ) => Effect.Effect<MajordomeWelcomeResult, MajordomeVaultError>;
     /** Makes a folder a notes folder, keeping what it holds, and opens it as a project. */
     readonly startNotes: (
       input: MajordomeStartNotesInput,
@@ -273,6 +287,76 @@ const make = Effect.gen(function* () {
     ),
   );
 
+  const readWelcome = Effect.fn("MajordomeVaultService.readWelcome")(function* (cwd: string) {
+    const layout = yield* readVaultLayout(cwd);
+    const me = Option.isNone(layout)
+      ? null
+      : Option.getOrNull(
+          yield* fileSystem.readFileString(path.join(cwd, layout.value.me)).pipe(Effect.option),
+        );
+    return {
+      pending: yield* readWelcomePending(cwd),
+      name: ownerName(me),
+      mePath: Option.isNone(layout) ? ME_DEFAULT_PATH : layout.value.me,
+      me,
+    };
+  });
+  const withVaultFiles = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    effect.pipe(
+      Effect.provide(services),
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(Path.Path, path),
+    );
+
+  const welcome: MajordomeVaultService["Service"]["welcome"] = Effect.fn(
+    "MajordomeVaultService.welcome",
+  )(
+    function* (input) {
+      const cwd = yield* vaultRoot(input.projectId);
+      if (cwd === undefined) return { pending: false, name: null };
+      const { pending, name } = yield* withVaultFiles(readWelcome(cwd));
+      return { pending, name };
+    },
+    Effect.mapError(toVaultError("Could not read this notes folder.")),
+  );
+
+  const finishWelcome: MajordomeVaultService["Service"]["finishWelcome"] = Effect.fn(
+    "MajordomeVaultService.finishWelcome",
+  )(
+    function* (input) {
+      const cwd = yield* vaultRoot(input.projectId);
+      if (cwd === undefined) {
+        return yield* new MajordomeVaultError({ message: "That project is not a vault." });
+      }
+      const given = input.name?.replaceAll(/\s+/g, " ").trim() ?? "";
+      return yield* vaultLock.withLock(
+        cwd,
+        withVaultFiles(
+          Effect.gen(function* () {
+            const before = yield* readWelcome(cwd);
+            const paths: Array<string> = [];
+            if (given !== "" && given !== before.name) {
+              const file = path.join(cwd, before.mePath);
+              yield* fileSystem.makeDirectory(path.dirname(file), { recursive: true });
+              yield* fileSystem.writeFileString(file, withOwnerName(before.me, given));
+              paths.push(before.mePath);
+            }
+            if (yield* clearWelcomePending(cwd)) paths.push(`${VAULT_CONFIG_DIRNAME}/config.json`);
+            if (paths.length > 0) {
+              yield* commitOwnerDecision({ vaultRoot: cwd, subject: "Said hello", paths });
+            }
+            return { pending: false, name: given === "" ? before.name : given };
+          }),
+        ),
+      );
+    },
+    Effect.mapError((cause) =>
+      isVaultError(cause)
+        ? cause
+        : new MajordomeVaultError({ message: "Could not save your name.", cause }),
+    ),
+  );
+
   const startNotes: MajordomeVaultService["Service"]["startNotes"] = Effect.fn(
     "MajordomeVaultService.startNotes",
   )(
@@ -374,6 +458,8 @@ const make = Effect.gen(function* () {
     undo,
     changes,
     setRoutineLimits,
+    welcome,
+    finishWelcome,
     startNotes,
     restoreNotes,
   });

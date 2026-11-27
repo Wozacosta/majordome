@@ -29,10 +29,22 @@ The section for a version is also the text of its release on GitHub.
   you what is still missing. On the iPhone the row says "Nothing yet"; the nightly tidy still
   starts the note for you.
 
+- **New notes welcome you.** The first time you open Today on a new notes folder, on the
+  computer or the iPhone, a small card asks what to call you, then shows in three steps how
+  Majordome works. Your name goes into `me.md`. It shows once per notes folder, whichever device
+  you finish or skip it on; notes you already had are not asked.
+
+**Changed**
+
+- **The map's About you line is quieter:** a tinted line with the note's name set apart, in
+  place of a sentence and a loud button.
+
 **Try this**
 
 - In any chat, look at **What this chat knows** on the right and press **Start it from my
   notes**.
+- To see the welcome, start a second notes folder on a spare computer, or ask me for a test
+  server: it only shows on notes that are new.
 
 **New**
 

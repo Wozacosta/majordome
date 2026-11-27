@@ -154,6 +154,8 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeAddReadyRoutine]: "majordome",
   [WS_METHODS.majordomeSetRoutineLimits]: "majordome",
   [WS_METHODS.majordomeStartNotes]: "majordome",
+  [WS_METHODS.majordomeGetWelcome]: "majordome",
+  [WS_METHODS.majordomeFinishWelcome]: "majordome",
   [WS_METHODS.majordomeRestoreNotes]: "majordome",
   [WS_METHODS.majordomeGetBackupStatus]: "majordome",
   [WS_METHODS.majordomeListConnectors]: "majordome",

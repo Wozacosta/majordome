@@ -215,6 +215,24 @@ export type MajordomeSetRoutineLimitsInput = typeof MajordomeSetRoutineLimitsInp
 /** `folder` null means a new folder in the default place; otherwise an absolute path on the server. */
 export const MAJORDOME_OWNER_NAME_MAX = 80;
 
+export const MajordomeWelcomeInput = Schema.Struct({ projectId: ProjectId });
+export type MajordomeWelcomeInput = typeof MajordomeWelcomeInput.Type;
+
+/** Whether a notes folder's owner has yet to be welcomed, and the name they gave so far. */
+export const MajordomeWelcomeResult = Schema.Struct({
+  /** True from the day the folder is started until its owner finishes or skips the welcome. */
+  pending: Schema.Boolean,
+  name: Schema.NullOr(Schema.String),
+});
+export type MajordomeWelcomeResult = typeof MajordomeWelcomeResult.Type;
+
+export const MajordomeFinishWelcomeInput = Schema.Struct({
+  projectId: ProjectId,
+  /** What the owner asked to be called; null keeps the name the notes have, or none. */
+  name: Schema.NullOr(Schema.String.check(Schema.isMaxLength(MAJORDOME_OWNER_NAME_MAX))),
+});
+export type MajordomeFinishWelcomeInput = typeof MajordomeFinishWelcomeInput.Type;
+
 export const MajordomeStartNotesInput = Schema.Struct({
   folder: Schema.NullOr(TrimmedNonEmptyString),
   /** What the owner said about themselves at setup, for the note of their own facts. */

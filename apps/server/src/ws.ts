@@ -2610,6 +2610,14 @@ export const layerWsRpc = (
             Effect.andThen(majordomeVault.setRoutineLimits(input)),
           ),
         [WS_METHODS.majordomeStartNotes]: (input) => majordomeVault.startNotes(input),
+        [WS_METHODS.majordomeGetWelcome]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeVault.welcome(input)),
+          ),
+        [WS_METHODS.majordomeFinishWelcome]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeVault.finishWelcome(input)),
+          ),
         [WS_METHODS.majordomeRestoreNotes]: (input) => majordomeVault.restoreNotes(input),
         [WS_METHODS.majordomeGetBackupStatus]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

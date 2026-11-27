@@ -15,7 +15,7 @@ import { ME_DEFAULT_PATH, type MeAbout, meTemplate } from "./meNote.ts";
 import { SKILLS_DIR } from "./skillsGuide.ts";
 import starter from "./starterNotes.json" with { type: "json" };
 import { identityEnv, ownerIdentity } from "./vaultAutosave.ts";
-import { VAULT_CONFIG_DIRNAME } from "./vaultConfig.ts";
+import { VAULT_CONFIG_DIRNAME, withWelcomePending } from "./vaultConfig.ts";
 
 const SETUP_SUBJECT = "Set up for Majordome";
 /** Claude Code reads skills from here; the link keeps one copy for every agent. */
@@ -88,7 +88,11 @@ export const setUpNotesFolder = Effect.fn("majordome.setUpNotesFolder")(function
     yield* fileSystem.makeDirectory(path.join(root, folder), { recursive: true });
   }
   yield* writeIfMissing(starter.memoryFile, starter.memory);
-  yield* writeIfMissing(`${VAULT_CONFIG_DIRNAME}/config.json`, starter.config);
+  // A folder Majordome is meeting for the first time: its owner is welcomed once, on any device.
+  yield* writeIfMissing(
+    `${VAULT_CONFIG_DIRNAME}/config.json`,
+    yield* withWelcomePending(starter.config),
+  );
   yield* writeIfMissing(ME_DEFAULT_PATH, meTemplate(about));
   // Instructions the owner already wrote, under either name, stay theirs.
   if (!(yield* exists("AGENTS.md")) && !(yield* exists("CLAUDE.md"))) {

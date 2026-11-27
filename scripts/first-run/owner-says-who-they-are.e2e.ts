@@ -34,4 +34,11 @@ test("A new owner's name is kept in their notes, and their first ask waits in To
   });
   await expect(box).toHaveValue(ASK, { timeout: 60_000 });
   await app.screenshot("ask-waits-in-today");
+
+  // New notes welcome their owner on Today, by the name just given, and say how Majordome works.
+  const welcome = screen.getByRole("region", "Welcome");
+  await expect(welcome.getByText("Welcome, Ana Costa. Tell me anything")).toBeVisible();
+  await welcome.getByRole("button", "Skip").tap();
+  await expect(welcome).toBeHidden();
+  await expect.poll(() => firstRun.note(".majordome/config.json")).not.toContain("welcome");
 });

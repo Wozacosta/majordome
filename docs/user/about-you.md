@@ -12,8 +12,9 @@ opens the note, and the map of what the assistant has shows it under **Knows**.
 
 ## Filling it in
 
-You do not have to. When you start your notes, the welcome page asks what to call you; that, your
-language and your time zone are the first three lines. After that your assistant fills the note as
+You do not have to. New notes greet you on Today with a small card that asks what to call you,
+on the computer or the iPhone, and your answer is the first line. On the computer the setup page
+asks the same before your notes exist, and adds your language and time zone. After that your assistant fills the note as
 it goes:
 
 - Say a fact, such as "my new number is 06 12 34 56 78", and it writes the line, replacing the old

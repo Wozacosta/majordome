@@ -40,6 +40,7 @@ import { noteDraftKey, NoteSaveProblem, NoteSaveStatus, useNoteEditing } from ".
 import { NoteSourceEditor } from "./NoteSourceEditor";
 import { notesLink } from "./notes.logic";
 import { requestDraftSend, takeFirstAsk } from "./pendingDraftSend";
+import { TodayWelcome } from "./TodayWelcome";
 import { RoutinesBlockedLine } from "./RoutinesBlockedLine";
 import { plainDateTime, selectComingUp, untilWords } from "./routines.logic";
 import {
@@ -91,8 +92,9 @@ export function TodayPage({ vault }: { readonly vault: MajordomeVault }) {
       role="main"
       className="h-dvh min-h-0 overflow-hidden overscroll-y-none"
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
         <WorkspacePageHeader electron={isElectron} />
+        <TodayWelcome key={vault.key} vault={vault} />
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-184 px-5 pt-2 pb-12 sm:px-6 sm:pt-6">
             <p className="text-sm text-muted-foreground">
