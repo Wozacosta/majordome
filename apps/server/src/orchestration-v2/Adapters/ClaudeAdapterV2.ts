@@ -167,6 +167,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import { resolveAttachmentPath } from "../../attachmentStore.ts";
 import { claudeSessionCuts, routineQueryEnvironment } from "../../majordome/claudeSessionCuts.ts";
+import { rememberSessionTools } from "../../majordome/sessionTools.ts";
 import { snapshotMcpApp } from "../../mcpApps/McpAppSnapshot.ts";
 import {
   claudeProgramReader,
@@ -13884,6 +13885,12 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                     context.claudeCodeVersion = message.claude_code_version;
                   }
                   if (message.type === "system" && message.subtype === "init") {
+                    // Majordome: the map of what a chat has shows these.
+                    rememberSessionTools({
+                      threadId: turnInput.threadId,
+                      instanceId: adapterOptions.instanceId,
+                      tools: message.tools ?? [],
+                    });
                     for (const server of message.mcp_servers ?? []) {
                       if (server.status === "connected") {
                         announcedMcpSignIns.delete(

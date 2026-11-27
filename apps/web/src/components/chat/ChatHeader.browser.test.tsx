@@ -24,7 +24,7 @@ vi.mock(import("~/hooks/useThreadActionMenu"), () => ({
 import { render, stubGlobal } from "../../../test/render";
 import { ChatHeader } from "./ChatHeader";
 
-function header(title: string, onSendAppMessage?: (text: string) => Promise<void>) {
+function header(title: string) {
   return (
     <>
       <ChatHeader
@@ -37,7 +37,6 @@ function header(title: string, onSendAppMessage?: (text: string) => Promise<void
         onOpenThread={() => {}}
         rightPanelOpen={false}
         onNewThreadInProject={() => {}}
-        onSendAppMessage={onSendAppMessage}
       />
       <div tabIndex={0}>Outside rename</div>
     </>
@@ -103,13 +102,4 @@ it("keeps the Escape that cancels a rename from also reaching window shortcuts",
   await expect.element(input).not.toBeInTheDocument();
   expect(persisted.title).toBe("New thread");
   expect(windowEscapes).toEqual([true]);
-});
-
-it("asks for the drawing of what the assistant has, in one click", async () => {
-  const send = vi.fn(async (_text: string) => {});
-  await using screen = await render(header("Trip to Lisbon", send));
-  await screen.getByRole("button", { name: "What the assistant has here" }).click();
-  expect(send).toHaveBeenCalledExactlyOnceWith(
-    "Show me a diagram of what you know, what you can do and what you have access to here.",
-  );
 });

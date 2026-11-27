@@ -64,8 +64,6 @@ interface ChatHeaderProps {
   onNewThreadInProject: () => void;
   onOpenProjectSettings?: (() => void) | undefined;
   onFindInThread?: ((threadRef: ScopedThreadRef) => void) | undefined;
-  /** Majordome: sends a message into this chat, for the header's one-click requests. */
-  onSendAppMessage?: ((text: string) => Promise<void>) | undefined;
 }
 
 function resolveRenameCommit(input: {
@@ -91,7 +89,6 @@ export const ChatHeader = memo(function ChatHeader({
   onNewThreadInProject,
   onOpenProjectSettings,
   onFindInThread,
-  onSendAppMessage,
 }: ChatHeaderProps) {
   const gt = useGT();
   const activeProjectName = activeProject?.isScratch ? gt("No project") : activeProject?.title;
@@ -450,8 +447,8 @@ export const ChatHeader = memo(function ChatHeader({
           title={activeThreadTitle}
         />
       ) : null}
-      {isMajordome && isServerThread && canOperateThread && onSendAppMessage ? (
-        <ShowSetupAction onSend={onSendAppMessage} />
+      {isMajordome && isServerThread ? (
+        <ShowSetupAction environmentId={activeThreadEnvironmentId} threadId={activeThreadId} />
       ) : null}
       {isServerThread ? <GuestShareIndicator threadRef={activeThreadRef} /> : null}
     </div>

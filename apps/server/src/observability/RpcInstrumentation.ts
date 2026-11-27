@@ -183,6 +183,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeConnectGoogleDriveCancel]: "majordome",
   [WS_METHODS.majordomeListTopics]: "majordome",
   [WS_METHODS.majordomeGetChatKnowledge]: "majordome",
+  [WS_METHODS.majordomeDrawChatSetup]: "majordome",
   [WS_METHODS.majordomeCreateTopic]: "majordome",
   [WS_METHODS.majordomeSuggestTopicFolder]: "majordome",
   [WS_METHODS.majordomeUpdateTopic]: "majordome",

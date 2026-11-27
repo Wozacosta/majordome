@@ -24,11 +24,11 @@ note. Say "remember this for everything" and it goes there.
 with, and the topics it only knows the standing of. A row opens its note. On the iPhone it is under
 the **i** at the top right of a chat.
 
-To see it drawn, with what the assistant can use (your connections) and what it can reach (your
-notes folder, saved keys and private documents), click the icon of three linked dots at the top of
-the chat, or ask: "Show me a diagram of what you know, what you can do and what you have access
-to." Click a box to open it. On the iPhone it is **What the assistant has here** in the chat's
-menu.
+To see it drawn, with what the assistant can use (your connections and its own tools) and what it
+can reach (your notes folder, saved keys and private documents), click the icon of three linked
+dots at the top of the chat. The map opens at once, without asking the assistant. Click a box to
+open it. You can also ask in the chat: "Show me a diagram of what you know, what you can do and
+what you have access to." On the iPhone it is **What the assistant has here** in the chat's menu.
 
 ## Tidy my memory
 

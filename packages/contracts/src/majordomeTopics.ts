@@ -301,3 +301,12 @@ export const MajordomeChatKnowledgeResult = Schema.Struct({
   ),
 });
 export type MajordomeChatKnowledgeResult = typeof MajordomeChatKnowledgeResult.Type;
+
+/** The map of what a chat knows, can use and can reach, as a page the chat's own frame shows. */
+export const MajordomeChatSetupPage = Schema.Struct({
+  attachmentId: Schema.String,
+  title: Schema.String,
+  height: Schema.Number,
+  heights: Schema.optionalKey(Schema.Array(Schema.Tuple([Schema.Number, Schema.Number]))),
+});
+export type MajordomeChatSetupPage = typeof MajordomeChatSetupPage.Type;

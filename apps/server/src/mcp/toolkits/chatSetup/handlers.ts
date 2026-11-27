@@ -6,6 +6,7 @@ import * as Path from "effect/Path";
 import * as ServerConfig from "../../../config.ts";
 import { readChatSetup } from "../../../majordome/chatSetup.ts";
 import { rememberDrawnPage, renderChatSetupPage } from "../../../majordome/chatSetupPage.ts";
+import { plainTools, sessionTools } from "../../../majordome/sessionTools.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { loadCaller } from "../../threadAccess.ts";
 import { ChatSetupToolkit } from "./tools.ts";
@@ -27,7 +28,8 @@ const handlers = {
       const { html, height } = renderChatSetupPage({
         setup,
         opened,
-        tools: input.tools,
+        // Its own words for its tools when it gives them; otherwise what its session reported.
+        tools: input.tools ?? plainTools(sessionTools(caller.id, caller.providerInstanceId) ?? []),
         words: input.words,
       });
       // One page per chat, drawn again at each ask.

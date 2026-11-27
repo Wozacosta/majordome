@@ -76,8 +76,10 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   `html_render`, the one tool every provider adapter knows shows a page; that tool reads a page
   the server drew whatever the chat itself may read. A box opens onto what is behind it: the
   start of a loaded note, what a skill or a key is for. Those texts are in the page only, which
-  is the owner's screen; the assistant's answer from the tool stays names only. There is no button for it: it is something
-  to ask.
+  is the owner's screen; the assistant's answer from the tool stays names only. Since 0.10.77 the icon in a chat's header
+  opens the same map without a turn of the assistant (`majordome.drawChatSetup`): nothing in it
+  needs a model. The assistant's own tools are then the ones its last session reported when it
+  started (Claude lists them; other providers do not, and the box is left out), named by kind.
 - **Topics.** The sidebar's main list is the owner's long-running topics ("Accounting", "Quitting
   nicotine", "Fitness log"), not chats. A topic is one continuing conversation tied to one folder
   of the vault (an existing one or a new one); each session in it starts with that folder's notes.

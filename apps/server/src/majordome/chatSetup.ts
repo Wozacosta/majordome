@@ -4,20 +4,31 @@
  * the start of the notes it loaded, for the owner. Never a key's value or a private document. The assistant asks for it with `describe_setup`, which also draws it.
  */
 
-import type { OrchestrationV2ThreadShell } from "@t3tools/contracts";
+import {
+  MajordomeTopicsError,
+  type OrchestrationV2ThreadShell,
+  type ThreadId,
+} from "@t3tools/contracts";
+import { clampHtmlRenderHeight, injectHtmlRenderBootstrap } from "@t3tools/shared/htmlRender";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
+import { resolveAttachmentRelativePath } from "../attachmentPaths.ts";
+import { createAttachmentId } from "../attachmentStore.ts";
+import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
+import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
+import { renderChatSetupPage } from "./chatSetupPage.ts";
 import * as MajordomeConnectors from "./MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./MajordomePrivateDocuments.ts";
 import * as MajordomeSavedKeys from "./MajordomeSavedKeys.ts";
 import * as MajordomeSkills from "./MajordomeSkills.ts";
 import * as MajordomeTopicFiles from "./MajordomeTopicFiles.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
+import { plainTools, sessionTools } from "./sessionTools.ts";
 
 /** The files every provider reads as standing instructions, at the top of the notes folder. */
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
@@ -184,3 +195,53 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
 type ChatSetupRead = Effect.Success<ReturnType<typeof readChatSetup>>;
 export type ChatSetup = ChatSetupRead["facts"];
 export type ChatSetupOpened = ChatSetupRead["opened"];
+
+/**
+ * The map for a chat, drawn and stored as a page of that chat, for the app to open without asking
+ * the assistant. The assistant's own tools are the ones its last session reported, when one has.
+ */
+export const drawChatSetup = Effect.fn("majordome.drawChatSetup")(function* (threadId: ThreadId) {
+  const threads = yield* ThreadManagementService.ThreadManagementService;
+  const fileSystem = yield* FileSystem.FileSystem;
+  const config = yield* ServerConfig.ServerConfig;
+  const thread = yield* threads
+    .getThreadShell(threadId)
+    .pipe(
+      Effect.mapError(
+        (cause) => new MajordomeTopicsError({ message: "This chat could not be read.", cause }),
+      ),
+    );
+  if (thread === null || thread.deletedAt !== null) {
+    return yield* new MajordomeTopicsError({ message: "This chat no longer exists." });
+  }
+  const { facts: setup, opened } = yield* readChatSetup(thread);
+  const { html, height } = renderChatSetupPage({
+    setup,
+    opened,
+    tools: plainTools(sessionTools(thread.id, thread.providerInstanceId) ?? []),
+  });
+  // Stored the way `html_render` stores a page, so the app's own frame shows it.
+  const attachmentId = createAttachmentId(threadId, "html");
+  const filePath =
+    attachmentId === null
+      ? null
+      : resolveAttachmentRelativePath({
+          attachmentsDir: config.attachmentsDir,
+          relativePath: `${attachmentId}.html`,
+        });
+  if (attachmentId === null || filePath === null) {
+    return yield* new MajordomeTopicsError({ message: "The map could not be drawn." });
+  }
+  yield* fileSystem
+    .writeFileString(filePath, injectHtmlRenderBootstrap(html))
+    .pipe(
+      Effect.mapError(
+        (cause) => new MajordomeTopicsError({ message: "The map could not be drawn.", cause }),
+      ),
+    );
+  return {
+    attachmentId,
+    title: setup.startsWith.topic?.title ?? "This chat",
+    height: clampHtmlRenderHeight(height),
+  };
+});

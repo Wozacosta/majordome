@@ -9,6 +9,15 @@ Not released yet.
 
 **New**
 
+- **The map of what the assistant has opens at once.** The three linked dots at the top of a chat
+  now open the map in a window, drawn by Majordome itself: no message is sent and the assistant
+  is not asked. It also shows the assistant's own tools (files, web search, browser, routines)
+  once a chat has run with Claude.
+- **A better-looking map.** Each box has its own icon tile, lines end in a dot on the box they
+  reach, and they draw in when the map opens. A box now opens and closes smoothly, and the lines
+  follow it.
+- **The map is on the website.** majord.me shows an example you can click, under "See what your
+  assistant has."
 - **Start a topic from the iPhone.** An empty Chats tab now says what a topic is and offers the
   ready-made ones: Meals, Money, Health, Trips, Home and paperwork, Job search, People. One touch
   adds it, with its folder and starter notes. Once you have chats, the ones not added yet are
@@ -17,6 +26,7 @@ Not released yet.
 
 **Try this**
 
+- Click the three linked dots at the top of a chat, then click **Memory note** or **Skills**.
 - On the iPhone, open Chats and touch **Money**, then open it and say what you pay each month.
 
 **Fixed**

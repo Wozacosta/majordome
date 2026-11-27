@@ -478,6 +478,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       staleTimeMs: 0,
       refreshTrigger: ({ environmentId }) => topicsRevision(environmentId),
     }),
+    /** Drawn again each time it is opened. */
+    chatSetupPage: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:chat-setup-page",
+      tag: WS_METHODS.majordomeDrawChatSetup,
+      staleTimeMs: 0,
+    }),
     createTopic: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:create-topic",
       tag: WS_METHODS.majordomeCreateTopic,

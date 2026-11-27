@@ -159,6 +159,7 @@ import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
+import { drawChatSetup } from "./majordome/chatSetup.ts";
 import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
 import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
 import * as Workflows from "./workflows/Workflows.ts";
@@ -1556,6 +1557,8 @@ export const layerWsRpc = (
       const savedKeys = yield* MajordomeSavedKeys.MajordomeSavedKeys;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
       const majordomeTopics = yield* MajordomeTopics.MajordomeTopics;
+      const chatSetupContext =
+        yield* Effect.context<Effect.Services<ReturnType<typeof drawChatSetup>>>();
       const majordomeReadingList = yield* MajordomeReadingList.MajordomeReadingList;
       const majordomeSkills = yield* MajordomeSkills.MajordomeSkills;
       const majordomeTodos = yield* MajordomeTodos.MajordomeTodos;
@@ -2696,6 +2699,11 @@ export const layerWsRpc = (
         [WS_METHODS.majordomeGetChatKnowledge]: (input) =>
           Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
             Effect.andThen(majordomeTopics.chatKnowledge(input)),
+          ),
+        [WS_METHODS.majordomeDrawChatSetup]: (input) =>
+          Effect.annotateCurrentSpan({ "thread.id": input.threadId }).pipe(
+            Effect.andThen(drawChatSetup(input.threadId)),
+            Effect.provide(chatSetupContext),
           ),
         [WS_METHODS.majordomeCreateTopic]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(

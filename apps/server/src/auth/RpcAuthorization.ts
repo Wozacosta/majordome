@@ -156,6 +156,7 @@ export const RPC_REQUIRED_SCOPES = {
   [WS_METHODS.majordomeGetApproval]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListTopics]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeGetChatKnowledge]: AuthOrchestrationReadScope,
+  [WS_METHODS.majordomeDrawChatSetup]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeReadTopicConversation]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListReadingItems]: AuthOrchestrationReadScope,
   [WS_METHODS.majordomeListReadyRoutines]: AuthOrchestrationReadScope,
