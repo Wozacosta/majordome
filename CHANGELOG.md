@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.77
+
 **New**
 
 - **Usage: what your assistant used, and on what.** A page under the three dots (pin it to keep it
