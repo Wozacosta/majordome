@@ -414,17 +414,29 @@ function ReadyTopicChips(props: { readonly topics: ChatTopics; readonly centered
   );
 }
 
-/** Under "No chats yet": what a topic is, and the ready-made ones to start from. */
-export function MajordomeFirstTopics(props: { readonly topics: ChatTopics }) {
-  if (props.topics.ready.length === 0) return null;
+/** The empty Chats tab when topics are on offer: they come first, a plain chat after. */
+export function MajordomeFirstTopics(props: {
+  readonly topics: ChatTopics;
+  readonly chat: { readonly detail: string; readonly action: string };
+  readonly onStartChat: () => void;
+}) {
   return (
-    <View className="mt-10 gap-3">
-      <Text accessibilityRole="header" className="text-center font-t3-bold text-foreground">
-        Or start a topic
+    <View className="items-center">
+      <Text textRole="title" className="text-center font-t3-bold text-foreground">
+        Start a topic
       </Text>
-      <Text className="text-center text-foreground-muted">{TOPICS_INTRO}</Text>
-      <View className="pt-1">
+      <Text
+        textRole="body"
+        className="mt-2 text-center font-sans leading-normal text-foreground-muted"
+      >
+        {TOPICS_INTRO}
+      </Text>
+      <View className="mt-5">
         <ReadyTopicChips topics={props.topics} centered />
+      </View>
+      <Text className="mt-12 text-center text-foreground-muted">{props.chat.detail}</Text>
+      <View className="mt-3">
+        <Button label={props.chat.action} onPress={props.onStartChat} />
       </View>
     </View>
   );

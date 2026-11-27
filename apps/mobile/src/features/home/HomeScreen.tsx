@@ -776,37 +776,44 @@ export function HomeScreen(props: HomeScreenProps) {
             }}
           >
             <View className="w-full max-w-[430px]">
-              <EmptyState
-                title={emptyState.title}
-                detail={emptyState.detail}
-                actionLabel={
-                  offersFirstChat
-                    ? NO_CHATS_YET.action
-                    : emptyState.showsAddEnvironment
-                      ? gt("Add environment")
-                      : undefined
-                }
-                onAction={
-                  offersFirstChat
-                    ? props.onStartNewTask
-                    : emptyState.showsAddEnvironment
-                      ? props.onAddConnection
-                      : undefined
-                }
-                action={
-                  Platform.OS === "android" && emptyState.showsAddEnvironment ? (
-                    <FloatingActionButton
-                      label={gt("Add environment")}
-                      icon="plus"
-                      variant="extended"
-                      tone="primary"
-                      onPress={props.onAddConnection}
-                    />
-                  ) : undefined
-                }
-                variant="plain"
-              />
-              {offersFirstChat ? <MajordomeFirstTopics topics={chatTopics} /> : null}
+              {offersFirstChat && chatTopics.ready.length > 0 ? (
+                <MajordomeFirstTopics
+                  topics={chatTopics}
+                  chat={NO_CHATS_YET}
+                  onStartChat={props.onStartNewTask}
+                />
+              ) : (
+                <EmptyState
+                  title={emptyState.title}
+                  detail={emptyState.detail}
+                  actionLabel={
+                    offersFirstChat
+                      ? NO_CHATS_YET.action
+                      : emptyState.showsAddEnvironment
+                        ? gt("Add environment")
+                        : undefined
+                  }
+                  onAction={
+                    offersFirstChat
+                      ? props.onStartNewTask
+                      : emptyState.showsAddEnvironment
+                        ? props.onAddConnection
+                        : undefined
+                  }
+                  action={
+                    Platform.OS === "android" && emptyState.showsAddEnvironment ? (
+                      <FloatingActionButton
+                        label={gt("Add environment")}
+                        icon="plus"
+                        variant="extended"
+                        tone="primary"
+                        onPress={props.onAddConnection}
+                      />
+                    ) : undefined
+                  }
+                  variant="plain"
+                />
+              )}
               {emptyState.loading ? (
                 <View className="mt-4 items-center">
                   <AppActivityIndicator colorClassName="accent-icon-muted" />

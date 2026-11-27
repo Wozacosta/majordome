@@ -7,6 +7,11 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**Changed**
+
+- **On the iPhone, an empty Chats tab opens on Start a topic.** The ready-made topics come first,
+  and **Start a chat** is underneath.
+
 ## 0.10.78
 
 **New**
