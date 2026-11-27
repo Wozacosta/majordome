@@ -180,6 +180,22 @@ under **Use a server I already have**.
 **Bring my notes back** undoes the last step: the notes changed on the server come back to your
 computer, routines run here again, and the server is left as it is.
 
+### With a phone and no computer
+
+It works, but it was built for someone who also has a computer:
+
+- The server is private to your Tailscale network, so the phone needs the Tailscale app, signed
+  in to the same account, before it can reach the server. Setting the phone up with nothing to
+  install is done from the app on a computer.
+- The command's last line talks about your computer. On the phone, open the link it prints, or
+  paste it in **Add a computer**.
+- There are no notes to move. The server starts with an empty notes folder.
+- Sign in to Claude from the phone, in the server's **Settings > AI accounts**
+  ([below](#sign-in-to-claude-and-chatgpt-on-the-server)).
+
+With no computer and no wish to run commands, [let Majordome host it](#let-majordome-host-it):
+you sign up on the phone and there is nothing to install.
+
 ## Do it by hand
 
 The same, one command at a time. In the app, these steps are under **Use a server I already

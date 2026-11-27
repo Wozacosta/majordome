@@ -242,6 +242,16 @@ Still proposals, each the owner's to decide:
 3. **Run one week on a real API key** and check these figures against the bill, then show cost
    per run on Overview.
 
+## Phone with your own server, and no computer
+
+Checked on 2026-11-27 by reading the code and the guide, not by running it: the path works but
+assumes a computer. `deploy/install.sh` makes the server reachable over Tailscale only, so the
+phone needs the Tailscale app; the public address that avoids it is switched on from the desktop
+app. The script's last line and the guide talk about "your computer" and moving notes. The owner's
+call that day: document it and leave it, since people who rent a server mostly have a computer.
+If it is ever made first-class: let the install command turn on the public address, and give it
+wording for a phone.
+
 ## Hosted Majordome: where the servers come from
 
 Next in line since 2026-11-23 (see `docs/decisions.md`). What was learned that day,
