@@ -3,7 +3,7 @@ import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environ
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { SHOW_SETUP_LABEL, START_ABOUT_YOU_LABEL } from "@t3tools/shared/majordome";
 import { AsyncResult } from "effect/reactivity";
-import { WaypointsIcon } from "lucide-react";
+import { UserIcon, WaypointsIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useQuietThreadShell } from "../../state/entities";
@@ -71,12 +71,17 @@ function SetupMapDialog(props: ChatTarget & { readonly onClose: () => void }) {
         </DialogHeader>
         <DialogPanel>
           {canStartAboutYou ? (
-            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-border/70 px-3 py-2">
-              <span className="min-w-0 flex-1 basis-48 text-sm text-foreground">
-                About you has nothing yet.
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-primary/25 bg-primary/5 py-2 pr-2 pl-3">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <UserIcon className="size-4" aria-hidden />
               </span>
+              <p className="min-w-0 flex-1 basis-56 text-sm text-muted-foreground">
+                <span className="font-semibold text-primary">About you</span> is empty. Your
+                assistant can write it from what your notes already say.
+              </p>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => {
                   props.onClose();
                   void startAboutYou(scopeProjectRef(environmentId, projectId));

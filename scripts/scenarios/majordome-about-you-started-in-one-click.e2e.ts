@@ -32,7 +32,9 @@ test(
     await screen.getByLabel("What your assistant can see and do").tap();
     const map = browser.frameLocator('iframe[title="This chat"]');
     await expect(map.getByText("Nothing yet")).toBeVisible();
-    await expect(screen.getByText("About you has nothing yet.")).toBeVisible();
+    await expect(
+      screen.getByText("is empty. Your assistant can write it", { exact: false }),
+    ).toBeVisible();
     await app.screenshot("map-offers-to-start");
     await screen.getByRole("button", "Start it from my notes").tap();
 
