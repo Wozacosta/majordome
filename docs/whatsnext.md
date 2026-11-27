@@ -17,7 +17,11 @@ opening is the Mac app, the iPhone app and hosted servers.
 - [ ] **Seller details on the terms page:** the name, sole-trader status, SIRET and a withdrawal
       form are there since 2026-11-27. Left out by the owner's choice that day: a postal address
       and a phone number (he will not publish his home; a domiciliation address would settle
-      it). Still missing: a consumer mediator, which he has to sign up with.
+      it). Still missing: a consumer mediator. A request was sent on 2026-11-27 to SMP
+      (mediateur-consommation-smp.fr, reference #340275, 30 euros for 3 years); once the
+      convention is signed and paid, name it on the terms page: Médiation Professionnelle -
+      Médiateur de la Consommation - Alteritae, 5 rue Salvaing, 12000 Rodez. The owner lives in
+      Portugal and is registering there, so the seller may stop being the French business.
 - [ ] **Read `site/terms/index.html` and `site/trust/index.html` line by line.** Both carry
       commitments written by an agent and not reviewed: a 14-day refund, a month refunded after
       a day's outage, 30 days' notice.
