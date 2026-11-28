@@ -2,6 +2,14 @@ import { useClerk } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { EnvironmentId } from "@t3tools/contracts";
+import {
+  isUnknownAccount,
+  NEW_TEST_ACCOUNT,
+  newTestEmail,
+  testAccounts,
+  TEST_CODE,
+  TEST_PASSWORD,
+} from "@t3tools/shared/majordomeTesting";
 import { useState } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,14 +24,6 @@ import { useAtomCommand } from "../state/use-atom-command";
 import { savedConnectionsByIdAtom } from "../state/use-remote-environment-registry";
 import { forgetHostedSignup } from "./hostedSignup";
 import { forgetPhonePushOn } from "./phonePush";
-import {
-  isUnknownAccount,
-  NEW_TEST_ACCOUNT,
-  newTestEmail,
-  testAccounts,
-  TEST_CODE,
-  TEST_PASSWORD,
-} from "./testing.logic";
 
 /** Not in Settings' list: opened by a long press on the version, for trying the app as someone new. */
 export function TestingScreen() {
@@ -35,6 +35,8 @@ type Account = ReturnType<typeof useClerk>;
 function WithAccounts() {
   return <Testing account={useClerk()} />;
 }
+
+const freshTestEmail = () => newTestEmail(Date.now());
 
 async function signInAs(account: Account, email: string): Promise<void> {
   const service = account.client;
@@ -130,7 +132,7 @@ function Testing({ account }: { readonly account: Account | null }) {
         {accounts.length === 0 ? null : (
           <View className="gap-3">
             <Text className="text-foreground-muted">Sign in as</Text>
-            {signInButton(NEW_TEST_ACCOUNT, newTestEmail)}
+            {signInButton(NEW_TEST_ACCOUNT, freshTestEmail)}
             {accounts.map((test) => signInButton(test.label, () => test.email))}
           </View>
         )}

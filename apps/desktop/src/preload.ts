@@ -353,6 +353,9 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     quitCompletely: () =>
       ipcRenderer.invoke(IpcChannels.BACKGROUND_SERVICE_QUIT_COMPLETELY_CHANNEL),
   },
+  testing: {
+    openNewOwnerCopy: () => ipcRenderer.invoke(IpcChannels.TESTING_OPEN_NEW_OWNER_COPY_CHANNEL),
+  },
   onUpdateState: (listener) => {
     const wrappedListener = (_event: Electron.IpcRendererEvent, state: unknown) => {
       if (typeof state !== "object" || state === null) return;

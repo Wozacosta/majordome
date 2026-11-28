@@ -23,6 +23,10 @@
       "types": "./src/majordomeAccount.ts",
       "import": "./src/majordomeAccount.ts"
     },
+    "./majordomeTesting": {
+      "types": "./src/majordomeTesting.ts",
+      "import": "./src/majordomeTesting.ts"
+    },
     "./majordomeTopicLinks": {
       "types": "./src/majordomeTopicLinks.ts",
       "import": "./src/majordomeTopicLinks.ts"

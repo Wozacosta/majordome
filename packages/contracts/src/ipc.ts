@@ -1265,6 +1265,10 @@ export interface DesktopBridge {
     /** Stops the service too, then quits. */
     quitCompletely: () => Promise<void>;
   };
+  testing: {
+    /** A second app on an empty home, for seeing a first run. Rejects in a development build. */
+    openNewOwnerCopy: () => Promise<void>;
+  };
   webLinks: {
     setReady: (ready: boolean) => Promise<void>;
     onOpen: (listener: (url: string) => void) => () => void;

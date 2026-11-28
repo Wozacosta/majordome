@@ -21,6 +21,7 @@ import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
+import { NEW_OWNER_COPY_ENV } from "../app/DesktopNewOwnerCopy.ts";
 import { makeComponentLogger } from "../app/DesktopObservability.ts";
 import type * as DesktopBackendManager from "./DesktopBackendManager.ts";
 
@@ -76,7 +77,7 @@ const serviceArgumentsOf = (args: ReadonlyArray<string>): ReadonlyArray<string> 
 export class DesktopMajordService extends Context.Service<
   DesktopMajordService,
   {
-    /** Packaged macOS builds only: a dev build must never become a login item. */
+    /** Packaged macOS builds only: a dev build must never become a login item, nor a copy opened from Testing. */
     readonly supported: boolean;
     /**
      * Whether this app runs its server through majord: when it is installed, and on first launch,
@@ -109,6 +110,7 @@ export const make = Effect.gen(function* () {
   // An app opened from Downloads runs from a randomized copy that macOS removes once it quits.
   const translocated = (yield* HostProcess.ExecutablePath).includes("/AppTranslocation/");
   const supported =
+    (yield* HostProcess.Environment)[NEW_OWNER_COPY_ENV] === undefined &&
     environment.isPackaged &&
     environment.platform === "darwin" &&
     uid !== undefined &&

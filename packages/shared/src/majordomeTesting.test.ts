@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { isUnknownAccount, newTestEmail, testAccounts } from "./testing.logic";
+import { isUnknownAccount, newTestEmail, testAccounts } from "./majordomeTesting.ts";
 
 describe("test accounts", () => {
   it("are offered only by the development account service", () => {
