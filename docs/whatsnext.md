@@ -54,12 +54,12 @@ on 2026-11-26). Windows and Linux still come after it.
       if chats get slow or the server restarts, set `memoryMb` back up in
       `infra/broker/src/worker.ts` (1.5 GB needs about 18 euros). Check the cost against one
       Fly invoice. Stopping idle servers would bring it to a few dollars; set aside for now.
-- [ ] `MAX_HOSTED_SERVERS` is 10. It counts servers that are on; raising it raises the most the
-      Fly bill can reach. The 11th buyer is turned away before paying: `/start` hides the offer
+- [ ] `MAX_HOSTED_SERVERS` is 30 (it was 10 until 2026-11-28). It counts servers that are on; raising it raises the most the
+      Fly bill can reach. The 31st buyer is turned away before paying: `/start` hides the offer
       and says "Majordome is not taking new servers right now. Try again later.", the phone
       apps say the same and that nothing was bought, and an invite code is refused the same
       way. Nobody is told when a place frees up, and a store reviewer or tester who subscribes
-      takes a place too. Raise it before the stores open, or decide what the 11th should see.
+      takes a place too. Raise it before the stores open, or decide what the 31st should see.
 - [ ] A new email is a new free trial (`trialFor` in `infra/broker/src/billing.ts`). Decide
       whether that is acceptable for now.
 
@@ -117,7 +117,7 @@ be deleted in the app and on `majord.me/server`, and a chat not named yet shows 
       first, or turn iPad off in `apps/mobile/majordome/identity.ts`.
 - [ ] Test purchases count in the broker (`APPLE_ALLOW_SANDBOX` is `"1"` in
       `infra/broker/wrangler.deploy.jsonc`): the reviewer's free purchase makes a real server
-      and takes one of the 10 places. It has to stay on through review.
+      and takes one of the 30 places. It has to stay on through review.
 - [ ] A TestFlight link for people outside the team goes through Beta App Review first.
 - [ ] Someone other than the owner signs up from the iPhone. The owner has, on TestFlight.
 
