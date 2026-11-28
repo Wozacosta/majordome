@@ -1,6 +1,7 @@
 import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 import type {
   MajordomeBackupStatus,
+  MajordomeConnectionsResult,
   MajordomeConnectorsResult,
   ProviderConnector,
   ServerProvider,
@@ -188,6 +189,55 @@ export function connectorsView(input: {
             `Majordome can't see what ${listed(unseen)} ${unseen.length > 1 ? "are" : "is"} connected to.`,
           ],
   };
+}
+
+export interface AppRow {
+  readonly appId: string;
+  readonly name: string;
+  readonly state: ConnectionState;
+  readonly routinesMayChange: boolean;
+}
+
+/**
+ * The apps connected through Majordome on one machine, and the ones that can still be added.
+ * An app that left the list of apps stays shown while it is connected.
+ */
+export function appsView(result: MajordomeConnectionsResult): {
+  readonly connected: ReadonlyArray<AppRow>;
+  readonly addable: ReadonlyArray<MajordomeConnectionsResult["apps"][number]>;
+} {
+  const connected = result.connections
+    .map((connection) => ({
+      appId: connection.appId,
+      name: connection.name,
+      state: connection.state === "connected" ? CONNECTED : NEEDS_SIGN_IN,
+      routinesMayChange: connection.routinesMayChange,
+    }))
+    .toSorted((left, right) => left.name.localeCompare(right.name));
+  const taken = new Set(connected.map((row) => row.appId));
+  return { connected, addable: result.apps.filter((app) => !taken.has(app.id)) };
+}
+
+/**
+ * An app connected through Majordome is shown once: the copy a Claude account brings of the
+ * same app is left out of the list, since Majordome's is the one every AI uses.
+ */
+export function withoutAppsConnectedHere(
+  rows: ReadonlyArray<ConnectorRow>,
+  connected: ReadonlyArray<AppRow>,
+): ReadonlyArray<ConnectorRow> {
+  const names = new Set(connected.map((row) => row.name.toLowerCase()));
+  return rows.filter((row) => !names.has(row.name.toLowerCase()));
+}
+
+/** The address a person's browser reaches a server at, for a sign-in to come back to. */
+export function serverOrigin(httpBaseUrl: string | null): string | null {
+  if (httpBaseUrl === null) return null;
+  try {
+    return new URL(httpBaseUrl).origin;
+  } catch {
+    return null;
+  }
 }
 
 // These sign in with a key or another cloud, where a Claude account's connectors never apply.

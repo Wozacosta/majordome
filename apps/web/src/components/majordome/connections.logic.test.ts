@@ -11,6 +11,7 @@ import { expect, it } from "vite-plus/test";
 import {
   CLAUDE_CONNECTORS_URL,
   aiRows,
+  appsView,
   backupRows,
   connectionAction,
   connectorName,
@@ -18,6 +19,8 @@ import {
   claudeSignInTargets,
   connectorsView,
   isUnknownRequest,
+  serverOrigin,
+  withoutAppsConnectedHere,
 } from "./connections.logic";
 
 const snapshot = (id: string, overrides: Partial<ServerProvider> = {}): ServerProvider =>
@@ -291,4 +294,70 @@ it("says where a machine's notes are backed up to", () => {
       { ...backup, remote: githubRemote, github: { available: true, signedIn: true } },
     ])[0],
   ).toBe("GitHub: Connected");
+});
+
+it("lists the apps connected here, and offers the ones that are not", () => {
+  const view = appsView({
+    apps: [
+      { id: "granola", name: "Granola", about: "Meeting notes and transcripts" },
+      { id: "notion", name: "Notion", about: "Pages and databases" },
+    ],
+    connections: [
+      {
+        appId: "granola",
+        name: "Granola",
+        state: "needs-sign-in",
+        addedAt: "2026-11-28T00:00:00.000Z",
+        routinesMayChange: true,
+      },
+      // No longer offered, still connected: it stays shown.
+      {
+        appId: "old",
+        name: "Old app",
+        state: "connected",
+        addedAt: "2026-11-28T00:00:00.000Z",
+        routinesMayChange: false,
+      },
+    ],
+  });
+  expect(view.connected.map((row) => [row.name, row.state.label, row.routinesMayChange])).toEqual([
+    ["Granola", "Needs sign-in", true],
+    ["Old app", "Connected", false],
+  ]);
+  expect(view.addable.map((app) => app.id)).toEqual(["notion"]);
+});
+
+it("shows an app once when a Claude account brings it too", () => {
+  const row = (name: string) => ({
+    key: name,
+    name,
+    provider: null,
+    state: { label: "Connected", tone: "ok" as const },
+    signInUrl: null,
+    manageUrl: null,
+  });
+  const connected = appsView({
+    apps: [],
+    connections: [
+      {
+        appId: "granola",
+        name: "Granola",
+        state: "connected",
+        addedAt: "2026-11-28T00:00:00.000Z",
+        routinesMayChange: false,
+      },
+    ],
+  }).connected;
+  expect(
+    withoutAppsConnectedHere([row("granola"), row("Gmail")], connected).map((kept) => kept.name),
+  ).toEqual(["Gmail"]);
+});
+
+it("reads the address a sign-in comes back to from the server's own", () => {
+  expect(serverOrigin("http://127.0.0.1:3774/")).toBe("http://127.0.0.1:3774");
+  expect(serverOrigin("https://quiet-otter.majord.link/api")).toBe(
+    "https://quiet-otter.majord.link",
+  );
+  expect(serverOrigin(null)).toBeNull();
+  expect(serverOrigin("not an address")).toBeNull();
 });
