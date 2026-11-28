@@ -5,7 +5,16 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **Your account on the phone asks "Where does Majordome run?"** when your account has no
+  computer yet. **On my computer** lists three steps and names the email to sign in with; a
+  Majordome server is its own row. Coming back to the app checks again by itself. Sign out and
+  **Delete my account** are now ordinary rows, with delete on its own in red.
+
+**Try this**
+
+- On a phone signed in to an account with no computer, open Your account.
 
 ## 0.10.94
 

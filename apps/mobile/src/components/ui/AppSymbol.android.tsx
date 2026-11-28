@@ -118,6 +118,8 @@ import IconQrcode from "@tabler/icons-react-native/IconQrcode";
 import IconRefresh from "@tabler/icons-react-native/IconRefresh";
 import IconRobot from "@tabler/icons-react-native/IconRobot";
 import IconSearch from "@tabler/icons-react-native/IconSearch";
+import IconCreditCard from "@tabler/icons-react-native/IconCreditCard";
+import IconLogout from "@tabler/icons-react-native/IconLogout";
 import IconShare from "@tabler/icons-react-native/IconShare";
 import IconServer from "@tabler/icons-react-native/IconServer";
 import IconSettings from "@tabler/icons-react-native/IconSettings";
@@ -210,6 +212,7 @@ const ANDROID_ICON_BY_SF_SYMBOL = {
   "chevron.left.forwardslash.chevron.right": IconCode,
   "chevron.right": IconChevronRight,
   "chevron.up": IconChevronUp,
+  creditcard: IconCreditCard,
   desktopcomputer: IconDeviceDesktop,
   doc: IconFileText,
   "doc.on.doc": IconCopy,
@@ -268,6 +271,7 @@ const ANDROID_ICON_BY_SF_SYMBOL = {
   minus: IconMinus,
   "slash.circle": IconBan,
   "qrcode.viewfinder": IconQrcode,
+  "rectangle.portrait.and.arrow.right": IconLogout,
   "point.3.connected.trianglepath.dotted": IconNetwork,
   flowchart: IconSitemap,
   "point.topleft.down.curvedto.point.bottomright.up": IconGitMerge,

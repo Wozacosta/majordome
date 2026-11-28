@@ -54,12 +54,12 @@ export function connectErrorForOwner(message: string): string {
 /** The Majordome account screen, for someone who signed in and expects their computer to be there. */
 export const MAJORDOME_ACCOUNT = {
   yourServer: "Your Majordome server",
-  noComputerTitle: "Your account has no computer yet",
-  noComputer:
-    "On your computer, open Majordome and go to Settings, then Your account. Sign in there with this same account and follow what it says. Then come back here.",
+  noComputerTitle: "Where does Majordome run?",
+  onComputer: "On my computer",
+  noComputerSteps: ["Open Majordome.", "Go to Settings, then Your account."],
+  signedIn: "I've signed in",
   checkAgain: "Check again",
-  stillNoComputer:
-    "Still nothing. Check that Majordome on your computer is signed in with this same account, then check again.",
+  stillNoComputer: "Still nothing. Check that Majordome on your computer shows this same account.",
   codeInstead: "Scan a code instead",
   sessionEnded: "Your sign-in ended. Sign out below, sign in again, then press Connect.",
   connected: "This phone is connected to it.",
@@ -75,6 +75,18 @@ export const MAJORDOME_ACCOUNT = {
   deleteFailed: "The account could not be deleted. Sign out, sign in again, then try once more.",
   signOut: "Sign out",
 } as const;
+
+/**
+ * The step that says which account to use on the computer. Apple's hidden address is one nobody
+ * recognises, so it is not shown.
+ */
+export function accountSignInStep(email: string | null): string {
+  const who =
+    email === null || email.endsWith("@privaterelay.appleid.com")
+      ? "with this same account"
+      : `as ${email}`;
+  return `Sign in ${who}, then follow what it says.`;
+}
 
 /**
  * Why connecting through the account failed. The account already holds the address, so there is
