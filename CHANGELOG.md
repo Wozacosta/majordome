@@ -5,7 +5,15 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **The phone's message box says "Everyday", not a model's name.** The button shows the level
+  the chat is on: Quick, Everyday or Powerful. Tapping it offers those three and nothing else;
+  every model and its options are behind "Other models".
+
+**Try this**
+
+- On the phone, open a chat and look at the button left of the microphone, then tap it.
 
 ## 0.10.92
 
