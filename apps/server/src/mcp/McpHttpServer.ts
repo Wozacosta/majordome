@@ -60,6 +60,8 @@ import { HTML_RENDER_TOOL_NAME } from "@t3tools/shared/htmlRender";
 import { compactT3McpToolOutput } from "@t3tools/shared/toolOutput";
 import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
 import { MCP_TOOL_EXPOSURE_HEADER } from "@t3tools/provider-core/server/mcpSession";
+import * as ConnectionTools from "./connectionTools.ts";
+import { isScheduledRun } from "./scheduledRun.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 import { PreviewControlsToolkit } from "./toolkits/previewControls/tools.ts";
 import * as PreviewControlsHandlers from "./toolkits/previewControls/handlers.ts";
@@ -1130,20 +1132,10 @@ const withToolAnalytics =
         }
         return depth;
       });
-    // Whether the caller's active run was started by a scheduled task.
     const scheduledRunOf = (threadId: string, runId: RunId | null) =>
-      Option.isNone(threads) || runId === null
+      Option.isNone(threads)
         ? Effect.succeed(false)
-        : Effect.gen(function* () {
-            const id = ThreadId.make(threadId);
-            const { runs } = yield* threads.value.getThreadRecords(id, ["runs"], {
-              runIds: [runId],
-            });
-            const run = runs.find((candidate) => candidate.id === runId);
-            if (run === undefined) return false;
-            const messages = yield* threads.value.getMessagesById(id, [run.userMessageId]);
-            return messages.get(run.userMessageId)?.scheduledTaskId !== undefined;
-          }).pipe(Effect.orElseSucceed(() => false));
+        : isScheduledRun(threads.value, threadId, runId);
     const record =
       /* Request instrumentation already owns the span; keep this helper in that context. */
       Effect.fnUntraced(
@@ -1544,6 +1536,20 @@ export const layerMcpTransport = <RA, RE, RR>(registrations: Layer.Layer<RA, RE,
     registrations,
   }).pipe(Layer.provide(layerMcpAuthMiddleware));
 
+/**
+ * The apps the owner connected. Their tools come and go while the server runs, so they are
+ * registered here by hand; `connectionTools.ts` holds who may call one, in place of McpToolAccess.
+ */
+const layerConnectionTools = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    yield* ConnectionTools.start({
+      register: (options) => server.addTool(options),
+      announce: server.notifications["notifications/tools/list_changed"]({}).pipe(Effect.ignore),
+    });
+  }),
+);
+
 export const layerMajordomeHiddenTools = McpServer.visibility(
   ({ method, target }) => Effect.succeed(MajordomeHiddenTools.isListed(method, target)),
   { global: true },
@@ -1574,6 +1580,7 @@ export const layerTools = Layer.mergeAll(
   layerChatSetupToolkit,
   layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
+  layerConnectionTools,
   layerMajordomeHiddenTools,
 );
 
