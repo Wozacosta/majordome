@@ -84,8 +84,10 @@ either store. Details of each app are in "The iPhone app" and "The Android app" 
 - [ ] Privacy answers in both consoles, matching `site/privacy/index.html`: Apple's privacy
       labels (filled in on the web only) and Google's data safety form. Both ask for the
       privacy address, `https://majord.me/privacy`.
-- [ ] Check that the phone's sign-in offers Sign in with Apple beside Google. Apple's rule 4.8
-      asks for it; it was not found by reading the code on 2026-11-28.
+- [x] Sign in with Apple beside Google (Apple's rule 4.8). On in Clerk's production instance
+      since 2026-11-28: Services ID `io.github.wozacosta.majordome.signin`, key `9BYT7ULKT8`,
+      the iPhone app registered under Native applications. No code: Clerk's sign-in screen shows
+      it by itself. Not yet signed in with a real Apple account by anyone.
 - [ ] The code on the Welcome page's Phone step opens majord.me/open. Point it at the two
       listings once they exist (`apps/web/vite/wording/links.ts`).
 - [ ] The share extension is upstream's: it puts what you share from another app into a new

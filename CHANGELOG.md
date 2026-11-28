@@ -15,6 +15,30 @@ The section for a version is also the text of its release on GitHub.
 
 - On the phone, open a chat and look at the button left of the microphone, then tap it.
 
+## 0.10.93
+
+**New**
+
+- **A Testing page in the Mac app and the browser, out of sight.** Hold the version number in
+  Settings, About, as on the phone. **Start over as new** signs you out and forgets every other
+  computer; this one keeps its notes. Signed in, **Empty the list** clears the servers your
+  account remembers, for when one was deleted elsewhere.
+- **Open as a new owner, in the Mac app.** The same page opens a second Majordome on an empty
+  home: no notes, no account, no assistant signed in, as on a Mac that never had it. It leaves
+  your own Majordome, its notes and its background service alone, and starts empty again each
+  time you open it.
+- **Sign in with Apple.** The sign-in screen offers Apple beside Google and your email, on the
+  phone, the Mac app and the website. No update is needed.
+- **An app catalog on the Connections page.** The apps you can connect have their own section,
+  under the ones already connected. It now holds Notion, Linear, Atlassian (Jira and Confluence)
+  and Canva beside Granola. Connect one and it moves up to Apps.
+
+**Try this**
+
+- In Settings, About, press and hold the version number, then press **Open** beside "Open as a
+  new owner" and go through the welcome page as someone new.
+- Open Settings, then Connections, scroll to App catalog and connect an app you use.
+
 ## 0.10.92
 
 **New**
