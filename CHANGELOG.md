@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.89
+
 **New**
 
 - **A topic the assistant looked in wears its badge.** When an answer draws on one of your
