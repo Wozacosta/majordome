@@ -94,6 +94,18 @@ function withMajordomeAndroidPlugins(plugins: ExpoConfig["plugins"]): ExpoConfig
   });
 }
 
+// One sentence for both uses of the camera: upstream's only names the pairing code.
+const CAMERA_USE =
+  "Majordome uses the camera to scan a pairing code and to take a photo you add to a chat.";
+
+function withMajordomeCameraUse(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
+  return plugins?.map((plugin) =>
+    Array.isArray(plugin) && plugin[0] === "expo-camera"
+      ? [plugin[0], { ...plugin[1], cameraPermission: CAMERA_USE }]
+      : plugin,
+  );
+}
+
 const majordomeScheme = (scheme: string) => scheme.replace(/^t3code/, "majordome");
 
 export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
@@ -113,7 +125,7 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     slug: "majordome",
     plugins: [
       ...(withMajordomeAndroidPlugins(
-        withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
+        withMajordomeCameraUse(withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins))),
       ) ?? []),
       "./plugins/withMajordomeAndroidSigning.cjs",
     ],

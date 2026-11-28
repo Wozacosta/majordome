@@ -7,6 +7,7 @@ import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS, type ServerConfig } from "@t3tools/
 import { clampFileAttachmentUploadBytes } from "@t3tools/client-runtime/state/attachments";
 import { nextPastedTextFileName } from "@t3tools/client-runtime/text-paste";
 import type { ComposerTextPaste } from "../components/ComposerEditor";
+import { showCameraRefused } from "../lib/cameraRefused";
 import {
   convertPastedImagesToAttachments,
   createPastedTextComposerAttachment,
@@ -67,7 +68,7 @@ export function useComposerAttachmentActions(props: {
     ];
     if (problems.length) Dialog.alert(title, problems.join("\n\n"));
   };
-  const onPickDraftMedia = async () => {
+  const pickDraftMedia = async (source?: "camera") => {
     const key = props.draftKey;
     if (!key || props.locked) return;
     const insertion = captureComposerDraftInsertion(key);
@@ -75,14 +76,20 @@ export function useComposerAttachmentActions(props: {
       const result = await pickComposerMedia({
         existingCount: countComposerDraftAttachmentsAfterSelection(key, insertion),
         maxVideoBytes: capabilities?.fileAttachments?.maxUploadBytes,
+        source,
       });
+      if (result.cameraRefused) showCameraRefused();
       report(
-        m(msg("Could not attach photo or video")),
+        source === "camera"
+          ? m(msg("Could not attach the photo"))
+          : m(msg("Could not attach photo or video")),
         result.error,
         await append(key, signal, result.attachments, insertion),
       );
     });
   };
+  const onPickDraftMedia = () => pickDraftMedia();
+  const onTakeDraftPhoto = () => pickDraftMedia("camera");
   const onPickDraftFiles = async () => {
     const key = props.draftKey;
     if (!key || props.locked) return;
@@ -160,5 +167,11 @@ export function useComposerAttachmentActions(props: {
       }
     });
   };
-  return { onPickDraftMedia, onPickDraftFiles, onNativePasteImages, onNativePasteText };
+  return {
+    onTakeDraftPhoto,
+    onPickDraftMedia,
+    onPickDraftFiles,
+    onNativePasteImages,
+    onNativePasteText,
+  };
 }

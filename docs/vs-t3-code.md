@@ -124,6 +124,9 @@ The landing page and the README show a short version of this list.
   on the phone. [Phone and notifications](./user/phone-and-notifications.md#in-the-phone-app)
 - **Claude's sign-in from the phone app:** Claude's page opens in the phone's browser and the
   code is pasted back in the app, for a server with no screen; new notes start from the same card.
+- **The camera, on the phone:** "Take a photo" in a chat's "+" menu, and a camera button on
+  home's box that opens a new chat holding the photo. T3 Code attaches from the library and
+  files only.
 - **A reinstalled iPhone app starts clean:** it forgets the computers and the sign-in iOS kept
   from the deleted copy, and opens on a welcome.
 - **A phone app that takes in someone with nothing yet:** its first screen has a way for people

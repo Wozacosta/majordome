@@ -434,9 +434,13 @@ export async function pickComposerMedia(input: {
   readonly existingCount: number;
   readonly maxVideoBytes?: number;
   readonly acceptSelection?: () => boolean;
+  /** The system camera takes one photo in place of the library; what comes back is treated alike. */
+  readonly source?: "camera";
 }): Promise<{
   readonly attachments: ReadonlyArray<DraftComposerAttachment>;
   readonly error: string | null;
+  /** The owner refused the camera, so only the phone's Settings can allow it now. */
+  readonly cameraRefused?: true;
 }> {
   const remainingSlots = PROVIDER_SEND_TURN_MAX_ATTACHMENTS - input.existingCount;
   if (remainingSlots <= 0) {
@@ -464,19 +468,36 @@ export async function pickComposerMedia(input: {
   const endHandoff = beginForegroundHandoff();
   let result: Awaited<ReturnType<typeof imagePicker.launchImageLibraryAsync>>;
   try {
-    result = await imagePicker.launchImageLibraryAsync({
-      mediaTypes: input.maxVideoBytes === undefined ? ["images"] : ["images", "videos"],
-      allowsMultipleSelection: true,
-      selectionLimit: remainingSlots,
-      // Base64 makes iOS decode all full-size photos and stalls JS with large strings; read bytes only as needed.
-      base64: false,
-      quality: 1,
-      shouldDownloadFromNetwork: true,
-    });
+    if (input.source === "camera") {
+      // Asks the first time only; after a refusal iOS answers without showing anything.
+      const permission = await imagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        return { attachments: [], error: null, cameraRefused: true };
+      }
+      result = await imagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        base64: false,
+        quality: 1,
+      });
+    } else {
+      result = await imagePicker.launchImageLibraryAsync({
+        mediaTypes: input.maxVideoBytes === undefined ? ["images"] : ["images", "videos"],
+        allowsMultipleSelection: true,
+        selectionLimit: remainingSlots,
+        // Base64 makes iOS decode all full-size photos and stalls JS with large strings; read bytes only as needed.
+        base64: false,
+        quality: 1,
+        shouldDownloadFromNetwork: true,
+      });
+    }
   } catch (error) {
     return {
       attachments: [],
-      error: errorDisplayMessage(error, m) ?? m(msg("Could not open the photo library.")),
+      error:
+        errorDisplayMessage(error, m) ??
+        (input.source === "camera"
+          ? m(msg("Could not open the camera."))
+          : m(msg("Could not open the photo library."))),
     };
   } finally {
     endHandoff();

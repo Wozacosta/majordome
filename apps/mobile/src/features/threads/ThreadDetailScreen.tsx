@@ -307,6 +307,7 @@ export interface ThreadDetailScreenProps {
   readonly onHeaderMaterialVisibilityChange?: (visible: boolean) => void;
   readonly onOpenConnectionEditor: () => void;
   readonly onChangeDraftMessage: (value: string) => void;
+  readonly onTakeDraftPhoto: () => Promise<void>;
   readonly onPickDraftMedia: () => Promise<void>;
   readonly onPickDraftFiles: () => Promise<void>;
   readonly onNativePasteImages: (uris: ReadonlyArray<string>) => Promise<boolean>;
@@ -1909,7 +1910,9 @@ function ThreadDetailBody(
                   ready={
                     props.draftMode !== undefined && props.draftMode.sendBlockedReason === null
                   }
+                  isDraft={props.draftMode !== undefined}
                   onSend={() => void handleSendMessage()}
+                  onWrite={() => composerEditorRef.current?.focus()}
                 />
                 <VoiceModeDock
                   environmentId={props.environmentId}
@@ -2043,6 +2046,7 @@ function ThreadDetailBody(
                         }
                         bottomInset={composerBottomInset}
                         onChangeDraftMessage={props.onChangeDraftMessage}
+                        onTakeDraftPhoto={props.onTakeDraftPhoto}
                         onPickDraftMedia={props.onPickDraftMedia}
                         onPickDraftFiles={props.onPickDraftFiles}
                         onNativePasteImages={props.onNativePasteImages}

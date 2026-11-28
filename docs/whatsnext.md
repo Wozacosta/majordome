@@ -650,8 +650,9 @@ Missing, most useful first:
 - [ ] **Backup:** its state and Back up now (`backupStatus`).
 - [ ] **Phones that can open Majordome**, to remove a lost one (`authEnvironment.accessChanges`,
       `revokeClient`).
-- [ ] **Camera** in a chat, and attachments and the microphone on home's box
-      (`majordome/homeAsk.tsx`).
+- [x] **Camera:** "Take a photo" in a chat's "+" menu, and a camera button on home's box that
+      opens a new chat holding the photo.
+- [ ] **The photo library, files and the microphone on home's box** (`majordome/homeAsk.tsx`).
 - [ ] **Topics:** make a custom one, rename, reorder, delete, turn a chat into one.
 - [ ] **Connectors per machine**, with a link to claude.ai where they are added (`connectors`).
       It fits under "Claude plan".
