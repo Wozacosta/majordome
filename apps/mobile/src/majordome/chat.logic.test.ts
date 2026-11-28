@@ -50,6 +50,17 @@ it("gives a topic its status first, then its latest message, then where it stand
   expect(topicLine({ preview: null }, null).words).toBe("No messages yet");
 });
 
+it("shows where a read topic stands rather than an old message", () => {
+  const topic = { preview: "Done, it is paid.", standing: "Electricity bill paid, €84" };
+  expect(topicLine(topic, null)).toEqual({ words: "Electricity bill paid, €84", tone: "plain" });
+  // Unread, the reply itself is what there is to see; a status still comes first.
+  expect(topicLine(topic, chatStatusLine("ready", true))).toEqual({
+    words: "Done, it is paid.",
+    tone: "new",
+  });
+  expect(topicLine(topic, chatStatusLine("approval", false)).words).toBe("Needs your OK");
+});
+
 it("reads a row aloud with its unread reply named once", () => {
   expect(
     chatRowLabel({ title: "Fitness", line: { words: "Nice run", tone: "new" }, time: "5m" }),

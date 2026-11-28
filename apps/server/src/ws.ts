@@ -2763,6 +2763,10 @@ export const layerWsRpc = (
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.openRoutinesConversation(input)),
           ),
+        [WS_METHODS.majordomeOpenSetupConversation]: (input) =>
+          Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
+            Effect.andThen(majordomeTopics.openSetupConversation(input)),
+          ),
         [WS_METHODS.majordomeDismissTopicSuggestions]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeTopics.dismissSuggestions(input)),

@@ -22,6 +22,8 @@ const ProjectTopicState = Schema.Struct({
   suggestionsDismissed: Schema.optional(Schema.Boolean),
   /** The conversation behind the Routines screen. */
   routinesThread: Schema.optional(ThreadId),
+  /** The Set-up conversation a phone's Settings opens. */
+  setupThread: Schema.optional(ThreadId),
 });
 export type ProjectTopicState = typeof ProjectTopicState.Type;
 

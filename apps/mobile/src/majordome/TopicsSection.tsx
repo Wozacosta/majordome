@@ -196,14 +196,10 @@ export function useChatListTopics(
       return { ...current, hiddenRoutines: hidden ? [...others, title] : others };
     });
     if (!hidden) return;
-    // The way back is at the far end of the list, so say where it is and offer it here.
+    // The way back is on another page, so say where it is and offer it here.
     Dialog.alert(
       m(msg("{title} is hidden from Chats", { title })),
-      m(
-        msg(
-          "It keeps running, and its chats are kept. Show it again from Hidden routines, at the bottom of this list.",
-        ),
-      ),
+      m(msg("It keeps running, and its chats are kept. Show it again from Today, under Routines.")),
       [
         { text: m(msg("Undo")), onPress: () => setRoutineHidden(title, false) },
         { text: m(msg("OK")) },
@@ -358,49 +354,6 @@ export function MajordomeDoneTopics(props: { readonly topics: ChatTopics }) {
   );
 }
 
-/** The routines taken out of the Chats list, folded at its bottom with the way back. */
-export function MajordomeHiddenRoutines(props: { readonly topics: ChatTopics }) {
-  const { topics } = props;
-  const [expanded, setExpanded] = useState(false);
-  const count = topics.hiddenRoutines.length;
-  if (count === 0) return null;
-  return (
-    <View>
-      <RowPressable
-        accessibilityRole="button"
-        accessibilityLabel={`Hidden routines, ${count}`}
-        accessibilityState={{ expanded }}
-        className="bg-screen"
-        onPress={() => setExpanded((value) => !value)}
-      >
-        <View className="min-h-[44px] flex-row items-center gap-2.5 px-5">
-          <Text className="text-xs font-t3-medium text-foreground-tertiary">
-            {`Hidden routines · ${count}`}
-          </Text>
-          <View className="h-px flex-1 bg-border" />
-          <Text className="text-xs font-t3-medium text-foreground-tertiary">
-            {expanded ? "Hide" : "Show"}
-          </Text>
-        </View>
-      </RowPressable>
-      {expanded
-        ? topics.hiddenRoutines.map((title) => (
-            <View key={title} className="min-h-[44px] flex-row items-center gap-3 px-5 py-1.5">
-              <Text numberOfLines={1} className="flex-1 text-base text-foreground-muted">
-                {title}
-              </Text>
-              <Button
-                label="Show in Chats"
-                accessibilityLabel={`Show ${title} in Chats`}
-                onPress={() => topics.setRoutineHidden(title, false)}
-              />
-            </View>
-          ))
-        : null}
-    </View>
-  );
-}
-
 /** What a topic is, for someone who has none: said once, over the ready-made ones. */
 export const TOPICS_INTRO =
   "A topic keeps one ongoing subject in a single chat, with its own notes.";
@@ -440,12 +393,8 @@ function ReadyTopicChips(props: {
   );
 }
 
-/** The empty Chats tab when topics are on offer: they come first, a plain chat after. */
-export function MajordomeFirstTopics(props: {
-  readonly topics: ChatTopics;
-  readonly chat: { readonly detail: string; readonly action: string };
-  readonly onStartChat: () => void;
-}) {
+/** Home with no chat and no topic, when topics are on offer; the ask box under it starts a chat. */
+export function MajordomeFirstTopics(props: { readonly topics: ChatTopics }) {
   return (
     <View className="items-center">
       <Text textRole="title" className="text-center font-t3-bold text-foreground">
@@ -460,20 +409,16 @@ export function MajordomeFirstTopics(props: {
       <View className="mt-5">
         <ReadyTopicChips topics={props.topics} centered />
       </View>
-      <Text className="mt-12 text-center text-foreground-muted">{props.chat.detail}</Text>
-      <View className="mt-3">
-        <Button label={props.chat.action} onPress={props.onStartChat} />
-      </View>
     </View>
   );
 }
 
-/** On Today while the notes have no topic at all: the ready-made ones, each opening its chat. */
-export function MajordomeTodayFirstTopics() {
-  const topics = useChatListTopics(useThreadShells(), "");
+/** Over home's chats while the notes have no topic at all: the ready-made ones, each opening its chat. */
+export function MajordomeHomeFirstTopics(props: { readonly topics: ChatTopics }) {
+  const { topics } = props;
   if (topics.total > 0 || topics.ready.length === 0) return null;
   return (
-    <View className="gap-2.5">
+    <View className="gap-2.5 px-5 pb-3">
       <Text className="text-xs font-t3-medium text-foreground-tertiary">Start a topic</Text>
       <ReadyTopicChips topics={topics} opens />
     </View>

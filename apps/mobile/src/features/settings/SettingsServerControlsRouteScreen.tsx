@@ -298,7 +298,7 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
       ));
 
   return (
-    <SettingsScreen title={m(PAGE_TITLES[props.page])} menus={[environmentMenu]}>
+    <SettingsScreen title={m(PAGE_TITLES[props.page])} menus={isMajordome ? [] : [environmentMenu]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}

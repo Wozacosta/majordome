@@ -2,7 +2,7 @@ import { msg, T, useGT, useMessages, Var } from "gt-react-native";
 import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/ui/AppText";
@@ -32,25 +32,18 @@ const FOLLOW_UP_OPTIONS: ReadonlyArray<{
   },
 ];
 
-export function SettingsFollowUpRouteScreen() {
+/** The choice of what a message sent while the assistant works does, with its hint. */
+export function FollowUpSettingsSection() {
   const gt = useGT();
   const m = useMessages();
-  const insets = useSafeAreaInsets();
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
   const savePreferences = useAtomCommand(saveMobilePreferences);
   const preferencesReady = AsyncResult.isSuccess(preferencesResult) && !preferencesResult.waiting;
   const selectedBehavior = AsyncResult.isSuccess(preferencesResult)
     ? (preferencesResult.value.followUpBehavior ?? DEFAULT_FOLLOW_UP_BEHAVIOR)
     : null;
-
-  const content = (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      showsVerticalScrollIndicator={false}
-      className="flex-1"
-      contentContainerClassName="gap-3 px-5 pt-4"
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
-    >
+  return (
+    <View className="gap-3">
       <SettingsSection title={gt("While the agent is running")}>
         {FOLLOW_UP_OPTIONS.map((option, index) => (
           <SettingsChoiceRow
@@ -72,12 +65,24 @@ export function SettingsFollowUpRouteScreen() {
           keyboard, hold <Var>{Platform.OS === "android" ? "Ctrl" : "Command"}</Var> while sending.
         </T>
       </Text>
-    </ScrollView>
+    </View>
   );
+}
 
+export function SettingsFollowUpRouteScreen() {
+  const gt = useGT();
+  const insets = useSafeAreaInsets();
   return (
     <SettingsScreen title={isMajordome ? MAJORDOME_SETTINGS_LABELS.SettingsFollowUp : gt("Chat")}>
-      {content}
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        className="flex-1"
+        contentContainerClassName="gap-3 px-5 pt-4"
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
+      >
+        <FollowUpSettingsSection />
+      </ScrollView>
     </SettingsScreen>
   );
 }

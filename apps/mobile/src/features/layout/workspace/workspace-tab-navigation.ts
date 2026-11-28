@@ -5,6 +5,7 @@ import {
 } from "../../settings/components/settings-page-targets";
 import { settingsNavigationState } from "../../settings/settings-navigation";
 import type { WorkspaceTab } from "./workspace-tabs-state";
+import { isMajordome } from "../../../majordome/env";
 
 type RouteLike = {
   readonly name: string;
@@ -23,6 +24,8 @@ export function workspaceTabColumns(
   tab: WorkspaceTab | "settings",
   columns: boolean,
 ) {
+  // Majordome's Settings list is itself the page beside the chat list.
+  if (isMajordome && tab === "settings") return false;
   return columns && (platform === "ios" || (platform === "android" && tab === "settings"));
 }
 

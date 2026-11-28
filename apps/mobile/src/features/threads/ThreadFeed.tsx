@@ -3,6 +3,7 @@ import { msg, T, useGT, useLocale, useMessages } from "gt-react-native";
 import { m } from "../../i18n/messages";
 import { isMajordome } from "../../majordome/env";
 import { topicLinkCustomization } from "../../majordome/topicLinks";
+import { phoneSettingsPage } from "../../majordome/setupChat.logic";
 import { useTopicLinks } from "../../majordome/useTopicLinks";
 import {
   ReadAloudButton,
@@ -3418,7 +3419,14 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
       return;
     }
     if (topicLinks.open(href)) return;
-    if (parseAppScreenHref(href) !== null) {
+    const appScreen = parseAppScreenHref(href);
+    const settingsPage = appScreen === null ? null : phoneSettingsPage(appScreen);
+    if (settingsPage !== null) {
+      // Pushed over the chat, so Back returns to the answer that sent the owner there.
+      navigation.navigate(settingsPage);
+      return;
+    }
+    if (appScreen !== null) {
       // The link names a screen of the computer app; this app has other screens.
       Dialog.alert(
         gt("This page is on your computer"),

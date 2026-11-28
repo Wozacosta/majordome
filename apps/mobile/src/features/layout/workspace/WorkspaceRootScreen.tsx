@@ -49,6 +49,7 @@ import {
   useSystemWorkspaceTabBar,
 } from "./useSystemWorkspaceTabBar";
 import { openSettings } from "../../settings/settings-navigation";
+import { isMajordome } from "../../../majordome/env";
 
 const TAB_TITLES = WORKSPACE_TAB_LABELS;
 
@@ -156,7 +157,8 @@ function WorkspaceRootContent() {
                 : gt("Navigation", {
                     $context: "screen title when every navigation tab is hidden",
                   }),
-            headerShown: true,
+            // Majordome's chat list draws its own title, Settings button and Today strip.
+            headerShown: !isMajordome,
             headerTransparent: NATIVE_LIQUID_GLASS_SUPPORTED,
             headerStyle: NATIVE_LIQUID_GLASS_SUPPORTED
               ? { backgroundColor: "transparent" }
@@ -174,7 +176,9 @@ function WorkspaceRootContent() {
                 : undefined,
           }}
         />
-        <SafeAreaInsetsContext value={compactTabs ? { ...insets, bottom: 0 } : insets}>
+        <SafeAreaInsetsContext
+          value={compactTabs && !isMajordome ? { ...insets, bottom: 0 } : insets}
+        >
           {/* Usage draws its own header, and skips its body itself. */}
           {headerOnly && (settingsOpen || state.selectedTab !== "usage") ? null : settingsOpen ? (
             <WorkspaceSettingsList />
@@ -193,7 +197,7 @@ function WorkspaceRootContent() {
         {deviceType !== "pad" && deviceType !== "phone" && sidebarPicker ? (
           <WorkspaceTabDock placement="column" />
         ) : null}
-        {enabled.length === 0 && !settingsOpen ? null : settingsOpen ||
+        {isMajordome || (enabled.length === 0 && !settingsOpen) ? null : settingsOpen ||
           workspaceUsesColumns(state.selectedTab) ? (
           <WorkspaceToolbar sidebar={sidebarNavigation} onNewTask={startNewTask} />
         ) : (

@@ -35,6 +35,7 @@ import { useDeviceType } from "../../../native/native-layout-metrics";
 import { WorkspaceTabDock } from "./WorkspaceTabDock";
 import { useAdaptiveWorkspaceLayout, useWorkspacePaneState } from "../AdaptiveWorkspaceLayout";
 import { useSelectWorkspaceTab } from "./useSelectWorkspaceTab";
+import { isMajordome } from "../../../majordome/env";
 
 const PULL_REQUEST_ICON = require("../../../../assets/icons/pull-request.png");
 const ISSUE_ICON = require("../../../../assets/icons/issue.png");
@@ -201,7 +202,7 @@ export function WorkspaceNativeTabs(props: {
       <WorkspaceColumnMetricsContext value={sharedColumnMetrics}>
         <Tabs.Host
           navStateRequest={request}
-          tabBarHidden={props.hidden || !systemTabBar}
+          tabBarHidden={props.hidden || !systemTabBar || isMajordome}
           ios={{
             tabBarControllerMode: "tabBar",
             tabBarMinimizeBehavior: "never",
@@ -222,7 +223,8 @@ export function WorkspaceNativeTabs(props: {
           {NATIVE_WORKSPACE_TAB_SLOTS.map((slot, index) => {
             const settings = slot === "settings";
             const tab = settings ? (overflow ?? selectedTab) : primaryTabs[index];
-            if (!tab) return null;
+            // Majordome's Settings is a page over the chat list, so it has no slot of its own.
+            if (!tab || (settings && isMajordome)) return null;
             return (
               <Tabs.Screen
                 // Stable slot controllers keep UIKit's stacks attached when a section moves into Settings.

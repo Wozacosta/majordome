@@ -330,7 +330,33 @@ export const MOBILE_WORDING: Wording = [
   ["Tool calls in chat", "Steps the assistant takes"],
   [
     "Hide the commands, edits, and searches agents run. Hide successful keeps failures. Zen shows only final answers. Approvals, questions, and errors always show.",
-    "Hide the steps the assistant takes, such as searches and edits. Hide successful keeps failures. Zen shows only final answers. Approvals, questions, and errors always show.",
+    "Hide the steps the assistant takes, such as searches and edits. Hide successful keeps failures. Answers only leaves every step out. Approvals, questions, and errors always show.",
+  ],
+  ["Zen", "Answers only"],
+  ["Days before auto-settle", "Days before a quiet chat is marked as done"],
+  // How much the assistant does without asking, on a computer's page and in a chat's options.
+  ["Default permissions", "Before changing things"],
+  ["Supervised", "Ask every time"],
+  ["Ask before commands and file changes.", "Asks before it changes a note or does anything else."],
+  ["Auto-accept edits", "Edit notes, ask for the rest"],
+  [
+    "Auto-approve edits, ask before other actions.",
+    "Changes your notes by itself and asks before anything else.",
+  ],
+  ["Auto", "Ask only when unsure"],
+  [
+    "Supported providers approve routine actions; others still ask.",
+    "Does ordinary things by itself and asks about the unusual ones.",
+  ],
+  ["Full access", "Never ask"],
+  ["Allow commands and edits without prompts.", "Does everything without asking."],
+  // Signing in to an AI account that asks for a pasted answer.
+  ["Terminal response", "Your answer"],
+  ["Final localhost URL", "Address of the last page"],
+  ["Select a connected environment.", "Your computer can't be reached right now."],
+  [
+    "Use the filter above to select a connected environment.",
+    "Your computer can't be reached right now.",
   ],
   ["While the agent is running", "While the assistant works"],
   [

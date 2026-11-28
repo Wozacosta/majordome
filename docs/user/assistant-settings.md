@@ -31,5 +31,5 @@ nobody answers closes by itself after 24 hours, with nothing changed.
 
 Signing in (GitHub, Google, Claude or another AI), passphrases, adding a private document, setting
 up a phone, your server, and letting a device get notifications. The assistant names the
-screen as a link: click it and that screen opens. On a phone, tapping it says the page is on your computer. It never asks for a password, a key or a code in the conversation; if it
+screen as a link: click it and that screen opens. On a phone, tapping it opens that page when the phone has it (your Claude plan, look and language, voice), and otherwise says the page is on your computer. In the phone app, the button at the top right of Settings opens a chat kept for these questions. It never asks for a password, a key or a code in the conversation; if it
 does, don't give one.

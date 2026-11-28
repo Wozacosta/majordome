@@ -198,7 +198,9 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
 - Sharing a chat with a guest is not offered: T3 Code's guest links travel through T3 Connect.
   A Majordome version is noted in [whatsnext.md](whatsnext.md#sharing-a-chat-with-a-guest).
 - An iPhone app of Majordome's own is being built from upstream's (not in the App Store yet):
-  Today, one list of topics and chats, plain words in a conversation, offline capture, and a
+  no tab bar but one list of topics and chats with what needs you on top, Today as a page of
+  to-dos, routines and journal, eight plain rows of Settings with a chat about your set-up,
+  plain words in a conversation, offline capture, and a
   Majordome server bought through Apple from the phone. It has its own links, and a
   server's phone code can open it.
 

@@ -1,3 +1,4 @@
+import { isMajordome } from "../../majordome/env";
 import { useAndroidFloatingTabs } from "../settings/appearance/AppearancePreferencesProvider";
 import { useState } from "react";
 import { useKeyboardState } from "react-native-keyboard-controller";
@@ -80,7 +81,8 @@ export function ThreadUndoNotice(props: { readonly visible: boolean }) {
       key={instance.key}
       collapsable={false}
       className="absolute z-[100]"
-      style={{ bottom, ...horizontalInsets }}
+      // Majordome's home ends with its ask box, which the notice sits above.
+      style={{ bottom: bottom + (isMajordome ? 68 : 0), ...horizontalInsets }}
       pointerEvents="box-none"
     >
       <Toast

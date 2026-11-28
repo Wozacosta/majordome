@@ -18,6 +18,7 @@ import {
   type ResolvedAppearance,
 } from "../../../lib/appearancePreferences";
 import { appAtomRegistry } from "../../../state/atom-registry";
+import { isMajordome } from "../../../majordome/env";
 import { mobilePreferencesAtom, saveMobilePreferences } from "../../../state/preferences";
 import { useAtomCommand } from "../../../state/use-atom-command";
 import type { Preferences } from "../../../persistence/mobile-preferences";
@@ -365,5 +366,6 @@ export function useAppearancePreferences(): AppearancePreferencesContextValue {
 
 export function useAndroidFloatingTabs() {
   const { androidNavigationStyle } = useAppearancePreferences();
-  return Platform.OS === "android" && androidNavigationStyle === "one-ui";
+  // Majordome draws no tab bar, floating or not.
+  return !isMajordome && Platform.OS === "android" && androidNavigationStyle === "one-ui";
 }

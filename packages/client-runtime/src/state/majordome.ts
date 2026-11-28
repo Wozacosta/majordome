@@ -572,6 +572,11 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeOpenRoutinesConversation,
       onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
     }),
+    openSetupConversation: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:open-setup-conversation",
+      tag: WS_METHODS.majordomeOpenSetupConversation,
+      onSettled: ({ environmentId }, registry) => bumpTopics(environmentId, registry),
+    }),
     /** Read again on every mount and after each change; the assistant adds to the list too. */
     readingItems: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:reading-items",

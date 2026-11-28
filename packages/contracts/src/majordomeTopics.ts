@@ -131,6 +131,11 @@ export const MajordomeTopicsResult = Schema.Struct({
   projectsFolder: Schema.String,
   /** This server's conversation behind the Routines screen, once it has been started. */
   routinesThreadId: Schema.optional(Schema.NullOr(ThreadId)),
+  /**
+   * This server's Set-up conversation, the one a phone's Settings opens; null until it is started.
+   * Absent from servers that cannot open one.
+   */
+  setupThreadId: Schema.optional(Schema.NullOr(ThreadId)),
 });
 export type MajordomeTopicsResult = typeof MajordomeTopicsResult.Type;
 
@@ -213,6 +218,11 @@ export const MajordomeOpenRoutinesConversationInput = Schema.Struct({
 });
 export type MajordomeOpenRoutinesConversationInput =
   typeof MajordomeOpenRoutinesConversationInput.Type;
+
+export const MajordomeOpenSetupConversationInput = Schema.Struct({
+  projectId: ProjectId,
+});
+export type MajordomeOpenSetupConversationInput = typeof MajordomeOpenSetupConversationInput.Type;
 
 const isDateTimeText = Schema.makeFilter((value: string) => !Number.isNaN(Date.parse(value)), {
   expected: "a date and time",

@@ -154,6 +154,7 @@ import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
 import { VoiceDownloadSheet } from "./majordome/speaking/VoiceDownloadSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
 import { TestingScreen } from "./majordome/TestingScreen";
+import { MajordomeTodayScreen } from "./majordome/TodayScreen";
 import { UseComputerScreen } from "./majordome/UseComputerScreen";
 import { MAJORDOME_SETTINGS_LABELS } from "./majordome/settingsRows";
 import { DEFAULT_SETTINGS_PAGE } from "./features/layout/workspace/workspace-tab-navigation";
@@ -246,9 +247,11 @@ const SETTINGS_SCREENS = {
   Settings: createNativeStackScreen({
     screen: SettingsRouteScreen,
     linking: "settings",
+    // Upstream's Settings list is a tab that takes Home's place. Majordome pushes it over the
+    // chat list, so it slides in and goes back like any page.
     options: {
-      ...pageRoute({ itemStyle: "standard", root: true }),
-      ...(Platform.OS === "android" ? { animation: "none" as const } : {}),
+      ...pageRoute({ itemStyle: "standard", root: !isMajordome }),
+      ...(Platform.OS === "android" && !isMajordome ? { animation: "none" as const } : {}),
     },
   }),
   SettingsEnvironments: createNativeStackScreen({
@@ -683,6 +686,12 @@ const RootStackConfig = createWorkspaceStackNavigator({
     IssueFilterSearch: createNativeStackScreen({
       screen: IssueFilterSearchScreen,
       options: SEARCH_SHEET_ROUTE,
+    }),
+    // Majordome's day page, pushed over the chat list.
+    Today: createNativeStackScreen({
+      screen: MajordomeTodayScreen,
+      linking: "today",
+      options: pageRoute(),
     }),
     Thread: createNativeStackScreen({
       screen: ThreadRouteScreen,

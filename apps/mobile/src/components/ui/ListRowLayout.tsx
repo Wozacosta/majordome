@@ -12,6 +12,8 @@ export interface ListRowContentProps {
   readonly label: string;
   readonly description?: string;
   readonly detail?: string;
+  /** Colours the detail when it is a state: all well, or needing a look. */
+  readonly detailTone?: "good" | "warning";
   /** Rich secondary content under the description, such as scores with emphasized values. */
   readonly meta?: ReactNode;
   readonly disabled?: boolean;
@@ -23,6 +25,7 @@ export function ListRowLayout({
   label,
   description,
   detail,
+  detailTone,
   meta,
   disabled,
   accessory,
@@ -30,6 +33,12 @@ export function ListRowLayout({
 }: ListRowContentProps & { readonly accessory?: ReactNode; readonly tone?: "default" | "danger" }) {
   const { fontScale } = useWindowDimensions();
   const stackDetail = fontScale >= 1.5;
+  const detailColor =
+    detailTone === "good"
+      ? "text-primary-text"
+      : detailTone === "warning"
+        ? "text-warning-foreground"
+        : "text-foreground-muted";
   return (
     <View
       className={cn(
@@ -65,7 +74,7 @@ export function ListRowLayout({
         ) : null}
         {meta}
         {detail && stackDetail ? (
-          <AppText textRole="footnote" className="text-foreground-muted">
+          <AppText textRole="footnote" className={detailColor}>
             {detail}
           </AppText>
         ) : null}
@@ -73,7 +82,7 @@ export function ListRowLayout({
       {detail && !stackDetail ? (
         <AppText
           textRole="footnote"
-          className="max-w-[40%] shrink text-right text-foreground-muted"
+          className={cn("max-w-[40%] shrink text-right", detailColor)}
           numberOfLines={1}
           ellipsizeMode="middle"
         >

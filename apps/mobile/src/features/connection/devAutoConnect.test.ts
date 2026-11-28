@@ -175,7 +175,9 @@ async function pairSuccessfully(link: PartialState<NavigationState>) {
   await Promise.resolve();
 }
 
-it("on columns, a successful settings link shows Environments instead of an empty detail", async () => {
+// Majordome's Settings list is the page under the form, so going back shows it beside the chat
+// list. Upstream resets to Environments instead, since its list sits in the other column.
+it("on columns, a successful settings link goes back to the Settings list", async () => {
   vi.stubGlobal("__DEV__", true);
   harness.goBack.mockClear();
   harness.dispatch.mockClear();
@@ -183,19 +185,8 @@ it("on columns, a successful settings link shows Environments instead of an empt
   await pairSuccessfully(settingsLink({ pairingUrl: PAIRING_URL, autoConnect: "1" }));
   harness.columns = false;
 
-  expect(harness.goBack).not.toHaveBeenCalled();
-  expect(harness.dispatch).toHaveBeenCalledExactlyOnceWith({
-    type: "RESET",
-    target: "root",
-    payload: expect.objectContaining({
-      index: 2,
-      routes: [
-        { key: "home", name: "Home" },
-        { key: "settings", name: "Settings" },
-        { name: "SettingsEnvironments", params: undefined },
-      ],
-    }),
-  });
+  expect(harness.goBack).toHaveBeenCalledOnce();
+  expect(harness.dispatch).not.toHaveBeenCalled();
 });
 
 it("a success that waited for navigation leaves a newer link's form open", async () => {

@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { androidWorkspaceSettingsOpen } from "./android-workspace-tabs";
 import { WorkspaceTabsProvider } from "./WorkspaceTabsContext";
 import { workspaceTabOf } from "./workspace-tabs-state";
+import { isMajordome } from "../../../majordome/env";
 
 interface AndroidWorkspaceRoot {
   /**
@@ -29,7 +30,9 @@ export function AndroidWorkspaceTabsProvider(props: {
   readonly children: ReactNode;
 }) {
   const key = props.state.key;
-  const settingsOpen = Platform.OS === "android" && androidWorkspaceSettingsOpen(props.state);
+  // Majordome's Settings is a page pushed over the chat list, never a tab that takes its place.
+  const settingsOpen =
+    !isMajordome && Platform.OS === "android" && androidWorkspaceSettingsOpen(props.state);
   const settingsIndex = props.state.routes.findIndex((route) => route.name === "Settings");
   const settingsRoute = settingsIndex < 0 ? undefined : props.state.routes[settingsIndex];
   const settingsPage =

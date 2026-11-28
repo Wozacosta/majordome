@@ -81,6 +81,8 @@ import {
 } from "./threadListV2";
 import { useSelectWorkspaceDetail } from "../layout/workspace/useSelectWorkspaceDetail";
 import { NativeScrollView } from "../../native/NativeScrollViewMarker";
+import { isMajordome } from "../../majordome/env";
+import { TodayStrip } from "../../majordome/homeHeader";
 
 type SidebarListItem =
   | ThreadListV2ListItem
@@ -566,6 +568,12 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
       }}
     />
   );
+  // Majordome's side list has no title row of its own, so the way to the day's page leads it.
+  const todayStrip = isMajordome ? (
+    <View className="px-2 pb-2 pt-1">
+      <TodayStrip />
+    </View>
+  ) : undefined;
   const showAddEnvironment =
     !catalogState.isLoadingConnections &&
     !catalogState.hasReadyEnvironment &&
@@ -643,6 +651,7 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
                 showsVerticalScrollIndicator={false}
                 style={styles.threadList}
                 ListEmptyComponent={listEmpty}
+                ListHeaderComponent={todayStrip}
               />
             </GestureDetector>
           </SwipeableScrollGateProvider>
@@ -667,7 +676,10 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
         }}
       >
         {listItems.length === 0 ? (
-          <View className="flex-1 items-center justify-center">{listEmpty}</View>
+          <View className="flex-1">
+            {todayStrip}
+            <View className="flex-1 items-center justify-center">{listEmpty}</View>
+          </View>
         ) : (
           <SwipeableScrollGateProvider enabled={swipeEnabled}>
             <GestureDetector gesture={sidebarScrollGesture}>
@@ -696,6 +708,7 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
                 showsVerticalScrollIndicator={false}
                 style={styles.threadList}
                 ListEmptyComponent={listEmpty}
+                ListHeaderComponent={todayStrip}
               />
             </GestureDetector>
           </SwipeableScrollGateProvider>

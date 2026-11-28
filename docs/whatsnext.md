@@ -601,6 +601,83 @@ To do:
 Not asked for yet: a calendar of finished items, images in notes, playlist import, an "action"
 kind, publishing a list, filing one item under several subjects, and Empty Trash.
 
+## What the phone lacks beside the computer
+
+From a review of 2026-11-28, made by reading the code after the phone was rebuilt around the
+list of topics (0.10.90). Nothing here was tried on a device. The phone uses 23 of the about 90
+calls in `packages/client-runtime/src/state/majordome.ts` that the computer uses, so most
+entries need a screen and no server work. Paths are under `apps/mobile/src` unless said.
+
+Broken, to fix first:
+
+- [ ] **Allowing a private document or a settings change.** The phone draws the generic secret
+      card (a "Value" box, "Save securely") where the computer has a yes/no card, so only
+      declining works. It also stops the Set-up chat from changing anything. Start at
+      `features/threads/ThreadFeed.tsx` (where requests reach `SecretRequestCard`) and the
+      computer's `ApprovalRequestCard.tsx`; the calls are `approval`, `answerApproval`,
+      `privateDocumentRequest` and `answerPrivateDocumentRequest`.
+- [ ] **One-tap replies.** An answer ends with the raw line "Replies: Yes | No" because nothing
+      on the phone parses it. Move the computer's `QuickReplies.logic.ts` into shared code.
+- [ ] **Links from the assistant to a Settings page.** `majordome/setupChat.logic.ts` knows only
+      the Claude plan, look and language, and voice; a link to Passwords and keys, Archived
+      chats, Your account or Computers says the page is on the computer.
+
+Missing, most useful first:
+
+- [ ] **Notifications.** The server sends Web Push only, and upstream's phone push needs T3's
+      relay, which Majordome does not run. This one is server work: a sender for Apple and
+      Google, then a page on the phone.
+- [ ] **What it did, with Undo this** (`vaultHistory`, `vaultChanges`, `undoVaultRun`).
+- [ ] **To-dos from every note.** Today shows only the day's own boxes (`todos`,
+      `setTodoDone`, `addTodo`).
+- [ ] **Notes: browse, read, edit, search** (`notesSearch`, `saveNote`). Home's search matches
+      chat and topic titles only.
+- [ ] **Reading list**, and the share sheet saving to it rather than opening a chat.
+- [ ] **Skills** waiting to be kept (`skills`, `keepSkill`, `removeSkill`).
+- [ ] **Backup:** its state and Back up now (`backupStatus`).
+- [ ] **Phones that can open Majordome**, to remove a lost one (`authEnvironment.accessChanges`,
+      `revokeClient`).
+- [ ] **Camera** in a chat, and attachments and the microphone on home's box
+      (`majordome/homeAsk.tsx`).
+- [ ] **Topics:** make a custom one, rename, reorder, delete, turn a chat into one.
+- [ ] **Connectors per machine**, with a link to claude.ai where they are added (`connectors`).
+      It fits under "Claude plan".
+- [ ] **What Quick, Everyday and Powerful mean**, and the default model for new chats.
+- [ ] **Private documents page:** add, remove, who opened what.
+- [ ] **Usage.** The screen exists (`SettingsUsage`) but nothing leads to it without a
+      keyboard, and `docs/user/usage.md` names a tab the phone no longer has. By routine and by
+      topic is `usageByUse`.
+- [ ] **Routines:** ready-made ones, limits, run history, the week calendar.
+- [ ] **Adding this computer to the account**, and the anywhere address, from the phone.
+- [ ] What's new, help and "Report a problem".
+
+Coding leftovers a phone owner can still reach:
+
+- [ ] "Which AI answers" lists the whole model catalogue under the three levels
+      (`ThreadSettingsSheet.tsx`); the computer shows the levels alone.
+- [ ] Step details show shell commands and exit codes once "Answers only" is switched off.
+- [ ] Links such as `majordome://pull-requests/…`, `…/terminal`, `settings/worktrees` and
+      `settings/labs` still open: `lib/appLinking.ts` has no Majordome filter.
+- [ ] With a hardware keyboard, shortcuts open Terminal, Review and the Files tree, and the
+      command palette offers "Triage an issue".
+- [ ] An untitled recent chat is "Thread" in the app icon's menu (`appShortcuts.ts`).
+- [ ] Settings pages no screen links to any more (`SettingsThreads`, `SettingsLabs`,
+      `SettingsWorktrees`, `SettingsNavigation` and others in `Stack.tsx`): remove them from
+      Majordome's routes or leave them to upstream, but decide.
+
+Left unchecked when the phone was rebuilt (0.10.90):
+
+- [ ] Tablets and foldables. The side list got the Today strip; nobody looked at one.
+- [ ] Voice mode and the "Talk" shortcut after the tab bar went.
+- [ ] The Set-up chat with a real assistant; it was only tried with the replay one.
+- [ ] A scenario for the new phone screens. The logic has unit tests only.
+- [ ] On the computer, the Set-up chat shows among recent chats.
+
+Drawn and kept for later: one permanent "Majordome" conversation at the top of the list that
+files what is said into topics, to compare against the plain list; and the day page as a
+"Brief" of what the assistant did and what waits for a yes, which needs one new call listing
+everything that waits.
+
 ## The Android app
 
 Started 2026-11-27. It is the iPhone app's code; `apps/mobile/majordome/identity.ts` gives it
@@ -620,7 +697,8 @@ it lacks are in `docs/operations/majordome-android.md`. It is on the owner's own
 - [ ] `majord.link` addresses opening in the app. It needs the broker to serve
       `/.well-known/assetlinks.json` with the signing key's SHA-256 (Play's own key once the
       app is there) and an intent filter in `apps/mobile/majordome/identity.ts`.
-- [ ] Notifications: not built for either phone app.
+- [ ] Notifications: not built for either phone app. See "What the phone lacks beside the
+      computer".
 - A symbol that exists only on the iPhone draws nothing on Android. Majordome's own screens
   use the shared `SymbolView`, or `TopicSymbolView` for topic icons, which has an Android list
   to extend when a topic gets a new icon (`src/majordome/TopicSymbol.android.tsx`).
@@ -668,10 +746,10 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   name, a kept text or an unreviewed literal outside a translation call would change.
 - **The iPhone icon is the PNG.** Upstream's Icon Composer projects (`assets/*/app-icon.icon`)
   still draw upstream's logo, so the identity step points `ios.icon` at the cloche PNG.
-- **Today sits in upstream's one-page Usage tab slot** (`MajordomeTodayScreen`), so the tab key
-  is still `usage`. Upstream's tests of the tabs mock `src/majordome/env` with `isMajordome`
-  false. The iPhone tab bar's label and icon are in Swift
-  (`modules/t3-native-controls/ios/T3SidebarTabBarView.swift`).
+- **No tab bar.** With `isMajordome` true the chat list is the only root and no bar is drawn on
+  either platform; Today is the stack route `Today` (`majordome/homeNavigation.ts`) and Settings
+  is pushed over the list. Upstream's tests of the tabs mock `src/majordome/env` with
+  `isMajordome` false. Upstream's tab code, Swift and Kotlin included, is left in place.
 - **Building here:** Xcode 27.2 builds it, with CocoaPods from Homebrew.
   `T3_NATIVE_CLIENT_BUILD=local T3_NATIVE_CLIENT_CACHE=off vp run mobile:install ios <simulator>`
   then `vp run dev:client` in `apps/mobile`. A build is about six minutes.

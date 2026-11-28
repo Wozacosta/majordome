@@ -1,6 +1,6 @@
 import * as NodeModule from "node:module";
 import type { ParamListBase, StackNavigationState } from "@react-navigation/native";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import {
   collapsedSplitTransition,
@@ -13,6 +13,9 @@ import {
   reconcileStackScreens,
   type CollapsedSplitColumn,
 } from "./workspace-stack-projection";
+
+// Upstream's Settings tab; Majordome's own navigation is covered in majordome/navigation.test.ts.
+vi.mock("../majordome/env", () => ({ isMajordome: false }));
 
 const requireNavigation = NodeModule.createRequire(
   NodeModule.createRequire(import.meta.url).resolve("@react-navigation/native/package.json"),

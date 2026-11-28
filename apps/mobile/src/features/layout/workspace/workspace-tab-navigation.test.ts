@@ -1,5 +1,5 @@
 import * as NodeModule from "node:module";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { restoreSettingsLinkState, settingsLinkAction } from "../../settings/settings-navigation";
 import {
@@ -8,6 +8,9 @@ import {
   workspaceTabNavigationState,
   workspaceTabPage,
 } from "./workspace-tab-navigation";
+
+// Upstream's Settings tab; Majordome's own navigation is covered in majordome/navigation.test.ts.
+vi.mock("../../../majordome/env", () => ({ isMajordome: false }));
 
 const home = { key: "home", name: "Home" };
 const thread = {

@@ -1,6 +1,8 @@
 import type { EnvironmentId, MajordomeTopicIcon, ProjectId } from "@t3tools/contracts";
 import { topicIcon, topicTone, type TopicTone } from "@t3tools/shared/majordomeTopicIcons";
 
+import type { RoutineRow } from "./routine.logic";
+
 /** A line typed on the phone for a day's note, kept until the server has it. */
 export interface NoteCapture {
   readonly id: string;
@@ -24,6 +26,8 @@ export interface TodayStore {
   readonly topics: ReadonlyArray<TopicRow>;
   /** The routines, by name, whose chats the owner took out of the Chats list. */
   readonly hiddenRoutines?: ReadonlyArray<string>;
+  /** The routines as the computer last listed them; absent from a copy an older build stored. */
+  readonly routines?: ReadonlyArray<RoutineRow>;
 }
 
 /** One topic as the phone lists it: a conversation with its latest message. */
@@ -33,6 +37,8 @@ export interface TopicRow {
   /** Null until the topic's conversation has been opened on that server. */
   readonly threadId: string | null;
   readonly preview: string | null;
+  /** Where the topic stands, in one line; home shows it once the latest reply is read. */
+  readonly standing?: string;
   /** The same icon and colour the desktop shows; absent from a list an older build stored. */
   readonly icon?: MajordomeTopicIcon;
   readonly tone?: TopicTone;
@@ -82,14 +88,14 @@ export function topicRows(
     .filter((topic) => topic.finishedAt === undefined)
     .map((topic) => {
       const last = topic.lastMessagePreview;
-      const preview = last
-        ? `${last.author === "you" ? "You: " : ""}${last.text}`
-        : (topic.standing?.text.split("\n")[0] ?? null);
+      const standing = topic.standing?.text.split("\n")[0]?.trim() || null;
+      const preview = last ? `${last.author === "you" ? "You: " : ""}${last.text}` : standing;
       return {
         id: topic.id,
         title: topic.title,
         threadId: topic.threadId,
         preview,
+        ...(standing === null ? {} : { standing }),
         icon: topicIcon(topic),
         tone: topicTone(topic),
         ...(topic.notesCount === undefined ? {} : { notes: topic.notesCount }),

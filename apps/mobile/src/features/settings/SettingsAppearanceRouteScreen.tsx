@@ -11,13 +11,20 @@ import { TextAppearanceSection } from "./appearance/sections/TextAppearanceSecti
 import { ThemeAppearanceSection } from "./appearance/sections/ThemeAppearanceSection";
 import { ToolCallsAppearanceSection } from "./appearance/sections/ToolCallsAppearanceSection";
 import { isMajordome } from "../../majordome/env";
+import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
+import { SettingsRow } from "./components/SettingsRow";
+import { SettingsSection } from "./components/SettingsSection";
+import { FollowUpSettingsSection } from "./SettingsFollowUpRouteScreen";
+import { LanguageSettingsSection } from "./SettingsLanguageRouteScreen";
 
 export function SettingsAppearanceRouteScreen() {
   const gt = useGT();
   const insets = useSafeAreaInsets();
 
   return (
-    <SettingsScreen title={gt("Appearance")}>
+    <SettingsScreen
+      title={isMajordome ? MAJORDOME_SETTINGS_LABELS.SettingsAppearance : gt("Appearance")}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -27,12 +34,22 @@ export function SettingsAppearanceRouteScreen() {
           paddingBottom: Math.max(insets.bottom, 18) + 18,
         }}
       >
+        {isMajordome ? <LanguageSettingsSection /> : null}
         <ThemeAppearanceSection />
-        {Platform.OS === "android" ? <AndroidNavigationAppearanceSection /> : null}
+        {/* Majordome has no bar to style: its chat list is the first page. */}
+        {Platform.OS === "android" && !isMajordome ? <AndroidNavigationAppearanceSection /> : null}
         <TextAppearanceSection />
         {isMajordome ? null : <TerminalAppearanceSection />}
         {isMajordome ? null : <CodeAppearanceSection />}
         <ToolCallsAppearanceSection />
+        {isMajordome ? (
+          <>
+            <FollowUpSettingsSection />
+            <SettingsSection>
+              <SettingsRow icon="keyboard" label={gt("Keyboard")} target="SettingsKeyboard" />
+            </SettingsSection>
+          </>
+        ) : null}
       </ScrollView>
     </SettingsScreen>
   );

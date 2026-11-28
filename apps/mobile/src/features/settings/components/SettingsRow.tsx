@@ -16,6 +16,8 @@ export function SettingsRow(props: {
   readonly label: string;
   readonly value?: string;
   readonly valuePosition?: "below" | "trailing";
+  /** Colours a trailing value that is a state. */
+  readonly valueTone?: "good" | "warning";
   readonly target?: SettingsPageTarget;
   readonly fullScreenTarget?: SettingsLegalDocumentTarget;
   readonly onPress?: () => void;
@@ -32,6 +34,7 @@ export function SettingsRow(props: {
     label: props.label,
     description: valueBelow ? props.value : undefined,
     detail: valueBelow ? undefined : props.value,
+    detailTone: props.valueTone,
     disabled: props.disabled,
   };
   const onPress = () => {

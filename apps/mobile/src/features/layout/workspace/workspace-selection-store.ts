@@ -29,6 +29,7 @@ import {
   workspaceSelectionsIn,
   type WorkspaceSelectionCheck,
 } from "./workspace-tab-navigation";
+import { isSettingsListRoute } from "../../../native/workspace-stack-projection";
 
 // Only iOS columns reopen a remembered page; Android always opens a tab on its list.
 const REMEMBERS = Platform.OS === "ios";
@@ -171,6 +172,6 @@ export function firstWorkspaceDetailOpen(navigation: RootStackNavigation) {
   const state = rootStackState(navigation);
   if (!state) return false;
   const { workspace, overlays } = workspaceRoutesOf(state.routes.slice(0, state.index + 1));
-  const list = (name: string | undefined) => name === "Home" || name === "Settings";
+  const list = (name: string | undefined) => name === "Home" || isSettingsListRoute(name);
   return overlays.length === 0 && !list(workspace.at(-1)?.name) && list(workspace.at(-2)?.name);
 }

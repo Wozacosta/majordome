@@ -1,6 +1,7 @@
 import { scaledTypographyLineHeight } from "./appearancePreferences";
 import { MOBILE_TYPOGRAPHY } from "./typography";
 import type { NativeLayoutMetrics } from "./reserved-regions";
+import { isMajordome } from "../majordome/env";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -203,7 +204,8 @@ export function alignListPaneToHinge(input: {
  */
 /** Home's list, or the Settings list in its place, with no detail selected. */
 export function isWorkspaceListPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/settings";
+  // Majordome's Settings list is a page over the chat list, not a list that takes its place.
+  return pathname === "/" || (!isMajordome && pathname === "/settings");
 }
 
 export function isPrimarySidebarPinned(input: {

@@ -28,6 +28,7 @@ import { AndroidWorkspaceSidebar } from "./AndroidWorkspaceSidebar.android";
 import { workspaceUsesColumns, type WorkspaceTab } from "./workspace-tabs-state";
 import { useSelectWorkspaceTab } from "./useSelectWorkspaceTab";
 import { useHardwareBack } from "../../../lib/backHandler";
+import { isMajordome } from "../../../majordome/env";
 
 const TABS: readonly WorkspaceTab[] = NAVIGATION_TAB_ORDER;
 
@@ -81,7 +82,10 @@ function WorkspaceRoot() {
                 ? !workspaceUsesColumns(tab)
                   ? { ...insets, bottom: context.bottomClearance }
                   : insets
-                : { ...insets, bottom: 0 }
+                : // The bottom bar pads the system bar itself; Majordome draws no bar.
+                  isMajordome
+                  ? insets
+                  : { ...insets, bottom: 0 }
           }
         >
           {enabled.length === 0 ? (
@@ -91,7 +95,8 @@ function WorkspaceRoot() {
               <WorkspaceNoTabs />
             )
           ) : (
-            <WorkspaceAppBarScope enabled={!layout.usesSplitView}>
+            // Majordome's chat list draws its own title block, so the shared bar would stay empty.
+            <WorkspaceAppBarScope enabled={!layout.usesSplitView && !isMajordome}>
               <WorkspaceTabPanes
                 tabs={TABS}
                 selected={tab}

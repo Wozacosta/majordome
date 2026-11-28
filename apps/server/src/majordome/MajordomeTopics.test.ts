@@ -595,6 +595,47 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("MajordomeTopics"
       }),
   );
 
+  it.effect("keeps one Set-up conversation, and starts another once it is archived", () =>
+    Effect.gen(function* () {
+      const { service, fake } = yield* setUp();
+      assert.isNull((yield* service.list({ projectId: vaultProject })).setupThreadId);
+
+      const { threadId } = yield* service.openSetupConversation({ projectId: vaultProject });
+      const thread = fake.threads.get(threadId)!;
+      assert.equal(thread.projectId, vaultProject);
+      assert.equal(thread.title, "Set-up");
+      // It settles like any chat, so it never piles up among the open ones.
+      assert.isNull(thread.autoSettleDisabledAt);
+      assert.equal(
+        (yield* service.openSetupConversation({ projectId: vaultProject })).threadId,
+        threadId,
+      );
+      assert.equal((yield* service.list({ projectId: vaultProject })).setupThreadId, threadId);
+
+      // It has its own place, so it cannot be filed under a topic.
+      const topic = yield* service.create({
+        projectId: vaultProject,
+        title: "Money",
+        folder: "projects/money",
+        createFolder: true,
+      });
+      const filed = yield* service
+        .setThreadTopic({ projectId: vaultProject, threadId, topicId: topic.id })
+        .pipe(Effect.exit);
+      assert.equal(errorMessage(filed), "That chat already has its own place.");
+
+      thread.archivedAt = "2026-11-28T10:00:00.000Z";
+      assert.isNull((yield* service.list({ projectId: vaultProject })).setupThreadId);
+      const next = yield* service.openSetupConversation({ projectId: vaultProject });
+      assert.notEqual(next.threadId, threadId);
+
+      const exit = yield* service
+        .openSetupConversation({ projectId: codeProject })
+        .pipe(Effect.exit);
+      assert.equal(errorMessage(exit), "That notes folder was not found.");
+    }),
+  );
+
   it.effect("says what to do when it has no model to start the thread with", () =>
     Effect.gen(function* () {
       const { service } = yield* setUp({ defaultModel: null });

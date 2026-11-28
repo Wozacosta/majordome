@@ -200,6 +200,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeAdoptTopicConversation]: "majordome",
   [WS_METHODS.majordomeSetThreadTopic]: "majordome",
   [WS_METHODS.majordomeOpenRoutinesConversation]: "majordome",
+  [WS_METHODS.majordomeOpenSetupConversation]: "majordome",
   [WS_METHODS.majordomeDismissTopicSuggestions]: "majordome",
   [WS_METHODS.majordomeListReadingItems]: "majordome",
   [WS_METHODS.majordomeAddReadingItem]: "majordome",

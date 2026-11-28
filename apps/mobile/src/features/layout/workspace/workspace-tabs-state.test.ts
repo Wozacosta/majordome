@@ -15,7 +15,7 @@ import {
   type WorkspaceTabsState,
 } from "./workspace-tabs-state";
 
-// Upstream's tabs; Majordome swaps them for Today and Chats.
+// Upstream's tabs; Majordome has none, which majordome/navigation.test.ts covers.
 vi.mock("../../../majordome/env", () => ({ isMajordome: false, MAJORDOME_HIDDEN_TABS: [] }));
 
 describe("compact list clearance", () => {

@@ -27,6 +27,7 @@ import {
   useRef,
   useState,
   type ComponentProps,
+  type ReactNode,
 } from "react";
 import {
   Platform,
@@ -85,6 +86,8 @@ import { useThreadRowProviderInstanceResolver } from "../threads/thread-provider
 import { useOpenThreadPullRequests } from "../threads/use-open-thread-pull-requests";
 import type { ThreadPrPresentation } from "../../state/thread-pr-presentation";
 import {
+  resolveThreadListV2RowStatus,
+  threadHasUnseenCompletion,
   threadListV2ListItemsAreEqual,
   THREAD_LIST_V2_SETTLED_INITIAL_COUNT,
   THREAD_LIST_V2_SETTLED_PAGE_COUNT,
@@ -114,15 +117,22 @@ import {
 import {
   MajordomeDoneTopics,
   MajordomeFirstTopics,
+  MajordomeHomeFirstTopics,
   MajordomeMoreTopics,
   MajordomeTopicRows,
-  MajordomeHiddenRoutines,
   MajordomeTopicsSection,
   useChatListTopics,
 } from "../../majordome/TopicsSection";
 import { gatherRoutineChats } from "../../majordome/routine.logic";
 import { foldSideChats, pinTopicChats, placeUnopenedTopics } from "../../majordome/topic.logic";
-import { RecentChatsLabel } from "../../majordome/ChatRow";
+import { NeedsYouLabel, RecentChatsLabel, TopicsLabel } from "../../majordome/ChatRow";
+import { homeNeed, needsCardText, raiseNeedsYou } from "../../majordome/home.logic";
+import {
+  HomeNeedsCard,
+  needsCardRequest,
+  useNeedsCardRequests,
+} from "../../majordome/homeNeedsCard";
+import { HomeFrame, HomeListTop, useHomeSetup } from "../../majordome/homeSetup";
 import { deriveHomeEmptyState } from "./home-empty-state";
 
 interface HomeScreenProps {
@@ -235,7 +245,10 @@ export function HomeScreen(props: HomeScreenProps) {
   const openSwipeableRef = useRef<SwipeableMethods | null>(null);
   const homeScrollGesture = useNativeGesture();
   const insets = useSafeAreaInsets();
-  const contentTopInset = useContentTopInset();
+  // Majordome's title sits above the list, in flow, so its list starts under no bar.
+  const barTopInset = useContentTopInset();
+  const contentTopInset = isMajordome ? 0 : barTopInset;
+  const home = useHomeSetup();
   const emptyTopInset = useWorkspaceListEmptyTopInset();
   const { fabClearance } = useAndroidControlSizing();
   const screenMetrics = useNativeLayoutMetrics();
@@ -501,21 +514,101 @@ export function HomeScreen(props: HomeScreenProps) {
           ]),
           chatTopics.unfolded,
         );
-  const threadListV2Items = sideChats?.items ?? chatsByActivity;
-  // The chats under the topics get their "Recent" label on the first of them.
-  const firstRecent =
-    topicsFirst === null || topicsFirst.pinned === 0
-      ? undefined
-      : threadListV2Items.find((item) => {
-          const id = foldableThreadId(item);
-          return id !== null && !(chatTopics.byThread.has(id) || sideChats?.nested.has(id));
-        });
-  const firstRecentKey = firstRecent?.key ?? null;
-  // Topics never opened here take their place among the pinned ones, not a block of their own.
-  const unopenedTopics =
-    topicsFirst === null || topicsFirst.pinned === 0
+  const foldedItems = sideChats?.items ?? chatsByActivity;
+  // What needs the owner goes first; a chat shown under its topic goes where the topic goes.
+  const nestedOwners = new Map<ThreadListV2ListItem, ThreadListV2ListItem>();
+  let lastOwner: ThreadListV2ListItem | undefined;
+  for (const item of sideChats === null ? [] : foldedItems) {
+    const id = foldableThreadId(item);
+    if (id !== null && sideChats?.nested.has(id) && lastOwner !== undefined) {
+      nestedOwners.set(item, lastOwner);
+    } else {
+      lastOwner = item;
+    }
+  }
+  const raised =
+    topicsFirst === null
       ? null
-      : placeUnopenedTopics(chatTopics.order, chatTopics.byThread, chatTopics.apart);
+      : raiseNeedsYou(
+          foldedItems,
+          (item) => {
+            if (item.type !== "v2-thread" || item.item.variant !== "card" || item.item.snoozed) {
+              return null;
+            }
+            const thread = item.item.thread;
+            const status = resolveThreadListV2RowStatus(thread);
+            const need = homeNeed(status, status === "ready" && threadHasUnseenCompletion(thread));
+            return need === null
+              ? null
+              : { need, at: resolveThreadActivityTimestamp(thread) ?? thread.createdAt };
+          },
+          (item) => nestedOwners.get(item),
+        );
+  const threadListV2Items = raised?.items ?? foldedItems;
+  const needsCount = raised?.count ?? 0;
+  // The label sits over the first chat that needs the owner, which alone can be a card.
+  const needsFirst = needsCount > 0 ? threadListV2Items[0] : undefined;
+  const needsFirstKey = needsFirst?.key ?? null;
+  const needsFirstThread = needsFirst?.type === "v2-thread" ? needsFirst.item.thread : null;
+  const needsFirstStatus =
+    needsFirstThread === null ? null : resolveThreadListV2RowStatus(needsFirstThread);
+  const needsFirstNeed =
+    needsFirstThread === null || needsFirstStatus === null
+      ? null
+      : homeNeed(
+          needsFirstStatus,
+          needsFirstStatus === "ready" && threadHasUnseenCompletion(needsFirstThread),
+        );
+  // Only that first chat's requests are read, to say on its card what is asked.
+  const needsFirstRequests = useNeedsCardRequests(
+    needsFirstNeed === "approval" || needsFirstNeed === "answer" ? needsFirstThread : null,
+  );
+  const needsCard =
+    needsFirstThread === null || needsFirstNeed === null
+      ? null
+      : needsCardText({
+          need: needsFirstNeed,
+          preview: chatTopics.byThread.get(String(needsFirstThread.id))?.preview ?? null,
+          ...needsCardRequest(needsFirstRequests),
+        });
+  const needsCardKey = needsCard === null ? null : needsFirstKey;
+  const restItems = raised === null ? [] : threadListV2Items.slice(raised.restStart);
+  const raisedThreadIds = new Set(
+    raised === null
+      ? []
+      : threadListV2Items
+          .slice(0, raised.restStart)
+          .flatMap((item) => foldableThreadId(item) ?? []),
+  );
+  const restTopics = new Map(
+    [...chatTopics.byThread].filter(([threadId]) => !raisedThreadIds.has(threadId)),
+  );
+  // Topics never opened here take their place among the others, in the topics' own order.
+  const unopenedTopics =
+    raised === null ? null : placeUnopenedTopics(chatTopics.order, restTopics, chatTopics.apart);
+  const restFirst = restItems[0];
+  const restFirstId = restFirst === undefined ? null : foldableThreadId(restFirst);
+  const restStartsWithTopic = restFirstId !== null && restTopics.has(restFirstId);
+  // The chats under the topics, or under what needs the owner, get "Recent" on the first of them.
+  const firstRecent =
+    restStartsWithTopic || chatTopics.apart.length > 0 || needsCount > 0
+      ? restItems.find((item) => {
+          const id = foldableThreadId(item);
+          return id !== null && !(restTopics.has(id) || sideChats?.nested.has(id));
+        })
+      : undefined;
+  const firstRecentKey = firstRecent?.key ?? null;
+  // "Topics" is only said under "Needs you": over the first topic's row, or over the unopened ones.
+  const topicsLabelKey = needsCount > 0 && restStartsWithTopic ? (restFirst?.key ?? null) : null;
+  const topicsLabelOverUnopened =
+    needsCount > 0 && !restStartsWithTopic && (unopenedTopics?.after.length ?? 0) > 0;
+  const unopenedAfter =
+    unopenedTopics === null || unopenedTopics.after.length === 0 ? null : (
+      <>
+        {topicsLabelOverUnopened ? <TopicsLabel /> : null}
+        <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
+      </>
+    );
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
   // props object, which is new on every render of Home's parent.
   const { onSelectThread } = props;
@@ -606,101 +699,119 @@ export function HomeScreen(props: HomeScreenProps) {
     const thread = item.item.thread;
     const rowTopic = chatTopics.byThread.get(thread.id);
     const rowFold = rowTopic ?? routineRows?.byThread.get(String(thread.id));
-    const row = (
-      <ThreadListV2Row
-        pane={sidebarSurface ? "sidebar" : "screen"}
-        selected={scopedThreadKey(thread.environmentId, thread.id) === selectedThreadKey}
-        fullSwipeWidth={fullSwipeWidth}
-        onNewThreadOnBranch={props.onNewThreadOnBranch}
-        thread={thread}
-        variant={item.item.variant}
-        hasQueuedMessages={item.hasQueuedMessages}
-        snoozed={item.item.snoozed}
-        pinned={item.item.pinned}
-        wokeAt={item.item.wokeAt}
-        snoozePresetMinute={item.snoozePresetMinute ?? ""}
-        snoozeWakeLabelText={item.snoozeWakeLabelText}
-        timeLabel={item.timeLabel}
-        showTrailingDivider={item.showTrailingDivider}
-        project={projectByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ?? null}
-        providerInstance={resolveProviderInstance(thread)}
-        providers={providersByEnvironmentId.get(thread.environmentId)}
-        environmentLabel={
-          Object.keys(props.savedConnectionsById).length > 1
-            ? (props.savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
-            : null
-        }
-        environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
-        searchMatch={
-          // Only rows listed for their messages show one and open at it.
-          contentOnlyThreadKeys.has(
-            threadSearchMatchKey({ environmentId: thread.environmentId, threadId: thread.id }),
-          )
-            ? threadSearchMatchByKey.get(
-                threadSearchMatchKey({ environmentId: thread.environmentId, threadId: thread.id }),
-              )
-            : undefined
-        }
-        searchQuery={threadSearch.query}
-        onSelectThread={selectThread}
-        onOpenThreadPullRequests={handleOpenThreadPullRequests}
-        onDeleteThread={handleDeleteThread}
-        onArchiveThread={props.onArchiveThread}
-        onRenameThread={handleRenameThread}
-        onRegenerateThreadTitle={handleRegenerateThreadTitle}
-        titleRegenerationSupported={titleRegenerationEnvironmentIds.has(thread.environmentId)}
-        settlementSupported={settlementEnvironmentIds.has(thread.environmentId)}
-        onSettleThread={handleSettleThread}
-        snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
-        snoozePresets={snoozePresetsByEnvironmentId.get(thread.environmentId)}
-        pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
-        autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
-        reorderSupported={
-          item.item.pinned
-            ? pinReorderEnvironmentIds.has(thread.environmentId)
-            : !workingShelfEnabled && activeReorderEnvironmentIds.has(thread.environmentId)
-        }
-        canMoveUp={item.canMoveUp}
-        canMoveDown={item.canMoveDown}
-        onSnoozeThread={handleSnoozeThread}
-        onUnsnoozeThread={handleUnsnoozeThread}
-        onUnsettleThread={handleUnsettleThread}
-        onPinThread={handlePinThread}
-        onUnpinThread={handleUnpinThread}
-        onSetThreadAutoSettle={handleSetThreadAutoSettle}
-        onMoveThread={handleMoveThread}
-        onSwipeableClose={handleSwipeableClose}
-        onSwipeableWillOpen={handleSwipeableWillOpen}
-        simultaneousSwipeGesture={homeScrollGesture}
-        activationKey={item.key}
-        topic={isMajordome ? rowTopic : undefined}
-        topicSideChats={
-          rowFold === undefined
-            ? undefined
-            : {
-                count: sideChats?.counts.get(String(thread.id)) ?? 0,
-                unfolded: chatTopics.unfolded.has(rowFold.id),
-                onToggle: () => chatTopics.toggleSideChats(rowFold.id),
-                runs: rowTopic === undefined,
-              }
-        }
-        routineTitle={isMajordome ? chatTopics.routineOf.get(String(thread.id)) : undefined}
-        onHideRoutine={(title) => chatTopics.setRoutineHidden(title, true)}
-        nestedUnderTopic={sideChats?.nested.has(String(thread.id)) === true}
-        onStartTopicSideChat={chatTopics.startSideChat}
-        onSetTopicFinished={chatTopics.setFinished}
-      />
-    );
+    const row =
+      needsCard !== null && item.key === needsCardKey ? (
+        <HomeNeedsCard
+          thread={thread}
+          topic={rowTopic}
+          routine={chatTopics.routineOf.has(String(thread.id))}
+          words={needsCard.words}
+          detail={needsCard.detail}
+          requests={needsFirstRequests}
+          onOpen={selectThread}
+        />
+      ) : (
+        <ThreadListV2Row
+          pane={sidebarSurface ? "sidebar" : "screen"}
+          selected={scopedThreadKey(thread.environmentId, thread.id) === selectedThreadKey}
+          fullSwipeWidth={fullSwipeWidth}
+          onNewThreadOnBranch={props.onNewThreadOnBranch}
+          thread={thread}
+          variant={item.item.variant}
+          hasQueuedMessages={item.hasQueuedMessages}
+          snoozed={item.item.snoozed}
+          pinned={item.item.pinned}
+          wokeAt={item.item.wokeAt}
+          snoozePresetMinute={item.snoozePresetMinute ?? ""}
+          snoozeWakeLabelText={item.snoozeWakeLabelText}
+          timeLabel={item.timeLabel}
+          showTrailingDivider={item.showTrailingDivider}
+          project={
+            projectByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ?? null
+          }
+          providerInstance={resolveProviderInstance(thread)}
+          providers={providersByEnvironmentId.get(thread.environmentId)}
+          environmentLabel={
+            Object.keys(props.savedConnectionsById).length > 1
+              ? (props.savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
+              : null
+          }
+          environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
+          searchMatch={
+            // Only rows listed for their messages show one and open at it.
+            contentOnlyThreadKeys.has(
+              threadSearchMatchKey({ environmentId: thread.environmentId, threadId: thread.id }),
+            )
+              ? threadSearchMatchByKey.get(
+                  threadSearchMatchKey({
+                    environmentId: thread.environmentId,
+                    threadId: thread.id,
+                  }),
+                )
+              : undefined
+          }
+          searchQuery={threadSearch.query}
+          onSelectThread={selectThread}
+          onOpenThreadPullRequests={handleOpenThreadPullRequests}
+          onDeleteThread={handleDeleteThread}
+          onArchiveThread={props.onArchiveThread}
+          onRenameThread={handleRenameThread}
+          onRegenerateThreadTitle={handleRegenerateThreadTitle}
+          titleRegenerationSupported={titleRegenerationEnvironmentIds.has(thread.environmentId)}
+          settlementSupported={settlementEnvironmentIds.has(thread.environmentId)}
+          onSettleThread={handleSettleThread}
+          snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
+          snoozePresets={snoozePresetsByEnvironmentId.get(thread.environmentId)}
+          pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
+          autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
+          reorderSupported={
+            item.item.pinned
+              ? pinReorderEnvironmentIds.has(thread.environmentId)
+              : !workingShelfEnabled && activeReorderEnvironmentIds.has(thread.environmentId)
+          }
+          canMoveUp={item.canMoveUp}
+          canMoveDown={item.canMoveDown}
+          onSnoozeThread={handleSnoozeThread}
+          onUnsnoozeThread={handleUnsnoozeThread}
+          onUnsettleThread={handleUnsettleThread}
+          onPinThread={handlePinThread}
+          onUnpinThread={handleUnpinThread}
+          onSetThreadAutoSettle={handleSetThreadAutoSettle}
+          onMoveThread={handleMoveThread}
+          onSwipeableClose={handleSwipeableClose}
+          onSwipeableWillOpen={handleSwipeableWillOpen}
+          simultaneousSwipeGesture={homeScrollGesture}
+          activationKey={item.key}
+          topic={isMajordome ? rowTopic : undefined}
+          topicSideChats={
+            rowFold === undefined
+              ? undefined
+              : {
+                  count: sideChats?.counts.get(String(thread.id)) ?? 0,
+                  unfolded: chatTopics.unfolded.has(rowFold.id),
+                  onToggle: () => chatTopics.toggleSideChats(rowFold.id),
+                  runs: rowTopic === undefined,
+                }
+          }
+          routineTitle={isMajordome ? chatTopics.routineOf.get(String(thread.id)) : undefined}
+          onHideRoutine={(title) => chatTopics.setRoutineHidden(title, true)}
+          nestedUnderTopic={sideChats?.nested.has(String(thread.id)) === true}
+          onStartTopicSideChat={chatTopics.startSideChat}
+          onSetTopicFinished={chatTopics.setFinished}
+        />
+      );
     const topicsBefore = unopenedTopics?.before.get(String(thread.id));
+    const startsNeeds = item.key === needsFirstKey;
+    const startsTopics = item.key === topicsLabelKey;
     const startsRecent = item.key === firstRecentKey;
-    return topicsBefore !== undefined || startsRecent ? (
+    return topicsBefore !== undefined || startsNeeds || startsTopics || startsRecent ? (
       <>
+        {startsNeeds ? <NeedsYouLabel count={needsCount} /> : null}
+        {startsTopics ? <TopicsLabel /> : null}
         {topicsBefore === undefined ? null : (
           <MajordomeTopicRows rows={topicsBefore} topics={chatTopics} />
         )}
-        {startsRecent && unopenedTopics !== null ? (
-          <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
-        ) : null}
+        {startsRecent ? unopenedAfter : null}
         {startsRecent ? <RecentChatsLabel /> : null}
         {row}
       </>
@@ -724,6 +835,13 @@ export function HomeScreen(props: HomeScreenProps) {
     topicsByThread: chatTopics.byThread,
     firstRecentKey,
     unopenedTopics,
+    needsCard,
+    needsFirstRequests,
+    needsCardKey,
+    needsFirstKey,
+    needsCount,
+    topicsLabelKey,
+    topicsLabelOverUnopened,
     busyTopic: chatTopics.busy,
     unfoldedTopics: chatTopics.unfolded,
     routineOf: chatTopics.routineOf,
@@ -736,7 +854,9 @@ export function HomeScreen(props: HomeScreenProps) {
     props.pendingTasks.length > 0 ||
     threadListV2Layout.settledCount > 0;
   // A hidden list gets no layout, so it never reports its rows as laid out.
-  const hasRowsToLayOut = props.visible && hasAnyThreads && threadListV2Items.length > 0;
+  const showsList = !isMajordome || home.showsList;
+  const hasRowsToLayOut =
+    props.visible && showsList && hasAnyThreads && threadListV2Items.length > 0;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- holds the native launch splash, which is outside React, until the rows are gone or this list unmounts; a layout effect runs before the splash hides in this commit
   useLayoutEffect(() => {
     return hasRowsToLayOut ? holdLaunchSplashForHomeRows() : undefined;
@@ -758,6 +878,50 @@ export function HomeScreen(props: HomeScreenProps) {
     ? { ...upstreamEmptyState, ...NO_CHATS_YET }
     : upstreamEmptyState;
 
+  // Majordome's home keeps its title, the Today strip and the ask box around whatever it lists.
+  const framed = (content: ReactNode) =>
+    isMajordome ? (
+      <HomeFrame
+        home={home}
+        onOpenSettings={props.onOpenSettings}
+        searchQuery={props.searchQuery}
+        onSearchQueryChange={props.onSearchQueryChange}
+      >
+        {content}
+      </HomeFrame>
+    ) : (
+      content
+    );
+
+  if (isMajordome && !hasAnyThreads) {
+    return framed(
+      // Nothing is said before the phone knows what it has; the ask box under this starts a chat.
+      home.setup !== "ready" ? null : (
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerClassName="grow pb-6"
+        >
+          <HomeListTop home={home} />
+          <View className="grow items-center justify-center px-8">
+            <View className="w-full max-w-[430px]">
+              {offersFirstChat && chatTopics.ready.length > 0 ? (
+                <MajordomeFirstTopics topics={chatTopics} />
+              ) : (
+                <EmptyState
+                  title={NO_CHATS_YET.title}
+                  detail={NO_CHATS_YET.detail}
+                  variant="plain"
+                />
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      ),
+    );
+  }
+
   if (!hasAnyThreads) {
     return (
       <View className={containerClassName}>
@@ -776,44 +940,24 @@ export function HomeScreen(props: HomeScreenProps) {
             }}
           >
             <View className="w-full max-w-[430px]">
-              {offersFirstChat && chatTopics.ready.length > 0 ? (
-                <MajordomeFirstTopics
-                  topics={chatTopics}
-                  chat={NO_CHATS_YET}
-                  onStartChat={props.onStartNewTask}
-                />
-              ) : (
-                <EmptyState
-                  title={emptyState.title}
-                  detail={emptyState.detail}
-                  actionLabel={
-                    offersFirstChat
-                      ? NO_CHATS_YET.action
-                      : emptyState.showsAddEnvironment
-                        ? gt("Add environment")
-                        : undefined
-                  }
-                  onAction={
-                    offersFirstChat
-                      ? props.onStartNewTask
-                      : emptyState.showsAddEnvironment
-                        ? props.onAddConnection
-                        : undefined
-                  }
-                  action={
-                    Platform.OS === "android" && emptyState.showsAddEnvironment ? (
-                      <FloatingActionButton
-                        label={gt("Add environment")}
-                        icon="plus"
-                        variant="extended"
-                        tone="primary"
-                        onPress={props.onAddConnection}
-                      />
-                    ) : undefined
-                  }
-                  variant="plain"
-                />
-              )}
+              <EmptyState
+                title={emptyState.title}
+                detail={emptyState.detail}
+                actionLabel={emptyState.showsAddEnvironment ? gt("Add environment") : undefined}
+                onAction={emptyState.showsAddEnvironment ? props.onAddConnection : undefined}
+                action={
+                  Platform.OS === "android" && emptyState.showsAddEnvironment ? (
+                    <FloatingActionButton
+                      label={gt("Add environment")}
+                      icon="plus"
+                      variant="extended"
+                      tone="primary"
+                      onPress={props.onAddConnection}
+                    />
+                  ) : undefined
+                }
+                variant="plain"
+              />
               {emptyState.loading ? (
                 <View className="mt-4 items-center">
                   <AppActivityIndicator colorClassName="accent-icon-muted" />
@@ -832,13 +976,18 @@ export function HomeScreen(props: HomeScreenProps) {
     <>
       {listHeader}
       {isMajordome ? (
-        // Majordome lists the topics not yet among the chats here; upstream's filters are put away.
-        <MajordomeTopicsSection
-          topics={chatTopics}
-          hasChatsBelow={threadListV2Items.length > 0 && (topicsFirst?.pinned ?? 0) === 0}
-          drawnInList={unopenedTopics !== null}
-          searching={hasSearchQuery}
-        />
+        // Upstream's filters are put away. A search lists the topics it finds here; otherwise
+        // the list draws them itself, among the chats.
+        <>
+          <HomeListTop home={home} />
+          {hasSearchQuery ? null : <MajordomeHomeFirstTopics topics={chatTopics} />}
+          <MajordomeTopicsSection
+            topics={chatTopics}
+            hasChatsBelow={false}
+            drawnInList={unopenedTopics !== null}
+            searching={hasSearchQuery}
+          />
+        </>
       ) : Platform.OS === "ios" && workspace ? (
         <ThreadListFilters
           gutter={sidebarSurface ? 8 : 0}
@@ -910,8 +1059,6 @@ export function HomeScreen(props: HomeScreenProps) {
         <EmptyState
           title={emptyState.title}
           detail={emptyState.detail}
-          actionLabel={offersFirstChat ? NO_CHATS_YET.action : undefined}
-          onAction={offersFirstChat ? props.onStartNewTask : undefined}
           variant={Platform.OS === "android" ? "plain" : undefined}
         />
       )
@@ -923,7 +1070,7 @@ export function HomeScreen(props: HomeScreenProps) {
       />
     );
 
-  if (Platform.OS === "android" && threadListV2Items.length === 0 && !hasTopics) {
+  if (!isMajordome && Platform.OS === "android" && threadListV2Items.length === 0 && !hasTopics) {
     return (
       <ScreenContent surface="screen">
         <View
@@ -936,92 +1083,93 @@ export function HomeScreen(props: HomeScreenProps) {
     );
   }
 
+  const list = (
+    <SwipeableScrollGateProvider enabled={swipeEnabled} activation={swipeRowActivation}>
+      <GestureDetector gesture={homeScrollGesture}>
+        <AnimatedLegendList
+          itemLayoutAnimation={THREAD_LIST_ROW_LAYOUT}
+          ref={listRef}
+          onLoad={() => {
+            settleLaunchSplashHomeRows();
+            activateVisibleRows(threadListV2Items);
+          }}
+          onTouchStart={(event) => trackListTouches(event, true)}
+          onTouchEnd={(event) => trackListTouches(event, false)}
+          onTouchCancel={(event) => trackListTouches(event, false)}
+          renderScrollComponent={Platform.OS === "ios" ? renderHomeScrollView : undefined}
+          data={threadListV2Items}
+          renderItem={renderV2Item}
+          keyExtractor={v2KeyExtractor}
+          getItemType={(item) => (item.key === needsCardKey ? "needs-card" : item.type)}
+          itemsAreEqual={threadListV2ListItemsAreEqual}
+          estimatedItemSize={ESTIMATED_THREAD_LIST_V2_ROW_HEIGHT}
+          drawDistance={THREAD_LIST_V2_DRAW_DISTANCE}
+          recycleItems
+          extraData={v2ExtraData}
+          ListHeaderComponent={v2ListHeader}
+          // Lifted above the rows so an iOS filter menu's dismissal morph is not covered.
+          ListHeaderComponentStyle={{ zIndex: 1 }}
+          ListFooterComponent={
+            <>
+              {settledShelfExpanded && threadListV2Layout.hiddenSettledCount > 0 ? (
+                <ThreadListV2ShowMoreRow
+                  hiddenCount={threadListV2Layout.hiddenSettledCount}
+                  {...(olderSettledShelf.loading
+                    ? { state: "loading" as const }
+                    : olderSettledShelf.failed
+                      ? { state: "failed" as const }
+                      : {})}
+                  onPress={() => {
+                    olderSettledShelf.retry();
+                    showMoreSettled();
+                  }}
+                />
+              ) : null}
+              {isMajordome && !hasSearchQuery ? (
+                <>
+                  {firstRecentKey === null ? unopenedAfter : null}
+                  {chatTopics.total === 0 ? null : <MajordomeMoreTopics topics={chatTopics} />}
+                  <MajordomeDoneTopics topics={chatTopics} />
+                </>
+              ) : null}
+            </>
+          }
+          ListEmptyComponent={v2ListEmpty}
+          style={{ flex: 1 }}
+          automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
+          contentInsetAdjustmentBehavior="never"
+          contentInset={Platform.OS === "ios" ? { top: contentTopInset } : undefined}
+          initialScrollOffset={
+            initialScrollOffset > 0 ? initialScrollOffset - contentTopInset : undefined
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          {...scrollGateHandlers}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingLeft:
+              (contentSideInsets?.left ?? 0) + (sidebarSurface ? 8 : 0) + androidListGutter,
+            paddingRight:
+              (contentSideInsets?.right ?? 0) + (sidebarSurface ? 8 : 0) + androidListGutter,
+            paddingBottom: isMajordome
+              ? 16
+              : Platform.OS === "ios"
+                ? iosBottomClearance
+                : (workspace?.bottomClearance ??
+                  Math.max(insets.bottom, 16) + (Platform.OS === "android" ? fabClearance : 88)),
+          }}
+        />
+      </GestureDetector>
+    </SwipeableScrollGateProvider>
+  );
+
+  if (isMajordome) return framed(list);
+
   return (
     <View className={containerClassName}>
       <ScreenContent surface="screen">
-        <View className={cn("flex-1", Platform.OS !== "android" && contentBackground)}>
-          <SwipeableScrollGateProvider enabled={swipeEnabled} activation={swipeRowActivation}>
-            <GestureDetector gesture={homeScrollGesture}>
-              <AnimatedLegendList
-                itemLayoutAnimation={THREAD_LIST_ROW_LAYOUT}
-                ref={listRef}
-                onLoad={() => {
-                  settleLaunchSplashHomeRows();
-                  activateVisibleRows(threadListV2Items);
-                }}
-                onTouchStart={(event) => trackListTouches(event, true)}
-                onTouchEnd={(event) => trackListTouches(event, false)}
-                onTouchCancel={(event) => trackListTouches(event, false)}
-                renderScrollComponent={Platform.OS === "ios" ? renderHomeScrollView : undefined}
-                data={threadListV2Items}
-                renderItem={renderV2Item}
-                keyExtractor={v2KeyExtractor}
-                getItemType={(item) => item.type}
-                itemsAreEqual={threadListV2ListItemsAreEqual}
-                estimatedItemSize={ESTIMATED_THREAD_LIST_V2_ROW_HEIGHT}
-                drawDistance={THREAD_LIST_V2_DRAW_DISTANCE}
-                recycleItems
-                extraData={v2ExtraData}
-                ListHeaderComponent={v2ListHeader}
-                // Lifted above the rows so an iOS filter menu's dismissal morph is not covered.
-                ListHeaderComponentStyle={{ zIndex: 1 }}
-                ListFooterComponent={
-                  <>
-                    {settledShelfExpanded && threadListV2Layout.hiddenSettledCount > 0 ? (
-                      <ThreadListV2ShowMoreRow
-                        hiddenCount={threadListV2Layout.hiddenSettledCount}
-                        {...(olderSettledShelf.loading
-                          ? { state: "loading" as const }
-                          : olderSettledShelf.failed
-                            ? { state: "failed" as const }
-                            : {})}
-                        onPress={() => {
-                          olderSettledShelf.retry();
-                          showMoreSettled();
-                        }}
-                      />
-                    ) : null}
-                    {isMajordome && !hasSearchQuery ? (
-                      <>
-                        {unopenedTopics !== null && firstRecentKey === null ? (
-                          <MajordomeTopicRows rows={unopenedTopics.after} topics={chatTopics} />
-                        ) : null}
-                        <MajordomeMoreTopics topics={chatTopics} />
-                        <MajordomeDoneTopics topics={chatTopics} />
-                        <MajordomeHiddenRoutines topics={chatTopics} />
-                      </>
-                    ) : null}
-                  </>
-                }
-                ListEmptyComponent={v2ListEmpty}
-                style={{ flex: 1 }}
-                automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
-                contentInsetAdjustmentBehavior="never"
-                contentInset={Platform.OS === "ios" ? { top: contentTopInset } : undefined}
-                initialScrollOffset={
-                  initialScrollOffset > 0 ? initialScrollOffset - contentTopInset : undefined
-                }
-                showsVerticalScrollIndicator={false}
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                {...scrollGateHandlers}
-                scrollEventThrottle={16}
-                contentContainerStyle={{
-                  paddingLeft:
-                    (contentSideInsets?.left ?? 0) + (sidebarSurface ? 8 : 0) + androidListGutter,
-                  paddingRight:
-                    (contentSideInsets?.right ?? 0) + (sidebarSurface ? 8 : 0) + androidListGutter,
-                  paddingBottom:
-                    Platform.OS === "ios"
-                      ? iosBottomClearance
-                      : (workspace?.bottomClearance ??
-                        Math.max(insets.bottom, 16) +
-                          (Platform.OS === "android" ? fabClearance : 88)),
-                }}
-              />
-            </GestureDetector>
-          </SwipeableScrollGateProvider>
-        </View>
+        <View className={cn("flex-1", Platform.OS !== "android" && contentBackground)}>{list}</View>
       </ScreenContent>
     </View>
   );
