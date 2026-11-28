@@ -236,6 +236,13 @@ it("links the app's own screens by the name written for them, and leaves an unkn
   expect(screen.container.textContent).toContain("not Nowhere.");
 });
 
+it("reads a named topic it does not list as the words written for it", async () => {
+  setup();
+  await using screen = await renderText("From your [Fitness](app://topic/fitness) notes.");
+  expect(screen.container.querySelector("a, button")).toBeNull();
+  expect(screen.container.textContent).toContain("From your Fitness notes.");
+});
+
 it("keeps decimal markers in nested user lists while documents keep their counter styles", async () => {
   setup();
   const text = "1. Outer\n   1. Nested\n   7. Skipped\n      1. Deeper\n      4. Fourth";

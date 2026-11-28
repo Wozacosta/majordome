@@ -75,6 +75,11 @@ export const SCENARIOS = [
     file: "./dev-replay/screen_link_transcript.ndjson",
   },
   {
+    id: "topic-link",
+    name: "Topics named as links",
+    file: "./dev-replay/topic_link_transcript.ndjson",
+  },
+  {
     id: "screen-name",
     name: "Screen named in bold",
     file: "./dev-replay/screen_name_transcript.ndjson",

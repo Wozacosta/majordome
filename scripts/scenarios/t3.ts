@@ -45,7 +45,7 @@ export interface T3State {
   /**
    * Starts a thread in a project and plays one replayed turn per message before returning.
    * `model` is a dev replay recording: showcase, todo-list, approval, question, multi-turn,
-   * command-output, screen-link, screen-name, table-and-file, read-aloud,
+   * command-output, screen-link, screen-name, topic-link, table-and-file, read-aloud,
    * read-aloud-french.
    */
   readonly thread: (input: {

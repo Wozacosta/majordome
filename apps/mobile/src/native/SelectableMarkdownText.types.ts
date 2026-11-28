@@ -67,7 +67,12 @@ export interface MarkdownLinkCustomization {
   readonly color?: string;
   readonly label?: string;
   readonly icon?: import("react-native").ImageSourcePropType;
-  readonly chip?: { readonly accent?: string; readonly tintsIcon: boolean };
+  readonly chip?: {
+    readonly accent?: string;
+    readonly tintsIcon: boolean;
+    /** Fills the chip, as a topic's badge does; none leaves it on the message. */
+    readonly background?: string;
+  };
 }
 
 export interface SelectableMarkdownTextProps {

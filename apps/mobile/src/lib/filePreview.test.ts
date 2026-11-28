@@ -114,6 +114,9 @@ vi.mock("../majordome/speaking/ReadAloudButton", () => ({
   readAloudReplyKey: () => "",
   useStopReadAloudOnLeave: () => {},
 }));
+vi.mock("../majordome/useTopicLinks", () => ({
+  useTopicLinks: () => ({ topics: [], open: () => false }),
+}));
 vi.mock("../components/PierreEntryIcon", () => ({ PierreEntryIcon: () => null }));
 vi.mock("../components/ui/AppText", () => ({
   AppText: ({ children }: { children?: ReactNode }) => createElement("span", null, children),

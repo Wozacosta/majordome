@@ -1638,7 +1638,7 @@ describe("orchestration v2 provider switching", () => {
         const turns = yield* Ref.get(capturedTurns);
         assert.equal(turns[1]?.text, "Message 2");
         assert.include(turns[2]?.text, "list of topics changed since the last message here");
-        assert.include(turns[2]?.text, "- Lisbon (folder lisbon)");
+        assert.include(turns[2]?.text, "- [Lisbon](app://topic/lisbon) (folder lisbon)");
         assert.notInclude(turns[2]?.text, "Lives in Lyon");
         assert.isTrue(turns[2]?.text.endsWith("Message 3"));
         assert.equal(turns[3]?.text, "Message 4");

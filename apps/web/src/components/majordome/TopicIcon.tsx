@@ -30,7 +30,7 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { majordomeEnvironment } from "../../state/majordome";
@@ -163,6 +163,33 @@ export function TopicIconBadge({
         />
       ) : null}
     </span>
+  );
+}
+
+/** The topic's name on its colour with its icon, set in a line of text. */
+export function TopicNameBadge({
+  topic,
+  onOpen,
+  children,
+}: {
+  readonly topic: MajordomeTopic;
+  readonly onOpen: () => void;
+  readonly children: ReactNode;
+}) {
+  const { Icon } = ICONS[topicIcon(topic)];
+  return (
+    <button
+      type="button"
+      data-topic-badge={topic.id}
+      onClick={onOpen}
+      className={cn(
+        "inline cursor-pointer rounded-md px-1.5 py-px font-medium hover:brightness-95 focus-visible:outline-2 focus-visible:outline-current dark:hover:brightness-125",
+        TONES[topicTone(topic)].tile,
+      )}
+    >
+      <Icon aria-hidden className="me-1 inline size-[1em] align-[-0.125em]" />
+      {children}
+    </button>
   );
 }
 

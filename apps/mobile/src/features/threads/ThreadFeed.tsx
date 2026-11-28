@@ -2,6 +2,8 @@ import { CollapsibleUserMessageBody } from "./CollapsibleUserMessageBody";
 import { msg, T, useGT, useLocale, useMessages } from "gt-react-native";
 import { m } from "../../i18n/messages";
 import { isMajordome } from "../../majordome/env";
+import { topicLinkCustomization } from "../../majordome/topicLinks";
+import { useTopicLinks } from "../../majordome/useTopicLinks";
 import {
   ReadAloudButton,
   readAloudReplyKey,
@@ -3126,6 +3128,7 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
   const openPullRequest = useOpenPullRequest();
   const navigation = useNavigation();
   const openThreadLink = useOpenThreadLink(props.environmentId);
+  const topicLinks = useTopicLinks();
   const openLocalPreview = useOpenLocalPreview();
   const previewTunnelOff = useEnvironmentPreviewTunnelOff(props.environmentId);
   // Without the tunnel, loopback links fall through to the system browser like any other link.
@@ -3414,6 +3417,7 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
       if (target) openThreadLink(target);
       return;
     }
+    if (topicLinks.open(href)) return;
     if (parseAppScreenHref(href) !== null) {
       // The link names a screen of the computer app; this app has other screens.
       Dialog.alert(
@@ -3511,7 +3515,8 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
         standalone,
       ),
     onLinkPress: (href, reply) => onMarkdownLinkPress(href, false, reply),
-    linkCustomization: enrichedThreadLinkCustomization,
+    linkCustomization: (href) =>
+      enrichedThreadLinkCustomization(href) ?? topicLinkCustomization(href, topicLinks.topics),
     onImagePress: (href, withGallery) => onMarkdownLinkPress(href, true, undefined, withGallery),
     resolveImageSource,
     fileContextMenu: (href) => {

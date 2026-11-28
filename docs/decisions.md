@@ -504,6 +504,10 @@ takes over.
       reports the same way across providers. Not done: a record of which
       topics a chat actually looked in. Providers report file reads in different shapes, so a
       list built from them would be wrong for some; the answer naming the topic is the record.
+      Since 2026-11-28 the topics are listed to the assistant as links (`app://topic/<id>`) and
+      it is asked to name the one it looked in with that link, which the computer and the phone
+      draw as the topic's badge: its icon and name on its colour, opening the topic. Not done
+      by matching topic names in the text: "Work" or "Home" is too often an ordinary word.
     - **Choosing the model again.** Done 2026-11-25, as three levels, not a model list (the
       owner's shape): Quick for the small jobs Majordome does itself (titles, key facts,
       summaries, drawings), Everyday for chats and routines, Powerful when the owner asks for

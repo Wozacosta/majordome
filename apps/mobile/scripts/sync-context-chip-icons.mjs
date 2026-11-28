@@ -48,6 +48,31 @@ const lucideIcons = [
   "terminal",
 ];
 
+// Majordome: a topic's icon, by its key in MAJORDOME_TOPIC_ICONS, for the badge of a topic an
+// assistant names in a message.
+const topicIcons = {
+  hash: "hash",
+  dumbbell: "dumbbell",
+  footprints: "footprints",
+  wallet: "wallet",
+  receipt: "receipt",
+  bitcoin: "bitcoin",
+  plane: "plane",
+  "heart-pulse": "heart-pulse",
+  "book-open": "book-open",
+  languages: "languages",
+  briefcase: "briefcase",
+  home: "house",
+  utensils: "utensils",
+  music: "music",
+  code: "code",
+  "pen-line": "pen-line",
+  users: "users",
+  leaf: "leaf",
+  car: "car",
+  lightbulb: "lightbulb",
+};
+
 async function lucideSvg(name) {
   const module = await import(
     NodeURL.pathToFileURL(NodePath.join(lucideIconsDirectory, `${name}.js`)).href
@@ -84,6 +109,9 @@ for (const name of lucideIcons) {
   await renderIcon(name, await lucideSvg(name));
 }
 await renderIcon("skill", skillSvg);
+for (const [key, name] of Object.entries(topicIcons)) {
+  await renderIcon(`topic-${key}`, await lucideSvg(name));
+}
 
 // Provider logos, so a model chip can show what the model menu shows. Native chips take images,
 // not SVG. Logos that swap between black and white per theme take the text color, like the chip;
@@ -180,4 +208,10 @@ const providerSource = `\nexport const PROVIDER_CHIP_ICONS: Readonly<\n  Record<
     .join(
       "\n",
     )}\n  antigravity: {\n    source: require("../../assets/antigravity.png"),\n    tintsIcon: false,\n    accent: "#5b87bf",\n  },\n};\n`;
-NodeFS.writeFileSync(generatedModulePath, generatedSource + providerSource);
+const topicSource = `\nexport const TOPIC_CHIP_ICON_SOURCES = {\n${Object.keys(topicIcons)
+  .map(
+    (key) =>
+      `  ${/^\w+$/.test(key) ? key : `"${key}"`}: require("../../assets/context-chip-icons/topic-${key}.png"),`,
+  )
+  .join("\n")}\n} as const satisfies Readonly<Record<string, ImageSourcePropType>>;\n`;
+NodeFS.writeFileSync(generatedModulePath, generatedSource + providerSource + topicSource);

@@ -6,6 +6,7 @@
  */
 
 import type { MajordomeChatKnowledgeResult, MajordomeVaultTopic } from "@t3tools/contracts";
+import { formatTopicLink } from "@t3tools/shared/majordomeTopicLinks";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -205,12 +206,12 @@ export function otherTopicsSection(input: {
   readonly memoryPath: string;
 }): string {
   const lines = input.topics.map((topic) => {
-    const name = `- ${topic.title} (folder ${topic.folder})`;
+    const name = `- ${formatTopicLink(topic.title, topic.id)} (folder ${topic.folder})`;
     return topic.standing === null ? name : `${name}: ${topic.standing}`;
   });
   return [
     "<other_topics>",
-    `${input.inTopic ? "The user's other topics" : "The user's topics"}: each is a folder of these notes with a conversation of its own. Only where each one stands is loaded here, not its notes. When what the user asks touches one of them, look inside it before you answer: read its log (log.md in its folder), or search it with \`search_notes\` and its \`folder\`. Then name the topic you looked in, in your answer, so the user knows where it came from. A fact that matters in several topics, or about how the user likes things done, belongs in ${input.memoryPath}: it is the one note every conversation starts with.`,
+    `${input.inTopic ? "The user's other topics" : "The user's topics"}: each is a folder of these notes with a conversation of its own. Only where each one stands is loaded here, not its notes. When what the user asks touches one of them, look inside it before you answer: read its log (log.md in its folder), or search it with \`search_notes\` and its \`folder\`. Then name the topic you looked in, in your answer, written as its link exactly as it is listed below, so the user sees where it came from. A fact that matters in several topics, or about how the user likes things done, belongs in ${input.memoryPath}: it is the one note every conversation starts with.`,
     ...lines,
     "</other_topics>",
   ].join("\n");
