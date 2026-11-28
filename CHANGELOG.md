@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.92
+
 **New**
 
 - **Take a photo into a chat, on the phone.** The "+" beside the message box starts with "Take a
