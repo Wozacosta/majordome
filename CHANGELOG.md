@@ -13,6 +13,9 @@ The section for a version is also the text of its release on GitHub.
   **Delete my account** are now ordinary rows, with delete on its own in red.
 - **"Where things stand" is a card.** Above a topic's chat, it now sits in its own rounded box,
   lined up with the replies under it, with when it was updated beside its name.
+- **The sidebar shows when you are signed in.** The account button at the bottom is your
+  initial in a filled circle once you are signed in, and its tooltip is your email. Signed
+  out, it stays the outline of a person and says "Sign in".
 
 **Try this**
 
