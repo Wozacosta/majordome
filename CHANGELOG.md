@@ -11,14 +11,6 @@ The section for a version is also the text of its release on GitHub.
   photo": the camera opens and the photo lands in your message like one from the library. The
   camera button beside home's box takes a photo and opens a new chat holding it, with what you
   had typed, ready for your question.
-
-**Try this**
-
-- On the phone, tap the camera beside "Ask anything…", photograph a receipt, then write "file
-  this" and send.
-
-**New**
-
 - **Notifications in the phone apps.** Settings on the phone has a ninth row, Notifications,
   with one switch: "Notifications on this phone". The phone asks your permission when you turn
   it on, not before. You are told about the same things as in a browser: a chat is waiting
@@ -32,6 +24,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- On the phone, tap the camera beside "Ask anything…", photograph a receipt, then write "file
+  this" and send.
 - On the phone, open Settings, then Notifications, turn the switch on and press "Send a test".
 - Ask the assistant "let me know when it's done" on something long, lock the phone, and tap
   what arrives.
