@@ -272,20 +272,21 @@ function Connectors({
   const unconnected = targets.filter((target) => target.reason === "no-connectors");
   return (
     <>
-      <ConnectedApps environmentId={environmentId} apps={apps} />
-      {view.rows.length > 0 ? (
-        <ServiceGrid
-          className={apps.connected.length > 0 ? "mt-2" : undefined}
-          services={view.rows.map((row) => ({
-            ...row,
-            mark: connectorMark(row.name),
-            place:
-              row.manageUrl === null ? null : (
-                <a href={row.manageUrl} target="_blank" rel="noreferrer" />
-              ),
-          }))}
-        />
-      ) : null}
+      <ConnectedApps environmentId={environmentId} apps={apps}>
+        {view.rows.length > 0 ? (
+          <ServiceGrid
+            className={apps.connected.length > 0 ? "mt-2" : undefined}
+            services={view.rows.map((row) => ({
+              ...row,
+              mark: connectorMark(row.name),
+              place:
+                row.manageUrl === null ? null : (
+                  <a href={row.manageUrl} target="_blank" rel="noreferrer" />
+                ),
+            }))}
+          />
+        ) : null}
+      </ConnectedApps>
       {view.rows.some((row) => row.signInUrl !== null) ? (
         <Muted className="mt-2">After you sign in, come back here and press “Check again”.</Muted>
       ) : null}
@@ -340,9 +341,12 @@ function openInBrowser(url: string) {
 function ConnectedApps({
   environmentId,
   apps,
+  children,
 }: {
   readonly environmentId: EnvironmentId;
   readonly apps: ReturnType<typeof appsView>;
+  /** What the AI accounts bring, listed between the connected apps and the ones to add. */
+  readonly children: ReactNode;
 }) {
   const allowed = useAtomValue(majordomeEnvironment.startConnection.permissionAtom(environmentId));
   const origin = serverOrigin(useEnvironmentHttpBaseUrl(environmentId));
@@ -423,9 +427,10 @@ function ConnectedApps({
           }))}
         />
       ) : null}
+      {children}
       {allowed && apps.addable.length > 0 ? (
         <ServiceGrid
-          className={apps.connected.length > 0 ? "mt-2" : undefined}
+          className="mt-2"
           services={apps.addable.map((app) => ({
             key: `add:${app.id}`,
             name: app.name,
