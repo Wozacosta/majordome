@@ -13,6 +13,11 @@ Not released yet.
   **Start over as new** signs you out and forgets every computer, so the app opens on its
   welcome again. Your notes and your account are not touched.
 
+**Fixed**
+
+- **The account page and the guide no longer say a hosted server is by invitation only.** They
+  now say both ways in: subscribe on majord.me/start, or enter an invite code.
+
 **Try this**
 
 - In Settings, About, hold **Version**, then press **Start over as new**.

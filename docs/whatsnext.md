@@ -77,9 +77,6 @@ Details are in "The iPhone app" below.
 
 ### The landing page and the docs
 
-- [ ] **"By invitation" is out of date.** The landing page shows the price and leads to
-      `/start`, but the account page, `docs/user/always-on-server.md` and `docs/vs-t3-code.md`
-      still say Majordome hosts by invitation.
 - [ ] **The Intel Mac build** (below).
 - [ ] `docs/user/` beyond `install.md` still describes T3 Code (see "Still pointing at T3 Code").
 
