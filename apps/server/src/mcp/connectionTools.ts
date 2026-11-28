@@ -93,7 +93,7 @@ export const start = Effect.fn("connectionTools.start")(function* (server: ToolS
     }
     if (!entry.tool.readOnly && !entry.routinesMayChange && (yield* unattended(scope.thread))) {
       return refused(
-        `This would change something in ${entry.appName}, and a routine or a helper task may only read from it. The owner can allow it in Settings, then Connections.`,
+        `This would change something in ${entry.appName}, and a routine or a helper task may only read from it. The owner can allow it in Settings, then Connections, with "Let routines make changes in ${entry.appName}".`,
       );
     }
     return yield* connections

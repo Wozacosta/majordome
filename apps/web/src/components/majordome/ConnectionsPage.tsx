@@ -411,7 +411,7 @@ function ConnectedApps({
             place: null,
             action: actionFor(row),
             extra: allowed ? (
-              <SwitchLabel className="text-xs text-muted-foreground">
+              <SwitchLabel className="min-h-0 text-xs text-muted-foreground">
                 <Switch
                   checked={row.routinesMayChange}
                   onCheckedChange={(checked) =>
@@ -421,7 +421,7 @@ function ConnectedApps({
                     })
                   }
                 />
-                Routines may change things here
+                Let routines make changes in {row.name}
               </SwitchLabel>
             ) : null,
           }))}

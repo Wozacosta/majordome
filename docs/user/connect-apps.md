@@ -19,7 +19,7 @@ renaming a meeting.
 
 A routine runs with nobody watching, and what an app holds is partly written by other people. So
 a routine, and a task your assistant hands to a helper, may only read from the app. To let them
-change things too, turn on **Routines may change things here** under the app.
+change things too, turn on **Let routines make changes in Granola** under the app.
 
 ## One machine at a time
 

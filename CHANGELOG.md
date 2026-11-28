@@ -15,7 +15,7 @@ Not released yet.
   you connected it on.
 - **Routines only read from a connected app.** In a chat you are in, the assistant can also
   change things there, such as renaming a meeting. A routine cannot, until you turn on
-  "Routines may change things here" for that app.
+  "Let routines make changes in Granola" for that app.
 - **Disconnect** removes Majordome's access at the app itself.
 
 **Try this**
