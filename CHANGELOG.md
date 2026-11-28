@@ -15,23 +15,16 @@ The section for a version is also the text of its release on GitHub.
   home: no notes, no account, no assistant signed in, as on a Mac that never had it. It leaves
   your own Majordome, its notes and its background service alone, and starts empty again each
   time you open it.
-
 - **Sign in with Apple.** The sign-in screen offers Apple beside Google and your email, on the
   phone, the Mac app and the website. No update is needed.
-
-**Try this**
-
-- In Settings, About, press and hold the version number, then press **Open** beside "Open as a
-  new owner" and go through the welcome page as someone new.
-
-**New**
-
 - **An app catalog on the Connections page.** The apps you can connect have their own section,
   under the ones already connected. It now holds Notion, Linear, Atlassian (Jira and Confluence)
   and Canva beside Granola. Connect one and it moves up to Apps.
 
 **Try this**
 
+- In Settings, About, press and hold the version number, then press **Open** beside "Open as a
+  new owner" and go through the welcome page as someone new.
 - Open Settings, then Connections, scroll to App catalog and connect an app you use.
 
 ## 0.10.92
