@@ -23,7 +23,7 @@ only devices signed in to your account, or paired with a code, can open.
   server in your account it opens by itself; with several, press **Open** next to the one you
   want.
 - **In the Majordome app on another computer:** open **Settings > Your account**, sign in, and
-  press **Connect** next to the server under **Also in your account**.
+  press **Connect** next to the server under **Your computers**.
 
 If the page says there is nothing to open, the computer has no address yet: see
 [Sign in](#sign-in). If a server does not answer, check that it is on and connected to the

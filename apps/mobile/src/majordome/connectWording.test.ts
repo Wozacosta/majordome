@@ -53,7 +53,7 @@ describe("welcomeAccountRow", () => {
     for (const computers of [[], ["Studio"], ["Studio", "Den"]]) {
       const row = welcomeAccountRow({ signedIn: true, email: "ada@example.com", computers });
       expect(row.title).not.toMatch(/sign in/i);
-      expect(row.detail).toBe("ada@example.com");
+      expect(row.detail).toBe("Signed in as ada@example.com");
     }
   });
 

@@ -10,6 +10,11 @@ The section for a version is also the text of its release on GitHub.
 - **The phone's message box says "Everyday", not a model's name.** The button shows the level
   the chat is on: Quick, Everyday or Powerful. Tapping it offers those three and nothing else;
   every model and its options are behind "Other models".
+- **Your account, in Settings, is one list.** Under your email, **Your computers** shows this
+  computer and every other one in your account by name, each with what it needs: add it, give
+  it an address so your phone can reach it, or connect to it.
+- **The phone's first screen says you are signed in.** The account row reads "Signed in as"
+  with your email, and **Sign out** is right under it.
 
 **Fixed**
 
@@ -21,6 +26,7 @@ The section for a version is also the text of its release on GitHub.
 
 - On the phone, open a chat and look at the button left of the microphone, then tap it.
 - In Settings, Connections, App catalog, press Connect next to Canva.
+- Open Settings, then Your account, on the Mac.
 
 ## 0.10.93
 

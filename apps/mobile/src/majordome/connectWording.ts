@@ -99,6 +99,7 @@ export const MAJORDOME_WELCOME = {
   returning: "Let's connect to your brain",
   signIn: "Sign in",
   signInDetail: "This phone finds your computers",
+  signOut: "Sign out",
   scan: "Scan a code",
   scanDetail: "Majordome on your computer shows one",
   newHere: "I'm new here",
@@ -121,7 +122,7 @@ export function welcomeAccountRow(account: {
   if (!account.signedIn) {
     return { title: MAJORDOME_WELCOME.signIn, detail: MAJORDOME_WELCOME.signInDetail, main: true };
   }
-  const detail = account.email ?? "Signed in";
+  const detail = account.email === null ? "Signed in" : `Signed in as ${account.email}`;
   const [first] = account.computers;
   if (first === undefined) return { title: "Your account", detail, main: false };
   return {
