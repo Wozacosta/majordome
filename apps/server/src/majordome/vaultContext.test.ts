@@ -253,11 +253,11 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       assert.include(inTopic, "The user's other topics:");
       assert.include(
         inTopic,
-        "- Accounting (folder personal/accounting): VAT return is due 15 December. Waiting for the bank export.",
+        "- [Accounting](app://topic/accounting) (folder personal/accounting): VAT return is due 15 December. Waiting for the bank export.",
       );
-      assert.include(inTopic, "- Garden (folder projects/garden)\n");
+      assert.include(inTopic, "- [Garden](app://topic/garden) (folder projects/garden)\n");
       assert.include(inTopic, "belongs in memory.md");
-      assert.notInclude(inTopic, "- Fitness (folder");
+      assert.notInclude(inTopic, "- [Fitness](app://topic/fitness) (folder");
       assert.notInclude(inTopic, "Paid the accountant");
       assert.notInclude(inTopic, "- Move (folder");
       assert.notInclude(inTopic, "safe code");
@@ -268,7 +268,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
         topicOf: threadOf("thread-other"),
       });
       assert.include(elsewhere, "The user's topics:");
-      assert.include(elsewhere, "- Fitness (folder personal/fitness)\n");
+      assert.include(elsewhere, "- [Fitness](app://topic/fitness) (folder personal/fitness)\n");
 
       assert.deepStrictEqual(
         yield* readChatKnowledge({
@@ -381,7 +381,7 @@ it.layer(NodeServices.layer)("readVaultContext", (it) => {
       yield* fs.utimes(topicsPath, writtenAt, writtenAt);
       const changed = yield* change(NOW - 1_000);
       assert.include(changed, "changed since the last message here");
-      assert.include(changed, "- Lisbon (folder lisbon)");
+      assert.include(changed, "- [Lisbon](app://topic/lisbon) (folder lisbon)");
       assert.notInclude(changed, "Likes tea");
 
       yield* fs.writeFileString(topicsPath, topicsJson([]));

@@ -91,7 +91,9 @@ import { parseAssistantCitationHref } from "@t3tools/shared/assistantCitations";
 import { parseComposerContextHref } from "@t3tools/shared/composerContextReferences";
 import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
 import { parseAppScreenHref } from "@t3tools/shared/appScreenLinks";
+import { parseTopicHref } from "@t3tools/shared/majordomeTopicLinks";
 import { MarkdownAppScreenLink, MarkdownNamedScreen } from "./chat/MarkdownAppScreenLink";
+import { MarkdownTopicLink } from "./chat/MarkdownTopicLink";
 import { namedScreenTarget } from "./majordome/assistant.logic";
 import { AssistantCitationEmbed } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
@@ -1380,6 +1382,13 @@ const CHAT_MARKDOWN_COMPONENTS = {
       ) : (
         <span>{label ?? gt("Thread")}</span>
       );
+    }
+    const topicId = href ? parseTopicHref(href) : null;
+    if (topicId !== null) {
+      // An autolink's text is its own address, which is no label.
+      const written = hastPlainTextDeep(node);
+      const labeled = written !== "" && parseTopicHref(written) === null;
+      return <MarkdownTopicLink topicId={topicId} label={labeled ? children : null} />;
     }
     if (href && parseAppScreenHref(href) !== null) {
       // An autolink's text is its own address, which is no label.

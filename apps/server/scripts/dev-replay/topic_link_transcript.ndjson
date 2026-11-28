@@ -1,0 +1,4 @@
+{"type":"transcript_start","provider":"acpRegistry","protocol":"acp.ndjson-jsonrpc","version":"1","scenario":"dev_replay_topic_link","metadata":{"generatedBy":"hand-written for the dev replay agent"}}
+{"type":"expect_outbound","frame":{"kind":"request","method":"session/prompt","params":"<any>"}}
+{"type":"emit_inbound","frame":{"kind":"notification","method":"session/update","params":{"sessionId":"dev-replay-session","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"From your [Fitness](app://topic/fitness) notes, **9 km easy** is a good distance for tomorrow. Your [Quitting nicotine](app://topic/quitting-nicotine) log says day 19, so 7 km is fine if it feels flat. Nothing in [Old plan](app://topic/gone) changes that."}}}}}
+{"type":"emit_inbound","frame":{"kind":"response","method":"session/prompt","result":{"stopReason":"end_turn"}}}

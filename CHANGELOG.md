@@ -7,6 +7,17 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **A topic the assistant looked in wears its badge.** When an answer draws on one of your
+  topics, the topic's name shows in the answer on its colour, with its icon, on the computer and
+  the phone. Click or tap it to open that topic.
+
+**Try this**
+
+- In a new chat, ask something one of your topics knows about, such as "what would be a good
+  distance to run tomorrow?", and look for the topic's badge in the answer.
+
 ## 0.10.88
 
 **New**

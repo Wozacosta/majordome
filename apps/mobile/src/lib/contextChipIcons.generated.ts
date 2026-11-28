@@ -72,3 +72,26 @@ export const PROVIDER_CHIP_ICONS: Readonly<
     accent: "#5b87bf",
   },
 };
+
+export const TOPIC_CHIP_ICON_SOURCES = {
+  hash: require("../../assets/context-chip-icons/topic-hash.png"),
+  dumbbell: require("../../assets/context-chip-icons/topic-dumbbell.png"),
+  footprints: require("../../assets/context-chip-icons/topic-footprints.png"),
+  wallet: require("../../assets/context-chip-icons/topic-wallet.png"),
+  receipt: require("../../assets/context-chip-icons/topic-receipt.png"),
+  bitcoin: require("../../assets/context-chip-icons/topic-bitcoin.png"),
+  plane: require("../../assets/context-chip-icons/topic-plane.png"),
+  "heart-pulse": require("../../assets/context-chip-icons/topic-heart-pulse.png"),
+  "book-open": require("../../assets/context-chip-icons/topic-book-open.png"),
+  languages: require("../../assets/context-chip-icons/topic-languages.png"),
+  briefcase: require("../../assets/context-chip-icons/topic-briefcase.png"),
+  home: require("../../assets/context-chip-icons/topic-home.png"),
+  utensils: require("../../assets/context-chip-icons/topic-utensils.png"),
+  music: require("../../assets/context-chip-icons/topic-music.png"),
+  code: require("../../assets/context-chip-icons/topic-code.png"),
+  "pen-line": require("../../assets/context-chip-icons/topic-pen-line.png"),
+  users: require("../../assets/context-chip-icons/topic-users.png"),
+  leaf: require("../../assets/context-chip-icons/topic-leaf.png"),
+  car: require("../../assets/context-chip-icons/topic-car.png"),
+  lightbulb: require("../../assets/context-chip-icons/topic-lightbulb.png"),
+} as const satisfies Readonly<Record<string, ImageSourcePropType>>;

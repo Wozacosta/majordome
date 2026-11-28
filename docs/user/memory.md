@@ -7,8 +7,9 @@ if it reached your memory note.
 
 A topic's conversation also starts with that topic's own notes. Of your other topics it is told
 only their names and where each one stands (the "Where things stand" lines at the top of its log),
-not their notes. When your question touches another topic, it looks inside that topic and says in
-its answer which one it looked in.
+not their notes. When your question touches another topic, it looks inside that topic and names
+it in its answer. The name shows as the topic's badge, on its colour with its icon: click or tap it
+to open that topic.
 
 A conversation you keep for weeks does not stay on the notes it began with. The first message you
 send on a new day gives it all of this again, as it is then: your memory note, the two daily notes,

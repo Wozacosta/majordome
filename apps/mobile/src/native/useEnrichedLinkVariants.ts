@@ -167,7 +167,7 @@ export function useEnrichedLinkVariants(
               fontFamily: chipForeground ? FONT_FAMILIES.medium : textStyle.fontFamily,
               color: chipForeground ?? link.color ?? textStyle.fileTextColor,
               underline: false,
-              backgroundColor: "transparent",
+              backgroundColor: link.chip?.background ?? "transparent",
             },
           ];
         }),

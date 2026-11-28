@@ -65,7 +65,8 @@ The landing page and the README show a short version of this list.
   conversation in short, and a drawing of it. On the iPhone, a chat's "i" button shows the same
   facts and a topic's files. [Key facts](./user/key-facts.md)
 - **What a chat knows, shown:** every conversation is told where your other topics stand and looks
-  inside one when your question touches it, saying which. The side panel lists the notes a chat
+  inside one when your question touches it, naming it in the answer as that topic's coloured
+  badge, which opens the topic. The side panel lists the notes a chat
   starts with and the topics it only knows the standing of. A conversation kept for days is given
   them again with its first message of each new day, and the list of topics as soon as it
   changes. [Memory](./user/memory.md)
