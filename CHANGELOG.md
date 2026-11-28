@@ -26,9 +26,8 @@ The section for a version is also the text of its release on GitHub.
 
 - On the phone, tap the camera beside "Ask anything…", photograph a receipt, then write "file
   this" and send.
-- On the phone, open Settings, then Notifications, turn the switch on and press "Send a test".
-- Ask the assistant "let me know when it's done" on something long, lock the phone, and tap
-  what arrives.
+- On the phone, open Settings, then Notifications. Until the sending keys are in place it says
+  "Your computer can't send them yet"; after that, turn the switch on and press "Send a test".
 
 ## 0.10.90
 

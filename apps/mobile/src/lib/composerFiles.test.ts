@@ -100,6 +100,7 @@ vi.mock("expo-image-manipulator", () => ({
 vi.mock("./uuid", () => ({ uuidv4: () => "attachment-id" }));
 
 import {
+  cameraPhotoName,
   persistComposerAttachmentFile,
   isComposerImageAttachment,
   pickComposerFiles,
@@ -547,14 +548,21 @@ describe("composer file attachments", () => {
         attachments: [
           expect.objectContaining({
             type: "image",
-            name: "shot.jpg",
+            name: expect.stringMatching(/^Photo \d\d\.\d\d\.jpg$/),
             mimeType: "image/jpeg",
-            fileUri: `${STORED}-shot.jpg`,
+            fileUri: expect.stringMatching(/Photo.\d\d\.\d\d\.jpg$/),
           }),
         ],
         error: null,
       });
       expect(isForegroundHandoffActive()).toBe(false);
+    });
+
+    it("names the photo by the time it was taken, not by the camera's random file name", () => {
+      const taken = new Date(2026, 10, 28, 9, 5);
+      expect(cameraPhotoName(taken, "6782ea2f-0dd0-4ac6.jpeg")).toBe("Photo 09.05.jpeg");
+      expect(cameraPhotoName(taken, "IMG_0042.HEIC")).toBe("Photo 09.05.heic");
+      expect(cameraPhotoName(taken, null)).toBe("Photo 09.05.jpg");
     });
 
     it("changes nothing when the camera is closed without a photo", async () => {

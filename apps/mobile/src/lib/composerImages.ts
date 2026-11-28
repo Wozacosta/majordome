@@ -138,6 +138,13 @@ const OWNED_PASTED_IMAGE_DIRECTORY = "t3-composer-paste";
 const ATTACHMENT_COPY_CHUNK_BYTES = 64 * 1024;
 
 // Android's java.net.URI rejects characters expo-file-system leaves unencoded, such as `[` and `]`.
+/** "Photo 14.05.jpg": a name the owner can read, keeping the camera file's own extension. */
+export function cameraPhotoName(taken: Date, fileName: string | null | undefined): string {
+  const extension = /\.[a-z0-9]+$/i.exec(fileName?.trim() ?? "")?.[0].toLowerCase() ?? ".jpg";
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${m(msg("Photo"))} ${two(taken.getHours())}.${two(taken.getMinutes())}${extension}`;
+}
+
 function safeComposerAttachmentName(name: string): string {
   return name.replace(/[^\w. -]/g, "-") || "file";
 }
@@ -552,7 +559,11 @@ export async function pickComposerMedia(input: {
       continue;
     }
 
-    const name = asset.fileName?.trim() || "image";
+    // The camera names its file with a random id, which is what the owner would read in the chat.
+    const name =
+      input.source === "camera"
+        ? cameraPhotoName(new Date(), asset.fileName)
+        : asset.fileName?.trim() || "image";
     // Android content streams can exceed their reported size; measure the file before loading bytes into JS.
     let sourceBytes: number | null = null;
     try {
