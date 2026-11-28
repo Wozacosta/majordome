@@ -17,6 +17,13 @@ The section for a version is also the text of its release on GitHub.
   initial in a filled circle once you are signed in, and its tooltip is your email. Signed
   out, it stays the outline of a person and says "Sign in".
 
+**Fixed**
+
+- **Subscribing on the iPhone after deleting your account works again.** If your Apple account
+  was still paying for a server whose Majordome account you had deleted, Subscribe said the
+  purchase belonged to another account, and no account could use it. The account you are
+  signed in to now takes the subscription and gets its server.
+
 **Try this**
 
 - On a phone signed in to an account with no computer, open Your account.

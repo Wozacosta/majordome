@@ -474,8 +474,16 @@ export function makeBilling(deps: {
     }) => {
       const row = await rowFor(input.accountId);
       const facts = await deps.apple?.subscription(input.transactionId);
-      if (facts === null || facts === undefined || facts.appToken !== row.appToken) {
-        throw new BrokerError("not_paid", "Apple does not list that purchase for this account.");
+      const refused = () =>
+        new BrokerError("not_paid", "Apple does not list that purchase for this account.");
+      if (facts === null || facts === undefined || facts.appToken === undefined) throw refused();
+      if (facts.appToken !== row.appToken) {
+        // Bought for an account since deleted: the Apple account still pays, so whoever holds
+        // the purchase takes it, token included, or Apple's later notices would find nobody.
+        if (isLive(row.state) || (await accounts.byToken(facts.appToken)) !== null) {
+          throw refused();
+        }
+        await accounts.patch(input.accountId, { appToken: facts.appToken });
       }
       if ((await record(facts, "phone")) === "duplicate") {
         throw new BrokerError(
