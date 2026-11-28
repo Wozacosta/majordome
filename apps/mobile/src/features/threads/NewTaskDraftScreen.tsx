@@ -607,6 +607,7 @@ export function NewTaskDraftScreen(props: {
     environmentConnected && flow.branchesLoading && flow.availableBranches.length === 0;
 
   const {
+    onTakeDraftPhoto: handleTakePhoto,
     onPickDraftMedia: handlePickMedia,
     onPickDraftFiles: handlePickFiles,
     onNativePasteImages: handleNativePasteImages,
@@ -1167,6 +1168,7 @@ export function NewTaskDraftScreen(props: {
         usesAutomaticContentInsets
         onOpenConnectionEditor={() => navigation.navigate("Connections")}
         onChangeDraftMessage={flow.setPrompt}
+        onTakeDraftPhoto={handleTakePhoto}
         onPickDraftMedia={handlePickMedia}
         onPickDraftFiles={handlePickFiles}
         onNativePasteImages={handleNativePasteImages}

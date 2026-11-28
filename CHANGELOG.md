@@ -5,7 +5,17 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Take a photo into a chat, on the phone.** The "+" beside the message box starts with "Take a
+  photo": the camera opens and the photo lands in your message like one from the library. The
+  camera button beside home's box takes a photo and opens a new chat holding it, with what you
+  had typed, ready for your question.
+
+**Try this**
+
+- On the phone, tap the camera beside "Ask anything…", photograph a receipt, then write "file
+  this" and send.
 
 ## 0.10.90
 

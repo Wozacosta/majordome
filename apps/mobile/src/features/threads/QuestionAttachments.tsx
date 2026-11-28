@@ -10,6 +10,7 @@ import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS, type UserInputQuestion } from "@t3t
 import { useAtomValue } from "@effect/atom-react";
 import { View, type TextInputInstance } from "react-native";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { showCameraRefused } from "../../lib/cameraRefused";
 import { ComposerAttachmentButton } from "./ComposerAttachmentButton";
 import { ComposerAttachmentStrip } from "../../components/ComposerAttachmentStrip";
 import { useThreadSelection } from "../../state/use-thread-selection";
@@ -140,7 +141,7 @@ export function QuestionAttachments(props: {
     props.question.id,
   );
   const attachments = drafts[key]?.attachments ?? [];
-  const pick = async (kind: "media" | "files") => {
+  const pick = async (kind: "camera" | "media" | "files") => {
     const scope = pickerScope.current;
     const picked = await settlePromise(async () => {
       const result = await pickQuestionAttachments({
@@ -150,6 +151,7 @@ export function QuestionAttachments(props: {
         isActive: () => scope.active,
         append: (attachments) => append(key, attachments),
       });
+      if (result.cameraRefused) showCameraRefused();
       if (result.error || result.rejected > 0)
         Dialog.alert(gt("Could not attach file"), result.error ?? gt("Too many attachments."));
     });
@@ -164,6 +166,7 @@ export function QuestionAttachments(props: {
         <ComposerAttachmentButton
           disabled={props.disabled}
           supportsFiles
+          onTakePhoto={() => pick("camera")}
           onPickMedia={() => pick("media")}
           onPickFiles={() => pick("files")}
         />
