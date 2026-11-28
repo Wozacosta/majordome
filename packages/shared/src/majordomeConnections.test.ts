@@ -1,3 +1,4 @@
+// @effect-diagnostics nodeBuiltinImport:off
 import * as NodeFS from "node:fs";
 
 import { assert, it } from "vite-plus/test";

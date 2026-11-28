@@ -388,15 +388,22 @@ function ConnectedApps({
 
   const actionFor = (row: AppRow) =>
     !allowed ? null : (
-      <Button
-        size="xs"
-        variant={row.state.needsSignIn ? "default" : "outline"}
-        disabled={busy === row.appId}
-        onClick={() => void (row.state.needsSignIn ? connect(row.appId) : disconnect(row.appId))}
-      >
-        {busy === row.appId ? <Spinner size="sm" /> : null}
-        {row.state.needsSignIn ? "Sign in" : "Disconnect"}
-      </Button>
+      <>
+        {row.state.needsSignIn ? (
+          <Button size="xs" disabled={busy === row.appId} onClick={() => void connect(row.appId)}>
+            Sign in
+          </Button>
+        ) : null}
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={busy === row.appId}
+          onClick={() => void disconnect(row.appId)}
+        >
+          {busy === row.appId ? <Spinner size="sm" /> : null}
+          Disconnect
+        </Button>
+      </>
     );
 
   return (
