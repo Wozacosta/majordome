@@ -158,6 +158,7 @@ import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
+import * as MajordomeConnections from "./majordome/connections/MajordomeConnections.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import { drawChatSetup } from "./majordome/chatSetup.ts";
 import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
@@ -1553,6 +1554,7 @@ export const layerWsRpc = (
       const routineRunLog = yield* RoutineRunLog.RoutineRunLog;
       const majordomeBackup = yield* MajordomeBackup.MajordomeBackup;
       const majordomeConnectors = yield* MajordomeConnectors.MajordomeConnectors;
+      const majordomeConnections = yield* MajordomeConnections.MajordomeConnections;
       const privateDocuments = yield* MajordomePrivateDocuments.MajordomePrivateDocuments;
       const savedKeys = yield* MajordomeSavedKeys.MajordomeSavedKeys;
       const majordomeApprovals = yield* MajordomeApprovals.MajordomeApprovals;
@@ -2624,6 +2626,11 @@ export const layerWsRpc = (
             Effect.andThen(majordomeBackup.getStatus(input)),
           ),
         [WS_METHODS.majordomeListConnectors]: (input) => majordomeConnectors.list(input),
+        [WS_METHODS.majordomeListConnections]: () => majordomeConnections.list,
+        [WS_METHODS.majordomeStartConnection]: (input) => majordomeConnections.startSignIn(input),
+        [WS_METHODS.majordomeRemoveConnection]: (input) => majordomeConnections.remove(input),
+        [WS_METHODS.majordomeSetConnectionRoutines]: (input) =>
+          majordomeConnections.setRoutinesMayChange(input),
         [WS_METHODS.majordomeSearchNotes]: (input) =>
           Effect.annotateCurrentSpan({ "project.id": input.projectId }).pipe(
             Effect.andThen(majordomeNotesSearch.search(input)),

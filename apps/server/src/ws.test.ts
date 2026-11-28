@@ -158,6 +158,7 @@ import * as MajordomeTopics from "./majordome/MajordomeTopics.ts";
 import * as MajordomeNotesSearch from "./majordome/MajordomeNotesSearch.ts";
 import * as MajordomeBackup from "./majordome/MajordomeBackup.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
+import * as MajordomeConnections from "./majordome/connections/MajordomeConnections.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import * as MajordomeSavedKeys from "./majordome/MajordomeSavedKeys.ts";
 import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
@@ -927,6 +928,7 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(RoutineRunLog.RoutineRunLog)({}),
   Layer.mock(MajordomeBackup.MajordomeBackup)({}),
   Layer.mock(MajordomeConnectors.MajordomeConnectors)({}),
+  Layer.mock(MajordomeConnections.MajordomeConnections)({}),
   Layer.mock(MajordomePrivateDocuments.MajordomePrivateDocuments)({}),
   Layer.mock(MajordomeSavedKeys.MajordomeSavedKeys)({}),
   Layer.mock(MajordomeApprovals.MajordomeApprovals)({}),
