@@ -184,6 +184,8 @@ import * as MajordomeServerMove from "./majordome/MajordomeServerMove.ts";
 import * as MoveReceiverHttp from "./majordome/moveReceiverHttp.ts";
 import * as VaultActiveRuns from "./majordome/VaultActiveRuns.ts";
 import * as MajordomeConnectors from "./majordome/MajordomeConnectors.ts";
+import * as ConnectionCallbackHttp from "./majordome/connections/connectionCallbackHttp.ts";
+import * as MajordomeConnections from "./majordome/connections/MajordomeConnections.ts";
 import * as MajordomePrivateDocuments from "./majordome/MajordomePrivateDocuments.ts";
 import * as MajordomeApprovals from "./majordome/MajordomeApprovals.ts";
 import * as MajordomeSettings from "./majordome/MajordomeSettings.ts";
@@ -928,6 +930,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ModelLevelTableRefresh.layerRefresh,
   MajordomeSavedKeys.layer.pipe(Layer.provide(SecretResolver.layer)),
   MajordomeConnectors.layer,
+  MajordomeConnections.layer,
   // provideMerge keeps the backup service in the context, for the backup RPCs.
   Layer.effectDiscard(
     Effect.gen(function* () {
@@ -1145,6 +1148,7 @@ const layerMakeRoutes = Layer.mergeAll(
     ServerHttp.layerAttachmentUploadRoute,
     ServerHttp.layerPrivateDocumentViewRoute,
     ServerHttp.layerTopicFileViewRoute,
+    ConnectionCallbackHttp.layer,
     // What a server answers while the owner's computer sets it up and copies the notes to it.
     MoveReceiverHttp.layer.pipe(
       Layer.provide(

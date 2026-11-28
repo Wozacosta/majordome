@@ -32,6 +32,7 @@
 - [Your account](./user/account.md)
 - [Your servers](./user/always-on-server.md)
 - [Private documents](./user/private-documents.md)
+- [Connect an app](./user/connect-apps.md)
 - [Backing up and restoring your notes](./user/backup.md)
 - [Searching your notes](./user/notes-search.md)
 - [Reading list](./user/reading-list.md)

@@ -146,6 +146,15 @@ import {
   MajordomeServerMoveStartInput,
   MajordomeServerMoveStatus,
 } from "./majordomeServerMove.ts";
+import {
+  MajordomeConnection,
+  MajordomeConnectionInput,
+  MajordomeConnectionRoutinesInput,
+  MajordomeConnectionsError,
+  MajordomeConnectionsResult,
+  MajordomeConnectionStartInput,
+  MajordomeConnectionStartResult,
+} from "./majordomeConnections.ts";
 import { MajordomeConnectorsInput, MajordomeConnectorsResult } from "./majordomeConnectors.ts";
 import {
   MajordomeNotesIndexInput,
@@ -963,6 +972,10 @@ export const WS_METHODS = {
   majordomeListPrivateDocuments: "majordome.listPrivateDocuments",
   majordomeAddPrivateDocument: "majordome.addPrivateDocument",
   majordomeRemovePrivateDocument: "majordome.removePrivateDocument",
+  majordomeListConnections: "majordome.listConnections",
+  majordomeStartConnection: "majordome.startConnection",
+  majordomeRemoveConnection: "majordome.removeConnection",
+  majordomeSetConnectionRoutines: "majordome.setConnectionRoutines",
   majordomeListSavedKeys: "majordome.listSavedKeys",
   majordomeSaveKey: "majordome.saveKey",
   majordomeRemoveSavedKey: "majordome.removeSavedKey",
@@ -2988,6 +3001,31 @@ const WsMajordomeRemovePrivateDocumentRpc = Rpc.make(WS_METHODS.majordomeRemoveP
   error: privateDocumentErrors,
 });
 
+const connectionsErrors = Schema.Union([MajordomeConnectionsError, EnvironmentAuthorizationError]);
+
+const WsMajordomeListConnectionsRpc = Rpc.make(WS_METHODS.majordomeListConnections, {
+  payload: Schema.Struct({}),
+  success: MajordomeConnectionsResult,
+  error: EnvironmentAuthorizationError,
+});
+
+const WsMajordomeStartConnectionRpc = Rpc.make(WS_METHODS.majordomeStartConnection, {
+  payload: MajordomeConnectionStartInput,
+  success: MajordomeConnectionStartResult,
+  error: connectionsErrors,
+});
+
+const WsMajordomeRemoveConnectionRpc = Rpc.make(WS_METHODS.majordomeRemoveConnection, {
+  payload: MajordomeConnectionInput,
+  error: connectionsErrors,
+});
+
+const WsMajordomeSetConnectionRoutinesRpc = Rpc.make(WS_METHODS.majordomeSetConnectionRoutines, {
+  payload: MajordomeConnectionRoutinesInput,
+  success: MajordomeConnection,
+  error: connectionsErrors,
+});
+
 const savedKeysErrors = Schema.Union([MajordomeSavedKeysError, EnvironmentAuthorizationError]);
 
 const WsMajordomeListSavedKeysRpc = Rpc.make(WS_METHODS.majordomeListSavedKeys, {
@@ -3729,6 +3767,10 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeListPrivateDocumentsRpc,
   WsMajordomeAddPrivateDocumentRpc,
   WsMajordomeRemovePrivateDocumentRpc,
+  WsMajordomeListConnectionsRpc,
+  WsMajordomeStartConnectionRpc,
+  WsMajordomeRemoveConnectionRpc,
+  WsMajordomeSetConnectionRoutinesRpc,
   WsMajordomeListSavedKeysRpc,
   WsMajordomeSaveKeyRpc,
   WsMajordomeRemoveSavedKeyRpc,

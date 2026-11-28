@@ -289,6 +289,33 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       tag: WS_METHODS.majordomeRemovePrivateDocument,
       onSettled: ({ environmentId }, registry) => bumpPrivateDocuments(environmentId, registry),
     }),
+    /** Read again on every mount: a sign-in finishes in a browser tab, outside the app. */
+    connections: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:majordome:connections",
+      tag: WS_METHODS.majordomeListConnections,
+      staleTimeMs: 0,
+      refreshTrigger: ({ environmentId }) => connectionsRevision(environmentId),
+    }),
+    /** Run to read `connections` again, as "Check again" does. */
+    checkConnections: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:check-connections",
+      tag: WS_METHODS.majordomeListConnections,
+      onSettled: ({ environmentId }, registry) => bumpConnections(environmentId, registry),
+    }),
+    startConnection: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:start-connection",
+      tag: WS_METHODS.majordomeStartConnection,
+    }),
+    removeConnection: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:remove-connection",
+      tag: WS_METHODS.majordomeRemoveConnection,
+      onSettled: ({ environmentId }, registry) => bumpConnections(environmentId, registry),
+    }),
+    setConnectionRoutines: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:set-connection-routines",
+      tag: WS_METHODS.majordomeSetConnectionRoutines,
+      onSettled: ({ environmentId }, registry) => bumpConnections(environmentId, registry),
+    }),
     /** Read again on every mount and after each change; the assistant saves keys too. */
     savedKeys: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:majordome:saved-keys",
@@ -698,6 +725,16 @@ const connectorsRevision = Atom.family((environmentId: EnvironmentId) =>
 );
 
 /** Bumped after a private document is added, removed, viewed or answered for, so the page reads again. */
+const connectionsRevision = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(0).pipe(
+    Atom.keepAlive,
+    Atom.withLabel(`environment-data:majordome:connections-revision:${environmentId}`),
+  ),
+);
+
+const bumpConnections = (environmentId: EnvironmentId, registry: AtomRegistry.AtomRegistry) =>
+  Effect.sync(() => registry.update(connectionsRevision(environmentId), (value) => value + 1));
+
 const savedKeysRevision = Atom.family((environmentId: EnvironmentId) =>
   Atom.make(0).pipe(
     Atom.keepAlive,

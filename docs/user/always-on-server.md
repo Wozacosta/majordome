@@ -353,8 +353,11 @@ Routines run on the server, so they can only use what is connected there. A conn
 your computer can be missing on the server, and the page says so. Majordome lists Claude's
 connectors; it can't see those of other providers. **Check again** asks each machine afresh.
 
-Connectors are added in your Claude account on the web, under **Customize > Connectors**
-(<https://claude.ai/customize/connectors>), not in Majordome. A machine signed in to that account
+Some apps are connected in Majordome itself, with **Connect** on that page, once per machine:
+see [Connect an app](./connect-apps.md).
+
+Gmail, Calendar and Drive are added in your Claude account on the web, under **Customize >
+Connectors** (<https://claude.ai/customize/connectors>). A machine signed in to that account
 gets them; when one has none, the page shows these steps and a button to that page. A connector
 marked **Needs sign-in** has a link to the same place. Choose **Check again** afterwards.
 

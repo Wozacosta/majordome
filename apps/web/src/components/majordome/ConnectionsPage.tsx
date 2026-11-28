@@ -4,10 +4,15 @@ import { Link } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { FolderIcon, GithubIcon, PlugIcon } from "lucide-react";
-import { type ReactElement, type ReactNode, useState } from "react";
+import { type ReactElement, type ReactNode, useEffect, useState } from "react";
 
 import { useProjects } from "../../state/entities";
-import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
+import { readLocalApi } from "../../localApi";
+import {
+  useEnvironmentHttpBaseUrl,
+  useEnvironmentProviders,
+  useEnvironments,
+} from "../../state/environments";
 import { majordomeEnvironment, vaultBackupStatusesAtom } from "../../state/majordome";
 import { formatEnvironmentQueryError } from "../../state/query";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -16,9 +21,12 @@ import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { GoogleDriveIcon } from "../Icons";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
+import { Switch } from "../ui/switch";
 import { Spinner } from "../ui/spinner";
 import {
   aiRows,
+  type AppRow,
+  appsView,
   backupRows,
   CLAUDE_CONNECTORS_URL,
   claudeSignInTargets,
@@ -26,6 +34,8 @@ import {
   connectionAction,
   connectorsView,
   isUnknownRequest,
+  serverOrigin,
+  withoutAppsConnectedHere,
 } from "./connections.logic";
 import { ComputerSwitch, useShownComputer } from "./ComputerSwitch";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
@@ -38,6 +48,7 @@ import {
   StatusLine,
   Step,
   Steps,
+  SwitchLabel,
   ToneDot,
 } from "./paper";
 import { SERVICE_BRAND_ICONS } from "./ServicesUsed";
@@ -196,7 +207,7 @@ function Machine({
           />
         )}
       </Section>
-      <Section label="Email, calendar and files" labelAs={labelAs}>
+      <Section label="Apps" labelAs={labelAs}>
         <Connectors environmentId={environmentId} name={name} />
       </Section>
       <Section
@@ -236,6 +247,8 @@ function Connectors({
   readonly name: string | null;
 }) {
   const result = useAtomValue(majordomeEnvironment.connectors({ environmentId, input: {} }));
+  // A server from before apps could be connected here fails this; it then lists none.
+  const appsResult = useAtomValue(majordomeEnvironment.connections({ environmentId, input: {} }));
   const snapshots = useEnvironmentProviders().get(environmentId) ?? null;
   const connectors = AsyncResult.getOrElse(result, () => null);
   if (connectors === null) {
@@ -248,24 +261,32 @@ function Connectors({
       </p>
     );
   }
-  const view = connectorsView({ result: connectors, snapshots, machine: name });
+  const apps = appsView(AsyncResult.getOrElse(appsResult, () => ({ apps: [], connections: [] })));
+  const fromAccounts = connectorsView({ result: connectors, snapshots, machine: name });
+  const view = {
+    ...fromAccounts,
+    rows: withoutAppsConnectedHere(fromAccounts.rows, apps.connected),
+  };
   const targets = claudeSignInTargets({ result: connectors, snapshots });
   const signIns = targets.filter((target) => target.reason === "signed-out");
   const unconnected = targets.filter((target) => target.reason === "no-connectors");
   return (
     <>
-      {view.rows.length > 0 ? (
-        <ServiceGrid
-          services={view.rows.map((row) => ({
-            ...row,
-            mark: connectorMark(row.name),
-            place:
-              row.manageUrl === null ? null : (
-                <a href={row.manageUrl} target="_blank" rel="noreferrer" />
-              ),
-          }))}
-        />
-      ) : null}
+      <ConnectedApps environmentId={environmentId} apps={apps}>
+        {view.rows.length > 0 ? (
+          <ServiceGrid
+            className={apps.connected.length > 0 ? "mt-2" : undefined}
+            services={view.rows.map((row) => ({
+              ...row,
+              mark: connectorMark(row.name),
+              place:
+                row.manageUrl === null ? null : (
+                  <a href={row.manageUrl} target="_blank" rel="noreferrer" />
+                ),
+            }))}
+          />
+        ) : null}
+      </ConnectedApps>
       {view.rows.some((row) => row.signInUrl !== null) ? (
         <Muted className="mt-2">After you sign in, come back here and press “Check again”.</Muted>
       ) : null}
@@ -305,6 +326,141 @@ function Connectors({
           account={targets.length > 1 ? target.name : null}
         />
       ))}
+    </>
+  );
+}
+
+/** Opens a page in the person's own browser; the desktop app has none of its own. */
+function openInBrowser(url: string) {
+  const shell = readLocalApi()?.shell;
+  if (shell === undefined) window.open(url, "_blank", "noopener");
+  else void shell.openExternal(url).catch(() => undefined);
+}
+
+/** The apps connected through Majordome on this computer, and the ones that can be added. */
+function ConnectedApps({
+  environmentId,
+  apps,
+  children,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly apps: ReturnType<typeof appsView>;
+  /** What the AI accounts bring, listed between the connected apps and the ones to add. */
+  readonly children: ReactNode;
+}) {
+  const allowed = useAtomValue(majordomeEnvironment.startConnection.permissionAtom(environmentId));
+  const origin = serverOrigin(useEnvironmentHttpBaseUrl(environmentId));
+  const start = useAtomCommand(majordomeEnvironment.startConnection, { reportFailure: false });
+  const remove = useAtomCommand(majordomeEnvironment.removeConnection, {
+    label: "disconnect the app",
+  });
+  const setRoutines = useAtomCommand(majordomeEnvironment.setConnectionRoutines, {
+    label: "change what routines may do",
+  });
+  const check = useAtomCommand(majordomeEnvironment.checkConnections, {
+    reportFailure: false,
+    reportDefect: false,
+  });
+  const [busy, setBusy] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- a sign-in ends in a browser tab, outside the app; coming back to the window is the only sign it may be done
+  useEffect(() => {
+    const onFocus = () => void check({ environmentId, input: {} });
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [check, environmentId]);
+
+  const connect = async (appId: string) => {
+    if (origin === null) return;
+    setBusy(appId);
+    setProblem(null);
+    const result = await start({ environmentId, input: { appId, origin } });
+    setBusy(null);
+    if (result._tag === "Failure") setProblem(formatEnvironmentQueryError(result.cause));
+    else openInBrowser(result.value.authorizationUrl);
+  };
+  const disconnect = async (appId: string) => {
+    setBusy(appId);
+    await remove({ environmentId, input: { appId } });
+    setBusy(null);
+  };
+
+  const actionFor = (row: AppRow) =>
+    !allowed ? null : (
+      <>
+        {row.state.needsSignIn ? (
+          <Button size="xs" disabled={busy === row.appId} onClick={() => void connect(row.appId)}>
+            Sign in
+          </Button>
+        ) : null}
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={busy === row.appId}
+          onClick={() => void disconnect(row.appId)}
+        >
+          {busy === row.appId ? <Spinner size="sm" /> : null}
+          Disconnect
+        </Button>
+      </>
+    );
+
+  return (
+    <>
+      {apps.connected.length > 0 ? (
+        <ServiceGrid
+          services={apps.connected.map((row) => ({
+            key: `app:${row.appId}`,
+            name: row.name,
+            mark: connectorMark(row.name),
+            state: row.state,
+            place: null,
+            action: actionFor(row),
+            extra: allowed ? (
+              <SwitchLabel className="min-h-0 text-xs text-muted-foreground">
+                <Switch
+                  checked={row.routinesMayChange}
+                  onCheckedChange={(checked) =>
+                    void setRoutines({
+                      environmentId,
+                      input: { appId: row.appId, routinesMayChange: checked },
+                    })
+                  }
+                />
+                Let routines make changes in {row.name}
+              </SwitchLabel>
+            ) : null,
+          }))}
+        />
+      ) : null}
+      {children}
+      {allowed && apps.addable.length > 0 ? (
+        <ServiceGrid
+          className="mt-2"
+          services={apps.addable.map((app) => ({
+            key: `add:${app.id}`,
+            name: app.name,
+            mark: connectorMark(app.name),
+            state: { label: app.about, tone: "neutral" as const },
+            place: null,
+            action: (
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={busy === app.id || origin === null}
+                onClick={() => void connect(app.id)}
+              >
+                {busy === app.id ? <Spinner size="sm" /> : null}
+                Connect
+              </Button>
+            ),
+          }))}
+        />
+      ) : null}
+      {problem === null ? null : (
+        <p className="mt-2 text-sm text-destructive-foreground">{problem}</p>
+      )}
     </>
   );
 }
@@ -374,11 +530,26 @@ interface Service {
   readonly state: ConnectionState;
   /** The link its button is: where it is signed in to or managed. Null when there is no such place. */
   readonly place: ReactElement | null;
+  /** A button of its own, in place of the link. */
+  readonly action?: ReactNode;
+  /** A setting of its own, under the row. */
+  readonly extra?: ReactNode;
 }
 
-function ServiceGrid({ services }: { readonly services: ReadonlyArray<Service> }) {
+function ServiceGrid({
+  services,
+  className,
+}: {
+  readonly services: ReadonlyArray<Service>;
+  readonly className?: string | undefined;
+}) {
   return (
-    <EntryList className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-2">
+    <EntryList
+      className={cn(
+        "grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-2",
+        className,
+      )}
+    >
       {services.map((service) => (
         <li
           key={service.key}
@@ -404,6 +575,7 @@ function ServiceGrid({ services }: { readonly services: ReadonlyArray<Service> }
                 </span>
               </p>
             </div>
+            {service.action}
             {service.place === null ? null : (
               <Button
                 size="xs"
@@ -417,6 +589,7 @@ function ServiceGrid({ services }: { readonly services: ReadonlyArray<Service> }
           {service.state.detail === undefined ? null : (
             <p className="text-xs text-muted-foreground">{service.state.detail}</p>
           )}
+          {service.extra}
         </li>
       ))}
     </EntryList>

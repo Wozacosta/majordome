@@ -29,6 +29,23 @@ The section for a version is also the text of its release on GitHub.
 - On the phone, open Settings, then Notifications. Until the sending keys are in place it says
   "Your computer can't send them yet"; after that, turn the switch on and press "Send a test".
 
+## 0.10.91
+
+**New**
+
+- **Connect Granola without leaving Majordome.** Settings, then Connections, has an **Apps**
+  section. Press **Connect** next to Granola, approve in your browser, and your assistant can
+  read your meeting notes and transcripts. It works with whichever AI you use, on the computer
+  you connected it on.
+- **Routines only read from a connected app.** In a chat you are in, the assistant can also
+  change things there, such as renaming a meeting. A routine cannot, until you turn on
+  "Let routines make changes in Granola" for that app.
+- **Disconnect** removes Majordome's access at the app itself.
+
+**Try this**
+
+- Connect Granola, then ask in a new chat: "what was my last meeting about?"
+
 ## 0.10.90
 
 **New**
