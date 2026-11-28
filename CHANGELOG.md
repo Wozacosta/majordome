@@ -5,7 +5,21 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **A Testing page in the Mac app and the browser, out of sight.** Hold the version number in
+  Settings, About, as on the phone. **Start over as new** signs you out and forgets every other
+  computer; this one keeps its notes. Signed in, **Empty the list** clears the servers your
+  account remembers, for when one was deleted elsewhere.
+- **Open as a new owner, in the Mac app.** The same page opens a second Majordome on an empty
+  home: no notes, no account, no assistant signed in, as on a Mac that never had it. It leaves
+  your own Majordome, its notes and its background service alone, and starts empty again each
+  time you open it.
+
+**Try this**
+
+- In Settings, About, press and hold the version number, then press **Open** beside "Open as a
+  new owner" and go through the welcome page as someone new.
 
 ## 0.10.92
 

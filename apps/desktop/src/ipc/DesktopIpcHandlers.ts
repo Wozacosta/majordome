@@ -98,6 +98,7 @@ import {
   quitCompletely,
   setBackgroundServiceEnabled,
 } from "./methods/backgroundService.ts";
+import { openNewOwnerCopy } from "./methods/testing.ts";
 
 export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers")(function* () {
   const ipc = yield* DesktopIpc.DesktopIpc;
@@ -192,6 +193,7 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(getBackgroundServiceState);
   yield* ipc.handle(setBackgroundServiceEnabled);
   yield* ipc.handle(quitCompletely);
+  yield* ipc.handle(openNewOwnerCopy);
   for (const previewMethod of PreviewIpc.methods) {
     // Explicit types preserve the error/service union of these heterogeneous preview methods.
     yield* ipc.handle<
