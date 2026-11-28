@@ -145,6 +145,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeSavePushSubscription,
       WS_METHODS.majordomeRemovePushSubscription,
       WS_METHODS.majordomeSendTestPush,
+      WS_METHODS.majordomeRegisterPhonePush,
     ]) {
       expect(requiredScopeForRpcMethod(method)).toBe(AuthOrchestrationOperateScope);
     }

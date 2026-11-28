@@ -7,6 +7,32 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.92
+
+**New**
+
+- **Take a photo into a chat, on the phone.** The "+" beside the message box starts with "Take a
+  photo": the camera opens and the photo lands in your message like one from the library. The
+  camera button beside home's box takes a photo and opens a new chat holding it, with what you
+  had typed, ready for your question.
+- **Notifications in the phone apps.** Settings on the phone has a ninth row, Notifications,
+  with one switch: "Notifications on this phone". The phone asks your permission when you turn
+  it on, not before. You are told about the same things as in a browser: a chat is waiting
+  for you, "Start my day" is ready, the assistant couldn't finish, and what you asked to be told
+  about. Tapping one opens that chat. Nothing shows for the chat you are already looking at.
+- **The phone is in your computer's list.** "Devices that get notifications" on your computer
+  shows the phone app next to your browsers, with the same Remove.
+- **It says when it can't.** A computer running an older Majordome, or one with no way to reach
+  Apple or Google, shows "Your computer can't send them yet" on the phone. Until Majordome's
+  own sending keys are in place, that is what every phone shows.
+
+**Try this**
+
+- On the phone, tap the camera beside "Ask anything…", photograph a receipt, then write "file
+  this" and send.
+- On the phone, open Settings, then Notifications. Until the sending keys are in place it says
+  "Your computer can't send them yet"; after that, turn the switch on and press "Send a test".
+
 ## 0.10.91
 
 **New**

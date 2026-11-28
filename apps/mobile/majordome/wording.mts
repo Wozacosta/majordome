@@ -443,6 +443,7 @@ export const MOBILE_WORDING: Wording = [
   ["Interrupt what the agent is doing", "Majordome reads it right away"],
   ["Start the turn over with this message", "Stops this reply and answers this instead"],
   ["Add attachment", "Add a photo or file"],
+  ["Photo Library", "Photo library"],
   ["Choose Files", "Choose files"],
   ["Starting the task…", "Starting the chat…"],
   [

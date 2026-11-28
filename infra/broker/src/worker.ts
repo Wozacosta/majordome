@@ -22,11 +22,20 @@ import {
   serverProgress,
   updateServers,
 } from "./hosting.ts";
+import {
+  makeApnsClient,
+  makeFcmClient,
+  makePush,
+  type Push,
+  type PushProvider,
+  readServiceAccount,
+} from "./push.ts";
 import { START_PAGE } from "./startPage.ts";
 import {
   makeD1AccountStore,
   makeD1InviteAdminStore,
   makeD1InviteStore,
+  makeD1PushUsageStore,
   makeD1Store,
   makeD1WaitlistStore,
 } from "./store.ts";
@@ -74,6 +83,14 @@ interface Env {
   readonly APPLE_BUNDLE_ID?: string;
   readonly APPLE_PRODUCT_ID?: string;
   readonly APPLE_ALLOW_SANDBOX?: string;
+  /** Notifications reach iPhones only when this secret, the text of the push key's `.p8`, is set. */
+  readonly APNS_KEY?: string;
+  readonly APNS_KEY_ID?: string;
+  readonly APNS_TEAM_ID?: string;
+  /** Notifications reach Android phones only when this secret, the service account's JSON, is set. */
+  readonly FCM_SERVICE_ACCOUNT?: string;
+  readonly MAX_PUSH_PER_HOUR?: string;
+  readonly MAX_PUSH_PER_IP_PER_HOUR?: string;
 }
 
 const MAX_BODY_CHARS = 4096;
@@ -120,6 +137,47 @@ const brokerFor = (env: Env): Broker =>
       maxLive: limit(env.MAX_LIVE_ADDRESSES, 180),
     },
   });
+
+// Kept between requests while the Worker stays warm: each holds the token it signed or was given.
+let pushProviders: {
+  readonly secrets: string;
+  readonly apns: PushProvider | null;
+  readonly fcm: PushProvider | null;
+} | null = null;
+
+function pushFor(env: Env): Push {
+  const secrets = [env.APNS_KEY, env.APNS_KEY_ID, env.APNS_TEAM_ID, env.FCM_SERVICE_ACCOUNT].join();
+  if (pushProviders?.secrets !== secrets) {
+    const serviceAccount = readServiceAccount(env.FCM_SERVICE_ACCOUNT);
+    const now = () => Date.now();
+    pushProviders = {
+      secrets,
+      apns:
+        env.APNS_KEY === undefined ||
+        env.APNS_KEY_ID === undefined ||
+        env.APNS_TEAM_ID === undefined
+          ? null
+          : makeApnsClient({
+              privateKey: env.APNS_KEY,
+              keyId: env.APNS_KEY_ID,
+              teamId: env.APNS_TEAM_ID,
+              now,
+            }),
+      fcm: serviceAccount === null ? null : makeFcmClient({ serviceAccount, now }),
+    };
+  }
+  return makePush({
+    usage: makeD1PushUsageStore(env.DB),
+    apns: pushProviders.apns,
+    fcm: pushProviders.fcm,
+    bundleId: env.APPLE_BUNDLE_ID ?? "io.github.wozacosta.majordome.ios",
+    now: () => Date.now(),
+    config: {
+      maxPerIdentityPerHour: limit(env.MAX_PUSH_PER_HOUR, 120),
+      maxPerIpPerHour: limit(env.MAX_PUSH_PER_IP_PER_HOUR, 600),
+    },
+  });
+}
 
 const HOSTED_NAME_PREFIX = "majordome-";
 const WAITLIST_PATH = "/v1/waitlist";
@@ -418,6 +476,18 @@ async function handle(request: Request, env: Env, later: Later): Promise<Respons
     }).join({ email, platforms, clientIp: request.headers.get("cf-connecting-ip") ?? "unknown" });
     return new Response(null, { status: 204 });
   }
+  if (pathname === "/v1/push" && request.method === "GET") {
+    return Response.json(pushFor(env).available, { headers: { "cache-control": "no-store" } });
+  }
+  if (pathname === "/v1/push" && request.method === "POST") {
+    const { publicKey, proof, message } = await readFields(request);
+    if (publicKey === undefined || proof === undefined || message === undefined) {
+      throw new BrokerError("invalid_request", "Send publicKey, proof and message.");
+    }
+    return Response.json(
+      await pushFor(env).send({ publicKey, proof, message, clientIp: clientOf(request) }),
+    );
+  }
   const host = hostFor(env);
   if (pathname.startsWith(ADMIN_PATH) && request.method === "POST") {
     const answer = await handleAdmin(pathname.slice(ADMIN_PATH.length), request, env, host);
@@ -522,6 +592,9 @@ export default {
       console.error("Could not reap addresses", error);
       problems.push("idle addresses were not reclaimed");
     }
+    await makeD1PushUsageStore(env.DB)
+      .forget(Math.floor(Date.now() / 3_600_000) - 24)
+      .catch((error) => console.error("Could not forget old notification counts", error));
     try {
       const host = hostFor(env);
       const report = host === null ? null : await billingFor(env, host)?.sweep();

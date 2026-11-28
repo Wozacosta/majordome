@@ -11,13 +11,17 @@ import { useSelectWorkspaceDetail } from "../features/layout/workspace/useSelect
 import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useAtomCommand } from "../state/use-atom-command";
+import { showCameraRefused } from "../lib/cameraRefused";
+import { pickComposerMedia } from "../lib/composerImages";
 import {
+  appendComposerDraftAttachments,
+  captureComposerDraftInsertion,
   createNewTaskDraft,
   setComposerDraftText,
   waitForComposerDraftsLoaded,
 } from "../state/use-composer-drafts";
 import { journalLine } from "./home.logic";
-import { noteSendOnOpen } from "./sendOnOpen";
+import { noteSendOnOpen, noteWriteOnOpen } from "./sendOnOpen";
 import { majordomeEnvironment } from "./state";
 import { localDate, localTime, type TodayStore } from "./today.logic";
 import { loadTodayStore, sendWaiting, updateTodayStore } from "./todayStore";
@@ -121,6 +125,36 @@ export function HomeAsk(props: {
     });
   };
 
+  // A photo opens a new chat holding it and what was typed, unsent: a photo alone asks nothing.
+  const takePhoto = async () => {
+    const photo = await pickComposerMedia({ existingCount: 0, source: "camera" });
+    if (photo.cameraRefused) showCameraRefused();
+    if (photo.attachments.length === 0) {
+      if (photo.error !== null) setNotice(photo.error);
+      return;
+    }
+    try {
+      await waitForComposerDraftsLoaded();
+    } catch {
+      setNotice("That photo couldn't be added. Try again.");
+      return;
+    }
+    const words = text.trim();
+    const draftId = createNewTaskDraft({ environmentId, projectId });
+    setComposerDraftText(draftId, words);
+    appendComposerDraftAttachments(draftId, photo.attachments, {
+      appendReference: true,
+      insertion: captureComposerDraftInsertion(draftId),
+    });
+    noteWriteOnOpen();
+    setText("");
+    setNotice(null);
+    selectDetail({
+      name: "Thread",
+      params: { draft: { environmentId, projectId, draftId } },
+    });
+  };
+
   return (
     <View
       className="gap-1.5 border-t border-border bg-screen px-3.5 pt-2"
@@ -137,6 +171,12 @@ export function HomeAsk(props: {
         </Text>
       )}
       <View className="flex-row items-end gap-2">
+        <IconButton
+          icon="camera"
+          accessibilityLabel="Take a photo"
+          disabled={!props.connected}
+          onPress={() => void takePhoto()}
+        />
         <View className="min-w-0 flex-1">
           <TextInput
             accessibilityLabel="Ask anything"

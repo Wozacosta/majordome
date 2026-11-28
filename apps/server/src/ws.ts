@@ -2552,6 +2552,8 @@ export const layerWsRpc = (
           majordomePush.removeSubscription(input.endpoint),
         [WS_METHODS.majordomeSendTestPush]: (input) => majordomePush.sendTest(input.endpoint),
         [WS_METHODS.majordomeListPushDevices]: (_input) => majordomePush.listDevices(),
+        [WS_METHODS.majordomeRegisterPhonePush]: (input) =>
+          majordomePush.registerPhone(input, currentSessionId),
         [WS_METHODS.majordomeGetPhoneSetup]: (_input) => majordomePhoneSetup.read(),
         [WS_METHODS.majordomeEnableSecureAddress]: (_input) =>
           majordomePhoneSetup.enableSecureAddress(),

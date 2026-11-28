@@ -32,6 +32,7 @@ import {
 import { computerState, computerStateText } from "./connectionState";
 import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
 import { BROKER_URL, connectToServer, manageSubscription } from "./hostedSignup";
+import { forgetPhonePushOn } from "./phonePush";
 import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
@@ -110,7 +111,7 @@ function SignedIn() {
     // Signing out leaves a clean phone: a connection is the phone's own and outlives the
     // sign-in, so any computer left would show its notes to whoever signs in next.
     const removing = Object.keys(connections).map((id) =>
-      removeEnvironment(EnvironmentId.make(id)),
+      forgetPhonePushOn(id).then(() => removeEnvironment(EnvironmentId.make(id))),
     );
     void Promise.allSettled(removing).then(() => clerk.signOut());
   };

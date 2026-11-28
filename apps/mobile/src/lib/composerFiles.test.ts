@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   documentUri: "file:///documents",
   pickFile: vi.fn(),
   pickMedia: vi.fn(),
+  takePhoto: vi.fn(),
+  askCamera: vi.fn(),
   copy: vi.fn(),
   delete: vi.fn(),
   open: vi.fn(),
@@ -85,7 +87,11 @@ vi.mock("expo-file-system", () => {
   };
 });
 
-vi.mock("expo-image-picker", () => ({ launchImageLibraryAsync: mocks.pickMedia }));
+vi.mock("expo-image-picker", () => ({
+  launchImageLibraryAsync: mocks.pickMedia,
+  launchCameraAsync: mocks.takePhoto,
+  requestCameraPermissionsAsync: mocks.askCamera,
+}));
 vi.mock("expo-document-picker", () => ({ getDocumentAsync: mocks.pickFile }));
 vi.mock("expo-image-manipulator", () => ({
   SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
@@ -94,6 +100,7 @@ vi.mock("expo-image-manipulator", () => ({
 vi.mock("./uuid", () => ({ uuidv4: () => "attachment-id" }));
 
 import {
+  cameraPhotoName,
   persistComposerAttachmentFile,
   isComposerImageAttachment,
   pickComposerFiles,
@@ -119,6 +126,8 @@ describe("composer file attachments", () => {
     mocks.documentUri = "file:///documents";
     mocks.pickFile.mockReset();
     mocks.pickMedia.mockReset();
+    mocks.takePhoto.mockReset();
+    mocks.askCamera.mockReset();
     mocks.copy.mockReset();
     mocks.delete.mockReset();
     mocks.open.mockReset();
@@ -509,6 +518,73 @@ describe("composer file attachments", () => {
         attachments: [],
         error: "Could not download video from iCloud.",
       });
+      expect(isForegroundHandoffActive()).toBe(false);
+    });
+  });
+
+  describe("a photo taken with the camera", () => {
+    const shot: ImagePickerAsset = {
+      uri: "file:///camera/shot.jpg",
+      type: "image",
+      fileName: "shot.jpg",
+      mimeType: "image/jpeg",
+      width: 4032,
+      height: 3024,
+    };
+
+    it("lands like a photo from the library, once the camera is allowed", async () => {
+      mocks.askCamera.mockResolvedValue({ granted: true });
+      mocks.takePhoto.mockImplementation(async () => {
+        expect(isForegroundHandoffActive()).toBe(true);
+        return { canceled: false, assets: [shot] };
+      });
+      mocks.readBase64.mockResolvedValue("/9j/2Q==");
+      imageFiles.set(shot.uri, "/9j/2Q==");
+
+      const result = await pickComposerMedia({ existingCount: 0, source: "camera" });
+
+      expect(mocks.pickMedia).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        attachments: [
+          expect.objectContaining({
+            type: "image",
+            name: expect.stringMatching(/^Photo \d\d\.\d\d\.jpg$/),
+            mimeType: "image/jpeg",
+            fileUri: expect.stringMatching(/Photo.\d\d\.\d\d\.jpg$/),
+          }),
+        ],
+        error: null,
+      });
+      expect(isForegroundHandoffActive()).toBe(false);
+    });
+
+    it("names the photo by the time it was taken, not by the camera's random file name", () => {
+      const taken = new Date(2026, 10, 28, 9, 5);
+      expect(cameraPhotoName(taken, "6782ea2f-0dd0-4ac6.jpeg")).toBe("Photo 09.05.jpeg");
+      expect(cameraPhotoName(taken, "IMG_0042.HEIC")).toBe("Photo 09.05.heic");
+      expect(cameraPhotoName(taken, null)).toBe("Photo 09.05.jpg");
+    });
+
+    it("changes nothing when the camera is closed without a photo", async () => {
+      mocks.askCamera.mockResolvedValue({ granted: true });
+      mocks.takePhoto.mockResolvedValue({ canceled: true, assets: null });
+
+      await expect(pickComposerMedia({ existingCount: 0, source: "camera" })).resolves.toEqual({
+        attachments: [],
+        error: null,
+      });
+      expect(mocks.copy).not.toHaveBeenCalled();
+    });
+
+    it("does not open the camera after a refusal, and says so", async () => {
+      mocks.askCamera.mockResolvedValue({ granted: false });
+
+      await expect(pickComposerMedia({ existingCount: 0, source: "camera" })).resolves.toEqual({
+        attachments: [],
+        error: null,
+        cameraRefused: true,
+      });
+      expect(mocks.takePhoto).not.toHaveBeenCalled();
       expect(isForegroundHandoffActive()).toBe(false);
     });
   });

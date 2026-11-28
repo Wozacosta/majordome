@@ -32,6 +32,36 @@ export const MajordomePushEndpointInput = Schema.Struct({
 });
 export type MajordomePushEndpointInput = typeof MajordomePushEndpointInput.Type;
 
+const PhonePushToken = TrimmedNonEmptyString.check(Schema.isMaxLength(1024));
+
+/**
+ * A phone app's own notification address: Apple's device token with the app it was given to and
+ * which of Apple's two services knows it, or Google's registration token.
+ */
+export const MajordomePhonePushDevice = Schema.Union([
+  Schema.Struct({
+    platform: Schema.Literal("ios"),
+    token: PhonePushToken,
+    bundleId: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
+    apnsEnvironment: Schema.Literals(["production", "sandbox"]),
+    label: Schema.optionalKey(MajordomePushDeviceLabel),
+  }),
+  Schema.Struct({
+    platform: Schema.Literal("android"),
+    token: PhonePushToken,
+    label: Schema.optionalKey(MajordomePushDeviceLabel),
+  }),
+]);
+export type MajordomePhonePushDevice = typeof MajordomePhonePushDevice.Type;
+
+export const MajordomePhonePushRegistration = Schema.Struct({
+  /** Names the phone in the list of devices, and when removing or testing it. Never the token. */
+  endpoint: Schema.String,
+  /** False while this server has no way to reach Apple's or Google's service for this phone. */
+  canSend: Schema.Boolean,
+});
+export type MajordomePhonePushRegistration = typeof MajordomePhonePushRegistration.Type;
+
 /** A device that gets notifications. Devices saved before labels existed have neither field. */
 export const MajordomePushDevice = Schema.Struct({
   endpoint: Schema.String,

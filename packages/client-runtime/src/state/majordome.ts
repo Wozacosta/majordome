@@ -66,6 +66,12 @@ export function createMajordomeEnvironmentAtoms<R, E>(
       refreshIntervalMs: 15_000,
       refreshTrigger: ({ environmentId }) => pushDevicesRevision(environmentId),
     }),
+    /** A phone app's own notification address; the same list, remove and test then cover it. */
+    registerPhonePush: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:majordome:register-phone-push",
+      tag: WS_METHODS.majordomeRegisterPhonePush,
+      onSettled: ({ environmentId }, registry) => bumpPushDevices(environmentId, registry),
+    }),
     sendTestPush: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:majordome:send-test-push",
       tag: WS_METHODS.majordomeSendTestPush,

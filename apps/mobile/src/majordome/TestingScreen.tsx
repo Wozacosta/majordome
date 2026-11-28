@@ -15,6 +15,7 @@ import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { useAtomCommand } from "../state/use-atom-command";
 import { savedConnectionsByIdAtom } from "../state/use-remote-environment-registry";
 import { forgetHostedSignup } from "./hostedSignup";
+import { forgetPhonePushOn } from "./phonePush";
 import {
   isUnknownAccount,
   NEW_TEST_ACCOUNT,
@@ -75,7 +76,9 @@ function Testing({ account }: { readonly account: Account | null }) {
 
   const startOver = async () => {
     await Promise.allSettled(
-      Object.keys(connections).map((id) => removeEnvironment(EnvironmentId.make(id))),
+      Object.keys(connections).map((id) =>
+        forgetPhonePushOn(id).then(() => removeEnvironment(EnvironmentId.make(id))),
+      ),
     );
     forgetHostedSignup();
     await account?.signOut();

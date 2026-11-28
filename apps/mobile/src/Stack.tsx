@@ -150,6 +150,7 @@ import { openSettings, settingsOpenIn } from "./features/settings/settings-navig
 import { isMajordome } from "./majordome/env";
 import { AccountScreen } from "./majordome/AccountScreen";
 import { SavedKeysScreen } from "./majordome/SavedKeysScreen";
+import { NotificationsScreen } from "./majordome/NotificationsScreen";
 import { ChatDetailsSheet } from "./majordome/ChatDetailsSheet";
 import { VoiceDownloadSheet } from "./majordome/speaking/VoiceDownloadSheet";
 import { HostedSignupScreen } from "./majordome/HostedSignupScreen";
@@ -342,6 +343,10 @@ const SETTINGS_SCREENS = {
   }),
   SettingsAccount: createNativeStackScreen({
     screen: AccountScreen,
+    options: settingsPage(),
+  }),
+  SettingsPhoneNotifications: createNativeStackScreen({
+    screen: NotificationsScreen,
     options: settingsPage(),
   }),
   SettingsSavedKeys: createNativeStackScreen({

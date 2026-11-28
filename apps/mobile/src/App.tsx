@@ -113,6 +113,7 @@ import { installAppUpdateChecks } from "./features/updates/app-updates";
 import { isMajordome } from "./majordome/env";
 import { installTalkShortcut } from "./majordome/voice-mode/talkShortcut";
 import { installFreshStart } from "./majordome/freshInstall";
+import { installPhonePush } from "./majordome/phonePush";
 import { installServerPurchases } from "./majordome/hostedSignup";
 import { pairLinkAsAppLink } from "./majordome/pairLink";
 
@@ -242,6 +243,7 @@ const appServiceDisposers = [
   installAppUpdateChecks(),
   installServerPurchases(),
   installFreshStart(),
+  installPhonePush(),
   installShowcaseCapture(rootPathnameFromState),
 ];
 disposeOnFoundationReplace(typeof module === "undefined" ? undefined : module.hot, () => {

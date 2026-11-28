@@ -20,6 +20,7 @@ export const MAJORDOME_SETTINGS_LABELS = {
   SettingsHostedSignup: "A Majordome server",
   SettingsUseComputer: "Use your computer",
   SettingsAccount: "Your account",
+  SettingsPhoneNotifications: "Notifications",
 } as const;
 
 /** An AI account's sign-in, in place of the sentence its own tool gives. */
@@ -47,6 +48,7 @@ export type MajordomeSettingsRowTarget =
         | "SettingsSavedKeys"
         | "SettingsAppearance"
         | "SettingsVoice"
+        | "SettingsPhoneNotifications"
         | "SettingsArchive"
         | "SettingsAbout";
     };
@@ -61,6 +63,7 @@ export interface MajordomeSettingsRow {
     | "key"
     | "paintbrush"
     | "mic"
+    | "bell.badge"
     | "archivebox"
     | "info.circle";
   readonly label: string;
@@ -164,8 +167,8 @@ function computerRows(computers: ReadonlyArray<SettingsComputer>): MajordomeSett
 /**
  * Settings' first screen as Majordome shows it: four unnamed cards. What the owner depends on
  * (each computer, the AI plan) comes first with its state; then who they are and what the
- * assistant may use; then the app itself; then the archive and About. A page upstream adds
- * later is not shown until it is placed here.
+ * assistant may use; then the app itself, notifications included; then the archive and About.
+ * A page upstream adds later is not shown until it is placed here.
  */
 export function majordomeSettingsCards(input: {
   readonly computers: ReadonlyArray<SettingsComputer>;
@@ -177,6 +180,8 @@ export function majordomeSettingsCards(input: {
   readonly look: string;
   /** Where speech is turned into text, such as "On this phone". */
   readonly voice: string;
+  /** "On" or "Off"; nothing until the phone's copy of the switch is read. */
+  readonly notifications?: string;
   readonly version: string;
 }): Array<{ readonly rows: ReadonlyArray<MajordomeSettingsRow> }> {
   const cards: Array<ReadonlyArray<MajordomeSettingsRow>> = [
@@ -222,6 +227,13 @@ export function majordomeSettingsCards(input: {
         label: "Voice",
         value: input.voice,
         opens: { page: "SettingsVoice" },
+      },
+      {
+        id: "SettingsPhoneNotifications",
+        icon: "bell.badge",
+        label: MAJORDOME_SETTINGS_LABELS.SettingsPhoneNotifications,
+        ...(input.notifications === undefined ? {} : { value: input.notifications }),
+        opens: { page: "SettingsPhoneNotifications" },
       },
     ],
     [

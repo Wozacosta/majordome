@@ -19,8 +19,8 @@ const shown = (input: Parameters<typeof majordomeSettingsCards>[0]) =>
   );
 
 describe("majordomeSettingsCards", () => {
-  it("shows eight rows in four cards, the computer and the Claude plan first with their state", () => {
-    expect(shown(base)).toEqual([
+  it("shows nine rows in four cards, the computer and the Claude plan first with their state", () => {
+    expect(shown({ ...base, notifications: "On" })).toEqual([
       [
         ["Mac mini", "Connected", "good"],
         ["Claude plan", "Signed in", "good"],
@@ -32,6 +32,7 @@ describe("majordomeSettingsCards", () => {
       [
         ["Look and language", "Dark · English", null],
         ["Voice", "On this phone", null],
+        ["Notifications", "On", null],
       ],
       [
         ["Archived chats", null, null],

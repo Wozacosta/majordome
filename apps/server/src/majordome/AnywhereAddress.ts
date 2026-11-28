@@ -34,9 +34,16 @@ import { isLoopbackHost, readPublicUrl } from "../startupAccess.ts";
 const ADDRESS_SERVICE_URL_VARIABLE = "MAJORDOME_ADDRESS_SERVICE_URL";
 const DEFAULT_ADDRESS_SERVICE_URL = "https://broker.majord.link";
 const ADDRESS_SECRET = "majordome-anywhere-address";
-const PROOF_TYP = "majord-address+jwt";
-const PROOF_AUDIENCE = "majord-broker";
-const PROOF_LIFETIME_SECONDS = 120;
+export const PROOF_TYP = "majord-address+jwt";
+export const PROOF_AUDIENCE = "majord-broker";
+export const PROOF_LIFETIME_SECONDS = 120;
+
+/** Where the address service is; it also passes notifications on to the phone apps. */
+export const addressServiceUrl = Config.String(ADDRESS_SERVICE_URL_VARIABLE).pipe(
+  Config.withDefault(DEFAULT_ADDRESS_SERVICE_URL),
+  Effect.orElseSucceed(() => DEFAULT_ADDRESS_SERVICE_URL),
+  Effect.map((url) => url.replace(/\/+$/u, "")),
+);
 const REQUEST_TIMEOUT = Duration.seconds(20);
 const CONNECT_WAIT_SECONDS = 30;
 
@@ -168,10 +175,7 @@ const make = Effect.gen(function* () {
   const runtime = yield* ManagedEndpointRuntime.CloudManagedEndpointRuntime;
   const relayClient = yield* RelayClient.RelayClient;
   const http = yield* HttpClient.HttpClient;
-  const serviceUrl = (yield* Config.String(ADDRESS_SERVICE_URL_VARIABLE).pipe(
-    Config.withDefault(DEFAULT_ADDRESS_SERVICE_URL),
-    Effect.orElseSucceed(() => DEFAULT_ADDRESS_SERVICE_URL),
-  )).replace(/\/+$/u, "");
+  const serviceUrl = yield* addressServiceUrl;
   // The connector forwards to this port on loopback, so the server has to answer there.
   const answersOnLoopback =
     config.host === undefined || isWildcardHost(config.host) || isLoopbackHost(config.host);

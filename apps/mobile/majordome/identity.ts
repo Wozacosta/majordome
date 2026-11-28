@@ -94,6 +94,18 @@ function withMajordomeAndroidPlugins(plugins: ExpoConfig["plugins"]): ExpoConfig
   });
 }
 
+// One sentence for both uses of the camera: upstream's only names the pairing code.
+const CAMERA_USE =
+  "Majordome uses the camera to scan a pairing code and to take a photo you add to a chat.";
+
+function withMajordomeCameraUse(plugins: ExpoConfig["plugins"]): ExpoConfig["plugins"] {
+  return plugins?.map((plugin) =>
+    Array.isArray(plugin) && plugin[0] === "expo-camera"
+      ? [plugin[0], { ...plugin[1], cameraPermission: CAMERA_USE }]
+      : plugin,
+  );
+}
+
 const majordomeScheme = (scheme: string) => scheme.replace(/^t3code/, "majordome");
 
 export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
@@ -113,7 +125,7 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     slug: "majordome",
     plugins: [
       ...(withMajordomeAndroidPlugins(
-        withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins)),
+        withMajordomeCameraUse(withoutUpstreamWidgets(withMajordomeSplash(renamed.plugins))),
       ) ?? []),
       "./plugins/withMajordomeAndroidSigning.cjs",
     ],
@@ -153,6 +165,13 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     },
     // Upstream's build project is left out, but on Android the crash reporter refuses to start
     // without one. It sends nothing here (observe.ts turns it off), so an empty id serves.
-    extra: { ...extra, eas: { projectId: "00000000-0000-0000-0000-000000000000" } },
+    extra: {
+      ...extra,
+      eas: { projectId: "00000000-0000-0000-0000-000000000000" },
+      // Android gets notifications through Google's service, which only a build made with the
+      // Firebase project's file has (docs/operations/majordome-push.md). Without it the app
+      // builds as before and its Notifications page says it cannot get any.
+      majordomePush: { android: renamed.android?.googleServicesFile !== undefined },
+    },
   };
 }

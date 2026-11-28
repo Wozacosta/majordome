@@ -80,6 +80,26 @@ them on the device itself, then turn the switch on again: on an iPhone or iPad, 
 app, then **Notifications > Majordome**. A device that can only read has to be added again from
 your computer with a new code.
 
+### In the phone app
+
+The iPhone and Android apps have their own switch: **Settings > Notifications > Notifications on
+this phone**. The phone asks for your permission when you turn it on. The line under the switch
+says where things stand:
+
+- **On**: you get them. **Send a test** shows one right away.
+- **Allow them in the phone's Settings**: the phone refused. **Open Settings** takes you there.
+- **Your computer can't send them yet**: your computer runs an older Majordome, so update it. A
+  computer with its own address service, or none, can't reach a phone app either.
+
+A phone connected to several computers gets notifications from each. Tapping one opens its chat.
+The phone shows in **Devices that get notifications** on your computer, where **Remove** stops it.
+Turning the switch off, signing out or removing a computer on the phone stops it too.
+
+A notification for a phone app travels from your computer to Majordome's address service, then to
+Apple or Google, who deliver it. Its title and its one line pass through those three; the address
+service keeps neither, and nothing else from your notes is sent. A browser on your Home Screen
+gets its notifications straight from your computer.
+
 Majordome notifies you when:
 
 - the assistant is waiting for you, with a question or something to approve;
