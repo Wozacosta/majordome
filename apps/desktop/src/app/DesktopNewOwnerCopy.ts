@@ -57,6 +57,33 @@ const isRunning = (pid: number) => {
 };
 
 /**
+ * macOS looks for the login keychain under HOME. An empty home has none, and the app's first
+ * secret would stop on "Keychain Not Found". The copy gets its own, with an empty password.
+ */
+const makeKeychain = Effect.fn("desktop.newOwnerCopy.makeKeychain")(function* (home: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const { path } = yield* DesktopEnvironment.DesktopEnvironment;
+  const directory = path.join(home, "Library", "Keychains");
+  const keychain = path.join(directory, "login.keychain-db");
+  yield* fs.makeDirectory(directory, { recursive: true });
+  const security = (args: ReadonlyArray<string>) =>
+    Effect.try({
+      try: () =>
+        NodeChildProcess.execFileSync("/usr/bin/security", [...args], {
+          env: { HOME: home },
+          stdio: "ignore",
+        }),
+      catch: (cause) =>
+        new DesktopNewOwnerCopyError({ reason: "The copy's keychain could not be made.", cause }),
+    });
+  yield* security(["create-keychain", "-p", "", keychain]);
+  // No lock timeout: a locked keychain would ask for a password nobody knows is empty.
+  yield* security(["set-keychain-settings", keychain]);
+  yield* security(["list-keychains", "-d", "user", "-s", keychain]);
+  yield* security(["default-keychain", "-d", "user", "-s", keychain]);
+});
+
+/**
  * Opens a second Majordome whose home is an empty folder, as on a computer that never had it.
  * While one is open, opening again shows it rather than emptying the home under it.
  */
@@ -79,6 +106,7 @@ export const open = Effect.fn("desktop.newOwnerCopy.open")(function* () {
     if (!alreadyOpen) {
       yield* fs.remove(home, { recursive: true, force: true });
       yield* fs.makeDirectory(home, { recursive: true });
+      if (environment.platform === "darwin") yield* makeKeychain(home);
     }
     const args = yield* HostProcess.Arguments;
     const child = NodeChildProcess.spawn(yield* HostProcess.ExecutablePath, args.slice(1), {

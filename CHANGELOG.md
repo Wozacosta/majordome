@@ -24,6 +24,10 @@ The section for a version is also the text of its release on GitHub.
   purchase belonged to another account, and no account could use it. The account you are
   signed in to now takes the subscription and gets its server.
 
+- **Open as a new owner no longer stops on "Keychain Not Found".** The second Majordome that
+  Testing opens now has a keychain of its own in its empty home, so macOS has somewhere to keep
+  its secrets and asks nothing.
+
 **Try this**
 
 - On a phone signed in to an account with no computer, open Your account.
