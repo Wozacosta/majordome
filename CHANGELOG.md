@@ -5,7 +5,27 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **Run Majordome on ChatGPT or Gemini, not only Claude.** The welcome page on the computer and
+  set-up on the phone offer Claude, ChatGPT and Gemini. Pick the plan you pay for: Majordome
+  installs what it needs and takes you through the sign-in. One signed in is enough.
+- **Gemini signs in with a link and a code,** so it works on a server with no screen, and from
+  the phone. A Majordome server has it installed already.
+- **The phone names the AI you use.** Settings says "ChatGPT plan" or "Gemini plan" where it
+  said "Claude plan", and lists all three so you can add one, change account or sign out.
+- **ChatGPT and Gemini are called that,** not Codex and Antigravity, on the welcome page,
+  Connections, the overview, the model levels and the phone.
+- **Connections stops talking about Claude when you do not use it.** With ChatGPT or Gemini
+  alone it no longer asks you to sign in to Claude, and apps you connected through Majordome
+  show on "what your assistant can see" whichever AI answers.
+- **Routines on Gemini run without stopping to ask** before using Majordome's own tools or a
+  connected app.
+
+**Try this**
+
+- On a new computer or a new server, press **Set up** next to ChatGPT or Gemini instead of
+  signing in to Claude, then ask "what is in my journal today?".
 
 ## 0.10.92
 

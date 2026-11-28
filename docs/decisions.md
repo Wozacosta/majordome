@@ -198,6 +198,11 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
   unattended; Anthropic has not confirmed that this is permitted, and it can enforce without
   notice. The owner accepted that risk to get a demo and the first few users quickly; the page
   where a customer signs in says so, and the customer can use an API key of their own instead.
+  Since 2026-11-28 the plan can also be ChatGPT or Gemini: set-up offers the three on the
+  computer and the phone, any one signed in is enough, and the image carries all three programs
+  (Gemini's is 280 MB and would not fit comfortably on the 3 GB volume). Majordome names an AI
+  by the plan its owner pays for, "ChatGPT" and "Gemini", not Codex and Antigravity
+  (`MAJORDOME_AIS` in `packages/shared/src/majordome.ts`).
   Set aside, not dropped: AI included in the price on a credential Majordome holds (about $20
   of AI, Sonnet 5.5 with Haiku 5.5 for small jobs). That shape is what the same page forbids
   ("may not pay for, resell, or intermediate Claude usage on their end users' behalf") when the

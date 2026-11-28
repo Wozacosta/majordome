@@ -7,7 +7,7 @@
 
 <p align="center">
   <b>A second brain that keeps working while you are away.</b><br>
-  Your markdown notes, plus the Claude or ChatGPT plan you already pay for.
+  Your markdown notes, plus the Claude, ChatGPT or Gemini plan you already pay for.
 </p>
 
 <p align="center">
@@ -162,7 +162,7 @@ Majordome runs on a Mac.
 
 1. **[Download](https://majord.me/download)** the app, for Macs with Apple silicon.
 2. **Drag** Majordome to Applications and open it.
-3. **Sign in to Claude or ChatGPT** on the welcome screen. It installs what it needs.
+3. **Sign in to Claude, ChatGPT or Gemini** on the welcome screen. It installs what it needs.
 4. **Choose your notes:** start new ones, or point it at a folder you already have. Majordome adds
    a few files of its own and changes nothing that is there.
 

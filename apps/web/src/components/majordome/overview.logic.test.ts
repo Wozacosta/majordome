@@ -583,7 +583,7 @@ describe("accessSection", () => {
     expect(facts(section.lines)).toEqual([
       ["Claude", "Signed in", "ok"],
       // One AI that works is enough.
-      ["Codex", "Not signed in", "neutral"],
+      ["ChatGPT", "Not signed in", "neutral"],
       ["Secret source: My Keychain", "Mac Keychain · Read by 2 settings", "neutral"],
       ["Secret source: Work", "1Password · Not used yet", "neutral"],
       [
@@ -603,7 +603,7 @@ describe("accessSection", () => {
   it("is orange when no AI on the machine can work", () => {
     const tones = (providers: ReadonlyArray<ServerProvider>) =>
       build([machine({ providers })]).lines.map((line) => [line.text, line.tone])[0];
-    expect(tones([signedOutCodex])).toEqual(["Codex", "warning"]);
+    expect(tones([signedOutCodex])).toEqual(["ChatGPT", "warning"]);
     expect(tones([provider({ installed: false })])).toEqual(["No AI is ready to work", "warning"]);
   });
 
