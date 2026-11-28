@@ -68,10 +68,11 @@ on 2026-11-26). Windows and Linux still come after it.
 The checklist for submitting the two phone apps, made on 2026-11-28. Nothing has been sent to
 either store. Details of each app are in "The iPhone app" and "The Android app" below.
 
-- [ ] **The identifiers are permanent once published:** the iPhone bundle identifier
+- [x] **The identifiers are permanent once published:** the iPhone bundle identifier
       `io.github.wozacosta.majordome.ios` and the Android package
       `io.github.wozacosta.majordome` (`apps/mobile/majordome/identity.ts`). They carry a
       GitHub user name. Changing either later means a new listing and everyone reinstalling.
+      Kept as they are (2026-11-28).
 - [ ] **EU trader details in both consoles:** the address and phone number that are on the
       terms page, shown on each listing. The owner's to type in.
 - [ ] **A demo account and a sample server for the reviewers,** with Claude signed in and
