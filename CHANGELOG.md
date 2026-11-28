@@ -11,10 +11,13 @@ The section for a version is also the text of its release on GitHub.
   computer yet. **On my computer** lists three steps and names the email to sign in with; a
   Majordome server is its own row. Coming back to the app checks again by itself. Sign out and
   **Delete my account** are now ordinary rows, with delete on its own in red.
+- **"Where things stand" is a card.** Above a topic's chat, it now sits in its own rounded box,
+  lined up with the replies under it, with when it was updated beside its name.
 
 **Try this**
 
 - On a phone signed in to an account with no computer, open Your account.
+- Open a topic and look at the top of its chat.
 
 ## 0.10.94
 
