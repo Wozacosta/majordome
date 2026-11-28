@@ -72,6 +72,7 @@ export * from "./majordomeModelLevels.ts";
 export * from "./majordomePhone.ts";
 export * from "./majordomeAccount.ts";
 export * from "./majordomeBackup.ts";
+export * from "./majordomeConnections.ts";
 export * from "./majordomeConnectors.ts";
 export * from "./majordomeNotesSearch.ts";
 export * from "./majordomePrivateDocuments.ts";
