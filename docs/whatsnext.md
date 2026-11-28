@@ -9,15 +9,16 @@ The checklist, made on 2026-11-26. Payment on [majord.me/start](https://majord.m
 and has one customer, the owner; everything here waits until strangers are told. **Bold** items
 block the opening. Tick an item when it is done and remove it once the section is stale.
 
-Not for the opening (the owner, 2026-11-26): Android, Windows and Linux come after it. The
-opening is the Mac app, the iPhone app and hosted servers.
+The opening is the Mac app, the iPhone app, the Android app and hosted servers. Both phone apps
+go to their stores for public release (the owner, 2026-11-28; Android was first left for later
+on 2026-11-26). Windows and Linux still come after it.
 
 ### The owner's to decide or supply
 
 - [ ] **Seller details on the terms page:** the name, sole-trader status, SIRET and a withdrawal
       form are there since 2026-11-27, and the business's Paris address and a Portuguese phone
-      number since 2026-11-28. The same two go in Apple's and Google's trader details. Still
-      missing: a consumer mediator. A request was sent on 2026-11-27 to SMP
+      number since 2026-11-28. The same two go in Apple's and Google's trader details, which
+      is not done yet (see "Both stores" below). Still missing: a consumer mediator. A request was sent on 2026-11-27 to SMP
       (mediateur-consommation-smp.fr, reference #340275, 30 euros for 3 years); once the
       convention is signed and paid, name it on the terms page: Médiation Professionnelle -
       Médiateur de la Consommation - Alteritae, 5 rue Salvaing, 12000 Rodez. The owner lives in
@@ -54,26 +55,95 @@ opening is the Mac app, the iPhone app and hosted servers.
       `infra/broker/src/worker.ts` (1.5 GB needs about 18 euros). Check the cost against one
       Fly invoice. Stopping idle servers would bring it to a few dollars; set aside for now.
 - [ ] `MAX_HOSTED_SERVERS` is 10. It counts servers that are on; raising it raises the most the
-      Fly bill can reach.
+      Fly bill can reach. The 11th buyer is turned away before paying: `/start` hides the offer
+      and says "Majordome is not taking new servers right now. Try again later.", the phone
+      apps say the same and that nothing was bought, and an invite code is refused the same
+      way. Nobody is told when a place frees up, and a store reviewer or tester who subscribes
+      takes a place too. Raise it before the stores open, or decide what the 11th should see.
 - [ ] A new email is a new free trial (`trialFor` in `infra/broker/src/billing.ts`). Decide
       whether that is acceptable for now.
 
-### The iPhone app
+### Both stores
 
-Details are in "The iPhone app" below.
+The checklist for submitting the two phone apps, made on 2026-11-28. Nothing has been sent to
+either store. Details of each app are in "The iPhone app" and "The Android app" below.
 
-- [ ] **Sign up from the phone, run for real.** Making a server from the app has only been unit
-      tested.
-- [ ] **The purchase, or hide it.** It is not ready to submit. In the broker: placeholder key ids switch
-      selling on; a purchase with no account token is dropped; an unknown transaction gets the
-      wrong message. In App Store Connect: the Paid Apps agreement, the subscription at the web
-      price with a one-week free offer, the billing grace period, the In-App Purchase key, the
-      notice address, a sandbox tester, and a demo account for the reviewer.
-- [ ] A TestFlight link for people outside the team goes through Beta App Review first.
+- [ ] **The identifiers are permanent once published:** the iPhone bundle identifier
+      `io.github.wozacosta.majordome.ios` and the Android package
+      `io.github.wozacosta.majordome` (`apps/mobile/majordome/identity.ts`). They carry a
+      GitHub user name. Changing either later means a new listing and everyone reinstalling.
+- [ ] **EU trader details in both consoles:** the address and phone number that are on the
+      terms page, shown on each listing. The owner's to type in.
+- [ ] **A demo account and a sample server for the reviewers,** with Claude signed in and
+      sample notes, never the owner's. It must stay on for the whole review, and both stores
+      ask for the sign-in.
+- [ ] **Store listings:** name, description, screenshots. The App Store name is "Majordome:
+      Your Second Brain" (`docs/operations/majordome-testflight.md`). Google also wants a
+      feature graphic. None are in the repository.
+- [ ] Privacy answers in both consoles, matching `site/privacy/index.html`: Apple's privacy
+      labels (filled in on the web only) and Google's data safety form. Both ask for the
+      privacy address, `https://majord.me/privacy`.
+- [ ] Check that the phone's sign-in offers Sign in with Apple beside Google. Apple's rule 4.8
+      asks for it; it was not found by reading the code on 2026-11-28.
+- [ ] The code on the Welcome page's Phone step opens majord.me/open. Point it at the two
+      listings once they exist (`apps/web/vite/wording/links.ts`).
 - [ ] The share extension is upstream's: it puts what you share from another app into a new
       chat. Keep it or drop it. (The widgets, about coding agents, are out of the build.)
-- [ ] The code on the Welcome page's Phone step opens majord.me/open. Point it at the App Store
-      once the app is listed there (`apps/web/vite/wording/links.ts`).
+
+Checked on 2026-11-28 and fine: the permission prompts say Majordome on both phones (the
+identity step swaps the name through the whole config, plugin texts included), an account can
+be deleted in the app and on `majord.me/server`, and a chat not named yet shows "New chat".
+
+### The App Store
+
+- [ ] **The Paid Apps agreement.** The W-8BEN form waits for the owner's signature. Until it is
+      active a subscription cannot be sold to the public.
+- [ ] **The purchase, checked in App Store Connect.** Subscribing on a TestFlight build makes
+      the server since 0.10.78, so the subscription and the In-App Purchase key exist. Not
+      checked from here: the price matching the web's with a one-week free offer, the billing
+      grace period, the notice address (`infra/broker/README.md`, "Apple, once"). In the
+      broker, a purchase with no account token is still dropped (`appleFacts` in
+      `infra/broker/src/apple.ts`). No purchase has been charged for real.
+- [ ] **The subscription's own review:** a screenshot of the purchase screen and a review note,
+      sent with the first build that sells it.
+- [ ] **Review notes, rewritten.** `.plans/app-store-review-notes.md` (2026-11-24, not in git)
+      says the app has no purchases, which is no longer true. The new notes say how to reach
+      the purchase, give the demo account, and explain two things a reviewer asks about: the
+      background audio mode (upstream's config has it for picture in picture; check whether
+      the voice uses it, and drop it if nothing in Majordome does) and `NSAllowsArbitraryLoads`
+      (the app talks to the user's own server on their home network, which has no certificate).
+- [ ] **iPad.** The build supports iPad (`supportsTablet` in `apps/mobile/app.config.ts`), so
+      Apple asks for iPad screenshots and reviews it there. Look at it on an iPad simulator
+      first, or turn iPad off in `apps/mobile/majordome/identity.ts`.
+- [ ] Test purchases count in the broker (`APPLE_ALLOW_SANDBOX` is `"1"` in
+      `infra/broker/wrangler.deploy.jsonc`): the reviewer's free purchase makes a real server
+      and takes one of the 10 places. It has to stay on through review.
+- [ ] A TestFlight link for people outside the team goes through Beta App Review first.
+- [ ] Someone other than the owner signs up from the iPhone. The owner has, on TestFlight.
+
+### Google Play
+
+- [ ] **Start the closed test first: it is the longest wait.** A new personal developer account
+      (25 dollars, identity check) needs a closed test with 12 testers for 14 days in a row
+      before the app can be public. Find the 12 people now.
+- [ ] **Decide how the Play build sells a server.** The Android app opens Stripe's checkout in
+      a browser (`SOLD_ON_WEB` in `apps/mobile/src/majordome/hostedSignup.ts`). Play normally
+      wants a subscription used inside the app to go through Play Billing. Either a Play build
+      with no buy button and no link to the price, or build Play Billing (a third way of paying
+      in the broker, beside Stripe and Apple). The owner's decision, not made yet. The APK
+      from GitHub can keep selling on the web either way.
+- [ ] **An app bundle, not an APK.** Play takes an AAB and signs what it delivers itself (Play
+      App Signing). `scripts/majordome-android-apk.sh` only runs `assembleRelease`; it needs a
+      `bundleRelease` path. When enrolling, give Play the existing key
+      (`~/.majordome/android/release.jks`) as the app's signing key; with a key Play makes
+      itself, a phone that has the APK must remove it before installing from Play.
+- [ ] Play Console forms: content rating, target audience, the data safety form, and the web
+      address for deleting an account (`https://majord.me/server` has the button; Google wants
+      a page that says so plainly).
+- [ ] Read Play's AI-generated content policy: it asks apps that generate content to let people
+      report offensive output from inside the app. Whether it applies to an app whose
+      assistant runs on the user's own server with their own Claude account is not settled;
+      Majordome has no such button.
 
 ### The landing page and the docs
 
@@ -89,7 +159,6 @@ Details are in "The iPhone app" below.
 - [ ] **A support address that is read, and a way to report a bug.** The triage tool is hidden.
 - [ ] Removing a server and restoring a backup are by hand. Say how fast either is promised.
 - [ ] The nightly update does not wait for a run in progress to finish.
-- [ ] Invite codes have no limit on tries.
 - [ ] Something that checks the broker and `majord.me` are up.
 
 ### A stranger's first run
@@ -153,8 +222,9 @@ folders can no longer preview Office files.
 
 ### Still pointing at T3 Code
 
-- **`docs/user/`.** Only `install.md` is rewritten. `updating.md`, `faq.md`, `triage.md`,
-  `remote-access.md` and others still describe T3 Code and its `t3` command.
+- **`docs/user/`.** `install.md` is rewritten and Majordome's own pages are new. `updating.md`,
+  `faq.md`, `triage.md`, `remote-access.md` and others still describe T3 Code and its `t3`
+  command.
 - **SSH computers.** The option is hidden when adding a computer. The code behind it still
   downloads a command-line build Majordome does not publish, and its failure message names
   T3 Code's install script (`packages/ssh/src/tunnel.ts`).
@@ -163,7 +233,8 @@ folders can no longer preview Office files.
   (`apps/server/src/triage/`).
 - **The hosted app's empty state** (`InstallT3Commands.tsx`) shows T3 Code's install commands.
   Majordome has no hosted app, so nobody sees it today.
-- **Coding guidance in the chat instructions.** `orchestrationInstructions.ts` still explains
+- **Coding guidance in the chat instructions.** `orchestrationInstructions.ts`
+  (`packages/provider-core/src/server/`) still explains
   worktree chats and says "Ordinary coding tasks need no T3 tools". About 5 KB per chat; the
   file differs from upstream by one line, so trimming it costs merge conflicts.
 
@@ -174,16 +245,19 @@ folders can no longer preview Office files.
 - **A git fetch every 30 seconds on the notes folder.** Read from the code
   (`VcsStatusBroadcaster.ts`), but 70 minutes of the live server's log showed one fetch. Left
   alone; look again if the backup remote shows heavy traffic.
-- **Hidden settings pages** (Source control, Worktrees, Devices, Diffs) are gone from the menu
-  and search but may still open by address.
+- **Hidden settings pages** (Source control, Worktrees, Devices, Diffs, Snap shot) are gone from
+  the menu and search but still open by address: their routes
+  (`apps/web/src/routes/_chat.settings.*.tsx`) have no redirect, unlike Scheduled tasks, which
+  goes to Routines.
 - **The tool-list budget** in `agentContextBudget.json` counts every registered tool, including
   the hidden coding ones, so it overstates what a chat is told by about 13 KB.
 
 ## What the AI costs: measure, then improve
 
-Hosted Majordome sells about $20 of AI a month (see `docs/decisions.md`), so what a chat message
-and a routine run cost decides whether that price holds. It is part of the hosted work, and the
-saving applies to anyone on an API key.
+AI included in a hosted server's price (about $20 a month) was set aside on 2026-11-23, not
+dropped (see `docs/decisions.md`): what a chat message and a routine run cost decides whether
+that price would hold. Until then the saving applies to anyone on an API key, and to how fast a
+customer's own plan runs out.
 
 Measured on 2026-11-23 from one week of the owner's use, all on Opus 5.5 (66 chat turns on the
 Mac, 29 chat turns and 14 routine runs on the server), priced at list API rates:
@@ -204,29 +278,22 @@ rows; nothing was changed in how a turn is sent):
   it. The large writes come from two places: the first turn of a session, and coming back to a
   conversation after the hour has passed, which was 52% of all cache writes that week. An
   earlier note here guessed something early in the prompt was changing; that was wrong.
-- **What fills the first request, about 45,000 to 55,000 tokens.** Roughly 65% is Claude Code's
-  own tools and listings, including its Artifact tools (8,000 to 13,000 tokens) that Majordome
-  never uses. About 16% on the owner's Mac is his personal Claude plugins and settings, loaded
-  because the session reads `~/.claude`. About 18% is Majordome's own text.
+- **What filled the first request before the cuts below, about 45,000 to 55,000 tokens.**
+  Roughly 65% was Claude Code's own tools and listings, including its Artifact tools (8,000 to
+  13,000 tokens). About 16% on the owner's Mac was his personal Claude plugins and settings,
+  loaded because the session read `~/.claude`. About 18% was Majordome's own text.
 - **"Other requests as large again as the chats" was earlier turns counted again**, fixed on
-  2026-11-24. Claude Code restores a resumed conversation's totals into its ledger, so the
-  first turn after a restart was charged with every turn before it. In the owner's data, 13 of
-  the 24 turns with an "other" figure matched the sum of the earlier turns to the token, and
-  97% of the 21.6 million "other" input tokens were that. Upstream's recorded resumed session
-  (`testkit/fixtures/claude_idle_resume`) starts its ledger at zero, which is why a first fix
-  was reverted; the rule now accepts a resumed process's first ledger only when it equals the
-  turn's own usage. About 650,000 tokens of real side requests are left, 4% of the chats.
+  2026-11-24: Claude Code restores a resumed conversation's totals into its ledger, so the
+  first turn after a restart was charged with every turn before it. Real side requests are
+  about 4% of the chats.
 - **The small jobs already run on Haiku** (key facts, "In short", titles), through the
   provider's fallback. Only chat and routines are on Opus.
 
-Done on 2026-11-24, in `apps/server/src/majordome/claudeSessionCuts.ts`, each measured on a
-first request of 43,755 tokens (Haiku, a small notes folder, the owner's Mac):
-
-- **The Artifact tools are no longer offered:** 12,346 tokens less.
-- **The owner's personal Claude Code settings are not loaded** (plugins, skills, hooks, personal
-  MCP servers): 9,899 less. Turning off only the two plugins saved 1,601, so the whole "user"
-  source is left out. The notes folder's own `.claude` is still read.
-- **Routines keep their cache five minutes,** not an hour.
+Cut on 2026-11-24 (`apps/server/src/majordome/claudeSessionCuts.ts`), measured on a first
+request of 43,755 tokens (Haiku, a small notes folder, the owner's Mac): the Artifact tools,
+12,346 tokens, and the owner's personal Claude Code settings, 9,899. Turning off only his two
+plugins saved 1,601, which is why the whole "user" source is left out. Routines keep their
+cache five minutes, not an hour.
 
 Still proposals, each the owner's to decide:
 
@@ -249,11 +316,15 @@ wording for a phone.
 
 ## Hosted Majordome: where the servers come from
 
-Next in line since 2026-11-23 (see `docs/decisions.md`). What was learned that day,
-so it is not looked up twice:
+Built and on sale: a server on Fly.io, made by the address broker for an invite code or a
+subscription (Stripe on `majord.me/start`, Apple in the iPhone app), owned by a Majordome
+account. How it works is in `docs/decisions.md` and `infra/broker/README.md`; what
+is left before strangers are told is in "Before opening to the public" above. Kept here: what
+was learned on the way, so it is not looked up twice, and what is open beyond the opening.
 
-- **Size.** The owner's server uses about 425 MB of memory at rest and 1.5 GB of disk, and is
-  listening 3 seconds after it starts. A 2 GB server is enough.
+- **Size.** The owner's server used about 425 MB of memory at rest and 1.5 GB of disk on
+  2026-11-23, and was listening 3 seconds after it started. New servers have 1 GB of memory
+  with 1 GB of swap since 2026-11-26; the measurements behind that are under "Payment" above.
 - **Prices moved a lot in 2026** as memory got dearer. https://www.eucloudcost.com/price-index/
   tracks European list prices weekly from an open dataset; it has no stock, no US hosts, and
   does not say which hosts can create a server by API with a start-up script.
@@ -306,17 +377,19 @@ so it is not looked up twice:
   US company. OpenBot uses it only when its own pool is empty. A better fit than Fly for the
   one-day trial of sleeping machines: European regions, and a 7-day trial with 25 hours.
 - **GDPR.** Storing in Europe is not required, but it is the simplest position. The larger
-  transfer is the AI: notes go to the model provider. Before a paying customer: a privacy
-  policy, a data processing agreement with the host, the model provider, Cloudflare and the
-  payment provider, and an hour with someone who does this for French small businesses.
+  transfer is the AI: notes go to the model provider. The policy and the agreements still to
+  sign are in "Before opening to the public" above.
 
 **Decided on 2026-11-23: start the way OpenBot does.** The customer signs their own Claude plan
 in on the hosted server and pays for the server only. It needs no credential of ours, no cap
 and no metering, so the capped credential per customer below is set aside until AI is included
 in the price. The risk is in the quotes that follow and was accepted for a demo and the first
-few users, then on 2026-11-27 for the public opening too: OpenBot does the same in the open. What it asks of the work: the sign-in page tells the customer that Anthropic has not
-confirmed this use and that their plan's limits are meant for ordinary individual use, and an
-API key of their own stays possible. The price is then the server plus a margin.
+few users, then on 2026-11-27 for the public opening too: OpenBot does the same in the open.
+What it asks of the work: the sign-in page tells the customer that Anthropic has not confirmed
+this use and that their plan's limits are meant for ordinary individual use, and an API key of
+their own stays possible. That notice was not found in the app or on the site on 2026-11-28;
+the terms and the trust page only say the AI runs under the provider's terms. The price is the
+server plus a margin.
 
 **Anthropic's terms, read before that decision.** Read on 2026-11-23 at
 https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):
@@ -325,7 +398,7 @@ https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):
   "requires agreeing to our Commercial Terms of Service", and the program must be unmodified.
 - "Customers may not pay for, resell, or intermediate Claude usage on their end users' behalf.
   Each end user must authenticate with their own Anthropic API key, Claude subscription plan
-  credentials, or 3P inference provider credential". The chosen shape (Majordome holds the
+  credentials, or 3P inference provider credential". The shape set aside (Majordome holds the
   credential, AI in the price) is that, when the assistant runs through Claude Code or the
   Agent SDK, which is what the Claude adapter uses. This bears directly on the capped
   credential per customer described below.
@@ -342,22 +415,8 @@ https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):
   Claude plan in on its servers, and its own `docs/provider-terms.md` says Anthropic has not
   confirmed that this is permitted.
 
-No customers set up by hand (2026-11-23): a customer's server is created when they ask for it.
-"Set up a server for me" cannot do that as it is. It runs on the owner's computer with the
-owner's own Hetzner key and puts the server on the owner's Tailscale network; a customer has
-neither. What creating one for a customer needs:
+Set aside with AI in the price, and needed if it comes back:
 
-- **A service that holds Majordome's host keys** and creates the server. The address broker
-  (`infra/broker`) is the natural place: it is already deployed, already holds a secret, and
-  can make the server's `majord.link` address in the same request and hand the connector token
-  to the start-up script, so the server needs no Tailscale and no open port.
-- **Something that says who may ask**, or anyone can run up the bill: an invite code first,
-  payment later.
-- **A start-up script without Tailscale** (`cloudInitFor` in `serverMovePlan.ts` and
-  `deploy/docker-compose.yml` both assume it), carrying the connector token and the setup
-  secret. No AI credential goes in it: the customer signs in from the app.
-- **The app's side:** a "Majordome hosts it" choice that sends the invite code, then pairs with
-  the setup secret and copies the notes, as the move does today from the `pair` step on.
 - **One capped AI credential per customer.** Checked against Anthropic's docs on 2026-11-23:
   - A classic API key cannot be created by API (keys can only be listed, renamed and turned
     off), so "one key per customer" as written means clicking in the Console.
@@ -386,8 +445,9 @@ new customers and some of our existing customers", and its cost-optimized line i
 wanted before real paying customers. A customer's notes are plain files with a backup, so
 moving one to another host later is a copy.
 
-The test that decides it, on one machine. Run on 2026-11-23 with the released image (0.10.26),
-2 shared CPUs and 2 GB in Paris; these are the commands that worked:
+A server by hand, for a test. These commands worked on 2026-11-23 with the released image
+(0.10.26), 2 shared CPUs and 2 GB in Paris; what the broker makes today is in
+`infra/broker/src/fly.ts`:
 
 ```sh
 fly apps create --generate-name --org personal
@@ -399,17 +459,12 @@ fly machine run ghcr.io/wozacosta/majordome:latest --app <app> --region cdg \
 fly ips allocate-v4 --shared --app <app> && fly ips allocate-v6 --app <app>
 ```
 
-1. **Passed: Majordome starts, answers over HTTPS and pairs.** No start-up script, no Tailscale,
-   no tunnel. It was listening about 4 seconds after the machine started and printed its pairing
-   link with the `fly.dev` address. The volume was writable by the image's `node` user with
-   nothing done. 605 MB of 1,970 MB in use at rest. The owner paired from a browser.
-2. **Passed: Claude signed in from the welcome page and answered.** The sign-in is kept on the
-   volume (`/data/.claude`).
-3. **Not done yet:** a browser tab opens from the phone on a chat that runs there. A good sign:
-   the log has no "this host blocks the sandbox" warning, which the OVH server prints.
+Seen in that run:
 
-Also seen that day:
-
+- It was listening about 4 seconds after the machine started, with no start-up script, no
+  Tailscale and no tunnel. The volume was writable by the image's `node` user with nothing
+  done. 605 MB of 1,970 MB in use at rest. Claude's sign-in is kept on the volume
+  (`/data/.claude`).
 - **A Fly account without a card stops every machine after 5 minutes** ("Trial machine
   stopping"), and starts it again on the next request. Pay As You Go lifted it without
   recreating the machine.
@@ -419,80 +474,29 @@ Also seen that day:
   the Claude sign-in survived every stop.
 - **Each start prints a new pairing link**; a link made with `majord pair` kept working across
   a restart.
-- **The new sign-in (0.10.28) was used for real** on a fresh machine: a link, a code, Ready.
-  Left to tidy: its card still says "Claude says Ready above in a moment" once Claude is Ready.
 - The test server that is kept is the app `patient-petal-578`, on Pay As You Go.
 
-So Fly is the host. What the welcome page got wrong on a server, seen in that run:
+Still open, beyond the checklist above:
 
-- Claude's sign-in ran in a hidden terminal and said a page had opened in the browser. Fixed
-  after 0.10.27: a server shows a link to open and a box for the code.
-- "A new folder called Majordome in your home folder": a hosted customer has no home folder
-  there. Fixed: a server created with `MAJORDOME_HOSTED=1` is named "Majordome server" and its
-  welcome page says the notes folder is on it. Whatever creates a hosted server must set that
-  variable.
-- Codex, "Use a different AI", "Choose folder" and restoring from a folder all assume the
-  owner's own computer. Fixed: a Majordome server's welcome page shows Claude, "Start new
-  notes" and restoring from Google Drive, and its "Your server" settings page offers nothing to
-  set up.
-- The start-up log warns that the address "uses plain HTTP" although Fly serves it over HTTPS.
-
-**Built on 2026-11-23: an invite code makes a server.** The address broker (`infra/broker`,
-live at broker.majord.link) has `GET /start`, the page a person with a code opens, and `POST
-/v1/hosted`, which spends the code on one Fly app with a 3 GB volume and a 2 GB Machine running
-the released image, marked `MAJORDOME_HOSTED=1` and carrying a one-time setup secret. The page
-waits until the server answers and opens it paired as its owner. Run for real through the page:
-a new server about half a minute after the code, with the welcome page of a Majordome server,
-Claude's link-and-code sign-in, and new notes made. Making invites and removing a server are
-commands in `infra/broker/README.md`.
-
-What that first version does not do, in the order I would take them:
-
-- **Updates: done.** Every night the broker reads the latest release and restarts each hosted
-  server that reports another version. Run for real: a server went from 0.10.29 to 0.10.30 in
-  36 seconds, and a second run restarted nothing. It names the image by its tag, since a
-  machine updated with `fly machine update` has its image pinned to a digest and would otherwise
-  restart on the same one. It does not yet wait for a run in progress to finish. A server made
-  by hand is in its list only if it has a row in `hosted_invites`; the demo server has one.
-- **Phone setup: done.** A hosted server reports its own address as the phone's, and the Phone
-  page goes straight to the code to scan. Seen on a real hosted server.
-- **From the iPhone app: built, not run for real.** The phone has its own "A Majordome server"
-  screen that spends a code, waits, connects the phone as the owner and then opens the server's
-  welcome page in the browser. See "The iPhone app" below.
-- **Backups: a first layer is on.** Fly copies each volume daily; new servers keep those copies
-  30 days. Restoring one was tried on a throwaway server on 2026-11-23 and worked: a file changed
-  after the copy came back as it was, and the server kept its identity and its owner's access.
-  It is done by hand (steps in `infra/broker/README.md`). Not done: a backup the customer owns
-  (Google Drive, GitHub) is still theirs to turn on.
+- **The start-up log warns that the address "uses plain HTTP"** although Fly serves it over
+  HTTPS (`formatHeadlessServeOutput` in `apps/server/src/startupAccess.ts`).
+- **A backup the customer owns** (Google Drive, GitHub) is still theirs to turn on. Fly's daily
+  copies are the only layer that is on by itself.
 - **The address** is `majordome-<10 characters>.fly.dev`, which names the host. A name under a
   domain of ours needs a certificate per server on Fly. The owner has `majord.me` (the landing
   page today) and `majord.link` (the tunnels' addresses); a subdomain of `majord.me` is the
   natural home, since `majord.link` hands its names to tunnels.
-- **Coming from the Mac app: done.** "Move my notes to your Majordome server" in Settings > Your
-  server reuses the move to a server of your own from its pairing step on, with a one-time code
-  the app asks the server for. Run for real between this Mac and a server on Fly: notes and
-  history copied in about a second, a note written on the server brought back. Not tried for
+- **Moving notes from the Mac app** ("Move my notes to your Majordome server"). Not tried for
   real: moving routines, which needs Claude signed in on the server. The server must be added
   to the app first, and must not have had "Start new notes" pressed, or it ends up with two
   notes folders.
-- **Payment, and removing a server,** are by hand. `MAX_HOSTED_SERVERS` (10) bounds the bill.
+- **A server made with an invite is removed by hand** (`infra/broker/README.md`). A paid one is
+  deleted by its owner, or 30 days after it stops being paid for.
 - **The built-in browser.** On Fly, `majord browser setup` reports that Chrome's sandbox is
-  allowed, so it should work; no one has opened a tab from a phone yet.
-- **Guessing codes.** A code is refused the same way whether unknown or used, and there is no
-  limit on tries, so codes must be long and random.
-- **Accounts (looked at 2026-11-23, not built).** An invite code leads to a server once; after
-  that nothing leads back to it, so a new phone or a wiped one needs a code from the server's
-  Phone page. An account fixes that ("sign in, here is your server") and is where payment hangs
-  later. Clerk fits: upstream already carries it for T3 Connect in the web, desktop and phone
-  apps (native Apple and Google sign-in, token storage), switched off here only because no key
-  is set. What it takes: a Clerk application of Majordome's own; `hasCloudPublicConfig` (web and
-  phone) no longer requiring a relay address; Sign in with Apple enabled for the bundle ID and
-  `webcredentials:<Clerk domain>` put back in `majordome/identity.ts`; and in the broker an owner
-  column on `hosted_invites`, a check of the Clerk token against the application's public keys,
-  and `GET /v1/hosted/mine`, which needs a way to give an existing server a fresh setup secret.
-  Dexie Cloud is not the tool: it syncs a browser database between devices, and Majordome's data
-  is a notes folder on a server; its login would add a second copy of nothing.
-- **Before anyone pays:** the privacy policy and agreements above, and Anthropic's answer.
+  allowed, and the log has no "this host blocks the sandbox" warning, which the OVH server
+  prints. No one has opened a tab from a phone on a chat that runs there yet.
+- **Anthropic's answer.** None is recorded. The owner accepted the risk for the opening on
+  2026-11-27 (above), and the ways out listed under its terms stand.
 
 Later, in this order when each is needed: sleeping (the service stops and wakes machines, as
 OpenBot's does), a second host behind one interface, a pool of ready servers.
@@ -577,14 +581,17 @@ link only works through T3 Connect.
 
 It looks doable without T3 Connect. Everything except the address is already in the server and
 does not depend on T3: the link tokens, the approval of guest messages and the guest's page
-(`apps/server/src/guest/`). The one tie is in `GuestShareService.ts`, which asks T3 Connect for
-the public hostname the link is made for and refuses when there is none. Majordome has public
-hostnames of its own: the `majord.link` phone address, and a hosted server's address.
+(`apps/server/src/guest/`). The one tie is in `GuestShareService.ts`, which takes the public
+hostname the link is made for from the tunnel connector (`inspectConnector`) and refuses when
+there is none. Read on 2026-11-28, not run: the `majord.link` phone address runs on that same
+connector (`AnywhereAddress.ts`), so a computer with its phone address on may already pass
+that check. A hosted server has no connector, only its own address.
 
 To do:
 
-- Give `GuestShareService` the Majordome address instead of T3 Connect's, and close links when
-  that address is turned off, as it does today when Connect is unlinked.
+- Turn the switch on with a phone address on and see whether a link is made and opens. Then
+  give `GuestShareService` a hosted server's address too, and check links close when the
+  address is turned off, as they do today when Connect is unlinked.
 - Decide what a guest may reach on that address. Today the phone address serves the whole app
   behind pairing; a guest link is a second, unpaired way in, so read `SECURITY.md` and
   `docs/internals/04_environment-auth.md` first.
@@ -600,21 +607,21 @@ kind, publishing a list, filing one item under several subjects, and Empty Trash
 
 Started 2026-11-27. It is the iPhone app's code; `apps/mobile/majordome/identity.ts` gives it
 its package (`io.github.wozacosta.majordome`), icons and launch screen. How to build it and what
-it lacks are in `docs/operations/majordome-android.md`.
+it lacks are in `docs/operations/majordome-android.md`. It is on the owner's own phone since
+2026-11-27, and the voice works there since 0.10.87.
 
-- [ ] **Run it on a real phone.** It has only run on an emulator: pairing, Today, a chat and
-      Settings were walked there, in the development app and in the signed release build.
-- [ ] **Decide how people get it.** Today the APK is built on the owner's Mac and can be
-      attached to a GitHub Release (`vp run mobile:apk --release v1.2.3`). The Play Store needs
-      a developer account (25 dollars, identity check) and, for a new personal account, a
-      closed test with 12 testers for 14 days before it can be public.
+- [ ] **Google Play.** Decided on 2026-11-28: it goes to the store. The steps are under
+      "Google Play" in "Before opening to the public". Until then the APK is built on the
+      owner's Mac and can be attached to a GitHub Release (`vp run mobile:apk --release v1.2.3`).
 - [ ] **Back up the signing key** (`~/.majordome/android/release.jks` and its password in
       `~/.majordome/android.env`). Without it no update installs over the app.
 - [ ] **Buy a server from the Android app, for real.** The app opens the website's Stripe
       checkout and makes the server when the payment is in (2026-11-27). Only the logic is
       tested: no payment has gone through it, and whether Google Pay shows depends on the
       Stripe account's payment methods.
-- [ ] The on-device voice, and `majord.link` addresses opening in the app.
+- [ ] `majord.link` addresses opening in the app. It needs the broker to serve
+      `/.well-known/assetlinks.json` with the signing key's SHA-256 (Play's own key once the
+      app is there) and an intent filter in `apps/mobile/majordome/identity.ts`.
 - [ ] Notifications: not built for either phone app.
 - A symbol that exists only on the iPhone draws nothing on Android. Majordome's own screens
   use the shared `SymbolView`, or `TopicSymbolView` for topic icons, which has an Android list
@@ -691,9 +698,9 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
     there still opens the server's `/pair#token=…` page with a one-time code.
   - `EXPO_PUBLIC_MAJORDOME_BROKER_URL` at build or Metro start points it at another broker;
     the default is `https://broker.majord.link`.
-  - Not run for real: no server was made from the phone, and nothing was looked at in the
-    simulator. Unit tests cover the requests, the answers and the steps only. If the broker's
-    answer is lost on the way back, the code is spent and the phone does not know the server.
-- **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
-  in App Store Connect and a sign-in there), and the share-extension target (upstream's; decide
-  whether to ship it).
+  - Subscribing from the phone has been run by the owner on TestFlight (0.10.78). Whether the
+    invite-code path was ever run from a phone is not recorded. If the broker's answer is lost
+    on the way back, the code is spent and the phone does not know the server.
+- **TestFlight builds** come from `vp run mobile:testflight`
+  (`docs/operations/majordome-testflight.md`). What is left before the App Store is under "Both
+  stores" and "The App Store" in "Before opening to the public".
