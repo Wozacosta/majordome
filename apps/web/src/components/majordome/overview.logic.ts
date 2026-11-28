@@ -706,7 +706,7 @@ function providerLines(machine: OverviewAccessMachine): ReadonlyArray<OverviewLi
           {
             key: `provider:${machine.key}:none`,
             text: say(machine.label, "No AI is ready to work"),
-            detail: "Sign in to Claude, Codex or another AI so chats and routines can run.",
+            detail: "Sign in to Claude, ChatGPT or Gemini so chats and routines can run.",
             tone: "warning" as const,
             link,
           },

@@ -119,6 +119,33 @@ const CONNECTION_DOTS: Record<string, Chip["dot"]> = {
 const connectionName = (name: string) =>
   name.replace(/^claude\.ai /, "").replace(/^plugin:(?:[^:]*:)?/, "");
 
+export interface ChatConnection {
+  readonly name: string;
+  readonly status: string;
+}
+
+/**
+ * What a chat can use: the apps connected through Majordome, which every AI gets, then what its
+ * own AI account brings. An app that is in both is named once. Undefined when there is neither
+ * and the AI account cannot say what it has, so the map draws no empty box for it.
+ */
+export function chatConnections(input: {
+  readonly apps: ReadonlyArray<{ readonly name: string; readonly state: string }>;
+  /** The AI account's own connectors, or null when it cannot list them. */
+  readonly account: ReadonlyArray<ChatConnection> | null;
+}): ReadonlyArray<ChatConnection> | undefined {
+  const apps = input.apps.map(({ name, state }) => ({
+    name,
+    status: state === "connected" ? "connected" : "needs-auth",
+  }));
+  if (input.account === null) return apps.length === 0 ? undefined : apps;
+  const here = new Set(apps.map(({ name }) => name.toLowerCase()));
+  return [
+    ...apps,
+    ...input.account.filter(({ name }) => !here.has(connectionName(name).toLowerCase())),
+  ];
+}
+
 const STYLE = `
 .map{position:relative;display:grid;grid-template-columns:1fr auto 1fr;column-gap:64px;align-items:center;font-family:var(--font-sans);color:var(--foreground)}
 .wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}

@@ -1,6 +1,6 @@
 import { expect, it } from "vite-plus/test";
 
-import { renderChatSetupPage } from "./chatSetupPage.ts";
+import { chatConnections, renderChatSetupPage } from "./chatSetupPage.ts";
 
 const setup = (skills: Array<{ name: string; description: string }>) => ({
   startsWith: {
@@ -43,4 +43,32 @@ it("names the note about the owner, and says so when it has not been started", (
   expect(withNote({ note: "me.md" })).toMatch(/About you[^]{0,200}me\.md/);
   expect(withNote({})).toMatch(/About you[^]{0,200}Nothing yet/);
   expect(renderChatSetupPage({ setup: setup([]) }).html).not.toContain("About you");
+});
+
+it("lists the apps connected through Majordome for an AI that cannot say what it has", () => {
+  const apps = [
+    { name: "Granola", state: "connected" },
+    { name: "Linear", state: "needs-sign-in" },
+  ];
+  expect(chatConnections({ apps, account: null })).toEqual([
+    { name: "Granola", status: "connected" },
+    { name: "Linear", status: "needs-auth" },
+  ]);
+  expect(chatConnections({ apps: [], account: null })).toBeUndefined();
+});
+
+it("names an app once when the AI account brings its own copy of it", () => {
+  expect(
+    chatConnections({
+      apps: [{ name: "Granola", state: "connected" }],
+      account: [
+        { name: "claude.ai Granola", status: "needs-auth" },
+        { name: "claude.ai Gmail", status: "connected" },
+      ],
+    }),
+  ).toEqual([
+    { name: "Granola", status: "connected" },
+    { name: "claude.ai Gmail", status: "connected" },
+  ]);
+  expect(chatConnections({ apps: [], account: [] })).toEqual([]);
 });

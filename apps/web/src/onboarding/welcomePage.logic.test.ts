@@ -1,5 +1,6 @@
 import {
   type ManagedPolicySummary,
+  type ProviderAuthState,
   ProjectId,
   resolveProviderInstanceEnabled,
   ProviderDriverKind,
@@ -14,7 +15,14 @@ import {
   cliTerminalStep,
   codexCardProvider,
   codexNeedsSetup,
+  geminiCardProvider,
+  geminiNeedsSetup,
+  geminiSetupStep,
+  geminiSignInStep,
   groupWelcomeAgents,
+  isOwnComputer,
+  majordomeAiName,
+  majordomeWelcomeAgents,
   turnedOnInstance,
   welcomeOffersPhone,
 } from "./welcomePage.logic";
@@ -236,6 +244,196 @@ describe("codexCardProvider", () => {
         settings: undefined,
       }),
     ).toBeNull();
+  });
+});
+
+const ai = (driver: string, overrides: Partial<ServerProvider> = {}): ServerProvider => ({
+  ...provider(driver),
+  instanceId: ProviderInstanceId.make(driver),
+  driver: ProviderDriverKind.make(driver),
+  displayName: undefined,
+  ...overrides,
+});
+const notSetUp = { installed: false, status: "error", auth: { status: "unknown" } } as const;
+const turnedOff = { ...notSetUp, enabled: false, status: "disabled" } as const;
+
+describe("majordomeAiName", () => {
+  it("names an AI by the owner's plan, and keeps a name the owner gave", () => {
+    expect(majordomeAiName(ai("codex"), "Codex")).toBe("ChatGPT");
+    expect(majordomeAiName(ai("antigravity"), "Antigravity")).toBe("Gemini");
+    expect(majordomeAiName(ai("claudeAgent"), "Claude")).toBe("Claude");
+    expect(majordomeAiName(ai("codex"), "Work")).toBe("Work");
+    expect(majordomeAiName(ai("cursor"), "Cursor")).toBe("Cursor");
+  });
+});
+
+describe("majordomeWelcomeAgents", () => {
+  const claude = ai("claudeAgent", notSetUp);
+  const chatGpt = ai("codex", { auth: { status: "unauthenticated" } });
+  const gemini = ai("antigravity", turnedOff);
+  const cursorReady = ai("cursor");
+  const pi = ai("pi", notSetUp);
+  const groups = { found: [cursorReady, chatGpt], available: [gemini, claude, pi] };
+  const drivers = (providers: ReadonlyArray<ServerProvider>) =>
+    providers.map((entry) => entry.driver);
+
+  it("offers Claude, ChatGPT and Gemini first and in that order, set up or not", () => {
+    const { listed, more } = majordomeWelcomeAgents(groups, { hosted: false });
+    expect(drivers(listed)).toEqual(["claudeAgent", "codex", "antigravity", "cursor"]);
+    expect(drivers(more)).toEqual(["pi"]);
+  });
+
+  it("offers only those three on a server Majordome hosts", () => {
+    const { listed, more } = majordomeWelcomeAgents(groups, { hosted: true });
+    expect(drivers(listed)).toEqual(["claudeAgent", "codex", "antigravity"]);
+    expect(more).toEqual([]);
+  });
+
+  it("shows the accounts an AI already has, and keeps its unused ones with the rest", () => {
+    const work = ai("codex", { instanceId: ProviderInstanceId.make("codex-work") });
+    const spare = ai("codex", { ...notSetUp, instanceId: ProviderInstanceId.make("codex-spare") });
+    const { listed, more } = majordomeWelcomeAgents(
+      { found: [chatGpt, work], available: [spare] },
+      { hosted: false },
+    );
+    expect(listed).toEqual([chatGpt, work]);
+    expect(more).toEqual([spare]);
+  });
+});
+
+describe("geminiNeedsSetup", () => {
+  it("opens the setup card from turned off until Gemini is signed in", () => {
+    const setup = (overrides: Partial<ServerProvider>) =>
+      geminiNeedsSetup(ai("antigravity", overrides), undefined);
+
+    expect(setup(turnedOff)).toBe(true);
+    expect(setup(notSetUp)).toBe(true);
+    // Installed, and Google has not been asked about the account yet.
+    expect(setup({ status: "warning", auth: { status: "unknown" } })).toBe(true);
+    expect(setup({ status: "warning", auth: { status: "unauthenticated" } })).toBe(true);
+    expect(setup({})).toBe(false);
+    expect(geminiNeedsSetup(ai("codex", notSetUp), undefined)).toBe(false);
+  });
+});
+
+describe("geminiSetupStep", () => {
+  const idle = { phase: "idle", installedVersion: null } as const;
+  const step = (
+    overrides: Partial<ServerProvider>,
+    install: Parameters<typeof geminiSetupStep>[0]["install"] = idle,
+  ) => geminiSetupStep({ provider: ai("antigravity", overrides), settings: undefined, install });
+
+  it("goes from the download to the sign-in to done", () => {
+    expect(step(turnedOff)).toBe("checking");
+    expect(step(notSetUp, null)).toBe("checking");
+    expect(step(notSetUp)).toBe("install");
+    expect(step(notSetUp, { phase: "downloading", installedVersion: null })).toBe("installing");
+    expect(step(notSetUp, { phase: "failed", installedVersion: null })).toBe("installFailed");
+    // The download is done before the account's own check has noticed it.
+    expect(step(notSetUp, { phase: "succeeded", installedVersion: "1.5.19" })).toBe("signIn");
+    expect(step({ status: "warning", auth: { status: "unknown" } })).toBe("signIn");
+    expect(step({})).toBe("done");
+  });
+
+  it("keeps showing a new download over an older one that is still installed", () => {
+    expect(
+      step(
+        { status: "warning", auth: { status: "unknown" } },
+        { phase: "extracting", installedVersion: "1.5.12" },
+      ),
+    ).toBe("installing");
+  });
+});
+
+describe("geminiSignInStep", () => {
+  const signedOut = ai("antigravity", { status: "warning", auth: { status: "unknown" } });
+  const auth = (overrides: Partial<ProviderAuthState>): ProviderAuthState => ({
+    instanceId: signedOut.instanceId,
+    phase: "idle",
+    flowId: null,
+    authorizationUrl: null,
+    expiresAt: null,
+    message: null,
+    ...overrides,
+  });
+  const step = (state: ProviderAuthState | null, provider = signedOut) =>
+    geminiSignInStep({ provider, auth: state });
+  const waiting = auth({
+    phase: "waiting",
+    flowId: "flow-1",
+    authorizationUrl: "https://accounts.google.com/o/oauth2/auth?client_id=x",
+    interaction: {
+      type: "credentials",
+      id: "flow-1",
+      fields: [{ name: "code", label: "Code from the Antigravity page", secret: false }],
+    },
+  });
+
+  it("asks for the code Google shows once the link is ready", () => {
+    expect(step(null)).toEqual({ kind: "checking" });
+    expect(step(auth({}))).toEqual({ kind: "start", problem: null });
+    expect(step(auth({ phase: "starting" }))).toEqual({ kind: "starting" });
+    expect(step(waiting)).toEqual({
+      kind: "code",
+      url: "https://accounts.google.com/o/oauth2/auth?client_id=x",
+      flowId: "flow-1",
+      interactionId: "flow-1",
+      field: "code",
+    });
+    expect(step(auth({ phase: "verifying" }))).toEqual({ kind: "verifying" });
+    expect(step(auth({ phase: "failed", message: "That code has expired." }))).toEqual({
+      kind: "start",
+      problem: "That code has expired.",
+    });
+  });
+
+  it("leaves any other way of signing in to the form Settings draws", () => {
+    expect(step(auth({ ...waiting, authorizationUrl: null }))).toEqual({ kind: "other" });
+    expect(
+      step(
+        auth({
+          phase: "waiting",
+          flowId: "flow-1",
+          interaction: {
+            type: "browser",
+            id: "flow-1",
+            url: "https://accounts.google.com/o/oauth2/auth",
+            requiresConsent: false,
+          },
+        }),
+      ),
+    ).toEqual({ kind: "other" });
+    const keyed = ai("antigravity", { auth: { status: "unknown", type: "gemini-api-key" } });
+    expect(step(auth({}), keyed)).toEqual({ kind: "other" });
+  });
+});
+
+describe("geminiCardProvider", () => {
+  it("stays open through a rebuild and closes once Gemini is signed in", () => {
+    const signedOut = ai("antigravity", { status: "warning", auth: { status: "unknown" } });
+    const card = (providers: ReadonlyArray<ServerProvider>, last: ServerProvider | null = null) =>
+      geminiCardProvider({
+        providers,
+        instanceId: signedOut.instanceId,
+        last,
+        settings: undefined,
+      });
+
+    expect(card([signedOut])).toBe(signedOut);
+    expect(card([], signedOut)).toBe(signedOut);
+    expect(card([ai("antigravity")])).toBeNull();
+  });
+});
+
+describe("isOwnComputer", () => {
+  it("is the desktop app's own server, or a page served from this machine", () => {
+    const own = (input: Partial<Parameters<typeof isOwnComputer>[0]>) =>
+      isOwnComputer({ desktop: false, isPrimary: true, pageHost: "majordome.example", ...input });
+
+    expect(own({ desktop: true })).toBe(true);
+    expect(own({ pageHost: "localhost" })).toBe(true);
+    expect(own({})).toBe(false);
+    expect(own({ desktop: true, isPrimary: false })).toBe(false);
   });
 });
 

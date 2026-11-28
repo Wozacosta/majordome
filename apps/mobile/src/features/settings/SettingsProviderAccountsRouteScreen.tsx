@@ -39,12 +39,16 @@ import { AddClaudeAccount, ClaudeAccount } from "./ClaudeAccounts";
 import { CLAUDE_DRIVER } from "./claude-accounts";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
 import { isMajordome } from "../../majordome/env";
-import { ClaudeSignInCard } from "../../majordome/FinishSetup";
 import {
-  MAJORDOME_AI_ACCOUNTS_LABEL,
-  MAJORDOME_AI_SIGN_IN,
-  MAJORDOME_SETTINGS_LABELS,
-} from "../../majordome/settingsRows";
+  aiAccountKind,
+  aiInstallStep,
+  assistantAccountName,
+  assistantAis,
+  computerAiStanding,
+  turnOnAiMutation,
+} from "../../majordome/assistantAi.logic";
+import { ClaudeSignInCard } from "../../majordome/ClaudeSignInCard";
+import { aiAccountsRow, MAJORDOME_AI_SIGN_IN } from "../../majordome/settingsRows";
 
 export function SettingsProviderAccountsRouteScreen() {
   const gt = useGT();
@@ -58,13 +62,14 @@ export function SettingsProviderAccountsRouteScreen() {
       title={
         !isMajordome
           ? gt("Providers")
-          : selectedTargets.some((environment) =>
-                managedProviders(environment, providersByEnvironment).some(
-                  (provider) => provider.driver === CLAUDE_DRIVER,
+          : aiAccountsRow(
+              selectedTargets.map((environment) =>
+                computerAiStanding(
+                  managedProviders(environment, providersByEnvironment),
+                  environment.serverConfig.settings.defaultModelSelection?.instanceId,
                 ),
-              ) || selectedTargets.length === 0
-            ? MAJORDOME_SETTINGS_LABELS.SettingsProviderAccounts
-            : MAJORDOME_AI_ACCOUNTS_LABEL
+              ),
+            ).label
       }
       // Majordome lists every connected computer: its Settings has no filter.
       menus={isMajordome ? [] : [environmentMenu]}
@@ -120,8 +125,8 @@ export function SettingsProviderAccountsRouteScreen() {
 
 /**
  * One computer's AI accounts as Majordome shows them: Claude first, signed in from the phone
- * through its own page, then any other account the computer offers a sign-in for. A second
- * Claude account is set up on the computer, where its folder is.
+ * through its own page, then ChatGPT and Gemini, then any other account the computer offers a
+ * sign-in for. A second Claude account is set up on the computer, where its folder is.
  */
 function MajordomeComputerAccounts(props: {
   readonly environment: SettingsTarget;
@@ -129,8 +134,20 @@ function MajordomeComputerAccounts(props: {
   readonly permitted: boolean;
   readonly providers: ReadonlyArray<ServerProvider>;
 }) {
+  const offered = assistantAis(props.providers)
+    .map((ai) => ai.provider)
+    .filter((provider) => provider.driver !== CLAUDE_DRIVER);
   const accounts = props.permitted
-    ? props.providers.filter((provider) => provider.installed && canManageProvider(provider))
+    ? [
+        ...offered,
+        ...props.providers.filter(
+          (provider) =>
+            provider.driver !== CLAUDE_DRIVER &&
+            !offered.includes(provider) &&
+            provider.installed &&
+            canManageProvider(provider),
+        ),
+      ]
     : [];
   const hasClaude = props.providers.some((provider) => provider.driver === CLAUDE_DRIVER);
   return (
@@ -144,7 +161,7 @@ function MajordomeComputerAccounts(props: {
       {accounts.length === 0 ? null : (
         <SettingsSection>
           {accounts.map((provider, index) => (
-            <ProviderAccount
+            <MajordomeAiAccount
               key={provider.instanceId}
               environment={props.environment}
               provider={provider}
@@ -153,6 +170,90 @@ function MajordomeComputerAccounts(props: {
           ))}
         </SettingsSection>
       )}
+    </View>
+  );
+}
+
+type AccountEnvironment = Pick<SettingsTarget, "environmentId" | "label">;
+
+/**
+ * An AI account under the name Majordome gives it. One that is off, or a ChatGPT that would sign
+ * in on the computer's own screen, first gets turned on for the sign-in a phone can do.
+ */
+export function MajordomeAiAccount(props: {
+  readonly environment: AccountEnvironment;
+  readonly provider: ServerProvider;
+  readonly divider?: boolean;
+  /** Drawn as a card of its own, as on the setup screen. */
+  readonly prominent?: boolean;
+}) {
+  const { environment, provider } = props;
+  const gt = useGT();
+  const settings = useAtomValue(serverEnvironment.settingsValueAtom(environment.environmentId));
+  const mutate = useAtomCommand(serverEnvironment.mutateProviderInstance, {
+    reportFailure: false,
+    reportDefect: false,
+  });
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const name = assistantAccountName(provider);
+  const kind = aiAccountKind(provider);
+  if (kind === "account") {
+    return (
+      <ProviderAccount
+        environment={environment}
+        provider={provider}
+        name={name}
+        divider={props.divider ?? false}
+        prominent={props.prominent}
+      />
+    );
+  }
+  const setUp = async () => {
+    setPending(true);
+    setFailed(false);
+    const result = await mutate({
+      environmentId: environment.environmentId,
+      input: {
+        patch: {},
+        providerInstanceMutation: turnOnAiMutation(
+          provider,
+          settings?.providerInstances[provider.instanceId],
+        ),
+      },
+    });
+    setPending(false);
+    setFailed(result._tag !== "Success" && !isAtomCommandInterrupted(result));
+  };
+  return (
+    <View className={props.divider ? "border-t border-border-subtle" : undefined}>
+      <View
+        className={
+          props.prominent
+            ? "min-h-16 flex-row items-center gap-3 px-5 py-4"
+            : "min-h-16 flex-row items-center gap-3 px-4 py-3"
+        }
+      >
+        <ProviderAccountSummary
+          name={name}
+          status={failed ? MAJORDOME_AI_SIGN_IN.failed : kind === "setUp" ? null : gt("Signed in")}
+          email={undefined}
+          prominent={props.prominent}
+        />
+        {kind !== "setUp" ? null : pending ? (
+          <View className="h-11 w-11 items-center justify-center">
+            <AppActivityIndicator colorClassName="accent-icon" />
+          </View>
+        ) : (
+          <ControlPill
+            variant="primary"
+            label={MAJORDOME_AI_SIGN_IN.setUp}
+            accessibilityLabel={`${MAJORDOME_AI_SIGN_IN.setUp} ${name}`}
+            disabled={settings === null}
+            onPress={() => void setUp()}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -216,17 +317,27 @@ function ProviderAccount({
   environment,
   provider,
   divider,
+  name: givenName,
+  prominent,
 }: {
-  readonly environment: SettingsTarget;
+  readonly environment: AccountEnvironment;
   readonly provider: ServerProvider;
   readonly divider: boolean;
+  readonly name?: string;
+  readonly prominent?: boolean | undefined;
 }) {
   const gt = useGT();
   const environmentId = environment.environmentId;
   const instanceId = provider.instanceId;
   const target = { environmentId, input: { instanceId } };
   const auth = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
+  const canInstall = provider.setup?.canInstall === true;
+  const installation = useEnvironmentQuery(
+    canInstall ? serverEnvironment.providerInstallState(target) : null,
+  ).data;
   const options = { reportFailure: false, reportDefect: false };
+  const startInstall = useAtomCommand(serverEnvironment.startProviderInstall, options);
+  const cancelInstall = useAtomCommand(serverEnvironment.cancelProviderInstall, options);
   const start = useAtomCommand(serverEnvironment.startProviderAuth, options);
   const respond = useAtomCommand(serverEnvironment.respondProviderAuth, options);
   const complete = useAtomCommand(serverEnvironment.completeProviderAuth, options);
@@ -248,6 +359,11 @@ function ProviderAccount({
   const values = draft.id === draftId ? draft.values : {};
   const active =
     state?.phase === "starting" || state?.phase === "waiting" || state?.phase === "verifying";
+  const installStep = aiInstallStep(installation);
+  // The provider's own status follows a finished install only after its next check.
+  const installed = provider.installed || installation?.installedVersion != null;
+  const needsInstall =
+    canInstall && provider.enabled && !installed && installStep.kind === "idle" && !active;
   const signedIn =
     provider.auth.status === "authenticated" ||
     (provider.auth.status === "unknown" && state?.phase === "succeeded");
@@ -312,7 +428,7 @@ function ProviderAccount({
       />
     );
   }
-  const name = provider.displayName ?? provider.driver;
+  const name = givenName ?? provider.displayName ?? provider.driver;
   const email = signedIn && !active && provider.enabled ? provider.auth.email?.trim() : undefined;
   const methods = state?.methods ?? [];
   // The status line says why a provider that is missing or turned off can't sign in.
@@ -321,7 +437,7 @@ function ProviderAccount({
     !needsExternalSetup &&
     provider.setup?.canAuthenticate !== false &&
     provider.enabled &&
-    provider.installed;
+    installed;
   const signInDisabled = disabled || state === null;
   const canSignOut =
     !active && signedIn && (provider.auth.canLogout ?? provider.setup?.canAuthenticate);
@@ -340,17 +456,32 @@ function ProviderAccount({
           : MAJORDOME_AI_SIGN_IN.failed
       : !provider.enabled
         ? gt("Turned off")
-        : signedIn
-          ? gt("Signed in")
-          : isDiscovering
-            ? gt("Discovering sign-in methods…")
-            : needsExternalSetup
-              ? gt("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
-              : !provider.installed
-                ? gt("Not installed")
-                : usesCredentials
-                  ? gt("Connect to load models")
-                  : gt("Not signed in");
+        : installStep.kind === "downloading"
+          ? installStep.total === null
+            ? gt("Downloading {downloaded} MB", { downloaded: installStep.downloaded })
+            : gt("Downloading {downloaded} of {total} MB", {
+                downloaded: installStep.downloaded,
+                total: installStep.total,
+              })
+          : installStep.kind === "installing"
+            ? gt("Installing…")
+            : needsInstall && installation?.phase === "failed"
+              ? isMajordome
+                ? MAJORDOME_AI_SIGN_IN.failed
+                : (installation.message ?? gt("Not installed"))
+              : signedIn
+                ? gt("Signed in")
+                : isDiscovering
+                  ? gt("Discovering sign-in methods…")
+                  : needsExternalSetup
+                    ? gt(
+                        "No in-app sign-in advertised. Follow the provider's docs to finish setup.",
+                      )
+                    : !installed
+                      ? gt("Not installed")
+                      : usesCredentials
+                        ? gt("Connect to load models")
+                        : gt("Not signed in");
   // A provider with several sign-in methods picks one from a menu on the same control.
   const methodActions: MenuAction[] = methods.map((method) => ({
     id: `method:${method.id}`,
@@ -377,10 +508,12 @@ function ProviderAccount({
   function signOut() {
     Dialog.alert(
       gt("Sign out?"),
-      gt(
-        "Running threads sharing this sign-in on {environment} will stop. Thread history is kept.",
-        { environment: environment.label },
-      ),
+      isMajordome
+        ? MAJORDOME_AI_SIGN_IN.signOutEffect(environment.label)
+        : gt(
+            "Running threads sharing this sign-in on {environment} will stop. Thread history is kept.",
+            { environment: environment.label },
+          ),
       [
         { text: gt("Cancel"), style: "cancel" },
         {
@@ -450,6 +583,26 @@ function ProviderAccount({
         });
       }}
     />
+  ) : installStep.kind !== "idle" ? (
+    installation?.operationId ? (
+      <ControlPill
+        variant="pill"
+        label={gt("Cancel")}
+        accessibilityLabel={gt("Cancel {provider} installation", { provider: name })}
+        onPress={() => {
+          const operationId = installation.operationId;
+          if (!operationId) return;
+          void run(() => cancelInstall({ environmentId, input: { instanceId, operationId } }));
+        }}
+      />
+    ) : null
+  ) : needsInstall ? (
+    <ControlPill
+      variant="primary"
+      label={gt("Install")}
+      accessibilityLabel={gt("Install {provider}", { provider: name })}
+      onPress={() => void run(() => startInstall(target))}
+    />
   ) : active && state?.flowId ? (
     <ControlPill
       variant="pill"
@@ -508,10 +661,18 @@ function ProviderAccount({
         className={
           stacked
             ? "min-h-16 items-start gap-3 px-4 py-3"
-            : "min-h-16 flex-row items-center gap-3 px-4 py-3"
+            : prominent
+              ? "min-h-16 flex-row items-center gap-3 px-5 py-4"
+              : "min-h-16 flex-row items-center gap-3 px-4 py-3"
         }
       >
-        <ProviderAccountSummary key={email} name={name} status={status} email={email} />
+        <ProviderAccountSummary
+          key={email}
+          name={name}
+          status={status}
+          email={email}
+          prominent={prominent}
+        />
         {trailing}
       </View>
       {interaction?.type === "deviceCode" ||
@@ -567,7 +728,11 @@ function ProviderAccount({
           ) : null}
           {showCallback ? (
             <>
-              {field("callback", gt("Final localhost URL"), false)}
+              {field(
+                "callback",
+                isMajordome ? MAJORDOME_AI_SIGN_IN.pasteBack : gt("Final localhost URL"),
+                false,
+              )}
               <SettingsActionRow
                 icon="arrow.right"
                 label={gt("Continue")}
@@ -620,21 +785,33 @@ function ProviderAccountSummary({
   name,
   status,
   email,
+  prominent,
 }: {
   readonly name: string;
   readonly status: string | null | undefined;
   readonly email: string | undefined;
+  readonly prominent?: boolean | undefined;
 }) {
   const gt = useGT();
   const [revealed, setRevealed] = useState(false);
   const content = (
     <>
-      <Text textRole="body" className="text-foreground" numberOfLines={1}>
+      <Text
+        textRole={prominent ? "headline" : "body"}
+        className={prominent ? "font-t3-bold text-foreground" : "text-foreground"}
+        numberOfLines={1}
+      >
         {name}
       </Text>
-      <Text accessibilityLiveRegion="polite" textRole="footnote" className="text-foreground-muted">
-        {email ? `${status} · ${revealed ? email : "••••••@••••••"}` : status}
-      </Text>
+      {status ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          textRole="footnote"
+          className="text-foreground-muted"
+        >
+          {email ? `${status} · ${revealed ? email : "••••••@••••••"}` : status}
+        </Text>
+      ) : null}
     </>
   );
   if (!email) {

@@ -21,14 +21,15 @@ import { createAttachmentId } from "../attachmentStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
-import { renderChatSetupPage } from "./chatSetupPage.ts";
+import { chatConnections, renderChatSetupPage } from "./chatSetupPage.ts";
+import * as MajordomeConnections from "./connections/MajordomeConnections.ts";
 import * as MajordomeConnectors from "./MajordomeConnectors.ts";
 import * as MajordomePrivateDocuments from "./MajordomePrivateDocuments.ts";
 import * as MajordomeSavedKeys from "./MajordomeSavedKeys.ts";
 import * as MajordomeSkills from "./MajordomeSkills.ts";
 import * as MajordomeTopicFiles from "./MajordomeTopicFiles.ts";
 import * as MajordomeTopics from "./MajordomeTopics.ts";
-import { plainTools, sessionTools } from "./sessionTools.ts";
+import { MAJORDOME_TOOLS, plainTools, sessionTools } from "./sessionTools.ts";
 
 /** The files every provider reads as standing instructions, at the top of the notes folder. */
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
@@ -118,6 +119,22 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
     (provider) => provider.instanceId === thread.providerInstanceId,
   );
   if (reached?.error !== undefined) unread.push("connections");
+  // A server built without the service, as some tests build it, has no apps.
+  const apps = yield* Effect.serviceOption(MajordomeConnections.MajordomeConnections).pipe(
+    Effect.flatMap(
+      Option.match({
+        onNone: () => Effect.succeed([]),
+        onSome: (service) => service.list.pipe(Effect.map((result) => result.connections)),
+      }),
+    ),
+  );
+  const connections = chatConnections({
+    apps,
+    account:
+      reached?.reported === true && reached.error === undefined
+        ? reached.connectors.map(({ name, status }) => ({ name, status }))
+        : null,
+  });
   const files =
     knowledge.topic === null
       ? Option.none()
@@ -148,11 +165,7 @@ export const readChatSetup = Effect.fn("majordome.readChatSetup")(function* (
       otherTopics: knowledge.otherTopics.slice(0, OTHER_TOPICS_SHOWN).map((topic) => topic.title),
       otherTopicsTotal: knowledge.otherTopics.length,
     },
-    // No connections at all when this AI account cannot say which it has.
-    canUse:
-      reached?.reported === true && reached.error === undefined
-        ? { connections: reached.connectors.map(({ name, status }) => ({ name, status })) }
-        : {},
+    canUse: connections === undefined ? {} : { connections },
     canReach: {
       computer: label,
       ...(folder !== undefined && knowledge.isVault ? { notesFolder: folder } : {}),
@@ -223,7 +236,7 @@ export const drawChatSetup = Effect.fn("majordome.drawChatSetup")(function* (thr
   const { html, height } = renderChatSetupPage({
     setup,
     opened,
-    tools: plainTools(sessionTools(thread.id, thread.providerInstanceId) ?? []),
+    tools: plainTools(sessionTools(thread.id, thread.providerInstanceId) ?? MAJORDOME_TOOLS),
   });
   // Stored the way `html_render` stores a page, so the app's own frame shows it.
   const attachmentId = createAttachmentId(threadId, "html");

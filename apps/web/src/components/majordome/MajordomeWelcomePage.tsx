@@ -111,7 +111,7 @@ export function MajordomeWelcomePage({
                 environmentId={environmentId}
                 label={label}
                 isPrimary
-                claudeOnly={isHostedServer(label)}
+                hosted={isHostedServer(label)}
                 onImportSourceEnabled={() => undefined}
               />
               {notesFolder === null ? (

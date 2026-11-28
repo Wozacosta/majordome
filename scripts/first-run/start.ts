@@ -49,6 +49,11 @@ const startFirstRun = Effect.fn("firstRun.start")(function* (input: {
 
   const ownerHome = path.join(input.home, "owner");
   const bin = path.join(input.home, "bin");
+  if (yield* fs.exists(input.home)) {
+    // What Majordome installs to run Gemini is left read-only, folders included.
+    const unlock = yield* spawner.spawn(ChildProcess.make("chmod", ["-R", "u+w", input.home]));
+    yield* unlock.exitCode;
+  }
   yield* fs.remove(input.home, { recursive: true, force: true });
   yield* fs.makeDirectory(path.join(input.home, "userdata"), { recursive: true });
   yield* fs.makeDirectory(ownerHome);

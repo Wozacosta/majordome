@@ -41,6 +41,7 @@ import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { waitForQuerySettled } from "../../state/waitForQuerySettled";
+import { isMajordome } from "../../env";
 import { Button } from "../ui/button";
 import { ChatGptConnectionButton } from "./ChatGptConnectionButton";
 import { ChatGptUsageButton } from "./ChatGptUsageButton";
@@ -100,6 +101,8 @@ interface CodexSetupSectionProps {
   readonly readOnly?: boolean;
   // Onboarding's "Use existing CLI" opens a terminal, which this session may not be allowed.
   readonly existingCliDisabled?: boolean;
+  // Off where the CLI's own sign-in cannot reach the person, such as a server with no screen.
+  readonly allowExistingCli?: boolean;
   readonly presentation?: "settings" | "onboarding";
   readonly onModeChange: (mode: "managed" | "existing") => void;
   readonly autoStart?: boolean;
@@ -151,6 +154,8 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
             gt("Checking your Codex CLI...")
           ) : props.provider?.installed ? (
             existingSummary.headline
+          ) : isMajordome ? (
+            gt("Use your ChatGPT subscription.")
           ) : (
             gt("Code with your ChatGPT subscription.")
           )
@@ -183,7 +188,10 @@ export function CodexSetupSection(props: CodexSetupSectionProps) {
           )
         }
         secondaryControl={
-          !existingAuthenticated && !existingReady && !existingChecking ? (
+          !existingAuthenticated &&
+          !existingReady &&
+          !existingChecking &&
+          props.allowExistingCli !== false ? (
             <Button
               size="sm"
               variant="ghost-muted"
@@ -891,6 +899,8 @@ function ManagedCodexSetup({
               <CodexSignInDescription />
             ) : authActive || auth?.phase === "failed" || auth?.phase === "cancelled" ? (
               accountDescription
+            ) : isMajordome ? (
+              gt("Use your ChatGPT subscription.")
             ) : (
               gt("Code with your ChatGPT subscription.")
             )

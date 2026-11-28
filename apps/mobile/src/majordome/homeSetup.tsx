@@ -12,7 +12,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
 import { openSettings } from "../features/settings/settings-navigation";
 import { useEnvironmentQuery } from "../state/query";
-import { ClaudeSignInCard, FinishSetup } from "./FinishSetup";
+import { AssistantSetup, FinishSetup } from "./FinishSetup";
 import { HomeAsk, useHomeJournal } from "./homeAsk";
 import { HomeHeader } from "./homeHeader";
 import { majordomeEnvironment } from "./state";
@@ -78,13 +78,13 @@ function HomeNameSheet(props: { readonly vault: NonNullable<TodayStore["vault"]>
   );
 }
 
-/** Over home's chats: the Claude sign-in, only while the assistant cannot answer without it. */
+/** Over home's chats: an AI's sign-in, only while the assistant cannot answer without one. */
 export function HomeListTop(props: { readonly home: HomeSetup }) {
   const { vault, connected, setup } = props.home;
   if (setup !== "ready" || vault === null || !connected) return null;
   return (
     <View className="px-5 pb-2">
-      <ClaudeSignInCard environmentId={vault.environmentId} onlyWhenNeeded />
+      <AssistantSetup environmentId={vault.environmentId} onlyWhenNeeded />
     </View>
   );
 }

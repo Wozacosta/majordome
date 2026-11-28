@@ -4,6 +4,7 @@ import {
   type ModelSelection,
   type ServerProvider,
 } from "@t3tools/contracts";
+import { majordomeAiName } from "../../onboarding/welcomePage.logic";
 import { isProviderReady, type ModelLevel } from "@t3tools/shared/majordomeModelLevels";
 
 export interface LevelModelGroup {
@@ -43,8 +44,10 @@ export function levelModelGroups(input: {
       : [
           {
             instanceId: provider.instanceId,
-            accountName:
+            accountName: majordomeAiName(
+              provider,
               provider.displayName ?? PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver,
+            ),
             models: models.map((model) => ({
               key: levelModelKey({ instanceId: provider.instanceId, model: model.slug }),
               name: model.name,

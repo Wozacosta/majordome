@@ -1,7 +1,7 @@
 import { ProviderInstanceId, ThreadId } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
 
-import { plainTools, rememberSessionTools, sessionTools } from "./sessionTools.ts";
+import { MAJORDOME_TOOLS, plainTools, rememberSessionTools, sessionTools } from "./sessionTools.ts";
 
 it("names the kinds of tools a session reported, and leaves connections to their own box", () => {
   expect(
@@ -28,4 +28,15 @@ it("answers for a chat that has not run with what its AI account's other chats w
   expect(sessionTools(ThreadId.make("idle"), instanceId)).toEqual(["Bash"]);
   expect(sessionTools(ThreadId.make("idle"), ProviderInstanceId.make("other"))).toBeUndefined();
   expect(sessionTools(ThreadId.make("idle"), null)).toBeUndefined();
+});
+
+it("names what Majordome gives an AI that does not report its tools", () => {
+  expect(plainTools(MAJORDOME_TOOLS)).toEqual([
+    "Browser",
+    "Notes search",
+    "Routines",
+    "Notifications",
+    "Reading list",
+    "Charts and pages",
+  ]);
 });

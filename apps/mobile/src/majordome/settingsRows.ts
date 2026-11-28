@@ -1,9 +1,12 @@
+import type { ComputerAiStanding } from "./assistantAi.logic";
+
 /** What Majordome calls the settings pages upstream names for developers. */
 export const MAJORDOME_SETTINGS_LABELS = {
   SettingsEnvironments: "Computers",
   SettingsEnvironmentDetail: "Computer",
   SettingsEnvironmentNew: "Add a computer",
-  SettingsProviderAccounts: "Claude plan",
+  /** The AI row and page while no one AI is in use: none signed in yet, or several. */
+  SettingsProviderAccounts: "AI accounts",
   SettingsScheduledTasks: "Routines",
   SettingsSavedKeys: "Passwords and keys",
   SettingsAppearance: "Look and language",
@@ -19,13 +22,15 @@ export const MAJORDOME_SETTINGS_LABELS = {
   SettingsAccount: "Your account",
 } as const;
 
-/** The label of the AI row and page when no computer has Claude set up. */
-export const MAJORDOME_AI_ACCOUNTS_LABEL = "AI accounts";
-
 /** An AI account's sign-in, in place of the sentence its own tool gives. */
 export const MAJORDOME_AI_SIGN_IN = {
   signingIn: "Signing in…",
   failed: "That didn't work. Try again.",
+  setUp: "Set up",
+  signOutEffect: (machine: string) =>
+    `Chats answering with this account on ${machine} will stop. Your chats are kept.`,
+  /** The field for what the AI's last page shows, in place of "Final localhost URL". */
+  pasteBack: "Code or address of the last page",
 } as const;
 
 export type SettingsRowTone = "good" | "warning";
@@ -73,9 +78,6 @@ export interface SettingsComputer {
   readonly phase: string;
 }
 
-/** Where Claude stands on one connected computer (`getOnboardingProviderState`). */
-export type ClaudeStanding = "checking" | "ready" | "signIn" | "install" | "disabled" | "attention";
-
 /** Past this many computers the first screen names none: one row leads to the list. */
 const COMPUTER_ROWS_MAX = 3;
 
@@ -93,18 +95,31 @@ export function computerStanding(computer: Pick<SettingsComputer, "enabled" | "p
 }
 
 /**
- * The Claude plan's state across the connected computers: signed in only when every one is, since
- * a chat on the one that is not would not answer. Nothing while no computer has said.
+ * The AI row across the connected computers. It is named after the AI they answer with, such as
+ * "Claude plan", and signed in only when every one is, since a chat on the one that is not would
+ * not answer. No state while no computer has said.
  */
-export function claudePlanStanding(standings: ReadonlyArray<ClaudeStanding>): {
+export function aiAccountsRow(standings: ReadonlyArray<ComputerAiStanding>): {
+  readonly label: string;
   readonly value?: string;
   readonly tone?: SettingsRowTone;
 } {
-  const known = standings.filter((standing) => standing !== "checking");
-  if (known.length === 0) return {};
-  if (known.every((standing) => standing === "ready")) return { value: "Signed in", tone: "good" };
-  if (known.includes("signIn")) return { value: "Sign in", tone: "warning" };
-  return { value: "Needs a look", tone: "warning" };
+  const names = new Set(
+    standings.flatMap((standing) => (standing.state === "ready" ? [standing.name] : [])),
+  );
+  const [name] = names;
+  const label =
+    names.size === 1 && name !== undefined
+      ? `${name} plan`
+      : MAJORDOME_SETTINGS_LABELS.SettingsProviderAccounts;
+  const known = standings.filter((standing) => standing.state !== "checking");
+  if (known.length === 0) return { label };
+  if (known.every((standing) => standing.state === "ready")) {
+    return { label, value: "Signed in", tone: "good" };
+  }
+  return known.some((standing) => standing.state === "signIn")
+    ? { label, value: "Sign in", tone: "warning" }
+    : { label, value: "Needs a look", tone: "warning" };
 }
 
 function computerRows(computers: ReadonlyArray<SettingsComputer>): MajordomeSettingsRow[] {
@@ -148,14 +163,14 @@ function computerRows(computers: ReadonlyArray<SettingsComputer>): MajordomeSett
 
 /**
  * Settings' first screen as Majordome shows it: four unnamed cards. What the owner depends on
- * (each computer, the Claude plan) comes first with its state; then who they are and what the
+ * (each computer, the AI plan) comes first with its state; then who they are and what the
  * assistant may use; then the app itself; then the archive and About. A page upstream adds
  * later is not shown until it is placed here.
  */
 export function majordomeSettingsCards(input: {
   readonly computers: ReadonlyArray<SettingsComputer>;
-  /** Claude on each connected computer; null when none of them has Claude at all. */
-  readonly claude: ReadonlyArray<ClaudeStanding> | null;
+  /** The AI on each connected computer. */
+  readonly ai: ReadonlyArray<ComputerAiStanding>;
   /** Null in a build with no account service; `email` null while signed out. */
   readonly account: { readonly email: string | null } | null;
   /** Such as "Dark · English". */
@@ -170,11 +185,7 @@ export function majordomeSettingsCards(input: {
       {
         id: "SettingsProviderAccounts",
         icon: "brain",
-        label:
-          input.claude === null
-            ? MAJORDOME_AI_ACCOUNTS_LABEL
-            : MAJORDOME_SETTINGS_LABELS.SettingsProviderAccounts,
-        ...claudePlanStanding(input.claude ?? []),
+        ...aiAccountsRow(input.ai),
         opens: { page: "SettingsProviderAccounts" },
       },
     ],

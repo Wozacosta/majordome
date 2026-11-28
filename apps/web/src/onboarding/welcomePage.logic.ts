@@ -1,8 +1,12 @@
 import { isLocalLoopbackHost } from "@t3tools/shared/hostClassification";
+import { MAJORDOME_AIS, majordomeAiDriverName } from "@t3tools/shared/majordome";
 import {
   isProviderAvailable,
   managedCapabilityDenial,
   type ManagedPolicySummary,
+  PROVIDER_DISPLAY_NAMES,
+  type ProviderAuthState,
+  type ProviderInstallState,
   type ProviderInstanceConfig,
   ProviderDriverKind,
   type ProviderInstanceId,
@@ -71,6 +75,39 @@ export function groupWelcomeAgents(
   );
   available.sort(byName);
   return { checking, readyCount, found: found.map((entry) => entry.provider), available };
+}
+
+// These sign in with a key or a cloud project, entered in a form of their own.
+const GEMINI_KEYED_SIGN_INS: ReadonlySet<string> = new Set(["gemini-api-key", "agent-platform"]);
+
+/**
+ * Where a Google account's sign-in to Gemini stands: Google shows a code on its last page, which
+ * the owner pastes back. `other` is any other way of signing in, which Settings draws.
+ */
+export function geminiSignInStep(input: {
+  readonly provider: Pick<ServerProvider, "auth">;
+  readonly auth: ProviderAuthState | null;
+}) {
+  const { auth } = input;
+  if (GEMINI_KEYED_SIGN_INS.has(input.provider.auth.type ?? "")) return { kind: "other" } as const;
+  if (auth === null) return { kind: "checking" } as const;
+  if (auth.phase === "starting") return { kind: "starting" } as const;
+  if (auth.phase === "verifying") return { kind: "verifying" } as const;
+  if (auth.phase === "waiting") {
+    const { interaction, authorizationUrl: url, flowId } = auth;
+    const field = interaction?.type === "credentials" ? interaction.fields[0] : undefined;
+    if (
+      interaction?.type !== "credentials" ||
+      interaction.fields.length !== 1 ||
+      field === undefined ||
+      url === null ||
+      flowId === null
+    ) {
+      return { kind: "other" } as const;
+    }
+    return { kind: "code", url, flowId, interactionId: interaction.id, field: field.name } as const;
+  }
+  return { kind: "start", problem: auth.phase === "failed" ? auth.message : null } as const;
 }
 
 /** Older settings can also keep `enabled: false` inside `config`, which still turns the agent off. */
@@ -159,9 +196,22 @@ export function welcomeOffersPhone(input: {
 }
 
 /**
+ * Whether a browser the computer opens reaches the owner: only on their own computer, which is
+ * the desktop app's own server or a page served from a loopback address.
+ */
+export function isOwnComputer(input: {
+  readonly desktop: boolean;
+  readonly isPrimary: boolean;
+  /** The host of the page, as in `location.hostname`. */
+  readonly pageHost: string;
+}) {
+  return input.isPrimary && (input.desktop || isLocalLoopbackHost(input.pageHost));
+}
+
+/**
  * Whether Claude signs in with a link and a pasted code instead of the CLI in a terminal. The
  * CLI opens a browser on the machine it runs on, which reaches the owner only on their own
- * computer: the desktop app's own server, or a page served from a loopback address.
+ * computer.
  */
 export function claudeSignsInByLink(input: {
   readonly majordome: boolean;
@@ -171,13 +221,97 @@ export function claudeSignsInByLink(input: {
   readonly pageHost: string;
   readonly provider: Pick<ServerProvider, "driver" | "installed">;
 }) {
-  const ownComputer = input.isPrimary && (input.desktop || isLocalLoopbackHost(input.pageHost));
   return (
     input.majordome &&
     input.provider.driver === "claudeAgent" &&
     input.provider.installed &&
-    !ownComputer
+    !isOwnComputer(input)
   );
+}
+
+const MAJORDOME_AI_DRIVERS: ReadonlyArray<string> = MAJORDOME_AIS.map((ai) => ai.driver);
+
+/** An account the owner named keeps its name. */
+export function majordomeAiName(provider: Pick<ServerProvider, "driver">, name: string) {
+  return name === PROVIDER_DISPLAY_NAMES[provider.driver]
+    ? majordomeAiDriverName(provider.driver, name)
+    : name;
+}
+
+/**
+ * Majordome's assistant list. Claude, ChatGPT and Gemini come first and in that order, each
+ * shown before it is set up; an AI with an account already on the computer shows those accounts.
+ * A server Majordome hosts lists nothing else.
+ */
+export function majordomeWelcomeAgents(
+  agents: {
+    readonly found: ReadonlyArray<ServerProvider>;
+    readonly available: ReadonlyArray<ServerProvider>;
+  },
+  options: { readonly hosted: boolean },
+) {
+  const offered = MAJORDOME_AI_DRIVERS.flatMap((driver) => {
+    const found = agents.found.filter((provider) => provider.driver === driver);
+    if (found.length > 0) return found;
+    const candidates = agents.available.filter((provider) => provider.driver === driver);
+    return candidates.slice(0, 1);
+  });
+  const others = (providers: ReadonlyArray<ServerProvider>) =>
+    providers.filter((provider) => !offered.includes(provider));
+  return {
+    listed: options.hosted ? offered : [...offered, ...others(agents.found)],
+    more: options.hosted ? [] : others(agents.available),
+  };
+}
+
+/**
+ * Whether Gemini's row opens its setup card, which turns it on, installs it and signs in. Gemini
+ * is off until asked for, so its card also covers an account that is not turned on yet.
+ */
+export function geminiNeedsSetup(
+  provider: ServerProvider,
+  settings: ComputerSettings | null | undefined,
+) {
+  if (
+    provider.driver !== "antigravity" ||
+    provider.auth.status === "authenticated" ||
+    isBrokenVersion(provider)
+  ) {
+    return false;
+  }
+  const state = welcomeAgentState(provider, settings);
+  return (
+    state === "disabled" ||
+    state === "install" ||
+    state === "signIn" ||
+    (state === "attention" && isProviderAvailable(provider))
+  );
+}
+
+const RUNNING_INSTALL_PHASES: ReadonlySet<string> = new Set([
+  "downloading",
+  "extracting",
+  "verifying",
+]);
+
+/**
+ * What Gemini's setup card shows. The download reports itself apart from the account's status,
+ * which takes a moment to notice a finished install, so a version on disk counts as installed.
+ */
+export function geminiSetupStep(input: {
+  readonly provider: ServerProvider;
+  readonly settings: ComputerSettings | null | undefined;
+  readonly install: Pick<ProviderInstallState, "phase" | "installedVersion"> | null;
+}) {
+  const state = welcomeAgentState(input.provider, input.settings);
+  if (state === "disabled") return "checking";
+  if (input.install !== null && RUNNING_INSTALL_PHASES.has(input.install.phase)) {
+    return "installing";
+  }
+  if (state === "ready" || input.provider.auth.status === "authenticated") return "done";
+  if (input.provider.installed || input.install?.installedVersion != null) return "signIn";
+  if (state === "checking" || input.install === null) return "checking";
+  return input.install.phase === "failed" ? "installFailed" : "install";
 }
 
 /**
@@ -185,19 +319,33 @@ export function claudeSignsInByLink(input: {
  * drops an instance from the list, so the card keeps its last status meanwhile instead of
  * unmounting and losing a sign-in in progress.
  */
-export function codexCardProvider(input: {
+export function codexCardProvider(input: SetupCardInput) {
+  return setupCardProvider(input, codexNeedsSetup);
+}
+
+/** Gemini's setup card, kept through a rebuild the way Codex's is. */
+export function geminiCardProvider(input: SetupCardInput) {
+  return setupCardProvider(input, geminiNeedsSetup);
+}
+
+interface SetupCardInput {
   readonly providers: ReadonlyArray<ServerProvider> | null | undefined;
   readonly instanceId: ProviderInstanceId | null;
   readonly last: ServerProvider | null;
   readonly settings: ComputerSettings | null | undefined;
-}) {
+}
+
+function setupCardProvider(
+  input: SetupCardInput,
+  needsSetup: (provider: ServerProvider, settings: ComputerSettings | null | undefined) => boolean,
+) {
   if (input.instanceId === null) return null;
   const provider =
     input.providers?.find((candidate) => candidate.instanceId === input.instanceId) ??
     (input.last?.instanceId === input.instanceId ? input.last : undefined);
   if (provider === undefined) return null;
   const open =
-    codexNeedsSetup(provider, input.settings) ||
+    needsSetup(provider, input.settings) ||
     welcomeAgentState(provider, input.settings) === "checking";
   return open ? provider : null;
 }

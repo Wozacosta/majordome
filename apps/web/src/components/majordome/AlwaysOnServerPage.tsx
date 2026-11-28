@@ -968,7 +968,7 @@ function ReadyPanel({
         search={{ environmentId: serverId }}
         className="underline underline-offset-2"
       >
-        Sign in to Claude on the server
+        Sign in to your AI on the server
       </Link>
     );
 
@@ -1019,14 +1019,14 @@ function ReadyPanel({
                 </>
               )}
             </Step>
-            <Step title="Sign in to Claude on the server">
+            <Step title="Sign in to your AI on the server">
               {providerReady ? (
                 <StatusLine tone="ok">Signed in.</StatusLine>
               ) : (
                 <>
                   Sign-ins are not copied: each computer has its own. Open the server's{" "}
-                  {accountsPage} page, choose Sign in to Claude (or Continue with ChatGPT), and
-                  follow the link it shows.
+                  {accountsPage} page, sign in to Claude, ChatGPT or Gemini there, and follow the
+                  link it shows.
                   {saved ? <span className="block">{signInLink}</span> : null}
                 </>
               )}

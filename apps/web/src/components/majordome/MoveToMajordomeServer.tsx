@@ -126,7 +126,7 @@ export function MoveToMajordomeServer({
           {HOSTED_START_ADDRESS}
         </a>
         , sign in and enter your code. About half a minute later the page opens your server, where
-        you sign in to Claude with your own plan.
+        you sign in to Claude, ChatGPT or Gemini with your own plan.
       </Muted>
       {servers.length === 0 ? (
         <Muted className={READING_MEASURE_CLASS}>

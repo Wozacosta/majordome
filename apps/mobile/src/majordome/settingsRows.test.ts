@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { claudePlanStanding, computerStanding, majordomeSettingsCards } from "./settingsRows";
+import { aiAccountsRow, computerStanding, majordomeSettingsCards } from "./settingsRows";
 
 const mac = { id: "mac", label: "Mac mini", enabled: true, phase: "connected" };
+const claude = { state: "ready", name: "Claude" } as const;
 const base = {
   computers: [mac],
-  claude: ["ready"] as const,
+  ai: [claude],
   account: { email: "ana@example.com" },
   look: "Dark · English",
   voice: "On this phone",
@@ -72,16 +73,16 @@ describe("majordomeSettingsCards", () => {
   });
 
   it("offers to add a computer when there is none", () => {
-    const [first] = majordomeSettingsCards({ ...base, computers: [], claude: [] });
+    const [first] = majordomeSettingsCards({ ...base, computers: [], ai: [] });
     expect(first?.rows.map((row) => [row.label, row.value ?? null])).toEqual([
       ["Add a computer", null],
-      ["Claude plan", null],
+      ["AI accounts", null],
     ]);
   });
 
   it("asks for a sign-in, and leaves the account out of a build that has none", () => {
-    const cards = shown({ ...base, claude: ["signIn"], account: null });
-    expect(cards[0]?.[1]).toEqual(["Claude plan", "Sign in", "warning"]);
+    const cards = shown({ ...base, ai: [{ state: "signIn" }], account: null });
+    expect(cards[0]?.[1]).toEqual(["AI accounts", "Sign in", "warning"]);
     expect(cards[1]).toEqual([["Passwords and keys", null, null]]);
     expect(shown({ ...base, account: { email: null } })[1]?.[0]).toEqual([
       "Your account",
@@ -90,8 +91,12 @@ describe("majordomeSettingsCards", () => {
     ]);
   });
 
-  it("speaks of AI accounts when no computer has Claude", () => {
-    expect(shown({ ...base, claude: null })[0]?.[1]).toEqual(["AI accounts", null, null]);
+  it("names the row after the AI the computer answers with", () => {
+    expect(shown({ ...base, ai: [{ state: "ready", name: "ChatGPT" }] })[0]?.[1]).toEqual([
+      "ChatGPT plan",
+      "Signed in",
+      "good",
+    ]);
   });
 });
 
@@ -111,11 +116,20 @@ describe("computerStanding", () => {
   });
 });
 
-describe("claudePlanStanding", () => {
-  it("is signed in only when every computer that answered is", () => {
-    expect(claudePlanStanding(["ready", "checking"]).value).toBe("Signed in");
-    expect(claudePlanStanding(["ready", "signIn"]).value).toBe("Sign in");
-    expect(claudePlanStanding(["ready", "install"]).value).toBe("Needs a look");
-    expect(claudePlanStanding(["checking"])).toEqual({});
+describe("aiAccountsRow", () => {
+  it("is signed in only when every computer that has said is", () => {
+    expect(aiAccountsRow([claude, { state: "checking" }]).value).toBe("Signed in");
+    expect(aiAccountsRow([claude, { state: "signIn" }]).value).toBe("Sign in");
+    expect(aiAccountsRow([claude, { state: "attention" }]).value).toBe("Needs a look");
+    expect(aiAccountsRow([{ state: "checking" }])).toEqual({ label: "AI accounts" });
+  });
+
+  it("names no AI when the computers answer with different ones", () => {
+    expect(aiAccountsRow([claude, { state: "ready", name: "Gemini" }])).toEqual({
+      label: "AI accounts",
+      value: "Signed in",
+      tone: "good",
+    });
+    expect(aiAccountsRow([claude, { state: "signIn" }]).label).toBe("Claude plan");
   });
 });

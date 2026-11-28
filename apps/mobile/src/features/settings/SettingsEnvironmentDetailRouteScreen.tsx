@@ -41,6 +41,7 @@ import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
 import { isMajordome } from "../../majordome/env";
 import { MAJORDOME_COMPUTERS } from "../../majordome/settingsComputers";
+import { assistantAccountName } from "../../majordome/assistantAi.logic";
 import { MAJORDOME_SETTINGS_LABELS } from "../../majordome/settingsRows";
 import {
   canMaintainEnvironment,
@@ -403,7 +404,9 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                               size={18}
                             />
                             <Text className="min-w-0 flex-1 text-base font-t3-medium text-foreground">
-                              {provider.displayName ?? provider.driver}
+                              {isMajordome
+                                ? assistantAccountName(provider)
+                                : (provider.displayName ?? provider.driver)}
                             </Text>
                           </View>
                           <Text className="text-sm text-foreground-muted">

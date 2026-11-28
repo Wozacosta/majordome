@@ -9,6 +9,11 @@ You can think of T3 Code as an open source "bring-your-own-subscription" alterna
 This repository is Majordome, a fork of T3 Code for a second brain. Where the two disagree, these
 rules win. The design is in [docs/decisions.md](docs/decisions.md).
 
+Several threads work on this repository at once. Before you design anything or say what the app
+can or cannot do: `git fetch origin` and read what landed on `origin/main`, read the plans in
+`~/.t3/projects/servo/.plans/` (not in git, so absent from a worktree), and search the other
+threads for your subject. Say which plan or thread your answer builds on.
+
 Every change a user can see ships with both of these, in the same commit:
 
 - **Changelog.** An entry in [CHANGELOG.md](CHANGELOG.md) under `## Next`, in the app's own words:

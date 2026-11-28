@@ -26,6 +26,18 @@ export function t3CodeHomeRefusal(baseDir: string): string {
  */
 export const hidesCodingTools: boolean = true;
 
+/** The AIs Majordome offers, named by the plan the owner pays for, in the order it offers them. */
+export const MAJORDOME_AIS = [
+  { driver: "claudeAgent", name: "Claude" },
+  { driver: "codex", name: "ChatGPT" },
+  { driver: "antigravity", name: "Gemini" },
+] as const;
+
+/** Majordome's name for an AI, or `fallback` for one it has no name for. */
+export function majordomeAiDriverName(driver: string, fallback: string): string {
+  return MAJORDOME_AIS.find((ai) => ai.driver === driver)?.name ?? fallback;
+}
+
 /** What a server the owner runs calls itself, set in the image. */
 export const OWN_SERVER_NAME = "Your server";
 /** What a server Majordome hosts for the owner calls itself. */

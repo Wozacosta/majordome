@@ -36,22 +36,18 @@ import { usePaneRole } from "../../components/ui/Pane";
 import { useGT, useMessages } from "gt-react-native";
 import { isMajordome } from "../../majordome/env";
 import { useAtomValue } from "@effect/atom-react";
-import { getOnboardingProviderState } from "@t3tools/shared/claudeSignIn";
 import { nativeLanguageName } from "@t3tools/client-runtime/locales";
 import Constants from "expo-constants";
 import { useLanguagePreference } from "../../i18n/I18nProvider";
 import { SUPPORTED_LOCALES } from "../../i18n/locales";
-import {
-  majordomeSettingsCards,
-  type ClaudeStanding,
-  type MajordomeSettingsRow,
-} from "../../majordome/settingsRows";
+import { computerAiStanding } from "../../majordome/assistantAi.logic";
+import { majordomeSettingsCards, type MajordomeSettingsRow } from "../../majordome/settingsRows";
 import { SETUP_CHAT_BUTTON_LABEL, useOpenSetupChat } from "../../majordome/setupChat";
 import { environmentPresentations } from "../../state/presentation";
+import { environmentServerConfigsAtom } from "../../state/server";
 import { useRemoteConnectionStatus } from "../../state/use-remote-environment-registry";
 import { voiceGrantAtom } from "../voice-input/voiceDestination";
 import { useAppearancePreferences } from "./appearance/AppearancePreferencesProvider";
-import { CLAUDE_DRIVER } from "./claude-accounts";
 import { openSettings } from "./settings-navigation";
 
 export function SettingsRouteScreen() {
@@ -214,7 +210,7 @@ function MajordomeAccountSettingsList() {
 
 const THEME_MODE_NAMES = { system: "Automatic", light: "Light", dark: "Dark" } as const;
 
-/** Majordome's first screen: four cards, the computers and the Claude plan first with their state. */
+/** Majordome's first screen: four cards, the computers and the AI plan first with their state. */
 function MajordomeSettingsList(props: {
   readonly account: { readonly email: string | null } | null;
 }) {
@@ -223,18 +219,19 @@ function MajordomeSettingsList(props: {
   const listSurface = use(SettingsSidebarContext) ? "bg-drawer" : "bg-screen";
   const { connectedEnvironments } = useRemoteConnectionStatus();
   const providersByEnvironment = useAtomValue(environmentPresentations.providersByEnvironmentAtom);
+  const serverConfigs = useAtomValue(environmentServerConfigsAtom);
   const { themeMode } = useAppearancePreferences();
   const language = useLanguagePreference();
   const grant = useAtomValue(voiceGrantAtom);
   const connected = connectedEnvironments.filter(
     (environment) => environment.isEnabled && environment.connectionState === "connected",
   );
-  const claude = connected.flatMap((environment): ClaudeStanding[] => {
-    const providers = providersByEnvironment.get(environment.environmentId);
-    if (providers === undefined) return ["checking"];
-    const provider = providers.find((candidate) => candidate.driver === CLAUDE_DRIVER);
-    return provider === undefined ? [] : [getOnboardingProviderState(provider)];
-  });
+  const ai = connected.map((environment) =>
+    computerAiStanding(
+      providersByEnvironment.get(environment.environmentId),
+      serverConfigs.get(environment.environmentId)?.settings.defaultModelSelection?.instanceId,
+    ),
+  );
   const voiceComputer =
     grant === null
       ? undefined
@@ -248,8 +245,7 @@ function MajordomeSettingsList(props: {
       enabled: environment.isEnabled,
       phase: environment.connectionState,
     })),
-    // No Claude on any connected computer: the row is about the AI accounts they do have.
-    claude: connected.length > 0 && claude.length === 0 ? null : claude,
+    ai,
     account: props.account,
     look: [
       THEME_MODE_NAMES[themeMode],

@@ -262,7 +262,12 @@ function Connectors({
     );
   }
   const apps = appsView(AsyncResult.getOrElse(appsResult, () => ({ apps: [], connections: [] })));
-  const fromAccounts = connectorsView({ result: connectors, snapshots, machine: name });
+  const fromAccounts = connectorsView({
+    result: connectors,
+    snapshots,
+    machine: name,
+    appsConnected: apps.connected.length > 0,
+  });
   const view = {
     ...fromAccounts,
     rows: withoutAppsConnectedHere(fromAccounts.rows, apps.connected),

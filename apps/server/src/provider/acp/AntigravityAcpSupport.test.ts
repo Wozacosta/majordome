@@ -21,6 +21,7 @@ import {
   antigravitySessionMode,
   buildAntigravityPrompt,
 } from "./AntigravityAcpSupport.ts";
+import { serveToolNamesFrom } from "../../mcp/servedTools.ts";
 
 const modelConfig = {
   id: "model",
@@ -182,6 +183,41 @@ describe("Antigravity Auto", () => {
       }
     },
   );
+
+  it("runs Majordome's own tools and a connected app's unasked, as it does T3's", () => {
+    const policy = { runtimeMode: "auto", cwd: "/workspace" } as const;
+    const request = (
+      title: string,
+      rawInput?: Record<string, unknown>,
+    ): EffectAcpSchema.RequestPermissionRequest => ({
+      sessionId: "session-1",
+      toolCall: { toolCallId: "call-1", title, kind: "execute", rawInput },
+      options: [{ optionId: "allow", name: "Allow", kind: "allow_once" }],
+    });
+    const notesSearch = request("Run mcp_t3-code_search_notes");
+    const app = request("MCP Tool granola_list_meetings", {
+      ServerName: "t3-code",
+      ToolName: "granola_list_meetings",
+    });
+    expect(antigravityPermissionDisposition(policy, notesSearch)).toBe("ask");
+
+    serveToolNamesFrom(() => ["search_notes", "granola_list_meetings"]);
+    try {
+      expect(antigravityPermissionDisposition(policy, notesSearch)).toBe("allow");
+      expect(antigravityPermissionDisposition(policy, app)).toBe("allow");
+      expect(
+        antigravityPermissionDisposition(policy, request("Run mcp_t3-code_evil_search_notes")),
+      ).toBe("ask");
+      expect(
+        antigravityPermissionDisposition(
+          policy,
+          request("MCP Tool search_notes", { ServerName: "other", ToolName: "search_notes" }),
+        ),
+      ).toBe("ask");
+    } finally {
+      serveToolNamesFrom(() => []);
+    }
+  });
 });
 
 describe("applyAntigravityAcpModelSelection", () => {

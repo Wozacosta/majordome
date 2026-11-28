@@ -10,7 +10,7 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
-import { resolveProviderInstanceDisplayName as agentName } from "@t3tools/client-runtime/state/provider-instance-display";
+import { resolveProviderInstanceDisplayName } from "@t3tools/client-runtime/state/provider-instance-display";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -71,8 +71,13 @@ import {
   cliTerminalStep,
   codexCardProvider,
   codexNeedsSetup,
+  geminiCardProvider,
+  geminiNeedsSetup,
   groupWelcomeAgents,
   isBrokenVersion,
+  isOwnComputer,
+  majordomeAiName,
+  majordomeWelcomeAgents,
   turnedOnInstance,
   welcomeAgentState,
   welcomeOffersPhone,
@@ -104,6 +109,7 @@ import { useDesktopCliCommand } from "../settings/CliCommandSettingsRow";
 import { CodexSetupSection } from "../settings/CodexSetupSection";
 import { readCodexSetupMode } from "../settings/CodexSetupSection.logic";
 import { ClaudeLinkSignIn } from "../majordome/ClaudeLinkSignIn";
+import { GeminiSetup } from "../majordome/GeminiSetup";
 import { useClaudeSignIn } from "../settings/ClaudeSignInSection.flow";
 import { TerminalViewport } from "../ThreadTerminalDrawer";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
@@ -411,6 +417,11 @@ function RowIcon({ children }: { readonly children: ReactNode }) {
   );
 }
 
+const agentName = (provider: Parameters<typeof resolveProviderInstanceDisplayName>[0]) => {
+  const name = resolveProviderInstanceDisplayName(provider);
+  return isMajordome ? majordomeAiName(provider, name) : name;
+};
+
 const INSTALLABLE_DRIVERS = ["codex", "claudeAgent"] as const;
 type OnboardingAgentDriver = (typeof INSTALLABLE_DRIVERS)[number];
 const isInstallableDriver = (driver: string): driver is OnboardingAgentDriver =>
@@ -452,32 +463,23 @@ export function AgentsSection({
   environmentId,
   label,
   isPrimary,
-  claudeOnly = false,
+  hosted = false,
   onImportSourceEnabled,
 }: {
   readonly environmentId: EnvironmentId;
   readonly label: string;
   readonly isPrimary: boolean;
-  /** A server Majordome hosts starts with Claude alone; other AIs are added in Settings. */
-  readonly claudeOnly?: boolean;
+  /** A server Majordome hosts offers Claude, ChatGPT and Gemini and nothing else. */
+  readonly hosted?: boolean;
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
   const agents = useWelcomeAgents(environmentId);
   const { providers, serverConfig, checking } = agents;
   const gt = useGT();
-  // Majordome is set up around Claude, so its row is shown before it is installed.
-  const leading = isMajordome
-    ? agents.available.find((provider) => provider.driver === "claudeAgent")
-    : undefined;
-  const listed = leading === undefined ? agents.found : [leading, ...agents.found];
-  const found = claudeOnly
-    ? listed.filter((provider) => provider.driver === "claudeAgent")
-    : listed;
-  const available =
-    leading === undefined
-      ? agents.available
-      : agents.available.filter((provider) => provider !== leading);
+  const { listed: found, more: available } = isMajordome
+    ? majordomeWelcomeAgents(agents, { hosted })
+    : { listed: agents.found, more: agents.available };
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
@@ -488,6 +490,7 @@ export function AgentsSection({
   const [moreOpen, setMoreOpen] = useState<boolean | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
   const [codexSetupId, setCodexSetupId] = useState<ProviderInstanceId | null>(null);
+  const [geminiSetupId, setGeminiSetupId] = useState<ProviderInstanceId | null>(null);
   const [cliTerminalFor, setCliTerminalFor] = useState<ProviderInstanceId | null>(null);
   const [linkSignInFor, setLinkSignInFor] = useState<ProviderInstanceId | null>(null);
   const linkSignIn = useClaudeSignIn({
@@ -533,6 +536,19 @@ export function AgentsSection({
   });
   // Once the card closes, a later status change does not reopen it and move the page.
   if (listedCodex !== undefined && codexSetupProvider === null) setCodexSetupId(null);
+  const [lastGemini, setLastGemini] = useState<ServerProvider | null>(null);
+  const listedGemini =
+    geminiSetupId === null
+      ? undefined
+      : providers?.find((provider) => provider.instanceId === geminiSetupId);
+  if (listedGemini !== undefined && listedGemini !== lastGemini) setLastGemini(listedGemini);
+  const geminiSetupProvider = geminiCardProvider({
+    providers,
+    instanceId: geminiSetupId,
+    last: lastGemini,
+    settings: serverConfig?.settings,
+  });
+  if (listedGemini !== undefined && geminiSetupProvider === null) setGeminiSetupId(null);
 
   const openTerminal = (provider: ServerProvider) => {
     if (
@@ -617,6 +633,25 @@ export function AgentsSection({
         {actionLabel}
       </Button>
     );
+    if (isMajordome && geminiNeedsSetup(provider, serverConfig?.settings)) {
+      const open = geminiSetupId === provider.instanceId;
+      return (
+        <Button
+          size="xs"
+          variant="outline"
+          aria-label={gt("Set up: {agent}", { agent: name })}
+          aria-expanded={open}
+          disabled={!canManageProviders || serverConfig === null}
+          onClick={() => {
+            // Gemini is off until asked for, and nothing about it can be checked while it is.
+            if (!open && state === "disabled") void turnOn(provider);
+            setGeminiSetupId(open ? null : provider.instanceId);
+          }}
+        >
+          <T>Set up</T>
+        </Button>
+      );
+    }
     if (state === "disabled") {
       return (
         <Button
@@ -729,6 +764,45 @@ export function AgentsSection({
       />
     ) : null;
 
+  // Majordome's rows are always in view, so a card opens right under them; T3 Code's opens
+  // under the list of agents to add, where its row is.
+  const setupCards = (
+    <>
+      {codexSetupProvider !== null && serverConfig !== null ? (
+        <div key={codexSetupProvider.instanceId} ref={revealOnMount} className="mt-2">
+          <OnboardingCodexSetup
+            environmentId={environmentId}
+            provider={codexSetupProvider}
+            serverConfig={serverConfig}
+            // The CLI signs in through a browser it opens on its own machine.
+            allowExistingCli={
+              !isMajordome ||
+              isOwnComputer({
+                desktop: isElectron,
+                isPrimary,
+                pageHost: window.location.hostname,
+              })
+            }
+            onUseCliChange={(useCli) =>
+              setCliTerminalFor(useCli ? codexSetupProvider.instanceId : null)
+            }
+          />
+        </div>
+      ) : null}
+      {geminiSetupProvider !== null && serverConfig !== null ? (
+        <GeminiSetup
+          key={geminiSetupProvider.instanceId}
+          environmentId={environmentId}
+          environmentLabel={label}
+          name={agentName(geminiSetupProvider)}
+          provider={geminiSetupProvider}
+          settings={serverConfig.settings}
+          onClose={() => setGeminiSetupId(null)}
+        />
+      ) : null}
+    </>
+  );
+
   return (
     <WelcomeSection title={isMajordome ? gt("Assistant") : gt("Agents")}>
       {found.map((provider) => (
@@ -737,6 +811,11 @@ export function AgentsSection({
           provider={provider}
           state={stateOf(provider)}
           action={actionFor(provider)}
+          plain={
+            isMajordome &&
+            (codexNeedsSetup(provider, serverConfig?.settings) ||
+              geminiNeedsSetup(provider, serverConfig?.settings))
+          }
         />
       ))}
       {/* Majordome hides the terminal, so its status line sits right under the row it is about. */}
@@ -760,7 +839,8 @@ export function AgentsSection({
           {note}
         </p>
       ))}
-      <Collapsible open={showMore} onOpenChange={setMoreOpen} hidden={claudeOnly}>
+      {isMajordome ? setupCards : null}
+      <Collapsible open={showMore} onOpenChange={setMoreOpen} hidden={hosted}>
         <CollapsibleTrigger className="group flex min-h-10 w-full items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <RowIcon>
             <PlusIcon className="size-4" />
@@ -814,18 +894,7 @@ export function AgentsSection({
           ) : null}
         </CollapsiblePanel>
       </Collapsible>
-      {codexSetupProvider !== null && serverConfig !== null ? (
-        <div key={codexSetupProvider.instanceId} ref={revealOnMount} className="mt-2">
-          <OnboardingCodexSetup
-            environmentId={environmentId}
-            provider={codexSetupProvider}
-            serverConfig={serverConfig}
-            onUseCliChange={(useCli) =>
-              setCliTerminalFor(useCli ? codexSetupProvider.instanceId : null)
-            }
-          />
-        </div>
-      ) : null}
+      {isMajordome ? null : setupCards}
       {isPrimary && !isMajordome ? <CliPathSetup /> : null}
       {isMajordome ? null : installTerminal}
       {addingProvider ? (
@@ -1205,11 +1274,13 @@ function OnboardingCodexSetup({
   environmentId,
   provider,
   serverConfig,
+  allowExistingCli,
   onUseCliChange,
 }: {
   readonly environmentId: EnvironmentId;
   readonly provider: ServerProvider;
   readonly serverConfig: ServerConfig;
+  readonly allowExistingCli: boolean;
   // True asks for the CLI's install or sign-in terminal once Codex has checked the CLI.
   readonly onUseCliChange: (useCli: boolean) => void;
 }) {
@@ -1259,6 +1330,7 @@ function OnboardingCodexSetup({
       enabled={provider.enabled}
       readOnly={!canManageProviders}
       existingCliDisabled={!canOperateTerminal}
+      allowExistingCli={allowExistingCli}
       displayName={agentName(provider)}
       onModeChange={changeMode}
     />
@@ -1297,10 +1369,13 @@ function AgentRow({
   state,
   action,
   compact = false,
+  plain = false,
 }: {
   readonly provider: ServerProvider;
   readonly state: ReturnType<typeof welcomeAgentState>;
   readonly action?: ReactNode;
+  // The row's button opens a setup card, which says what is left to do.
+  readonly plain?: boolean;
   // A row in the "Add more agents" grid: the button carries the state, so no detail line.
   readonly compact?: boolean;
 }) {
@@ -1315,8 +1390,9 @@ function AgentRow({
     isInstallableDriver(provider.driver) &&
     brokenMessage === null &&
     (state === "install" || state === "signIn");
-  const detail =
-    isMajordome && !compact && needsTerminal
+  const detail = plain
+    ? null
+    : isMajordome && !compact && needsTerminal
       ? state === "install"
         ? gt("Not on this computer yet. Installing takes about a minute.")
         : gt("Installed. Sign in with your account to use it.")

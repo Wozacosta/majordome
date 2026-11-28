@@ -66,6 +66,32 @@ RUN case "$TARGETARCH" in \
   && unzip -q /tmp/bws.zip bws -d /out \
   && /out/bws --version
 
+# Google's Antigravity, which runs Gemini. In the image, a hosted server signs in to Gemini with
+# no download, and the 280 MB program stays off its small volume. The server finds it on PATH as
+# `agy`. Checked against the sums in Google's release manifests, whose `url` names the release:
+# https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json
+# and linux_arm64.json. Bump the release and both sums together.
+FROM debian:trixie-slim AS antigravity
+ARG TARGETARCH
+ARG ANTIGRAVITY_RELEASE=1.5.19-4821414830800896
+ARG ANTIGRAVITY_SHA512_AMD64=8160da6ceef2b7b62bb4a630b54b3fb4ee5283377509230736880c4ba4815e848a25cf346954a98134b647eb2f5d34e0364e77fbf74367ffd7dc29c525ddd82d
+ARG ANTIGRAVITY_SHA512_ARM64=eeecedfc2a63af281e245d73bb69f949a17c6d3ebcd3d023220056ddcc05e204a00d1d0ea77f68741b2fc15a1f66f740bc0e3bf800d734721c60938e61653010
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+RUN case "$TARGETARCH" in \
+    amd64) folder=linux-x64; archive=cli_linux_x64.tar.gz; sum="$ANTIGRAVITY_SHA512_AMD64" ;; \
+    arm64) folder=linux-arm; archive=cli_linux_arm64.tar.gz; sum="$ANTIGRAVITY_SHA512_ARM64" ;; \
+    *) echo "No Antigravity build for $TARGETARCH." >&2; exit 1 ;; \
+  esac \
+  && curl -fsSL -o /tmp/antigravity.tar.gz \
+    "https://storage.googleapis.com/antigravity-public/antigravity-cli/${ANTIGRAVITY_RELEASE}/${folder}/${archive}" \
+  && echo "${sum}  /tmp/antigravity.tar.gz" | sha512sum -c - \
+  && mkdir /out \
+  && tar -xzf /tmp/antigravity.tar.gz -C /out antigravity \
+  && mv /out/antigravity /out/agy \
+  && chmod 755 /out/agy
+
 FROM node:${NODE_VERSION}-trixie-slim
 # Provider CLIs the server starts for agent turns. Bump deliberately.
 ARG CLAUDE_CODE_VERSION=2.1.325
@@ -85,6 +111,7 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/c
   && npm cache clean --force
 COPY --from=secret-scan /usr/bin/gitleaks /usr/local/bin/gitleaks
 COPY --from=bws /out/bws /usr/local/bin/bws
+COPY --from=antigravity /out/agy /usr/local/bin/agy
 COPY --from=build /out /opt/majordome
 RUN printf '#!/bin/sh\nexec node /opt/majordome/dist/bin.mjs "$@"\n' > /usr/local/bin/majord \
   && chmod 755 /usr/local/bin/majord \

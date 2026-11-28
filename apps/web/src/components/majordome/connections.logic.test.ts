@@ -79,7 +79,7 @@ it("says whether each turned-on provider is signed in, in its own words when it 
     ]).map((row) => [row.name, row.state.label, row.state.detail, connectionAction(row.state)]),
   ).toEqual([
     ["Claude", "Signed in", undefined, "Manage"],
-    ["Codex", "Not signed in", undefined, "Sign in"],
+    ["ChatGPT", "Not signed in", undefined, "Sign in"],
     ["Cursor", "Not working", "Cursor CLI crashed.", "Manage"],
     ["OpenCode", "Not installed", undefined, "Manage"],
   ]);
@@ -184,6 +184,35 @@ it.each([
   },
 );
 
+it("asks nothing about Claude of an owner who is signed in to another AI and not to Claude", () => {
+  const input = {
+    result: result(entry("claudeAgent", { reported: false }), entry("codex", { reported: false })),
+    snapshots: [
+      snapshot("claudeAgent", { auth: { status: "unauthenticated" } }),
+      snapshot("codex"),
+    ],
+  };
+  expect(claudeSignInTargets(input)).toEqual([]);
+  expect(connectorsView({ ...input, machine: null }).warnings).toEqual([]);
+  // Signed in to both, Claude's connectors are still worth adding.
+  expect(
+    claudeSignInTargets({
+      result: result(entry("claudeAgent"), entry("codex", { reported: false })),
+      snapshots: [snapshot("claudeAgent"), snapshot("codex")],
+    }).map((target) => target.reason),
+  ).toEqual(["no-connectors"]);
+});
+
+it("does not say nothing is connected while an app is connected through Majordome", () => {
+  const view = connectorsView({
+    result: result(entry("claudeAgent")),
+    snapshots: [snapshot("claudeAgent")],
+    machine: null,
+    appsConnected: true,
+  });
+  expect(view.warnings).toEqual([]);
+});
+
 it("names the provider on each row and warning when several list connectors", () => {
   const view = connectorsView({
     result: result(
@@ -218,7 +247,7 @@ it("reports a failed check, and in one line the providers whose connectors can't
   expect(view.warnings).toEqual([
     "Majordome couldn't check what Claude is connected to. Claude took too long to list its connectors.",
   ]);
-  expect(view.notes).toEqual(["Majordome can't see what Codex and Cursor are connected to."]);
+  expect(view.notes).toEqual(["Majordome can't see what ChatGPT and Cursor are connected to."]);
 });
 
 it("tells an older server's answer from a real failure", () => {

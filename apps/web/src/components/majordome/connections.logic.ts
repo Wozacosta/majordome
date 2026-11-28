@@ -7,6 +7,7 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 
+import { majordomeAiName } from "../../onboarding/welcomePage.logic";
 import { machineInSentence } from "./brains.logic";
 
 export interface ConnectionState {
@@ -52,6 +53,10 @@ export function connectorState(status: ProviderConnector["status"]): ConnectionS
   }
 }
 
+function aiName(provider: Pick<ServerProvider, "instanceId" | "driver" | "displayName">): string {
+  return majordomeAiName(provider, resolveProviderInstanceDisplayName(provider));
+}
+
 function signedOut(provider: ServerProvider): boolean {
   return provider.auth.status === "unauthenticated";
 }
@@ -89,7 +94,7 @@ export function aiRows(providers: ReadonlyArray<ServerProvider>): ReadonlyArray<
     .filter((provider) => provider.enabled)
     .map((provider) => ({
       key: provider.instanceId,
-      name: resolveProviderInstanceDisplayName(provider),
+      name: aiName(provider),
       driver: provider.driver,
       accentColor: provider.accentColor,
       state: providerState(provider),
@@ -133,6 +138,8 @@ export function connectorsView(input: {
   readonly result: MajordomeConnectorsResult;
   readonly snapshots: ReadonlyArray<ServerProvider> | null;
   readonly machine: string | null;
+  /** An app connected through Majordome is something connected, whatever the AI accounts bring. */
+  readonly appsConnected?: boolean;
 }): ConnectorsView {
   const snapshotOf = (instanceId: string) =>
     input.snapshots?.find((snapshot) => snapshot.instanceId === instanceId);
@@ -141,7 +148,7 @@ export function connectorsView(input: {
     .filter((provider) => snapshotOf(provider.instanceId)?.installed !== false)
     .map((provider) => ({
       ...provider,
-      name: resolveProviderInstanceDisplayName(snapshotOf(provider.instanceId) ?? provider),
+      name: aiName(snapshotOf(provider.instanceId) ?? provider),
     }));
   const reporting = providers.filter((provider) => provider.reported);
   const several = reporting.length > 1;
@@ -168,7 +175,11 @@ export function connectorsView(input: {
     }
     const snapshot = snapshotOf(provider.instanceId);
     // Signed out, the missing connectors are not the news.
-    if (provider.connectors.length > 0 || (snapshot !== undefined && signedOut(snapshot))) {
+    if (
+      provider.connectors.length > 0 ||
+      input.appsConnected === true ||
+      (snapshot !== undefined && signedOut(snapshot))
+    ) {
       return [];
     }
     return [
@@ -246,7 +257,8 @@ const KEYED_CLAUDE_SIGN_INS = new Set(["apiKey", "bedrock", "customEndpoint"]);
 /**
  * The Claude providers on a machine with no connectors to show. `signed-out` needs a sign-in.
  * `no-connectors` is signed in: either the account has none yet, or it is signed in with a
- * token, which never brings them. Nothing here tells those two apart.
+ * token, which never brings them. Nothing here tells those two apart. An owner signed in to
+ * another AI and not to Claude is not using Claude, so is not asked to sign in to it.
  */
 export function claudeSignInTargets(input: {
   readonly result: MajordomeConnectorsResult;
@@ -256,8 +268,16 @@ export function claudeSignInTargets(input: {
   readonly name: string;
   readonly reason: "signed-out" | "no-connectors";
 }> {
+  const usesAnotherAi = (input.snapshots ?? []).some(
+    (snapshot) =>
+      snapshot.driver !== "claudeAgent" &&
+      snapshot.enabled &&
+      snapshot.installed &&
+      snapshot.auth.status === "authenticated",
+  );
   return (input.snapshots ?? []).flatMap((snapshot) => {
     if (snapshot.driver !== "claudeAgent" || !snapshot.enabled || !snapshot.installed) return [];
+    if (signedOut(snapshot) && usesAnotherAi) return [];
     const listed = input.result.providers.find(
       (provider) => provider.instanceId === snapshot.instanceId,
     );
@@ -271,7 +291,7 @@ export function claudeSignInTargets(input: {
     return [
       {
         instanceId: snapshot.instanceId,
-        name: resolveProviderInstanceDisplayName(snapshot),
+        name: aiName(snapshot),
         reason: signedOut(snapshot) ? ("signed-out" as const) : ("no-connectors" as const),
       },
     ];

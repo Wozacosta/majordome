@@ -28,6 +28,19 @@ export const sessionTools = (
 
 const MAJORDOME_TOOL = /^mcp__t3-code__(.+)$/;
 
+/**
+ * What Majordome hands every AI, for a chat whose AI does not report its tools as Claude does.
+ * The AI's own tools, such as files and commands, are then left for it to name.
+ */
+export const MAJORDOME_TOOLS: ReadonlyArray<string> = [
+  "preview_open",
+  "search_notes",
+  "schedule_task",
+  "notify_me",
+  "add_reading",
+  "html_render",
+].map((tool) => `mcp__t3-code__${tool}`);
+
 /** What each kind of tool is called on the map, in the order shown. Connections have their own box. */
 const KINDS: ReadonlyArray<readonly [label: string, matches: (tool: string) => boolean]> = [
   ["Files", (tool) => /^(Read|Write|Edit|MultiEdit|Glob|Grep|NotebookEdit)$/.test(tool)],

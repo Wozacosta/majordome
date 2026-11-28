@@ -61,6 +61,7 @@ import { compactT3McpToolOutput } from "@t3tools/shared/toolOutput";
 import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
 import { MCP_TOOL_EXPOSURE_HEADER } from "@t3tools/provider-core/server/mcpSession";
 import * as ConnectionTools from "./connectionTools.ts";
+import { serveToolNamesFrom } from "./servedTools.ts";
 import { isScheduledRun } from "./scheduledRun.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 import { PreviewControlsToolkit } from "./toolkits/previewControls/tools.ts";
@@ -1550,6 +1551,13 @@ const layerConnectionTools = Layer.effectDiscard(
   }),
 );
 
+const layerServedTools = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    serveToolNamesFrom(() => server.tools.map(({ tool }) => tool.name));
+  }),
+);
+
 export const layerMajordomeHiddenTools = McpServer.visibility(
   ({ method, target }) => Effect.succeed(MajordomeHiddenTools.isListed(method, target)),
   { global: true },
@@ -1581,6 +1589,7 @@ export const layerTools = Layer.mergeAll(
   layerReadingListToolkit,
   layerMajordomeSettingsToolkit,
   layerConnectionTools,
+  layerServedTools,
   layerMajordomeHiddenTools,
 );
 

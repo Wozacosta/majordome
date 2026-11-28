@@ -31,7 +31,9 @@ import {
 } from "@t3tools/provider-acp/server/clientPolicy";
 import type { AcpSessionModeState } from "@t3tools/provider-acp/server/runtimeModel";
 import { T3_MCP_TOOL_NAMES } from "@t3tools/shared/t3McpToolPresentation";
+
 import packageJson from "../../../package.json" with { type: "json" };
+import { isServedTool } from "../../mcp/servedTools.ts";
 import { normalizeAntigravitySessionUpdate } from "./AntigravityProtocol.ts";
 
 export interface AntigravityAcpRuntimeInput extends Omit<
@@ -192,6 +194,9 @@ const ANTIGRAVITY_T3_MCP_TITLE = /^Run mcp_t3-code_(?<tool>[A-Za-z0-9_]+)\??$/;
 // rawInput is the tool's own arguments.
 const ANTIGRAVITY_PROXIED_MCP_TITLE = /^MCP Tool (?<tool>[A-Za-z0-9_]+)\??$/;
 
+// Majordome's own tools and the connected apps' are on T3's server too, beside the ones named here.
+const isT3McpTool = (tool: string) => T3_MCP_TOOL_NAMES.has(tool) || isServedTool(tool);
+
 function isAntigravityT3McpRequest(request: EffectAcpSchema.RequestPermissionRequest): boolean {
   const title = request.toolCall.title?.trim() ?? "";
   const rawInput = unknownRecord(request.toolCall.rawInput);
@@ -200,12 +205,12 @@ function isAntigravityT3McpRequest(request: EffectAcpSchema.RequestPermissionReq
     return (
       rawInput?.ServerName === "t3-code" &&
       rawInput.ToolName === proxiedTool &&
-      T3_MCP_TOOL_NAMES.has(proxiedTool)
+      isT3McpTool(proxiedTool)
     );
   }
   if (typeof rawInput?.CommandLine === "string") return false;
   const tool = ANTIGRAVITY_T3_MCP_TITLE.exec(title)?.groups?.tool;
-  return tool !== undefined && T3_MCP_TOOL_NAMES.has(tool);
+  return tool !== undefined && isT3McpTool(tool);
 }
 
 export function antigravityPermissionDisposition(

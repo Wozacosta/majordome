@@ -152,7 +152,7 @@ export const MAJORDOME_SERVER = {
     "No computer to leave on? A Majordome server is always on, so Majordome keeps working while your computer is off.",
   title: "An always-on server",
   headline: "Majordome, always on",
-  what: "Routines run while your computer is off. You sign in to your own Claude plan.",
+  what: "Routines run while your computer is off. You sign in to your own Claude, ChatGPT or Gemini plan.",
   own: {
     name: "Your own server",
     recommended: "Recommended",
