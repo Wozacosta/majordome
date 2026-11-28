@@ -1,7 +1,13 @@
 import type { Wording } from "./index";
 
-// "New thread" stays out: it is also the title a new chat is stored with, and code compares it.
 export const CHAT_WORDING: Wording = [
+  // Also the title a draft is given; the computer takes either spelling as "not named yet"
+  // (`isUntitledChatTitle` in packages/shared/src/majordome.ts, which the swap skips).
+  ["New thread", "New chat"],
+  ["New thread ({shortcut})", "New chat ({shortcut})"],
+  ["New thread in...", "New chat in..."],
+  ["New thread in {project}", "New chat in {project}"],
+  ["New thread without a project", "New chat without a notes folder"],
   // Short texts every chat surface shares.
   ["Thread", "Chat"],
   ["Threads", "Chats"],

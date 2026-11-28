@@ -93,6 +93,7 @@ import {
   isScheduledFreshRun,
   turnItemsSinceContextBoundary,
 } from "./contextBoundary.ts";
+import { isUntitledChatTitle } from "@t3tools/shared/majordome";
 import { isPlaceholderThreadTitle } from "./placeholderThreadTitle.ts";
 import { combinePullRequestWatchWakes, type PullRequestWatchWake } from "./pullRequestWatch.ts";
 import { outputRequestProblem } from "./runOutput.ts";
@@ -753,7 +754,7 @@ function pendingThreadTitleGenerationEffect(
   };
 }
 
-// Clients seed a new thread with its first message, and empty threads start as "New thread" or
+// Clients seed a new thread with its first message, and empty threads start as "New thread" (clients say "New chat") or
 // an agent's placeholder. Any other title on a thread without messages was chosen on purpose.
 // A fork or side chat starts with a title its first message replaces, so only a rename keeps it.
 function hasTitleSetBeforeFirstMessage(
@@ -766,7 +767,7 @@ function hasTitleSetBeforeFirstMessage(
     thread.forkedFrom === null &&
     thread.lineage.sideChat !== true &&
     title.length > 0 &&
-    title !== "New thread" &&
+    !isUntitledChatTitle(title) &&
     !isPlaceholderThreadTitle(title) &&
     title !== titleSeed?.trim()
   );

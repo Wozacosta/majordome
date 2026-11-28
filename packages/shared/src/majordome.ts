@@ -68,3 +68,17 @@ export const START_ABOUT_YOU_REQUEST =
   "Start my About you note: search my notes for my name, address, phone, email, where I work, the people in my household and my emergency contact. Write what you find, then tell me what you wrote and what is still missing.";
 
 export const SHOW_SETUP_LABEL = "What your assistant can see and do";
+
+/** The title the computer gives a chat until its first message names it. */
+const STORED_UNTITLED_TITLE = "New thread";
+const SHOWN_UNTITLED_TITLE = "New chat";
+
+/** True for a title no one chose: the computer's, or the one a client shows and sends. */
+export function isUntitledChatTitle(title: string): boolean {
+  return title === STORED_UNTITLED_TITLE || title === SHOWN_UNTITLED_TITLE;
+}
+
+/** A chat's title as shown: one not named yet reads "New chat". */
+export function chatTitle(title: string): string {
+  return title === STORED_UNTITLED_TITLE ? SHOWN_UNTITLED_TITLE : title;
+}

@@ -72,8 +72,8 @@ Details are in "The iPhone app" below.
 - [ ] A TestFlight link for people outside the team goes through Beta App Review first.
 - [ ] The share extension is upstream's: it puts what you share from another app into a new
       chat. Keep it or drop it. (The widgets, about coding agents, are out of the build.)
-- [ ] "Scan to get the app" on the Welcome page opens T3 Code's app (`MOBILE_APP_URL`).
-- [ ] A chat not named yet shows the stored title "New thread".
+- [ ] The code on the Welcome page's Phone step opens majord.me/open. Point it at the App Store
+      once the app is listed there (`apps/web/vite/wording/links.ts`).
 
 ### The landing page and the docs
 
@@ -153,8 +153,6 @@ folders can no longer preview Office files.
 
 ### Still pointing at T3 Code
 
-- **"Scan to get the app" on the Welcome page.** The code opens T3 Code's phone app
-  (`MOBILE_APP_URL` in `apps/web/src/branding.ts`). Change it when the iPhone app exists.
 - **`docs/user/`.** Only `install.md` is rewritten. `updating.md`, `faq.md`, `triage.md`,
   `remote-access.md` and others still describe T3 Code and its `t3` command.
 - **SSH computers.** The option is hidden when adding a computer. The code behind it still
@@ -697,7 +695,5 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
     simulator. Unit tests cover the requests, the answers and the steps only. If the broker's
     answer is lost on the way back, the code is spent and the phone does not know the server.
 - **Left for the first cut:** a signed build on a real phone and TestFlight (needs an app record
-  in App Store Connect and a sign-in there), the share-extension target (upstream's; decide
-  whether to ship it), and the stored title "New thread" on a
-  chat not named yet (code compares it, so it needs a display-only mapping like the web's
-  `chats.logic.ts`).
+  in App Store Connect and a sign-in there), and the share-extension target (upstream's; decide
+  whether to ship it).

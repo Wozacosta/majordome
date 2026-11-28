@@ -1,6 +1,8 @@
 import type { Wording } from "./index";
 
 export const ONBOARDING_WORDING: Wording = [
+  // The code opens majord.me/open (links.ts): nothing to get from a store.
+  ["Scan with your phone to get the app.", "Scan with your phone to open Majordome on it."],
   // Welcome page: installing or signing in to the assistant.
   ["Preparing command...", "Starting…"],
   ["Could not open the setup terminal.", "That did not start. Press Retry."],

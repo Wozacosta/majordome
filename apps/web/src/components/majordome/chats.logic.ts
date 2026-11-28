@@ -1,7 +1,6 @@
-/** A chat's title as Majordome shows it: one not named yet is stored as "New thread". */
-export function chatTitle(title: string): string {
-  return title === "New thread" ? "New chat" : title;
-}
+import { chatTitle } from "@t3tools/shared/majordome";
+
+export { chatTitle };
 
 // Keyed by the status words upstream's `resolveThreadStatusPill` gives.
 const STATUS_WORDS: Readonly<Record<string, string>> = {

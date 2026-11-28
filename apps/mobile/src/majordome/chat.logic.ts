@@ -1,9 +1,8 @@
+import { chatTitle } from "@t3tools/shared/majordome";
+
 import type { ThreadListV2Status } from "../features/threads/threadListV2";
 
-/** A chat's title as Majordome shows it: one not named yet is stored as "New thread". */
-export function chatTitle(title: string): string {
-  return title === "New thread" ? "New chat" : title;
-}
+export { chatTitle };
 
 /** True when what was typed in "Rename" only repeats the title as it is shown. */
 export function keepsChatTitle(typed: string, stored: string): boolean {

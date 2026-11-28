@@ -1,3 +1,4 @@
+import { chatTitle } from "@t3tools/shared/majordome";
 import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 import { threadPullRequestsOf } from "../threadPullRequests.ts";
 import type {
@@ -307,7 +308,7 @@ export function presentThreadShell(
     title:
       thread.lineage.relationshipToParent === "subagent"
         ? formatSubagentDisplayTitle(thread.title)
-        : thread.title,
+        : chatTitle(thread.title),
     providerInstanceId: thread.providerInstanceId,
     modelSelection: thread.modelSelection,
     runtimeMode: thread.runtimeMode,

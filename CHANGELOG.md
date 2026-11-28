@@ -15,6 +15,10 @@ Not released yet.
 
 **Fixed**
 
+- **A chat with no name yet reads "New chat" everywhere.** Some screens on the phone and the
+  computer still said "New thread", T3 Code's word.
+- **The code on the Welcome page's Phone step opens Majordome.** It opened T3 Code's app in the
+  App Store. It now opens majord.me/open, where your phone signs in and finds your computer.
 - **The account page and the guide no longer say a hosted server is by invitation only.** They
   now say both ways in: subscribe on majord.me/start, or enter an invite code.
 

@@ -53,6 +53,13 @@ describe("V2 client presentation", () => {
     expect(effectiveSnoozed(active, { now: "2026-06-20T00:05:00.000Z" })).toBe(false);
   });
 
+  it("shows a chat not named yet as New chat on every screen", () => {
+    expect(presentThreadShell(environmentId, { ...v2ThreadShell, title: "New thread" }).title).toBe(
+      "New chat",
+    );
+    expect(presentThreadShell(environmentId, v2ThreadShell).title).toBe(v2ThreadShell.title);
+  });
+
   it("moves a running thread with any question out of Working", () => {
     for (const capability of [{ blocking: false }, { blocking: true }, {}]) {
       const shell = presentThreadShell(environmentId, {

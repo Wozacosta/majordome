@@ -1,5 +1,25 @@
 import { describe, expect, it } from "vite-plus/test";
-import { hostedServerName, isT3CodeHome, majordomeMachineKind } from "./majordome.ts";
+import {
+  chatTitle,
+  hostedServerName,
+  isT3CodeHome,
+  isUntitledChatTitle,
+  majordomeMachineKind,
+} from "./majordome.ts";
+
+describe("a chat not named yet", () => {
+  it("reads New chat, whichever way it was stored", () => {
+    expect(chatTitle("New thread")).toBe("New chat");
+    expect(chatTitle("New chat")).toBe("New chat");
+    expect(chatTitle("Taxes")).toBe("Taxes");
+  });
+
+  it("counts as not named under both spellings, so its first message names it", () => {
+    expect(isUntitledChatTitle("New thread")).toBe(true);
+    expect(isUntitledChatTitle("New chat")).toBe(true);
+    expect(isUntitledChatTitle("New threads")).toBe(false);
+  });
+});
 
 describe("isT3CodeHome", () => {
   it.each([

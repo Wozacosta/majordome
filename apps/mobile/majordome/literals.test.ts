@@ -152,6 +152,7 @@ function swapsOutsideTranslation(): string[] {
 // text in MOBILE_KEPT or narrow the rule instead of adding it here.
 const REVIEWED = [
   // A row label in the developer's component catalog.
+  "apps/mobile/src/features/development/ComponentCatalogScreen.tsx: New thread",
   "apps/mobile/src/features/development/ComponentCatalogScreen.tsx: Projects",
   // A union local to the phone's undo notice; its three files are swapped together.
   "apps/mobile/src/features/home/HomeScreen.tsx: this environment",

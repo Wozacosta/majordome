@@ -11,9 +11,6 @@ const kept = (texts: readonly string[]): Wording => texts.map((text) => [text, t
  * value stops matching what the unswapped side (the computer, packages/contracts) sends.
  */
 export const MOBILE_KEPT: Wording = kept([
-  // The title a chat is stored with until it is named, which the desktop compares.
-  // `chatTitle` in src/majordome/chat.logic.ts shows it as "New chat".
-  "New thread",
   // Keys of the table that translates packages/contracts' stage labels (contractLabels.ts).
   "Start agent",
   // A tool's label, joined into the key of its sentences (t3ToolSentences.ts).
