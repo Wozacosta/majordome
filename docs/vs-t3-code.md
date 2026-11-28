@@ -105,6 +105,10 @@ The landing page and the README show a short version of this list.
   it, with a search and the steps to read. [Skills](./user/skills.md)
 - **Private documents:** encrypted, outside your notes, opened only after your yes, each time.
   [Private documents](./user/private-documents.md)
+- **Connect an app once, for every AI.** Press Connect next to an app such as Granola and approve
+  in your browser. Majordome keeps the sign-in and every AI you use gets the app's tools. T3 Code
+  leaves this to each AI's own config file. A routine can only read from a connected app until
+  you allow more. [Connect an app](./user/connect-apps.md)
 - **Email, calendar and files:** the steps to connect Gmail, Calendar and Drive through your Claude
   account, on one page.
 - **Set it up by asking.** The assistant beside every screen can check how Majordome is set up and

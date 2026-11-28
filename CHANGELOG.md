@@ -7,6 +7,21 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Connect Granola without leaving Majordome.** Settings, then Connections, has an **Apps**
+  section. Press **Connect** next to Granola, approve in your browser, and your assistant can
+  read your meeting notes and transcripts. It works with whichever AI you use, on the computer
+  you connected it on.
+- **Routines only read from a connected app.** In a chat you are in, the assistant can also
+  change things there, such as renaming a meeting. A routine cannot, until you turn on
+  "Routines may change things here" for that app.
+- **Disconnect** removes Majordome's access at the app itself.
+
+**Try this**
+
+- Connect Granola, then ask in a new chat: "what was my last meeting about?"
+
 ## 0.10.89
 
 **New**
