@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.95
+
 **Changed**
 
 - **Your account on the phone asks "Where does Majordome run?"** when your account has no
