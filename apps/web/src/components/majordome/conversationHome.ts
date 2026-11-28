@@ -1,10 +1,14 @@
 import { scopeProjectRef, scopedProjectKey } from "@t3tools/client-runtime/environment";
-import type { ScopedProjectRef } from "@t3tools/contracts";
+import type { EnvironmentId, ProjectId, ScopedProjectRef } from "@t3tools/contracts";
 import { AsyncResult, Atom } from "effect/reactivity";
 
 import { isMajordome } from "../../env";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
-import { vaultBackupStatusesAtom, vaultHistoriesAtom } from "../../state/majordome";
+import {
+  majordomeEnvironment,
+  vaultBackupStatusesAtom,
+  vaultHistoriesAtom,
+} from "../../state/majordome";
 import { environmentSummaries } from "../../state/presentation";
 import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { environmentProjects } from "../../state/projects";
@@ -67,6 +71,18 @@ export const conversationHomesAtom = Atom.make((get) => {
 }).pipe(Atom.withLabel("majordome:conversation-homes"));
 
 /**
+ * This computer's copy of a notes folder whose owner asked, from the notice, to keep its
+ * conversations and routines here. The app's frame shows the question for it.
+ */
+export const takeOverHereAtom = Atom.make<{
+  readonly environmentId: EnvironmentId;
+  readonly projectId: ProjectId;
+  readonly title: string;
+} | null>(null).pipe(Atom.keepAlive, Atom.withLabel("majordome:take-over-here"));
+
+let takeOverNotice: string | undefined;
+
+/**
  * Where a new conversation in this notes folder starts: its home, whichever copy was asked for.
  * Null, after telling the owner why, while the home cannot take it. A project that is not a notes
  * folder stays as given.
@@ -75,19 +91,48 @@ export function conversationHomeRef(ref: ScopedProjectRef): ScopedProjectRef | n
   const home = appAtomRegistry.get(conversationHomesAtom).get(scopedProjectKey(ref));
   if (home === undefined) return ref;
   if (home.kind === "ready") return scopeProjectRef(home.environmentId, home.projectId);
-  toastManager.add(
-    home.kind === "unreachable"
-      ? {
-          type: "warning",
-          title: "Your server can't be reached",
-          description:
-            "Conversations are kept there, so wait until it is back, or check Status in Settings.",
-        }
-      : {
-          type: "info",
-          title: "Still checking where your conversations are kept",
-          description: "Try again in a moment.",
-        },
-  );
+  if (home.kind === "loading") {
+    toastManager.add({
+      type: "info",
+      title: "Still checking where your conversations are kept",
+      description: "Try again in a moment.",
+    });
+    return null;
+  }
+  const here = home.here;
+  // A server that is gone for good never comes back, so the way out is offered with the news.
+  const canTakeOver =
+    here !== null &&
+    appAtomRegistry.get(majordomeEnvironment.runRoutinesHere.permissionAtom(here.environmentId));
+  if (here === null || !canTakeOver) {
+    toastManager.add({
+      type: "warning",
+      title: "Your server can't be reached",
+      description:
+        "Conversations are kept there, so wait until it is back, or check Status in Settings.",
+    });
+    return null;
+  }
+  const title =
+    appAtomRegistry
+      .get(environmentProjects.projectsAtom)
+      .find(
+        (project) => project.environmentId === here.environmentId && project.id === here.projectId,
+      )?.title ?? "your notes";
+  // One click can ask twice, and the offer is the same each time: one notice.
+  if (takeOverNotice !== undefined) toastManager.close(takeOverNotice);
+  const toastId = toastManager.add({
+    type: "warning",
+    title: "Your server can't be reached",
+    description: "Conversations are kept there. If it is gone, this computer can take over.",
+    actionProps: {
+      children: "Use this computer",
+      onClick: () => {
+        toastManager.close(toastId);
+        appAtomRegistry.set(takeOverHereAtom, { ...here, title });
+      },
+    },
+  });
+  takeOverNotice = toastId;
   return null;
 }

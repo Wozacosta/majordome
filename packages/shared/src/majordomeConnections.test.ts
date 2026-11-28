@@ -21,6 +21,19 @@ it("returns straight to a Majordome on https, and through the page to a local on
   assert.isNull(connectionCallback({ origin: "majordome://app", nonce: "n" }));
 });
 
+it("an app that only returns to the computer itself gets that address, or none", () => {
+  assert.deepEqual(
+    connectionCallback({ origin: "http://127.0.0.1:3774", nonce: "n", thisComputerOnly: true }),
+    { redirectUri: "http://127.0.0.1:3774/oauth/connections/callback", state: "n" },
+  );
+  assert.isNotNull(
+    connectionCallback({ origin: "http://localhost:5733", nonce: "n", thisComputerOnly: true }),
+  );
+  for (const origin of ["https://quiet-otter.majord.link", "http://192.168.1.20:3774"]) {
+    assert.isNull(connectionCallback({ origin, nonce: "n", thisComputerOnly: true }), origin);
+  }
+});
+
 it("takes only addresses on the person's own computer or network as local", () => {
   for (const origin of [
     "http://localhost:3774",

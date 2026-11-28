@@ -96,6 +96,31 @@ export function signupNext(state: SignupState, event: SignupEvent): SignupState 
   }
 }
 
+export type SetupStepStatus = "done" | "now" | "later";
+
+/**
+ * How far setting up a server is, as the page lists it: subscribed, server made, Majordome
+ * started, this phone connected. Null for a state the list does not cover.
+ */
+export function setupSteps(
+  state: SignupState,
+): readonly [SetupStepStatus, SetupStepStatus, SetupStepStatus, SetupStepStatus] | null {
+  const now =
+    state.step === "making"
+      ? 1
+      : state.step === "waiting"
+        ? 2
+        : state.step === "pairing"
+          ? 3
+          : state.step === "done"
+            ? 4
+            : null;
+  if (now === null) return null;
+  const status = (step: number): SetupStepStatus =>
+    step < now ? "done" : step === now ? "now" : "later";
+  return [status(0), status(1), status(2), status(3)];
+}
+
 /** What to keep in the phone's file for a state: a made server until its setup is finished. */
 export function signupProgress(state: SignupState): SignupProgress | null {
   switch (state.step) {

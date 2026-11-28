@@ -20,6 +20,11 @@ export function ComposerModelControl(props: {
   readonly disabled?: boolean;
   readonly size?: "regular" | "large";
   readonly iconOnly?: boolean;
+  /**
+   * Majordome: the chat's level ("Everyday") stands in for the model's name and its options,
+   * which mean nothing to the owner. Null is a model outside the three levels: its name alone.
+   */
+  readonly levelName?: string | null;
   readonly onPress: () => void;
 }) {
   const gt = useGT();
@@ -29,18 +34,19 @@ export function ComposerModelControl(props: {
     selections: props.selection?.options,
   });
   const promptTraits = getPromptControlledTraits(descriptors, props.prompt);
-  const summary = props.provider
-    ? buildTraitsTriggerDisplay(
-        {
-          descriptors,
-          primarySelectDescriptorId: promptTraits.primarySelectDescriptor?.id ?? null,
-          ultrathinkPromptControlled: promptTraits.ultrathinkPromptControlled,
-          modelSelection: props.selection,
-          reportedModelSelection: props.reportedSelection,
-        },
-        m,
-      ).label
-    : "";
+  const summary =
+    props.provider && props.levelName === undefined
+      ? buildTraitsTriggerDisplay(
+          {
+            descriptors,
+            primarySelectDescriptorId: promptTraits.primarySelectDescriptor?.id ?? null,
+            ultrathinkPromptControlled: promptTraits.ultrathinkPromptControlled,
+            modelSelection: props.selection,
+            reportedModelSelection: props.reportedSelection,
+          },
+          m,
+        ).label
+      : "";
   const badge = props.modelOption?.providerBadge;
   const label = props.modelOption?.label ?? props.selection?.model ?? gt("Choose model");
   const providerNameLabel = badge
@@ -51,12 +57,12 @@ export function ComposerModelControl(props: {
         showBadge: badge.showBadge,
       })
     : null;
-  const shortLabel = props.modelOption?.shortName ?? label;
+  const shortLabel = props.levelName ?? props.modelOption?.shortName ?? label;
   return (
     <ComposerInlineControl
       accessibilityLabel={[
         gt("Model and reasoning settings"),
-        label,
+        props.levelName ?? label,
         badge?.showBadge ? badge.displayName : null,
         summary,
       ]

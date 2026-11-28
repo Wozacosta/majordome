@@ -598,6 +598,20 @@ describe("paying in the iPhone app", () => {
     expect(t.made).toEqual([]);
   });
 
+  it("hands a purchase whose account was deleted to the account that shows it next", async () => {
+    const t = await bought();
+    await t.buy();
+    await t.billing.deleteAccount(ACCOUNT);
+    await t.billing.applePurchase({ accountId: "user_again", transactionId: "2000000111" });
+    const server = await t.billing.server({ accountId: "user_again" });
+    expect(t.made).toHaveLength(2);
+    // Apple's notices name the old token: they must reach the new account.
+    t.appleSubscriptions.set("2000000111", apple(t.appToken, "ended"));
+    expect(await t.billing.appleNotice("2000000111")).toBe("user_again");
+    await t.billing.settle("user_again");
+    expect(t.machines.get(server.name)).toBe("stopped");
+  });
+
   it("renewal, billing grace, expiry and refund each end as on the website", async () => {
     const t = await bought();
     const { name } = await t.buy();

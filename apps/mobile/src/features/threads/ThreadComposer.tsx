@@ -96,6 +96,7 @@ import { useComposerTextRole } from "../settings/appearance/useScaledTextRole";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 import { Menu } from "../../components/ui/Menu";
 import { isMajordome } from "../../majordome/env";
+import { useChatLevelName } from "../../majordome/useChatLevel";
 import { useVoiceModeAvailable, VoiceModeButton } from "../../majordome/voice-mode/VoiceModeDock";
 import {
   composerRunsDraftLocally,
@@ -689,6 +690,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     </>
   ) : null;
 
+  const levelName = useChatLevelName(props.environmentId, currentModelSelection);
   const modelControl = (
     // Only the expanded label can truncate; shrinking the icon-only control clips the icon.
     <View className={compactEditor.isExpanded ? "min-w-0 shrink" : "shrink-0"}>
@@ -701,6 +703,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
         prompt={draftMessage}
         surfaceColor={composerPanel}
         iconOnly={!compactEditor.isExpanded}
+        {...(isMajordome ? { levelName } : {})}
         onPress={openSettings}
       />
     </View>

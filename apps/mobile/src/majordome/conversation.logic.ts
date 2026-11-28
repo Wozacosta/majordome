@@ -299,4 +299,5 @@ export const MODEL_PICKER_WORDS = {
   title: "Which AI",
   close: "Close",
   options: "How it answers",
+  otherModels: "Other models",
 } as const;

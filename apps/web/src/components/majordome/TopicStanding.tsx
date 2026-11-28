@@ -59,25 +59,35 @@ export function TopicStanding({
       Open the log
     </Link>
   );
+  const toggle = (
+    <Button
+      type="button"
+      size="icon-xs"
+      variant="ghost-muted"
+      className="-me-1 shrink-0"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? "Show where things stand" : "Show less"}
+      onClick={() => setChoices((current) => ({ ...current, [topic.id]: !collapsed }))}
+    >
+      {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+    </Button>
+  );
   return (
     <section
       aria-label={`Where things stand with ${topic.title}`}
       data-topic-standing={collapsed ? "collapsed" : "open"}
-      className="chat-composer-lane shrink-0 border-border/60 border-b bg-background"
+      className="chat-composer-lane shrink-0 bg-background pt-2"
     >
-      <div className="mx-auto flex w-full max-w-(--chat-content-max-width) items-start gap-1.5 py-1.5">
-        <Button
-          type="button"
-          size="icon-xs"
-          variant="ghost-muted"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Show where things stand" : "Show less"}
-          onClick={() => setChoices((current) => ({ ...current, [topic.id]: !collapsed }))}
-        >
-          {collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
-        </Button>
+      {/* A card as wide as the chat's own column, so its words start where the replies do. */}
+      <div
+        className={cn(
+          "mx-auto w-full max-w-(--chat-content-max-width) rounded-xl border border-border/70 bg-card px-3",
+          // Folded, it is one thin row; the button is the tallest thing in it.
+          collapsed ? "py-0.5" : "py-1.5",
+        )}
+      >
         {collapsed ? (
-          <>
+          <div className="flex items-start gap-2">
             <div className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-baseline sm:gap-2">
               <span className={cn(LABEL_CLASS, "max-sm:leading-5")}>{LABEL}</span>
               <p className="min-w-0 truncate text-sm text-foreground leading-6 sm:flex-1">
@@ -85,18 +95,26 @@ export function TopicStanding({
               </p>
             </div>
             <span className="leading-6">{log}</span>
-          </>
+            {toggle}
+          </div>
         ) : (
-          <div className="min-w-0 flex-1">
-            <p className={LABEL_CLASS}>{LABEL}</p>
-            <p className="line-clamp-3 whitespace-pre-line text-sm text-foreground leading-6">
+          <>
+            <div className="flex items-center gap-2">
+              <p className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+                <span className={LABEL_CLASS}>{LABEL}</span>
+                {standing.updatedAt ? (
+                  <span className="text-2xs text-muted-foreground/80 leading-6">
+                    <UpdatedLabel timestamp={standing.updatedAt} />
+                  </span>
+                ) : null}
+              </p>
+              {log}
+              {toggle}
+            </div>
+            <p className="line-clamp-3 whitespace-pre-line pb-1 text-sm text-foreground/90 leading-6">
               {standing.text.trim()}
             </p>
-            <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground leading-5">
-              {standing.updatedAt ? <UpdatedLabel timestamp={standing.updatedAt} /> : null}
-              {log}
-            </p>
-          </div>
+          </>
         )}
       </div>
     </section>

@@ -5,7 +5,7 @@ import { StackActions, useNavigation } from "@react-navigation/native";
 import { EnvironmentId } from "@t3tools/contracts";
 import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppActivityIndicator } from "../components/ui/AppActivityIndicator";
@@ -20,7 +20,11 @@ import { openSettings } from "../features/settings/settings-navigation";
 import { cn } from "../lib/cn";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 import { environmentConnectedAtom } from "../state/use-remote-environment-registry";
-import { MAJORDOME_SERVER, MAJORDOME_SERVER_ON_WEB } from "./connectWording";
+import {
+  MAJORDOME_SERVER,
+  MAJORDOME_SERVER_ON_WEB,
+  MAJORDOME_SERVER_SETUP,
+} from "./connectWording";
 import { FinishSetup } from "./FinishSetup";
 import {
   buyServer,
@@ -34,7 +38,7 @@ import {
   retryPairing,
   SOLD_ON_WEB,
 } from "./hostedSignup";
-import type { SignupNote } from "./hostedSignup.logic";
+import { setupSteps, type SetupStepStatus, type SignupNote } from "./hostedSignup.logic";
 import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
 
 function Progress(props: { readonly text: string }) {
@@ -44,6 +48,78 @@ function Progress(props: { readonly text: string }) {
       <Text accessibilityLiveRegion="polite" className="flex-1 text-foreground">
         {props.text}
       </Text>
+    </View>
+  );
+}
+
+const THIS_DEVICE =
+  Platform.OS !== "ios"
+    ? MAJORDOME_SERVER_SETUP.connecting.phone
+    : Platform.isPad
+      ? MAJORDOME_SERVER_SETUP.connecting.ipad
+      : MAJORDOME_SERVER_SETUP.connecting.iphone;
+
+function SetupStep(props: { readonly status: SetupStepStatus; readonly label: string }) {
+  const { status } = props;
+  return (
+    <View
+      accessible
+      accessibilityLabel={props.label}
+      accessibilityState={{ busy: status === "now", checked: status === "done" }}
+      className="flex-row items-center gap-3.5"
+    >
+      <View
+        className={cn(
+          "size-6 items-center justify-center rounded-full",
+          status === "done" && "bg-primary",
+          status === "later" && "border-2 border-border",
+        )}
+      >
+        {status === "done" ? (
+          <SymbolView name="checkmark" size={12} tintColorClassName="accent-primary-foreground" />
+        ) : status === "now" ? (
+          <AppActivityIndicator colorClassName="accent-primary-text" />
+        ) : null}
+      </View>
+      <Text
+        className={cn(
+          "flex-1",
+          status === "now" && "font-t3-bold",
+          status === "later" ? "text-foreground-tertiary" : "text-foreground",
+        )}
+      >
+        {props.label}
+      </Text>
+    </View>
+  );
+}
+
+/** What is done and what is left between paying for a server and this phone being on it. */
+function SettingUp(props: { readonly steps: ReadonlyArray<SetupStepStatus> }) {
+  const labels = [
+    MAJORDOME_SERVER_SETUP.subscribed,
+    MAJORDOME_SERVER_SETUP.making,
+    MAJORDOME_SERVER_SETUP.starting,
+    THIS_DEVICE,
+  ];
+  return (
+    <View className="flex-1 justify-center pb-24">
+      <View className="size-16 items-center justify-center rounded-[18px] border-continuous bg-primary">
+        <SymbolView name="server.rack" size={30} tintColorClassName="accent-primary-foreground" />
+      </View>
+      <Text
+        accessibilityRole="header"
+        textRole="largeTitle"
+        className="mt-5 font-t3-bold text-foreground"
+      >
+        {MAJORDOME_SERVER_SETUP.title}
+      </Text>
+      <Text className="mt-1.5 text-foreground-muted">{MAJORDOME_SERVER_SETUP.wait}</Text>
+      <View accessibilityLiveRegion="polite" className="mt-7 gap-4.5">
+        {labels.map((label, index) => (
+          <SetupStep key={label} status={props.steps[index] ?? "later"} label={label} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -299,6 +375,7 @@ function ConfiguredHostedSignupScreen() {
   // A server that needed no setup has nothing left to say here: it shows on the list of servers.
   // Pressing Done after a setup also ends on "done", but has left this page by then.
   const connected = state.step === "done";
+  const steps = setupSteps(state);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the connection ends outside React, whichever action started it, and the navigator is what has to follow
   useEffect(() => {
     if (!connected || !navigation.isFocused()) return;
@@ -316,14 +393,17 @@ function ConfiguredHostedSignupScreen() {
   }
 
   return (
-    <SettingsScreen title={MAJORDOME_SERVER.title}>
+    <SettingsScreen title={steps === null ? MAJORDOME_SERVER.title : ""}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         className="flex-1"
         contentContainerClassName="gap-5 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
+        contentContainerStyle={{
+          flexGrow: steps === null ? undefined : 1,
+          paddingBottom: Math.max(insets.bottom, 18) + 18,
+        }}
       >
         {state.step === "finishing" ? (
           <FinishSettingUp environmentId={state.environmentId} onDone={done} />
@@ -335,16 +415,8 @@ function ConfiguredHostedSignupScreen() {
                 : MAJORDOME_SERVER[state.doing]
             }
           />
-        ) : state.step === "making" ? (
-          <Progress text={MAJORDOME_SERVER.making} />
-        ) : state.step === "waiting" || state.step === "pairing" || state.step === "done" ? (
-          <Progress
-            text={
-              state.step === "waiting"
-                ? "Your server is made. Waiting for it to start…"
-                : "Connecting this phone to your server…"
-            }
-          />
+        ) : steps !== null ? (
+          <SettingUp steps={steps} />
         ) : state.step === "made" ? (
           <View className="gap-4">
             <Text
@@ -365,9 +437,9 @@ function ConfiguredHostedSignupScreen() {
               onPress={() => void retryPairing()}
             />
           </View>
-        ) : (
+        ) : state.step === "idle" ? (
           <Offer note={state.note} onSignIn={() => setSigningIn(true)} />
-        )}
+        ) : null}
       </ScrollView>
     </SettingsScreen>
   );

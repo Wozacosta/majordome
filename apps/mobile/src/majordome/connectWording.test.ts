@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   accountConnectErrorForOwner,
+  accountSignInStep,
   connectErrorForOwner,
   welcomeAccountRow,
 } from "./connectWording";
@@ -53,7 +54,7 @@ describe("welcomeAccountRow", () => {
     for (const computers of [[], ["Studio"], ["Studio", "Den"]]) {
       const row = welcomeAccountRow({ signedIn: true, email: "ada@example.com", computers });
       expect(row.title).not.toMatch(/sign in/i);
-      expect(row.detail).toBe("ada@example.com");
+      expect(row.detail).toBe("Signed in as ada@example.com");
     }
   });
 
@@ -70,6 +71,20 @@ describe("welcomeAccountRow", () => {
     });
     expect(welcomeAccountRow({ ...signedIn, computers: ["Studio", "Den"] }).title).toBe(
       "Connect your computers",
+    );
+  });
+});
+
+describe("accountSignInStep", () => {
+  it("names the account to sign in with", () => {
+    expect(accountSignInStep("ada@example.com")).toBe(
+      "Sign in as ada@example.com, then follow what it says.",
+    );
+  });
+
+  it.each([null, "x7k2@privaterelay.appleid.com"])("does not show %j", (email) => {
+    expect(accountSignInStep(email)).toBe(
+      "Sign in with this same account, then follow what it says.",
     );
   });
 });

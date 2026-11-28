@@ -112,7 +112,7 @@ import type { AppBarMenu } from "../../components/ui/AppBar.types";
 import { ModelRow, ChoiceRow } from "./ThreadSettingsRows";
 import { MODEL_PICKER_WORDS } from "../../majordome/conversation.logic";
 import { isMajordome } from "../../majordome/env";
-import { ModelLevelRows } from "../../majordome/ModelLevelRows";
+import { ModelLevelRows, modelLevelRows } from "../../majordome/ModelLevelRows";
 import {
   compatibleRuntimeModeForChoices,
   runtimeModeChoicesForSupportedModes,
@@ -760,6 +760,10 @@ type ThreadSettingsCatalogItem =
       readonly key: "levels";
     }
   | {
+      readonly kind: "otherModels";
+      readonly key: "otherModels";
+    }
+  | {
       readonly kind: "options";
       readonly key: "options";
     };
@@ -1157,13 +1161,33 @@ function ThreadSettingsMainContent(props: {
     session.favoritesOnly ||
     session.providerFilter !== null ||
     session.searchQuery.trim().length > 0;
+  // Majordome shows its three levels alone: every model and its options wait behind one row,
+  // or a search.
+  const [showsEveryModel, setShowsEveryModel] = useState(false);
+  const configs = useAtomValue(environmentServerConfigsAtom);
+  const levelConfig = session.environmentId ? configs.get(session.environmentId) : undefined;
+  const levelInstanceId = session.displayedModelSelection?.instanceId ?? session.providerInstanceId;
+  // An AI account with one model has no levels to offer: its models are the choice.
+  const hasLevels =
+    levelConfig !== undefined &&
+    modelLevelRows({
+      account:
+        levelConfig.providers.find((provider) => provider.instanceId === levelInstanceId) ?? null,
+      settings: levelConfig.settings,
+      table: levelConfig.modelLevelTable,
+      options: session.providerGroups.flatMap((group) => group.models),
+    }).length > 0;
+  const levelsOnly = isMajordome && hasLevels && !hasActiveCatalogFilter && !showsEveryModel;
   const listItems = [
-    // Majordome leads with its three levels; a search or filter is for the full list.
     ...(isMajordome && !hasActiveCatalogFilter
       ? ([{ kind: "levels", key: "levels" }] as const)
       : []),
-    ...(catalogItems.length === 0 ? ([{ kind: "empty", key: "empty" }] as const) : catalogItems),
-    { kind: "options", key: "options" },
+    ...(levelsOnly
+      ? ([{ kind: "otherModels", key: "otherModels" }] as const)
+      : catalogItems.length === 0
+        ? ([{ kind: "empty", key: "empty" }] as const)
+        : catalogItems),
+    ...(levelsOnly ? [] : ([{ kind: "options", key: "options" }] as const)),
   ] satisfies ReadonlyArray<ThreadSettingsCatalogItem>;
   const renderCatalogItem = (itemProps: LegendListRenderItemProps<ThreadSettingsCatalogItem>) => {
     const item = itemProps.item;
@@ -1183,6 +1207,18 @@ function ThreadSettingsMainContent(props: {
       );
     } else if (item.kind === "levels") {
       content = <ThreadSettingsLevelsItem />;
+    } else if (item.kind === "otherModels") {
+      content = (
+        <Pressable
+          accessibilityRole="button"
+          className="min-h-11 flex-row items-center justify-center gap-1.5 px-5 pt-3 active:opacity-70"
+          style={{ paddingBottom: props.bottomInset + 24 }}
+          onPress={() => setShowsEveryModel(true)}
+        >
+          <Text className="text-sm text-foreground-muted">{MODEL_PICKER_WORDS.otherModels}</Text>
+          <SymbolView name="chevron.down" size={11} tintColorClassName="accent-foreground-muted" />
+        </Pressable>
+      );
     } else if (item.kind === "notice") {
       content = <Text className="mx-8 mt-2 text-xs text-foreground-muted">{item.text}</Text>;
     } else if (item.kind === "empty") {

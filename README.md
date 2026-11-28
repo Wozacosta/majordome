@@ -168,7 +168,7 @@ Majordome runs on a Mac.
 
 Then, when you want them, each is one page in Settings:
 
-- **Your account.** Sign in with an email or Google, and your computer joins your account.
+- **Your account.** Sign in with an email, Apple or Google, and your computer joins your account.
 - **Your phone.** Open [majord.me/open](https://majord.me/open) on it, sign in with the same
   account, press Open.
 - **Back up my brain.** Pick a folder such as iCloud Drive and a passphrase. A copy is made every

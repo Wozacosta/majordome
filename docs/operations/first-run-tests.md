@@ -20,6 +20,16 @@ To click through a new owner's copy yourself, `vp run new-owner` starts the same
 it in your browser; Ctrl-C ends it. Add `--replay` (`vp run new-owner --replay`) for a ready
 assistant. It uses its own home under `$TMPDIR` and never touches the installed app.
 
+In the Mac app and the browser, hold the version in Settings, About, for the Testing page.
+**Start over as new** signs out and forgets every other computer. In the Mac app, **Open as a
+new owner** starts a second app whose `HOME` is an empty folder under `$TMPDIR`
+(`majordome-new-owner-app`), so its notes, its account and the assistant's sign-in all start from
+nothing; the folder is emptied each time, unless a copy is still open. The copy carries
+`MAJORDOME_NEW_OWNER_COPY`, which keeps it from the background service: launchd knows one
+service per user, whatever `HOME` says. A link that returns to the app, such as Google's
+sign-in, goes to whichever Majordome macOS picks, so sign in to the copy with an email code. A
+development build (`vp run dev:desktop`) cannot open a copy.
+
 On the phone, hold the version in Settings, About, for the Testing screen: **Start over as new**
 signs out and forgets every computer. A build with the development account key also lists test
 accounts to sign in as with one tap (`+clerk_test` addresses, which production does not have):

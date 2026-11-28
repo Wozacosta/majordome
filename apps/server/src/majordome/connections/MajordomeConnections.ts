@@ -259,7 +259,12 @@ const make = Effect.gen(function* () {
 
   const list: MajordomeConnections["Service"]["list"] = readStored.pipe(
     Effect.map((stored) => ({
-      apps: MAJORDOME_APPS.map(({ id, name, about }) => ({ id, name, about })),
+      apps: MAJORDOME_APPS.map(({ id, name, about, thisComputerOnly }) => ({
+        id,
+        name,
+        about,
+        ...(thisComputerOnly === true ? { thisComputerOnly } : {}),
+      })),
       connections: Object.entries(stored).map(([appId, entry]) => describe(appId, entry)),
     })),
   );
@@ -270,9 +275,17 @@ const make = Effect.gen(function* () {
     const app = MAJORDOME_APPS.find((candidate) => candidate.id === input.appId);
     if (app === undefined) return yield* fail("Majordome doesn't know that app.");
     const attempt = yield* withSignIn(SignIn.makeAttempt());
-    const callback = connectionCallback({ origin: input.origin, nonce: attempt.state });
+    const callback = connectionCallback({
+      origin: input.origin,
+      nonce: attempt.state,
+      thisComputerOnly: app.thisComputerOnly,
+    });
     if (callback === null) {
-      return yield* fail("Majordome can't bring the sign-in back to this address.");
+      return yield* fail(
+        app.thisComputerOnly === true
+          ? `${app.name} can only be connected from the computer Majordome runs on.`
+          : "Majordome can't bring the sign-in back to this address.",
+      );
     }
     const signIn = Effect.gen(function* () {
       const server = yield* SignIn.discover(app.address);

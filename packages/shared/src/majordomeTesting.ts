@@ -27,7 +27,7 @@ export function testAccounts(publishableKey: string | null): ReadonlyArray<TestA
 export const NEW_TEST_ACCOUNT = "A new account";
 
 /** An address no account has yet: `stamp` is the time, which no two taps share. */
-export function newTestEmail(stamp: number = Date.now()): string {
+export function newTestEmail(stamp: number): string {
   return testEmail(`new${stamp.toString(36)}`);
 }
 

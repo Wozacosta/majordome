@@ -1,7 +1,7 @@
 import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native-components";
 import { useAtomValue } from "@effect/atom-react";
-import { StackActions, useNavigation } from "@react-navigation/native";
+import { StackActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import { EnvironmentId, MAJORDOME_ACCOUNT_SIGN_IN_PATH } from "@t3tools/contracts";
 import {
   ACCOUNT_TOKEN_OPTIONS,
@@ -10,12 +10,16 @@ import {
   signInToAccountServer,
 } from "@t3tools/shared/majordomeAccount";
 import * as Haptics from "expo-haptics";
-import { type ReactNode, useState } from "react";
-import { Alert, View } from "react-native";
+import { type ReactNode, useCallback, useState } from "react";
+import { Alert, AppState, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { SymbolView } from "../components/ui/AppSymbol";
 import { AppText as Text } from "../components/ui/AppText";
 import { Button } from "../components/ui/Button";
+import { ListActionRow } from "../components/ui/ListActionRow";
+import { ListRow } from "../components/ui/ListRow";
+import { ListSection } from "../components/ui/ListSection";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { environmentCatalog } from "../connection/catalog";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
@@ -30,10 +34,17 @@ import {
   savedConnectionsByIdAtom,
 } from "../state/use-remote-environment-registry";
 import { computerState, computerStateText } from "./connectionState";
-import { accountConnectErrorForOwner, MAJORDOME_ACCOUNT, MAJORDOME_SERVER } from "./connectWording";
+import {
+  accountConnectErrorForOwner,
+  accountSignInStep,
+  MAJORDOME_ACCOUNT,
+  MAJORDOME_SERVER,
+  MAJORDOME_WELCOME,
+} from "./connectWording";
 import { BROKER_URL, connectToServer, manageSubscription } from "./hostedSignup";
 import { forgetPhonePushOn } from "./phonePush";
 import { accountHasServerAtom, serverOfferAtom } from "./serverOffer";
+import { Step } from "./Step";
 import { deleteAccountDetail, endServerBilling, readBillingStatus } from "./serverPurchase.logic";
 
 // A build with no account service has no way in here.
@@ -116,7 +127,7 @@ function SignedIn() {
     void Promise.allSettled(removing).then(() => clerk.signOut());
   };
 
-  // Only said after a check: the card above already says the account is empty.
+  // Only said after a check: the steps above already say what is missing.
   const [checkedOnce, setCheckedOnce] = useState(false);
   const checkAgain = async () => {
     setChecking(true);
@@ -124,6 +135,18 @@ function SignedIn() {
     setChecking(false);
     setCheckedOnce(true);
   };
+  const waitingForComputer = servers.length === 0 && !ownsServer;
+  // The steps happen on another device, often with this phone put down meanwhile: coming back
+  // to the app asks the account again without a press.
+  useFocusEffect(
+    useCallback(() => {
+      if (!waitingForComputer) return;
+      const subscription = AppState.addEventListener("change", (state) => {
+        if (state === "active") void user?.reload().catch(() => undefined);
+      });
+      return () => subscription.remove();
+    }, [waitingForComputer, user]),
+  );
 
   return (
     <SettingsScreen title="Your account">
@@ -134,11 +157,6 @@ function SignedIn() {
         contentContainerClassName="gap-5 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
       >
-        {email === null ? null : (
-          <Text selectable className="text-foreground-muted">
-            Signed in as {email}
-          </Text>
-        )}
         {servers.length === 0 && ownsServer ? (
           <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-5">
             <Text textRole="headline" className="font-t3-bold text-foreground">
@@ -154,36 +172,72 @@ function SignedIn() {
             />
           </View>
         ) : servers.length === 0 ? (
-          <View className="gap-3 rounded-[26px] border-continuous bg-grouped-card p-5">
-            <Text textRole="headline" className="font-t3-bold text-foreground">
+          <>
+            <Text accessibilityRole="header" textRole="title" className="px-1 font-t3-bold">
               {MAJORDOME_ACCOUNT.noComputerTitle}
             </Text>
-            <Text className="text-foreground-muted">{MAJORDOME_ACCOUNT.noComputer}</Text>
-            {checkedOnce && !checking ? (
-              <Text accessibilityLiveRegion="polite" className="text-foreground">
-                {MAJORDOME_ACCOUNT.stillNoComputer}
-              </Text>
-            ) : null}
-            <Button
-              label={MAJORDOME_ACCOUNT.checkAgain}
-              tone="primary"
-              icon="arrow.clockwise"
-              loading={checking}
-              onPress={() => void checkAgain()}
-            />
-            <Button
-              label={MAJORDOME_ACCOUNT.codeInstead}
-              tone="text"
-              onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-            />
+            <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
+              <View className="gap-4 p-5">
+                <View className="flex-row items-center gap-3">
+                  <SymbolView
+                    name="desktopcomputer"
+                    size={22}
+                    tintColorClassName="accent-primary-text"
+                  />
+                  <Text textRole="headline" className="font-t3-bold text-foreground">
+                    {MAJORDOME_ACCOUNT.onComputer}
+                  </Text>
+                </View>
+                {[...MAJORDOME_ACCOUNT.noComputerSteps, accountSignInStep(email)].map(
+                  (text, index) => (
+                    <Step key={text} number={index + 1} text={text} />
+                  ),
+                )}
+                {checkedOnce && !checking ? (
+                  <Text accessibilityLiveRegion="polite" className="text-foreground">
+                    {MAJORDOME_ACCOUNT.stillNoComputer}
+                  </Text>
+                ) : null}
+                <Button
+                  label={checkedOnce ? MAJORDOME_ACCOUNT.checkAgain : MAJORDOME_ACCOUNT.signedIn}
+                  tone="primary"
+                  fullWidth
+                  loading={checking}
+                  onPress={() => void checkAgain()}
+                />
+              </View>
+              <View className="h-px bg-primary/20" />
+              <Pressable
+                accessibilityRole="button"
+                className="min-h-14 flex-row items-center gap-3 px-5 active:opacity-70"
+                onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
+              >
+                <SymbolView
+                  name="qrcode.viewfinder"
+                  size={22}
+                  tintColorClassName="accent-primary-text"
+                />
+                <Text className="flex-1 font-t3-medium text-primary-text">
+                  {MAJORDOME_ACCOUNT.codeInstead}
+                </Text>
+                <SymbolView
+                  name="chevron.right"
+                  size={14}
+                  tintColorClassName="accent-primary-text"
+                />
+              </Pressable>
+            </View>
             {serverOffer === null ? null : (
-              <Button
-                label={MAJORDOME_SERVER.getLabel}
-                tone="text"
-                onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-              />
+              <ListSection>
+                <ListRow
+                  icon="server.rack"
+                  label={MAJORDOME_SERVER.getLabel}
+                  description={MAJORDOME_WELCOME.serverDetail}
+                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
+                />
+              </ListSection>
             )}
-          </View>
+          </>
         ) : (
           servers.map((server) => (
             <ServerCard
@@ -194,16 +248,30 @@ function SignedIn() {
             />
           ))
         )}
-        {serverOffer === null ? null : (
-          <Button label={MAJORDOME_SERVER.manage} tone="text" onPress={manageSubscription} />
-        )}
-        <Button label={MAJORDOME_ACCOUNT.signOut} tone="text" onPress={signOut} />
-        <Button
-          label={MAJORDOME_ACCOUNT.deleteTitle}
-          tone="text"
-          loading={preparingDelete}
-          onPress={() => void confirmDelete()}
-        />
+        <ListSection>
+          {serverOffer === null ? null : (
+            <ListActionRow
+              icon="creditcard"
+              label={MAJORDOME_SERVER.manage}
+              onPress={manageSubscription}
+            />
+          )}
+          <ListActionRow
+            icon="rectangle.portrait.and.arrow.right"
+            label={MAJORDOME_ACCOUNT.signOut}
+            description={email ?? undefined}
+            onPress={signOut}
+          />
+        </ListSection>
+        <ListSection>
+          <ListActionRow
+            icon="trash"
+            tone="danger"
+            label={MAJORDOME_ACCOUNT.deleteTitle}
+            loading={preparingDelete}
+            onPress={() => void confirmDelete()}
+          />
+        </ListSection>
         {deleteProblem === null ? null : (
           <Text accessibilityRole="alert" className="text-danger-foreground">
             {deleteProblem}

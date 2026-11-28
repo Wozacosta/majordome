@@ -26,12 +26,104 @@ The section for a version is also the text of its release on GitHub.
 - **Routines on Gemini run without stopping to ask** before using Majordome's own tools or a
   connected app.
 
+**Changed**
+
+- **Setting up a server on the phone shows its steps.** After you subscribe, the page lists
+  Subscribed, Making your server, Starting Majordome and Connecting this iPhone, and ticks each
+  one as it really finishes, instead of one line at the top of an empty page.
+
 **Try this**
 
 - In Settings, About, hold the version number, press **Open** beside "Open as a new owner", and
   answer Majordome's four questions.
 - On a new computer or a new server, press **Set up** next to ChatGPT or Gemini instead of
   signing in to Claude, then ask "what is in my journal today?".
+- On the phone, subscribe to a Majordome server, or connect to the one your account has, and
+  watch the steps tick.
+
+## 0.10.95
+
+**Changed**
+
+- **Your account on the phone asks "Where does Majordome run?"** when your account has no
+  computer yet. **On my computer** lists three steps and names the email to sign in with; a
+  Majordome server is its own row. Coming back to the app checks again by itself. Sign out and
+  **Delete my account** are now ordinary rows, with delete on its own in red.
+- **"Where things stand" is a card.** Above a topic's chat, it now sits in its own rounded box,
+  lined up with the replies under it, with when it was updated beside its name.
+- **The sidebar shows when you are signed in.** The account button at the bottom is your
+  initial in a filled circle once you are signed in, and its tooltip is your email. Signed
+  out, it stays the outline of a person and says "Sign in".
+
+**Fixed**
+
+- **Subscribing on the iPhone after deleting your account works again.** If your Apple account
+  was still paying for a server whose Majordome account you had deleted, Subscribe said the
+  purchase belonged to another account, and no account could use it. The account you are
+  signed in to now takes the subscription and gets its server.
+
+- **Open as a new owner no longer stops on "Keychain Not Found".** The second Majordome that
+  Testing opens now has a keychain of its own in its empty home, so macOS has somewhere to keep
+  its secrets and asks nothing.
+
+**Try this**
+
+- On a phone signed in to an account with no computer, open Your account.
+- Open a topic and look at the top of its chat.
+
+## 0.10.94
+
+**Changed**
+
+- **The phone's message box says "Everyday", not a model's name.** The button shows the level
+  the chat is on: Quick, Everyday or Powerful. Tapping it offers those three and nothing else;
+  every model and its options are behind "Other models".
+- **Your account, in Settings, is one list.** Under your email, **Your computers** shows this
+  computer and every other one in your account by name, each with what it needs: add it, give
+  it an address so your phone can reach it, or connect to it.
+- **The phone's first screen says you are signed in.** The account row reads "Signed in as"
+  with your email, and **Sign out** is right under it.
+
+**Fixed**
+
+- **Canva connects.** Pressing Connect next to Canva ended on "Invalid redirect URI". Canva only
+  lets a sign-in come back to the computer itself, so it is now offered on the computer Majordome
+  runs on, and no longer in the catalog of a server you reach from elsewhere.
+- **A server that is gone no longer locks you out of chatting.** When the server that kept your
+  conversations can't be reached, the notice now has **Use this computer**: this computer takes
+  over your conversations and routines. Before, it only told you to wait, even after the server
+  had been removed or its subscription had ended. One click also showed the notice twice.
+
+**Try this**
+
+- On the phone, open a chat and look at the button left of the microphone, then tap it.
+- In Settings, Connections, App catalog, press Connect next to Canva.
+- Open Settings, then Your account, on the Mac.
+- If New chat says your server can't be reached, click **Use this computer** on the notice.
+
+## 0.10.93
+
+**New**
+
+- **A Testing page in the Mac app and the browser, out of sight.** Hold the version number in
+  Settings, About, as on the phone. **Start over as new** signs you out and forgets every other
+  computer; this one keeps its notes. Signed in, **Empty the list** clears the servers your
+  account remembers, for when one was deleted elsewhere.
+- **Open as a new owner, in the Mac app.** The same page opens a second Majordome on an empty
+  home: no notes, no account, no assistant signed in, as on a Mac that never had it. It leaves
+  your own Majordome, its notes and its background service alone, and starts empty again each
+  time you open it.
+- **Sign in with Apple.** The sign-in screen offers Apple beside Google and your email, on the
+  phone, the Mac app and the website. No update is needed.
+- **An app catalog on the Connections page.** The apps you can connect have their own section,
+  under the ones already connected. It now holds Notion, Linear, Atlassian (Jira and Confluence)
+  and Canva beside Granola. Connect one and it moves up to Apps.
+
+**Try this**
+
+- In Settings, About, press and hold the version number, then press **Open** beside "Open as a
+  new owner" and go through the welcome page as someone new.
+- Open Settings, then Connections, scroll to App catalog and connect an app you use.
 
 ## 0.10.92
 

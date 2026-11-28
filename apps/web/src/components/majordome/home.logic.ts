@@ -71,8 +71,17 @@ export type ConversationHome =
       readonly environmentId: EnvironmentId;
       readonly projectId: ProjectId;
     }
-  /** Another computer keeps them and this window cannot reach it. */
-  | { readonly kind: "unreachable" }
+  /**
+   * Another computer keeps them and this window cannot reach it. `here` is this computer's own
+   * copy of the notes, which can take them over when that computer is gone for good.
+   */
+  | {
+      readonly kind: "unreachable";
+      readonly here: {
+        readonly environmentId: EnvironmentId;
+        readonly projectId: ProjectId;
+      } | null;
+    }
   | { readonly kind: "loading" };
 
 /**
@@ -108,7 +117,14 @@ export function conversationHome(input: {
     return { kind: "loading" };
   }
   if (input.copies.some((copy) => copy.routinesRunner === "another-server")) {
-    return { kind: "unreachable" };
+    const here = input.copies.find((copy) => copy.environmentId === input.primaryEnvironmentId);
+    return {
+      kind: "unreachable",
+      here:
+        here === undefined
+          ? null
+          : { environmentId: here.environmentId, projectId: here.projectId },
+    };
   }
   return { kind: "ready", environmentId: shown.environmentId, projectId: shown.projectId };
 }

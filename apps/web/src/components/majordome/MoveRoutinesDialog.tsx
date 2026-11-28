@@ -3,6 +3,7 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, MajordomeRoutinesRunner, ProjectId } from "@t3tools/contracts";
+import { useAtom } from "@effect/atom-react";
 import { useState } from "react";
 
 import { majordomeEnvironment } from "../../state/majordome";
@@ -19,6 +20,7 @@ import {
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { toastManager } from "../ui/toast";
+import { takeOverHereAtom } from "./conversationHome";
 
 /** The copy of the notes folder, on the window's own computer, that takes over the routines. */
 interface MoveRoutinesTarget {
@@ -50,6 +52,17 @@ export function MoveRoutinesDialog({
         />
       ) : null}
     </AlertDialog>
+  );
+}
+
+/** Mounted once, in the app's frame: the question behind the notice's "Use this computer". */
+export function TakeOverHere() {
+  const [target, setTarget] = useAtom(takeOverHereAtom);
+  return (
+    <MoveRoutinesDialog
+      vault={target === null ? null : { ...target, routinesRunner: "another-server" }}
+      onClose={() => setTarget(null)}
+    />
   );
 }
 
@@ -93,7 +106,7 @@ function MoveRoutinesDialogPopup({
         <AlertDialogTitle>Move routines to this computer?</AlertDialogTitle>
         <AlertDialogDescription>
           Your routines for {vault.title}, and digesting new files in your inbox, will run on this
-          computer from now on.
+          computer from now on, and new conversations are kept here.
           {vault.routinesRunner === "another-server"
             ? " The other computer stops running them once it gets your latest notes."
             : ""}

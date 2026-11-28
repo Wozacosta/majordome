@@ -356,6 +356,21 @@ it("lists the apps connected here, and offers the ones that are not", () => {
   expect(view.addable.map((app) => app.id)).toEqual(["notion"]);
 });
 
+it("offers an app that only returns to the computer itself only there", () => {
+  const result = {
+    apps: [
+      { id: "canva", name: "Canva", about: "Designs and exports", thisComputerOnly: true },
+      { id: "notion", name: "Notion", about: "Pages and databases" },
+    ],
+    connections: [],
+  };
+  const offered = (origin: string | null) => appsView(result, origin).addable.map((app) => app.id);
+  expect(offered("http://127.0.0.1:3774")).toEqual(["canva", "notion"]);
+  expect(offered("https://quiet-otter.majord.link")).toEqual(["notion"]);
+  expect(offered("http://192.168.1.20:3774")).toEqual(["notion"]);
+  expect(offered(null)).toEqual(["notion"]);
+});
+
 it("shows an app once when a Claude account brings it too", () => {
   const row = (name: string) => ({
     key: name,
