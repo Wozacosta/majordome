@@ -9,9 +9,13 @@ test("Today offers the ready-made topics until the notes have their first one", 
   screen,
 }) => {
   await firstRun.open();
-  await expect(screen.getByText("Welcome to Majordome")).toBeVisible({ timeout: 60_000 });
+  await expect(screen.getByText("Hello, I'm Majordome", { exact: false })).toBeVisible({
+    timeout: 60_000,
+  });
   await screen.getByLabel("What should I call you?").fill("Ana Costa");
+  await screen.getByRole("button", "Continue").tap();
   await screen.getByRole("button", "Start new notes").tap();
+  await screen.getByRole("button", "Not now, open Today").tap();
 
   const offer = screen.getByRole("region", "Start a topic");
   await expect(offer).toBeVisible({ timeout: 60_000 });

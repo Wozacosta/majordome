@@ -25,6 +25,7 @@ import {
   majordomeWelcomeAgents,
   turnedOnInstance,
   welcomeOffersPhone,
+  welcomeTurn,
 } from "./welcomePage.logic";
 
 function provider(name: string, overrides: Partial<ServerProvider> = {}): ServerProvider {
@@ -488,5 +489,31 @@ describe("welcomeOffersPhone", () => {
     expect(offers({ policy: policy({ connect: false }) })).toBe(false);
     expect(offers({ policy: policy({ clients: ["desktop"] }) })).toBe(false);
     expect(offers({ isPrimary: false })).toBe(false);
+  });
+});
+
+describe("welcomeTurn", () => {
+  const start = {
+    named: false,
+    assistantSettled: false,
+    assistantSkipped: false,
+    hasNotes: false,
+  };
+
+  it("asks the name, then the assistant, then the notes, then the first ask", () => {
+    expect(welcomeTurn(start)).toBe("name");
+    expect(welcomeTurn({ ...start, named: true })).toBe("assistant");
+    expect(welcomeTurn({ ...start, named: true, assistantSettled: true })).toBe("notes");
+    expect(welcomeTurn({ ...start, named: true, assistantSettled: true, hasNotes: true })).toBe(
+      "firstAsk",
+    );
+  });
+
+  it("moves on to the notes when the assistant is left for later", () => {
+    expect(welcomeTurn({ ...start, named: true, assistantSkipped: true })).toBe("notes");
+  });
+
+  it("ends on the first ask once notes exist, such as ones restored before any answer", () => {
+    expect(welcomeTurn({ ...start, hasNotes: true })).toBe("firstAsk");
   });
 });

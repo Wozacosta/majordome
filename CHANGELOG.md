@@ -7,6 +7,10 @@ The section for a version is also the text of its release on GitHub.
 
 **New**
 
+- **Setting up Majordome is a short conversation.** The first screen on the computer no longer
+  shows a form. Majordome asks one thing at a time: your name, which AI it should think with,
+  where to keep your notes, then what you want help with first. Each answer stays above as you
+  go, and what you ask last becomes your first chat.
 - **Run Majordome on ChatGPT or Gemini, not only Claude.** The welcome page on the computer and
   set-up on the phone offer Claude, ChatGPT and Gemini. Pick the plan you pay for: Majordome
   installs what it needs and takes you through the sign-in. One signed in is enough.
@@ -24,6 +28,8 @@ The section for a version is also the text of its release on GitHub.
 
 **Try this**
 
+- In Settings, About, hold the version number, press **Open** beside "Open as a new owner", and
+  answer Majordome's four questions.
 - On a new computer or a new server, press **Set up** next to ChatGPT or Gemini instead of
   signing in to Claude, then ask "what is in my journal today?".
 

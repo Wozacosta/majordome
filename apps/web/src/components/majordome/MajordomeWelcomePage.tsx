@@ -9,7 +9,7 @@ import {
   type MajordomeStartNotesInput,
   type ProjectId,
 } from "@t3tools/contracts";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, ConciergeBellIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
@@ -23,11 +23,12 @@ import { majordomeEnvironment } from "../../state/majordome";
 import { isHostedServer } from "./brains.logic";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { cn } from "../../lib/utils";
+import { welcomeTurn } from "../../onboarding/welcomePage.logic";
 import {
   AGENT_ONBOARDING_THREAD_ID,
   AgentsSection,
   useWelcomeAgents,
-  WelcomeSection,
 } from "../onboarding/WelcomePage";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -40,9 +41,9 @@ import { keepFirstAsk, requestDraftSend } from "./pendingDraftSend";
 import { RestoreNotes } from "./RestoreNotes";
 
 /**
- * Majordome's setup: the assistant to install or sign in to, and the folder to start or pick.
- * Choosing the folder while the assistant is ready opens Today. Otherwise the page stays, so an
- * install or sign-in is not cut short, until the person leaves it.
+ * Majordome's setup, as its first conversation: Majordome asks one thing at a time and each
+ * answer is a control in the thread. The lines are fixed; no AI is signed in yet to write them.
+ * The page stays open through the last question, so an install or sign-in is never cut short.
  */
 export function MajordomeWelcomePage({
   notesFolder,
@@ -55,18 +56,57 @@ export function MajordomeWelcomePage({
   readonly onLeave: () => void;
 }) {
   const environmentId = usePrimaryEnvironmentId();
+  if (environmentId === null) return null;
+  return (
+    <Conversation
+      environmentId={environmentId}
+      notesFolder={notesFolder}
+      onStay={onStay}
+      onLeave={onLeave}
+    />
+  );
+}
+
+function Conversation({
+  environmentId,
+  notesFolder,
+  onStay,
+  onLeave,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly notesFolder: string | null;
+  readonly onStay: () => void;
+  readonly onLeave: () => void;
+}) {
   const { environments } = useEnvironments();
   const handleNewThread = useNewThreadHandler();
+  const assistant = useAssistantSettled(environmentId);
   const [name, setName] = useState("");
+  const [named, setNamed] = useState(false);
+  const [assistantSkipped, setAssistantSkipped] = useState(false);
   const [firstAsk, setFirstAsk] = useState("");
-  /** The notes folder started here while the assistant was not ready, whose first chat waits. */
-  const [waitingProject, setWaitingProject] = useState<ProjectId | null>(null);
-  if (environmentId === null) return null;
+  /** The notes folder started here, which the first chat opens in. */
+  const [startedProject, setStartedProject] = useState<ProjectId | null>(null);
+
+  const ownerName = name.trim();
+  const turn = welcomeTurn({
+    named,
+    assistantSettled: assistant.settled,
+    assistantSkipped,
+    hasNotes: notesFolder !== null,
+  });
+  const label =
+    environments.find((environment) => environment.environmentId === environmentId)?.label ??
+    "this computer";
+  const hosted = isHostedServer(label);
+  const about: MajordomeStartNotesInput["about"] = {
+    ...(ownerName === "" ? {} : { name: ownerName }),
+    language: navigator.language,
+    timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
 
   /** Sends what the owner wants help with as the first chat; Today's box takes it otherwise. */
-  const askFirst = async (projectId: ProjectId) => {
-    const prompt = firstAsk.trim();
-    if (prompt === "") return;
+  const askFirst = async (projectId: ProjectId, prompt: string) => {
     const projectRef = scopeProjectRef(environmentId, projectId);
     // The folder was made a moment ago: a chat cannot be sent in a project this page has not heard of.
     const opened = await waitForProject(projectRef)
@@ -80,14 +120,12 @@ export function MajordomeWelcomePage({
       requestDraftSend(opened.draftId);
     }
   };
-  const about: MajordomeStartNotesInput["about"] = {
-    ...(name.trim() === "" ? {} : { name: name.trim() }),
-    language: navigator.language,
-    timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  const leave = (prompt: string) => {
+    onLeave();
+    if (prompt === "") return;
+    if (startedProject !== null && assistant.ready) void askFirst(startedProject, prompt);
+    else keepFirstAsk(prompt);
   };
-  const label =
-    environments.find((environment) => environment.environmentId === environmentId)?.label ??
-    "this computer";
 
   return (
     <SidebarInset
@@ -98,73 +136,218 @@ export function MajordomeWelcomePage({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
         {isElectron ? <WorkspacePageHeader electron /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
-          <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Welcome to Majordome
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Two things to set up: the assistant that does the work, and the folder it keeps your
-              notes in. Then Majordome opens on Today.
-            </p>
-            <div className="mt-10 border-t border-border/60">
-              <AgentsSection
-                environmentId={environmentId}
-                label={label}
-                isPrimary
-                hosted={isHostedServer(label)}
-                onImportSourceEnabled={() => undefined}
-              />
-              {notesFolder === null ? (
-                <WelcomeSection title="You">
-                  <div className="flex flex-col gap-2 py-2">
-                    <Input
-                      aria-label="What should I call you?"
-                      placeholder="What should I call you?"
-                      autoComplete="given-name"
-                      maxLength={MAJORDOME_OWNER_NAME_MAX}
-                      value={name}
-                      onChange={(event) => setName(event.currentTarget.value)}
-                    />
-                    <Textarea
-                      aria-label="What do you want help with first?"
-                      placeholder="What do you want help with first?"
-                      rows={2}
-                      maxLength={2000}
-                      value={firstAsk}
-                      onChange={(event) => setFirstAsk(event.target.value)}
-                    />
-                  </div>
-                </WelcomeSection>
-              ) : null}
-              <WelcomeSection title="Notes">
+          <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center gap-8 px-6 py-12">
+            <Turn
+              current={turn === "name"}
+              line="Hello, I'm Majordome. What should I call you?"
+              answer={
+                ownerName === "" ? null : (
+                  <Answer
+                    onChange={notesFolder === null ? () => setNamed(false) : undefined}
+                    changeLabel="Change your name"
+                  >
+                    {ownerName}
+                  </Answer>
+                )
+              }
+            >
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setNamed(true);
+                }}
+              >
+                <Input
+                  aria-label="What should I call you?"
+                  autoComplete="given-name"
+                  autoFocus
+                  maxLength={MAJORDOME_OWNER_NAME_MAX}
+                  value={name}
+                  onChange={(event) => setName(event.currentTarget.value)}
+                />
+                <Button type="submit">{ownerName === "" ? "Skip" : "Continue"}</Button>
+              </form>
+            </Turn>
+
+            {named ? (
+              <Turn
+                current={turn === "assistant"}
+                // An install or sign-in under way keeps its rows on screen whatever comes next.
+                open={assistant.running || (!assistant.settled && !assistantSkipped)}
+                line={
+                  ownerName === ""
+                    ? "Which AI should I think with?"
+                    : `Nice to meet you, ${ownerName}. Which AI should I think with?`
+                }
+                answer={
+                  assistant.ready ? (
+                    <Done>Your assistant is ready</Done>
+                  ) : (
+                    <Answer onChange={() => setAssistantSkipped(false)} changeLabel="Choose an AI">
+                      Later
+                    </Answer>
+                  )
+                }
+              >
+                <AgentsSection
+                  environmentId={environmentId}
+                  label={label}
+                  isPrimary
+                  hosted={hosted}
+                  bare
+                  onImportSourceEnabled={() => undefined}
+                />
+                {turn === "assistant" ? (
+                  <Button
+                    variant="ghost-muted"
+                    size="sm"
+                    className="mt-2 self-start"
+                    onClick={() => setAssistantSkipped(true)}
+                  >
+                    Continue without the assistant
+                  </Button>
+                ) : null}
+              </Turn>
+            ) : null}
+
+            {turn === "notes" || turn === "firstAsk" ? (
+              <Turn
+                current={turn === "notes"}
+                line="Where should I keep your notes?"
+                answer={<Done>{notesFolder}</Done>}
+              >
                 <NotesFolderSetup
                   environmentId={environmentId}
-                  notesFolder={notesFolder}
-                  hosted={isHostedServer(label)}
+                  hosted={hosted}
                   about={about}
                   onStay={onStay}
-                  onStarted={(projectId, settled) => {
-                    if (settled) void askFirst(projectId);
-                    else setWaitingProject(projectId);
-                  }}
+                  onStarted={setStartedProject}
                 />
-              </WelcomeSection>
-            </div>
-            {notesFolder === null ? null : (
-              <SetupEnd
-                environmentId={environmentId}
-                onLeave={(ready) => {
-                  onLeave();
-                  if (waitingProject === null) return;
-                  if (ready) void askFirst(waitingProject);
-                  else keepFirstAsk(firstAsk.trim());
-                }}
-              />
-            )}
+              </Turn>
+            ) : null}
+
+            {turn === "firstAsk" ? (
+              <Turn
+                current
+                line={
+                  ownerName === ""
+                    ? "All set. What do you want help with first?"
+                    : `All set, ${ownerName}. What do you want help with first?`
+                }
+                answer={null}
+              >
+                <form
+                  className="flex flex-col gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    leave(firstAsk.trim());
+                  }}
+                >
+                  <Textarea
+                    aria-label="What do you want help with first?"
+                    autoFocus
+                    rows={3}
+                    maxLength={2000}
+                    value={firstAsk}
+                    onChange={(event) => setFirstAsk(event.target.value)}
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button type="button" variant="ghost-muted" onClick={() => leave("")}>
+                      Not now, open Today
+                    </Button>
+                    <Button type="submit" disabled={firstAsk.trim() === ""}>
+                      Send
+                    </Button>
+                  </div>
+                </form>
+              </Turn>
+            ) : null}
           </div>
         </div>
       </div>
     </SidebarInset>
+  );
+}
+
+// A turn just reached may sit below the fold of a short window.
+const revealOnMount = (node: HTMLElement | null) => node?.scrollIntoView({ block: "nearest" });
+
+/**
+ * One thing Majordome says and what answers it. The turn being answered shows its controls;
+ * an answered one keeps its line, smaller, with the answer under it.
+ */
+function Turn({
+  current,
+  open = current,
+  line,
+  answer,
+  children,
+}: {
+  readonly current: boolean;
+  /** Keeps the controls on screen after the conversation has moved on. */
+  readonly open?: boolean;
+  readonly line: string;
+  readonly answer: ReactNode;
+  readonly children: ReactNode;
+}) {
+  return (
+    <section ref={revealOnMount} className="flex gap-3">
+      <ConciergeBellIcon
+        aria-hidden
+        className={cn(
+          "mt-0.5 shrink-0",
+          current ? "size-5 text-foreground" : "size-4 text-muted-foreground",
+        )}
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <p
+          className={
+            current
+              ? "text-lg leading-snug font-semibold tracking-tight text-foreground"
+              : "text-sm text-muted-foreground"
+          }
+        >
+          {line}
+        </p>
+        {open ? children : answer}
+      </div>
+    </section>
+  );
+}
+
+/** What the owner said, on their side of the thread. */
+function Answer({
+  onChange,
+  changeLabel,
+  children,
+}: {
+  readonly onChange: (() => void) | undefined;
+  readonly changeLabel: string;
+  readonly children: ReactNode;
+}) {
+  const bubble = "self-end rounded-2xl bg-muted px-3 py-1.5 text-sm text-foreground";
+  return onChange === undefined ? (
+    <span className={bubble}>{children}</span>
+  ) : (
+    <button
+      type="button"
+      aria-label={changeLabel}
+      className={cn(bubble, "hover:bg-accent")}
+      onClick={onChange}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** A step that finished without the owner typing anything. */
+function Done({ children }: { readonly children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 self-end text-sm font-medium text-success-foreground">
+      <CheckIcon className="size-3.5" aria-hidden />
+      {children}
+    </span>
   );
 }
 
@@ -173,70 +356,39 @@ function useAssistantSettled(environmentId: EnvironmentId) {
   const ready = useWelcomeAgents(environmentId).readyCount > 0;
   const running =
     useThreadRunningTerminalIds({ environmentId, threadId: AGENT_ONBOARDING_THREAD_ID }).length > 0;
-  return { ready, settled: ready && !running };
-}
-
-/** The way out of a setup that stayed open: on to Today, with or without the assistant. */
-function SetupEnd({
-  environmentId,
-  onLeave,
-}: {
-  readonly environmentId: EnvironmentId;
-  /** Told whether the assistant is ready to take a first message. */
-  readonly onLeave: (ready: boolean) => void;
-}) {
-  const { ready } = useAssistantSettled(environmentId);
-  return (
-    <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-      {ready ? (
-        <Button onClick={() => onLeave(true)}>Go to Today</Button>
-      ) : (
-        <>
-          <span className="text-xs text-muted-foreground">
-            The assistant is not ready yet. Finish its step above.
-          </span>
-          <Button variant="ghost-muted" onClick={() => onLeave(false)}>
-            Continue without the assistant
-          </Button>
-        </>
-      )}
-    </div>
-  );
+  return { ready, running, settled: ready && !running };
 }
 
 function NotesFolderSetup({
   environmentId,
-  notesFolder,
   hosted,
   about,
   onStay,
   onStarted,
 }: {
   readonly environmentId: EnvironmentId;
-  readonly notesFolder: string | null;
   /** A server Majordome hosts, where the owner has no home folder to speak of. */
   readonly hosted: boolean;
   readonly about: MajordomeStartNotesInput["about"];
+  /** Asked before the folder exists: the page has one more question after it. */
   readonly onStay: () => void;
-  /** The folder is a notes folder now; `settled` when the assistant was ready as it started. */
-  readonly onStarted: (projectId: ProjectId, settled: boolean) => void;
+  readonly onStarted: (projectId: ProjectId) => void;
 }) {
   const startNotes = useAtomCommand(majordomeEnvironment.startNotes, {
     reportFailure: false,
   });
-  const { settled } = useAssistantSettled(environmentId);
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   // Only the desktop app can show the computer's own folder picker.
   const canPickFolder = typeof window !== "undefined" && window.desktopBridge !== undefined;
 
   const start = async (folder: string | null) => {
-    if (!settled) onStay();
+    onStay();
     setBusy(true);
     const result = await startNotes({ environmentId, input: { folder, about } });
     setBusy(false);
     if (result._tag === "Success") {
-      onStarted(result.value.projectId, settled);
+      onStarted(result.value.projectId);
       toastManager.add({
         type: "success",
         title: "Your notes folder is ready",
@@ -256,19 +408,6 @@ function NotesFolderSetup({
     if (picked) await start(picked);
   };
 
-  if (notesFolder !== null) {
-    return (
-      <div className="flex min-h-10 items-center gap-3 py-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-          {notesFolder}
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-success-foreground">
-          <CheckIcon className="size-3.5" aria-hidden />
-          Ready
-        </span>
-      </div>
-    );
-  }
   return (
     <div className="flex flex-col">
       <NotesChoice
@@ -325,9 +464,7 @@ function NotesFolderSetup({
           <RestoreNotes
             environmentId={environmentId}
             onThisComputer
-            onStart={() => {
-              if (!settled) onStay();
-            }}
+            onStart={onStay}
             onRestored={(result) =>
               toastManager.add({
                 type: "success",

@@ -2,18 +2,22 @@
 
 ## In Majordome
 
-Majordome opens its own, shorter Welcome page the first time. It asks for two things:
+Majordome opens on a short conversation the first time. It asks one thing at a time:
 
-1. **The assistant.** Press **Install** or **Sign in** next to Claude and follow what it
-   shows. It uses your own AI plan.
-2. **Your notes.** Press **Start new notes** for a new folder called Majordome in your home
+1. **Your name.** Type what Majordome should call you, or press **Skip**.
+2. **The AI it thinks with.** Claude, ChatGPT or Gemini: press **Install**, **Sign in** or
+   **Set up** next to the one you pay for and follow what it shows. One is enough.
+   **Continue without the assistant** leaves it for later; the answer then reads **Later**, and
+   pressing it brings the choices back.
+3. **Your notes.** Press **Start new notes** for a new folder called Majordome in your home
    folder. If you already keep notes in a folder, such as an Obsidian vault, press
    **Choose folder** instead: Majordome adds a few files of its own and changes nothing that
    is there. **Restore** brings notes back from a [backup](./backup.md).
+4. **What you want help with first.** Write it and press **Send**: it becomes your first chat.
+   With no AI ready yet, it waits in the box on Today. **Not now, open Today** skips it.
 
-When both are ready, Majordome opens on Today. If the assistant is still being set up, the
-page stays open; press **Go to Today** when it is ready, or **Continue without the assistant**
-to set it up later in Settings. An account is not needed; see [Your account](./account.md).
+An install or sign-in that is still running stays on the page while you answer the rest. An
+account is not needed; see [Your account](./account.md).
 
 The rest of this page describes the Welcome page of T3 Code, which Majordome is built on.
 

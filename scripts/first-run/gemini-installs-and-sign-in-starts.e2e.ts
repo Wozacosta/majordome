@@ -8,7 +8,12 @@ test("A new owner sets up Gemini from the welcome page as far as Google's sign-i
   screen,
 }) => {
   await firstRun.open();
-  await expect(screen.getByText("Welcome to Majordome")).toBeVisible({ timeout: 60_000 });
+  await expect(screen.getByText("Hello, I'm Majordome", { exact: false })).toBeVisible({
+    timeout: 60_000,
+  });
+
+  // The first question is the owner's name, which is optional.
+  await screen.getByRole("button", "Skip").tap();
   // The three are offered before any of them is on the machine.
   await expect(screen.getByRole("button", "Install: Claude")).toBeVisible({ timeout: 60_000 });
   await expect(screen.getByRole("button", "Set up: ChatGPT")).toBeVisible();

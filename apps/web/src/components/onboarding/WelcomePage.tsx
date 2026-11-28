@@ -393,7 +393,7 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
 }
 
 // Each part of the page is one band: its label on the left, its rows on the right.
-export function WelcomeSection({
+function WelcomeSection({
   title,
   children,
 }: {
@@ -406,6 +406,10 @@ export function WelcomeSection({
       <div className="min-w-0">{children}</div>
     </section>
   );
+}
+
+function BareBand({ children }: { readonly title: string; readonly children: ReactNode }) {
+  return <div className="min-w-0">{children}</div>;
 }
 
 // Rows share one icon column, so names, checkboxes, and steps line up down the page.
@@ -464,6 +468,7 @@ export function AgentsSection({
   label,
   isPrimary,
   hosted = false,
+  bare = false,
   onImportSourceEnabled,
 }: {
   readonly environmentId: EnvironmentId;
@@ -471,6 +476,8 @@ export function AgentsSection({
   readonly isPrimary: boolean;
   /** A server Majordome hosts offers Claude, ChatGPT and Gemini and nothing else. */
   readonly hosted?: boolean;
+  /** The rows alone, for a page that says what they are in its own words. */
+  readonly bare?: boolean;
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
@@ -803,8 +810,9 @@ export function AgentsSection({
     </>
   );
 
+  const Band = bare ? BareBand : WelcomeSection;
   return (
-    <WelcomeSection title={isMajordome ? gt("Assistant") : gt("Agents")}>
+    <Band title={isMajordome ? gt("Assistant") : gt("Agents")}>
       {found.map((provider) => (
         <AgentRow
           key={provider.instanceId}
@@ -911,7 +919,7 @@ export function AgentsSection({
           }}
         />
       ) : null}
-    </WelcomeSection>
+    </Band>
   );
 }
 

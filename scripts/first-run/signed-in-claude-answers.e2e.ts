@@ -11,15 +11,20 @@ test("A new owner with Claude signed in starts their notes and gets a first answ
   browser,
 }) => {
   await firstRun.open();
-  await expect(screen.getByText("Welcome to Majordome")).toBeVisible({ timeout: 60_000 });
+  await expect(screen.getByText("Hello, I'm Majordome", { exact: false })).toBeVisible({
+    timeout: 60_000,
+  });
+
+  // The first question is the owner's name, which is optional.
+  await screen.getByRole("button", "Skip").tap();
 
   await screen.getByRole("button", "Install: Claude").tap();
-  // Claude is the only assistant on this machine, so the one Ready is its own.
-  await expect(screen.getByText("Ready")).toBeVisible({ timeout: 300_000 });
+  await expect(screen.getByText("Your assistant is ready")).toBeVisible({ timeout: 300_000 });
   await expect(screen.getByRole("button", "Sign in: Claude")).not.toBeVisible();
   await app.screenshot("claude-ready");
 
   await screen.getByRole("button", "Start new notes").tap();
+  await screen.getByRole("button", "Not now, open Today").tap();
   const composer = screen.getByPlaceholder("Ask anything, or tell me what to remember", {
     exact: false,
   });

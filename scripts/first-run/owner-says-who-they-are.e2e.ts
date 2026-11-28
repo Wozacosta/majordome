@@ -11,11 +11,14 @@ test("A new owner's name is kept in their notes, and their first ask waits in To
   screen,
 }) => {
   await firstRun.open();
-  await expect(screen.getByText("Welcome to Majordome")).toBeVisible({ timeout: 60_000 });
+  await expect(screen.getByText("Hello, I'm Majordome", { exact: false })).toBeVisible({
+    timeout: 60_000,
+  });
 
   await screen.getByLabel("What should I call you?").fill("Ana Costa");
-  await screen.getByLabel("What do you want help with first?").fill(ASK);
+  await screen.getByRole("button", "Continue").tap();
   await app.screenshot("who-they-are");
+  await screen.getByRole("button", "Continue without the assistant").tap();
   await screen.getByRole("button", "Start new notes").tap();
   await expect(screen.getByText("Your notes folder is ready")).toBeVisible({ timeout: 60_000 });
 
@@ -28,7 +31,8 @@ test("A new owner's name is kept in their notes, and their first ask waits in To
   expect(instructions).toContain("are in me.md");
   expect(instructions).not.toContain("brain-setup");
 
-  await screen.getByRole("button", "Continue without the assistant").tap();
+  await screen.getByLabel("What do you want help with first?").fill(ASK);
+  await screen.getByRole("button", "Send").tap();
   const box = screen.getByPlaceholder("Ask anything, or tell me what to remember", {
     exact: false,
   });

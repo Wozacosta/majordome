@@ -349,3 +349,22 @@ function setupCardProvider(
     welcomeAgentState(provider, input.settings) === "checking";
   return open ? provider : null;
 }
+
+export type WelcomeTurn = "name" | "assistant" | "notes" | "firstAsk";
+
+/**
+ * Which question Majordome's setup is on. A notes folder ends the setup questions whatever came
+ * before it: one restored from a backup arrives without the earlier answers.
+ */
+export function welcomeTurn(input: {
+  readonly named: boolean;
+  /** An AI is ready and no install or sign-in is still running. */
+  readonly assistantSettled: boolean;
+  readonly assistantSkipped: boolean;
+  readonly hasNotes: boolean;
+}): WelcomeTurn {
+  if (input.hasNotes) return "firstAsk";
+  if (!input.named) return "name";
+  if (!input.assistantSettled && !input.assistantSkipped) return "assistant";
+  return "notes";
+}
