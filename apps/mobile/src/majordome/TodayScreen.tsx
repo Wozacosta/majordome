@@ -1,13 +1,10 @@
-import { useAuth, useUser } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
-import { readAccountServers } from "@t3tools/shared/majordomeAccount";
 import { EnvironmentId } from "@t3tools/contracts";
 import { greetingForHour } from "@t3tools/shared/majordomeToday";
 import * as Cause from "effect/Cause";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
-import { Image } from "expo-image";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -21,16 +18,13 @@ import { RefreshControl } from "../components/ui/RefreshControl";
 import { ScreenScrollView as ScrollView } from "../components/ui/ScreenScrollView";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { hasAccountPublicConfig } from "../features/cloud/publicConfig";
-import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { SettingsScreen } from "../features/settings/components/SettingsScreen";
 import { openSettings } from "../features/settings/settings-navigation";
 import { subscribeAppActive } from "../lib/appState";
 import { uuidv4 } from "../lib/uuid";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { MAJORDOME_WELCOME, welcomeAccountRow } from "./connectWording";
 import { ClaudeSignInCard, FinishSetup } from "./FinishSetup";
-import { serverOfferAtom } from "./serverOffer";
 import { majordomeEnvironment } from "./state";
 import { TodayAsk } from "./TodayAsk";
 import { TodayWelcome } from "./TodayWelcome";
@@ -45,6 +39,7 @@ import {
   type NoteBodyLine,
 } from "./today.logic";
 import { useTodaySetup } from "./todaySetup";
+import { MajordomeWelcome } from "./Welcome";
 import { loadTodayStore, sendWaiting, todayStoreAtom, updateTodayStore } from "./todayStore";
 import { dayFromToday, dayTitle, noteStatus, shiftDay, todoProgress } from "./todayView.logic";
 
@@ -122,186 +117,6 @@ const NOTICES = {
   unreachable: "Your computer can't be reached right now.",
   failed: "This day's note couldn't be read.",
 } as const;
-
-const MARK = {
-  light: require("../../assets/majordome-splash-light.png"),
-  dark: require("../../assets/majordome-splash-dark.png"),
-};
-
-/** One way to connect. */
-function WayIn(props: {
-  readonly icon: "person.crop.circle" | "qrcode.viewfinder" | "server.rack" | "desktopcomputer";
-  /** The way most people take: drawn in the accent colour. */
-  readonly main?: boolean;
-  readonly title: string;
-  readonly detail: string;
-  readonly onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${props.title}. ${props.detail}`}
-      onPress={props.onPress}
-      className="flex-row items-center gap-4 px-4 py-3.5 active:opacity-70"
-    >
-      <SymbolView
-        name={props.icon}
-        size={24}
-        tintColorClassName={props.main ? "accent-primary-text" : "accent-foreground"}
-      />
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text
-          className={props.main ? "font-t3-bold text-foreground" : "font-t3-medium text-foreground"}
-        >
-          {props.title}
-        </Text>
-        <Text textRole="footnote" className="text-foreground-muted">
-          {props.detail}
-        </Text>
-      </View>
-      <SymbolView
-        name="chevron.right"
-        size={14}
-        tintColorClassName={props.main ? "accent-primary-text" : "accent-foreground-muted"}
-      />
-    </Pressable>
-  );
-}
-
-const SEPARATOR = <View className="ml-[60px] h-px bg-border" />;
-
-/** A few ways in under the sentence that says who they are for. */
-function WaysGroup(props: { readonly title: string; readonly children: ReactNode }) {
-  return (
-    <View className="gap-2.5">
-      <Text accessibilityRole="header" textRole="headline" className="px-1 font-t3-bold">
-        {props.title}
-      </Text>
-      {props.children}
-    </View>
-  );
-}
-
-/**
- * The account's way in, above the code's. Rendered only in a build with accounts: the hooks need
- * its provider.
- */
-function AccountWayIn(props: { readonly children: ReactNode }) {
-  const navigation = useNavigation();
-  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
-  const { user } = useUser();
-  // No account row until the sign-in is known, so nobody signed in sees "Sign in" flash by.
-  if (!isLoaded) return <ListSection>{props.children}</ListSection>;
-  const row = welcomeAccountRow({
-    signedIn: isSignedIn,
-    email: user?.primaryEmailAddress?.emailAddress ?? null,
-    computers: readAccountServers(user?.unsafeMetadata, { allowThisMachine: __DEV__ }).map(
-      (server) => server.name,
-    ),
-  });
-  const wayIn = (
-    <WayIn
-      main={row.main}
-      icon="person.crop.circle"
-      title={row.title}
-      detail={row.detail}
-      onPress={() => openSettings(navigation, "SettingsAccount")}
-    />
-  );
-  return row.main ? (
-    <>
-      <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
-        {wayIn}
-      </View>
-      <ListSection>{props.children}</ListSection>
-    </>
-  ) : (
-    <ListSection>
-      {wayIn}
-      {SEPARATOR}
-      {props.children}
-    </ListSection>
-  );
-}
-
-// The site's heading face, which iOS carries; Android has no match and falls back to its serif.
-const SERIF = Platform.select({ ios: "Iowan Old Style", default: "serif" });
-
-/** What a phone with no computer opens on: what Majordome is, in the site's voice, and the ways to connect it. */
-function Welcome() {
-  const navigation = useNavigation();
-  const { themeAppearance } = useAppearancePreferences();
-  const serverOffer = useAtomValue(serverOfferAtom);
-  const scan = (
-    <WayIn
-      icon="qrcode.viewfinder"
-      title={MAJORDOME_WELCOME.scan}
-      detail={MAJORDOME_WELCOME.scanDetail}
-      onPress={() => openSettings(navigation, "SettingsEnvironmentNew")}
-    />
-  );
-  return (
-    <View className="gap-8 pt-4">
-      <View className="flex-row items-center gap-2">
-        <Image
-          accessibilityIgnoresInvertColors
-          source={MARK[themeAppearance]}
-          style={{ width: 40, height: 40 }}
-        />
-        <Text textRole="headline" className="font-t3-bold">
-          Majordome
-        </Text>
-      </View>
-      <View className="gap-5">
-        <View accessible accessibilityRole="header" accessibilityLabel={MAJORDOME_WELCOME.spoken}>
-          <Text className="text-[42px] leading-[46px]" style={{ fontFamily: SERIF }}>
-            {MAJORDOME_WELCOME.headline}
-          </Text>
-          <View className="self-start">
-            <View className="absolute inset-x-0 bottom-[5px] h-[16px] rounded-[4px] bg-[#3ddc8466]" />
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              className="text-[42px] leading-[46px]"
-              style={{ fontFamily: SERIF, fontStyle: "italic" }}
-            >
-              {MAJORDOME_WELCOME.headlineEnd}
-            </Text>
-          </View>
-        </View>
-        <Text textRole="headline" className="leading-relaxed text-foreground-muted">
-          {MAJORDOME_WELCOME.what}
-        </Text>
-      </View>
-      <View className="gap-6">
-        <WaysGroup title={MAJORDOME_WELCOME.returning}>
-          {hasAccounts ? <AccountWayIn>{scan}</AccountWayIn> : <ListSection>{scan}</ListSection>}
-        </WaysGroup>
-        <WaysGroup title={MAJORDOME_WELCOME.newHere}>
-          <ListSection>
-            <WayIn
-              icon="desktopcomputer"
-              title={MAJORDOME_WELCOME.computer}
-              detail={MAJORDOME_WELCOME.computerDetail}
-              onPress={() => openSettings(navigation, "SettingsUseComputer")}
-            />
-            {serverOffer === null ? null : (
-              <>
-                {SEPARATOR}
-                <WayIn
-                  icon="server.rack"
-                  title={MAJORDOME_WELCOME.server}
-                  detail={MAJORDOME_WELCOME.serverDetail}
-                  onPress={() => openSettings(navigation, "SettingsHostedSignup")}
-                />
-              </>
-            )}
-          </ListSection>
-        </WaysGroup>
-      </View>
-    </View>
-  );
-}
 
 export function MajordomeTodayScreen() {
   const insets = useSafeAreaInsets();
@@ -587,7 +402,7 @@ export function MajordomeTodayScreen() {
         ) : null}
 
         {setup === "starting" ? null : setup === "noComputer" ? (
-          <Welcome />
+          <MajordomeWelcome />
         ) : setup === "unreachable" ? (
           <EmptyState
             title="Your computer can't be reached"
