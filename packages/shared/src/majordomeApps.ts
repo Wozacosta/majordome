@@ -1,7 +1,7 @@
 /**
- * The apps a person can connect from Majordome. Each has its own official MCP server that
- * accepts a program registering itself. Granola was signed in to for real before it was listed;
- * the others were listed after they accepted Majordome as a client, on 2026-11-28.
+ * The apps a person can connect from Majordome: each has its own MCP server and lets a program
+ * register itself. Before listing one, open its approval page with our return address: Canva
+ * registered any address, then refused all but the computer's own.
  */
 
 export interface MajordomeAppEntry {
@@ -10,6 +10,8 @@ export interface MajordomeAppEntry {
   readonly name: string;
   readonly address: string;
   readonly about: string;
+  /** The app returns a sign-in only to the computer the browser is on, never to a web address. */
+  readonly thisComputerOnly?: true;
 }
 
 export const MAJORDOME_APPS: ReadonlyArray<MajordomeAppEntry> = [
@@ -30,6 +32,7 @@ export const MAJORDOME_APPS: ReadonlyArray<MajordomeAppEntry> = [
     name: "Canva",
     address: "https://mcp.canva.com/mcp",
     about: "Designs and exports",
+    thisComputerOnly: true,
   },
   {
     id: "linear",

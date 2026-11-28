@@ -11,9 +11,16 @@ The section for a version is also the text of its release on GitHub.
   the chat is on: Quick, Everyday or Powerful. Tapping it offers those three and nothing else;
   every model and its options are behind "Other models".
 
+**Fixed**
+
+- **Canva connects.** Pressing Connect next to Canva ended on "Invalid redirect URI". Canva only
+  lets a sign-in come back to the computer itself, so it is now offered on the computer Majordome
+  runs on, and no longer in the catalog of a server you reach from elsewhere.
+
 **Try this**
 
 - On the phone, open a chat and look at the button left of the microphone, then tap it.
+- In Settings, Connections, App catalog, press Connect next to Canva.
 
 ## 0.10.93
 

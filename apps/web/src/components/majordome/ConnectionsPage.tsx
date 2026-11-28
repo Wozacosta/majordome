@@ -366,8 +366,10 @@ function AppCatalog({
   readonly labelAs: "h2";
 }) {
   const result = useAtomValue(majordomeEnvironment.connections({ environmentId, input: {} }));
+  const origin = serverOrigin(useEnvironmentHttpBaseUrl(environmentId));
   const { addable } = appsView(
     AsyncResult.getOrElse(result, () => ({ apps: [], connections: [] })),
+    origin,
   );
   const { allowed, canStart, busy, problem, connect } = useConnectApp(environmentId);
   if (!allowed || addable.length === 0) return null;

@@ -15,6 +15,14 @@ const LOCAL_ORIGIN =
 /** A Majordome on the person's own computer or network, which only their own browser reaches. */
 export const isLocalMajordomeOrigin = (origin: string): boolean => LOCAL_ORIGIN.test(origin);
 
+/**
+ * A Majordome on the very computer the browser is on. Some apps return a sign-in nowhere else:
+ * Canva accepts a program registering any address, then refuses all but these when asked to
+ * approve (seen 2026-11-28).
+ */
+export const isThisComputerOrigin = (origin: string): boolean =>
+  /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(origin);
+
 const base64Url = (text: string) =>
   btoa(text).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 
@@ -27,7 +35,14 @@ export function connectionCallback(input: {
   /** The address the person's browser reaches this Majordome at, as `URL.origin` gives it. */
   readonly origin: string;
   readonly nonce: string;
+  /** The app only returns a sign-in to the computer itself (see `isThisComputerOrigin`). */
+  readonly thisComputerOnly?: boolean | undefined;
 }): { readonly redirectUri: string; readonly state: string } | null {
+  if (input.thisComputerOnly === true) {
+    return isThisComputerOrigin(input.origin)
+      ? { redirectUri: `${input.origin}${CONNECTION_CALLBACK_PATH}`, state: input.nonce }
+      : null;
+  }
   if (/^https:\/\/[^/]+$/.test(input.origin)) {
     return { redirectUri: `${input.origin}${CONNECTION_CALLBACK_PATH}`, state: input.nonce };
   }

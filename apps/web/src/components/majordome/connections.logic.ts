@@ -7,6 +7,8 @@ import type {
   ServerProvider,
 } from "@t3tools/contracts";
 
+import { isThisComputerOrigin } from "@t3tools/shared/majordomeConnections";
+
 import { machineInSentence } from "./brains.logic";
 
 export interface ConnectionState {
@@ -202,7 +204,11 @@ export interface AppRow {
  * The apps connected through Majordome on one machine, and the ones that can still be added.
  * An app that left the list of apps stays shown while it is connected.
  */
-export function appsView(result: MajordomeConnectionsResult): {
+export function appsView(
+  result: MajordomeConnectionsResult,
+  /** The address the browser reaches the machine at; null while it is not known. */
+  origin: string | null = null,
+): {
   readonly connected: ReadonlyArray<AppRow>;
   readonly addable: ReadonlyArray<MajordomeConnectionsResult["apps"][number]>;
 } {
@@ -215,7 +221,15 @@ export function appsView(result: MajordomeConnectionsResult): {
     }))
     .toSorted((left, right) => left.name.localeCompare(right.name));
   const taken = new Set(connected.map((row) => row.appId));
-  return { connected, addable: result.apps.filter((app) => !taken.has(app.id)) };
+  return {
+    connected,
+    addable: result.apps.filter(
+      (app) =>
+        !taken.has(app.id) &&
+        // Offered only where it can work: such an app refuses a sign-in from anywhere else.
+        (app.thisComputerOnly !== true || (origin !== null && isThisComputerOrigin(origin))),
+    ),
+  };
 }
 
 /**

@@ -7,6 +7,8 @@ export const MajordomeApp = Schema.Struct({
   id: TrimmedNonEmptyString,
   name: TrimmedNonEmptyString,
   about: Schema.String,
+  /** Can only be connected from a browser on the computer this server runs on. */
+  thisComputerOnly: Schema.optional(Schema.Boolean),
 });
 export type MajordomeApp = typeof MajordomeApp.Type;
 
