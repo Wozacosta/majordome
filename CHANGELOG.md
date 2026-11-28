@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.90
+
 **New**
 
 - **The phone opens on your topics, like a messaging app.** No more bar at the bottom. One list:
