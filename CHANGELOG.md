@@ -16,6 +16,9 @@ The section for a version is also the text of its release on GitHub.
   your own Majordome, its notes and its background service alone, and starts empty again each
   time you open it.
 
+- **Sign in with Apple.** The sign-in screen offers Apple beside Google and your email, on the
+  phone, the Mac app and the website. No update is needed.
+
 **Try this**
 
 - In Settings, About, press and hold the version number, then press **Open** beside "Open as a
