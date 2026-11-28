@@ -288,8 +288,8 @@ describe("mergeVaultCopies", () => {
     ]);
     // The server cannot be reached, so its copy is not listed: nothing starts on this computer.
     const alone = spoken.filter((copy) => copy.environmentId === mac);
-    const unreachable = mergeVaultCopies(alone, mac, homes({ kind: "unreachable" }));
-    expect(unreachable[0]!.home).toEqual({ kind: "unreachable" });
+    const unreachable = mergeVaultCopies(alone, mac, homes({ kind: "unreachable", here: null }));
+    expect(unreachable[0]!.home).toEqual({ kind: "unreachable", here: null });
     expect(conversationsToMoveHome(alone, unreachable, mac)).toEqual([]);
     expect(rows(unreachable)).toEqual([
       ["fitness", mac, null, macChat],

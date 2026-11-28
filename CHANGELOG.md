@@ -21,12 +21,17 @@ The section for a version is also the text of its release on GitHub.
 - **Canva connects.** Pressing Connect next to Canva ended on "Invalid redirect URI". Canva only
   lets a sign-in come back to the computer itself, so it is now offered on the computer Majordome
   runs on, and no longer in the catalog of a server you reach from elsewhere.
+- **A server that is gone no longer locks you out of chatting.** When the server that kept your
+  conversations can't be reached, the notice now has **Use this computer**: this computer takes
+  over your conversations and routines. Before, it only told you to wait, even after the server
+  had been removed or its subscription had ended. One click also showed the notice twice.
 
 **Try this**
 
 - On the phone, open a chat and look at the button left of the microphone, then tap it.
 - In Settings, Connections, App catalog, press Connect next to Canva.
 - Open Settings, then Your account, on the Mac.
+- If New chat says your server can't be reached, click **Use this computer** on the notice.
 
 ## 0.10.93
 

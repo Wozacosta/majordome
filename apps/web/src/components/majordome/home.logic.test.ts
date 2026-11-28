@@ -52,13 +52,13 @@ describe("conversationHome", () => {
       "the server is known but not connected: nowhere, rather than splitting a topic's history",
       [mac],
       [copy(mac, "another-server"), copy(server, "this-server")],
-      { kind: "unreachable" },
+      { kind: "unreachable", here: { environmentId: mac, projectId: onMac } },
     ],
     [
       "the server's notes were never listed here: still not on this computer",
       [mac],
       [copy(mac, "another-server")],
-      { kind: "unreachable" },
+      { kind: "unreachable", here: { environmentId: mac, projectId: onMac } },
     ],
     [
       "a connected computer has not answered yet: wait",

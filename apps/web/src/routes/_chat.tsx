@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 
 import { AssistantDock } from "../components/majordome/AssistantDock";
+import { TakeOverHere } from "../components/majordome/MoveRoutinesDialog";
 import { KeepMachinesInStep } from "../components/majordome/useKeepMachinesInStep";
 import { isMajordome } from "../env";
 
@@ -34,6 +35,7 @@ function ChatRouteLayout() {
         <Outlet />
       )}
       {isMajordome ? <KeepMachinesInStep /> : null}
+      {isMajordome ? <TakeOverHere /> : null}
       {modalOpen ? <Outlet /> : null}
       <GlobalVoiceInputIndicator hidden={modalOpen} />
     </>
