@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.91
+
 **New**
 
 - **Connect Granola without leaving Majordome.** Settings, then Connections, has an **Apps**
