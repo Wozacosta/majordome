@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.93
+
 **New**
 
 - **A Testing page in the Mac app and the browser, out of sight.** Hold the version number in
