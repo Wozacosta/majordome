@@ -385,11 +385,8 @@ in on the hosted server and pays for the server only. It needs no credential of 
 and no metering, so the capped credential per customer below is set aside until AI is included
 in the price. The risk is in the quotes that follow and was accepted for a demo and the first
 few users, then on 2026-11-27 for the public opening too: OpenBot does the same in the open.
-What it asks of the work: the sign-in page tells the customer that Anthropic has not confirmed
-this use and that their plan's limits are meant for ordinary individual use, and an API key of
-their own stays possible. That notice was not found in the app or on the site on 2026-11-28;
-the terms and the trust page only say the AI runs under the provider's terms. The price is the
-server plus a margin.
+The customer is shown no notice about it (the owner, 2026-11-28); an API key of their own stays
+possible. The price is the server plus a margin.
 
 **Anthropic's terms, read before that decision.** Read on 2026-11-23 at
 https://code.claude.com/docs/en/legal-and-compliance (quotes are theirs):

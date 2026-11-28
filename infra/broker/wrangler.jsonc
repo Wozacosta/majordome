@@ -40,7 +40,7 @@
     "HOSTED_IMAGE": "ghcr.io/wozacosta/majordome",
     "HOSTED_REGION": "ams",
     // Each server is billed to the Fly account, so this bounds the bill.
-    "MAX_HOSTED_SERVERS": "10",
+    "MAX_HOSTED_SERVERS": "30",
     // Majordome's account service and the one site allowed to ask for a server from a browser.
     "ACCOUNT_ISSUER": "https://clerk.majord.me",
     "ACCOUNT_PAGE_ORIGIN": "https://majord.me",
