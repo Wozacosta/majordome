@@ -79,7 +79,13 @@ export function TopicStanding({
       className="chat-composer-lane shrink-0 bg-background pt-2"
     >
       {/* A card as wide as the chat's own column, so its words start where the replies do. */}
-      <div className="mx-auto w-full max-w-(--chat-content-max-width) rounded-xl border border-border/70 bg-card px-3 py-1.5">
+      <div
+        className={cn(
+          "mx-auto w-full max-w-(--chat-content-max-width) rounded-xl border border-border/70 bg-card px-3",
+          // Folded, it is one thin row; the button is the tallest thing in it.
+          collapsed ? "py-0.5" : "py-1.5",
+        )}
+      >
         {collapsed ? (
           <div className="flex items-start gap-2">
             <div className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-baseline sm:gap-2">
