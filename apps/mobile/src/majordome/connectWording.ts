@@ -191,7 +191,6 @@ export const MAJORDOME_SERVER = {
   buying: "Waiting for Apple…",
   confirming: "Confirming your purchase…",
   restoring: "Looking for your purchase…",
-  making: "Making your server. This takes about half a minute.",
   hasServer: "This account already has a Majordome server.",
   full: "Majordome isn't taking new servers right now. Nothing was bought. Try again later.",
   awaitingApproval:
@@ -206,6 +205,20 @@ export const MAJORDOME_SERVER = {
   storeFailed: "The purchase did not go through. Try again in a few minutes.",
   signedOut: "Your sign-in ended. Sign in again, then try once more.",
   signInToConnect: "Sign in to your Majordome account, then try again.",
+} as const;
+
+/** The page shown while the server is set up: its steps, in the order they happen. */
+export const MAJORDOME_SERVER_SETUP = {
+  title: "Setting up your server",
+  wait: "About half a minute.",
+  subscribed: "Subscribed",
+  making: "Making your server",
+  starting: "Starting Majordome",
+  connecting: {
+    iphone: "Connecting this iPhone",
+    ipad: "Connecting this iPad",
+    phone: "Connecting this phone",
+  },
 } as const;
 
 /** What the Android app says instead: there the server is paid for on Majordome's own page. */

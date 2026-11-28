@@ -5,7 +5,16 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**Changed**
+
+- **Setting up a server on the phone shows its steps.** After you subscribe, the page lists
+  Subscribed, Making your server, Starting Majordome and Connecting this iPhone, and ticks each
+  one as it really finishes, instead of one line at the top of an empty page.
+
+**Try this**
+
+- On the phone, subscribe to a Majordome server, or connect to the one your account has, and
+  watch the steps tick.
 
 ## 0.10.95
 

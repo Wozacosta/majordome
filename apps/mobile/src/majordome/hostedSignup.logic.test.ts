@@ -9,6 +9,7 @@ import {
   READY_WAIT_MS,
   readSignupProgress,
   setupPageUrl,
+  setupSteps,
   SIGNUP_IDLE,
   signupErrorMessage,
   signupNext,
@@ -316,4 +317,39 @@ it("knows a server this phone is already connected to by its address", () => {
   expect(alreadyConnected("https://majordome-abc.fly.dev", saved)).toBe(true);
   expect(alreadyConnected("https://majordome-xyz.fly.dev", saved)).toBe(false);
   expect(alreadyConnected("not an address", ["not an address"])).toBe(false);
+});
+
+it("lists how far setting up a server is, from what has really happened", () => {
+  const paid = signupNext(SIGNUP_IDLE, { type: "pay", doing: "confirming" });
+  expect(setupSteps(SIGNUP_IDLE)).toBeNull();
+  expect(setupSteps(paid)).toBeNull();
+
+  const making = signupNext(paid, { type: "submit" });
+  expect(setupSteps(making)).toEqual(["done", "now", "later", "later"]);
+  const waiting = signupNext(making, { type: "made", server });
+  expect(setupSteps(waiting)).toEqual(["done", "done", "now", "later"]);
+  const pairing = signupNext(waiting, { type: "ready" });
+  expect(setupSteps(pairing)).toEqual(["done", "done", "done", "now"]);
+
+  // A server made earlier needs no setup: connecting it ends the list.
+  const connected = signupNext(pairing, { type: "paired", environmentId: "env-1", fresh: false });
+  expect(setupSteps(connected)).toEqual(["done", "done", "done", "done"]);
+});
+
+it("leaves the list of steps when a step fails or the server has its setup to finish", () => {
+  const making = signupNext(SIGNUP_IDLE, { type: "submit" });
+  expect(setupSteps(signupNext(making, { type: "stopped", note: refusal }))).toBeNull();
+
+  const pairing = signupNext(signupNext(making, { type: "made", server }), { type: "ready" });
+  const failed = signupNext(pairing, { type: "pairingFailed", message: "No answer." });
+  expect(setupSteps(failed)).toBeNull();
+  // Trying again is the last step once more.
+  expect(setupSteps(signupNext(failed, { type: "retryPairing" }))).toEqual([
+    "done",
+    "done",
+    "done",
+    "now",
+  ]);
+  const fresh = signupNext(pairing, { type: "paired", environmentId: "env-1", fresh: true });
+  expect(setupSteps(fresh)).toBeNull();
 });
