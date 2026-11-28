@@ -287,7 +287,7 @@ it.effect("says the app needs signing in again when it will not renew", () => {
     granola.state.refuseRefresh = true;
     const call = connections
       .callTool({ appId: "granola", name: "list_meetings", arguments: {} })
-      .pipe(Effect.flip);
+      .pipe(Effect.asVoid, Effect.flip);
     assert.equal(
       (yield* call).message,
       "Granola needs signing in again. Open Settings, then Connections.",
@@ -327,7 +327,7 @@ it.effect("hands the assistant the app's own words when a call is refused", () =
     yield* signIn();
     const refused = yield* connections
       .callTool({ appId: "granola", name: "broken", arguments: {} })
-      .pipe(Effect.flip);
+      .pipe(Effect.asVoid, Effect.flip);
     assert.equal(refused.message, "No such meeting");
   }).pipe(Effect.provide(layerFor(granola.http.client)));
 });
@@ -354,7 +354,7 @@ it.effect("disconnecting revokes the sign-in at the app and leaves nothing on di
     );
     const after = yield* connections
       .callTool({ appId: "granola", name: "list_meetings", arguments: {} })
-      .pipe(Effect.flip);
+      .pipe(Effect.asVoid, Effect.flip);
     assert.equal(after.message, "That app isn't connected on this computer.");
   }).pipe(Effect.provide(layerFor(granola.http.client)));
 });

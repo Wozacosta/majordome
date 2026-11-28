@@ -142,9 +142,10 @@ export const start = Effect.fn("connectionTools.start")(function* (server: ToolS
           inputSchema: inputSchema as McpSchema.Tool["inputSchema"],
           annotations: { readOnlyHint: entry.tool.readOnly, openWorldHint: true },
         });
-      const tool = yield* Effect.try(() => describe(entry.tool.inputSchema)).pipe(
-        Effect.orElseSucceed(() => describe({ type: "object" })),
-      );
+      const tool = yield* Effect.try({
+        try: () => describe(entry.tool.inputSchema),
+        catch: () => "badly described" as const,
+      }).pipe(Effect.orElseSucceed(() => describe({ type: "object" })));
       yield* server.register({
         tool,
         annotations: Context.make(

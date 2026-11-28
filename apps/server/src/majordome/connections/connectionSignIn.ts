@@ -108,9 +108,7 @@ const getJson = Effect.fn("connectionSignIn.getJson")(function* (url: string) {
       HttpClientRequest.get(url).pipe(HttpClientRequest.setHeaders({ accept: "application/json" })),
     )
     .pipe(
-      Effect.flatMap((response) =>
-        response.status === 200 ? response.json : Effect.succeed(undefined),
-      ),
+      Effect.flatMap((response) => (response.status === 200 ? response.json : Effect.undefined)),
       Effect.timeout(REQUEST_TIMEOUT),
       Effect.orElseSucceed(() => undefined),
     );

@@ -15,9 +15,9 @@ const escapeHtml = (text: string) =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 const page = (title: string, line: string) =>
-  HttpServerResponse.html(
+  HttpServerResponse.text(
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>${escapeHtml(title)}</title><style>body{margin:0;padding:48px 24px;font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4efe6;color:#14161c}@media (prefers-color-scheme:dark){body{background:#14161c;color:#f4efe6}}main{max-width:30rem;margin:0 auto}h1{font-size:22px;margin:0 0 8px}p{margin:0}</style></head><body><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(line)}</p></main></body></html>`,
-    { headers: { "cache-control": "no-store" } },
+    { contentType: "text/html; charset=utf-8", headers: { "cache-control": "no-store" } },
   );
 
 export const layer = HttpRouter.add(
