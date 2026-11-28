@@ -127,6 +127,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.majordomeRemovePushSubscription]: "majordome",
   [WS_METHODS.majordomeSendTestPush]: "majordome",
   [WS_METHODS.majordomeListPushDevices]: "majordome",
+  [WS_METHODS.majordomeRegisterPhonePush]: "majordome",
   [WS_METHODS.majordomeGetPhoneSetup]: "majordome",
   [WS_METHODS.majordomeEnableSecureAddress]: "majordome",
   [WS_METHODS.majordomeEnableAnywhereAddress]: "majordome",

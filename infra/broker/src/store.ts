@@ -2,6 +2,7 @@ import type { InviteAdminStore } from "./admin.ts";
 import type { AccountPatch, AccountRow, AccountStore, PaidState, Source } from "./billing.ts";
 import type { AddressRow, AddressStore } from "./broker.ts";
 import type { InviteStore } from "./hosting.ts";
+import type { PushUsageStore } from "./push.ts";
 import type { WaitlistStore } from "./waitlist.ts";
 
 const COLUMNS =
@@ -361,6 +362,27 @@ export function makeD1AccountStore(db: D1Database): AccountStore {
         db.prepare("DELETE FROM payment_events WHERE at <= ?").bind(forgetBefore),
         db.prepare("INSERT OR IGNORE INTO payment_events (id, at) VALUES (?, ?)").bind(id, at),
       ]);
+    },
+  };
+}
+
+/** `forget` drops the counts of hours before the one given; the hourly pass calls it. */
+export function makeD1PushUsageStore(
+  db: D1Database,
+): PushUsageStore & { readonly forget: (beforeHour: number) => Promise<void> } {
+  return {
+    count: async (key, hour) =>
+      (
+        await db
+          .prepare(
+            `INSERT INTO push_usage (key, hour, sent) VALUES (?, ?, 1)
+             ON CONFLICT (key, hour) DO UPDATE SET sent = sent + 1 RETURNING sent`,
+          )
+          .bind(key, hour)
+          .first<{ sent: number }>()
+      )?.sent ?? 1,
+    forget: async (beforeHour) => {
+      await db.prepare("DELETE FROM push_usage WHERE hour < ?").bind(beforeHour).run();
     },
   };
 }

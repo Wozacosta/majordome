@@ -9,6 +9,7 @@ export type BrokerErrorCode =
   | "blocked"
   | "rate_limited"
   | "full"
+  | "push_off"
   | "upstream";
 
 export const ERROR_STATUS: Record<BrokerErrorCode, number> = {
@@ -22,6 +23,7 @@ export const ERROR_STATUS: Record<BrokerErrorCode, number> = {
   blocked: 403,
   rate_limited: 429,
   full: 503,
+  push_off: 503,
   upstream: 502,
 };
 

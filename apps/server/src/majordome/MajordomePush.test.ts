@@ -1,6 +1,7 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
+import type { MajordomePhonePushDevice } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
@@ -11,6 +12,7 @@ import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as MajordomePush from "./MajordomePush.ts";
+import * as PhonePushRelay from "./PhonePushRelay.ts";
 
 interface SentPush {
   readonly url: string;
@@ -30,8 +32,10 @@ const pushService = (
   sent: Array<SentPush>,
   statusFor: (url: string) => number,
   liveSessions: () => ReadonlyArray<string> = () => [],
+  relay: PhonePushRelay.PhonePushRelay["Service"] = noRelay,
 ) =>
-  Layer.merge(
+  Layer.mergeAll(
+    Layer.succeed(PhonePushRelay.PhonePushRelay, relay),
     Layer.mock(EnvironmentAuth.EnvironmentAuth)({
       listSessions: () =>
         Effect.succeed(
@@ -40,6 +44,34 @@ const pushService = (
     }),
     httpLayer(sent, statusFor),
   );
+
+/** A server with no address service: no kind of phone can be reached. */
+const noRelay = PhonePushRelay.PhonePushRelay.of({
+  availability: () => Effect.succeed({ ios: false, android: false }),
+  send: () => Effect.succeed("unavailable"),
+});
+
+/** An address service that answers each phone's token with what the test chose. */
+const relayAnswering = (
+  sent: Array<{ readonly token: string; readonly title: string }>,
+  deliveryFor: (token: string) => PhonePushRelay.PhonePushDelivery,
+) =>
+  PhonePushRelay.PhonePushRelay.of({
+    availability: () => Effect.succeed({ ios: true, android: false }),
+    send: (device, message) =>
+      Effect.sync(() => {
+        sent.push({ token: device.token, title: message.title });
+        return deliveryFor(device.token);
+      }),
+  });
+
+const iphone = (token: string): MajordomePhonePushDevice => ({
+  platform: "ios",
+  token,
+  bundleId: "io.github.wozacosta.majordome.ios",
+  apnsEnvironment: "production",
+  label: "iPhone · Majordome app",
+});
 
 const httpLayer = (sent: Array<SentPush>, statusFor: (url: string) => number) =>
   Layer.succeed(
@@ -235,6 +267,103 @@ it.layer(storeLayer)("MajordomePush", (it) => {
       assert.isTrue(Exit.isFailure(refused));
       const untested = yield* Effect.exit(push.sendTest("https://push.example/unknown"));
       assert.isTrue(Exit.isFailure(untested));
+    }),
+  );
+
+  it.effect(
+    "keeps a phone app next to the browsers, without its token, and forgets a gone one",
+    () =>
+      Effect.gen(function* () {
+        const secrets = yield* ServerSecretStore.ServerSecretStore;
+        yield* secrets.set("majordome-web-push-subscriptions", new TextEncoder().encode("[]"));
+        const sentToBrowsers: Array<SentPush> = [];
+        const sentToPhones: Array<{ readonly token: string; readonly title: string }> = [];
+        const live = ["session-phone", "session-other"];
+        const push = yield* MajordomePush.make.pipe(
+          Effect.provide(
+            pushService(
+              sentToBrowsers,
+              () => 201,
+              () => live,
+              relayAnswering(sentToPhones, (token) => (token === "token-gone" ? "gone" : "sent")),
+            ),
+          ),
+        );
+        yield* push.saveSubscription(browserSubscription("https://push.example/browser"));
+
+        const phone = yield* push.registerPhone(iphone("token-1"), "session-phone");
+        assert.deepEqual(phone, {
+          endpoint: MajordomePush.phoneEndpoint(iphone("token-1")),
+          canSend: true,
+        });
+        assert.notInclude(phone.endpoint, "token-1");
+        // Android has no credentials on this address service.
+        const android = yield* push.registerPhone(
+          { platform: "android", token: "token-gone" },
+          "session-other",
+        );
+        assert.isFalse(android.canSend);
+
+        const listed = (yield* push.listDevices()).devices;
+        assert.deepEqual(
+          listed.map(({ endpoint, label, sessionId }) => [endpoint, label, sessionId]),
+          [
+            ["https://push.example/browser", null, null],
+            [phone.endpoint, "iPhone · Majordome app", "session-phone"],
+            [android.endpoint, "Android", "session-other"],
+          ],
+        );
+        assert.notInclude(JSON.stringify(listed), "token-");
+
+        const message = { title: "Start my day", body: "Hi", tag: "t", url: "/feed" };
+        assert.equal(yield* push.notifyAll(message), 2);
+        assert.deepEqual(sentToPhones.map((sent) => sent.token).toSorted(), [
+          "token-1",
+          "token-gone",
+        ]);
+        const endpoints = () =>
+          push.listDevices().pipe(Effect.map(({ devices }) => devices.map((d) => d.endpoint)));
+        assert.deepEqual(yield* endpoints(), ["https://push.example/browser", phone.endpoint]);
+
+        // Apple renewed the token: the phone's one access keeps one entry, added when it first was.
+        const renewed = yield* push.registerPhone(iphone("token-2"), "session-phone");
+        assert.deepEqual(yield* endpoints(), ["https://push.example/browser", renewed.endpoint]);
+
+        sentToPhones.length = 0;
+        yield* push.sendTest(renewed.endpoint);
+        assert.deepEqual(sentToPhones, [{ token: "token-2", title: "Majordome" }]);
+
+        // Removing the phone's access stops its notifications, as for a browser.
+        live.shift();
+        sentToPhones.length = 0;
+        assert.equal(yield* push.notifyAll(message), 1);
+        assert.lengthOf(sentToPhones, 0);
+        assert.deepEqual(yield* endpoints(), ["https://push.example/browser"]);
+
+        // The computer's page removes a phone by the same action as a browser.
+        const again = yield* push.registerPhone(iphone("token-3"));
+        yield* push.removeSubscription(again.endpoint);
+        assert.deepEqual(yield* endpoints(), ["https://push.example/browser"]);
+        yield* secrets.set("majordome-web-push-subscriptions", new TextEncoder().encode("[]"));
+      }),
+  );
+
+  it.effect("keeps a phone it cannot reach yet, sends it nothing, and says so on a test", () =>
+    Effect.gen(function* () {
+      const push = yield* MajordomePush.make.pipe(Effect.provide(pushService([], () => 201)));
+      const phone = yield* push.registerPhone(iphone("token-unreachable"));
+      assert.isFalse(phone.canSend);
+      assert.equal(
+        yield* push.notifyAll({ title: "Start my day", body: "Hi", tag: "t", url: "/feed" }),
+        0,
+      );
+      assert.include(
+        (yield* push.listDevices()).devices.map((device) => device.endpoint),
+        phone.endpoint,
+      );
+      const test = yield* Effect.flip(push.sendTest(phone.endpoint));
+      assert.equal(test.message, "This computer can't send notifications to the phone yet.");
+      yield* push.removeSubscription(phone.endpoint);
     }),
   );
 });

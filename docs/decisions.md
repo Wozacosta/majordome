@@ -471,9 +471,20 @@ takes over.
    - **Where it ships first (2026-11-24):** Mac, iPhone and Android. Linux and Windows come
      after; until then the landing page marks them "coming soon" and takes an email, kept by
      the address broker, for one message when each is ready. This replaces "not planned: the
-     App Store and Android". Still open: push for other people's phones needs a hosted relay,
-     since a public app can't ship an Apple push key. The PWA stays the phone until the apps
-     are out.
+     App Store and Android". The PWA stays the phone until the apps are out.
+   - **Push for the phone apps goes through the address broker (2026-11-28).** Apple's and
+     Google's sending keys belong to the app's publisher, and a public app cannot put them in
+     each owner's server, so "the owner's own Apple push key" above only ever worked for the
+     owner. The phone gives its device token to each computer it is paired with, over the
+     connection it already has; the computer keeps it beside its web-push devices, so one
+     decision reaches both; and it sends each notification to `POST /v1/push` on the broker,
+     signed with the Ed25519 key it already signs address requests with. The broker checks the
+     signature, limits each key and each network per hour, and forwards to APNs or FCM. It
+     stores no token, title or text, only the counts. The cost, said in the user guide: a
+     notification's title and line pass through the broker and Apple or Google, where web push
+     goes straight from the server, encrypted for the browser. A server with another address
+     service, or an organization's policy against outside connections, sends no native push and
+     the phone says so.
 10. **Next, ahead of M8 (2026-11-23).** Hosted Majordome, a paid choice at install, with the customer's own Claude plan (see
     Servers and sync). Fly.io first, always on, with UpCloud as the fallback (2026-11-23; the
     reasons and the deciding test are in `docs/whatsnext.md`). No single host: in 2026 Hetzner rationed new cloud servers

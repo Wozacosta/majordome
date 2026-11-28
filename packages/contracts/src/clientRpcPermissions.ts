@@ -95,6 +95,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeSavePushSubscription]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeRemovePushSubscription]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSendTestPush]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeRegisterPhonePush]: AuthOrchestrationOperateScope,
   // Puts this server on the tailnet's HTTPS address, which is how phones pair with it.
   [WS_METHODS.majordomeEnableSecureAddress]: AuthAccessWriteScope,
   // Opens or closes this server's public address, reachable from the whole internet.

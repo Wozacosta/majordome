@@ -61,9 +61,18 @@
     "APPLE_BUNDLE_ID": "io.github.wozacosta.majordome.ios",
     "APPLE_PRODUCT_ID": "io.github.wozacosta.majordome.server.monthly",
     "APPLE_ALLOW_SANDBOX": "0",
+    // Notifications for the phone apps (README, "Phone notifications"). iPhones get them once
+    // the APNS_KEY secret is set, Android phones once FCM_SERVICE_ACCOUNT is.
+    // PLACEHOLDER: the push key's id, from Certificates, Identifiers & Profiles > Keys.
+    "APNS_KEY_ID": "REPLACE_WITH_APNS_KEY_ID",
+    "APNS_TEAM_ID": "5RDKJ8PDGZ",
+    // Notifications one computer, and one network, may send in an hour.
+    "MAX_PUSH_PER_HOUR": "120",
+    "MAX_PUSH_PER_IP_PER_HOUR": "600",
   },
   // CLOUDFLARE_API_TOKEN is a secret: `wrangler secret put CLOUDFLARE_API_TOKEN`.
   // FLY_API_TOKEN is a secret too, from `fly tokens create org` for the organization above.
   // STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and APPLE_IAP_KEY are secrets (README, "Paid servers").
+  // APNS_KEY and FCM_SERVICE_ACCOUNT are secrets (README, "Phone notifications").
   "observability": { "enabled": true },
 }

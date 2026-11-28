@@ -21,7 +21,12 @@ ANDROID_KEYSTORE="$HOME/.majordome/android/release.jks"
 ANDROID_KEYSTORE_PASSWORD=...
 ANDROID_KEY_ALIAS=majordome
 CLERK_PUBLISHABLE_KEY=...   # the account service's public key
+ANDROID_GOOGLE_SERVICES_FILE="$HOME/.majordome/android/google-services.json"   # optional
 ```
+
+`ANDROID_GOOGLE_SERVICES_FILE` is the Firebase project's file, which notifications need
+([Notifications for the phone apps](./majordome-push.md)). Without the line the app builds as
+before and its Notifications page says it can't get any.
 
 **The keystore is the app's identity.** Android refuses an update signed with another key, so
 losing `release.jks` or its password means everyone reinstalls and pairs again. Keep a copy of

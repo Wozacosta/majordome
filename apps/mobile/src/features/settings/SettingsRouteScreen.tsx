@@ -47,6 +47,8 @@ import {
   type MajordomeSettingsRow,
 } from "../../majordome/settingsRows";
 import { SETUP_CHAT_BUTTON_LABEL, useOpenSetupChat } from "../../majordome/setupChat";
+import { usePhonePushStanding } from "../../majordome/phonePush";
+import { phonePushRowValue } from "../../majordome/phonePush.logic";
 import { environmentPresentations } from "../../state/presentation";
 import { useRemoteConnectionStatus } from "../../state/use-remote-environment-registry";
 import { voiceGrantAtom } from "../voice-input/voiceDestination";
@@ -226,6 +228,7 @@ function MajordomeSettingsList(props: {
   const { themeMode } = useAppearancePreferences();
   const language = useLanguagePreference();
   const grant = useAtomValue(voiceGrantAtom);
+  const pushStanding = usePhonePushStanding();
   const connected = connectedEnvironments.filter(
     (environment) => environment.isEnabled && environment.connectionState === "connected",
   );
@@ -259,6 +262,7 @@ function MajordomeSettingsList(props: {
       .join(" · "),
     voice:
       grant === null ? "On this phone" : `On ${voiceComputer?.environmentLabel ?? "your computer"}`,
+    ...(pushStanding === null ? {} : { notifications: phonePushRowValue(pushStanding) }),
     version: Constants.expoConfig?.version ?? "",
   });
   const open = (row: MajordomeSettingsRow) => {

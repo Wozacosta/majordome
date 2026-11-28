@@ -153,6 +153,13 @@ export function withMajordomeIdentity(config: ExpoConfig): ExpoConfig {
     },
     // Upstream's build project is left out, but on Android the crash reporter refuses to start
     // without one. It sends nothing here (observe.ts turns it off), so an empty id serves.
-    extra: { ...extra, eas: { projectId: "00000000-0000-0000-0000-000000000000" } },
+    extra: {
+      ...extra,
+      eas: { projectId: "00000000-0000-0000-0000-000000000000" },
+      // Android gets notifications through Google's service, which only a build made with the
+      // Firebase project's file has (docs/operations/majordome-push.md). Without it the app
+      // builds as before and its Notifications page says it cannot get any.
+      majordomePush: { android: renamed.android?.googleServicesFile !== undefined },
+    },
   };
 }

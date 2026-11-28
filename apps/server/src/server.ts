@@ -154,6 +154,7 @@ import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import * as MajordomePush from "./majordome/MajordomePush.ts";
+import * as PhonePushRelay from "./majordome/PhonePushRelay.ts";
 import * as MajordomePhoneSetup from "./majordome/PhoneSetup.ts";
 import * as MajordomeAccount from "./majordome/MajordomeAccount.ts";
 import * as AccountHttp from "./majordome/accountHttp.ts";
@@ -802,6 +803,17 @@ const layerMajordomeVault = MajordomeVaultService.layer.pipe(
   Layer.provide(ProjectionStoreV2.layer),
 );
 
+// One instance, shared by reference. The phone apps are reached through the address service,
+// signed with this server's own key.
+const layerMajordomePush = MajordomePush.layer.pipe(
+  Layer.provide(
+    PhonePushRelay.layer.pipe(
+      Layer.provide(EnvironmentKeys.layer),
+      Layer.provide(ManagedPolicy.layer),
+    ),
+  ),
+);
+
 const layerMajordomeTopics = MajordomeTopics.layer.pipe(
   Layer.provide(
     Layer.mergeAll(VaultLock.layer, RuntimeLayer.layerEventSink, ThreadCommandExecutor.layer),
@@ -811,7 +823,7 @@ const layerMajordomeTopics = MajordomeTopics.layer.pipe(
 // One instance, shared by reference: agents ask from /mcp and the owner answers over WebSocket.
 const layerMajordomePrivateDocuments = MajordomePrivateDocuments.layer.pipe(
   Layer.provide(PrivateDocumentsKey.layer.pipe(Layer.provide(ProcessRunner.layer))),
-  Layer.provide(MajordomePush.layer),
+  Layer.provide(layerMajordomePush),
 );
 
 const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
@@ -880,7 +892,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ).pipe(
     Layer.provideMerge(MajordomeRoutines.layer),
     Layer.provide(layerMajordomeBackup),
-    Layer.provide(MajordomePush.layer),
+    Layer.provide(layerMajordomePush),
     Layer.provide(VaultLock.layer),
   ),
   // provideMerge keeps the service in the context, for the "Set up a server for me" RPCs.
@@ -893,7 +905,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     Layer.provide(MajordomeRoutines.layer),
     Layer.provide(layerMajordomeBackup),
     Layer.provide(layerMajordomePeerSync),
-    Layer.provide(MajordomePush.layer),
+    Layer.provide(layerMajordomePush),
     Layer.provide(
       Layer.mergeAll(
         VaultLock.layer,
@@ -934,7 +946,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ).pipe(
     Layer.provide(Layer.merge(MajordomePushReactor.layer, RoutineLimits.layer)),
     Layer.provideMerge(layerMajordomePrivateDocuments),
-    Layer.provideMerge(MajordomePush.layer),
+    Layer.provideMerge(layerMajordomePush),
   ),
   // provideMerge keeps the log in the context, for the calendar's RPC.
   Layer.effectDiscard(
@@ -958,11 +970,11 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
         layerMajordomeTopics,
         layerMajordomePrivateDocuments,
         MajordomeConnectors.layer,
-        MajordomePush.layer,
+        layerMajordomePush,
         ProjectionStoreV2.layer,
         MajordomeRoutines.layer.pipe(
           Layer.provide(layerMajordomeBackup),
-          Layer.provide(MajordomePush.layer),
+          Layer.provide(layerMajordomePush),
           Layer.provide(VaultLock.layer),
         ),
       ),

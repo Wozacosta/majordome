@@ -22,6 +22,7 @@ import { useWorkspaceEnvironments } from "../../state/workspace";
 import { relayEnvironmentDiscovery } from "../../state/relay";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { relayManagedEnvironmentIds } from "./environmentSections";
+import { forgetPhonePushOn } from "../../majordome/phonePush";
 
 export interface RelayEnvironmentView {
   readonly environment: RelayClientEnvironmentRecord;
@@ -84,8 +85,9 @@ export function useConnectionController() {
         }),
       }),
     );
+  // Majordome: the computer is told to stop notifying this phone while it can still be reached.
   const removeEnvironment = (environmentId: EnvironmentId) =>
-    removeEnvironmentMutation(environmentId);
+    forgetPhonePushOn(environmentId).then(() => removeEnvironmentMutation(environmentId));
   const setEnvironmentEnabled = (environmentId: EnvironmentId, enabled: boolean) =>
     setEnvironmentEnabledMutation({ environmentId, enabled });
   const updateEnvironment = (

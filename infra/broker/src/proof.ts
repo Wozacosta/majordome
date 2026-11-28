@@ -7,7 +7,7 @@ const MAX_ISSUED_AHEAD_SECONDS = 300;
 // An Ed25519 SPKI is always 44 bytes, so the DER bytes are a canonical identity.
 const ED25519_SPKI_BYTES = 44;
 
-export type ProofAction = "claim" | "release";
+export type ProofAction = "claim" | "release" | "push";
 
 function decodeBase64(value: string): Uint8Array<ArrayBuffer> | null {
   try {
@@ -47,13 +47,16 @@ function decodeSpkiPem(pem: string): Uint8Array<ArrayBuffer> | null {
 
 const invalidProof = (message: string) => new BrokerError("invalid_proof", message);
 
-/** Verifies the proof and returns the caller's identity. `port` is unvalidated. */
+/**
+ * Verifies the proof and returns the caller's identity. `port` and `sha` (what a push proof says
+ * its message hashes to) are unvalidated.
+ */
 export async function verifyProof(input: {
   readonly publicKey: string;
   readonly proof: string;
   readonly action: ProofAction;
   readonly nowSeconds: number;
-}): Promise<{ readonly identity: string; readonly port: unknown }> {
+}): Promise<{ readonly identity: string; readonly port: unknown; readonly sha: unknown }> {
   const der = decodeSpkiPem(input.publicKey);
   if (der === null) {
     throw new BrokerError(
@@ -116,5 +119,5 @@ export async function verifyProof(input: {
   const identity = Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, "0"),
   ).join("");
-  return { identity, port: claims.port };
+  return { identity, port: claims.port, sha: claims.sha };
 }

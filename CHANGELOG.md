@@ -7,6 +7,25 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **Notifications in the phone apps.** Settings on the phone has a ninth row, Notifications,
+  with one switch: "Notifications on this phone". The phone asks your permission when you turn
+  it on, not before. You are told about the same things as in a browser: a chat is waiting
+  for you, "Start my day" is ready, the assistant couldn't finish, and what you asked to be told
+  about. Tapping one opens that chat. Nothing shows for the chat you are already looking at.
+- **The phone is in your computer's list.** "Devices that get notifications" on your computer
+  shows the phone app next to your browsers, with the same Remove.
+- **It says when it can't.** A computer running an older Majordome, or one with no way to reach
+  Apple or Google, shows "Your computer can't send them yet" on the phone. Until Majordome's
+  own sending keys are in place, that is what every phone shows.
+
+**Try this**
+
+- On the phone, open Settings, then Notifications, turn the switch on and press "Send a test".
+- Ask the assistant "let me know when it's done" on something long, lock the phone, and tap
+  what arrives.
+
 ## 0.10.90
 
 **New**

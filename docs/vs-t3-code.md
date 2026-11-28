@@ -118,6 +118,10 @@ The landing page and the README show a short version of this list.
 - **Your phone with nothing to install:** scan a code, add the app to your Home Screen, get
   notifications. It works away from home over a private address.
   [Phone and notifications](./user/phone-and-notifications.md)
+- **Notifications in the phone apps without T3 Connect:** the phone gives its address to each of
+  your computers, and each computer sends through Majordome's address service, which holds
+  Apple's and Google's keys and keeps nothing. The same four kinds as in a browser, one switch
+  on the phone. [Phone and notifications](./user/phone-and-notifications.md#in-the-phone-app)
 - **Claude's sign-in from the phone app:** Claude's page opens in the phone's browser and the
   code is pasted back in the app, for a server with no screen; new notes start from the same card.
 - **A reinstalled iPhone app starts clean:** it forgets the computers and the sign-in iOS kept
@@ -195,7 +199,7 @@ Coding stays in T3 Code. The code is still there, hidden, so that upstream chang
   A Majordome version is noted in [whatsnext.md](whatsnext.md#sharing-a-chat-with-a-guest).
 - An iPhone app of Majordome's own is being built from upstream's (not in the App Store yet):
   no tab bar but one list of topics and chats with what needs you on top, Today as a page of
-  to-dos, routines and journal, eight plain rows of Settings with a chat about your set-up,
+  to-dos, routines and journal, nine plain rows of Settings with a chat about your set-up, notifications of its own,
   plain words in a conversation, offline capture, and a
   Majordome server bought through Apple from the phone. It has its own links, and a
   server's phone code can open it.

@@ -508,6 +508,12 @@ update runs whatever image the latest release names. The customer's Claude sign-
 disk too. What exists already: the code is public, the broker holds no notes, and anyone can
 leave with **Settings > Back up my brain** and run Majordome on their own machine.
 
+One thing does pass through the broker since 2026-11-28: a notification for a phone app. Its
+title and its one line (a chat's name, the first line of "Start my day", what the assistant was
+asked to say) go from the server to the broker to Apple or Google. The broker keeps none of it,
+but it sees it, and so does whoever runs it. The user guide says so
+(`docs/user/phone-and-notifications.md`); the trust page on the site does not yet.
+
 It cannot be proved away while the server has to read the notes to work, so the aim is to say it
 plainly, make it checkable, and narrow it. In order of what each buys for its cost:
 
@@ -624,9 +630,16 @@ Broken, to fix first:
 
 Missing, most useful first:
 
-- [ ] **Notifications.** The server sends Web Push only, and upstream's phone push needs T3's
-      relay, which Majordome does not run. This one is server work: a sender for Apple and
-      Google, then a page on the phone.
+- [x] **Notifications** (2026-11-28, code only). The phone registers its device token with each
+      computer, the computer sends through the address broker, and Settings on the phone has a
+      Notifications page (`majordome/phonePush.ts`, `PhonePushRelay.ts`, `infra/broker/src/push.ts`).
+      Nothing arrives until the owner does the steps in `docs/operations/majordome-push.md`:
+      Apple's push key and the Firebase project, as Worker secrets, then a deploy.
+- [ ] **Notifications, what remains.** A first run on a real iPhone and a real Android phone:
+      no notification has been delivered yet, and whether a Cloudflare Worker reaches Apple's
+      push service (HTTP/2 only) is the first thing to check. The four kinds only; the phone
+      has no per-kind switches. A notification that is not about a chat (the test, "Routines
+      can't run") opens the app on its list, not a page of its own. No badge count.
 - [ ] **What it did, with Undo this** (`vaultHistory`, `vaultChanges`, `undoVaultRun`).
 - [ ] **To-dos from every note.** Today shows only the day's own boxes (`todos`,
       `setTodoDone`, `addTodo`).
@@ -697,8 +710,10 @@ it lacks are in `docs/operations/majordome-android.md`. It is on the owner's own
 - [ ] `majord.link` addresses opening in the app. It needs the broker to serve
       `/.well-known/assetlinks.json` with the signing key's SHA-256 (Play's own key once the
       app is there) and an intent filter in `apps/mobile/majordome/identity.ts`.
-- [ ] Notifications: not built for either phone app. See "What the phone lacks beside the
-      computer".
+- [ ] Notifications: built (2026-11-28) and off until the app is made with the Firebase
+      project's file, named by `ANDROID_GOOGLE_SERVICES_FILE` in `~/.majordome/android.env`.
+      Without it the page says "Your computer can't send them yet". Steps in
+      `docs/operations/majordome-push.md`.
 - A symbol that exists only on the iPhone draws nothing on Android. Majordome's own screens
   use the shared `SymbolView`, or `TopicSymbolView` for topic icons, which has an Android list
   to extend when a topic gets a new icon (`src/majordome/TopicSymbol.android.tsx`).

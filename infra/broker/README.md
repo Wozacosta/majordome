@@ -281,6 +281,44 @@ Review buy that way, for free, and each gets a real server. Leave it at `"0"` ot
 Deleting an account cannot end an Apple subscription: only its owner can, on their iPhone. The
 server is deleted and later notices about that purchase are ignored.
 
+## Phone notifications
+
+The phone apps get their notifications through this Worker, because Apple's and Google's sending
+keys are the publisher's and cannot sit in each person's server. Setting it up is in
+[`docs/operations/majordome-push.md`](../../docs/operations/majordome-push.md).
+
+- `GET /v1/push`: `{ "ios": true, "android": false }`, which kinds of phone can be reached now.
+  A server asks this to tell a phone whether it can send.
+- `POST /v1/push` with `publicKey`, `proof` and `message`: passes one notification on. `message`
+  is JSON text naming the `platform`, the device `token`, `title`, `body`, `tag` and `deepLink`,
+  and for an iPhone the `topic` (the app's bundle id, which must be Majordome's) and
+  `environment` (`production` or `sandbox`). The proof is the same kind a computer signs for an
+  address, with `act: "push"` and `sha`, the SHA-256 of `message`, so one notification cannot
+  be turned into another. Answers `{ "result": "sent" }` or `{ "result": "gone" }`; `gone` means
+  Apple or Google no longer knows the phone, and the server forgets it.
+
+Errors: `push_off` (503) while that kind of phone has no credentials, `rate_limited` (429),
+`upstream` (502) when Apple or Google refuses for a reason that is not the phone's. The log then
+has the status and their reason, never the token or the text.
+
+Nothing about a notification is stored: no token, no title, no text. `push_usage` holds a count
+per computer (its key's identity) and per network for each hour, and the hourly pass deletes
+counts older than a day.
+
+| Name                       | Kind   | Meaning                                                   |
+| -------------------------- | ------ | --------------------------------------------------------- |
+| `APNS_KEY`                 | secret | The text of Apple's push key (`AuthKey_XXXXXXXXXX.p8`)    |
+| `APNS_KEY_ID`              | var    | That key's id                                             |
+| `APNS_TEAM_ID`             | var    | The Apple team that publishes the app                     |
+| `FCM_SERVICE_ACCOUNT`      | secret | The Firebase service account's JSON file, whole           |
+| `MAX_PUSH_PER_HOUR`        | var    | Notifications one computer may send in an hour (120)      |
+| `MAX_PUSH_PER_IP_PER_HOUR` | var    | The same for one network, since a key costs nothing (600) |
+
+iPhones are reached once `APNS_KEY`, `APNS_KEY_ID` and `APNS_TEAM_ID` are set, Android phones
+once `FCM_SERVICE_ACCOUNT` is; each works without the other. Apple's token is kept for 40
+minutes and Google's access token until five minutes before it runs out, while the Worker stays
+warm.
+
 ## Phone app links
 
 The Worker also answers on the zone's root, `majord.link`, with one file:
