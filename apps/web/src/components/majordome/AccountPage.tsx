@@ -25,11 +25,10 @@ import { connectPairing } from "../../connection/onboarding";
 import { majordomeEnvironment } from "../../state/majordome";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { resolveDesktopPairingUrl } from "../settings/pairingUrls";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { listAccountServer, markSignInAsked, useAddServersAfterSignIn } from "./accountLink";
 import { MajordomeSettingsPage } from "./MajordomeSettingsPage";
-import { Entry, EntryList, Muted, Section, StatusLine } from "./paper";
+import { Entry, EntryList, Muted, Section, ToneDot } from "./paper";
 import { useMachineNames } from "./useMachineNames";
 
 const SIGN_IN_AGAIN = "Sign in again, then try once more.";
@@ -44,7 +43,7 @@ export function AccountPage() {
     <MajordomeSettingsPage
       searchId="majordome-account"
       outline={false}
-      intro="Sign in here, then on your phone or another computer: it finds this one by itself, with no code to scan. An account is optional."
+      intro="Sign in on each device and they find each other, with no code to scan. An account is optional."
     >
       {hasAccountPublicConfig() ? (
         <SignedInOrOut />
@@ -110,14 +109,22 @@ function SignedInOrOut() {
       </Section>
       {/* Every connected server, this computer first: an always-on server is the one a phone
           can reach, and it can only be added from a device already connected to it. */}
-      {environmentIds.map((environmentId) => (
-        <ThisServer
-          key={environmentId}
-          environmentId={environmentId}
-          signedIn={isSignedIn === true}
-        />
-      ))}
-      {isSignedIn ? <AccountServers /> : null}
+      {/* Rows arrive one by one and some have nothing to say: no heading over an empty list. */}
+      <Section
+        label={isSignedIn ? "Your computers" : "Computers"}
+        className="[&:not(:has(li))]:hidden"
+      >
+        <EntryList>
+          {environmentIds.map((environmentId) => (
+            <ThisServer
+              key={environmentId}
+              environmentId={environmentId}
+              signedIn={isSignedIn === true}
+            />
+          ))}
+          {isSignedIn ? <AccountServers /> : null}
+        </EntryList>
+      </Section>
     </>
   );
 }
@@ -245,45 +252,50 @@ function ServerAccount({
   if (account.owner === null && !signedIn) return null;
 
   const ownerEmail = account.owner?.email ?? null;
-  const ownerMeta = mine
-    ? account.address === null
-      ? null
-      : "To open it on your phone, go to majord.me/open and sign in."
-    : account.fixed
-      ? "Set when this server was made. It cannot be removed."
-      : !signedIn
-        ? null
-        : ownerEmail === null
-          ? "This is not the account you are signed in to. Sign in to that account to use it."
-          : `This is not the account you are signed in to. Sign in as ${ownerEmail} to use it.`;
+  const unreachable = mine && account.address === null;
+  const meta =
+    account.owner === null ? (
+      canChange ? (
+        "Not in your account yet."
+      ) : (
+        `Not in your account yet. Open Majordome on ${name} to add it.`
+      )
+    ) : unreachable ? (
+      <span className="flex items-start gap-1.5">
+        <ToneDot tone="warning" className="mt-1" />
+        {canOpenAddress
+          ? "Your phone cannot reach it yet. Give it an address only your devices can open."
+          : `Your phone cannot reach it yet. Open Majordome on ${name}, go to Settings, then Your account, and press Give it an address.`}
+      </span>
+    ) : mine ? (
+      "To open it on your phone, go to majord.me/open and sign in."
+    ) : account.fixed ? (
+      `In ${ownerEmail ?? "another account"} since this server was made. It cannot be removed.`
+    ) : signedIn ? (
+      `In ${ownerEmail ?? "another account"}, not the account you are signed in to.`
+    ) : (
+      `In ${ownerEmail ?? "an account"}.`
+    );
 
   return (
-    <Section label={name}>
-      {account.owner === null ? (
-        <Entry
-          as="div"
-          title="Not in your account yet"
-          meta={
-            canChange
-              ? "Add it, and your other devices find it when you sign in on them."
-              : `This device is not allowed to add it. Open Majordome on ${name} and add it there.`
-          }
-          actions={
-            canChange ? (
-              <Button size="sm" disabled={busy} onClick={() => void run("link")}>
-                {busy ? "Adding…" : "Add to my account"}
+    <Entry
+      title={name}
+      meta={meta}
+      actions={
+        account.owner === null ? (
+          canChange ? (
+            <Button size="sm" disabled={busy} onClick={() => void run("link")}>
+              {busy ? "Adding…" : "Add to my account"}
+            </Button>
+          ) : null
+        ) : (
+          <>
+            {unreachable && canOpenAddress ? (
+              <Button size="sm" disabled={busy} onClick={() => void runGiveAddress()}>
+                {busy ? "Getting an address…" : "Give it an address"}
               </Button>
-            ) : null
-          }
-        />
-      ) : (
-        <Entry
-          as="div"
-          title={account.owner.email ?? "In an account"}
-          aside={mine ? <Badge variant="secondary">Your account</Badge> : null}
-          meta={ownerMeta}
-          actions={
-            account.fixed || !canChange ? null : (
+            ) : null}
+            {account.fixed || !canChange ? null : (
               <Button
                 variant="outline"
                 size="sm"
@@ -292,26 +304,13 @@ function ServerAccount({
               >
                 Remove from account
               </Button>
-            )
-          }
-        />
-      )}
-      {mine && account.address === null ? (
-        <div className="mt-3 flex flex-wrap items-start gap-x-3 gap-y-2">
-          <StatusLine tone="warning" className="min-w-0 flex-1 basis-60">
-            {canOpenAddress
-              ? `Your phone cannot reach ${name} yet. Give it an address: only devices signed in to your account, or paired with a code, can open it.`
-              : `Your phone cannot reach ${name} yet. Open Majordome on ${name}, go to Settings, then Your account, and press Give it an address.`}
-          </StatusLine>
-          {canOpenAddress ? (
-            <Button size="sm" disabled={busy} onClick={() => void runGiveAddress()}>
-              {busy ? "Getting an address…" : "Give it an address"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {error === null ? null : <p className="mt-3 text-sm text-destructive-foreground">{error}</p>}
-    </Section>
+            )}
+          </>
+        )
+      }
+    >
+      {error === null ? null : <p className="text-sm text-destructive-foreground">{error}</p>}
+    </Entry>
   );
 }
 
@@ -323,17 +322,7 @@ function AccountServers() {
   const servers = readAccountServers(user?.unsafeMetadata).filter(
     (server) => !connected.has(server.environmentId),
   );
-  if (servers.length === 0) return null;
-
-  return (
-    <Section label="Also in your account">
-      <EntryList>
-        {servers.map((server) => (
-          <AccountServerRow key={server.environmentId} server={server} />
-        ))}
-      </EntryList>
-    </Section>
-  );
+  return servers.map((server) => <AccountServerRow key={server.environmentId} server={server} />);
 }
 
 function AccountServerRow({ server }: { readonly server: AccountServer }) {

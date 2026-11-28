@@ -1,4 +1,4 @@
-import { useAuth, useUser } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { useAtomValue } from "@effect/atom-react";
 import { readAccountServers } from "@t3tools/shared/majordomeAccount";
 import { useNavigation } from "@react-navigation/native";
@@ -85,6 +85,7 @@ function AccountWayIn(props: { readonly children: ReactNode }) {
   const navigation = useNavigation();
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user } = useUser();
+  const clerk = useClerk();
   // No account row until the sign-in is known, so nobody signed in sees "Sign in" flash by.
   if (!isLoaded) return <ListSection>{props.children}</ListSection>;
   const row = welcomeAccountRow({
@@ -103,7 +104,7 @@ function AccountWayIn(props: { readonly children: ReactNode }) {
       onPress={() => openSettings(navigation, "SettingsAccount")}
     />
   );
-  return row.main ? (
+  const ways = row.main ? (
     <>
       <View className="overflow-hidden rounded-[26px] border border-primary/40 border-continuous bg-primary/10">
         {wayIn}
@@ -116,6 +117,20 @@ function AccountWayIn(props: { readonly children: ReactNode }) {
       {SEPARATOR}
       {props.children}
     </ListSection>
+  );
+  if (!isSignedIn) return ways;
+  return (
+    <>
+      {ways}
+      {/* This screen is a phone with no computer: there is nothing to forget but the sign-in. */}
+      <Pressable
+        accessibilityRole="button"
+        className="min-h-[44px] justify-center self-start px-1 active:opacity-70"
+        onPress={() => void clerk.signOut()}
+      >
+        <Text className="font-t3-medium text-primary-text">{MAJORDOME_WELCOME.signOut}</Text>
+      </Pressable>
+    </>
   );
 }
 
