@@ -7,6 +7,8 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+## 0.10.88
+
 **New**
 
 - **A Testing screen on the phone, out of sight.** Hold the version number in Settings, About.
