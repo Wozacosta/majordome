@@ -128,6 +128,7 @@ import {
 } from "./workspace/workspace-tabs-state";
 import { workspaceRoutesOf } from "./workspace-overlay-routes";
 import { SettingsWorkspaceLayout } from "../settings/SettingsWorkspaceLayout";
+import { isMajordome } from "../../majordome/env";
 import { WorkspaceThreadSidebar } from "./workspace/WorkspaceThreadSidebar";
 
 export { useAdaptiveWorkspaceLayout, useWorkspacePaneState };
@@ -343,7 +344,7 @@ function AdaptiveWorkspaceLayoutContent(
     baseLayout.variant === "medium" &&
     (nativeWorkspace || (!primarySidebarPinned && !workspacePage));
   const shouldRenderNavigationRail =
-    Platform.OS === "android" && baseLayout.usesSplitView && !floatingTabsEnabled;
+    !isMajordome && Platform.OS === "android" && baseLayout.usesSplitView && !floatingTabsEnabled;
   const enabledTabs = useEnabledNavigationTabs();
   const { scale, fabSize } = useAndroidControlSizing();
   const floatingTabs = floatingTabsMetrics(enabledTabs.length + 1, scale, fabSize);
@@ -573,7 +574,8 @@ function AdaptiveWorkspaceLayoutContent(
         seedPullRequest: withKnownPullRequestSummary,
       },
     );
-    if (layout.variant === "medium") {
+    // Majordome's Settings is a page, which an overlay sidebar must not cover.
+    if (layout.variant === "medium" && !(isMajordome && tab === "settings")) {
       const opened = next.routes.at(-1 - overlays.length)?.key ?? null;
       setOverlaySidebar((current) => ({ ...current, visible: true, keepOpenFor: opened }));
     }

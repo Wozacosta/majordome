@@ -15,6 +15,7 @@ import { useSelectWorkspaceTab } from "./useSelectWorkspaceTab";
 import { useFloatingWorkspaceTabs } from "./useSystemWorkspaceTabBar";
 import { useWorkspaceCompose } from "./useWorkspaceCompose";
 import { useAdaptiveWorkspaceLayout } from "../adaptive-workspace-context";
+import { isMajordome } from "../../../majordome/env";
 
 const NativeSidebarTabBar = requireNativeView<
   ViewProps & {
@@ -35,6 +36,11 @@ const NativeSidebarTabBar = requireNativeView<
  * column; over a page the window hosts it at the column's width, so both draw the same bar.
  */
 export function WorkspaceTabDock(props: { readonly placement: "column" | "window" }) {
+  // Majordome has no tab bar: Today and Settings are pages opened from the chat list.
+  return isMajordome ? null : <TabDock {...props} />;
+}
+
+function TabDock(props: { readonly placement: "column" | "window" }) {
   const workspace = useWorkspaceTabs()!;
   const gt = useGT();
   const m = useMessages();

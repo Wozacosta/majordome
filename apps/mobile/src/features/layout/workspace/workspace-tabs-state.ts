@@ -6,8 +6,8 @@ import {
 } from "./navigation-tab-order";
 import { isMajordome } from "../../../majordome/env";
 
-/** Majordome shows Today, in upstream's one-page usage slot, then the chats; no coding tabs. */
-const MAJORDOME_TAB_ORDER = ["usage", "threads"] as const satisfies readonly NavigationTab[];
+/** Majordome has no tab bar: the chat list is the root, and Today and Settings are pages over it. */
+const MAJORDOME_TAB_ORDER = ["threads"] as const satisfies readonly NavigationTab[];
 
 export function resolveWorkspaceTabOrder(
   saved: readonly unknown[] | undefined,
@@ -52,7 +52,7 @@ export function workspaceTabOf(routeName: string | undefined): WorkspaceTab {
 }
 
 export function initialWorkspaceTabsState(
-  selectedTab: WorkspaceTab = isMajordome ? "usage" : "threads",
+  selectedTab: WorkspaceTab = "threads",
 ): WorkspaceTabsState {
   return {
     selectedTab,

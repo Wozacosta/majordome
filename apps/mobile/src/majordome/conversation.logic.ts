@@ -1,4 +1,5 @@
 import { SHOW_SETUP_LABEL } from "@t3tools/shared/majordome";
+import { SETUP_CHAT_PLACEHOLDER } from "./setupChat.logic";
 
 /** A file as a person names it: "Notes/Taxes 2026.md" is "Taxes 2026". */
 export function noteName(path: string): string {
@@ -249,9 +250,12 @@ export function connectionProblemInPlainWords(
 export function composerPlaceholder(input: {
   readonly waitsForApproval: boolean;
   readonly working: boolean;
+  /** The Set-up chat, opened from Settings. */
+  readonly setUp?: boolean;
 }): string {
   if (input.waitsForApproval) return "Or say what to do instead";
-  return input.working ? "Add something while Majordome works" : "Ask Majordome anything";
+  if (input.working) return "Add something while Majordome works";
+  return input.setUp === true ? SETUP_CHAT_PLACEHOLDER : "Ask Majordome anything";
 }
 
 export type ConversationMenuAction =

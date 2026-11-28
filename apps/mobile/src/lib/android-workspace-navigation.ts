@@ -1,6 +1,7 @@
 import type { NavigationState } from "@react-navigation/native";
 import { isSettingsRoute } from "../features/settings/settings-navigation";
 import { resetRootStack, type RootStackNavigation } from "./root-stack-reset";
+import { isMajordome } from "../majordome/env";
 
 // Back follows history; Git confirmations can stack copies of the current thread, so skip those too.
 function androidWorkspaceBackTarget(state: NavigationState) {
@@ -78,6 +79,9 @@ export function androidWorkspaceDestinationAnimation(
   if (!usesSplitView) return undefined;
   if (route.name === "Thread" || route.name === "PullRequest" || route.name === "Issue")
     return "none" as const;
+  // Majordome's Today and Settings open from the chat list like a chat; pages above them fade.
+  if (isMajordome && (route.name === "Today" || route.name === "Settings")) return "none" as const;
+  if (isMajordome && isSettingsRoute(route.name)) return "fade" as const;
   if (route.name === "Settings" || !isSettingsRoute(route.name)) return undefined;
   const below = routes[routes.findIndex((candidate) => candidate.key === route.key) - 1];
   return below?.name === "Settings" ? ("none" as const) : ("fade" as const);

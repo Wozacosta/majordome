@@ -38,6 +38,13 @@ import { SettingsSection } from "./components/SettingsSection";
 import { AddClaudeAccount, ClaudeAccount } from "./ClaudeAccounts";
 import { CLAUDE_DRIVER } from "./claude-accounts";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
+import { isMajordome } from "../../majordome/env";
+import { ClaudeSignInCard } from "../../majordome/FinishSetup";
+import {
+  MAJORDOME_AI_ACCOUNTS_LABEL,
+  MAJORDOME_AI_SIGN_IN,
+  MAJORDOME_SETTINGS_LABELS,
+} from "../../majordome/settingsRows";
 
 export function SettingsProviderAccountsRouteScreen() {
   const gt = useGT();
@@ -47,7 +54,21 @@ export function SettingsProviderAccountsRouteScreen() {
   const providersByEnvironment = useAtomValue(environmentPresentations.providersByEnvironmentAtom);
   const insets = useSafeAreaInsets();
   return (
-    <SettingsScreen title={gt("Providers")} menus={[environmentMenu]}>
+    <SettingsScreen
+      title={
+        !isMajordome
+          ? gt("Providers")
+          : selectedTargets.some((environment) =>
+                managedProviders(environment, providersByEnvironment).some(
+                  (provider) => provider.driver === CLAUDE_DRIVER,
+                ),
+              ) || selectedTargets.length === 0
+            ? MAJORDOME_SETTINGS_LABELS.SettingsProviderAccounts
+            : MAJORDOME_AI_ACCOUNTS_LABEL
+      }
+      // Majordome lists every connected computer: its Settings has no filter.
+      menus={isMajordome ? [] : [environmentMenu]}
+    >
       <ScreenScrollView
         className="flex-1"
         contentInsetAdjustmentBehavior="automatic"
@@ -59,31 +80,80 @@ export function SettingsProviderAccountsRouteScreen() {
             <T>Select a connected environment.</T>
           </Text>
         ) : (
-          selectedTargets.map((environment) => (
-            <SettingsSection key={environment.environmentId} title={environment.label}>
-              {!permittedEnvironments.has(environment.environmentId) ? (
-                <View className="gap-1 p-4">
-                  <Text className="text-base text-foreground">
-                    <T>Limited permissions</T>
-                  </Text>
-                  <Text className="text-sm text-foreground-muted">
-                    {gt(
-                      "This session can view {environment}''s providers but can't change their settings.",
-                      { environment: environment.label },
-                    )}
-                  </Text>
-                </View>
-              ) : (
-                <EnvironmentProviders
-                  environment={environment}
-                  providers={managedProviders(environment, providersByEnvironment)}
-                />
-              )}
-            </SettingsSection>
-          ))
+          selectedTargets.map((environment) =>
+            isMajordome ? (
+              <MajordomeComputerAccounts
+                key={environment.environmentId}
+                environment={environment}
+                title={selectedTargets.length > 1 ? environment.label : undefined}
+                permitted={permittedEnvironments.has(environment.environmentId)}
+                providers={managedProviders(environment, providersByEnvironment)}
+              />
+            ) : (
+              <SettingsSection key={environment.environmentId} title={environment.label}>
+                {!permittedEnvironments.has(environment.environmentId) ? (
+                  <View className="gap-1 p-4">
+                    <Text className="text-base text-foreground">
+                      <T>Limited permissions</T>
+                    </Text>
+                    <Text className="text-sm text-foreground-muted">
+                      {gt(
+                        "This session can view {environment}''s providers but can't change their settings.",
+                        { environment: environment.label },
+                      )}
+                    </Text>
+                  </View>
+                ) : (
+                  <EnvironmentProviders
+                    environment={environment}
+                    providers={managedProviders(environment, providersByEnvironment)}
+                  />
+                )}
+              </SettingsSection>
+            ),
+          )
         )}
       </ScreenScrollView>
     </SettingsScreen>
+  );
+}
+
+/**
+ * One computer's AI accounts as Majordome shows them: Claude first, signed in from the phone
+ * through its own page, then any other account the computer offers a sign-in for. A second
+ * Claude account is set up on the computer, where its folder is.
+ */
+function MajordomeComputerAccounts(props: {
+  readonly environment: SettingsTarget;
+  readonly title: string | undefined;
+  readonly permitted: boolean;
+  readonly providers: ReadonlyArray<ServerProvider>;
+}) {
+  const accounts = props.permitted
+    ? props.providers.filter((provider) => provider.installed && canManageProvider(provider))
+    : [];
+  const hasClaude = props.providers.some((provider) => provider.driver === CLAUDE_DRIVER);
+  return (
+    <View className="gap-3">
+      {props.title === undefined ? null : (
+        <Text textRole="footnote" className="px-2 font-t3-medium text-foreground-muted">
+          {props.title}
+        </Text>
+      )}
+      {hasClaude ? <ClaudeSignInCard environmentId={props.environment.environmentId} /> : null}
+      {accounts.length === 0 ? null : (
+        <SettingsSection>
+          {accounts.map((provider, index) => (
+            <ProviderAccount
+              key={provider.instanceId}
+              environment={props.environment}
+              provider={provider}
+              divider={index > 0}
+            />
+          ))}
+        </SettingsSection>
+      )}
+    </View>
   );
 }
 
@@ -262,7 +332,12 @@ function ProviderAccount({
     (provider.auth.type === "gemini-api-key" || provider.auth.type === "agent-platform");
   const status =
     active || state?.phase === "failed" || state?.phase === "cancelled"
-      ? state.message
+      ? // The computer's own sentence is written for a developer.
+        !isMajordome
+        ? state.message
+        : active
+          ? MAJORDOME_AI_SIGN_IN.signingIn
+          : MAJORDOME_AI_SIGN_IN.failed
       : !provider.enabled
         ? gt("Turned off")
         : signedIn

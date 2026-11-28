@@ -158,6 +158,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.majordomeAdoptTopicConversation]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeSetThreadTopic]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeOpenRoutinesConversation]: AuthOrchestrationOperateScope,
+  [WS_METHODS.majordomeOpenSetupConversation]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeDismissTopicSuggestions]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeAddReadingItem]: AuthOrchestrationOperateScope,
   [WS_METHODS.majordomeUpdateReadingItem]: AuthOrchestrationOperateScope,

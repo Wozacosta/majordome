@@ -117,6 +117,7 @@ it("lists the topics still going with their latest message, else where they stan
       title: "Paperwork",
       threadId: null,
       preview: "Waiting on the form",
+      standing: "Waiting on the form",
       icon: "receipt",
       tone: "teal",
       notes: 4,

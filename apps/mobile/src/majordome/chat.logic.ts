@@ -39,16 +39,23 @@ export function chatWantsAttention(line: ChatLine | null): boolean {
 }
 
 /**
- * A topic's second line: what its conversation is doing when that needs saying, else the latest
- * message, else where the topic stands.
+ * A topic's second line: what its conversation is doing when that needs saying, the latest
+ * message while it is unread, and once read where the topic stands, else the latest message.
  */
 export function topicLine(
-  topic: { readonly preview: string | null; readonly notes?: number | undefined },
+  topic: {
+    readonly preview: string | null;
+    readonly standing?: string | undefined;
+    readonly notes?: number | undefined;
+  },
   status: ChatLine | null,
 ): ChatLine {
-  if (status !== null && status.tone !== "new") return status;
-  if (topic.preview !== null) return { words: topic.preview, tone: status?.tone ?? "plain" };
-  if (status !== null) return status;
+  if (status !== null) {
+    if (status.tone !== "new" || topic.preview === null) return status;
+    return { words: topic.preview, tone: "new" };
+  }
+  const words = topic.standing ?? topic.preview;
+  if (words !== null) return { words, tone: "plain" };
   const notes = topic.notes ?? 0;
   return {
     words:
@@ -214,11 +221,10 @@ export function orderChatsByActivity<
   return ordered;
 }
 
-/** What the Chats tab says when there is nothing to list and a chat can be started. */
+/** What home says when there is nothing to list; the ask box under it starts a chat. */
 export const NO_CHATS_YET = {
   title: "No chats yet",
   detail: "Ask anything, or say what you want noted down.",
-  action: "Start a chat",
 } as const;
 
 /** What a search of the Chats tab says when it finds no chat and no topic. */

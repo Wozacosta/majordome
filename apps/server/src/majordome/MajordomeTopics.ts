@@ -16,6 +16,7 @@ import {
   type MajordomeMovedMessage,
   type MajordomeTopicConversation,
   type MajordomeOpenRoutinesConversationInput,
+  type MajordomeOpenSetupConversationInput,
   type MajordomeOpenTopicInput,
   type MajordomeOpenTopicResult,
   type MajordomeSetThreadTopicInput,
@@ -144,6 +145,13 @@ export class MajordomeTopics extends Context.Service<
     readonly openRoutinesConversation: (
       input: MajordomeOpenRoutinesConversationInput,
     ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
+    /**
+     * The one conversation where the owner asks about or changes the set-up, started now if there
+     * is none. One the owner archived is replaced by a new one.
+     */
+    readonly openSetupConversation: (
+      input: MajordomeOpenSetupConversationInput,
+    ) => Effect.Effect<MajordomeOpenTopicResult, MajordomeTopicsError>;
     /** Hides the suggested topics, or with `restore` shows them again. */
     readonly dismissSuggestions: (
       input: MajordomeDismissTopicSuggestionsInput,
@@ -154,6 +162,7 @@ export class MajordomeTopics extends Context.Service<
 const isTopicsError = Schema.is(MajordomeTopicsError);
 
 const ROUTINES_CONVERSATION_TITLE = "Assistant";
+const SETUP_CONVERSATION_TITLE = "Set-up";
 /** The title a thread keeps until its first message names it. */
 const UNTITLED_THREAD = "New thread";
 
@@ -468,6 +477,7 @@ const make = Effect.gen(function* () {
         folders: usable,
         projectsFolder,
         routinesThreadId: (yield* liveThread(state.routinesThread))?.id ?? null,
+        setupThreadId: (yield* liveThread(state.setupThread))?.id ?? null,
       };
     },
     Effect.mapError(toTopicsError("Could not read your topics.")),
@@ -878,6 +888,7 @@ const make = Effect.gen(function* () {
       const state = yield* projectState(input.projectId);
       if (
         state.routinesThread === input.threadId ||
+        state.setupThread === input.threadId ||
         Object.values(state.threads).includes(input.threadId)
       ) {
         return yield* fail("That chat already has its own place.");
@@ -917,6 +928,24 @@ const make = Effect.gen(function* () {
       Effect.mapError(toTopicsError("Could not open the assistant for your routines.")),
     );
 
+  const openSetupConversation: MajordomeTopics["Service"]["openSetupConversation"] = Effect.fn(
+    "MajordomeTopics.openSetupConversation",
+  )(
+    function* (input) {
+      const { project } = yield* requireVault(input.projectId);
+      const existing = yield* liveThread((yield* projectState(input.projectId)).setupThread);
+      if (existing !== null) return { threadId: existing.id };
+      const threadId = yield* startThread(project, SETUP_CONVERSATION_TITLE, { kept: false });
+      yield* updateProjectState(input.projectId, (current) => ({
+        ...current,
+        setupThread: threadId,
+      }));
+      return { threadId };
+    },
+    (effect) => lock.withPermits(1)(effect),
+    Effect.mapError(toTopicsError("Could not open the set-up chat.")),
+  );
+
   const dismissSuggestions: MajordomeTopics["Service"]["dismissSuggestions"] = Effect.fn(
     "MajordomeTopics.dismissSuggestions",
   )(
@@ -944,6 +973,7 @@ const make = Effect.gen(function* () {
     adoptConversation,
     setThreadTopic,
     openRoutinesConversation,
+    openSetupConversation,
     dismissSuggestions,
   });
 });

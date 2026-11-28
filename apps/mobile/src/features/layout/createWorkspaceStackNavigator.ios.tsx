@@ -80,7 +80,9 @@ import {
   reconcileStackScreens,
   type CollapsedSplitColumn,
   isPresentedRoute,
+  isSettingsListRoute,
 } from "../../native/workspace-stack-projection";
+import { isMajordome } from "../../majordome/env";
 import {
   NativePrimaryColumnContext,
   NativeWorkspaceInspectorContext,
@@ -384,7 +386,8 @@ function WorkspaceColumns(
         // router state. An expanded split has columns, so its tab gets a page beside the list.
         const live = props.navigation.getState();
         const { workspace } = workspaceRoutesOf(live.routes.slice(0, live.index + 1));
-        if (workspace.some((route) => route.name !== "Home" && route.name !== "Settings")) return;
+        if (workspace.some((route) => route.name !== "Home" && !isSettingsListRoute(route.name)))
+          return;
         const tab = workspace.some((route) => route.name === "Settings")
           ? "settings"
           : NAVIGATION_TAB_ORDER.find((candidate) => workspaceTabs?.isTabActive(candidate));
@@ -679,11 +682,14 @@ function WorkspaceStackNavigator({
     UNSTABLE_router,
   });
   if (!nativeWorkspaceColumnsReady) return null;
-  const settingsOpen = settingsOpenIn(
-    state.routes.slice(0, state.index + 1).filter((route) => {
-      return !isPresentedRoute(descriptors[route.key]?.options);
-    }),
-  );
+  // Majordome's Settings list is a page of its own, so Home never draws it.
+  const settingsOpen =
+    !isMajordome &&
+    settingsOpenIn(
+      state.routes.slice(0, state.index + 1).filter((route) => {
+        return !isPresentedRoute(descriptors[route.key]?.options);
+      }),
+    );
   return (
     <NativeWorkspaceModeContext value={usesNativeWorkspaceColumns}>
       <NavigationContent>

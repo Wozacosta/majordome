@@ -9,6 +9,7 @@ import { useWorkspaceTabs } from "../../layout/workspace/WorkspaceTabsContext";
 import { useDeviceType } from "../../../native/native-layout-metrics";
 import { useCompactWorkspaceTabs } from "../../layout/workspace/useSystemWorkspaceTabBar";
 import { useSettingsPageBack } from "../useSettingsPageBack";
+import { isMajordome } from "../../../majordome/env";
 import {
   ScreenScrollViewBottomInset,
   ScreenScrollViewSurface,
@@ -31,8 +32,10 @@ export function SettingsScreen(
   const compactTabs = useCompactWorkspaceTabs();
   const back = useSettingsPageBack();
   const cover = deviceType === "duo-folded";
-  // Opened as a workspace tab, the Settings list has nothing to go back to.
-  const workspaceRoot = props.workspaceRoot || (workspace !== null && route.name === "Settings");
+  // Opened as a workspace tab, the Settings list has nothing to go back to. Majordome pushes it
+  // over the chat list instead, so it goes back like any page.
+  const workspaceRoot =
+    props.workspaceRoot || (!isMajordome && workspace !== null && route.name === "Settings");
 
   const surfaceClassName = workspaceRoot || cover ? "bg-screen" : "bg-sheet";
 
@@ -49,7 +52,9 @@ export function SettingsScreen(
         guardBack={props.guardBack}
         hideBottomBorder
       />
-      <ScreenScrollViewBottomInset value={deviceType === "pad" || compactTabs ? 80 : 0}>
+      <ScreenScrollViewBottomInset
+        value={!isMajordome && (deviceType === "pad" || compactTabs) ? 80 : 0}
+      >
         <ScreenScrollViewSurface value={surfaceClassName}>
           <SettingsScreenContent>{props.children}</SettingsScreenContent>
         </ScreenScrollViewSurface>

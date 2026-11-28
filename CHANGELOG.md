@@ -5,7 +5,34 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
-Not released yet.
+**New**
+
+- **The phone opens on your topics, like a messaging app.** No more bar at the bottom. One list:
+  what needs you on top, then your topics in your own order, each saying where it stands, with
+  one box at the bottom to ask anything. Settings is the round button at the top, next to
+  search.
+- **What needs you rises to the top.** A chat waiting for your OK, for an answer, or with a new
+  reply moves into "Needs you". A short request can be answered right there with OK or Not now;
+  anything longer opens the chat.
+- **Today is one page.** A strip under the title says what is left to do and which routine ran
+  or runs next; tap it for the day: to-dos, routines, journal, and "Write a line…" at the
+  bottom. The Overview and Journal switch is gone.
+- **Routines show on Today.** Each one says when it last ran or runs next. Tap one to open its
+  chat; hold it to run it now, edit it, or hide it from the list of chats.
+- **Settings on the phone is eight rows.** Your computer and your Claude plan come first and say
+  how they are doing. Each computer's own page holds its switches, such as how much the
+  assistant asks before changing things.
+- **Ask about your set-up.** The button at the top of Settings opens one chat, kept for that,
+  where you can ask "is my backup working?" or have a routine moved to another hour.
+- **"I'm new here" on the phone's welcome page folds.** Tap it to see the ways to start.
+
+**Try this**
+
+- Open the phone app: your topics are the first thing you see. Tap the Today strip, tick a
+  to-do, write a line, come back.
+- In Settings, open your computer, choose "Ask every time", then ask the assistant to change a
+  note: the request shows on the list with OK and Not now.
+- In Settings, tap the button at the top right and ask "is my backup working?".
 
 ## 0.10.89
 

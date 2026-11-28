@@ -34,6 +34,8 @@ import { useRemoteConnections } from "../../state/use-remote-environment-registr
 import { ConnectionEnvironmentRow } from "../connection/ConnectionEnvironmentRow";
 import { EnvironmentRoutesSection } from "./EnvironmentRoutesSection";
 import { OutdatedServerUpdateSection } from "./OutdatedServerUpdateSection";
+import { ComputerSettingsSections } from "./ComputerSettingsSections";
+import { CLAUDE_DRIVER } from "./claude-accounts";
 import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActionRow";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsSection } from "./components/SettingsSection";
@@ -385,7 +387,12 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                     }}
                   />
                   {config.providers
-                    .filter((provider) => provider.enabled)
+                    .filter(
+                      (provider) =>
+                        provider.enabled &&
+                        // Majordome lists an AI the computer has, and Claude either way.
+                        (!isMajordome || provider.installed || provider.driver === CLAUDE_DRIVER),
+                    )
                     .map((provider) => (
                       <View key={provider.instanceId}>
                         <View className="gap-1 p-4">
@@ -420,7 +427,7 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                                   : "text-sm text-foreground-muted"
                               }
                             >
-                              {provider.updateState.message ??
+                              {(isMajordome ? undefined : provider.updateState.message) ??
                                 {
                                   queued: gt("Update queued"),
                                   running: gt("Update running"),
@@ -430,12 +437,13 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                                 }[provider.updateState.status]}
                             </Text>
                           ) : null}
-                          {provider.compatibilityAdvisory?.message ? (
+                          {/* The computer's own sentences are written for a developer. */}
+                          {!isMajordome && provider.compatibilityAdvisory?.message ? (
                             <Text selectable className="text-sm text-foreground-muted">
                               {provider.compatibilityAdvisory.message}
                             </Text>
                           ) : null}
-                          {provider.unavailableReason || provider.message ? (
+                          {!isMajordome && (provider.unavailableReason || provider.message) ? (
                             <Text selectable className="text-sm text-foreground-muted">
                               {provider.unavailableReason ?? provider.message}
                             </Text>
@@ -463,8 +471,16 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                 </SettingsSection>
               </>
             ) : null}
+            {isMajordome && !outdated ? (
+              <ComputerSettingsSections environmentId={environmentId} />
+            ) : null}
             {isMajordome ? (
               <SettingsSection footer={MAJORDOME_COMPUTERS.removeHelp}>
+                <SettingsActionRow
+                  icon="plus"
+                  label={MAJORDOME_COMPUTERS.add}
+                  onPress={() => navigation.navigate("SettingsEnvironmentNew")}
+                />
                 <SettingsActionRow
                   icon="trash"
                   tone="danger"

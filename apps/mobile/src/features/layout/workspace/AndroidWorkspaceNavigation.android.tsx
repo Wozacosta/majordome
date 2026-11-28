@@ -69,10 +69,9 @@ const TAB_TITLES = {
   ...NAVIGATION_TAB_LABELS,
   threads: msg("Chats", { $context: "navigation tab, list of chat threads" }),
   settings: msg("Settings"),
-  ...(isMajordome ? { usage: msg("Today", { $context: "navigation tab, the day's page" }) } : {}),
 };
-// Majordome's Today page takes the usage tab, so that tab wears another icon.
-const TAB_ICONS: Readonly<Record<string, string>> = isMajordome ? { usage: "today" } : {};
+
+const NO_TAB_ICONS: Readonly<Record<string, string>> = {};
 
 const NativeNavigation = requireNativeView<NativeNavigationProps>("T3WorkspaceNavigation");
 
@@ -81,7 +80,14 @@ function nativeColor(value: string) {
   return typeof color === "number" ? color : 0;
 }
 
-export function AndroidWorkspaceNavigation(props: {
+type AndroidWorkspaceNavigationProps = Parameters<typeof WorkspaceNavigationBar>[0];
+
+/** Majordome has no bar or rail: Today and Settings are pages opened from the chat list. */
+export function AndroidWorkspaceNavigation(props: AndroidWorkspaceNavigationProps) {
+  return isMajordome ? null : <WorkspaceNavigationBar {...props} />;
+}
+
+function WorkspaceNavigationBar(props: {
   readonly onNewThread: () => void;
   readonly rail?: boolean;
   readonly floating?: boolean;
@@ -143,7 +149,7 @@ export function AndroidWorkspaceNavigation(props: {
         tabs={tabs}
         tabTitles={Object.fromEntries(tabs.map((tab) => [tab, m(TAB_TITLES[tab])]))}
         expandedTabTitles={{ pullRequests: gt("Pull requests") }}
-        tabIcons={TAB_ICONS}
+        tabIcons={NO_TAB_ICONS}
         newThreadTitle={isMajordome ? gt("New chat") : gt("New thread")}
         selectedTab={selectedTab}
         dark={themeAppearance === "dark"}
@@ -203,6 +209,7 @@ export function FloatingWorkspaceTabs(props: {
   readonly onSelect?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  if (isMajordome) return null;
   return (
     <View
       pointerEvents="box-none"
@@ -214,7 +221,7 @@ export function FloatingWorkspaceTabs(props: {
         alignItems: "flex-start",
       }}
     >
-      <AndroidWorkspaceNavigation {...props} floating />
+      <WorkspaceNavigationBar {...props} floating />
     </View>
   );
 }

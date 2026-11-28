@@ -7,6 +7,8 @@ import {
   type RootStackNavigation,
 } from "../../lib/root-stack-reset";
 
+import { isMajordome } from "../../majordome/env";
+
 type RootParams = ReactNavigation.RootParamList;
 
 /** Settings routes that open as modals over whatever is on screen, not as Settings pages. */
@@ -129,7 +131,8 @@ export function leaveSettingsPage(
 ) {
   const state = rootStackState(navigation);
   const below = state?.routes[state.index - 1];
-  if (state && columns && below?.name === "Settings") {
+  // Majordome's Settings list is the page below, so going back never empties the column.
+  if (state && columns && !isMajordome && below?.name === "Settings") {
     dispatchRootStackReset(navigation, state, settingsNavigationState(state, fallback));
   } else {
     navigation.goBack();

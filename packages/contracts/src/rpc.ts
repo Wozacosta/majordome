@@ -234,6 +234,7 @@ import {
   MajordomeCreateTopicInput,
   MajordomeDismissTopicSuggestionsInput,
   MajordomeOpenRoutinesConversationInput,
+  MajordomeOpenSetupConversationInput,
   MajordomeAdoptTopicConversationInput,
   MajordomeOpenTopicInput,
   MajordomeOpenTopicResult,
@@ -990,6 +991,7 @@ export const WS_METHODS = {
   majordomeAdoptTopicConversation: "majordome.adoptTopicConversation",
   majordomeSetThreadTopic: "majordome.setThreadTopic",
   majordomeOpenRoutinesConversation: "majordome.openRoutinesConversation",
+  majordomeOpenSetupConversation: "majordome.openSetupConversation",
   majordomeDismissTopicSuggestions: "majordome.dismissTopicSuggestions",
   majordomeListReadingItems: "majordome.listReadingItems",
   majordomeAddReadingItem: "majordome.addReadingItem",
@@ -3108,6 +3110,12 @@ const WsMajordomeOpenRoutinesConversationRpc = Rpc.make(
   },
 );
 
+const WsMajordomeOpenSetupConversationRpc = Rpc.make(WS_METHODS.majordomeOpenSetupConversation, {
+  payload: MajordomeOpenSetupConversationInput,
+  success: MajordomeOpenTopicResult,
+  error: Schema.Union([MajordomeTopicsError, EnvironmentAuthorizationError]),
+});
+
 const WsMajordomeDismissTopicSuggestionsRpc = Rpc.make(
   WS_METHODS.majordomeDismissTopicSuggestions,
   {
@@ -3742,6 +3750,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsMajordomeAdoptTopicConversationRpc,
   WsMajordomeSetThreadTopicRpc,
   WsMajordomeOpenRoutinesConversationRpc,
+  WsMajordomeOpenSetupConversationRpc,
   WsMajordomeDismissTopicSuggestionsRpc,
   WsMajordomeListReadingItemsRpc,
   WsMajordomeAddReadingItemRpc,

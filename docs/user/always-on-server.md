@@ -190,7 +190,7 @@ It works, but it was built for someone who also has a computer:
 - The command's last line talks about your computer. On the phone, open the link it prints, or
   paste it in **Add a computer**.
 - There are no notes to move. The server starts with an empty notes folder.
-- Sign in to Claude from the phone. In the iPhone or Android app, Today shows a **Claude** card
+- Sign in to Claude from the phone. In the iPhone or Android app, the list of chats shows a **Claude** card
   with **Sign in**; in a browser, use the server's **Settings > AI accounts**
   ([below](#sign-in-to-claude-and-chatgpt-on-the-server)).
 

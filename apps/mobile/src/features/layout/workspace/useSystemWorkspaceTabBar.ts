@@ -5,6 +5,7 @@ import { useAdaptiveWorkspaceLayout } from "../adaptive-workspace-context";
 import { useDeviceType, useNativeLayoutMetrics } from "../../../native/native-layout-metrics";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
 import { workspaceUsesColumns } from "./workspace-tabs-state";
+import { isMajordome } from "../../../majordome/env";
 
 function useWorkspacePage() {
   const workspace = useWorkspaceTabs();
@@ -18,7 +19,7 @@ export function useSidebarWorkspaceTabs(): "picker" | "toolbar" | null {
   const deviceType = useDeviceType();
   const metrics = useNativeLayoutMetrics();
   const page = useWorkspacePage();
-  if (Platform.OS !== "ios" || !layout.usesSplitView || page) return null;
+  if (isMajordome || Platform.OS !== "ios" || !layout.usesSplitView || page) return null;
   if (deviceType === "pad") return null;
   // Portrait Duo has no system rail; keep its tabs in the sidebar like iPad.
   if (deviceType === "duo-unfolded" && (metrics?.verticalBarEdge ?? "none") === "none")

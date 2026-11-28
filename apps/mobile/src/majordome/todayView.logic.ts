@@ -1,4 +1,4 @@
-import { friendlyDate, localDate, type NoteSection } from "./today.logic";
+import { friendlyDate, localDate, type NoteLine, type NoteSection } from "./today.logic";
 
 const parts = (date: string) => {
   const [year, month, day] = date.split("-").map(Number);
@@ -53,6 +53,43 @@ export function todoProgress(
     }
   }
   return total === 0 ? null : { done, total };
+}
+
+export type TodoLine = Extract<NoteLine, { readonly kind: "todo" }>;
+
+/**
+ * A day's note as one sheet: its to-dos gathered from every heading, those left before those
+ * done, and the rest as the journal under the note's own headings. A heading left with nothing
+ * under it is dropped.
+ */
+export function daySheet(sections: ReadonlyArray<NoteSection>): {
+  readonly todos: ReadonlyArray<TodoLine>;
+  readonly journal: ReadonlyArray<NoteSection>;
+} {
+  const todos: Array<TodoLine> = [];
+  const journal: Array<NoteSection> = [];
+  for (const section of sections) {
+    const rest = section.lines.filter((line) => {
+      if (line.kind === "todo") todos.push(line);
+      return line.kind !== "todo";
+    });
+    const lines = rest.filter(
+      (line, index) =>
+        line.kind !== "heading" ||
+        (rest[index + 1] !== undefined && rest[index + 1]?.kind !== "heading"),
+    );
+    if (lines.length > 0) journal.push({ ...section, lines });
+  }
+  return {
+    todos: [...todos.filter((todo) => !todo.done), ...todos.filter((todo) => todo.done)],
+    journal,
+  };
+}
+
+/** A line that starts with the time it was written, as the ones added from the phone do. */
+export function timedLine(text: string): { readonly time: string; readonly text: string } | null {
+  const found = /^(\d{1,2}:\d{2})\s+(.+)$/.exec(text);
+  return found ? { time: found[1] ?? "", text: found[2] ?? "" } : null;
 }
 
 export type ComputerReach = "connected" | "connecting" | "unreachable";

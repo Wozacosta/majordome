@@ -42,6 +42,9 @@ import { WorkspaceListEmptyDetail } from "../layout/workspace/WorkspaceListEmpty
 import { WorkspaceListHeader } from "../layout/workspace/WorkspaceListHeader";
 import { isMajordome } from "../../majordome/env";
 import { useDoneTopicThreadIds } from "../../majordome/TopicsSection";
+import { homeNeed, listedOnHome } from "../../majordome/home.logic";
+import { useSetupChatKeys } from "../../majordome/setupChat";
+import { resolveThreadListV2RowStatus, threadHasUnseenCompletion } from "../threads/threadListV2";
 import { buildHomeListFilterMenuItems, homeListFilterEnvironments } from "./home-list-filter-menu";
 
 export function HomeRouteScreen() {
@@ -69,10 +72,19 @@ export function HomeRouteScreen() {
       : (workspace?.state.tabs.threads.query ?? localSearchQuery);
   // A topic marked as done leaves Majordome's list with its conversation; a search still finds it.
   const doneTopicThreadIds = useDoneTopicThreadIds();
-  const listedThreads =
-    isMajordome && searchQuery === ""
-      ? threads.filter((thread) => !doneTopicThreadIds.has(String(thread.id)))
-      : threads;
+  // The Set-up chat is reached from Settings; it is listed only while it waits for the owner.
+  const setupChatKeys = useSetupChatKeys();
+  const listedThreads = !isMajordome
+    ? threads
+    : threads.filter((thread) => {
+        if (searchQuery === "" && doneTopicThreadIds.has(String(thread.id))) return false;
+        if (!setupChatKeys.has(`${thread.environmentId}:${thread.id}`)) return true;
+        const status = resolveThreadListV2RowStatus(thread);
+        return listedOnHome(
+          true,
+          homeNeed(status, status === "ready" && threadHasUnseenCompletion(thread)),
+        );
+      });
   const setSearchQuery = (query: string) => {
     if (Platform.OS === "android") setPrimarySidebarSearchQuery(query);
     else if (workspace) workspace.dispatch({ type: "query", query, tab: "threads" });
@@ -80,10 +92,16 @@ export function HomeRouteScreen() {
   };
   // Split layouts keep the query; only the stacked layout opens the thread over the list.
   // Android's search field keeps its own open state, which a cleared query would leave open.
-  const clearsSearchOnOpen = Platform.OS !== "android" && !layout.usesSplitView;
+  // Majordome's own search field has no such state, so its search ends on Android too.
+  const clearsSearchOnOpen = (isMajordome || Platform.OS !== "android") && !layout.usesSplitView;
   const selectThreadRoute = (params: ReactNavigation.RootParamList["Thread"]) => {
-    if (searchQuery !== "" && clearsSearchOnOpen && workspace)
-      runWhenHomeCovered(() => workspace.cancelSearch("threads"));
+    if (searchQuery !== "" && clearsSearchOnOpen) {
+      if (Platform.OS !== "android" && workspace) {
+        runWhenHomeCovered(() => workspace.cancelSearch("threads"));
+      } else if (isMajordome) {
+        runWhenHomeCovered(() => setSearchQuery(""));
+      }
+    }
     selectDetail({ name: "Thread", params });
   };
   const handleSelectThread = (thread: EnvironmentThreadShell) =>
@@ -169,32 +187,35 @@ export function HomeRouteScreen() {
   }
 
   return (
-    <AndroidHomeFabLayout onStartNewTask={startNewTask}>
+    // Majordome's home draws its own title and starts chats from its ask box: no bar, no button.
+    <AndroidHomeFabLayout onStartNewTask={startNewTask} disabled={isMajordome}>
       <>
-        <WorkspaceListHeader
-          accessibilityLabel={gt("T3 Code, Threads")}
-          onOpenEnvironments={() => openSettings(navigation, "SettingsEnvironments")}
-          search={{
-            value: searchQuery,
-            onChangeText: setSearchQuery,
-            placeholder: gt("Search", { $context: "search field placeholder" }),
-            accessibilityLabel: gt("Search threads"),
-          }}
-          filter={{
-            customized: selectedEnvironmentId !== null || selectedProjectKey !== null,
-            items: buildHomeListFilterMenuItems(
-              {
-                environments,
-                projects: projectFilterOptions,
-                selectedEnvironmentId,
-                selectedProjectKey,
-                onEnvironmentChange: setSelectedEnvironmentId,
-                onProjectChange: setSelectedProjectKey,
-              },
-              m,
-            ),
-          }}
-        />
+        {isMajordome ? null : (
+          <WorkspaceListHeader
+            accessibilityLabel={gt("T3 Code, Threads")}
+            onOpenEnvironments={() => openSettings(navigation, "SettingsEnvironments")}
+            search={{
+              value: searchQuery,
+              onChangeText: setSearchQuery,
+              placeholder: gt("Search", { $context: "search field placeholder" }),
+              accessibilityLabel: gt("Search threads"),
+            }}
+            filter={{
+              customized: selectedEnvironmentId !== null || selectedProjectKey !== null,
+              items: buildHomeListFilterMenuItems(
+                {
+                  environments,
+                  projects: projectFilterOptions,
+                  selectedEnvironmentId,
+                  selectedProjectKey,
+                  onEnvironmentChange: setSelectedEnvironmentId,
+                  onProjectChange: setSelectedProjectKey,
+                },
+                m,
+              ),
+            }}
+          />
+        )}
 
         <HomeScreen
           catalogState={catalogState}

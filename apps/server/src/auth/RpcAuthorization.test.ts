@@ -105,6 +105,7 @@ describe("RPC authorization scopes", () => {
       WS_METHODS.majordomeAdoptTopicConversation,
       WS_METHODS.majordomeSetThreadTopic,
       WS_METHODS.majordomeOpenRoutinesConversation,
+      WS_METHODS.majordomeOpenSetupConversation,
       WS_METHODS.majordomeDismissTopicSuggestions,
       WS_METHODS.majordomeSetTodoDone,
       WS_METHODS.majordomeAddTodo,

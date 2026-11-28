@@ -4,7 +4,17 @@ import type {
   StackNavigationState,
 } from "@react-navigation/native";
 
+import { isMajordome } from "../majordome/env";
+
 type Route = StackNavigationState<ParamListBase>["routes"][number];
+
+/**
+ * Upstream's `Settings` route only tells Home to draw the Settings list in place of its own, so
+ * it is no page. Majordome has no tabs: its Settings list is a page pushed over the chat list.
+ */
+export function isSettingsListRoute(name: string | undefined) {
+  return !isMajordome && name === "Settings";
+}
 
 /** Keep the presenting history mounted while modal routes cover the whole workspace. */
 export function projectStackPresentation(
@@ -27,7 +37,7 @@ export function projectWorkspaceStack(
   const primary = workspaceRoutes.find((route) => route.name === "Home");
   // The Settings tab's route only selects what Home shows; its pages are the detail.
   const detail = workspaceRoutes.filter(
-    (route) => route.name !== "Home" && route.name !== "Settings",
+    (route) => route.name !== "Home" && !isSettingsListRoute(route.name),
   );
   return { primary, detail, overlays };
 }
@@ -69,7 +79,7 @@ export function nativeStackPopAction(
       ? sourceIndex - 1
       : state.routes.findIndex((route) => route.key === destinationKey);
   // Home's screen draws the Settings list, so going back to it from a Settings page stops there.
-  if (destinationIndex >= 0 && state.routes[destinationIndex + 1]?.name === "Settings")
+  if (destinationIndex >= 0 && isSettingsListRoute(state.routes[destinationIndex + 1]?.name))
     destinationIndex += 1;
   if (
     sourceIndex <= 0 ||

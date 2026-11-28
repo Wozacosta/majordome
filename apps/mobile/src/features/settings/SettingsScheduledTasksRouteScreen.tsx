@@ -479,7 +479,7 @@ export function SettingsScheduledTasksRouteScreen() {
           onPress: newTask,
         },
       ]}
-      menus={[environmentMenu]}
+      menus={isMajordome ? [] : [environmentMenu]}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"

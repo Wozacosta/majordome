@@ -191,7 +191,10 @@ export function ConnectionEnvironmentRow(props: {
               {props.environment.environmentLabel}
             </Text>
           </View>
-          {!props.environment.isRelayManaged && props.environment.displayUrl.trim() ? (
+          {/* A computer's own page lists its addresses below this card. */}
+          {!props.environment.isRelayManaged &&
+          props.environment.displayUrl.trim() &&
+          !(isMajordome && onComputerPage) ? (
             <Text className="text-xs text-foreground-muted" numberOfLines={1}>
               {props.environment.displayUrl}
             </Text>

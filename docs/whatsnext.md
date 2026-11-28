@@ -668,10 +668,10 @@ Started 2026-11-23 (M8 in `docs/decisions.md`). What a later session needs to kn
   name, a kept text or an unreviewed literal outside a translation call would change.
 - **The iPhone icon is the PNG.** Upstream's Icon Composer projects (`assets/*/app-icon.icon`)
   still draw upstream's logo, so the identity step points `ios.icon` at the cloche PNG.
-- **Today sits in upstream's one-page Usage tab slot** (`MajordomeTodayScreen`), so the tab key
-  is still `usage`. Upstream's tests of the tabs mock `src/majordome/env` with `isMajordome`
-  false. The iPhone tab bar's label and icon are in Swift
-  (`modules/t3-native-controls/ios/T3SidebarTabBarView.swift`).
+- **No tab bar.** With `isMajordome` true the chat list is the only root and no bar is drawn on
+  either platform; Today is the stack route `Today` (`majordome/homeNavigation.ts`) and Settings
+  is pushed over the list. Upstream's tests of the tabs mock `src/majordome/env` with
+  `isMajordome` false. Upstream's tab code, Swift and Kotlin included, is left in place.
 - **Building here:** Xcode 27.2 builds it, with CocoaPods from Homebrew.
   `T3_NATIVE_CLIENT_BUILD=local T3_NATIVE_CLIENT_CACHE=off vp run mobile:install ios <simulator>`
   then `vp run dev:client` in `apps/mobile`. A build is about six minutes.

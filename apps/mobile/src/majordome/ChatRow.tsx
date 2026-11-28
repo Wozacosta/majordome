@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import { AppText as Text } from "../components/ui/AppText";
 import { cn } from "../lib/cn";
 import { chatWantsAttention, type ChatLine, type ChatLineTone } from "./chat.logic";
+import { needsYouLabel } from "./home.logic";
 import { TopicSymbolView } from "./TopicSymbol";
 
 export { TopicSymbolView };
@@ -12,9 +13,9 @@ const SymbolView = TopicSymbolView;
 const LINE_TONES: Record<ChatLineTone, string> = {
   plain: "text-foreground-muted",
   working: "text-adaptive-sky-600-400",
-  asking: "text-warning-foreground",
+  asking: "text-primary-text",
   problem: "text-danger-foreground",
-  new: "text-foreground",
+  new: "text-primary-text",
 };
 
 const foldWords = (fold: { readonly count: number; readonly runs?: boolean }) =>
@@ -23,10 +24,20 @@ const foldWords = (fold: { readonly count: number; readonly runs?: boolean }) =>
     : `${fold.count} more ${fold.count === 1 ? "chat" : "chats"}`;
 
 /** The section labels of the Chats list, drawn like upstream's "Done" shelf label. */
-export function ChatListLabel(props: { readonly children: string }) {
+export function ChatListLabel(props: {
+  readonly children: string;
+  /** In the app's green: the chats that need the owner. */
+  readonly accent?: boolean;
+}) {
   return (
     <View className="mb-1.5 mt-4 flex-row items-center gap-2.5 px-5">
-      <Text accessibilityRole="header" className="text-xs font-t3-medium text-foreground-tertiary">
+      <Text
+        accessibilityRole="header"
+        className={cn(
+          "text-xs font-t3-medium",
+          props.accent ? "text-primary-text" : "text-foreground-tertiary",
+        )}
+      >
         {props.children}
       </Text>
       <View className="h-px flex-1 bg-border" />
@@ -37,6 +48,16 @@ export function ChatListLabel(props: { readonly children: string }) {
 /** Over the first chat under the topics, which keep the top of the list. */
 export function RecentChatsLabel() {
   return <ChatListLabel>Recent</ChatListLabel>;
+}
+
+/** Over the topics, said only when "Needs you" sits above them. */
+export function TopicsLabel() {
+  return <ChatListLabel>Topics</ChatListLabel>;
+}
+
+/** Over the chats that wait for the owner, with how many there are. */
+export function NeedsYouLabel(props: { readonly count: number }) {
+  return <ChatListLabel accent>{needsYouLabel(props.count)}</ChatListLabel>;
 }
 
 /**

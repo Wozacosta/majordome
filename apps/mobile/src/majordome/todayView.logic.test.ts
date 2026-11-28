@@ -4,9 +4,11 @@ import { noteSections } from "./today.logic";
 import {
   computerReach,
   dayFromToday,
+  daySheet,
   dayTitle,
   noteStatus,
   shiftDay,
+  timedLine,
   todaySetup,
   todoProgress,
 } from "./todayView.logic";
@@ -105,4 +107,43 @@ it("says why a note is missing instead of waiting for ever", () => {
     notice: "failed",
     empty: "nothing",
   });
+});
+
+it("lays a day out as one sheet: to-dos gathered, those left first, the rest as the journal", () => {
+  const sheet = daySheet(
+    noteSections(
+      [
+        "## To do",
+        "- [x] Pay the plumber",
+        "- [ ] Call the notary",
+        "## Journal",
+        "- 09:12 Slept badly",
+        "  - [ ] Book the train",
+        "### Later",
+        "- [x] Renew the insurance",
+        "## Ideas",
+        "A walk before work",
+      ].join("\n"),
+      "2026-11-28",
+    ),
+  );
+  expect(sheet.todos.map((todo) => [todo.text, todo.index])).toEqual([
+    ["Call the notary", 2],
+    ["Book the train", 5],
+    ["Pay the plumber", 1],
+    ["Renew the insurance", 7],
+  ]);
+  // The heading that only held to-dos is gone, and so is the sub-heading left with nothing under it.
+  expect(
+    sheet.journal.map((section) => [section.title, section.lines.map((line) => line.text)]),
+  ).toEqual([
+    ["Journal", ["09:12 Slept badly"]],
+    ["Ideas", ["A walk before work"]],
+  ]);
+});
+
+it("splits the time off a line written from the phone", () => {
+  expect(timedLine("09:12 Slept badly")).toEqual({ time: "09:12", text: "Slept badly" });
+  expect(timedLine("Slept badly at 09:12")).toBeNull();
+  expect(timedLine("09:12")).toBeNull();
 });

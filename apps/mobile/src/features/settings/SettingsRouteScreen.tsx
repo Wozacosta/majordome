@@ -35,7 +35,24 @@ import { filterSettingsSections } from "./settings-search";
 import { usePaneRole } from "../../components/ui/Pane";
 import { useGT, useMessages } from "gt-react-native";
 import { isMajordome } from "../../majordome/env";
-import { MAJORDOME_SETTINGS_LABELS, majordomeSettingsSections } from "../../majordome/settingsRows";
+import { useAtomValue } from "@effect/atom-react";
+import { getOnboardingProviderState } from "@t3tools/shared/claudeSignIn";
+import { nativeLanguageName } from "@t3tools/client-runtime/locales";
+import Constants from "expo-constants";
+import { useLanguagePreference } from "../../i18n/I18nProvider";
+import { SUPPORTED_LOCALES } from "../../i18n/locales";
+import {
+  majordomeSettingsCards,
+  type ClaudeStanding,
+  type MajordomeSettingsRow,
+} from "../../majordome/settingsRows";
+import { SETUP_CHAT_BUTTON_LABEL, useOpenSetupChat } from "../../majordome/setupChat";
+import { environmentPresentations } from "../../state/presentation";
+import { useRemoteConnectionStatus } from "../../state/use-remote-environment-registry";
+import { voiceGrantAtom } from "../voice-input/voiceDestination";
+import { useAppearancePreferences } from "./appearance/AppearancePreferencesProvider";
+import { CLAUDE_DRIVER } from "./claude-accounts";
+import { openSettings } from "./settings-navigation";
 
 export function SettingsRouteScreen() {
   const list = useSettingsListPlacement();
@@ -69,12 +86,14 @@ function useSettingsListPlacement() {
 }
 
 function SettingsListContent() {
-  if (hasCloudPublicConfig()) return <ConfiguredSettingsRouteScreen />;
-  return isMajordome && hasAccountPublicConfig() ? (
-    <AccountSettingsRouteScreen />
-  ) : (
-    <LocalSettingsRouteScreen />
-  );
+  if (isMajordome) {
+    return hasAccountPublicConfig() ? (
+      <MajordomeAccountSettingsList />
+    ) : (
+      <MajordomeSettingsList account={null} />
+    );
+  }
+  return hasCloudPublicConfig() ? <ConfiguredSettingsRouteScreen /> : <LocalSettingsRouteScreen />;
 }
 
 export function SettingsListScreen(props: {
@@ -84,6 +103,34 @@ export function SettingsListScreen(props: {
   const gt = useGT();
   const workspace = useWorkspaceTabs();
   const environmentMenu = useSettingsEnvironmentMenu();
+  const openSetupChat = useOpenSetupChat();
+  if (isMajordome) {
+    // Eight rows need no search, and each computer's settings are on its own page: no filter.
+    return (
+      <SettingsSidebarContext value={props.sidebar ? { selected: props.selected } : null}>
+        <View className="flex-1 bg-screen">
+          <SettingsScreen
+            title={gt("Settings")}
+            workspaceRoot={props.sidebar}
+            // No button when no computer has a Set-up chat, such as one on an older Majordome.
+            actions={
+              openSetupChat === null
+                ? []
+                : [
+                    {
+                      accessibilityLabel: SETUP_CHAT_BUTTON_LABEL,
+                      icon: "questionmark.bubble",
+                      onPress: openSetupChat,
+                    },
+                  ]
+            }
+          >
+            <SettingsListContent />
+          </SettingsScreen>
+        </View>
+      </SettingsSidebarContext>
+    );
+  }
   return (
     <SettingsSidebarContext value={props.sidebar ? { selected: props.selected } : null}>
       <View className="flex-1 bg-screen">
@@ -151,31 +198,106 @@ function ConfiguredSettingsRouteScreen() {
   );
 }
 
-/** Majordome with its account service: Settings starts with the account, signed in or not. */
-function AccountSettingsRouteScreen() {
-  const gt = useGT();
-  const navigation = useNavigation();
+/** Majordome with its account service: the account row says who is signed in. */
+function MajordomeAccountSettingsList() {
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const { user } = useUser();
-  const { savedConnectionsById } = useSavedRemoteConnections();
   return (
-    <SettingsList
-      connections={[
-        {
-          id: "SettingsAccount",
-          icon: "person.crop.circle",
-          label: MAJORDOME_SETTINGS_LABELS.SettingsAccount,
-          value: !isLoaded
-            ? ""
-            : isSignedIn
-              ? (user?.primaryEmailAddress?.emailAddress ?? gt("Signed in"))
-              : gt("Sign in"),
-          valuePosition: "trailing",
-          onPress: () => navigation.navigate("SettingsAccount"),
-        },
-        environmentsRow(gt("Environments"), Object.keys(savedConnectionsById).length),
-      ]}
+    <MajordomeSettingsList
+      account={{
+        email:
+          isLoaded && isSignedIn ? (user?.primaryEmailAddress?.emailAddress ?? "Signed in") : null,
+      }}
     />
+  );
+}
+
+const THEME_MODE_NAMES = { system: "Automatic", light: "Light", dark: "Dark" } as const;
+
+/** Majordome's first screen: four cards, the computers and the Claude plan first with their state. */
+function MajordomeSettingsList(props: {
+  readonly account: { readonly email: string | null } | null;
+}) {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const listSurface = use(SettingsSidebarContext) ? "bg-drawer" : "bg-screen";
+  const { connectedEnvironments } = useRemoteConnectionStatus();
+  const providersByEnvironment = useAtomValue(environmentPresentations.providersByEnvironmentAtom);
+  const { themeMode } = useAppearancePreferences();
+  const language = useLanguagePreference();
+  const grant = useAtomValue(voiceGrantAtom);
+  const connected = connectedEnvironments.filter(
+    (environment) => environment.isEnabled && environment.connectionState === "connected",
+  );
+  const claude = connected.flatMap((environment): ClaudeStanding[] => {
+    const providers = providersByEnvironment.get(environment.environmentId);
+    if (providers === undefined) return ["checking"];
+    const provider = providers.find((candidate) => candidate.driver === CLAUDE_DRIVER);
+    return provider === undefined ? [] : [getOnboardingProviderState(provider)];
+  });
+  const voiceComputer =
+    grant === null
+      ? undefined
+      : connectedEnvironments.find(
+          (environment) => environment.environmentId === grant.destination.environmentId,
+        );
+  const cards = majordomeSettingsCards({
+    computers: connectedEnvironments.map((environment) => ({
+      id: environment.environmentId,
+      label: environment.environmentLabel,
+      enabled: environment.isEnabled,
+      phase: environment.connectionState,
+    })),
+    // No Claude on any connected computer: the row is about the AI accounts they do have.
+    claude: connected.length > 0 && claude.length === 0 ? null : claude,
+    account: props.account,
+    look: [
+      THEME_MODE_NAMES[themeMode],
+      SUPPORTED_LOCALES.includes(language) ? nativeLanguageName(language) : null,
+    ]
+      .filter((part) => part !== null)
+      .join(" · "),
+    voice:
+      grant === null ? "On this phone" : `On ${voiceComputer?.environmentLabel ?? "your computer"}`,
+    version: Constants.expoConfig?.version ?? "",
+  });
+  const open = (row: MajordomeSettingsRow) => {
+    const target = row.opens;
+    if (target.page === "SettingsEnvironmentDetail") {
+      const environment = connectedEnvironments.find(
+        (candidate) => candidate.environmentId === target.environmentId,
+      );
+      if (environment) {
+        openSettings(navigation, target.page, { environmentId: environment.environmentId });
+      }
+    } else {
+      openSettings(navigation, target.page);
+    }
+  };
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+      className={`flex-1 ${listSurface}`}
+      contentContainerClassName="gap-4 px-5 pt-4"
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
+    >
+      {cards.map((card) => (
+        <SettingsSection key={card.rows[0]?.id}>
+          {card.rows.map((row) => (
+            <SettingsRow
+              key={row.id}
+              icon={row.icon}
+              label={row.label}
+              value={row.value}
+              valueTone={row.tone}
+              valuePosition="trailing"
+              onPress={() => open(row)}
+            />
+          ))}
+        </SettingsSection>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -219,7 +341,7 @@ function SettingsList(props: { readonly connections: readonly SettingsListRow[] 
     ...indexSections,
   ];
   const sections = filterSettingsSections<SettingsListRow, SettingsListSection>(
-    [{ rows: overflowRows }, ...(isMajordome ? majordomeSettingsSections(pages) : pages)],
+    [{ rows: overflowRows }, ...pages],
     query,
     m,
   );
@@ -308,9 +430,6 @@ function useSettingsIndexSections(): SettingsListSection[] {
         serverPage("SettingsProviderAccounts", "person.crop.circle", gt("Providers")),
         serverPage("SettingsThreads", "text.bubble", gt("Threads")),
         page("SettingsScheduledTasks", "clock", gt("Scheduled tasks")),
-        ...(isMajordome
-          ? [serverPage("SettingsSavedKeys", "key", MAJORDOME_SETTINGS_LABELS.SettingsSavedKeys)]
-          : []),
       ],
     },
     {

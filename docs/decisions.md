@@ -70,13 +70,22 @@ light; the wordmark can show the daemon inside the name: **majord**ome.
     folder older than the card. The words are shared (`majordomeWelcome.ts`). On the phone it is
     a sheet that asks the name alone (2026-11-27): the card stacked on Today's own hints read as
     clutter.
-  - The phone's Today talks to the assistant (2026-11-27). Its box used to add a line to the
-    daily note, with the assistant as a side link, which a new owner could not make sense of.
-    Overview is now the computer's box and starters at phone size, and a send opens a chat with
-    the message sent (`sendOnOpen.ts`). The day's lines live in a Journal tab. With no
-    connection the box keeps the words as a journal line. Designs where the assistant decides,
-    line by line, whether an answer is wanted were drawn and put off until that guess can be
-    measured.
+  - The phone opens on the topics, not on Today (2026-11-28). A greeting and a box gave nothing
+    to read; the list shows what moved. There is no tab bar: the list is the only root, Today is
+    a strip fixed under the title that opens the day as a page, and Settings is a button in the
+    header. Chats that wait for the owner (an OK, an answer, a new reply) rise above the topics,
+    which otherwise keep the owner's order; only the first is a card, and it answers in place
+    only when the request is one short line, because a yes given from a list must be a yes to
+    something fully read. The box at the bottom opens a new chat with the message sent
+    (`sendOnOpen.ts`), and with no connection keeps the words as a journal line. Today is one
+    sheet (to-dos, routines, journal) with no Overview. A single conversation that files what is
+    said into topics was drawn and kept for a later comparison, as were designs where the
+    assistant decides, line by line, whether an answer is wanted.
+  - Settings on the phone leads with state, and can be talked to (2026-11-28). The computer and
+    the Claude plan are the first rows and say how they are doing; each computer's page owns its
+    own switches. A button in the header opens one continuing "Set-up" chat, stored like the
+    routines conversation and left off the list unless it waits for the owner. It uses the tools
+    every chat already has; what the assistant may change was not widened.
   - No setup interview. The welcome page has two optional fields, what to call the owner and
     what they want help with first: the name, language and time zone start `me.md` with no model
     call, and the second is sent as the first chat. After that the assistant saves what it is
@@ -447,8 +456,9 @@ takes over.
      Today; offline capture of a note or a request, shown as waiting to send.
    - **Where the first cut stands (2026-11-23):** it builds and runs in the iPhone simulator as
      Majordome (identifier `io.github.wozacosta.majordome.ios`, the owner's Apple team), pairs,
-     lists the topics as conversations above the other chats, and opens on Today: the day's note, to-dos that can be ticked, and a box that
-     adds a line to the note. A line typed with no connection is kept on the phone, shown as
+     lists the topics as conversations above the other chats, and opened on Today (since 2026-11-28
+     it opens on that list, see "The phone opens on the topics" above): the day's note, to-dos
+     that can be ticked, and a box that adds a line to the note. A line typed with no connection is kept on the phone, shown as
      waiting, and sent when the server answers; the app reopens offline on the note it last saw.
      Requests typed offline use upstream's own message outbox. Not done: a TestFlight build, a
      run on a real phone, and the long tail of coding words on the chat screens. How it is put

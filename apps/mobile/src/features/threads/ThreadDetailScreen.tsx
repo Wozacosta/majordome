@@ -188,6 +188,7 @@ import {
 } from "../../majordome/conversation.logic";
 import { DEFAULT_TOOL_CALL_VISIBILITY, isMajordome } from "../../majordome/env";
 import { SendOnOpen } from "../../majordome/sendOnOpen";
+import { useIsSetupChat } from "../../majordome/setupChat";
 import { useVoiceModeActive, VoiceModeDock } from "../../majordome/voice-mode/VoiceModeDock";
 import { ComposerErrorNotice } from "./ComposerErrorNotice";
 import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
@@ -426,6 +427,7 @@ function ThreadDetailBody(
   },
 ) {
   const gt = useGT();
+  const setUpChat = useIsSetupChat(String(props.environmentId), String(props.selectedThread.id));
   const messages = useMessages();
   const usesNativeWorkspaceColumns = useNativeWorkspaceColumnsSupported();
   const deviceType = useDeviceType();
@@ -1971,6 +1973,7 @@ function ThreadDetailBody(
                             ? composerPlaceholder({
                                 waitsForApproval: props.activePendingApproval !== null,
                                 working: props.activeThreadBusy,
+                                setUp: setUpChat,
                               })
                             : props.activePendingApproval
                               ? props.activePendingApproval.supportsFeedback
