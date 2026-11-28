@@ -5,6 +5,10 @@ The section for a version is also the text of its release on GitHub.
 
 ## Next
 
+Not released yet.
+
+## 0.10.94
+
 **Changed**
 
 - **The phone's message box says "Everyday", not a model's name.** The button shows the level
