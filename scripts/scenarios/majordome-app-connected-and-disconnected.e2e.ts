@@ -36,13 +36,17 @@ const stored = () => JSON.parse(NodeFS.readFileSync(STORE, "utf8")) as typeof co
 test(
   "An app can be connected from Connections; a connected one has its switch and is disconnected",
   WEB,
-  async ({ t3, app, browser }) => {
+  async ({ t3, app, screen, browser }) => {
     NodeFS.rmSync(STORE, { force: true });
     await t3.project("Notes", NOTES_FOLDER);
     await t3.open("/settings/connectors");
     const card = browser.locator('[data-connection="Granola"]');
     await expect(card.getByRole("button", "Connect")).toBeVisible({ timeout: 30_000 });
     await expect(card.getByText("Meeting notes and transcripts")).toBeVisible();
+    await expect(screen.getByRole("heading", "App catalog", { level: 2 })).toBeVisible();
+    await expect(
+      browser.locator('[data-connection="Notion"]').getByText("Pages and databases"),
+    ).toBeVisible();
     await app.screenshot("app-to-connect");
 
     NodeFS.mkdirSync(NodePath.dirname(STORE), { recursive: true });

@@ -5,12 +5,13 @@ in once, in Majordome, and every AI you use there can reach the app.
 
 ## Connect
 
-Open **Settings > Connections**. Under **Apps**, press **Connect** next to the app. Your browser
+Open **Settings > Connections**. Under **App catalog**, press **Connect** next to the app. Your browser
 opens the app's own page: approve there, and close the tab when it says the app is connected.
 
 Then ask for something the app knows, such as "what was my last meeting about?"
 
-Today the list holds Granola. More are added as each is checked.
+The catalog holds Granola, Notion, Linear, Atlassian (Jira and Confluence) and Canva. An app
+you connected moves up to **Apps**.
 
 ## What a routine may do
 
@@ -19,7 +20,7 @@ renaming a meeting.
 
 A routine runs with nobody watching, and what an app holds is partly written by other people. So
 a routine, and a task your assistant hands to a helper, may only read from the app. To let them
-change things too, turn on **Let routines make changes in Granola** under the app.
+change things too, turn on **Let routines make changes in Granola** (or the app's name) under the app.
 
 ## One machine at a time
 

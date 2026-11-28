@@ -210,6 +210,7 @@ function Machine({
       <Section label="Apps" labelAs={labelAs}>
         <Connectors environmentId={environmentId} name={name} />
       </Section>
+      <AppCatalog environmentId={environmentId} labelAs={labelAs} />
       <Section
         label="Backups"
         labelAs={labelAs}
@@ -337,7 +338,70 @@ function openInBrowser(url: string) {
   else void shell.openExternal(url).catch(() => undefined);
 }
 
-/** The apps connected through Majordome on this computer, and the ones that can be added. */
+/** Starting a sign-in to an app: the one button a catalogue card and a lapsed connection share. */
+function useConnectApp(environmentId: EnvironmentId) {
+  const allowed = useAtomValue(majordomeEnvironment.startConnection.permissionAtom(environmentId));
+  const origin = serverOrigin(useEnvironmentHttpBaseUrl(environmentId));
+  const start = useAtomCommand(majordomeEnvironment.startConnection, { reportFailure: false });
+  const [busy, setBusy] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const connect = async (appId: string) => {
+    if (origin === null) return;
+    setBusy(appId);
+    setProblem(null);
+    const result = await start({ environmentId, input: { appId, origin } });
+    setBusy(null);
+    if (result._tag === "Failure") setProblem(formatEnvironmentQueryError(result.cause));
+    else openInBrowser(result.value.authorizationUrl);
+  };
+  return { allowed, canStart: origin !== null, busy, setBusy, problem, connect };
+}
+
+/** The apps that can be connected on this computer and are not yet. Nothing when there is none. */
+function AppCatalog({
+  environmentId,
+  labelAs,
+}: {
+  readonly environmentId: EnvironmentId;
+  readonly labelAs: "h2";
+}) {
+  const result = useAtomValue(majordomeEnvironment.connections({ environmentId, input: {} }));
+  const { addable } = appsView(
+    AsyncResult.getOrElse(result, () => ({ apps: [], connections: [] })),
+  );
+  const { allowed, canStart, busy, problem, connect } = useConnectApp(environmentId);
+  if (!allowed || addable.length === 0) return null;
+  return (
+    <Section label="App catalog" labelAs={labelAs}>
+      <ServiceGrid
+        services={addable.map((app) => ({
+          key: `add:${app.id}`,
+          name: app.name,
+          mark: appMark(app.name),
+          state: { label: app.about, tone: "neutral" as const },
+          plain: true,
+          place: null,
+          action: (
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={busy === app.id || !canStart}
+              onClick={() => void connect(app.id)}
+            >
+              {busy === app.id ? <Spinner size="sm" /> : null}
+              Connect
+            </Button>
+          ),
+        }))}
+      />
+      {problem === null ? null : (
+        <p className="mt-2 text-sm text-destructive-foreground">{problem}</p>
+      )}
+    </Section>
+  );
+}
+
+/** The apps connected through Majordome on this computer. */
 function ConnectedApps({
   environmentId,
   apps,
@@ -345,12 +409,10 @@ function ConnectedApps({
 }: {
   readonly environmentId: EnvironmentId;
   readonly apps: ReturnType<typeof appsView>;
-  /** What the AI accounts bring, listed between the connected apps and the ones to add. */
+  /** What the AI accounts bring, listed after the apps connected here. */
   readonly children: ReactNode;
 }) {
-  const allowed = useAtomValue(majordomeEnvironment.startConnection.permissionAtom(environmentId));
-  const origin = serverOrigin(useEnvironmentHttpBaseUrl(environmentId));
-  const start = useAtomCommand(majordomeEnvironment.startConnection, { reportFailure: false });
+  const { allowed, busy, setBusy, problem, connect } = useConnectApp(environmentId);
   const remove = useAtomCommand(majordomeEnvironment.removeConnection, {
     label: "disconnect the app",
   });
@@ -361,8 +423,6 @@ function ConnectedApps({
     reportFailure: false,
     reportDefect: false,
   });
-  const [busy, setBusy] = useState<string | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- a sign-in ends in a browser tab, outside the app; coming back to the window is the only sign it may be done
   useEffect(() => {
@@ -371,15 +431,6 @@ function ConnectedApps({
     return () => window.removeEventListener("focus", onFocus);
   }, [check, environmentId]);
 
-  const connect = async (appId: string) => {
-    if (origin === null) return;
-    setBusy(appId);
-    setProblem(null);
-    const result = await start({ environmentId, input: { appId, origin } });
-    setBusy(null);
-    if (result._tag === "Failure") setProblem(formatEnvironmentQueryError(result.cause));
-    else openInBrowser(result.value.authorizationUrl);
-  };
   const disconnect = async (appId: string) => {
     setBusy(appId);
     await remove({ environmentId, input: { appId } });
@@ -413,7 +464,7 @@ function ConnectedApps({
           services={apps.connected.map((row) => ({
             key: `app:${row.appId}`,
             name: row.name,
-            mark: connectorMark(row.name),
+            mark: appMark(row.name),
             state: row.state,
             place: null,
             action: actionFor(row),
@@ -435,29 +486,6 @@ function ConnectedApps({
         />
       ) : null}
       {children}
-      {allowed && apps.addable.length > 0 ? (
-        <ServiceGrid
-          className="mt-2"
-          services={apps.addable.map((app) => ({
-            key: `add:${app.id}`,
-            name: app.name,
-            mark: connectorMark(app.name),
-            state: { label: app.about, tone: "neutral" as const },
-            place: null,
-            action: (
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={busy === app.id || origin === null}
-                onClick={() => void connect(app.id)}
-              >
-                {busy === app.id ? <Spinner size="sm" /> : null}
-                Connect
-              </Button>
-            ),
-          }))}
-        />
-      ) : null}
       {problem === null ? null : (
         <p className="mt-2 text-sm text-destructive-foreground">{problem}</p>
       )}
@@ -530,6 +558,8 @@ interface Service {
   readonly state: ConnectionState;
   /** The link its button is: where it is signed in to or managed. Null when there is no such place. */
   readonly place: ReactElement | null;
+  /** The line under the name says what the service is, not how it is doing: no dot. */
+  readonly plain?: true;
   /** A button of its own, in place of the link. */
   readonly action?: ReactNode;
   /** A setting of its own, under the row. */
@@ -569,7 +599,7 @@ function ServiceGrid({
                 className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
                 data-tone={service.state.tone}
               >
-                <ToneDot tone={service.state.tone} />
+                {service.plain ? null : <ToneDot tone={service.state.tone} />}
                 <span className="min-w-0 truncate">
                   {[service.state.label, service.provider].filter(Boolean).join(" · ")}
                 </span>
@@ -603,6 +633,15 @@ const BACKUP_MARKS: Readonly<Record<string, ReactNode>> = {
   "google-drive": <GoogleDriveIcon className={MARK_CLASS} />,
   folder: <FolderIcon className={cn(MARK_CLASS, "text-muted-foreground")} />,
 };
+
+/** An app from the catalogue: its brand's mark where there is one, else its initial. */
+function appMark(name: string): ReactNode {
+  return serviceBrand(name) === null ? (
+    <span className="text-sm font-semibold text-muted-foreground">{name.slice(0, 1)}</span>
+  ) : (
+    connectorMark(name)
+  );
+}
 
 function connectorMark(name: string): ReactNode {
   const brand = serviceBrand(name);

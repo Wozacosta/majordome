@@ -7,6 +7,16 @@ The section for a version is also the text of its release on GitHub.
 
 Not released yet.
 
+**New**
+
+- **An app catalog on the Connections page.** The apps you can connect have their own section,
+  under the ones already connected. It now holds Notion, Linear, Atlassian (Jira and Confluence)
+  and Canva beside Granola. Connect one and it moves up to Apps.
+
+**Try this**
+
+- Open Settings, then Connections, scroll to App catalog and connect an app you use.
+
 ## 0.10.92
 
 **New**
