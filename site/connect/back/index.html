@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Back to Majordome</title>
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      body {
+        margin: 0;
+        padding: 40px 20px;
+        background: #f4efe6;
+        color: #14161c;
+        font:
+          17px/1.6 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #14161c;
+          color: #f4efe6;
+        }
+      }
+      p {
+        max-width: 30rem;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="message">Taking you back to Majordome…</p>
+    <!--
+      An app sends the browser here after a sign-in, because apps warn about a sign-in that
+      returns to an address on the person's own computer. This page only passes the browser on
+      to that computer; the one-time code in the address is no use without a second secret that
+      never leaves it. No analytics here, so the code is not sent anywhere else.
+      The check below is `isLocalMajordomeOrigin` in packages/shared/src/majordomeConnections.ts.
+    -->
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var state = params.get("state") || "";
+        var origin = "";
+        try {
+          var encoded = state
+            .slice(state.indexOf(".") + 1)
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+          origin = atob(encoded);
+        } catch (error) {}
+        var local =
+          /^http:\/\/(localhost|127(\.\d{1,3}){3}|10(\.\d{1,3}){3}|192\.168(\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2}|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])(\.\d{1,3}){2}|[a-z0-9-]+\.local|[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net)(:\d{1,5})?$/;
+        if (state.indexOf(".") > 0 && local.test(origin)) {
+          location.replace(origin + "/oauth/connections/callback" + location.search);
+        } else {
+          document.getElementById("message").textContent =
+            "This sign-in did not start from Majordome. You can close this tab.";
+        }
+      })();
+    </script>
+  </body>
+</html>
